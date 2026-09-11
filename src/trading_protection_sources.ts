@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
 import { getDatabase } from './db.js';
 
+const hash = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+
 /** Includes zero-quantity entry remainders and orphan entries. No absence/quantity-only no-duty inference. */
-export async function protectionScopes(accountId?: string): Promise<Array<{ accountId: string; intentId: string }>> {
+export function protectionScopes(accountId?: string): Promise<Array<{ accountId: string; intentId: string }>> {
   return getDatabase().all(`SELECT account_id AS accountId, intent_id AS intentId FROM trading_positions
       WHERE status <> 'closed' AND (? IS NULL OR account_id = ?)
     UNION SELECT account_id AS accountId, intent_id AS intentId FROM trading_orders
@@ -17,8 +19,6 @@ export async function protectionAccountSource(accountId: string): Promise<{ vers
   const { state_version: version, last_reconciled_at: _lastReconciledAt, updated_at: _updatedAt, ...binding } = account;
   return { version: Number(version), digest: hash(binding) };
 }
-
-const hash = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
 /** Hash source rows only, never publish provider payloads or credentials. Monetary health is deliberately not a stop gate. */
 export async function protectionSourceDigest(accountId: string): Promise<string> {

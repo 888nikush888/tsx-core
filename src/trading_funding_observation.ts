@@ -10,7 +10,7 @@ import { projectAccountFillAccounting } from './trading_fill_accounting.js';
 import { valueFxAccountMoney } from './trading_fx_valuation.js';
 import { usesScheduledFxRecovery } from './trading_recovery_schedule_repository.js';
 
-async function observedProof(account: TradingAccount, now: number): Promise<FundingObservationProof> {
+async function observationInputs(account: TradingAccount, now: number) {
   const since = new Date(now).setUTCHours(0, 0, 0, 0);
   const checkpoint = await storedAccountLogCheckpoint(account);
   const rows = await getDatabase().all<Array<{ id: string; status: string; result_json: string | null }>>(`
@@ -19,25 +19,107 @@ async function observedProof(account: TradingAccount, now: number): Promise<Fund
     WHERE receipt.account_id=? AND receipt.account_fingerprint=? ORDER BY receipt.sequence`, [account.id, account.externalAccountId]);
   const ledger = await moneyLedgerSnapshot(account.id, since, now + 1);
   const through = checkpoint?.scannedThrough ?? since;
+  return { since, checkpoint, rows, ledger, through };
+}
+
+function scopeOriginReason(origin: Awaited<ReturnType<typeof accountOriginScope>> | null): string | null {
+  return origin?.status === 'not_proven' ? `source_origin:${origin.reason}` : null;
+}
+
+function finalObservationReason(
+  scopeReason: string | null,
+  input: { checkpoint: Awaited<ReturnType<typeof storedAccountLogCheckpoint>>; since: number; through: number;
+    now: number; rows: Array<{ status: string }>; valued: boolean },
+): string | null {
+  return scopeReason ?? observationReason(input);
+}
+
+function proofIdentity(
+  account: TradingAccount,
+  input: Awaited<ReturnType<typeof observationInputs>>,
+): Pick<FundingObservationProof, 'accountFingerprint' | 'credentialGeneration' | 'since' | 'through' | 'reportingCurrency'> {
+  return { accountFingerprint: account.externalAccountId ?? '', credentialGeneration: account.credentialGeneration ?? '',
+    since: input.since, through: input.through, reportingCurrency: input.ledger.reportingCurrency };
+}
+
+function proofAmounts(
+  input: Awaited<ReturnType<typeof observationInputs>>,
+  reason: string | null,
+): Pick<FundingObservationProof, 'amount' | 'value'> {
+  return reason === null
+    ? { amount: input.ledger.funding, value: input.ledger.fundingValue }
+    : { amount: null, value: null };
+}
+
+function proofNamespace(
+  account: TradingAccount,
+  reason: string | null,
+): Pick<FundingObservationProof, 'status' | 'namespace'> {
   const source = accountLogSource(account.exchange);
-  const origin = account.exchange === 'bybit' ? await accountOriginScope(account, since) : null;
-  const scopeReason = origin?.status === 'not_proven' ? `source_origin:${origin.reason}` : null;
-  const reason = scopeReason ?? observationReason({ checkpoint, since, through, now, rows, valued: ledger.valuationStatus === 'valued' });
-  return { version: 1, status: reason === null ? 'observed' : 'incomplete', namespace: source?.namespace ?? 'unsupported',
-    accountFingerprint: account.externalAccountId ?? '', credentialGeneration: account.credentialGeneration ?? '',
-    since, through, revisionHash: accountLogDigest([checkpoint, rows, ledger, origin]), reportingCurrency: ledger.reportingCurrency,
-    amount: reason === null ? ledger.funding : null, value: reason === null ? ledger.fundingValue : null,
+  return { status: reason === null ? 'observed' : 'incomplete', namespace: source?.namespace ?? 'unsupported' };
+}
+
+function buildFundingProof(
+  account: TradingAccount,
+  input: Awaited<ReturnType<typeof observationInputs>>,
+  origin: Awaited<ReturnType<typeof accountOriginScope>> | null,
+  reason: string | null,
+): FundingObservationProof {
+  const { checkpoint, rows, ledger } = input;
+  return { version: 1, ...proofNamespace(account, reason), ...proofIdentity(account, input),
+    revisionHash: accountLogDigest([checkpoint, rows, ledger, origin]), ...proofAmounts(input, reason),
     sourceScope: 'source_account', finality: 'provider_as_observed',
     delivery: 'may_be_delayed', reason };
+}
+
+async function observedProof(account: TradingAccount, now: number): Promise<FundingObservationProof> {
+  const input = await observationInputs(account, now);
+  const origin = account.exchange === 'bybit' ? await accountOriginScope(account, input.since) : null;
+  const reason = finalObservationReason(scopeOriginReason(origin), {
+    checkpoint: input.checkpoint, since: input.since, through: input.through,
+    now, rows: input.rows, valued: input.ledger.valuationStatus === 'valued',
+  });
+  return buildFundingProof(account, input, origin, reason);
+}
+function checkpointFreshnessReason(
+  checkpoint: Awaited<ReturnType<typeof storedAccountLogCheckpoint>>,
+  since: number, through: number, now: number,
+): string | null {
+  if (!checkpoint) return 'source_unsupported';
+  if (through < since || now - through > 60000) return 'funding_window_not_fresh';
+  return null;
+}
+
+function monetarySourceReason(rows: Array<{ status: string }>, valued: boolean): string | null {
+  if (rows.length === 0 || rows.some(row => row.status !== 'complete')) return 'unresolved_monetary_source';
+  if (!valued) return 'unvalued_monetary_events';
+  return null;
+}
+
+function carriedCheckpointReason(
+  checkpoint: NonNullable<Awaited<ReturnType<typeof storedAccountLogCheckpoint>>>,
+): string | null {
+  return checkpoint.reason && checkpoint.reason !== 'budget_exhausted' ? checkpoint.reason : null;
 }
 function observationReason(input: { checkpoint: Awaited<ReturnType<typeof storedAccountLogCheckpoint>>; since: number; through: number;
   now: number; rows: Array<{ status: string }>; valued: boolean }): string | null {
   const { checkpoint, since, through, now, rows, valued } = input;
-  if (!checkpoint) return 'source_unsupported';
-  if (through < since || now - through > 60000) return 'funding_window_not_fresh';
-  if (rows.length === 0 || rows.some(row => row.status !== 'complete')) return 'unresolved_monetary_source';
-  if (!valued) return 'unvalued_monetary_events';
-  return checkpoint.reason && checkpoint.reason !== 'budget_exhausted' ? checkpoint.reason : null;
+  return checkpointFreshnessReason(checkpoint, since, through, now)
+    ?? monetarySourceReason(rows, valued)
+    ?? (checkpoint ? carriedCheckpointReason(checkpoint) : null);
+}
+
+function comparableProof(current: FundingObservationProof, proof: FundingObservationProof): FundingObservationProof {
+  const comparable = { ...current };
+  if (proof.value === undefined && proof.amount !== null && current.amount !== null) delete comparable.value;
+  return comparable;
+}
+
+function assertProofFresh(proof: FundingObservationProof, comparable: FundingObservationProof): void {
+  if (proof.status !== 'observed' || comparable.status !== 'observed'
+    || !isDeepStrictEqual(proof, comparable)) {
+    throw new Error('Persisted funding observation is stale or unresolved.');
+  }
 }
 
 export async function observedFundingEvidence(account: TradingAccount, now = Date.now()): Promise<TradingFundingEvidence> {
@@ -61,10 +143,5 @@ export async function assertFundingObservationCurrent(account: TradingAccount, p
   const current = await observedProof(account, Date.now());
   // A legacy decimal-only proof may omit the additive value, but cannot stand in
   // for an exact rational with no decimal representation. All original bindings remain compared.
-  const comparable = { ...current };
-  if (proof.value === undefined && proof.amount !== null && current.amount !== null) delete comparable.value;
-  if (proof.status !== 'observed' || current.status !== 'observed'
-    || !isDeepStrictEqual(proof, comparable)) {
-    throw new Error('Persisted funding observation is stale or unresolved.');
-  }
+  assertProofFresh(proof, comparableProof(current, proof));
 }

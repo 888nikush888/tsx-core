@@ -165,7 +165,9 @@ export async function recordMoneyEvent(value: MoneyEventInput): Promise<MoneyEve
     return { id, accepted: true };
   });
   if (!outcome.accepted) throw new Error('Monetary event conflict; contradictory evidence was retained.');
-  return (await getMoneyEvent(outcome.id))!;
+  const persisted = await getMoneyEvent(outcome.id);
+  if (!persisted) throw new Error('Monetary event was not retained.');
+  return persisted;
 }
 
 function sameMoneyOriginal(payload: string, clean: MoneyEventInput): boolean {
@@ -220,7 +222,8 @@ async function decodeMoneyRow(row: MoneyReadRow): Promise<MoneyEvent> {
   if (row.conflict) return event;
   if (row.fx_event_id) {
     try {
-      const proof = (await readFxMoneyValuation(row.id))!;
+      const proof = await readFxMoneyValuation(row.id);
+      if (!proof) return event;
       return { ...event, valuationStatus: 'valued', reportingValue: proof.value, reportingAmount: proof.value.decimal,
         reportingCurrency: proof.reportingCurrency, valuationEvidenceId: proof.contentHash };
     } catch (error) {
@@ -229,8 +232,9 @@ async function decodeMoneyRow(row: MoneyReadRow): Promise<MoneyEvent> {
     }
   }
   if (row.reporting_amount === null) return event;
+  if (!row.valuation_json) return event;
   return { ...event, valuationStatus: 'valued', reportingValue: moneyValueFromDecimal(row.reporting_amount),
-    valuationEvidenceId: digest(row.valuation_json!) };
+    valuationEvidenceId: digest(row.valuation_json) };
 }
 
 export async function getMoneyEvent(id: string): Promise<MoneyEvent | null> {
@@ -239,7 +243,7 @@ export async function getMoneyEvent(id: string): Promise<MoneyEvent | null> {
 }
 
 /** Shared projection reader; a complete rational valuation may have no exact decimal scalar. */
-export async function moneyEventsForIntent(intentId: string): Promise<MoneyEvent[]> {
+export function moneyEventsForIntent(intentId: string): Promise<MoneyEvent[]> {
   return withDatabaseTransaction(async db => {
     const rows = await db.all<MoneyReadRow[]>(`${MONEY_READ} WHERE event.intent_id=? ORDER BY event.occurred_at,event.id`, [intentId]);
     const events: MoneyEvent[] = [];
@@ -275,7 +279,8 @@ export async function valueKrakenCashlegFee(request: KrakenCashlegRequest): Prom
       return { accepted: false, reason: error.message };
     }
   });
-  const result = (await getMoneyEvent(request.eventId))!;
+  const result = await getMoneyEvent(request.eventId);
+  if (!result) throw new KrakenCashlegError('Monetary event was not retained.', true);
   if (!outcome.accepted || result.valuationStatus !== 'valued') throw new KrakenCashlegError(outcome.reason, true);
   return result;
 }
@@ -318,7 +323,7 @@ export async function valueMoneyEvent(quote: EventTimeValuation): Promise<void> 
 async function snapshotReadiness(accountId: string) {
   const bindings = await getDatabase().all<Array<{ reporting_currency: string; account_fingerprint: string }>>(
     'SELECT reporting_currency, account_fingerprint FROM trading_money_bindings WHERE account_id = ?', [accountId]);
-  const binding = bindings.length === 1 ? bindings[0]! : null;
+  const binding = bindings.length === 1 && bindings[0] ? bindings[0] : null;
   let bindingCurrent = false;
   try { await assertAccountBinding(accountId, binding?.account_fingerprint ?? ''); bindingCurrent = true; } catch { /* Unverified is not zero. */ }
   const counts = await getDatabase().get<{ conflictCount: number; pendingProjections: number; unresolvedProjections: number }>(`SELECT
@@ -326,7 +331,7 @@ async function snapshotReadiness(accountId: string) {
     (SELECT COUNT(*) FROM trading_accounting_pending WHERE account_id = ?) AS pendingProjections,
     (SELECT COUNT(*) FROM trading_accounting_projections WHERE account_id = ? AND status <> 'complete') AS unresolvedProjections`, [accountId, accountId, accountId]);
   return { currency: binding?.reporting_currency ?? null, fingerprint: binding?.account_fingerprint ?? null,
-    ready: bindingCurrent && Object.values(counts!).every(count => count === 0), ...counts! };
+    ready: bindingCurrent && counts !== undefined && Object.values(counts).every(count => count === 0), ...counts };
 }
 
 /** Valuation status describes only persisted events; provider history coverage is a separate mandatory gate. */
@@ -338,7 +343,7 @@ export interface MoneyLedgerSnapshot {
   value: MoneyValue | null; valuedSubtotalValue: MoneyValue; pricePnlValue: MoneyValue | null;
   feesValue: MoneyValue | null; fundingValue: MoneyValue | null; valuationHash: string;
 }
-export async function moneyLedgerSnapshot(accountId: string, since: number, until: number): Promise<MoneyLedgerSnapshot> {
+export function moneyLedgerSnapshot(accountId: string, since: number, until: number): Promise<MoneyLedgerSnapshot> {
   timestamp(since); timestamp(until);
   if (until <= since) throw new Error('Monetary snapshot window is inverted.');
   return withDatabaseTransaction(() => readMoneyLedger(accountId, since, until));

@@ -16,7 +16,7 @@ async function records(directory) {
 async function successfulClosure(directory) {
   const file = path.join(directory, 'live.db');
   const owner = await acquireProcessLock(path.join(directory, '.process_active'));
-  let lease;
+  let lease = null;
   try {
     await initDb(file);
     assert.equal((await records(directory))[0].state, 'open');
@@ -43,9 +43,9 @@ async function successfulClosure(directory) {
 async function failedNativeClosure(directory) {
   const file = path.join(directory, 'live.db');
   const owner = await acquireProcessLock(path.join(directory, '.process_active'));
-  let lease;
-  let native;
-  let originalClose;
+  let lease = null;
+  let native = null;
+  let originalClose = null;
   try {
     await initDb(file);
     native = getDatabase().getDatabaseInstance();

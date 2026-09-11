@@ -42,24 +42,55 @@ function originalTime(row: AccountLogRecord, receipt: AccountLogPageReceipt): nu
   if (!Number.isSafeInteger(timestamp) || timestamp < receipt.since || timestamp > receipt.until) throw new KrakenCashlegError('invalid_original_time');
   return timestamp;
 }
-function assertBound(occurrence: KrakenCashlegOccurrence, expected: KrakenCashlegEconomics): number {
-  const { receipt, record } = occurrence;
-  const source = accountLogSource('krakenfutures')!;
+function krakenLogSource(): { namespace: string; filterHash: string } {
+  const source = accountLogSource('krakenfutures');
+  if (!source) throw new KrakenCashlegError('source_binding_mismatch');
+  return source;
+}
+
+function assertAccountBinding(occurrence: KrakenCashlegOccurrence, expected: KrakenCashlegEconomics): void {
+  const { receipt } = occurrence;
   if (occurrence.accountId !== expected.accountId || receipt.accountFingerprint !== expected.fingerprint
-    || !/^[a-f0-9]{64}$/.test(receipt.credentialGeneration) || receipt.providerAccountUid !== expected.providerAccountUid
+    || receipt.providerAccountUid !== expected.providerAccountUid) throw new KrakenCashlegError('source_binding_mismatch');
+}
+
+function assertReceiptSource(receipt: KrakenCashlegOccurrence['receipt'], source: { namespace: string; filterHash: string }): void {
+  if (!/^[a-f0-9]{64}$/.test(receipt.credentialGeneration)
     || receipt.namespace !== source.namespace || receipt.filterHash !== source.filterHash) throw new KrakenCashlegError('source_binding_mismatch');
+}
+
+function assertRecordBinding(record: AccountLogRecord, expected: KrakenCashlegEconomics): void {
   equal(record.execution, expected.executionUid, 'execution_mismatch');
   equal(cashlegAsset(record.contract), expected.contract.toUpperCase(), 'contract_mismatch');
   if (record.info !== 'futures trade') throw new KrakenCashlegError('non_trade_movement');
+}
+
+function assertRecordIdentity(record: AccountLogRecord): void {
   for (const key of ['id', 'booking_uid', 'margin_account']) cashlegText(record[key]);
+}
+
+function assertBound(occurrence: KrakenCashlegOccurrence, expected: KrakenCashlegEconomics): number {
+  const { receipt, record } = occurrence;
+  assertAccountBinding(occurrence, expected);
+  assertReceiptSource(receipt, krakenLogSource());
+  assertRecordBinding(record, expected);
+  assertRecordIdentity(record);
   return originalTime(record, receipt);
 }
+function assertNoConversionField(row: AccountLogRecord, field: string): void {
+  if (row[field] != null && amount(row[field]) !== '0') throw new KrakenCashlegError('conversion_or_liquidation_unresolved');
+}
+
+function assertNoConversionRoute(row: AccountLogRecord): void {
+  if (row.exchange_rate != null || row.exchange_rate_from != null) throw new KrakenCashlegError('conversion_route_unresolved');
+}
+
 function assertNoConversion(row: AccountLogRecord): void {
   for (const field of ['conversion_fee', 'conversion_spread_percentage', 'liquidation_fee']) {
-    if (row[field] != null && amount(row[field]) !== '0') throw new KrakenCashlegError('conversion_or_liquidation_unresolved');
+    assertNoConversionField(row, field);
   }
   // An observed exchange-rate pair is conversion evidence, not a native-asset quote.
-  if (row.exchange_rate != null || row.exchange_rate_from != null) throw new KrakenCashlegError('conversion_route_unresolved');
+  assertNoConversionRoute(row);
 }
 function assertCash(row: AccountLogRecord, expected: KrakenCashlegEconomics): { asset: string; funding: string; delta: string } {
   const asset = cashlegAsset(row.asset);

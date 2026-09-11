@@ -25,12 +25,36 @@ function originalEntryComparison(original: { entry?: object } | null, request: R
   return expected;
 }
 
+function operationJournalIdentityMatches(operation: OriginalPlanOperation, account: OrderIdentityAccount): boolean {
+  return operation.kind === 'protected_entry' && operation.account_id === account.id
+    && operation.account_fingerprint === account.externalAccountId
+    && operation.credential_generation === account.credentialGeneration
+    && operation.generation === 1;
+}
+
+function operationRequestHashMatches(operation: OriginalPlanOperation): boolean {
+  return hash(operation.request_json) === operation.request_hash;
+}
+
+function operationJournalMatches(operation: OriginalPlanOperation, account: OrderIdentityAccount): boolean {
+  return operationJournalIdentityMatches(operation, account) && operationRequestHashMatches(operation);
+}
+
+function operationExpectedOrdersMatch(
+  expected: unknown, ids: string[],
+  requests: Awaited<ReturnType<typeof prepareProtectedOrderIdentityRequests>>, original: unknown,
+): boolean {
+  return Array.isArray(expected) && expected.length === 2
+    && isDeepStrictEqual(expected.map(row => row.client_order_id).sort(codePointOrder), ids)
+    && expected.every(row => row.exchange_order_id === null && row.provider_symbol === null && row.status === 'created')
+    && isDeepStrictEqual(original, requests);
+}
+
 async function operationMatchesPlan(operation: OriginalPlanOperation, account: OrderIdentityAccount, intentId: string, plan: TradingPlan): Promise<boolean> {
   const entry = plan.orders.find(order => order.role === 'entry');
   const stop = plan.orders.find(order => order.role === 'stop_loss');
-  if (!entry || !stop || operation.kind !== 'protected_entry' || operation.account_id !== account.id
-    || operation.account_fingerprint !== account.externalAccountId || operation.credential_generation !== account.credentialGeneration
-    || operation.generation !== 1 || hash(operation.request_json) !== operation.request_hash) return false;
+  if (!entry || !stop) return false;
+  if (!operationJournalMatches(operation, account)) return false;
   const ids = [entry.clientOrderId, stop.clientOrderId].sort(codePointOrder);
   if (operation.logical_key !== hash(JSON.stringify(['protected_entry', intentId, ids]))) return false;
   const expected = JSON.parse(operation.expected_orders_json);
@@ -38,10 +62,16 @@ async function operationMatchesPlan(operation: OriginalPlanOperation, account: O
   const entryRequest = originalEntryComparison(original, requestFromOrder(account, plan, entry));
   const requests = await prepareProtectedOrderIdentityRequests(account, intentId,
     entryRequest, requestFromOrder(account, plan, stop));
-  return Array.isArray(expected) && expected.length === 2
-    && isDeepStrictEqual(expected.map(row => row.client_order_id).sort(codePointOrder), ids)
-    && expected.every(row => row.exchange_order_id === null && row.provider_symbol === null && row.status === 'created')
-    && isDeepStrictEqual(original, requests);
+  return operationExpectedOrdersMatch(expected, ids, requests, original);
+}
+
+async function allOperationsMatchPlan(
+  operations: OriginalPlanOperation[], account: OrderIdentityAccount, intentId: string, plan: TradingPlan,
+): Promise<boolean> {
+  for (const operation of operations) {
+    if (!await operationMatchesPlan(operation, account, intentId, plan)) return false;
+  }
+  return true;
 }
 
 /** Shared original-request proof for admission, restart and local retirement. This never writes or repairs evidence. */
@@ -55,7 +85,6 @@ export async function originalPlanJournalMatches(
     [intentId, account.id, intentId, account.id]);
   if (foreign) return false;
   try {
-    for (const operation of operations) if (!await operationMatchesPlan(operation, account, intentId, plan)) return false;
-    return true;
+    return await allOperationsMatchPlan(operations, account, intentId, plan);
   } catch { return false; }
 }

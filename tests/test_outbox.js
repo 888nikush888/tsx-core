@@ -183,7 +183,7 @@ async function testAuxiliaryPersistence() {
     const buffers = await getMediaGroupBuffers();
     assert.deepStrictEqual(buffers['group-1'].messages.map(message => message.id), [21, 22]);
     await removeMediaGroupBuffer('group-1');
-    assert.strictEqual((await getMediaGroupBuffers())['group-1'], undefined);
+    assert.strictEqual((await getMediaGroupBuffers())['group-1']);
 
     const usageDay = '2030-01-02';
     const firstReservation = await reserveAiUsage(usageDay, 600, 2, 1000);
@@ -278,7 +278,7 @@ async function testMigrationRecovery(testDir, dbPath) {
     await assert.rejects(initDb(dbPath), /checksum or name does not match/);
     const owner = await acquireProcessLock(path.join(testDir, '.process_active'));
     const maintenanceLease = await beginMcpOfflineMaintenance('isolated outbox migration recovery', dbPath, owner);
-    let restored;
+    let restored = null;
     try {
       await maintenanceLease.waitForQuiescence();
       restored = await restorePreMigrationSnapshot(migrationSnapshot, dbPath, testDir, { maintenanceLease });

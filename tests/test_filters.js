@@ -10,6 +10,7 @@ import {
 } from '../src/filters.js';
 
 const nestedPlusFixture = String.fromCodePoint(40, 97, 43, 41, 43, 36);
+const nestedPlusAllowed = '/(?:a)+$/';
 const alternatingNestedFixture = String.fromCodePoint(40, 97, 124, 98, 43, 41, 43, 36);
 
 function testRegexParsing() {
@@ -29,7 +30,7 @@ function testRegexParsing() {
   assert.throws(() => parseRegex("a".repeat(151)), /exceeds maximum length of 150/);
   assert.throws(() => parseRegex("[a-z"), /Invalid regex pattern/);
   assert.throws(
-    () => safeRegexTest(new RegExp(nestedPlusFixture), `${'a'.repeat(10_000)}!`, 10),
+    () => safeRegexTest(parseRegex(nestedPlusAllowed), `${'a'.repeat(10_000)}!`, 10),
     error => {
       assert.strictEqual(error.message,
         'Regex timeout oder Ausführungsfehler bei der Musterprüfung: Script execution timed out after 10ms');

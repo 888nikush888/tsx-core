@@ -161,7 +161,7 @@ function intentFromRow(row: IntentRow): TradingIntent {
   };
 }
 
-async function transaction<T>(operation: () => Promise<T>): Promise<T> {
+function transaction<T>(operation: () => Promise<T>): Promise<T> {
   return withDatabaseTransaction(() => operation());
 }
 
@@ -230,7 +230,7 @@ export async function getSignalContractVersion(id: string): Promise<SignalContra
   return row ? contractVersionFromRow(row) : null;
 }
 
-export async function createSignalContract(input: {
+export function createSignalContract(input: {
   id: unknown;
   name: unknown;
   description?: unknown;
@@ -259,7 +259,7 @@ export async function createSignalContract(input: {
   });
 }
 
-export async function createSignalContractDraftVersion(
+export function createSignalContractDraftVersion(
   contractId: unknown,
   sourceVersionId: unknown,
   now = Date.now(),
@@ -273,7 +273,7 @@ export async function createSignalContractDraftVersion(
     );
     if (!sourceRow) throw new Error('Source signal contract version does not exist.');
     const existingDraft = await getDatabase().get(
-      `SELECT id FROM trading_signal_contract_versions WHERE contract_id = ? AND status = 'draft'`,
+      'SELECT id FROM trading_signal_contract_versions WHERE contract_id = ? AND status = \'draft\'',
       [id],
     );
     if (existingDraft) throw new Error('Signal contract already has an editable draft version.');
@@ -298,7 +298,7 @@ export async function createSignalContractDraftVersion(
   });
 }
 
-export async function updateSignalContractDraft(input: {
+export function updateSignalContractDraft(input: {
   contractId: unknown;
   versionId: unknown;
   name: unknown;
@@ -347,7 +347,7 @@ export async function publishSignalContractVersion(versionId: unknown, now = Dat
   ));
 }
 
-export async function archiveSignalContractVersion(versionId: unknown, now = Date.now()): Promise<SignalContractVersion> {
+export function archiveSignalContractVersion(versionId: unknown, now = Date.now()): Promise<SignalContractVersion> {
   const id = contractVersionIdentifier(versionId);
   return transaction(async () => {
     const used = await getDatabase().get<{ count: number }>(
@@ -394,7 +394,7 @@ async function removeSignalContractVersionRecord(id: string, contractId: string)
   }
 }
 
-export async function deleteSignalContractDraft(versionId: unknown): Promise<boolean> {
+export function deleteSignalContractDraft(versionId: unknown): Promise<boolean> {
   const id = contractVersionIdentifier(versionId);
   return transaction(async () => {
     const row = await signalContractVersionDeletionTarget(id);
@@ -405,7 +405,7 @@ export async function deleteSignalContractDraft(versionId: unknown): Promise<boo
   });
 }
 
-export async function deleteSignalContractVersion(versionId: unknown): Promise<boolean> {
+export function deleteSignalContractVersion(versionId: unknown): Promise<boolean> {
   const id = contractVersionIdentifier(versionId);
   return transaction(async () => {
     const row = await signalContractVersionDeletionTarget(id);
@@ -570,7 +570,7 @@ export async function updateTradingSignalSchema(id: string, input: {
   });
 }
 
-export async function deleteTradingSignalSchema(id: string): Promise<boolean> {
+export function deleteTradingSignalSchema(id: string): Promise<boolean> {
   const normalizedId = signalSchemaIdentifier(id);
   return transaction(async () => {
     await assertSignalSchemaNotActivelyRouted(normalizedId);
@@ -591,7 +591,7 @@ export async function getTradingStrategyVersion(id: string): Promise<TradingStra
   return row ? strategyFromRow(row) : null;
 }
 
-export async function createTradingStrategyDraft(input: {
+export function createTradingStrategyDraft(input: {
   strategyId?: string;
   name: string;
   description?: string;
@@ -764,7 +764,7 @@ function validateAccountStateUpdate(state: TradingAccountStateUpdate): void {
   }
 }
 
-export async function updateTradingAccountState(id: string, state: TradingAccountStateUpdate): Promise<TradingAccount> {
+export function updateTradingAccountState(id: string, state: TradingAccountStateUpdate): Promise<TradingAccount> {
   validateAccountStateUpdate(state);
   return withDatabaseTransaction(() => updateTradingAccountStateOwned(id, state));
 }
@@ -843,7 +843,7 @@ function accountReconciledAt(value: number | null | undefined, current: TradingA
   return timestamp;
 }
 
-export async function updateTradingAccountConfiguration(
+export function updateTradingAccountConfiguration(
   id: string,
   input: TradingAccountConfigurationUpdate,
 ): Promise<TradingAccount> {
@@ -970,7 +970,7 @@ export async function updateTradingRuntimeState(input: Partial<Pick<TradingRunti
   return getTradingRuntimeState();
 }
 
-export async function createTradingIntent(input: {
+export function createTradingIntent(input: {
   sourceSignalId: string;
   channelId: string;
   signal: ExecutableSignal;
@@ -1055,7 +1055,7 @@ export async function getTradingOverview(): Promise<TradingOverview> {
       (SELECT COUNT(*) FROM trading_trade_intents WHERE status IN ('pending', 'planned', 'submitting', 'monitoring')) AS intents,
       (SELECT COUNT(*) FROM trading_orders WHERE status = 'unknown') AS unknown_orders`),
     getDatabase().get<{ latest: number | null }>(
-      `SELECT MAX(completed_at) AS latest FROM trading_reconciliation_runs WHERE status = 'succeeded'`,
+      'SELECT MAX(completed_at) AS latest FROM trading_reconciliation_runs WHERE status = \'succeeded\'',
     ),
   ]);
   return {
@@ -1296,6 +1296,21 @@ function executableParserContract(contractId: string): ExecutableSignalSchemaCon
   return 'standard';
 }
 
+async function schemaContractVersion(input: {
+  contractVersionId?: unknown;
+  definition?: unknown;
+  parserSchema?: unknown;
+}): Promise<{ contractVersionId: string | null; version: Awaited<ReturnType<typeof publishedContractVersion>> | null; schema: ExecutableSignalSchemaContract | null }> {
+  const requestedParserSchema = requestedParserContract(input.parserSchema);
+  let contractVersionId = null;
+  if (input.contractVersionId) contractVersionId = contractVersionIdentifier(input.contractVersionId);
+  else if (input.definition === undefined && requestedParserSchema) contractVersionId = `${requestedParserSchema}:v1`;
+  const version = contractVersionId
+    ? await publishedContractVersion(contractVersionId)
+    : null;
+  return { contractVersionId, version, schema: requestedParserSchema };
+}
+
 async function signalSchemaInput(input: {
   id?: unknown;
   name?: unknown;
@@ -1318,14 +1333,8 @@ async function signalSchemaInput(input: {
 }> {
   const id = requireId ? signalSchemaIdentifier(input.id) : undefined;
   const { name, description, templateName } = signalSchemaText(input);
-  const requestedParserSchema = requestedParserContract(input.parserSchema);
   if (typeof input.enabled !== 'boolean') throw new Error('Signal schema enabled state must be boolean.');
-  let contractVersionId = null;
-  if (input.contractVersionId) contractVersionId = contractVersionIdentifier(input.contractVersionId);
-  else if (input.definition === undefined && requestedParserSchema) contractVersionId = `${requestedParserSchema}:v1`;
-  const version = contractVersionId
-    ? await publishedContractVersion(contractVersionId)
-    : null;
+  const { contractVersionId, version, schema } = await schemaContractVersion(input);
   let definitionInput = input.definition;
   if (definitionInput === undefined) {
     if (!version) throw new Error('Signal schema definition is required when no fallback contract is selected.');
@@ -1341,7 +1350,7 @@ async function signalSchemaInput(input: {
     id,
     name,
     description,
-    parserSchema: requestedParserSchema ?? (version ? executableParserContract(version.contract_id) : 'standard'),
+    parserSchema: schema ?? (version ? executableParserContract(version.contract_id) : 'standard'),
     contractVersionId,
     definition,
     definitionSha256,
@@ -1385,6 +1394,20 @@ function windowLedgerFields(ledger: Awaited<ReturnType<typeof moneyLedgerSnapsho
     pricePnlValue: ledger.pricePnlValue, signedFeesValue: ledger.feesValue, fundingValue: ledger.fundingValue,
     valuedSubtotalByCurrency: currency ? { [currency]: ledger.valuedSubtotal } : {},
     valuedSubtotalValuesByCurrency: currency ? { [currency]: ledger.valuedSubtotalValue } : {} };
+}
+
+function applyFillRow(result: Map<string, TradingWindowAnalytics>, row: WindowFillRow, metrics: (accountId: unknown) => TradingWindowAnalytics): void {
+  const current = metrics(row.accountId);
+  current.fills += 1;
+  const settlement = String(row.settlementAsset ?? 'UNKNOWN');
+  current.volumeByAsset[settlement] = addDecimal(current.volumeByAsset[settlement] ?? '0', multiplyExactSignedDecimal(row.price, row.quantity));
+  const asset = String(row.feeAsset || 'UNKNOWN').toUpperCase();
+  current.fees[asset] = addSignedDecimal(current.fees[asset] ?? '0', row.fee);
+}
+
+function finalizeVolumes(result: Map<string, TradingWindowAnalytics>): void {
+  for (const current of result.values()) current.volume = Object.keys(current.volumeByAsset).length === 1
+    && current.volumeByAsset.UNKNOWN === undefined ? Object.values(current.volumeByAsset)[0] ?? null : null;
 }
 
 async function tradingAnalyticsWindow(since: number | null, until: number): Promise<Map<string, TradingWindowAnalytics>> {
@@ -1433,16 +1456,8 @@ async function tradingAnalyticsWindow(since: number | null, until: number): Prom
       ...windowLedgerFields(ledger),
     });
   }
-  for (const row of fills) {
-    const current = metrics(row.accountId);
-    current.fills += 1;
-    const settlement = String(row.settlementAsset ?? 'UNKNOWN');
-    current.volumeByAsset[settlement] = addDecimal(current.volumeByAsset[settlement] ?? '0', multiplyExactSignedDecimal(row.price, row.quantity));
-    const asset = String(row.feeAsset || 'UNKNOWN').toUpperCase();
-    current.fees[asset] = addSignedDecimal(current.fees[asset] ?? '0', row.fee);
-  }
-  for (const current of result.values()) current.volume = Object.keys(current.volumeByAsset).length === 1
-    && current.volumeByAsset.UNKNOWN === undefined ? Object.values(current.volumeByAsset)[0] ?? null : null;
+  for (const row of fills) applyFillRow(result, row, metrics);
+  finalizeVolumes(result);
   for (const row of intents) Object.assign(metrics(row.accountId), {
     intents: numeric(row.intents), completedIntents: numeric(row.completedIntents),
     rejectedIntents: numeric(row.rejectedIntents),
@@ -1491,7 +1506,7 @@ export async function acknowledgeTradingRiskEvent(id: string, now = Date.now()):
   return Number(result.changes || 0) === 1;
 }
 
-export async function archiveTradingStrategyVersion(id: string): Promise<TradingStrategyVersion> {
+export function archiveTradingStrategyVersion(id: string): Promise<TradingStrategyVersion> {
   return transaction(async () => {
     const activeRoute = await getDatabase().get<{ count: number }>(
       'SELECT COUNT(*) AS count FROM trading_routes WHERE strategy_version_id = ? AND enabled = 1', [id],
@@ -1508,7 +1523,7 @@ export async function archiveTradingStrategyVersion(id: string): Promise<Trading
   });
 }
 
-export async function deleteTradingStrategyVersion(id: string): Promise<boolean> {
+export function deleteTradingStrategyVersion(id: string): Promise<boolean> {
   return transaction(async () => {
     const existing = await getDatabase().get<{ id: string }>(
       'SELECT id FROM trading_strategy_versions WHERE id = ?', [id],
@@ -1544,7 +1559,7 @@ function assertTradingAccountRemovalSafe(references: Record<string, unknown>): v
   }
 }
 
-export async function deleteTradingAccount(id: string): Promise<boolean> {
+export function deleteTradingAccount(id: string): Promise<boolean> {
   return transaction(async () => {
     const existing = await getDatabase().get<{ id: string }>(
       'SELECT id FROM trading_accounts WHERE id = ? AND retired_at IS NULL',

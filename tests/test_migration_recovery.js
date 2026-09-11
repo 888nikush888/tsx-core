@@ -22,7 +22,7 @@ async function fixture(test, absent = false) {
   await seed(snapshot, 'restored');
   if (!absent) await seed(target, 'original');
   const owner = await acquireProcessLock(path.join(directory, '.process_active'));
-  let lease;
+  let lease = null;
   try {
     lease = await beginMcpOfflineMaintenance('isolated migration restore', target, owner);
     await lease.waitForQuiescence();

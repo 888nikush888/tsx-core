@@ -43,14 +43,14 @@ export class DurableOutboxScheduler {
   }
 
   public requestPump(): void {
-    void this.pump().catch(error => {
+    this.pump().catch(error => {
       this.options.logError(`Durable outbox scheduler failed: ${error instanceof Error ? error.message : String(error)}`);
     });
   }
 
   private scheduleIntoQueue(taskId: string): void {
     this.scheduledTaskIds.add(taskId);
-    void this.options.queue.add(signal => this.options.execute(taskId, signal))
+    this.options.queue.add(signal => this.options.execute(taskId, signal))
       .catch(error => {
         this.options.logError(`Outbox task ${taskId}: ${error instanceof Error ? error.message : String(error)}`);
       })
@@ -60,37 +60,42 @@ export class DurableOutboxScheduler {
       });
   }
 
-  private async pump(): Promise<void> {
+  private pump(): Promise<void> {
     if (this.pumpPromise !== null) {
       this.pumpRequested = true;
       return this.pumpPromise;
     }
 
     this.pumpPromise = this.pumpAvailableWork();
-    try {
-      await this.pumpPromise;
-    } finally {
+    return this.pumpPromise.finally(() => {
       this.pumpPromise = null;
       if (this.pumpRequested) {
         this.pumpRequested = false;
         this.requestPump();
       }
+    });
+  }
+
+  private shouldContinuePumping(): boolean {
+    return this.options.queue.availableCapacity > 0 && !this.options.queue.paused;
+  }
+
+  private scheduleBatch(candidates: SchedulableOutboxTask[]): number {
+    let scheduled = 0;
+    for (const candidate of candidates) {
+      if (this.schedule(candidate.id)) scheduled++;
     }
+    return scheduled;
   }
 
   private async pumpAvailableWork(): Promise<void> {
     if (this.options.queue.paused) return;
 
-    while (this.options.queue.availableCapacity > 0 && !this.options.queue.paused) {
+    while (this.shouldContinuePumping()) {
       const limit = Math.min(this.batchSize, this.options.queue.availableCapacity);
       const candidates = await this.options.listPending([...this.scheduledTaskIds], limit);
       if (candidates.length === 0) return;
-
-      let scheduled = 0;
-      for (const candidate of candidates) {
-        if (this.schedule(candidate.id)) scheduled++;
-      }
-      if (scheduled === 0) return;
+      if (this.scheduleBatch(candidates) === 0) return;
     }
   }
 }

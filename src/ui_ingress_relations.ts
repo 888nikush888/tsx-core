@@ -45,15 +45,29 @@ const DEFINITIONS = {
 } as const;
 export type UiIngressRelation = keyof typeof DEFINITIONS;
 
-export async function uiIngressRelations(workId: string, kind: UiIngressRelation, query: URLSearchParams) {
-  uiObjectId(workId, 256); if (!Object.hasOwn(DEFINITIONS, kind)) throw new Error('Unsupported ingress relation.');
-  const definition = DEFINITIONS[kind]; const limit = Number(query.get('limit') || 30);
+function ingressRelationLimit(query: URLSearchParams): number {
+  const limit = Number(query.get('limit') || 30);
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new Error('Ingress relation page size must be 1–100.');
-  if (!await getDatabase().get('SELECT id FROM incoming_work WHERE id=?', [workId])) return null;
-  const filter = filterFingerprint({ workId, kind, limit }); const cursor = decodeUiCursor(query.get('cursor'), filter);
-  const observedAt = cursor?.observedAt ?? Date.now(); const where = [`(${definition.where})`, `${definition.time} <= ?`];
+  return limit;
+}
+
+function ingressRelationWindow(
+  query: URLSearchParams, filter: string, definition: { where: string; time: string; id: string }, workId: string,
+): { observedAt: number; where: string[]; values: unknown[] } {
+  const cursor = decodeUiCursor(query.get('cursor'), filter);
+  const observedAt = cursor?.observedAt ?? Date.now();
+  const where = [`(${definition.where})`, `${definition.time} <= ?`];
   const values: unknown[] = [workId, workId, observedAt];
   if (cursor) { where.push(`(${definition.time} < ? OR (${definition.time}=? AND (${definition.id}) < ?))`); values.push(cursor.createdAt, cursor.createdAt, cursor.id); }
+  return { observedAt, where, values };
+}
+
+export async function uiIngressRelations(workId: string, kind: UiIngressRelation, query: URLSearchParams) {
+  uiObjectId(workId, 256); if (!Object.hasOwn(DEFINITIONS, kind)) throw new Error('Unsupported ingress relation.');
+  const definition = DEFINITIONS[kind]; const limit = ingressRelationLimit(query);
+  if (!await getDatabase().get('SELECT id FROM incoming_work WHERE id=?', [workId])) return null;
+  const filter = filterFingerprint({ workId, kind, limit });
+  const { observedAt, where, values } = ingressRelationWindow(query, filter, definition, workId);
   const rows = await getDatabase().all(`${WORK_SCOPE} SELECT ${definition.fields},(${definition.id}) AS id,${definition.time} AS createdAt
     FROM ${definition.from} WHERE ${where.join(' AND ')} ORDER BY createdAt DESC,id DESC LIMIT ?`, [...values, limit + 1]);
   const entries = rows.slice(0, limit); const last = entries.at(-1); const hasMore = rows.length > limit;

@@ -323,7 +323,7 @@ async function assertRuntimeActiveFrom(database: any): Promise<void> {
   }
 }
 
-export async function getMcpRuntimeState(): Promise<McpRuntimeState> {
+export function getMcpRuntimeState(): Promise<McpRuntimeState> {
   return runtimeStateFrom(getDatabase());
 }
 
@@ -331,7 +331,7 @@ export async function assertMcpRuntimeActive(): Promise<void> {
   await assertRuntimeActiveFrom(getDatabase());
 }
 
-export async function setMcpRuntimeMode(
+export function setMcpRuntimeMode(
   modeValue: unknown,
   actorValue: unknown,
 ): Promise<McpRuntimeTransition> {
@@ -549,6 +549,14 @@ export async function updateMcpAgent(input: {
     throw new Error('MCP base revision must be an integer.');
   }
   const now = Date.now();
+  const changed = await persistMcpAgentUpdate(id, name, grantedPermissions, eventSubscriptions, input.enabled, now, input.baseUpdatedAt);
+  if (changed !== 1) throw new Error('MCP agent does not exist or changed. Reload and compare before saving.');
+  if (!input.enabled) await disconnectMcpAgentSessions(id, now);
+  return requireMcpAgent(id);
+}
+
+async function persistMcpAgentUpdate(id: string, name: string, grantedPermissions: unknown, eventSubscriptions: unknown,
+  enabled: boolean, now: number, baseUpdatedAt: unknown): Promise<number> {
   const result = await getDatabase().run(
     `UPDATE mcp_agents SET name = ?, permissions_json = ?, event_subscriptions_json = ?,
        enabled = ?, updated_at = MAX(updated_at + 1, ?) WHERE id = ? AND deleted_at IS NULL
@@ -557,23 +565,29 @@ export async function updateMcpAgent(input: {
       name,
       json(grantedPermissions, 'MCP permissions'),
       json(eventSubscriptions, 'MCP event subscriptions'),
-      input.enabled ? 1 : 0,
+      enabled ? 1 : 0,
       now,
       id,
-      input.baseUpdatedAt ?? null,
-      input.baseUpdatedAt ?? null,
+      baseUpdatedAt ?? null,
+      baseUpdatedAt ?? null,
     ],
   );
-  if (Number(result.changes || 0) !== 1) throw new Error('MCP agent does not exist or changed. Reload and compare before saving.');
-  if (!input.enabled) {
-    await getDatabase().run(
-      `UPDATE mcp_agent_sessions SET disconnected_at = COALESCE(disconnected_at, ?)
-       WHERE agent_id = ? AND disconnected_at IS NULL`,
-      [now, id],
-    );
-  }
+  return Number(result.changes || 0);
+}
+
+async function disconnectMcpAgentSessions(id: string, now: number): Promise<void> {
+  await getDatabase().run(
+    `UPDATE mcp_agent_sessions SET disconnected_at = COALESCE(disconnected_at, ?)
+     WHERE agent_id = ? AND disconnected_at IS NULL`,
+    [now, id],
+  );
+}
+
+async function requireMcpAgent(id: string): Promise<McpAgent> {
   const agents = await listMcpAgents();
-  return agents.find(agent => agent.id === id)!;
+  const agent = agents.find(candidate => candidate.id === id);
+  if (!agent) throw new Error('MCP agent does not exist.');
+  return agent;
 }
 
 export async function rotateMcpAgentToken(idValue: unknown): Promise<{ agent: McpAgent; token: string }> {
@@ -586,16 +600,12 @@ export async function rotateMcpAgentToken(idValue: unknown): Promise<{ agent: Mc
     [tokenDigest(token), token.slice(0, 16), now, id],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('MCP agent does not exist.');
-  await getDatabase().run(
-    `UPDATE mcp_agent_sessions SET disconnected_at = COALESCE(disconnected_at, ?)
-     WHERE agent_id = ? AND disconnected_at IS NULL`,
-    [now, id],
-  );
-  const agents = await listMcpAgents();
-  return { agent: agents.find(agent => agent.id === id)!, token };
+  await disconnectMcpAgentSessions(id, now);
+  const agent = await requireMcpAgent(id);
+  return { agent, token };
 }
 
-export async function deleteMcpAgent(idValue: unknown): Promise<boolean> {
+export function deleteMcpAgent(idValue: unknown): Promise<boolean> {
   const id = identifier(idValue, 'MCP agent identifier', 64);
   const now = Date.now();
   const revokedToken = generatedToken();
@@ -683,7 +693,7 @@ export async function connectMcpSession(input: {
        ) VALUES (?, ?, ?, ?, ?, ?)`,
       [id, agentId, clientName, clientVersion, now, now],
     );
-    await database.run(`UPDATE mcp_agents SET last_seen_at = ? WHERE id = ?`, [now, agentId]);
+    await database.run('UPDATE mcp_agents SET last_seen_at = ? WHERE id = ?', [now, agentId]);
   });
   return { id, agentId, clientName, clientVersion, connectedAt: now, lastSeenAt: now, disconnectedAt: null };
 }
@@ -699,7 +709,7 @@ export async function touchMcpSession(idValue: unknown, agentIdValue: unknown): 
     [now, id, agentId],
   );
   if (Number(result.changes || 0) === 1) {
-    await getDatabase().run(`UPDATE mcp_agents SET last_seen_at = ? WHERE id = ?`, [now, agentId]);
+    await getDatabase().run('UPDATE mcp_agents SET last_seen_at = ? WHERE id = ?', [now, agentId]);
     return true;
   }
   return false;
@@ -871,7 +881,7 @@ export async function waitForMcpControlRequest(
   throw new Error('TSX Core did not complete the MCP control request before the timeout.');
 }
 
-export async function claimNextMcpControlRequest(): Promise<McpControlRequest | null> {
+export function claimNextMcpControlRequest(): Promise<McpControlRequest | null> {
   return withDatabaseTransaction(async database => {
     const row = await database.get<any>(
       `SELECT id, agent_id AS agentId, session_id AS sessionId, action,
@@ -1029,7 +1039,7 @@ async function preflightContractVersion(
       [version.contract_id],
     );
     if (draft) blockers.push('Contract already has an editable draft.');
-    impact.push(CONTRACT_IMPACT[action]!);
+    impact.push(CONTRACT_IMPACT[action] ?? 'Changes the selected contract version.');
     return;
   }
   const statusBlocker = contractStatusBlocker(action, version.status);
@@ -1088,7 +1098,7 @@ async function preflightStrategyAction(
   impact: string[],
 ): Promise<void> {
   if (action === 'strategies.create') {
-    impact.push(STRATEGY_IMPACT[action]!);
+    impact.push(STRATEGY_IMPACT[action] ?? 'Changes the selected strategy version.');
     return;
   }
   const id = identifier(payload.id, 'Strategy version identifier', 64);
@@ -1140,7 +1150,7 @@ async function preflightRouteAction(
   impact.push('Changes the strategy/account destination for future signals from this channel.');
 }
 
-async function preflightConfigurationAction(
+function preflightConfigurationAction(
   action: McpProposalAction,
   payload: Record<string, unknown>,
   blockers: string[],
@@ -1203,7 +1213,7 @@ async function preflightWorkflowResourceLifecycle(
   impact.push(WORKFLOW_RESOURCE_IMPACT[action] ?? 'Changes the selected workflow resource.');
 }
 
-async function preflightWorkflowAction(
+function preflightWorkflowAction(
   action: McpProposalAction,
   payload: Record<string, unknown>,
   blockers: string[],
@@ -1212,7 +1222,7 @@ async function preflightWorkflowAction(
   if (action === 'workflow.activate') return preflightWorkflowActivation(payload, blockers, impact);
   if (action === 'workflow.resource_create') {
     impact.push('Creates a new versioned workflow-resource draft without activating it.');
-    return;
+    return Promise.resolve();
   }
   return preflightWorkflowResourceLifecycle(action, payload, blockers, impact);
 }
@@ -1386,7 +1396,9 @@ export async function approveMcpProposal(idValue: unknown, actorValue: unknown):
     [json(preflight, 'MCP proposal preflight'), now, actor, id, now],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('MCP proposal approval lost a concurrent decision race.');
-  return (await getMcpProposal(id))!;
+  const approved = await getMcpProposal(id);
+  if (!approved) throw new Error('MCP proposal does not exist.');
+  return approved;
 }
 
 export async function rejectMcpProposal(
@@ -1407,7 +1419,9 @@ export async function rejectMcpProposal(
     [now, actor, reason, id],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('Only a pending MCP proposal can be rejected.');
-  return (await getMcpProposal(id))!;
+  const rejected = await getMcpProposal(id);
+  if (!rejected) throw new Error('MCP proposal does not exist.');
+  return rejected;
 }
 
 export async function claimNextApprovedMcpProposal(): Promise<McpAgentProposal | null> {

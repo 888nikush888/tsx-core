@@ -15,7 +15,7 @@ if (path.dirname(root) !== path.resolve(os.tmpdir()) || !path.basename(root).sta
 const oldEnvironment = { ...process.env };
 const originalRename = fs.rename;
 const bounded = promise => Promise.race([promise, delay(5_000, null, { ref: false }).then(() => { throw new Error('Restart fixture timed out.'); })]);
-let server;
+let server = null;
 let fixtureIndex = 0;
 
 async function fixture() {
@@ -89,7 +89,7 @@ async function testBindingAndGates() {
     [{ ...valid.headers, 'X-Destructive-Confirmation': '' }, 412],
     [{ ...valid.headers, 'X-Requested-With': '' }, 400],
   ]) assert.equal((await request(current, command, id, { headers })).status, status);
-  current.controls.blockAudit = async () => { throw new Error('audit unavailable'); };
+  current.controls.blockAudit = () => { throw new Error('audit unavailable'); };
   assert.equal((await request(current, command, id)).status, 503);
   current.controls.blockAudit = null;
   const release = current.authority.holdMutations('existing maintenance');

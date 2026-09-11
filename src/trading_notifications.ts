@@ -50,7 +50,7 @@ const EXECUTION_NOTIFICATION_TYPES: Partial<Record<string, TradingNotificationEv
   kill_switch_activated: 'kill_switch_activated',
 };
 
-export async function recordExecutionNotificationBestEffort(input: {
+export interface ExecutionNotificationInput {
   eventType: string;
   occurredAt: number;
   intentId?: string | null;
@@ -60,20 +60,9 @@ export async function recordExecutionNotificationBestEffort(input: {
   mode?: string | null;
   details?: Record<string, unknown>;
   correlationId?: string | null;
-}): Promise<void> {
-  const notificationType = EXECUTION_NOTIFICATION_TYPES[input.eventType];
-  if (!notificationType) return;
-  await recordTradingNotificationBestEffort({
-    dedupeKey: executionDedupe(input),
-    eventType: notificationType,
-    intentId: input.intentId,
-    channelId: input.channelId,
-    accountId: input.accountId,
-    exchange: input.exchange,
-    mode: input.mode,
-    occurredAt: input.occurredAt,
-    details: input.details || {},
-  });
+}
+
+async function recordBlockedIntentNotification(input: ExecutionNotificationInput): Promise<void> {
   if (input.eventType === 'intent_created' && input.details?.status === 'blocked') {
     await recordTradingNotificationBestEffort({
       dedupeKey: `intent-blocked:${input.intentId || input.correlationId || input.occurredAt}`,
@@ -87,4 +76,21 @@ export async function recordExecutionNotificationBestEffort(input: {
       details: input.details,
     });
   }
+}
+
+export async function recordExecutionNotificationBestEffort(input: ExecutionNotificationInput): Promise<void> {
+  const notificationType = EXECUTION_NOTIFICATION_TYPES[input.eventType];
+  if (!notificationType) return;
+  await recordTradingNotificationBestEffort({
+    dedupeKey: executionDedupe(input),
+    eventType: notificationType,
+    intentId: input.intentId,
+    channelId: input.channelId,
+    accountId: input.accountId,
+    exchange: input.exchange,
+    mode: input.mode,
+    occurredAt: input.occurredAt,
+    details: input.details || {},
+  });
+  await recordBlockedIntentNotification(input);
 }

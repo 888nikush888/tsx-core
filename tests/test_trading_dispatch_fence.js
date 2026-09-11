@@ -11,7 +11,7 @@ import { seedTradingFixtures } from './trading_fixtures.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-dispatch-fence-'));
 const filename = path.join(directory, 'test.db');
-let reader;
+let reader = null;
 async function fixture(account, id) {
   await getDatabase().run(`INSERT INTO trading_orders (id, intent_id, account_id, client_order_id, role, side, order_type, status,
     quantity, filled_quantity, reduce_only, request_json, created_at, updated_at)
@@ -23,10 +23,10 @@ async function fixture(account, id) {
 const phase = async input => (await getDatabase().get('SELECT phase FROM trading_operations WHERE request_json = ?', [JSON.stringify(input.request)])).phase;
 async function failureMatrix(account) {
   for (const [id, expectedPhase, patch] of [
-    ['source-changed', 'abandoned', { beforeSend: async () => { throw new Error('sources changed'); } }],
+    ['source-changed', 'abandoned', { beforeSend: () => { throw new Error('sources changed'); } }],
     ['sync-fence', 'abandoned', { guard: () => { throw new Error('epoch changed'); } }],
     ['sync-send', 'unresolved', { send: () => { throw new Error('synchronous adapter failure'); } }],
-    ['reject-send', 'unresolved', { send: async () => { throw new Error('asynchronous adapter failure'); } }],
+    ['reject-send', 'unresolved', { send: () => { throw new Error('asynchronous adapter failure'); } }],
   ]) {
     const input = { ...await fixture(account, id), ...patch };
     await assert.rejects(runJournaledExchangeWrite(input));
@@ -97,9 +97,9 @@ async function commitFailure(account) {
   const db = getDatabase();
   const original = db.exec;
   let started = false;
-  let rejected;
+  let rejected = null;
   input.send = () => { started = true; return new Promise((_resolve, reject) => { rejected = reject; }); };
-  db.exec = async sql => {
+  db.exec = sql => {
     if (sql === 'COMMIT' && started) { started = false; throw new Error('fixture read-fence commit failure'); }
     return original(sql);
   };
@@ -118,7 +118,7 @@ try {
     VALUES ('fence-intent', 'fence-signal', 'fence-signal', '-fence', ?, ?, 'paper', 'paper', 'BTCUSDT', 'LONG', 'submitting', '{}', 1, 1)`, [strategy.id, account.id]);
   reader = await open({ filename, driver: sqlite3.Database });
   const normal = await fixture(account, 'durable');
-  let capturedWitness;
+  let capturedWitness = null;
   normal.beforeSend = async witness => {
     capturedWitness = witness;
     const row = await reader.get('SELECT id, phase, request_hash FROM trading_operations WHERE request_json = ?', [JSON.stringify(normal.request)]);
@@ -138,7 +138,7 @@ try {
   await runJournaledExchangeWrite(normal);
   assert.equal(currentDispatchIdentity(capturedWitness), null);
   const rejected = await fixture(account, 'witness-revoked-on-rejection');
-  rejected.beforeSend = async witness => { capturedWitness = witness; throw new Error('reject before send'); };
+  rejected.beforeSend = witness => { capturedWitness = witness; throw new Error('reject before send'); };
   await assert.rejects(runJournaledExchangeWrite(rejected), /reject before send/);
   assert.equal(currentDispatchIdentity(capturedWitness), null, 'Failed verification also revokes its capability.');
   await failureMatrix(account);

@@ -227,9 +227,9 @@ function failedProcess(test, child, code, signal, failure, error) {
 /** Keep the original per-file runtime, environment, isolation and 120-second limit. */
 export function runTestFile(test, { testsDirectory, environment, spawnImpl = spawn, error = console.error }) {
   return new Promise(resolve => {
-    let child;
+    let spawned = null;
     try {
-      child = spawnImpl(process.execPath, ['--import', 'tsx', path.join(testsDirectory, test)], {
+      spawned = spawnImpl(process.execPath, ['--import', 'tsx', path.join(testsDirectory, test)], {
         cwd: path.join(testsDirectory, '..'), env: environment, stdio: 'inherit', shell: false,
         timeout: 120_000, windowsHide: true,
       });
@@ -238,7 +238,8 @@ export function runTestFile(test, { testsDirectory, environment, spawnImpl = spa
       resolve(1);
       return;
     }
-    let failure;
+    const child = spawned;
+    let failure = null;
     child.once('error', cause => { failure = cause; });
     // close, not exit: observe streams and coverage flushes before releasing a slot/barrier.
     child.once('close', (code, signal) => {

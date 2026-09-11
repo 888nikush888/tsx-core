@@ -43,7 +43,8 @@ async function failedJobReceiptsSurviveReload() {
   for (const [id, failure, expectedError] of cases) {
     const request = { id, kind: 'backup-drill', actorId: 'test:admin', scope: {}, request: { id } };
     assert.equal((await store.accept(request)).created, true);
-    await store.run(id, () => { counts.commands += 1; return Promise.reject(failure); });
+    const attempt = failure;
+    await store.run(id, () => { counts.commands += 1; return Promise.reject(attempt); });
     const reloaded = new UiOperationStore(failedDirectory, `reloaded-${id}`);
     const receipt = await reloaded.get(id);
     assert.equal(receipt.state, 'failed');

@@ -257,7 +257,7 @@ function resolveRegexPatterns(
 function matchesAllRegexPatterns(
   text: string,
   patterns: string[],
-  logCallback: (msg: string) => void
+  logCallback: (_message: string) => void
 ): boolean {
   const safeMatchText = text.length > 8000 ? text.slice(0, 8000) : text;
   return patterns.every(pattern => {

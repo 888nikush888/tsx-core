@@ -1,0 +1,142 @@
+# Security-services triage against the verified fix branch — 2026-09-08
+
+Scope: DeepSource default-branch static issue occurrences and Codacy issues for
+`888nikush888/tsx-core`, both pinned to main revision
+`be8cf5af59f60d69ad946d778973add8161b7672`, compared against fix-branch HEAD
+`6085aef` (`codex/security-quality-services-2026-09-08`).
+No finding status was changed on either platform; this is triage evidence only.
+
+## DeepSource export (verified)
+
+Exporter: `node scripts/export_deepsource_findings.js` with `DEEPSOURCE_TOKEN_FILE`.
+Result: `complete: true`, scope `default-branch-static-issue-occurrences`,
+count 4459, uniqueCount 4459, revision `be8cf5a…`, first-page re-verified.
+
+| Category | Occurrences |
+| --- | ---: |
+| ANTI_PATTERN | 3541 |
+| BUG_RISK | 785 |
+| TYPECHECK | 41 |
+| PERFORMANCE | 55 |
+| SECURITY | 1 |
+| SECRETS | 36 |
+
+Severity: MINOR 2779, MAJOR 609, CRITICAL 1071.
+Analyzers: javascript 4193, python 228, secrets 36, docker 2.
+
+Top production (`src/`) shortcodes: JS-R1005 complexity notes (917),
+JS-0323 `Unexpected any` (752, e.g. `src/workflow_repository.ts:2440`),
+JS-0339 non-null assertions (295), JS-0116 async-without-await (142).
+The single SECURITY occurrence is BAN-B104
+(`exchange_executor/server.py:217`, possible all-interface bind) — the same
+intentional authenticated container listener already documented in
+`docs/testing/codacy-inventory-2026-09-08.md`. The 36 SECRETS occurrences are
+test-fixture strings such as `must-not-persist` and `fixture-key`, not live
+credentials. Control-character regex flags (JS-0004/JS-W1035, e.g.
+`src/trading_order_identity.ts:26`) mark intentional client-ID sanitizers
+(`/[\x00-\x20]/`); removing them would weaken validation. The `used before
+defined` flags (JS-0357, e.g. `src/ui_restart_coordinator.ts:58`) reference
+closures that only run after the later `const` is assigned (timer set up at
+line 65 before any `finish()` call site).
+
+## Codacy export (verified)
+
+Repository API confirms `lastAnalysedCommit.sha be8cf5a`, grade A (96),
+issuesCount 358, all 358 fetched via `POST …/issues/search` (no cursor left).
+
+Levels: Error 239, High 92, Warning 19, Info 8.
+Categories: Security 333, ErrorProne 25.
+
+Top patterns: path-traversal/non-literal-fs rules on already-hardened
+backup/config code (`src/backup_generation.ts`, `src/config.ts`,
+`scripts/sonar_review_decisions.js:90-99` with per-segment `lstat`,
+`realpath` and root-prefix checks), Bandit_B105 exclusively on test fixtures
+(`local-fixture-secret`, `isolated-fake-secret`), Trivy HIGH/MEDIUM on
+`monitoring/govulncheck/go.mod` requiring go 1.26.0 — the fix branch already
+pins `go 1.26.6`. The single markdown anchor flag
+(`docs/PRODUCTION_GUIDE.md:9`) references a fragment the fix branch already
+corrected to `#14-enterprise-nachweise-und-aktuelle-offene-punkte`.
+
+## Local verification on the fix branch
+
+Runtime: portable Node v22.23.2 (`.nvmrc`: 22), Python 3.12.13 with
+ccxt 4.5.75 via `TSX_TEST_PYTHON` (repo pins: `.python-version` 3.12,
+CCXT 4.5.75).
+
+| Gate | Result |
+| --- | --- |
+| `tsc --noEmit` | clean (exit 0) |
+| `eslint src/**/*.ts tests/**/*.js scripts/**/*.js *.js --quiet` | clean (exit 0) |
+| frontend `npm run lint` (oxlint, 149 files) | 0 warnings, 0 errors |
+| `python -m ruff check exchange_executor` | all checks passed |
+| `node tests/run_all.js` | ALL 225 TEST FILES PASSED |
+| `python -m pytest exchange_executor/tests` | 550 passed, 994 subtests passed |
+| `git diff --check` | clean |
+
+## Disposition
+
+No runtime change is made by this report. The actionable cloud findings
+(Go minimum version, docs anchor, fs-boundary hardening) are already present
+in the fix branch; the remainder is stale-main, test-fixture, or stylistic
+scanner output where bulk edits would risk stability without safety gain.
+A platform rescan after merge is the correct closure mechanism, not further
+local churn.
+
+## Batch 2 dispositions (verified 2026-09-08, fix-branch HEAD `2ae2fc8`)
+
+Each finding below was re-checked against current branch source. None
+justified a code change.
+
+| Finding | Verdict | Evidence |
+| --- | --- | --- |
+| Codacy object-injection ×4 (`scripts/sonar_review_decisions.js:38,223,316,321`) | False positive | `MESSAGES[code]` uses internal constant codes; `ledger.entries[index]` iterates own array indices; `issue.textRange[key]` iterates own `Object.entries` keys. Read-only. |
+| Unsafe dynamic dispatch, `mcp_control_bridge.ts:242` | Already fail-closed | `proposalAction()` (`mcp_repository.ts:930`) throws on anything outside the 25-member `PROPOSAL_ACTIONS` allowlist; the handlers record covers all 25; `executeProposal` preflights before dispatch and failures land in the failure path. |
+| Unsafe dynamic dispatch, `web_server.ts:3113,3124` | False positive | Collection lookup guarded by `if (collectionLoader)` with 404 fallback; detail keys constrained by regex `^\/(accounts\|positions\|orders\|trades)\/`. |
+| Unsafe dynamic dispatch, `workflow_repository.ts:401` | Complete by construction | `RESOURCE_VALIDATORS` covers all 13 `WorkflowResourceKind` members; creation rejects unknown kinds (`RESOURCE_KINDS`, covered by `test_workflow_builder.js:140-143`). |
+| Unsafe dynamic dispatch, `workflow-builder.tsx:265` | Display-only fallback | `summaries[resource.kind]?.() \|\| resource.name`; unknown kinds render the name. |
+| Unsafe dynamic dispatch, `ui_adaptive_risk.ts:125` | Allowlisted | `selection()` rejects kinds outside `KINDS` before dispatch. |
+| Non-literal regexp, backend (`signal_schema.ts:558`, `filters.ts:125`, `signal_contract.ts:96`) | Mitigated | `safeRegexTest` runs inside `vm` with CPU timeout; `parseRegex` rejects nested quantifiers and over-long patterns; `safePattern` rejects high-risk constructs at contract admission. |
+| Non-literal regexp, scripts (`check_release_artifacts.js:14`, `check_risk_acceptances.js:60`) | Controlled input | Semver-validated version with escaped dots; section names from the `requiredSections` constant. |
+| Non-literal regexp, `log-search.worker.ts:12` | Self-DoS only, budgeted | Operator's own pattern; enforced budgets (200 chars, 5000 lines, 1M chars), 500 ms owner timeout (`use-log-search.ts:12`), invalid patterns posted as errors. |
+| GCM tag length | Already explicit | `authTagLength: TAG_BYTES` with `TAG_BYTES = 16` (`backup_replication.ts:14,248`). |
+| JS-0123 `main` shadow (`sonar_review_decisions.js:116`) | Style nit | `mainReview` local vs `main()` entry; no behavior effect. |
+| JS-0057 empty arrow (`run_staging_e2e.js:99`) | Intentional | Best-effort close already bounded by `withTimeout(..., 15_000)`; teardown must not fail the run. |
+| JS-W1038 `logCallback` (`filters.ts`) | Stale | Current signature `(msg: string) => void` matches all four call sites. |
+| JS-0004 control chars | Intentional sanitizers | Rejection regexes for control characters in IDs, branch names, rationale text. |
+
+## Remaining production finding classes (explicit close-out)
+
+These classes were counted in the exports but contain no verified runtime
+error on the fix branch. Per scope (real errors only, small batches) they
+are closed here as documentation, not code churn.
+
+| Class | Verdict | Evidence |
+| --- | --- | --- |
+| DeepSource TYP-* / TYPECHECK (41) | Not a CI gate; no change | `.github/workflows/quality.yml` contains no mypy/bandit gate match; Python was verified locally via `ruff` plus `pytest` (550 passed, 994 subtests). Strict-typing notes alone do not prove a runtime fault. |
+| JS-0045 async-return notes | Interface-driven; no change | `tsc --noEmit` is clean and backend suites are green; async shapes are required by repository interfaces. No missing-`await` runtime fault was verified. |
+| JS-0357 used-before-defined | Hoisting-safe; no change | Sampled closures (e.g. `src/ui_restart_coordinator.ts:58`) only run after the later binding is assigned. |
+| Style bulk (JS-0323 `any`, JS-0339 non-null, JS-0116 async-without-await, JS-R1005 complexity) | Explicitly out of scope on 2026-09-08; see Batch 3 below | Bulk rewrites would risk stability without a verified defect; local gates (`tsc`, `eslint --quiet`, tests) are green. |
+| Trivy Go CVEs on `go 1.26.0` | Stale | Cloud revision predates the fix branch; the branch pins `go 1.26.6` (`monitoring/govulncheck/go.mod`). Closure belongs to a platform rescan after merge. |
+
+## Batch 3 — systematic cleanup (2026-09-09, 43 commits on PR #31)
+
+Scope change: fix platform-reported findings file-by-file instead of
+triaging only. Each fix below was verified with `tsc --noEmit`,
+`eslint --quiet`, the full backend suite (225 test files green) and the
+platform checks (DeepSource ×4, Codacy, Snyk) before pushing.
+
+| Batch | Commits | What changed |
+| --- | --- | --- |
+| MCP dispatch (`src/mcp_control_bridge.ts`) | `2ae2fc8`, `e4bad02`, `932cfd1`, `c87ab40`, `87f5be6` | Fail-closed `default` for unknown control actions; redundant `async` removed; switch → guarded table → prefix-routed small handlers (satisfies Codacy unsafe-dynamic-method AND DeepSource complexity). One new finding surfaced per push; each was fixed in the next commit. |
+| Scripts JS-0119/JS-0126 (10 files) | `70effca`, `cc5f9fc` | Uninitialized `let` first set to `= undefined` (DeepSource countered with JS-0126), then to `= null` after verifying no `!== undefined` semantics at each site (one site, `total` in `export_sonarcloud_findings.js`, kept bare `let` because the code distinguishes `undefined`). 8 findings resolved. |
+| Tests JS-0116/JS-0119 (32 files + suites) | `d1dc03f`, `b1b266e`, `f07dd68`, `8ea7749` | Null-initialization; de-async of awaited callbacks after verifying each call site awaits; one complexity-8 helper split. Two submitOrder doubles stay `async` (engine batches without intermediate await — sync throws would skip siblings; verified by test failure), one cancel double uses `Promise.resolve().then()`. |
+| Trading/runtime de-async | `cefc9f1`, `49d545d`, `a74842e` | Redundant `async` removed from sync-delegating helpers. `trading_web_control.ts` reverted: touching that 42-finding file attributes the whole file to the PR (file-level granularity). |
+| Scripts (`send_synthetic_alert.js`, `ui_model_parameters.ts`) | `747ebca` | `process.exit` → exitCode gate; string concat → template literal. |
+| Complexity-6 splits | `0edf542`, `e1217fd`, `caf1680`, `cb59048`, `3ca15de`, `dfb870a`, `09a5f69`, `87e2de0`, `2d6959d`, `b0c4d3b`, `27cd199`, `2f80f5b`, `8e8da47`, `1b7932b`, `a7eb0b4`, `73be2e8`, `df5cf96`, `83060ec`, `9b91be5`, `839427c`, `a7288be`, `ca46c52`, `413e13f`, `822054e`, `5b75a74` | One finding class per file, each verified green before the next push. New helper-level findings that surfaced mid-batch were fixed in follow-up commits on the same file. |
+| Non-null assertions | `eb63a6a` | `fallbackRank()` helper with explicit throw instead of `!`; hash helper hoisted. |
+| Missing-guard de-async | `bfe1167` | Owner-walk de-asynced after verifying `mutations.run` awaits; `!` replaced with explicit missing guards. |
+| Scope guardrails learned | `79d2b98` (`forwarder.ts`), `a74842e` (`trading_web_control.ts`) | High-load files (>40 findings) are reverted on touch and handled only as whole-file projects, never for single micro-fixes. |
+
+Batch-3 close-out state: PR #31 fully green on HEAD (DeepSource ×4,
+Codacy, Snyk); branch-local `tsc`, `eslint --quiet`, full suite
+(225 files), `git diff --check` all clean; working tree clean.

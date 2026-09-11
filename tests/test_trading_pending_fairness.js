@@ -130,7 +130,7 @@ async function disappearingIdsAndEarlierInsertion() {
 async function interruptionDoesNotSkipUnattemptedRows() {
   const context = await fixture(), ids = await legacyRows(context, 105, 'interrupted');
   const attempts = [];
-  let runtime;
+  let runtime = null;
   const engine = schedulerEngine(async id => {
     attempts.push(id);
     if (attempts.length === 1) runtime.disableEntries();

@@ -533,7 +533,7 @@ export class TradingWebControl {
     }
   }
 
-  async replaceAccountCredentials(payload: CredentialReplacementPayload): Promise<TradingAccount> {
+  replaceAccountCredentials(payload: CredentialReplacementPayload): Promise<TradingAccount> {
     const accountId = identifier(payload.id, 'Account identifier', 64);
     this.engine.mutations.fenceEntries();
     return this.engine.mutations.run(accountId, context => this.replaceAccountCredentialsOwned(payload, context));
@@ -614,7 +614,7 @@ export class TradingWebControl {
     }
   }
 
-  async verifyAccount(id: unknown, enableOnSuccess = false, context?: TradingMutationContext): Promise<TradingAccount> {
+  verifyAccount(id: unknown, enableOnSuccess = false, context?: TradingMutationContext): Promise<TradingAccount> {
     const accountId = identifier(id, 'Account identifier', 64);
     return this.engine.mutations.run(accountId, () => this.verifyAccountOwned(accountId, enableOnSuccess), context);
   }
@@ -653,7 +653,7 @@ export class TradingWebControl {
     }
   }
 
-  async setAccountEnabled(id: unknown, enabledValue: unknown): Promise<TradingAccount> {
+  setAccountEnabled(id: unknown, enabledValue: unknown): Promise<TradingAccount> {
     const accountId = identifier(id, 'Account identifier', 64);
     const enabled = boolean(enabledValue, 'Account enabled state');
     if (!enabled) this.engine.mutations.fenceEntries(accountId);
@@ -713,7 +713,7 @@ export class TradingWebControl {
     return updated;
   }
 
-  async releaseAccountKillSwitch(payload: AccountReleasePayload): Promise<{
+  releaseAccountKillSwitch(payload: AccountReleasePayload): Promise<{
     account: TradingAccount;
     reconciliations: number;
     proof: TradingSafetyProof;
@@ -760,7 +760,7 @@ export class TradingWebControl {
     });
   }
 
-  async removeAccount(id: unknown): Promise<void> {
+  removeAccount(id: unknown): Promise<void> {
     const accountId = identifier(id, 'Account identifier', 64);
     this.engine.mutations.fenceEntries(accountId);
     return this.engine.mutations.run(accountId, () => this.removeAccountOwned(accountId));
@@ -796,7 +796,7 @@ export class TradingWebControl {
     const release = lowering ? this.engine.mutations.holdEntries() : undefined;
     const epoch = this.engine.mutations.entryEpoch('@runtime');
     try {
-      return await this.engine.mutations.run('@runtime', async context => {
+      return await this.engine.mutations.run('@runtime', context => {
         const assertAuthority = () => this.engine.mutations.assertEpoch(context, epoch);
         if (action === 'execution') return this.setExecutionRuntime(payload, assertAuthority);
         if (action === 'live') return this.setLiveRuntime(payload, assertAuthority);
@@ -861,7 +861,7 @@ export class TradingWebControl {
       accountSnapshot: account => this.requiredAdapter(account.exchange).accountSnapshot(account) });
   }
 
-  async configurePaper(payload: PaperConfigurationPayload) {
+  configurePaper(payload: PaperConfigurationPayload) {
     const accountId = identifier(payload.accountId, 'Account identifier', 64);
     return this.engine.mutations.run(accountId, () => this.configurePaperOwned(payload));
   }

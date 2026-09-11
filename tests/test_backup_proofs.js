@@ -33,7 +33,7 @@ async function leaseTarget(label, action) {
   await mkdir(target);
   const databasePath = path.join(target, 'forwarder.db');
   const owner = await acquireProcessLock(path.join(target, '.process_active'));
-  let lease;
+  let lease = null;
   try {
     lease = await beginMcpOfflineMaintenance('isolated backup proof fixture', databasePath, owner);
     await lease.waitForQuiescence();
@@ -139,7 +139,7 @@ async function schedulerProofs(databasePath) {
   assert.equal(first.restoreDrill, null, 'An actual replica response is not a restore drill.');
   const drill = await scheduler.runRestoreDrill(artifact);
   assert.deepEqual(scheduler.getStatus().restoreDrill, drill);
-  replicator.replicate = async () => { throw new Error('isolated offsite failure'); };
+  replicator.replicate = () => { throw new Error('isolated offsite failure'); };
   await assert.rejects(scheduler.runNow(), /isolated offsite failure/);
   const failed = scheduler.getStatus();
   assert.notEqual(failed.integrityVerified.artifactSha256, first.integrityVerified.artifactSha256);

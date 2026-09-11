@@ -12,7 +12,7 @@ function deferred() {
 }
 
 async function bounded(promise, label, milliseconds = 10_000) {
-  let timer;
+  let timer = null;
   try {
     return await Promise.race([promise, new Promise((_, reject) => {
       timer = setTimeout(() => reject(new Error(`${label} timed out.`)), milliseconds);
@@ -26,9 +26,9 @@ const sources = { databasePath: path.join(root, 'forwarder.db'), configurationPa
 const reached = deferred();
 const continueRead = deferred();
 const originalRead = fs.promises.readFile;
-let owner;
-let enrollment;
-let release;
+let owner = null;
+let enrollment = null;
+let release = null;
 try {
   await mkdir(sources.templatesDirectory);
   await writeFile(path.join(sources.templatesDirectory, 'default.xml'), '<signal>owner-race-fixture</signal>');
@@ -63,7 +63,7 @@ try {
   assert.equal(released, true);
   await assert.rejects(readFile(owner.path), { code: 'ENOENT' });
   await assert.rejects(initializeConfigurationGeneration(sources, owner), /released/);
-  await withPinnedConfigurationGeneration(sources.configurationPath, sources.databasePath, async generation => {
+  await withPinnedConfigurationGeneration(sources.configurationPath, sources.databasePath, generation => {
     assert.equal(generation.evidence.commitId, evidence.commitId);
     assert.equal(JSON.parse(generation.files.get('config.json')).apiId, 17);
   });

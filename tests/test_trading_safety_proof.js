@@ -178,7 +178,7 @@ async function protectedRelease(control, paper, engine) {
   const before = await paper.openState(account);
   const reconcile = engine.reconcileAccount.bind(engine);
   let reads = 0;
-  let operation;
+  let operation = null;
   engine.reconcileAccount = async (...args) => {
     const result = await reconcile(...args);
     if (++reads === 2) {

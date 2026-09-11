@@ -22,7 +22,7 @@ function fail(message) { throw new ExportError(message); }
 function nonempty(value) { return typeof value === 'string' && value.trim().length > 0; }
 
 async function requestPage(fetchImpl, token, variables) {
-  let response;
+  let response = null;
   try {
     response = await fetchImpl('https://api.deepsource.com/graphql/', {
       method: 'POST', redirect: 'error', signal: AbortSignal.timeout(30000),

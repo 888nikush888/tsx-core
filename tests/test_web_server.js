@@ -226,7 +226,7 @@ async function testConfigurationNormalization(baseUrl, appState) {
     assert.equal(response.status, 200); const result = await response.json();
     assert.equal(result.configuration.forwardOptions.queueTimeoutSeconds, 255);
     assert.equal(persisted.forwardOptions.queueTimeoutSeconds, 255); assert.equal(applied.forwardOptions.queueTimeoutSeconds, 255);
-    assert.equal(result.configuration.sourceFilters['-1001'], undefined); assert.deepEqual(result.configuration.sourceFilters['-1002'], { regexPatterns: ['untouched'] });
+    assert.equal(result.configuration.sourceFilters['-1001']); assert.deepEqual(result.configuration.sourceFilters['-1002'], { regexPatterns: ['untouched'] });
     assert.equal((await (await fetch(`${baseUrl}/api/config`, { headers: headers(ADMIN_TOKEN) })).json()).configRevision, result.configRevision, 'Read, persistence and queue must share the normalized revision.');
     const stale = await fetch(`${baseUrl}/api/config`, { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json', 'If-Match': before.configRevision }), body: JSON.stringify({ targetChannel: '@stale_target' }) });
     assert.equal(stale.status, 409); assert.equal(applied.targetChannel, '');
@@ -291,7 +291,7 @@ async function testTradingAnalyticsApi(baseUrl) {
 }
 
 async function testExchangeCatalogApi(baseUrl, appState) {
-  let response;
+  let response = null;
   const originalTradingControl = appState.tradingControl;
   appState.tradingControl = {
     exchangeCatalog: () => Promise.resolve(({
@@ -1362,7 +1362,7 @@ async function testOperationsControl(baseUrl, controls) {
 }
 
 async function testMutationSerialization(baseUrl, controls) {
-  let releaseBackup;
+  let releaseBackup = null;
   controls.backupBarrier = new Promise(resolve => { releaseBackup = resolve; });
   const backupRequest = fetch(`${baseUrl}/api/operations/backup`, { method: 'POST', headers: mutationHeaders() });
   const deadline = Date.now() + 1000;
@@ -1774,7 +1774,7 @@ async function testRecoveryLocalStartup(testDir, appState) {
   const previousAuthMode = process.env.DASHBOARD_AUTH_MODE;
   const previousAllowedOrigin = process.env.DASHBOARD_ALLOWED_ORIGIN;
   const secretStore = new ManagedSecretStore(path.join(testDir, 'recovery-secrets'));
-  let recoveryServer;
+  let recoveryServer = null;
   try {
     delete process.env.DASHBOARD_ADMIN_TOKEN;
     delete process.env.DASHBOARD_VIEWER_TOKEN;

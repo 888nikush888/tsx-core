@@ -1,16 +1,21 @@
 import { TradingRiskError } from './trading_risk.js';
 
-function entryRequest(endpoint: string, payload: Record<string, any>): Record<string, any> | null {
-  let request = null;
-  if (endpoint === '/v1/submit-protected-entry') request = payload.entry;
-  else if (endpoint === '/v1/submit-order') request = payload.request;
-  return request && request.reduceOnly !== true ? request : null;
+function candidateRequest(endpoint: string, payload: Record<string, unknown>): unknown {
+  if (endpoint === '/v1/submit-protected-entry') return payload.entry;
+  if (endpoint === '/v1/submit-order') return payload.request;
+  return null;
+}
+
+function entryRequest(endpoint: string, payload: Record<string, unknown>): Record<string, unknown> | null {
+  const candidate = candidateRequest(endpoint, payload);
+  if (typeof candidate !== 'object' || candidate === null) return null;
+  return (candidate as Record<string, unknown>).reduceOnly !== true ? (candidate as Record<string, unknown>) : null;
 }
 
 /** Capture before any await. A changed caller object cannot extend the journaled deadline. */
-export function captureEntryDeadline(endpoint: string, payload: Record<string, any>): { expiresAt: number | null; assertCurrent(): void } {
+export function captureEntryDeadline(endpoint: string, payload: Record<string, unknown>): { expiresAt: number | null; assertCurrent(): void } {
   const original = entryRequest(endpoint, payload);
-  if (!original) return { expiresAt: null, assertCurrent() {} };
+  if (!original) return { expiresAt: null, assertCurrent() { return undefined; } };
   const expiresAt: unknown = original.entryExpiresAt;
   if (typeof expiresAt !== 'number' || !Number.isSafeInteger(expiresAt) || expiresAt <= 0) {
     throw new TradingRiskError('ENTRY_DEADLINE_UNPROVEN', 'ENTRY_DEADLINE_UNPROVEN: original entry deadline is required.');

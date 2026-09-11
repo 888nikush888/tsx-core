@@ -81,8 +81,8 @@ async function localHistoryProof(accountId: string): Promise<LocalLedgerProof | 
   return { hash: createHash('sha256').update(JSON.stringify({ orders, fills })).digest('hex'), orderCount: orders.length, fillCount: fills.length };
 }
 
-async function baselineRow(account: TradingAccount): Promise<BaselineRow | undefined> {
-  return getDatabase().get<BaselineRow>(`SELECT * FROM trading_account_baselines WHERE account_id = ? AND account_fingerprint = ?`,
+function baselineRow(account: TradingAccount): Promise<BaselineRow | undefined> {
+  return getDatabase().get<BaselineRow>('SELECT * FROM trading_account_baselines WHERE account_id = ? AND account_fingerprint = ?',
     [account.id, account.externalAccountId]);
 }
 

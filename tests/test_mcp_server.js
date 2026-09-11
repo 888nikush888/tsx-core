@@ -55,9 +55,9 @@ async function waitForRuntimeMode(url, child, expectedMode) {
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-mcp-server-'));
 const databasePath = path.join(directory, 'forwarder.db');
 const port = await availablePort();
-let child;
-let client;
-let bridge;
+let child = null;
+let client = null;
+let bridge = null;
 let serverOutput = '';
 const processOwner = await acquireProcessLock(path.join(directory, '.process_active'));
 try {
@@ -177,13 +177,13 @@ try {
     assert.ok(tools.tools.some(tool => tool.name === toolName), `${toolName} must be registered`);
   }
   const status = await client.callTool({ name: 'tsx_system_status', arguments: {} });
-  assert.equal(status.isError, undefined);
+  assert.equal(status.isError);
   const content = status.content;
   assert.ok(Array.isArray(content));
   const parsed = JSON.parse(content[0].text);
   assert.equal(parsed.overview.openPositionCount, 0);
   const contractsResult = await client.callTool({ name: 'tsx_contracts_list', arguments: {} });
-  assert.equal(contractsResult.isError, undefined);
+  assert.equal(contractsResult.isError);
   const contracts = JSON.parse(contractsResult.content[0].text);
   const standardDefinition = contracts.find(contract => contract.id === 'standard').versions[0].definition;
   const validated = await client.callTool({
@@ -194,12 +194,12 @@ try {
       sourceText: 'LONG BTCUSDT entry 60000 to 61000 target 62000 stoploss 59000',
     },
   });
-  assert.equal(validated.isError, undefined);
+  assert.equal(validated.isError);
   const preflight = await client.callTool({
     name: 'tsx_preflight',
     arguments: { action: 'risk.update', payload: { channelId: '-protocol-channel' } },
   });
-  assert.equal(preflight.isError, undefined);
+  assert.equal(preflight.isError);
   const preflightPayload = JSON.parse(preflight.content[0].text);
   assert.equal(preflightPayload.allowed, true);
   assert.equal(preflightPayload.requiresApproval, true);
@@ -230,21 +230,21 @@ try {
       enabled: false,
     },
   });
-  assert.equal(schemaProposal.isError, undefined);
+  assert.equal(schemaProposal.isError);
   const schemaProposalPayload = JSON.parse(schemaProposal.content[0].text);
   assert.equal(schemaProposalPayload.status, 'completed');
   const proposalStatus = await client.callTool({
     name: 'tsx_proposal_status',
     arguments: { proposalId: schemaProposalPayload.proposalId },
   });
-  assert.equal(proposalStatus.isError, undefined);
+  assert.equal(proposalStatus.isError);
   const missingProposal = await client.callTool({
     name: 'tsx_proposal_status',
     arguments: { proposalId: 'missing-proposal' },
   });
   assert.equal(missingProposal.isError, true);
   const reconcile = await client.callTool({ name: 'tsx_reconcile', arguments: {} });
-  assert.equal(reconcile.isError, undefined);
+  assert.equal(reconcile.isError);
   const failedReconcile = await client.callTool({
     name: 'tsx_reconcile', arguments: { accountId: 'fail-account' },
   });
@@ -259,7 +259,7 @@ try {
     name: 'tsx_set_kill_switch',
     arguments: { active: true, reason: 'protocol test' },
   });
-  assert.equal(killSwitch.isError, undefined);
+  assert.equal(killSwitch.isError);
   const missingReason = await client.callTool({
     name: 'tsx_set_kill_switch', arguments: { active: true },
   });

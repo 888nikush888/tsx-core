@@ -15,12 +15,16 @@ export interface OwnershipOrder {
 export interface OwnershipFill { order_id: string; quantity: string }
 export interface OwnershipProof { entryQuantity: string; exitQuantity: string; netQuantity: string }
 
-function assertOrderSemantics(order: OwnershipOrder, side: TradingSide): void {
-  const entry = order.role === 'entry';
+function expectedOrderSide(role: string, side: TradingSide): { expectedSide: string; expectedReduceOnly: number } {
+  const entry = role === 'entry';
   const entrySide = side === 'LONG' ? 'buy' : 'sell';
   const exitSide = entrySide === 'buy' ? 'sell' : 'buy';
-  const expectedSide = entry ? entrySide : exitSide;
-  if (order.side !== expectedSide || Number(order.reduce_only) !== (entry ? 0 : 1)) {
+  return entry ? { expectedSide: entrySide, expectedReduceOnly: 0 } : { expectedSide: exitSide, expectedReduceOnly: 1 };
+}
+
+function assertOrderSemantics(order: OwnershipOrder, side: TradingSide): void {
+  const { expectedSide, expectedReduceOnly } = expectedOrderSide(order.role, side);
+  if (order.side !== expectedSide || Number(order.reduce_only) !== expectedReduceOnly) {
     throw new TradingOwnershipError('ORDER_SEMANTICS', `Order ${order.id} cannot prove an owned ${side} execution.`);
   }
 }
@@ -95,6 +99,6 @@ export function assertPositionNamespace(position: ExchangePositionSnapshot, exec
 
 export async function assertOwnedPositionNamespace(intentId: string, position: ExchangePositionSnapshot): Promise<void> {
   const entries = await getDatabase().all<Array<{ provider_symbol: string | null; filled_quantity: string }>>(
-    `SELECT provider_symbol, filled_quantity FROM trading_orders WHERE intent_id = ? AND role = 'entry'`, [intentId]);
+    'SELECT provider_symbol, filled_quantity FROM trading_orders WHERE intent_id = ? AND role = \'entry\'', [intentId]);
   assertPositionNamespace(position, entries.filter(entry => compareDecimal(entry.filled_quantity, '0') > 0).map(entry => entry.provider_symbol));
 }

@@ -23,7 +23,7 @@ export async function loadCancelOrder(accountId: string, clientOrderId: string):
   return row;
 }
 
-async function latestCancel(accountId: string, clientOrderId: string): Promise<CancelAttempt | undefined> {
+function latestCancel(accountId: string, clientOrderId: string): Promise<CancelAttempt | undefined> {
   return getDatabase().get<CancelAttempt>(
     `SELECT * FROM trading_operations WHERE account_id = ? AND kind = 'cancel'
      AND EXISTS (SELECT 1 FROM json_each(expected_orders_json) WHERE json_extract(value, '$.client_order_id') = ?)
@@ -73,10 +73,10 @@ async function recoverActiveCancelAttempt(account: TradingAccount, remote: Excha
   if (attempt.phase === 'resolved' && !previous) return;
   const attemptedAt = previous?.attemptedAt ?? attempt.updated_at;
   const active = exactActiveCancelEvidence(row, remote, account, attemptedAt);
-  if (!active) return;
+  if (!active || !remote.acquisition) return;
   // Persist only the normalized positive target observation, not provider raw payloads or unrelated account data.
   const evidence: StillActiveEvidence = { source: 'fresh_exact_cancel_still_active', projection: 'exact_target_only', attemptedAt,
-    target: { ...active.order, raw: null }, observedAt: remote.observedAt, acquisition: remote.acquisition!,
+    target: { ...active.order, raw: null }, observedAt: remote.observedAt, acquisition: remote.acquisition,
     accountFingerprint: account.externalAccountId };
   await recordStillActive(attempt, evidence);
 }
@@ -127,7 +127,7 @@ function entryTargetObservation(evidence: StillActiveEvidence | null): ExchangeO
 
 export async function cancelRetryAuthorized(accountId: string, clientOrderId: string): Promise<boolean> {
   const account = await getDatabase().get<{ externalAccountId: string | null; credentialGeneration: string | null; exchange: TradingAccount['exchange'] }>(
-    `SELECT external_account_id AS externalAccountId, credential_generation AS credentialGeneration, exchange FROM trading_accounts WHERE id = ?`, [accountId]);
+    'SELECT external_account_id AS externalAccountId, credential_generation AS credentialGeneration, exchange FROM trading_accounts WHERE id = ?', [accountId]);
   if (!account) return false;
   try {
     const row = await loadCancelOrder(accountId, clientOrderId);

@@ -87,7 +87,7 @@ try {
 
   await reloaded.clear();
   assert.ok(Object.values(reloaded.status()).every(status => status.source === 'missing'));
-  assert.equal(reloadedEnv.DASHBOARD_ADMIN_TOKEN, undefined);
+  assert.equal(reloadedEnv.DASHBOARD_ADMIN_TOKEN);
 
   const automatic = new ManagedSecretStore(path.join(directory, 'automatic'), {});
   await automatic.initialize();

@@ -30,7 +30,7 @@ export class TelegramDeliveryTracker {
     }
   }
 
-  public handleUpdate(update: any): boolean {
+  public handleUpdate(update: Record<string, any>): boolean {
     if (update?._ === 'updateMessageSendSucceeded') {
       const oldMessageId = String(update.old_message_id);
       const destinationMessageId = String(update.message?.id ?? update.old_message_id);
@@ -51,15 +51,15 @@ export class TelegramDeliveryTracker {
     return false;
   }
 
-  public async waitForResult(result: any, signal?: AbortSignal): Promise<ConfirmedDelivery> {
-    let messages: any[] = [];
+  public async waitForResult(result: Record<string, any>, signal?: AbortSignal): Promise<ConfirmedDelivery> {
+    let messages: Array<Record<string, any>> = [];
     if (Array.isArray(result?.messages)) messages = result.messages;
     else if (result?.id !== undefined) messages = [result];
     if (messages.length === 0) {
       throw new Error('Telegram send returned no destination messages to confirm.');
     }
 
-    const destinationMessageIds = await Promise.all(messages.map(async (message: any) => {
+    const destinationMessageIds = await Promise.all(messages.map((message: Record<string, any>) => {
       if (message?.id === undefined || message?.id === null) {
         throw new Error('Telegram send returned a message without an id.');
       }
@@ -68,7 +68,7 @@ export class TelegramDeliveryTracker {
       if (!sendingState) return String(message.id);
       if (sendingState._ === 'messageSendingStateFailed') {
         const detail = sendingState.error?.message || 'Telegram reported a failed sending state.';
-        throw new Error(detail);
+        throw new Error(String(detail));
       }
       return this.waitForMessage(String(message.id), signal);
     }));
@@ -90,7 +90,8 @@ export class TelegramDeliveryTracker {
     if (waiter) {
       this.cleanupWaiter(oldMessageId, waiter);
       if (outcome.error) waiter.reject(outcome.error);
-      else waiter.resolve(outcome.destinationMessageId!);
+      else if (outcome.destinationMessageId) waiter.resolve(outcome.destinationMessageId);
+      else waiter.reject(new Error('Delivery confirmation is missing.'));
       return;
     }
 
@@ -107,7 +108,9 @@ export class TelegramDeliveryTracker {
     const cached = this.recentOutcomes.get(oldMessageId);
     if (cached) {
       this.recentOutcomes.delete(oldMessageId);
-      return cached.error ? Promise.reject(cached.error) : Promise.resolve(cached.destinationMessageId!);
+      if (cached.error) return Promise.reject(cached.error);
+      if (cached.destinationMessageId) return Promise.resolve(cached.destinationMessageId);
+      return Promise.reject(new Error('Delivery confirmation is missing.'));
     }
     if (signal?.aborted) return Promise.reject(new Error('Delivery confirmation aborted.'));
     if (this.waiters.has(oldMessageId)) {

@@ -92,14 +92,16 @@ function appendTextToken(token: string, stack: XmlNode[]): void {
   if (/[<>]/.test(token)) {
     throw new SignalValidationError('Unescaped angle brackets are forbidden in XML text.');
   }
-  stack.at(-1)!.text += token;
+  const top = stack.at(-1);
+  if (!top) throw new SignalValidationError('XML text node has no parent element.');
+  top.text += token;
 }
 
 function createXmlNode(token: string): XmlNode {
   const opening = /^<([a-z_][a-z0-9_]*)(?: id="([1-9]\d*)")?>$/u.exec(token);
   if (!opening) throw new SignalValidationError(`Malformed or disallowed XML tag '${token}'.`);
   const node: XmlNode = {
-    name: opening[1]!,
+    name: String(opening[1]),
     id: opening[2] ? Number(opening[2]) : undefined,
     text: '',
     children: [],
@@ -124,7 +126,8 @@ function consumeTagToken(token: string, stack: XmlNode[], root: XmlNode | null):
     return root;
   }
   const node = createXmlNode(token);
-  if (stack.length > 0) stack.at(-1)!.children.push(node);
+  const parent = stack.at(-1);
+  if (parent) parent.children.push(node);
   else if (root) throw new SignalValidationError('Multiple XML root elements are forbidden.');
   else root = node;
   stack.push(node);
@@ -143,7 +146,9 @@ function parseXml(xml: string): XmlNode {
     root = consumeTagToken(token, stack, root);
   }
   if (stack.length > 0) {
-    throw new SignalValidationError(`Unclosed XML tag '${stack.at(-1)!.name}'.`);
+    const unclosed = stack.at(-1);
+    if (!unclosed) throw new SignalValidationError('Unclosed XML tag stack is empty.');
+    throw new SignalValidationError(`Unclosed XML tag '${unclosed.name}'.`);
   }
   if (root?.name !== 'signal') {
     throw new SignalValidationError("Root tag must be 'signal' and properly closed.");
@@ -166,7 +171,9 @@ function children(node: XmlNode, name: string): XmlNode[] {
 function required(node: XmlNode, name: string): XmlNode {
   const matches = children(node, name);
   if (matches.length !== 1) throw new SignalValidationError(`Required tag '${name}' must appear exactly once.`);
-  return matches[0]!;
+  const found = matches[0];
+  if (!found) throw new SignalValidationError(`Required tag '${name}' must appear exactly once.`);
+  return found;
 }
 
 function optional(node: XmlNode, name: string): XmlNode | undefined {
@@ -282,7 +289,9 @@ function assertTargetGeometry(
     throw new SignalValidationError(`SHORT target ${index + 1} must be below ${boundaryLabel}.`);
   }
   if (index === 0) return;
-  const order = compareDecimals(targets[index - 1]!, target);
+  const previous = targets[index - 1];
+  if (previous === undefined) throw new SignalValidationError('Target ordering cannot be verified.');
+  const order = compareDecimals(previous, target);
   if ((action === 'LONG' && order >= 0) || (action === 'SHORT' && order <= 0)) {
     throw new SignalValidationError(`${action} targets must be strictly ordered away from entry.`);
   }
@@ -420,7 +429,8 @@ function validateLoma(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'> {
     if (action === 'LONG' && compareDecimals(target.min, entry.max) <= 0) throw new SignalValidationError(`LONG target ${index + 1} must be above entry.`);
     if (action === 'SHORT' && compareDecimals(target.max, entry.min) >= 0) throw new SignalValidationError(`SHORT target ${index + 1} must be below entry.`);
     if (index > 0) {
-      const previous = targets[index - 1]!;
+      const previous = targets[index - 1];
+      if (!previous) throw new SignalValidationError('Target ordering cannot be verified.');
       if (action === 'LONG' && compareDecimals(target.min, previous.max) <= 0) throw new SignalValidationError('LONG target ranges must be strictly increasing.');
       if (action === 'SHORT' && compareDecimals(target.max, previous.min) >= 0) throw new SignalValidationError('SHORT target ranges must be strictly decreasing.');
     }
@@ -573,7 +583,7 @@ function validateAdditionalFieldType(field: SignalContractAdditionalField, value
 }
 
 function validateAdditionalDecimal(root: XmlNode, field: SignalContractAdditionalField): void {
-  const normalized = decimal(pathNode(root, field.path, true)!, field.path);
+  const normalized = decimal(pathNode(root, field.path, true) ?? { name: field.path, text: '', children: [] } as XmlNode, field.path);
   if (field.minimum && compareDecimals(normalized, field.minimum) < 0) {
     throw new SignalValidationError(`Contract path '${field.path}' is below its minimum.`);
   }
@@ -596,7 +606,9 @@ function contractEntry(
 ): { min: string; max: string } | undefined {
   let rangeRequired = definition.entry.mode === 'required_range';
   if (definition.entry.mode === 'typed') {
-    const type = pathLeaf(root, definition.entry.typePath!, true)!;
+    if (!definition.entry.typePath) throw new SignalValidationError('Typed entry requires an entry type path.');
+    const type = pathLeaf(root, definition.entry.typePath, true);
+    if (type === undefined) throw new SignalValidationError('Typed entry type is missing.');
     if (definition.entry.marketValues.includes(type)) rangeRequired = false;
     else if (definition.entry.rangeValues.includes(type)) rangeRequired = true;
     else throw new SignalValidationError(`Entry type '${type}' is not allowed by the contract.`);
@@ -621,8 +633,9 @@ function targetItemRange(item: XmlNode, definition: SignalContractDefinition): {
     const value = decimal(item, 'target');
     return { min: value, max: value };
   }
-  const minimum = contractDecimal(item, definition.targets.minimumPath, true)!;
-  const maximum = contractDecimal(item, definition.targets.maximumPath, true)!;
+  const minimum = contractDecimal(item, definition.targets.minimumPath, true);
+  const maximum = contractDecimal(item, definition.targets.maximumPath, true);
+  if (minimum === undefined || maximum === undefined) throw new SignalValidationError('Target range minimum and maximum are required.');
   if (compareDecimals(minimum, maximum) > 0) {
     throw new SignalValidationError('Target range minimum must not exceed maximum.');
   }
@@ -630,7 +643,8 @@ function targetItemRange(item: XmlNode, definition: SignalContractDefinition): {
 }
 
 function contractTargets(root: XmlNode, definition: SignalContractDefinition): Array<{ min: string; max: string }> {
-  const container = pathNode(root, definition.targets.containerPath, true)!;
+  const container = pathNode(root, definition.targets.containerPath, true);
+  if (!container) throw new SignalValidationError('Targets container is missing.');
   const items = children(container, definition.targets.itemTag);
   if (items.length < definition.targets.minimumItems || items.length > definition.targets.maximumItems) {
     throw new SignalValidationError(
@@ -652,8 +666,10 @@ function assertContractGeometry(
   stopLoss: string,
   targets: Array<{ min: string; max: string }>,
 ): void {
-  const baselineMinimum = entry?.min ?? targets[0]!.min;
-  const baselineMaximum = entry?.max ?? targets[0]!.max;
+  const first = targets[0];
+  if (!first) throw new SignalValidationError('At least one target is required.');
+  const baselineMinimum = entry?.min ?? first.min;
+  const baselineMaximum = entry?.max ?? first.max;
   if (definition.geometry.stopOnLossSide) {
     if (action === 'LONG' && compareDecimals(stopLoss, baselineMinimum) >= 0) {
       throw new SignalValidationError('LONG stoploss must be below the entry range.');
@@ -675,7 +691,8 @@ function assertContractGeometry(
       }
     }
     if (!definition.geometry.orderedTargets || index === 0) return;
-    const previous = targets[index - 1]!;
+    const previous = targets[index - 1];
+    if (!previous) throw new SignalValidationError('Target ordering cannot be verified.');
     if (action === 'LONG' && compareDecimals(target.min, previous.max) <= 0) {
       throw new SignalValidationError('LONG targets must be strictly ordered away from entry.');
     }
@@ -765,11 +782,13 @@ function validateDynamicContract(
   const definition = validateSignalContractDefinition(input);
   assertDeclaredNode(root, '', declaredStructure(definition));
   const action = dynamicAction(root, definition);
-  const pairNode = pathNode(root, definition.pairPath, true)!;
+  const pairNode = pathNode(root, definition.pairPath, true);
+  if (!pairNode) throw new SignalValidationError('Required contract path is missing.');
   const pair = pairValue({ ...root, children: [{ ...pairNode, name: 'pair' }] }, true);
   const entry = contractEntry(root, definition);
   const targets = contractTargets(root, definition);
-  const stopLoss = contractDecimal(root, definition.stopLossPath, true)!;
+  const stopLoss = contractDecimal(root, definition.stopLossPath, true);
+  if (stopLoss === undefined) throw new SignalValidationError('Required contract path is missing.');
   const optional = dynamicOptionalValues(root, definition);
   // One deadline for all fields prevents multiplying the CPU budget by 30.
   const patternDeadline = performance.now() + 100;
@@ -884,18 +903,24 @@ function groundingLabels(value: string): GroundingLabelMatch[] {
   ).sort((left, right) => left.index - right.index || right.label.length - left.label.length);
   return labels.filter((label, index) => {
     if (index === 0) return true;
-    const previous = labels[index - 1]!;
+    const previous = labels[index - 1];
+    if (!previous) return true;
     return label.index >= previous.index + previous.label.length;
   });
 }
 
 function groundingKind(label: string): GroundingFieldKind {
   const normalized = label.replace(/\s+/g, ' ').trim().toUpperCase();
-  if (normalized.startsWith('ENTRY') || normalized === 'ВХОД') return 'entry';
-  if (normalized.startsWith('AVERAGING') || normalized === 'УСРЕДНЕНИЕ') return 'averaging';
-  if (normalized.startsWith('STOP') || normalized === 'SL' || normalized === 'СТОП') return 'stop';
-  if (normalized.startsWith('TARGET') || normalized.startsWith('TP') || normalized.startsWith('TAKE PROFIT') || normalized === 'ЦЕЛИ') return 'target';
-  if (normalized.startsWith('LEVERAGE') || normalized.startsWith('\u041a\u0420\u041e\u0421\u0421')) return 'leverage';
+  const kinds: Array<{ kind: GroundingFieldKind; prefixes: string[]; exact: string[] }> = [
+    { kind: 'entry', prefixes: ['ENTRY'], exact: ['ВХОД'] },
+    { kind: 'averaging', prefixes: ['AVERAGING'], exact: ['УСРЕДНЕНИЕ'] },
+    { kind: 'stop', prefixes: ['STOP'], exact: ['SL', 'СТОП'] },
+    { kind: 'target', prefixes: ['TARGET', 'TP', 'TAKE PROFIT'], exact: ['ЦЕЛИ'] },
+    { kind: 'leverage', prefixes: ['LEVERAGE', 'КРОСС'], exact: [] },
+  ];
+  for (const entry of kinds) {
+    if (entry.prefixes.some(prefix => normalized.startsWith(prefix)) || entry.exact.includes(normalized)) return entry.kind;
+  }
   return 'risk';
 }
 
@@ -1060,7 +1085,7 @@ function assertNumbersGrounded(signal: ValidatedSignal, sourceText: string): voi
     /(?<![\p{L}\p{N}_])(?<!\d\.)(?:[xX])?(0(?:\.\d{1,18})?)(?=(?:[xX%])?(?![\p{L}\p{N}_]|\.\d))/gu,
     /(?<![\p{L}\p{N}_])(?<!\d\.)(?:[xX])?([1-9]\d{0,17}(?:\.\d{1,18})?)(?=(?:[xX%])?(?![\p{L}\p{N}_]|\.\d))/gu,
   ];
-  const sourceNumbers = patterns.flatMap(pattern => Array.from(sourceText.matchAll(pattern), match => match[1]!));
+  const sourceNumbers = patterns.flatMap(pattern => Array.from(sourceText.matchAll(pattern), match => match[1]).filter((value): value is string => value !== undefined));
   for (const value of signal.groundingNumbers) {
     if (!sourceNumbers.some(sourceValue => compareDecimals(sourceValue, value) === 0)) {
       throw new SignalValidationError(`Output number '${value}' is not grounded in the source text.`);

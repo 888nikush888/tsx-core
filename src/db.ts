@@ -62,7 +62,7 @@ async function exists(file: string): Promise<boolean> {
     throw error; }
 }
 
-export async function mcpMaintenanceActive(databasePath = operationalDatabasePath()): Promise<boolean> {
+export function mcpMaintenanceActive(databasePath = operationalDatabasePath()): Promise<boolean> {
   // Any existing artifact blocks entry, including malformed, directory or symlink markers.
   return exists(mcpMaintenanceMarkerPath(databasePath));
 }
@@ -283,7 +283,7 @@ class SerializedDatabaseAccess {
 
   withoutOwnership<T>(operation: () => T): T { return this.owner.exit(operation); }
 
-  async execute<T>(operation: () => Promise<T>): Promise<T> {
+  execute<T>(operation: () => Promise<T>): Promise<T> {
     if (this.isOwnedByCurrentOperation()) return operation();
     const operationOwner = Symbol('database-operation');
     const result = this.tail.then(() => this.owner.run(operationOwner, operation));
@@ -292,7 +292,7 @@ class SerializedDatabaseAccess {
   }
 
   async drain(): Promise<void> {
-    await this.execute(async () => undefined);
+    await this.execute(() => Promise.resolve());
   }
 }
 
@@ -2840,7 +2840,7 @@ async function applyPendingMigration(database: Database, migration: SchemaMigrat
     );
     await database.exec('COMMIT;');
   } catch (error) {
-    await database.exec('ROLLBACK;').catch(() => {});
+    await database.exec('ROLLBACK;').catch(() => undefined);
     throw new Error(`Database migration ${migration.version} (${migration.name}) failed.`, { cause: error });
   } finally {
     if (migration.foreignKeysOff) await database.exec('PRAGMA foreign_keys = ON;');
@@ -3028,7 +3028,7 @@ function rawDatabase(): Database {
 }
 
 /** Runs a complete unit of work under the single SQLite transaction owner. */
-export async function withDatabaseTransaction<T>(
+export function withDatabaseTransaction<T>(
   operation: (database: Database) => Promise<T>
 ): Promise<T> {
   if (serializedDatabaseAccess.isOwnedByCurrentOperation()) return operation(getDatabase());
@@ -3048,27 +3048,27 @@ export async function withDatabaseTransaction<T>(
 }
 
 /** Durable dispatching must already be committed. No adapter continuation inherits the DB owner. */
-export async function withDatabaseDispatchFence<T>(verify: () => Promise<void>, start: () => Promise<T>): Promise<{ pending: Promise<T> }> {
+export function withDatabaseDispatchFence<T>(verify: () => Promise<void>, start: () => Promise<T>): Promise<{ pending: Promise<T> }> {
   if (serializedDatabaseAccess.isOwnedByCurrentOperation()) throw new Error('Exchange dispatch cannot inherit a database transaction.');
   return withDatabaseTransaction(async () => {
     await verify();
     const pending = serializedDatabaseAccess.withoutOwnership(start);
     // A promptly rejected provider promise is handled even while the short read fence commits.
-    void pending.catch(() => undefined);
+    pending.catch(() => undefined);
     return { pending };
   });
 }
 
 export async function getTotalForwardedCount(): Promise<number> {
   const row = await getDatabase().get<{ value: number }>(
-    `SELECT value FROM forwarding_stats WHERE key = 'total_forwarded_count'`
+    'SELECT value FROM forwarding_stats WHERE key = \'total_forwarded_count\''
   );
   return Number(row?.value || 0);
 }
 
 export async function getLastForwardedAt(): Promise<number | null> {
   const row = await getDb().get<{ value: number }>(
-    `SELECT value FROM forwarding_stats WHERE key = 'last_forwarded_at'`
+    'SELECT value FROM forwarding_stats WHERE key = \'last_forwarded_at\''
   );
   const value = Number(row?.value || 0);
   return Number.isSafeInteger(value) && value > 0 ? value : null;
@@ -3112,7 +3112,7 @@ export class SignalConflictError extends Error {
   }
 }
 
-export async function saveSignal(
+export function saveSignal(
   id: string,
   chatId: string,
   messageId: number,
@@ -3156,7 +3156,7 @@ export interface AiUsageReservation {
   status: 'reserved';
 }
 
-export async function reserveAiUsage(
+export function reserveAiUsage(
   usageDay: string, tokenAllowance: number, dailyRequestLimit: number, dailyTokenLimit: number,
 ): Promise<AiUsageReservation | false> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(usageDay)) throw new Error('usageDay must use YYYY-MM-DD.');
@@ -3211,7 +3211,7 @@ export async function commitAiUsage(reservationId: string, allowance: number, ac
 
 export async function getAiUsage(usageDay: string): Promise<{ requestCount: number; usedTokens: number; reservedTokens: number }> {
   const row = await getDb().get<any>(
-    `SELECT request_count, used_tokens, reserved_tokens FROM ai_usage_daily WHERE usage_day = ?`,
+    'SELECT request_count, used_tokens, reserved_tokens FROM ai_usage_daily WHERE usage_day = ?',
     [usageDay]
   );
   return {
@@ -3232,7 +3232,7 @@ export async function getOutboxStatusCounts(): Promise<Record<OutboxStatus, numb
     needs_review: 0
   };
   const rows = await getDb().all<Array<{ status: OutboxStatus; count: number }>>(
-    `SELECT status, COUNT(*) AS count FROM pending_tasks GROUP BY status`
+    'SELECT status, COUNT(*) AS count FROM pending_tasks GROUP BY status'
   );
   for (const row of rows) {
     if (row.status in counts) counts[row.status] = Number(row.count || 0);
@@ -3243,7 +3243,7 @@ export async function getOutboxStatusCounts(): Promise<Record<OutboxStatus, numb
 export async function getOldestPendingOutboxAgeSeconds(now = Date.now()): Promise<number> {
   if (!Number.isSafeInteger(now) || now < 0) throw new Error('Outbox age timestamp must be a non-negative safe integer.');
   const row = await getDb().get<{ oldest: number | null }>(
-    `SELECT MIN(added_at) AS oldest FROM pending_tasks WHERE status IN ('pending', 'preparing', 'sending')`
+    'SELECT MIN(added_at) AS oldest FROM pending_tasks WHERE status IN (\'pending\', \'preparing\', \'sending\')'
   );
   if (row?.oldest === null || row?.oldest === undefined) return 0;
   const oldest = Number(row.oldest);
@@ -3533,35 +3533,35 @@ export async function findDuplicateSignal(
   const scopeSuffix = dedupeScope ? `_${dedupeScope}` : null;
   const scopeSql = scopeSuffix ? ' AND substr(id, -?) = ?' : '';
   const scopeParameters = scopeSuffix ? [scopeSuffix.length, scopeSuffix] : [];
-  
-  if (cooldownHours > 0) {
-    const minTime = now - cooldownMs;
-    const match = await database.get(
-      `SELECT id, created_at FROM signals 
-       WHERE normalized_content = ? AND created_at >= ? AND (? IS NULL OR id <> ?)
-       ${scopeSql}
-       ORDER BY created_at DESC LIMIT 1`,
-      [normalizedContent, minTime, excludeSignalId || null, excludeSignalId || null, ...scopeParameters]
-    );
-    if (match) {
-      const ageMs = now - (match.created_at as number);
-      const ageHours = Number((ageMs / (60 * 60 * 1000)).toFixed(1));
-      return { isDupe: true, matchFile: match.id, ageHours };
-    }
-  } else {
-    // cooldownHours === 0 means "always block" (infinite cooldown)
-    const match = await database.get(
-      `SELECT id FROM signals 
-       WHERE normalized_content = ? AND (? IS NULL OR id <> ?)
-       ${scopeSql}
-       ORDER BY created_at DESC LIMIT 1`,
-      [normalizedContent, excludeSignalId || null, excludeSignalId || null, ...scopeParameters]
-    );
-    if (match) {
-      return { isDupe: true, matchFile: match.id };
-    }
-  }
-  return null;
+  if (cooldownHours > 0) return findCooldownDuplicate(database, normalizedContent, now - cooldownMs, now, excludeSignalId, scopeSql, scopeParameters);
+  return findPermanentDuplicate(database, normalizedContent, excludeSignalId, scopeSql, scopeParameters);
+}
+
+async function findCooldownDuplicate(database: Awaited<ReturnType<typeof getDatabase>>, normalizedContent: string, minTime: number, now: number,
+  excludeSignalId: string | undefined, scopeSql: string, scopeParameters: unknown[]): Promise<{ isDupe: boolean; matchFile?: string; ageHours?: number } | null> {
+  const match = await database.get(
+    `SELECT id, created_at FROM signals
+     WHERE normalized_content = ? AND created_at >= ? AND (? IS NULL OR id <> ?)
+     ${scopeSql}
+     ORDER BY created_at DESC LIMIT 1`,
+    [normalizedContent, minTime, excludeSignalId || null, excludeSignalId || null, ...scopeParameters]
+  );
+  if (!match) return null;
+  const ageMs = now - (match.created_at as number);
+  return { isDupe: true, matchFile: match.id, ageHours: Number((ageMs / (60 * 60 * 1000)).toFixed(1)) };
+}
+
+async function findPermanentDuplicate(database: Awaited<ReturnType<typeof getDatabase>>, normalizedContent: string,
+  excludeSignalId: string | undefined, scopeSql: string, scopeParameters: unknown[]): Promise<{ isDupe: boolean; matchFile?: string } | null> {
+  const match = await database.get(
+    `SELECT id FROM signals
+     WHERE normalized_content = ? AND (? IS NULL OR id <> ?)
+     ${scopeSql}
+     ORDER BY created_at DESC LIMIT 1`,
+    [normalizedContent, excludeSignalId || null, excludeSignalId || null, ...scopeParameters]
+  );
+  if (!match) return null;
+  return { isDupe: true, matchFile: match.id };
 }
 
 function parseJsonField(value: unknown, field: string, taskId: string): any {
@@ -3730,7 +3730,7 @@ export async function recoverInterruptedOutboxTasks(): Promise<{ requeued: numbe
 }
 
 export async function getOutboxTask(id: string): Promise<OutboxTask | null> {
-  const row = await getDb().get(`SELECT * FROM pending_tasks WHERE id = ?`, [id]);
+  const row = await getDb().get('SELECT * FROM pending_tasks WHERE id = ?', [id]);
   return row ? mapOutboxRow(row) : null;
 }
 
@@ -3745,7 +3745,7 @@ export async function listOutboxTasks(statuses?: OutboxStatus[], limit = 100): P
       [JSON.stringify(statuses), safeLimit]
     );
   } else {
-    rows = await getDb().all(`SELECT * FROM pending_tasks ORDER BY added_at ASC LIMIT ?`, [safeLimit]);
+    rows = await getDb().all('SELECT * FROM pending_tasks ORDER BY added_at ASC LIMIT ?', [safeLimit]);
   }
   return rows.map(mapOutboxRow);
 }
@@ -3801,12 +3801,12 @@ export async function saveMediaGroupBuffer(groupId: string, fromChatId: string, 
 
 export async function removeMediaGroupBuffer(groupId: string): Promise<void> {
   const database = getDb();
-  await database.run(`DELETE FROM media_group_buffer WHERE group_id = ?`, [groupId]);
+  await database.run('DELETE FROM media_group_buffer WHERE group_id = ?', [groupId]);
 }
 
 export async function getMediaGroupBuffers(): Promise<Record<string, any>> {
   const database = getDb();
-  const rows = await database.all(`SELECT * FROM media_group_buffer`);
+  const rows = await database.all('SELECT * FROM media_group_buffer');
   const result: Record<string, any> = {};
   for (const r of rows) {
     result[r.group_id] = {
@@ -3842,7 +3842,7 @@ export async function updateIncomingMessageStatus(
 ): Promise<void> {
   const database = getDb();
   await database.run(
-    `UPDATE incoming_messages SET status = ? WHERE chat_id = ? AND message_id = ?`,
+    'UPDATE incoming_messages SET status = ? WHERE chat_id = ? AND message_id = ?',
     [status, chatId, messageId]
   );
 }
@@ -3850,7 +3850,7 @@ export async function updateIncomingMessageStatus(
 export async function getIncomingMessages(limit = 100): Promise<any[]> {
   const database = getDb();
   return await database.all(
-    `SELECT * FROM incoming_messages ORDER BY created_at DESC LIMIT ?`,
+    'SELECT * FROM incoming_messages ORDER BY created_at DESC LIMIT ?',
     [limit]
   );
 }
@@ -3858,7 +3858,7 @@ export async function getIncomingMessages(limit = 100): Promise<any[]> {
 export async function getProcessedSignals(limit = 100): Promise<any[]> {
   const database = getDb();
   return await database.all(
-    `SELECT * FROM signals ORDER BY created_at DESC LIMIT ?`,
+    'SELECT * FROM signals ORDER BY created_at DESC LIMIT ?',
     [limit]
   );
 }
@@ -3922,7 +3922,7 @@ export interface DatabaseClearResult {
   deletedMediaGroups: number;
 }
 
-export async function clearDb(): Promise<DatabaseClearResult> {
+export function clearDb(): Promise<DatabaseClearResult> {
   return withDatabaseTransaction(async database => {
     const pendingTasks = await database.run('DELETE FROM pending_tasks');
     const mediaGroups = await database.run('DELETE FROM media_group_buffer');
@@ -3951,7 +3951,7 @@ export async function clearDb(): Promise<DatabaseClearResult> {
 
 export async function deleteIncomingMessage(id: number): Promise<void> {
   const database = getDb();
-  await database.run(`DELETE FROM incoming_messages WHERE id = ?`, [id]);
+  await database.run('DELETE FROM incoming_messages WHERE id = ?', [id]);
 }
 
 export class SignalReferencedError extends Error {
@@ -3971,7 +3971,7 @@ export function isForeignKeyConstraint(error: unknown): boolean {
 export async function deleteProcessedSignal(id: string): Promise<void> {
   const database = getDb();
   try {
-    await database.run(`DELETE FROM signals WHERE id = ?`, [id]);
+    await database.run('DELETE FROM signals WHERE id = ?', [id]);
   } catch (error) {
     if (isForeignKeyConstraint(error)) throw new SignalReferencedError();
     throw error;

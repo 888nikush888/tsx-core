@@ -67,7 +67,7 @@ async function testIngressRelations(database) {
     await assert.rejects(uiIngressRelations(workIds[1], kind, new URLSearchParams({ limit: '100', cursor: first.nextCursor })), /match/);
   }
   const albums = await uiIngressRelations('work-1', 'albums', new URLSearchParams());
-  assert.equal(albums.entries[0].memberCount, 106); assert.equal(albums.entries[0].workIds, undefined);
+  assert.equal(albums.entries[0].memberCount, 106); assert.equal(albums.entries[0].workIds);
   assert.equal((await uiIngressRelations('work-1', 'attempts', new URLSearchParams())).entries[0].promptTokens, 0);
   for (const kind of ['plans', 'runs', 'branches', 'fallbacks', 'candidates', 'intents', 'tasks']) {
     const page = await uiIngressRelations('work-1', kind, new URLSearchParams()); assert.ok(Array.isArray(page.entries));
@@ -197,7 +197,7 @@ try {
   await updateTradingAccountConfiguration('paper-default', { maxConcurrentPositions: 18, baseUpdatedAt: originalAccount.updatedAt });
   await assert.rejects(updateTradingAccountConfiguration('paper-default', { maxConcurrentPositions: 19, baseUpdatedAt: originalAccount.updatedAt }), /configuration changed/);
   assert.equal((await getTradingAccount('paper-default')).maxConcurrentPositions, 18);
-  assert.equal(account.account.externalAccountId, undefined);
+  assert.equal(account.account.externalAccountId);
   assert.equal(account.protection.every(item => !item.protected), true, 'Absence of current receipt is never healthy.');
   assert.equal((await uiTradeSafety(intentId, 'paper-default')).ownership, null, 'No order and fill history must not be presented as proved zero.');
   assert.equal(await uiAccountDetail('absent'), null);
@@ -239,7 +239,7 @@ try {
   await assert.rejects(uiTradeRelationPage(intentId, 'constructor', new URLSearchParams()), /Unsupported/);
   const fullJournal = (await listTradeJournalPage({ intentId })).entries[0];
   assert.equal(uiJournalDetail(fullJournal).relationCounts.orders, 105); assert.deepEqual(uiJournalDetail(fullJournal).orders, []);
-  assert.equal(uiJournalSummary(fullJournal).plan, undefined); assert.equal(uiJournalSummary(fullJournal).review.notes, undefined);
+  assert.equal(uiJournalSummary(fullJournal).plan); assert.equal(uiJournalSummary(fullJournal).review.notes);
   await testOwnershipFailureBoundary(database, intentId);
 
   const now = Date.now();

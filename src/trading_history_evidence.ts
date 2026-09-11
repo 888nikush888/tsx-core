@@ -33,8 +33,17 @@ function validQuantity(value: unknown): boolean {
   try { return compareDecimal(value, '0') >= 0; } catch { return false; }
 }
 
-function matchesKnownOrder(order: KnownHistoryOrder, evidence: ExchangeUnresolvedEvent['evidence']): boolean {
+type HistoryOrderEvidence = ExchangeUnresolvedEvent['evidence'];
+
+function knownOrderIdentityMatches(order: KnownHistoryOrder, evidence: HistoryOrderEvidence): boolean {
   return (evidence.clientOrderId === null || evidence.clientOrderId === order.client_order_id)
-    && typeof evidence.side === 'string' && evidence.side.toLowerCase() === order.side
-    && typeof evidence.reduceOnly === 'boolean' && evidence.reduceOnly === (order.reduce_only === 1);
+    && typeof evidence.side === 'string' && evidence.side.toLowerCase() === order.side;
+}
+
+function knownOrderReduceOnlyMatches(order: KnownHistoryOrder, evidence: HistoryOrderEvidence): boolean {
+  return typeof evidence.reduceOnly === 'boolean' && evidence.reduceOnly === (order.reduce_only === 1);
+}
+
+function matchesKnownOrder(order: KnownHistoryOrder, evidence: HistoryOrderEvidence): boolean {
+  return knownOrderIdentityMatches(order, evidence) && knownOrderReduceOnlyMatches(order, evidence);
 }

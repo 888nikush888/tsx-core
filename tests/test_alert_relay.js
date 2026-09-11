@@ -102,7 +102,7 @@ try {
     };
     await applyManagedRuntimeSettings(explicitEnvironment);
     assert.equal(explicitEnvironment.ALERT_WEBHOOK_URL, 'https://override.example/alerts');
-    assert.equal(explicitEnvironment.ALERT_WEBHOOK_TIMEOUT_MS, undefined);
+    assert.equal(explicitEnvironment.ALERT_WEBHOOK_TIMEOUT_MS);
   } finally {
     await rm(settingsDirectory, { recursive: true, force: true });
   }

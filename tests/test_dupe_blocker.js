@@ -78,7 +78,7 @@ function runNormalizationTests(testPass, testFail) {
 
 async function runWorkflowScopeTest(db, testPass, testFail) {
   try {
-    await db.exec("DELETE FROM signals");
+    await db.exec('DELETE FROM signals');
     const firstScope = 'a'.repeat(64);
     const secondScope = 'b'.repeat(64);
     await saveSignal(
@@ -129,7 +129,7 @@ async function runTests() {
 
   // Test: Leerer Signal-Ordner (Datenbank leer)
   try {
-    await db.exec("DELETE FROM signals");
+    await db.exec('DELETE FROM signals');
     const result = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24);
     assert.strictEqual(result.isDupe, false, 'Empty DB should not find duplicates');
     testPass('Leere Datenbank: Kein Duplikat');
@@ -137,7 +137,7 @@ async function runTests() {
 
   // Test: Kein Duplikat (verschiedenes Signal vorhanden)
   try {
-    await db.exec("DELETE FROM signals");
+    await db.exec('DELETE FROM signals');
     await saveSignal('sig_2', 'channel1', 2, SAMPLE_SIGNAL_2, normalizeSignalXml(SAMPLE_SIGNAL_2));
     const result = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24);
     assert.strictEqual(result.isDupe, false, 'Different signal should not be a duplicate');
@@ -146,7 +146,7 @@ async function runTests() {
 
   // Test: Duplikat innerhalb des Cooldowns (gerade erstellt)
   try {
-    await db.exec("DELETE FROM signals");
+    await db.exec('DELETE FROM signals');
     await saveSignal('sig_1', 'channel1', 1, SAMPLE_SIGNAL_1, normalizeSignalXml(SAMPLE_SIGNAL_1));
     const result = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24);
     assert.strictEqual(result.isDupe, true, 'Recent identical signal should be a duplicate');
@@ -156,7 +156,7 @@ async function runTests() {
 
   // Test: Duplikat mit verschiedenem Whitespace wird erkannt
   try {
-    await db.exec("DELETE FROM signals");
+    await db.exec('DELETE FROM signals');
     await saveSignal('sig_1', 'channel1', 1, SAMPLE_SIGNAL_1_DIFFERENT_WHITESPACE, normalizeSignalXml(SAMPLE_SIGNAL_1_DIFFERENT_WHITESPACE));
     const result = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24);
     assert.strictEqual(result.isDupe, true, 'Same signal with different whitespace should be detected');
@@ -165,7 +165,7 @@ async function runTests() {
 
   // Test: Duplikat mit XML-Declaration wird erkannt
   try {
-    await db.exec("DELETE FROM signals");
+    await db.exec('DELETE FROM signals');
     await saveSignal('sig_1', 'channel1', 1, SAMPLE_SIGNAL_WITH_XML_DECL, normalizeSignalXml(SAMPLE_SIGNAL_WITH_XML_DECL));
     const result = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24);
     assert.strictEqual(result.isDupe, true, 'Signal with XML declaration should match same signal without it');
@@ -173,7 +173,7 @@ async function runTests() {
   } catch (e) { testFail('XML-Declaration-Toleranz', e); }
 
   try {
-    await db.exec("DELETE FROM signals");
+    await db.exec('DELETE FROM signals');
     await saveSignal('signal_channel1_1', 'channel1', 1, SAMPLE_SIGNAL_1, normalizeSignalXml(SAMPLE_SIGNAL_1));
     const retryResult = await isDuplicateSignal(SAMPLE_SIGNAL_1, '', 24, 'signal_channel1_1');
     assert.strictEqual(retryResult.isDupe, false, 'A retry must not be blocked by its own previously persisted signal');
@@ -184,7 +184,7 @@ async function runTests() {
 
   // Test: Cooldown abgelaufen — Signal wird erlaubt
   try {
-    await db.exec("DELETE FROM signals");
+    await db.exec('DELETE FROM signals');
     await saveSignal('sig_1', 'channel1', 1, SAMPLE_SIGNAL_1, normalizeSignalXml(SAMPLE_SIGNAL_1));
     // Simulate signal was created 25 hours ago
     const pastTime = Date.now() - 25 * 60 * 60 * 1000;
@@ -197,7 +197,7 @@ async function runTests() {
 
   // Test: Cooldown 0 = immer blockieren
   try {
-    await db.exec("DELETE FROM signals");
+    await db.exec('DELETE FROM signals');
     await saveSignal('sig_1', 'channel1', 1, SAMPLE_SIGNAL_1, normalizeSignalXml(SAMPLE_SIGNAL_1));
     const pastTime = Date.now() - 100 * 60 * 60 * 1000;
     await db.run("UPDATE signals SET created_at = ? WHERE id = ?", [pastTime, 'sig_1']);

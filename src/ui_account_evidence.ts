@@ -7,7 +7,7 @@ import { decodeUiCursor, encodeUiCursor, filterFingerprint } from './ui_cursor.j
 import { uiObjectId } from './ui_trading_reads.js';
 import { redactReview } from './ui_change_review.js';
 
-async function accountRiskObservation(accountId: string, observationId: string | null) {
+function accountRiskObservation(accountId: string, observationId: string | null) {
   return getDatabase().get(`SELECT observation.id, observation.account_id AS accountId, observation.account_fingerprint AS fingerprint,
     observation.credential_generation AS credentialGeneration, observation.observed_at AS observedAt, observation.expires_at AS expiresAt,
     observation.utc_day AS utcDay, observation.recorded_at AS recordedAt,

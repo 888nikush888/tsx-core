@@ -18,7 +18,7 @@ const httpRiskPaths = new Map([
 const verifiedAcceptances = new WeakSet();
 
 export async function loadHttpRiskAcceptance(root, now = new Date()) {
-  let bytes;
+  let bytes = null;
   try {
     bytes = await readFile(path.join(root, httpAcceptanceFile));
   } catch (error) {

@@ -50,7 +50,10 @@ export async function requireFxAccountContext(account: FxAccount): Promise<FxCon
   return profileContext(account, current);
 }
 function binding(account: FxAccount): Record<string, string> {
-  return { accountId: account.id, accountFingerprint: account.externalAccountId!, credentialGeneration: account.credentialGeneration! };
+  const fingerprint = account.externalAccountId;
+  const generation = account.credentialGeneration;
+  if (!fingerprint || !generation) return invalidFx('ACCOUNT_BINDING_CHANGED');
+  return { accountId: account.id, accountFingerprint: fingerprint, credentialGeneration: generation };
 }
 function receiptId(account: FxAccount, receiptHash: string): string {
   return fxEvidenceDigest('tsx-fx-observation-v1', { ...binding(account), receiptHash });
@@ -111,7 +114,7 @@ async function assertNoContradictedOriginal(account: FxAccount, context: FxConte
     if (compareDecimal(decodeReceipt(account, row, context).value, receipt.value) !== 0) invalidFx('QUOTE_CONFLICT');
   }
 }
-export async function persistFxConversion(account: FxAccount, baseAsset: string, quoteAsset: string, at: number): Promise<StoredFxConversion> {
+export function persistFxConversion(account: FxAccount, baseAsset: string, quoteAsset: string, at: number): Promise<StoredFxConversion> {
   account = snapshotFxAccount(account);
   return withDatabaseTransaction(async () => {
     const context = await requireFxAccountContext(account), rows = await asOfReceipts(account, context, at);
@@ -129,7 +132,7 @@ export async function persistFxConversion(account: FxAccount, baseAsset: string,
   });
 }
 /** Recomputes the pinned recipe from retained originals; a self-consistent public hash is not authorization. */
-export async function readFxConversion(account: FxAccount, id: string): Promise<StoredFxConversion> {
+export function readFxConversion(account: FxAccount, id: string): Promise<StoredFxConversion> {
   account = snapshotFxAccount(account);
   return withDatabaseTransaction(async () => {
     const context = await requireFxAccountContext(account);

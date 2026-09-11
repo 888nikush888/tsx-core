@@ -75,7 +75,7 @@ async function runCoverageCli(childStatus, fixtureSummary, fixtureBaseline) {
     const result = spawnSync(process.execPath, ['scripts/check_module_coverage.js'], {
       cwd: directory, encoding: 'utf8', timeout: 15_000, shell: false,
     });
-    assert.equal(result.error, undefined);
+    assert.equal(result.error);
     assert.equal(result.signal, null);
     return result;
   } finally {

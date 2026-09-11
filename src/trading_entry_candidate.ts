@@ -33,9 +33,10 @@ async function candidateJournal(account: TradingAccount, intentId: string, plan:
 function journalMatchesWitness(operations: CandidateOperation[], witness: TradingDispatchWitness): boolean {
   const dispatch = currentDispatchIdentity(witness);
   const operation = operations[0];
-  return dispatch !== null && operations.length === 1 && operation!.id === dispatch.operationId && operation!.phase === 'dispatching'
-    && operation!.account_id === dispatch.accountId && operation!.request_hash === dispatch.requestHash
-    && operation!.account_fingerprint === dispatch.accountFingerprint && operation!.credential_generation === dispatch.credentialGeneration;
+  if (!operation) return false;
+  return dispatch !== null && operations.length === 1 && operation.id === dispatch.operationId && operation.phase === 'dispatching'
+    && operation.account_id === dispatch.accountId && operation.request_hash === dispatch.requestHash
+    && operation.account_fingerprint === dispatch.accountFingerprint && operation.credential_generation === dispatch.credentialGeneration;
 }
 
 async function exemptionEvidence(intentId: string, plan: TradingPlan | null, operations: CandidateOperation[], witness?: TradingDispatchWitness): Promise<CandidateExemption> {
@@ -63,5 +64,5 @@ export async function assertCandidateNeverSent(account: TradingAccount, intentId
     if (!await hasUndispatchedPlanProof(intent, false, witness)) reject();
     const operations = await candidateJournal(account, intentId, plan, witness);
     return exemptionEvidence(intentId, plan, operations, witness);
-  } catch { reject(); }
+  } catch { return reject(); }
 }

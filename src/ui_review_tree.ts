@@ -2,12 +2,13 @@ import { redactReview } from './ui_change_review.js';
 import { decodeUiCursor, encodeUiCursor, filterFingerprint } from './ui_cursor.js';
 
 function protectedKey(key: string) { return redactReview({ [key]: null })[key] !== null; }
-function reviewNode(root: unknown, path: unknown): { node: any; path: string[] } {
+function reviewNode(root: unknown, path: unknown): { node: unknown; path: string[] } {
   if (!Array.isArray(path) || path.length > 40 || path.some(key => typeof key !== 'string' || key.length > 256)) throw new Error('Invalid review path.');
-  let node: any = root;
+  let node: unknown = root;
   for (const key of path) {
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') throw new Error('Review path is unavailable.');
     if (protectedKey(key) || !node || typeof node !== 'object' || !Object.hasOwn(node, key)) throw new Error('Review path is unavailable.');
-    node = node[key];
+    node = (node as Record<string, unknown>)[key];
   }
   return { node, path };
 }
@@ -24,7 +25,7 @@ function nodeEntry(key: string, value: any, path: string[]) {
 }
 function textSection(node: string, offset: number) {
   let end = Math.min(node.length, offset + 10000);
-  if (end < node.length && /[\uD800-\uDBFF]/.test(node[end - 1])) end--;
+  if (end < node.length && /[\uD800-\uDBFF]/u.test(node[end - 1])) end--;
   return { end, text: redactReview(node.slice(offset, end)) };
 }
 /** Bounded content navigation; path selects only keys inside an already authorized review object. */

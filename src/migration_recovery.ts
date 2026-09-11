@@ -12,7 +12,7 @@ interface PreservedDatabaseSet {
 export interface MigrationRestoreOptions { maintenanceLease?: McpMaintenanceLease }
 
 async function pathExists(file: string): Promise<boolean> {
-  try { await fs.lstat(file); return true; } catch (error: any) { if (error?.code === 'ENOENT') return false;
+  try { await fs.lstat(file); return true; } catch (error: unknown) { if (typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'ENOENT') return false;
     throw error; }
 }
 
@@ -23,13 +23,24 @@ async function assertMigrationFence(target: string, stateDirectory: string, leas
   if (await pathExists(path.join(state, '.routing_active'))) throw new Error("Migration restore refused while '.routing_active' exists.");
 }
 
-async function verifySnapshot(snapshot: string, target: string, lease: McpMaintenanceLease): Promise<void> {
+function assertSnapshotNotTarget(snapshot: string, target: string): void {
   if (snapshot === target) throw new Error('Migration snapshot and target database must be different files.');
-  const stats = await fs.lstat(snapshot);
+}
+
+function assertSnapshotRegularFile(stats: Awaited<ReturnType<typeof fs.lstat>>): void {
   if (!stats.isFile() || stats.isSymbolicLink() || stats.size < 1) throw new Error('Migration snapshot must be a non-empty regular file.');
+}
+
+async function assertSnapshotNotOperational(snapshot: string, lease: McpMaintenanceLease): Promise<void> {
   if (lease.request.databaseState === 'present' && await databaseFileIdentity(snapshot) === lease.request.databaseIdentity) {
     throw new Error('Migration snapshot must not alias the operational database.');
   }
+}
+
+async function verifySnapshot(snapshot: string, target: string, lease: McpMaintenanceLease): Promise<void> {
+  assertSnapshotNotTarget(snapshot, target);
+  assertSnapshotRegularFile(await fs.lstat(snapshot));
+  await assertSnapshotNotOperational(snapshot, lease);
   await verifyDatabaseIntegrity(snapshot);
 }
 
@@ -72,7 +83,9 @@ export async function restorePreMigrationSnapshot(
   const target = path.resolve(targetDatabasePath);
   const state = path.resolve(stateDirectory);
   await assertMigrationFence(target, state, options.maintenanceLease);
-  await verifySnapshot(snapshot, target, options.maintenanceLease!);
+  const lease = options.maintenanceLease;
+  if (!lease) throw new Error('A genuine locally issued maintenance lease is required.');
+  await verifySnapshot(snapshot, target, lease);
   const restoreId = `${Date.now()}-${randomUUID().slice(0, 8)}`;
   const temporary = `${target}.migration-restore-${restoreId}.tmp`;
   const progress: PreservedDatabaseSet = { previousDatabase: null, sidecars: [] };

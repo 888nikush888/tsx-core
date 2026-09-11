@@ -213,16 +213,23 @@ class PositionReconciliationAggregateError extends ReconciliationMismatchError {
   }
 }
 
+function sqliteFailure(error: unknown): boolean {
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? error.code : undefined;
+  return typeof code === 'string' && code.startsWith('SQLITE_');
+}
+
+function mismatchIsAccountWide(error: ReconciliationMismatchError): boolean {
+  if (['remote_identity', 'unmanaged_remote', 'unresolved_fill'].includes(error.incidentCategory)) return true;
+  return /(?:^(?:ACCOUNT_STATE_CHANGED|ACQUISITION_NOT_FRESH|PROTECTION_SOURCE_CHANGED))|(?:lifecycle safety account)/i.test(error.message);
+}
+
 function isAccountWidePositionFailure(error: unknown): boolean {
   if (error instanceof ReconciliationContinuationRequiredError || error instanceof EntryAdmissionRevokedError
     || error instanceof TypeError || error instanceof RangeError || error instanceof SyntaxError) return true;
-  const code = typeof error === 'object' && error !== null && 'code' in error
-    ? error.code : undefined;
-  const errorCode = typeof code === 'string' ? code : '';
-  if (errorCode.startsWith('SQLITE_')) return true;
+  if (sqliteFailure(error)) return true;
   if (!(error instanceof ReconciliationMismatchError)) return false;
-  if (['remote_identity', 'unmanaged_remote', 'unresolved_fill'].includes(error.incidentCategory)) return true;
-  return /(?:^(?:ACCOUNT_STATE_CHANGED|ACQUISITION_NOT_FRESH|PROTECTION_SOURCE_CHANGED))|(?:lifecycle safety account)/i.test(error.message);
+  return mismatchIsAccountWide(error);
 }
 
 function transientReconciliationFailure(error: unknown): boolean {
@@ -297,7 +304,7 @@ async function executionPathConfiguration(intent: TradingIntent): Promise<{
   };
 }
 
-async function transaction<T>(operation: () => Promise<T>): Promise<T> {
+function transaction<T>(operation: () => Promise<T>): Promise<T> {
   return withDatabaseTransaction(operation);
 }
 
@@ -457,20 +464,25 @@ function assertPublishedStrategy(
   }
 }
 
+function pinnedPathAuthorization(intent: TradingIntent): { sql: string; params: unknown[] } {
+  return {
+    sql: `SELECT id FROM workflow_execution_paths WHERE id = ? AND workflow_revision_id = ?
+         AND channel_id = ? AND account_id = ? AND strategy_version_id = ? AND enabled = 1`,
+    params: [intent.executionPathId, intent.workflowRevisionId, intent.channelId, intent.accountId, intent.strategyVersionId],
+  };
+}
+
+function routeAuthorization(intent: TradingIntent): { sql: string; params: unknown[] } {
+  return {
+    sql: 'SELECT channel_id FROM trading_routes WHERE channel_id = ? AND account_id = ? AND strategy_version_id = ? AND enabled = 1',
+    params: [intent.channelId, intent.accountId, intent.strategyVersionId],
+  };
+}
+
 async function assertExecutionAuthorization(intent: TradingIntent): Promise<void> {
   const database = getDatabase();
-  // A pinned workflow remains pinned across publication; do not silently swap
-  // it for the newest path. Explicitly disabled/missing authorization is fatal.
-  const authorized = intent.executionPathId
-    ? await database.get(
-        `SELECT id FROM workflow_execution_paths WHERE id = ? AND workflow_revision_id = ?
-         AND channel_id = ? AND account_id = ? AND strategy_version_id = ? AND enabled = 1`,
-        [intent.executionPathId, intent.workflowRevisionId, intent.channelId, intent.accountId, intent.strategyVersionId],
-      )
-    : await database.get(
-        `SELECT channel_id FROM trading_routes WHERE channel_id = ? AND account_id = ? AND strategy_version_id = ? AND enabled = 1`,
-        [intent.channelId, intent.accountId, intent.strategyVersionId],
-      );
+  const query = intent.executionPathId ? pinnedPathAuthorization(intent) : routeAuthorization(intent);
+  const authorized = await database.get(query.sql, query.params);
   if (!authorized) throw new TradingRiskError('ROUTE_NO_LONGER_AUTHORIZED', 'The execution route was removed, changed or disabled.');
   if (intent.executionPathId && !await isWorkflowExecutionAuthorized(intent.executionPathId)) {
     throw new TradingRiskError('ROUTE_NO_LONGER_AUTHORIZED', 'The pinned workflow execution path is no longer authorized by the current graph.');
@@ -640,7 +652,7 @@ async function submitTrackedOrder(input: {
     return await runJournaledExchangeWrite({
       account: input.account, intentId: input.intent.id, kind: 'submit', clientOrderIds: [input.order.clientOrderId], request,
       beforeDispatch: () => markOrderSubmitting(input.intent.id, input.order.clientOrderId),
-      guard: () => {},
+      guard: () => undefined,
       send: () => { dispatched = true; return input.adapter.submitOrder(input.account, request); },
       persist: async result => { await storeOrderResult(input.intent.id, input.order.clientOrderId, result); return [result]; },
     });
@@ -732,7 +744,7 @@ async function assertTerminalEntrySlippage(
   });
 }
 
-async function createReplacementStop(intent: TradingIntent, plan: TradingPlan, quantity: string, trigger: string): Promise<PlannedOrder> {
+function createReplacementStop(intent: TradingIntent, plan: TradingPlan, quantity: string, trigger: string): Promise<PlannedOrder> {
   const original = plan.orders.find(order => order.role === 'stop_loss');
   if (!original) throw new Error('Trade plan has no protective stop.');
   return createGeneratedTradingOrder(intent, { ...original, quantity, triggerPrice: trigger });
@@ -897,7 +909,7 @@ export class TradingEngine {
   }
 
   /** Revoked original preparations retire even while entries are paused. This path cannot call an adapter. */
-  async retireUnauthorizedPreparations(accountId: string): Promise<number> {
+  retireUnauthorizedPreparations(accountId: string): Promise<number> {
     return this.mutations.run(accountId, async () => {
       const rows = await this.preparationRecoveryBatch(accountId);
       let retired = 0;
@@ -926,7 +938,7 @@ export class TradingEngine {
     return rows;
   }
 
-  private async retireUnauthorizedPreparation(intentId: string): Promise<number> {
+  private retireUnauthorizedPreparation(intentId: string): Promise<number> {
     return transaction(async () => {
       const intent = await getTradingIntent(intentId);
       if (!intent || !await hasUndispatchedPlanProof(intent, true)) return 0;
@@ -1494,7 +1506,7 @@ export class TradingEngine {
 
   private async isolateUnresolvedDispatch(intent: TradingIntent): Promise<void> {
     const unresolved = await getDatabase().get(
-      `SELECT 1 FROM trading_orders WHERE intent_id = ? AND status IN ('submitting', 'unknown', 'cancel_pending') LIMIT 1`,
+      'SELECT 1 FROM trading_orders WHERE intent_id = ? AND status IN (\'submitting\', \'unknown\', \'cancel_pending\') LIMIT 1',
       [intent.id],
     );
     if (!unresolved) return;
@@ -1634,7 +1646,7 @@ export class TradingEngine {
     }
   }
 
-  async reconcileAccount(accountId: string, options?: ReconciliationOptions): Promise<ReconciledAccountEvidence | undefined> {
+  reconcileAccount(accountId: string, options?: ReconciliationOptions): Promise<ReconciledAccountEvidence | undefined> {
     return this.mutations.run(accountId, () => this.reconcileAccountOwned(accountId, options), options?.mutation);
   }
 
@@ -2166,7 +2178,7 @@ export class TradingEngine {
       await transaction(async () => {
         const safety = await this.collectLifecycleProof(account, remote, 'tradeClosed', local.intent_id);
         await getDatabase().run(
-          `UPDATE trading_positions SET status = 'closed', quantity = '0', closed_at = ?, updated_at = ? WHERE id = ?`,
+          'UPDATE trading_positions SET status = \'closed\', quantity = \'0\', closed_at = ?, updated_at = ? WHERE id = ?',
           [remote.observedAt, remote.observedAt, local.id]);
         const intent = await getTradingIntent(local.intent_id);
         if (intent && !['completed', 'blocked', 'failed'].includes(intent.status)) {

@@ -105,7 +105,9 @@ async function legacy(page: Selection) {
   const entries = await Promise.all(rows.slice(0, page.limit).map(async row => {
     const copyHash = reviewHash(row); const resourceId = `legacy-policy-copy:${copyHash}`;
     const copy = await getDatabase().get('SELECT id FROM workflow_resource_versions WHERE resource_id=? ORDER BY version DESC LIMIT 1', [resourceId]);
-    return { policy: policyFromRow(row), copyHash, configuration: legacyAdaptiveRiskDefinition(row.channel_id, row)[0]!.configuration, copiedVersionId: copy?.id ?? null, copiedResourceId: resourceId };
+    const definition = legacyAdaptiveRiskDefinition(row.channel_id, row)[0];
+    if (!definition) throw new Error('Legacy policy definition is missing.');
+    return { policy: policyFromRow(row), copyHash, configuration: definition.configuration, copiedVersionId: copy?.id ?? null, copiedResourceId: resourceId };
   }));
   return { ...pageResult(page, rows.map(row => ({ ...row, created_at: 0 })), entries, 'created_at', 'channel_id'),
     interpretation: 'Legacy-Policen gelten für Intents ohne Workflowpfad. Aktive Workflowpfade verwenden ihre gepinnte Ressourcenpolicy. Der Start migriert geeignete alte Routen nur ohne aktive Revision. Die Kopie erzeugt ausschließlich einen Entwurf; Publikation, Pfadzuordnung und Aktivierung werden anschließend geprüft.' };
@@ -121,10 +123,16 @@ async function legacyEvaluations(page: Selection) {
 }
 export async function uiAdaptiveRisk(query: URLSearchParams) {
   const page = await selection(query);
-  const handlers = { states, evaluations, paths: activePaths, sources: evaluationSources, legacy, 'legacy-evaluations': legacyEvaluations };
-  return handlers[page.kind](page);
+  switch (page.kind) {
+    case 'states': return states(page);
+    case 'evaluations': return evaluations(page);
+    case 'paths': return activePaths(page);
+    case 'sources': return evaluationSources(page);
+    case 'legacy': return legacy(page);
+    case 'legacy-evaluations': return legacyEvaluations(page);
+  }
 }
-export async function copyLegacyRiskPolicy(input: { channelId: unknown; copyHash: unknown }) {
+export function copyLegacyRiskPolicy(input: { channelId: unknown; copyHash: unknown }) {
   const channelId = uiObjectId(input.channelId, 128);
   return withDatabaseTransaction(async db => {
     const row = await db.get('SELECT * FROM trading_channel_risk_policies WHERE channel_id=?', [channelId]);
@@ -132,7 +140,8 @@ export async function copyLegacyRiskPolicy(input: { channelId: unknown; copyHash
     const resourceId = `legacy-policy-copy:${input.copyHash}`;
     const existing = await db.get('SELECT id FROM workflow_resource_versions WHERE resource_id=? ORDER BY version DESC LIMIT 1', [resourceId]);
     if (existing) return { resource: await getWorkflowResourceById(existing.id), alreadyCopied: true, activated: false };
-    const definition = legacyAdaptiveRiskDefinition(channelId, row)[0]!;
+    const definition = legacyAdaptiveRiskDefinition(channelId, row)[0];
+    if (!definition) throw new Error('Legacy policy definition is missing.');
     const resource = await createWorkflowResourceDraft({ ...definition, resourceId, description: 'Geprüfte Legacy-Kopie; nicht automatisch aktiviert. Bestehende Legacy-Intents bleiben unverändert.' });
     return { resource, alreadyCopied: false, activated: false };
   });

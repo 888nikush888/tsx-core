@@ -37,7 +37,8 @@ function stopAmountsCoverage(order: ProtectionOrder, need: ProtectionNeed): Stop
   try {
     const remaining = subtractDecimal(decimal(order.quantity, { positive: true }), decimal(order.filledQuantity));
     if (compareDecimal(remaining, '0') <= 0) return no('STOP_EXHAUSTED', remaining);
-    const trigger = decimal(order.triggerPrice!, { positive: true });
+    if (order.triggerPrice === null) return no('STOP_QUANTITY_UNKNOWN');
+    const trigger = decimal(order.triggerPrice, { positive: true });
     if (need.minimumTrigger !== null) {
       const change = compareDecimal(trigger, decimal(need.minimumTrigger, { positive: true }));
       if ((need.side === 'LONG' && change < 0) || (need.side === 'SHORT' && change > 0)) return no('STOP_TRIGGER_TOO_LOOSE', remaining);
@@ -68,7 +69,7 @@ export async function loadProtectionOrders(accountId: string, intentId: string):
   return rows.map(row => ({ ...row, reduceOnly: Number(row.reduceOnly) === 1 }));
 }
 
-export async function storedProtectionNeed(accountId: string, intentId: string) {
+export function storedProtectionNeed(accountId: string, intentId: string) {
   return withDatabaseTransaction(async () => {
     const position = await getDatabase().get<ProtectionNeed>(
       `SELECT account_id AS accountId, intent_id AS intentId, symbol, side, quantity, stop_price AS minimumTrigger

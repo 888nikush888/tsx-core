@@ -27,8 +27,19 @@ export async function loadTradeLifecycle(intentId: string, side: TradingSide) {
     flat: compareDecimal(ownership.netQuantity, '0') === 0 };
 }
 
+function hasBlockingOperation(operations: Array<{ id: string; phase: TradingOperationPhase; expected_orders_json: string }>): boolean {
+  return operations.some(operation => !['prepared', 'abandoned'].includes(operation.phase)
+    || JSON.parse(operation.expected_orders_json).length !== 1);
+}
+
+async function abandonPreparedOperations(operations: Array<{ id: string; phase: TradingOperationPhase }>): Promise<void> {
+  for (const operation of operations) {
+    if (operation.phase === 'prepared') await transitionTradingOperation(operation.id, 'prepared', 'abandoned');
+  }
+}
+
 /** Prove an individual exit never dispatched. Caller must separately justify cleanup or safe replacement. */
-export async function retireUndispatchedExit(intentId: string, clientOrderId: string): Promise<boolean> {
+export function retireUndispatchedExit(intentId: string, clientOrderId: string): Promise<boolean> {
   return withDatabaseTransaction(async () => {
     const order = await getDatabase().get<{ id: string }>(
       `SELECT id FROM trading_orders WHERE intent_id = ? AND client_order_id = ? AND role <> 'entry'
@@ -37,11 +48,8 @@ export async function retireUndispatchedExit(intentId: string, clientOrderId: st
     const operations = await getDatabase().all<Array<{ id: string; phase: TradingOperationPhase; expected_orders_json: string }>>(
       `SELECT id, phase, expected_orders_json FROM trading_operations WHERE intent_id = ? AND EXISTS (
          SELECT 1 FROM json_each(expected_orders_json) WHERE json_extract(value, '$.client_order_id') = ?)`, [intentId, clientOrderId]);
-    if (operations.some(operation => !['prepared', 'abandoned'].includes(operation.phase)
-      || JSON.parse(operation.expected_orders_json).length !== 1)) return false;
-    for (const operation of operations) {
-      if (operation.phase === 'prepared') await transitionTradingOperation(operation.id, 'prepared', 'abandoned');
-    }
+    if (hasBlockingOperation(operations)) return false;
+    await abandonPreparedOperations(operations);
     const changed = await getDatabase().run(
       "UPDATE trading_orders SET status = 'cancelled', updated_at = ? WHERE id = ? AND status = 'created'", [Date.now(), order.id]);
     return changed.changes === 1;

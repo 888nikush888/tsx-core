@@ -120,7 +120,7 @@ interface WorkflowHistoryState {
 function workflowHistoryLabel(value: unknown): string {
   const label = value ?? DEFAULT_WORKFLOW_HISTORY_LABEL;
   if (typeof label !== 'string' || !label.trim() || label.trim().length > 160
-    || /[\u0000-\u001f\u007f]/.test(label)) {
+    || /[\u0000-\u001f\u007f]/u.test(label)) {
     throw new Error('Workflow history label is invalid.');
   }
   return label.trim();
@@ -184,7 +184,7 @@ async function writeWorkflowBuilderHistory(history: WorkflowHistoryState, now: n
   const undo = workflowHistoryStack(history.undo, 'undo');
   const redo = workflowHistoryStack(history.redo, 'redo');
   const result = await getDatabase().run(
-    `UPDATE workflow_builder_history SET undo_json = ?, redo_json = ?, updated_at = ? WHERE singleton_id = 1`,
+    'UPDATE workflow_builder_history SET undo_json = ?, redo_json = ?, updated_at = ? WHERE singleton_id = 1',
     [normalizedJson(undo), normalizedJson(redo), now],
   );
   if (Number(result.changes || 0) !== 1) throw new Error('Workflow builder history state is missing.');
@@ -233,22 +233,27 @@ function validateRegexConfiguration(value: ResourceConfiguration): Record<string
   return { ...value, patterns, mode };
 }
 
+function promptValue(value: ResourceConfiguration): Record<string, unknown> {
+  if (value.prompt === undefined) return {};
+  const prompt = typeof value.prompt === 'string' ? value.prompt.trim() : '';
+  if (!prompt || prompt.length > 50_000) {
+    throw new Error('Parser prompt must contain between 1 and 50000 characters.');
+  }
+  return { prompt };
+}
+
 function validateParserConfiguration(value: ResourceConfiguration): Record<string, unknown> {
   const timeoutMs = Number(value.timeoutMs ?? 120_000);
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 2_000 || timeoutMs > 120_000) {
     throw new Error('Parser timeout must be between 2000 and 120000 milliseconds.');
   }
   if (value.saveToFile === true) throw new Error('Workflow parsers may not save signals to files.');
-  if (value.prompt !== undefined && (typeof value.prompt !== 'string'
-    || !value.prompt.trim() || value.prompt.trim().length > 50_000)) {
-    throw new Error('Parser prompt must contain between 1 and 50000 characters.');
-  }
   return {
     ...value,
     templateName: stringValue(value.templateName ?? 'default', 'Parser template name', 128),
     ...(value.primaryModel ? { primaryModel: stringValue(value.primaryModel, 'Primary parser model', 128) } : {}),
     ...(value.fallbackModel ? { fallbackModel: stringValue(value.fallbackModel, 'Fallback parser model', 128) } : {}),
-    ...(value.prompt !== undefined ? { prompt: requireString(value.prompt, 'Parser prompt').trim() } : {}),
+    ...promptValue(value),
     timeoutMs,
     saveToFile: false,
   };
@@ -605,21 +610,21 @@ export async function publishWorkflowResource(id: string, now = Date.now(), base
   validateResourceConfiguration(existing.kind, parseJson(existing.configuration_json, 'workflow resource configuration'));
   if (baseEditRevision !== undefined && (!Number.isSafeInteger(baseEditRevision) || baseEditRevision < 0)) throw new Error('Invalid resource edit revision.');
   const changed = await getDatabase().run(
-    `UPDATE workflow_resource_versions SET status = 'published', published_at = ? WHERE id = ? AND status = 'draft' AND (? IS NULL OR edit_revision = ?)`,
+    'UPDATE workflow_resource_versions SET status = \'published\', published_at = ? WHERE id = ? AND status = \'draft\' AND (? IS NULL OR edit_revision = ?)',
     [now, id, baseEditRevision ?? null, baseEditRevision ?? null],
   );
   if (changed.changes !== 1) throw new Error('Resource draft changed. Reload and compare before publication.');
   return resourceFromRow(await getDatabase().get('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]));
 }
 
-export async function archiveWorkflowResource(id: string, now = Date.now()): Promise<WorkflowResourceVersion> {
+export function archiveWorkflowResource(id: string, now = Date.now()): Promise<WorkflowResourceVersion> {
   return withDatabaseTransaction(async () => {
     const active = await getActiveWorkflow();
     if (active?.graph.nodes.some(node => node.resourceVersionId === id)) {
       throw new Error('The active workflow must stop referencing this resource before it can be archived.');
     }
     const result = await getDatabase().run(
-      `UPDATE workflow_resource_versions SET status = 'archived', archived_at = ? WHERE id = ? AND status = 'published'`,
+      'UPDATE workflow_resource_versions SET status = \'archived\', archived_at = ? WHERE id = ? AND status = \'published\'',
       [now, id],
     );
     if (Number(result.changes || 0) !== 1) throw new Error('Only a published workflow resource can be archived.');
@@ -629,7 +634,7 @@ export async function archiveWorkflowResource(id: string, now = Date.now()): Pro
   });
 }
 
-export async function archiveWorkflowResourceFamily(
+export function archiveWorkflowResourceFamily(
   resourceId: string,
   now = Date.now(),
 ): Promise<WorkflowResourceVersion[]> {
@@ -667,12 +672,12 @@ export async function archiveWorkflowResourceFamily(
 
 export async function deleteWorkflowResourceDraft(id: string): Promise<boolean> {
   const result = await getDatabase().run(
-    `DELETE FROM workflow_resource_versions WHERE id = ? AND status = 'draft'`, [id],
+    'DELETE FROM workflow_resource_versions WHERE id = ? AND status = \'draft\'', [id],
   );
   return Number(result.changes || 0) === 1;
 }
 
-export async function deleteWorkflowResourceFamily(resourceId: string): Promise<number> {
+export function deleteWorkflowResourceFamily(resourceId: string): Promise<number> {
   const logicalId = stringValue(resourceId, 'Workflow resource identifier', 128);
   return withDatabaseTransaction(async database => {
     const rows = await database.all<Array<{ id: string }>>(
@@ -736,13 +741,14 @@ function workflowEdgeFallbackPolicy(
   if (!Array.isArray(edge.fallbackOn) || edge.fallbackOn.length < 1 || edge.fallbackOn.length > 3) {
     throw new Error(`Account fallback edge ${id} fallback policy must contain between one and three reasons.`);
   }
-  if (edge.fallbackOn.some((reason: unknown) => !isWorkflowFallbackReason(reason))) {
+  const reasons = edge.fallbackOn as unknown[];
+  if (reasons.some(reason => !isWorkflowFallbackReason(reason))) {
     throw new Error(`Account fallback edge ${id} contains an unsupported fallback reason.`);
   }
-  if (new Set(edge.fallbackOn).size !== edge.fallbackOn.length) {
+  if (new Set(reasons).size !== reasons.length) {
     throw new Error(`Account fallback edge ${id} fallback policy contains a duplicate reason.`);
   }
-  return canonicalWorkflowFallbackPolicy(edge.fallbackOn);
+  return canonicalWorkflowFallbackPolicy(reasons as WorkflowFallbackReason[]);
 }
 
 function workflowEdgeChannelScope(
@@ -1331,7 +1337,7 @@ async function activateCompiledWorkflowRevision(input: {
   const definitionSha256 = sha256({ graph: input.graph, compiled: compiledPayload });
   if (input.activeId) {
     const archived = await getDatabase().run(
-      `UPDATE workflow_revisions SET status = 'archived', archived_at = ? WHERE id = ? AND status = 'active'`,
+      'UPDATE workflow_revisions SET status = \'archived\', archived_at = ? WHERE id = ? AND status = \'active\'',
       [input.now, input.activeId],
     );
     if (Number(archived.changes || 0) !== 1) throw new Error('WORKFLOW_REVISION_CONFLICT');
@@ -1410,7 +1416,7 @@ async function workflowHistoryTarget(entry: WorkflowHistoryEntry): Promise<{
   }
 }
 
-export async function saveWorkflowRevision(input: {
+export function saveWorkflowRevision(input: {
   baseRevisionId: string | null;
   graph: unknown;
   actorId: string;
@@ -1446,7 +1452,7 @@ export async function saveWorkflowRevision(input: {
   });
 }
 
-export async function previewWorkflowBuilderHistoryImpact(input: {
+export function previewWorkflowBuilderHistoryImpact(input: {
   direction: WorkflowHistoryDirection;
   baseRevisionId: string | null;
 }): Promise<WorkflowImpact> {
@@ -1462,7 +1468,7 @@ export async function previewWorkflowBuilderHistoryImpact(input: {
   });
 }
 
-export async function applyWorkflowBuilderHistory(input: {
+export function applyWorkflowBuilderHistory(input: {
   direction: WorkflowHistoryDirection;
   baseRevisionId: string | null;
   actorId: string;
@@ -2115,7 +2121,7 @@ async function refreshWorkflowSignalRunFromFallback(fallbackRunId: string, now: 
   const selected = runs.some(run => run.status === 'selected');
   const status = fallbackRunStatus(probing, blocked, selected);
   await getDatabase().run(
-    `UPDATE workflow_signal_runs SET status = ?, result_json = ?, completed_at = ? WHERE id = ?`,
+    'UPDATE workflow_signal_runs SET status = ?, result_json = ?, completed_at = ? WHERE id = ?',
     [status, normalizedJson({ ...existing, fallbackRuns: runs.map(run => ({
       routeGroupKey: run.route_group_key,
       status: run.status,
@@ -2173,7 +2179,7 @@ async function persistWorkflowTradingIntents(
     [workflowRunStatus(results, branches), normalizedJson({ branches }), now, runId],
   );
   const probingFallback = await getDatabase().get<{ id: string }>(
-    `SELECT id FROM trading_fallback_runs WHERE signal_run_id = ? AND status = 'probing' LIMIT 1`,
+    'SELECT id FROM trading_fallback_runs WHERE signal_run_id = ? AND status = \'probing\' LIMIT 1',
     [runId],
   );
   if (probingFallback) await refreshWorkflowSignalRunFromFallback(probingFallback.id, now);
@@ -2352,7 +2358,7 @@ async function promoteFallbackCandidate(
   );
   if (promoted.status === 'pending') {
     await getDatabase().run(
-      `UPDATE trading_fallback_runs SET current_rank = ?, updated_at = ? WHERE id = ?`,
+      'UPDATE trading_fallback_runs SET current_rank = ?, updated_at = ? WHERE id = ?',
       [next.rank, now, current.fallback_run_id],
     );
     await refreshWorkflowSignalRunFromFallback(current.fallback_run_id, now);
@@ -2398,7 +2404,7 @@ async function advanceWorkflowFallbackTransaction(
     : stopDisallowedFallback(current, next, intent, reason, message, policy, now);
 }
 
-export async function advanceWorkflowFallbackOnEligibleFailure(
+export function advanceWorkflowFallbackOnEligibleFailure(
   intent: TradingIntent,
   reason: WorkflowFallbackReason,
   message: string,
@@ -2464,7 +2470,7 @@ export async function stopWorkflowFallback(intentId: string, reason: string, now
 export async function listWorkflowFallbackRuns(limit = 200): Promise<Array<Record<string, unknown>>> {
   const boundedLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(500, limit)) : 200;
   const runs = await getDatabase().all<FallbackRunRow[]>(
-    `SELECT run.* FROM trading_fallback_runs AS run ORDER BY run.created_at DESC LIMIT ?`,
+    'SELECT run.* FROM trading_fallback_runs AS run ORDER BY run.created_at DESC LIMIT ?',
     [boundedLimit],
   );
   const result: Array<Record<string, unknown>> = [];

@@ -147,7 +147,7 @@ export class TelegramViewerStateRepository {
   }
 
   async pendingDeliveries(now: number, limit = 100): Promise<PendingViewerDelivery[]> {
-    const rows = await this.db().all<any[]>(
+    const rows = await this.db().all<Array<Record<string, unknown>>>(
       `SELECT id, kind, source_seq, user_id, payload_json, attempts
        FROM viewer_deliveries
        WHERE status IN ('pending', 'retrying') AND next_retry_at <= ?
@@ -155,7 +155,7 @@ export class TelegramViewerStateRepository {
       [now, Math.min(Math.max(limit, 1), 100)],
     );
     return rows.map(row => ({
-      id: Number(row.id), kind: row.kind, sourceSeq: Number(row.source_seq), userId: String(row.user_id),
+      id: Number(row.id), kind: row.kind as ViewerDeliveryKind, sourceSeq: Number(row.source_seq), userId: String(row.user_id),
       payload: JSON.parse(String(row.payload_json)), attempts: Number(row.attempts),
     }));
   }
@@ -191,7 +191,7 @@ export class TelegramViewerStateRepository {
   }
 
   async lastTest(): Promise<Record<string, unknown> | null> {
-    const row = await this.db().get<any>('SELECT * FROM viewer_last_test WHERE singleton_id = 1');
+    const row = await this.db().get<Record<string, unknown>>('SELECT * FROM viewer_last_test WHERE singleton_id = 1');
     return row ? {
       sourceSeq: Number(row.source_seq), status: String(row.status), attemptedAt: Number(row.attempted_at),
       deliveredAt: row.delivered_at === null ? null : Number(row.delivered_at),

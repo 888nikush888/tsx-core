@@ -51,7 +51,7 @@ assert.equal(suspended.canProtect(), true, 'A later gate failure must not revoke
 
 const gateFailure = new StartupAuthority();
 gateFailure.beginRecovery();
-await assert.rejects(runStartupGate(gateFailure, 'dashboard', async () => { throw new Error('EADDRINUSE fixture'); }), /EADDRINUSE/);
+await assert.rejects(runStartupGate(gateFailure, 'dashboard', () => { throw new Error('EADDRINUSE fixture'); }), /EADDRINUSE/);
 assert.equal(gateFailure.snapshot().phase, 'blocked');
 assert.match(gateFailure.snapshot().reason, /dashboard.*EADDRINUSE/);
 await runStartupGate(gateFailure, 'backup', () => Promise.resolve());
@@ -67,7 +67,7 @@ await rejectedListener;
 await new Promise((resolve, reject) => listener.close(error => error ? reject(error) : resolve()));
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-startup-authority-'));
-let bridge;
+let bridge = null;
 try {
   await initDb(path.join(directory, 'test.db'));
   await setMcpRuntimeMode('active', 'test:local');

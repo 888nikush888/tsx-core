@@ -77,7 +77,7 @@ try {
   const recent = await legacyFillFixture('kraken-recent', 'krakenfutures');
   await db.run('UPDATE trading_fills SET raw_json=? WHERE id=?', [JSON.stringify({ ...recent.incoming.raw, info: { fill_id: 'recent-id', order_id: '1234' } }),recent.fillId]);
   assert.equal(await bindLegacyFillIdentity(recent.account, recent.fillId), false, 'Recent fill_id cannot be aliased to execution.uid from equal economics.');
-  assert.equal((await persistCorrelatedFill(recent.account, recent.incoming)).fillId, undefined);
+  assert.equal((await persistCorrelatedFill(recent.account, recent.incoming)).fillId);
   assert.equal((await db.get('SELECT COUNT(*) AS n FROM trading_fills WHERE account_id=?', [recent.account.id])).n, 1);
 
   const fair = await legacyFillFixture('fair');

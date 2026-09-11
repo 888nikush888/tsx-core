@@ -26,7 +26,8 @@ function codePointOrder(left: string, right: string): number {
   return 0;
 }
 function snapshot(row: FillRow, identity?: ExchangeFillIdentity): ExchangeFill {
-  return { exchangeFillId: row.exchange_fill_id, exchangeOrderId: row.exchange_order_id!, clientOrderId: row.client_order_id,
+  if (!row.exchange_order_id) throw new Error('Fill order binding is missing.');
+  return { exchangeFillId: row.exchange_fill_id, exchangeOrderId: row.exchange_order_id, clientOrderId: row.client_order_id,
     symbol: row.symbol, providerSymbol: row.order_provider_symbol ?? undefined, price: row.price, quantity: row.quantity,
     fee: row.fee, feeAsset: row.fee_asset, filledAt: row.filled_at, raw: JSON.parse(row.raw_json), identity };
 }
@@ -53,7 +54,7 @@ function bybitPerpetualSymbol(symbol: string, settlementAsset: unknown): boolean
   // Pinned CCXT4.5.75: spot has no ':'; futures/options always append an expiry suffix.
   // This classifies the exact ORIGINAL unified symbol. It never manufactures the native market ID.
   const match = /^([A-Z0-9]+)\/(USDT|USDC):(USDT|USDC)$/.exec(symbol);
-  return !!match && match[2] === match[3] && match[3] === settlementAsset;
+  return Boolean(match) && match[2] === match[3] && match[3] === settlementAsset;
 }
 
 function ackMatches(value: unknown, row: FillRow): boolean {
@@ -98,9 +99,11 @@ async function originalJournalProves(account: TradingAccount, row: FillRow): Pro
     AND EXISTS(SELECT 1 FROM json_each(expected_orders_json) leg WHERE json_extract(leg.value,'$.client_order_id')=?)`,
   [account.id, row.intent_id, row.account_fingerprint, row.client_order_id]);
   if (operations.length !== 1) return false;
+  const operation = operations[0];
+  if (!operation) return false;
   const response = parse(row.response_json);
   const direct = response.id === row.exchange_order_id && response.clientOrderId === row.client_order_id && response.symbol === row.order_provider_symbol;
-  return operationProves(operations[0]!, row, direct);
+  return operationProves(operation, row, direct);
 }
 
 async function originalPaperProves(row: FillRow): Promise<boolean> {
@@ -125,7 +128,7 @@ async function legacyProof(account: TradingAccount, row: FillRow): Promise<Retur
 }
 
 /** Additive metadata only. Invalid originals are not repaired using current credentials or an incoming candidate. */
-export async function bindLegacyFillIdentity(account: TradingAccount, fillId: string): Promise<boolean> {
+export function bindLegacyFillIdentity(account: TradingAccount, fillId: string): Promise<boolean> {
   return withDatabaseTransaction(async () => {
     const row = await getDatabase().get<FillRow>(`${SELECT_FILLS} WHERE fills.id=? AND fills.account_id=?`, [fillId, account.id]);
     if (row?.identity_status !== 'legacy_unresolved' || row.remote_fill_key !== null) return false;
@@ -145,7 +148,7 @@ interface BackfillCursor { id: string; filled_at: number }
 const backfillCursors = new WeakMap<object, Map<string, BackfillCursor>>();
 const BACKFILL_ATTEMPTS = 500;
 
-async function nextBackfillRows(accountId: string, cursor: BackfillCursor | undefined): Promise<BackfillCursor[]> {
+function nextBackfillRows(accountId: string, cursor: BackfillCursor | undefined): Promise<BackfillCursor[]> {
   const condition = cursor ? ' AND (filled_at>? OR (filled_at=? AND id>?))' : '';
   const parameters = cursor ? [accountId, cursor.filled_at, cursor.filled_at, cursor.id] : [accountId];
   return getDatabase().all<BackfillCursor[]>(`SELECT id,filled_at FROM trading_fills
@@ -161,7 +164,8 @@ export async function backfillAccountFillIdentities(account: TradingAccount): Pr
     let rows = await nextBackfillRows(account.id, cursors.get(account.id));
     if (!rows.length && cursors.has(account.id)) rows = await nextBackfillRows(account.id, undefined);
     for (const row of rows) await bindLegacyFillIdentity(account, row.id);
-    if (rows.length === BACKFILL_ATTEMPTS) cursors.set(account.id, rows.at(-1)!);
+    const last = rows.at(-1);
+    if (rows.length === BACKFILL_ATTEMPTS && last) cursors.set(account.id, last);
     else cursors.delete(account.id);
   });
 }
@@ -174,8 +178,8 @@ export async function unresolvedFillIdentityCount(account: TradingAccount): Prom
     try {
       const proof = row.identity_json ? provenFillIdentity(account, snapshot(row, JSON.parse(row.identity_json))) : null;
       const bound = account.exchange === 'paper' || row.account_fingerprint === fillAccountFingerprint(account);
-      if (row.identity_status === 'proven' && bound && proof?.key === row.remote_fill_key
-        && isDeepStrictEqual(JSON.parse(row.identity_json!), proof.identity)) continue;
+      if (row.identity_status === 'proven' && bound && row.identity_json && proof?.key === row.remote_fill_key
+        && isDeepStrictEqual(JSON.parse(row.identity_json), proof.identity)) continue;
       if (row.identity_status === 'legacy_unresolved' && account.exchange === 'paper' && await originalPaperProves(row)) continue;
     } catch { /* Malformed original identity is uncertainty, never absence. */ }
     unresolved += 1;

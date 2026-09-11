@@ -216,6 +216,75 @@ function prometheusMetrics(operational: OperationalMetrics, state: MetricsState)
   return `${lines.join('\n')}\n`;
 }
 
+function requestPath(req: http.IncomingMessage): string {
+  return new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`).pathname;
+}
+
+function respondHealth(res: http.ServerResponse): void {
+  sendJson(res, 200, {
+    status: 'alive',
+    uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
+    timestamp: new Date().toISOString()
+  });
+}
+
+function respondNotFound(res: http.ServerResponse): void {
+  res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('Not Found');
+}
+
+function respondReady(res: http.ServerResponse, operational: OperationalMetrics): void {
+  const ready = isOperationallyReady(operational);
+  sendJson(res, ready ? 200 : 503, {
+    status: ready ? 'ready' : 'not_ready',
+    checks: readinessChecks(operational),
+    unresolvedDeliveries: operational.outbox.failed + operational.outbox.unknown
+  });
+}
+
+function respondPrometheus(res: http.ServerResponse, operational: OperationalMetrics, state: MetricsState): void {
+  res.writeHead(200, {
+    'Content-Type': 'text/plain; version=0.0.4; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff'
+  });
+  res.end(prometheusMetrics(operational, state));
+}
+
+async function resolveOperational(res: http.ServerResponse, state: MetricsState): Promise<OperationalMetrics | null> {
+  try {
+    return await state.getOperationalMetricsCallback();
+  } catch (error) {
+    sendJson(res, 503, { status: 'unavailable', error: error instanceof Error ? error.message : error });
+    return null;
+  }
+}
+
+async function handleOperationalRequest(url: string, res: http.ServerResponse, state: MetricsState): Promise<void> {
+  const operational = await resolveOperational(res, state);
+  if (!operational) return;
+  if (url === '/readyz') respondReady(res, operational);
+  else respondPrometheus(res, operational, state);
+}
+
+async function handleMetricsRequest(req: http.IncomingMessage, res: http.ServerResponse, state: MetricsState): Promise<void> {
+  const url = requestPath(req);
+  if (req.method !== 'GET') {
+    res.writeHead(405, { Allow: 'GET' });
+    res.end('Method Not Allowed');
+    return;
+  }
+  if (url === '/healthz') {
+    respondHealth(res);
+    return;
+  }
+  if (url !== '/readyz' && url !== '/metrics') {
+    respondNotFound(res);
+    return;
+  }
+  await handleOperationalRequest(url, res, state);
+}
+
 export function startMetricsServer(
   port: number,
   state: MetricsState,
@@ -224,53 +293,10 @@ export function startMetricsServer(
   if (server) throw new Error('Metrics server is already running.');
   if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) throw new Error('Metrics port must be between 0 and 65535.');
 
-  server = http.createServer(async (req, res) => {
-    const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`).pathname;
-    if (req.method !== 'GET') {
-      res.writeHead(405, { Allow: 'GET' });
-      res.end('Method Not Allowed');
-      return;
-    }
-
-    if (url === '/healthz') {
-      sendJson(res, 200, {
-        status: 'alive',
-        uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
-        timestamp: new Date().toISOString()
-      });
-      return;
-    }
-
-    if (url !== '/readyz' && url !== '/metrics') {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('Not Found');
-      return;
-    }
-
-    let operational: OperationalMetrics;
-    try {
-      operational = await state.getOperationalMetricsCallback();
-    } catch (error: any) {
-      sendJson(res, 503, { status: 'unavailable', error: error.message });
-      return;
-    }
-
-    if (url === '/readyz') {
-      const ready = isOperationallyReady(operational);
-      sendJson(res, ready ? 200 : 503, {
-        status: ready ? 'ready' : 'not_ready',
-        checks: readinessChecks(operational),
-        unresolvedDeliveries: operational.outbox.failed + operational.outbox.unknown
-      });
-      return;
-    }
-
-    res.writeHead(200, {
-      'Content-Type': 'text/plain; version=0.0.4; charset=utf-8',
-      'Cache-Control': 'no-store',
-      'X-Content-Type-Options': 'nosniff'
+  server = http.createServer((req, res) => {
+    handleMetricsRequest(req, res, state).catch(() => {
+      res.destroy();
     });
-    res.end(prometheusMetrics(operational, state));
   });
 
   server.requestTimeout = 10_000;

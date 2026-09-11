@@ -65,7 +65,11 @@ export async function uiModelDetail(inputKind: unknown, inputId: unknown) {
 
 async function schemaLifecycle(id: string, action: string) {
   if (action === 'delete') return { deleted: await deleteTradingSignalSchema(id) };
-  if (action === 'enable' || action === 'disable') return { model: await updateTradingSignalSchema(id, { ...(await getTradingSignalSchemaById(id))!, enabled: action === 'enable' }) };
+  if (action === 'enable' || action === 'disable') {
+    const current = await getTradingSignalSchemaById(id);
+    if (!current) throw new Error('Signal schema does not exist.');
+    return { model: await updateTradingSignalSchema(id, { ...current, enabled: action === 'enable' }) };
+  }
   throw new Error('Unsupported model action.');
 }
 
@@ -90,7 +94,7 @@ async function modelLifecycle(kind: UiModelKind, id: string, action: string, cur
   return contractLifecycle(id, action, current.model.status);
 }
 
-export async function mutateUiModel(input: { kind: unknown; id: unknown; action: unknown; reviewHash: unknown }) {
+export function mutateUiModel(input: { kind: unknown; id: unknown; action: unknown; reviewHash: unknown }) {
   const kind = modelKind(input.kind); const id = uiObjectId(input.id); const action = uiObjectId(input.action, 16);
   return withDatabaseTransaction(async () => {
     const current = await uiModelDetail(kind, id);

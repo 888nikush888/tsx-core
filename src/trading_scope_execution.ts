@@ -51,7 +51,7 @@ function realExecution(fill: StoredExecution, order: ScopeOrder, account: Tradin
 export async function observedOrderExecutions(account: TradingAccount, order: ScopeOrder): Promise<{
   executions: RealExecution[]; proof: ObservedOrderExecutionSet;
 }> {
-  const fills = await getDatabase().all<StoredExecution[]>(`SELECT * FROM trading_fills WHERE account_id=? AND order_id=? ORDER BY exchange_fill_id LIMIT 201`,
+  const fills = await getDatabase().all<StoredExecution[]>('SELECT * FROM trading_fills WHERE account_id=? AND order_id=? ORDER BY exchange_fill_id LIMIT 201',
     [account.id, order.id]);
   const executions = fills.map(fill => realExecution(fill, order, account)).filter((value): value is RealExecution => value !== null);
   const proof: ObservedOrderExecutionSet = { orderId: order.exchange_order_id, status: 'not_proven',
@@ -74,8 +74,9 @@ export async function observedOrderExecutions(account: TradingAccount, order: Sc
 /** Ledger tradeId and execId have different contracts. Correlate exact owned order plus a unique full economic match. */
 export function executionMatches(record: AccountLogRecord, execution: RealExecution): boolean {
   try {
+    if (!record.qty || !record.tradePrice || !record.fee) return false;
     return record.symbol === execution.symbol && record.currency === execution.currency && Number(record.transactionTime) === execution.timestamp
-      && decimal(record.qty!, { positive: true }) === execution.quantity && decimal(record.tradePrice!, { positive: true }) === execution.price
-      && signedDecimal(record.fee!) === execution.fee;
+      && decimal(record.qty, { positive: true }) === execution.quantity && decimal(record.tradePrice, { positive: true }) === execution.price
+      && signedDecimal(record.fee) === execution.fee;
   } catch { return false; }
 }

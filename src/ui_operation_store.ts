@@ -158,7 +158,8 @@ export class UiOperationStore {
       throw error;
     }
     return this.serial(async () => {
-      const existing = this.records.get(id)!;
+      const existing = this.records.get(id);
+      if (!existing) throw new Error('UI operation record is missing.');
       const next: UiJob = { ...existing, state: 'awaiting-restart', updatedAt: Date.now(), result, error: null,
         stage: 'Command confirmed; restart requested for this process generation. Readiness and trading gates remain separate.',
         restart: { sourceInstanceId: this.instanceId, confirmedAt: Date.now(), receipt: 'durable' } };
@@ -167,7 +168,7 @@ export class UiOperationStore {
         next.state = 'unknown';
         next.stage = 'Command returned successfully; its durable completion receipt is uncertain. Restart remains required; do not repeat the command.';
         next.error = 'Completion receipt could not be durably confirmed.';
-        next.restart!.receipt = 'uncertain';
+        if (next.restart) next.restart.receipt = 'uncertain';
         // A second write may recover a transient fault. Even if it fails, retain the honest
         // in-process outcome and restart intent; the previous running record prevents replay after a crash.
         await this.persist(next).catch(() => undefined);
@@ -182,7 +183,8 @@ export class UiOperationStore {
       await this.update(id, { state: 'failed', stage: 'Command did not return a confirmed result. Inspect partial effects; no automatic replay.',
         error: maskPII(unknownErrorMessage(error)).slice(0, 2000) });
     } catch {
-      const existing = this.records.get(id)!;
+      const existing = this.records.get(id);
+      if (!existing) throw new Error('UI operation record is missing.');
       this.records.set(id, { ...existing, state: 'unknown', stage: 'Command and failure receipt are uncertain; no automatic replay.', updatedAt: Date.now() });
     }
   }

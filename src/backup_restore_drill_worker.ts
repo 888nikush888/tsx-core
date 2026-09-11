@@ -9,8 +9,12 @@ import dgram from 'node:dgram';
 import dns from 'node:dns';
 import childProcess from 'node:child_process';
 import { syncBuiltinESMExports } from 'node:module';
+import type { McpMaintenanceLease } from './mcp_maintenance.js';
+import type { ProcessLock } from './process_lock.js';
 
 function deny(): never { throw new Error('Network and subprocess APIs are disabled in the isolated restore drill.'); }
+
+function failDrillProbe(): void { throw new Error('Restore drill API isolation self-check failed.'); }
 
 function denyExternalWork(): void {
   const denyPromisified = Object.assign(deny, { __promisify__: deny });
@@ -23,10 +27,10 @@ function denyExternalWork(): void {
   childProcess.spawn = deny; childProcess.spawnSync = deny; childProcess.exec = denyPromisified;
   childProcess.execSync = deny; childProcess.execFile = denyPromisified; childProcess.execFileSync = deny; childProcess.fork = deny;
   globalThis.fetch = deny;
-  (globalThis as any).WebSocket = deny;
+  (globalThis as Record<string, unknown>).WebSocket = deny;
   syncBuiltinESMExports();
   for (const action of [() => net.connect(1, '127.0.0.1'), () => globalThis.fetch('http://127.0.0.1:1'),
-    () => dns.lookup('localhost', () => {}), () => childProcess.spawn(process.execPath, ['--version'])]) {
+    () => dns.lookup('localhost', failDrillProbe), () => childProcess.spawn(process.execPath, ['--version'])]) {
     let blocked = false;
     try { action(); } catch (error) { blocked = error instanceof Error && error.message.includes('APIs are disabled'); }
     if (!blocked) throw new Error('Restore drill API isolation self-check failed.');
@@ -43,13 +47,23 @@ async function checkRestoredFiles(root: string, artifact: string, files: Record<
   if (path.resolve(root) === path.resolve(artifact)) throw new Error('Restore drill must never target its source artifact.');
 }
 
-async function perform(): Promise<void> {
-  denyExternalWork();
-  const [artifact, directory, nonce, expected] = process.argv.slice(2);
+function parseDrillArguments(args: string[]): { artifact: string; directory: string; nonce: string; expected: string } {
+  const [artifact, directory, nonce, expected] = args;
   if (!directory || /^[\\/]{2}/.test(directory) || path.basename(directory) !== 'restored'
     || !path.basename(path.dirname(directory)).startsWith('tsx-restore-drill-')) throw new Error('Invalid local drill scope.');
+  return { artifact, directory, nonce, expected };
+}
+
+async function resolveDrillRoot(directory: string): Promise<string> {
   const root = await fs.realpath(directory);
   if (root !== directory || (await fs.readdir(root)).length !== 0) throw new Error('Restore drill requires its own empty real temporary directory.');
+  return root;
+}
+
+async function perform(): Promise<void> {
+  denyExternalWork();
+  const { artifact, directory, nonce, expected } = parseDrillArguments(process.argv.slice(2));
+  const root = await resolveDrillRoot(directory);
   const { inspectBackupArtifact, restoreBackupArtifact, verifyBackupArtifact, verifySqliteDatabase } = await import('./backup.js');
   const { requireRestoreEligibility } = await import('./backup_evidence.js');
   const { acquireProcessLock } = await import('./process_lock.js');
@@ -60,8 +74,8 @@ async function perform(): Promise<void> {
   requireRestoreEligibility(evidence.restoreEligibility);
   const sources = { databasePath: path.join(root, 'forwarder.db'), configurationPath: path.join(root, 'config.json'),
     runtimeSettingsPath: path.join(root, 'runtime-settings.json'), templatesDirectory: path.join(root, 'templates') };
-  const owner = await acquireProcessLock(path.join(root, '.process_active'));
-  let lease;
+  const owner: ProcessLock = await acquireProcessLock(path.join(root, '.process_active'));
+  let lease: McpMaintenanceLease | undefined;
   try {
     lease = await beginMcpOfflineMaintenance('isolated restore drill', sources.databasePath, owner);
     await lease.waitForQuiescence();

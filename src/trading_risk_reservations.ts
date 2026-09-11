@@ -22,25 +22,42 @@ export interface RiskReservationAmounts {
   actualFillToStopRiskValue: MoneyValue | null; additionalRiskValue: MoneyValue | null;
 }
 
-function lossToStop(side: TradingSide, reference: string | null, stop: string, quantity: string): string {
-  if (quantity === '0') return '0';
-  if (reference === null) throw new Error('Risk price is unproven.');
-  const price = decimal(reference, { positive: true });
-  const adverse = side === 'LONG' ? compareDecimal(price, stop) > 0 : compareDecimal(stop, price) > 0;
-  if (!adverse) return '0';
+function adversePriceMovement(side: TradingSide, price: string, stop: string): boolean {
+  return side === 'LONG' ? compareDecimal(price, stop) > 0 : compareDecimal(stop, price) > 0;
+}
+
+function stopDistance(side: TradingSide, price: string, stop: string, quantity: string): string {
   const distance = side === 'LONG' ? subtractDecimal(price, stop) : subtractDecimal(stop, price);
   return multiplyExactSignedDecimal(distance, quantity);
 }
 
-function remainingEntry(entry: RiskEntryRemainder): string {
+function lossToStop(side: TradingSide, reference: string | null, stop: string, quantity: string): string {
+  if (quantity === '0') return '0';
+  if (reference === null) throw new Error('Risk price is unproven.');
+  const price = decimal(reference, { positive: true });
+  if (!adversePriceMovement(side, price, stop)) return '0';
+  return stopDistance(side, price, stop, quantity);
+}
+
+function remainingQuantity(entry: RiskEntryRemainder): string {
   if (entry.operationUnresolved) throw new Error('Entry operation remains unresolved.');
   if (entry.filledQuantity === null) throw new Error('Entry executed quantity remains unproven.');
   const remaining = subtractDecimal(decimal(entry.quantity, { positive: true }), decimal(entry.filledQuantity));
   if (entry.status === 'filled' && remaining !== '0') throw new Error('Filled entry still has an unexplained residual.');
-  if (['filled', 'cancelled', 'rejected'].includes(entry.status)) return '0';
+  return remaining;
+}
+
+function assertEntryLifecycle(entry: RiskEntryRemainder): void {
+  if (['filled', 'cancelled', 'rejected'].includes(entry.status)) return;
   if (!['created', 'submitting', 'open', 'partially_filled', 'cancel_pending', 'unknown'].includes(entry.status)) {
     throw new Error('Entry lifecycle is unproven.');
   }
+}
+
+function remainingEntry(entry: RiskEntryRemainder): string {
+  const remaining = remainingQuantity(entry);
+  assertEntryLifecycle(entry);
+  if (['filled', 'cancelled', 'rejected'].includes(entry.status)) return '0';
   return remaining;
 }
 

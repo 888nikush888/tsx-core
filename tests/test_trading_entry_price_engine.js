@@ -66,7 +66,7 @@ async function assertRevalidationKeepsOriginalCap(file) {
 async function assertFinalBoundaryFence(file) {
   const { intent, paper, engine } = await fixture(file);
   const prepare = engine.preparePendingIntent.bind(engine);
-  let prepared;
+  let prepared = null;
   engine.preparePendingIntent = async (...args) => { prepared = await prepare(...args); return prepared; };
   const database = getDatabase();
   const run = database.run.bind(database);

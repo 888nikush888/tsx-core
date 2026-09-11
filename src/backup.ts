@@ -145,7 +145,7 @@ async function sha256File(filePath: string): Promise<BackupFileMetadata> {
   };
 }
 
-async function fileExists(filePath: string): Promise<boolean> {
+function fileExists(filePath: string): Promise<boolean> {
   return fs.stat(filePath).then(() => true).catch((error: any) => {
     if (error.code === 'ENOENT') return false;
     throw error;
@@ -166,7 +166,7 @@ function isSafeTemplatePathSegment(segment: string): boolean {
     && segment !== '.'
     && segment !== '..'
     && segment === segment.trim()
-    && !/[\\/<>:"|?*\x00-\x1f]/.test(segment);
+    && !/[\\/<>:"|?*\x00-\x1f]/u.test(segment);
 }
 
 function artifactPath(artifactRoot: string, fileName: string): string {
@@ -257,7 +257,7 @@ async function verifyCoreDatabaseSchema(database: Database): Promise<void> {
   if (integrity?.integrity_check !== 'ok') {
     throw new Error(`SQLite integrity_check failed: ${integrity?.integrity_check || 'no result'}`);
   }
-  const rows = await database.all<Array<{ name: string }>>(`SELECT name FROM sqlite_master WHERE type = 'table'`);
+  const rows = await database.all<Array<{ name: string }>>('SELECT name FROM sqlite_master WHERE type = \'table\'');
   const tables = new Set(rows.map(row => row.name));
   const missing = REQUIRED_DATABASE_TABLES.filter(table => !tables.has(table));
   if (missing.length > 0) throw new Error(`Backup is missing required tables: ${missing.join(', ')}`);
@@ -277,17 +277,17 @@ async function verifyTradingDatabaseSchema(database: Database): Promise<void> {
     throw new Error('Backup trading account schema is missing external account identity binding.');
   }
   const runtimeState = await database.get<{ count: number; minimum: number; maximum: number }>(
-    `SELECT COUNT(*) AS count, MIN(singleton_id) AS minimum, MAX(singleton_id) AS maximum FROM trading_runtime_state`
+    'SELECT COUNT(*) AS count, MIN(singleton_id) AS minimum, MAX(singleton_id) AS maximum FROM trading_runtime_state'
   );
   if (Number(runtimeState?.count) !== 1 || Number(runtimeState?.minimum) !== 1 || Number(runtimeState?.maximum) !== 1) {
     throw new Error('Backup trading runtime singleton is missing or malformed.');
   }
   const immutableTrigger = await database.get<{ name: string }>(
-    `SELECT name FROM sqlite_master WHERE type = 'trigger' AND name = 'trg_trading_strategy_immutable'`
+    'SELECT name FROM sqlite_master WHERE type = \'trigger\' AND name = \'trg_trading_strategy_immutable\''
   );
   if (!immutableTrigger) throw new Error('Backup is missing the published-strategy immutability trigger.');
   const identityIndex = await database.get<{ name: string }>(
-    `SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'uq_trading_external_account_identity'`
+    'SELECT name FROM sqlite_master WHERE type = \'index\' AND name = \'uq_trading_external_account_identity\''
   );
   if (!identityIndex) throw new Error('Backup is missing the external account identity uniqueness constraint.');
 }
@@ -466,7 +466,9 @@ async function snapshotPinnedDatabase(destination: string, config: unknown): Pro
   const source = databases.find(database => database.name === 'main')?.file;
   if (!source || !path.isAbsolute(source)) throw new Error('Backup requires a proven operational database file.');
   return withPinnedConfigurationGeneration(configurationPathFromEnvironment(), source, async generation => {
-    const pinnedConfig = JSON.parse(generation.files.get(CONFIG_FILE)!.toString('utf8'));
+    const pinnedBytes = generation.files.get(CONFIG_FILE);
+    if (!pinnedBytes) throw new Error('Pinned configuration generation is missing.');
+    const pinnedConfig = JSON.parse(pinnedBytes.toString('utf8'));
     if (backupConfigurationDigest(pinnedConfig) !== backupConfigurationDigest(config || {})) {
       throw new Error('Backup configuration provider does not match the committed generation.');
     }
@@ -720,15 +722,38 @@ async function verifyStagedMember(destination: string, expected: BackupFileMetad
 }
 
 async function stageTemplates(plan: RestorePlan): Promise<void> {
-  await fs.mkdir(plan.templates!.temporary, { mode: 0o700 });
+  const temporary = plan.templates?.temporary;
+  if (!temporary) throw new Error('Restore plan templates are missing.');
+  await fs.mkdir(temporary, { mode: 0o700 });
   for (const [member, expected] of Object.entries(plan.files)) {
     if (!member.startsWith(`${TEMPLATES_DIRECTORY}/`)) continue;
     const source = artifactPath(plan.artifact, member);
     await assertArtifactParents(plan.artifact, source);
-    const destination = path.join(plan.templates!.temporary, member.slice(TEMPLATES_DIRECTORY.length + 1));
+    const destination = path.join(temporary, member.slice(TEMPLATES_DIRECTORY.length + 1));
     await fs.mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
     await fs.copyFile(source, destination, fs.constants.COPYFILE_EXCL);
     await verifyStagedMember(destination, expected);
+  }
+}
+
+async function preserveTemplates(plan: RestorePlan): Promise<void> {
+  if (!plan.templates?.previous) return;
+  const existingTemplates = await fs.lstat(plan.templates.target);
+  if (!existingTemplates.isDirectory() || existingTemplates.isSymbolicLink()) {
+    throw new Error('Existing templates target must be a real directory, not a symbolic link.');
+  }
+  await fs.rename(plan.templates.target, plan.templates.previous);
+}
+
+async function preserveSidecars(plan: RestorePlan, progress: RestoreProgress): Promise<void> {
+  for (const suffix of ['-wal', '-shm']) {
+    const original = `${plan.targetDb}${suffix}`;
+    if (await fileExists(original)) {
+      const preservationBase = plan.previousDb || `${plan.targetDb}.pre-restore-${plan.restoreId}`;
+      const preserved = `${preservationBase}${suffix}`;
+      await fs.rename(original, preserved);
+      progress.movedSidecars.push({ original, preserved });
+    }
   }
 }
 
@@ -739,22 +764,8 @@ async function preserveCurrentFiles(plan: RestorePlan, progress: RestoreProgress
     await assertRegularFile(plan.runtimeSettings.target, 'Existing runtime settings');
     await fs.rename(plan.runtimeSettings.target, plan.runtimeSettings.previous);
   }
-  if (plan.templates?.previous) {
-    const existingTemplates = await fs.lstat(plan.templates.target);
-    if (!existingTemplates.isDirectory() || existingTemplates.isSymbolicLink()) {
-      throw new Error('Existing templates target must be a real directory, not a symbolic link.');
-    }
-    await fs.rename(plan.templates.target, plan.templates.previous);
-  }
-  for (const suffix of ['-wal', '-shm']) {
-    const original = `${plan.targetDb}${suffix}`;
-    if (await fileExists(original)) {
-      const preservationBase = plan.previousDb || `${plan.targetDb}.pre-restore-${plan.restoreId}`;
-      const preserved = `${preservationBase}${suffix}`;
-      await fs.rename(original, preserved);
-      progress.movedSidecars.push({ original, preserved });
-    }
-  }
+  await preserveTemplates(plan);
+  await preserveSidecars(plan, progress);
 }
 
 async function installRestore(plan: RestorePlan, progress: RestoreProgress): Promise<void> {
@@ -900,7 +911,7 @@ export class BackupScheduler {
     if (this.interval) return;
     await this.runNow();
     this.interval = setInterval(() => {
-      void this.runNow().catch(error => this.logger(`[ERROR] Scheduled backup failed: ${error.message}`));
+      this.runNow().catch(error => this.logger(`[ERROR] Scheduled backup failed: ${error.message}`));
     }, this.intervalMs);
     this.interval.unref();
   }
@@ -915,10 +926,10 @@ export class BackupScheduler {
     const status = structuredClone(this.status);
     const offsiteHealthy = !this.replicator && !this.offsiteRequired
       ? true
-      : !!status.lastOffsiteSuccessAt && !status.lastError && Date.now() - status.lastOffsiteSuccessAt <= this.intervalMs * 2;
+      : Boolean(status.lastOffsiteSuccessAt) && !status.lastError && Date.now() - status.lastOffsiteSuccessAt <= this.intervalMs * 2;
     return {
       ...status,
-      healthy: !!status.lastSuccessAt && !status.lastError && Date.now() - status.lastSuccessAt <= this.intervalMs * 2 && offsiteHealthy,
+      healthy: Boolean(status.lastSuccessAt) && !status.lastError && Date.now() - status.lastSuccessAt <= this.intervalMs * 2 && offsiteHealthy,
       offsiteHealthy,
       offsiteRequired: this.offsiteRequired
     };
@@ -975,9 +986,9 @@ export class BackupScheduler {
       }
     })();
     this.activeRun = operation;
-    void operation.finally(() => {
+    operation.finally(() => {
       if (this.activeRun === operation) this.activeRun = null;
-    }).catch(() => {});
+    }).catch(() => undefined);
     return operation;
   }
 }

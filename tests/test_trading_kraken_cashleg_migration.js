@@ -90,7 +90,7 @@ async function migrationFailureRollback() {
   try {
     assert.deepEqual(await originals(database), before);
     assert.equal((await database.get('SELECT MAX(version) AS version FROM schema_migrations')).version, 40);
-    assert.equal(await database.get("SELECT name FROM sqlite_master WHERE type='table' AND name='trading_kraken_log_occurrences'"), undefined);
+    assert.equal(await database.get("SELECT name FROM sqlite_master WHERE type='table' AND name='trading_kraken_log_occurrences'"));
     assert.deepEqual(await database.all('PRAGMA foreign_key_check'), []);
   } finally { await database.close(); }
 }

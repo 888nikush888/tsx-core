@@ -97,9 +97,11 @@ export function midpointDecimal(range: { min: string; max: string }): string {
 
 export function minDecimal(...values: string[]): string {
   if (values.length === 0) throw new Error('At least one decimal is required.');
+  const first = values[0];
+  if (first === undefined) throw new Error('At least one decimal is required.');
   return values.slice(1).reduce(
     (minimum, value) => compareDecimal(value, minimum) < 0 ? value : minimum,
-    values[0]!,
+    first,
   );
 }
 

@@ -371,7 +371,7 @@ function registerCoreReadTools(server: McpServer, agentId: string): void {
       sourceText: z.string().max(64 * 1024).optional(),
     },
     annotations: { readOnlyHint: true, openWorldHint: false },
-  }, async ({ definition, xml, sourceText }) => {
+  }, ({ definition, xml, sourceText }) => {
     const contractDefinition = validateSignalContractDefinition(definition);
     const validated = validateSignalXml(
       xml,
@@ -379,7 +379,7 @@ function registerCoreReadTools(server: McpServer, agentId: string): void {
       { id: 'mcp-contract-preview', parserSchema: 'standard', contractDefinition },
     );
     if (sourceText?.trim()) assertSignalGrounded(validated, sourceText);
-    return validated;
+    return Promise.resolve(validated);
   });
 
   registerTool(server, agentId, 'tsx_positions_list', 'positions.read', {
@@ -1065,7 +1065,7 @@ async function initializeMcpSession(agent: AuthenticatedMcpAgent, req: any, res:
         clientVersion: clientInfo.version,
       })).then(session => {
         runtime.session = session;
-        runtime.notificationTimer = setInterval(() => void databaseWork.run(() => pumpNotifications(runtime)).catch(() => undefined), 1_000);
+        runtime.notificationTimer = setInterval(() => databaseWork.run(() => pumpNotifications(runtime)).catch(() => undefined), 1_000);
         runtime.notificationTimer.unref();
         return session;
       });
@@ -1077,7 +1077,7 @@ async function initializeMcpSession(agent: AuthenticatedMcpAgent, req: any, res:
   runtime.server = server;
   transport.onclose = () => {
     const sessionId = transport.sessionId;
-    if (sessionId && !shuttingDown) void databaseWork.run(() => closeSession(sessionId)).catch(() => undefined);
+    if (sessionId && !shuttingDown) databaseWork.run(() => closeSession(sessionId)).catch(() => undefined);
   };
   await server.connect(transport);
   await transport.handleRequest(req, res, req.body);
@@ -1118,7 +1118,7 @@ async function handleMcpRequest(req: any, res: any): Promise<void> {
 
 function configureMcpRoute(app: any): void {
   app.all('/mcp', (req: any, res: any) => {
-    void databaseWork.run(() => handleMcpRequest(req, res)).catch(error => {
+    databaseWork.run(() => handleMcpRequest(req, res)).catch(error => {
       console.error(`[ERROR] MCP request failed: ${errorMessage(error)}`);
       if (!res.headersSent) {
         res.status(shuttingDown ? 503 : 500).json({ jsonrpc: '2.0', error: { code: -32603, message: shuttingDown ? 'MCP maintenance is draining.' : 'Internal server error.' }, id: null });
@@ -1133,7 +1133,7 @@ function startMaintenanceMonitor(databasePath: string, initialDatabaseIdentity: 
   maintenanceTimer = setInterval(() => {
     if (maintenanceCheckBusy || shuttingDown) return;
     maintenanceCheckBusy = true;
-    void Promise.all([
+    Promise.all([
       readMcpMaintenanceRequest(databasePath),
       databaseFileIdentity(databasePath),
     ]).then(async ([maintenance, identity]) => {
@@ -1143,7 +1143,7 @@ function startMaintenanceMonitor(databasePath: string, initialDatabaseIdentity: 
       // Successful close is acknowledged by the DB lifecycle hook. If it fails,
       // only actual process death (not this log or a timer) can prove quiescence.
       process.exit(1);
-    }).catch(async () => {
+    }).catch(() => {
       console.error('[CRITICAL] MCP service lost the operational database path and is closing.');
       process.exit(1);
     }).finally(() => {
@@ -1158,7 +1158,7 @@ function startRuntimeModeMonitor(): void {
   runtimeModeTimer = setInterval(() => {
     if (runtimeModeCheckBusy || shuttingDown) return;
     runtimeModeCheckBusy = true;
-    void databaseWork.run(() => synchronizeRuntimeMode()).catch(error => {
+    databaseWork.run(() => synchronizeRuntimeMode()).catch(error => {
       console.error(`[WARN] MCP runtime mode check failed: ${errorMessage(error)}`);
     }).finally(() => {
       runtimeModeCheckBusy = false;
@@ -1187,7 +1187,7 @@ async function main(): Promise<void> {
 }
 
 function shutdownFromSignal(): void {
-  void shutdown().then(() => process.exit(0), error => {
+  shutdown().then(() => process.exit(0), error => {
     console.error(`[CRITICAL] MCP handle closure failed: ${errorMessage(error)}`);
     process.exit(1);
   });

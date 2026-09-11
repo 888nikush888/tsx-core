@@ -1,4 +1,5 @@
 import { withDatabaseTransaction } from './db.js';
+import type { Database } from 'sqlite';
 import { decodeUiCursor, encodeUiCursor, filterFingerprint } from './ui_cursor.js';
 import { uiObjectId } from './ui_trading_reads.js';
 import { getMoneyEvent } from './trading_money_ledger.js';
@@ -16,33 +17,47 @@ const RELATIONS = {
 } as const;
 export type UiTradeRelation = keyof typeof RELATIONS;
 
+type MoneyVisibleEvent = Record<string, unknown>;
+
+async function moneyConversion(moneyId: string): Promise<{ conversion: unknown; valuationReason: string | null }> {
+  try {
+    const valuation = await readFxMoneyValuation(moneyId);
+    if (!valuation) return { conversion: null, valuationReason: null };
+    const event = await getMoneyEvent(moneyId);
+    const account = event ? await getTradingAccount(event.accountId) : null;
+    if (!account) throw new Error('FX account binding is unavailable.');
+    return { conversion: (await readFxConversion(account, valuation.conversionId)).conversion, valuationReason: null };
+  } catch (error) { return { conversion: null, valuationReason: String(error).slice(0, 2000) }; }
+}
+
 async function moneyEvidence(id: string) {
   const event = await getMoneyEvent(id); if (!event) throw new Error('Original monetary event is unavailable.');
   const { accountFingerprint: _privateIdentity, ...visible } = event;
-  let conversion = null; let valuationReason = null;
-  try {
-    const valuation = await readFxMoneyValuation(id);
-    if (valuation) {
-      const account = await getTradingAccount(event.accountId);
-      if (!account) throw new Error('FX account binding is unavailable.');
-      conversion = (await readFxConversion(account, valuation.conversionId)).conversion;
-    }
-  } catch (error) { valuationReason = String(error).slice(0, 2000); }
-  return { ...visible, conversion, valuationReason, explanation: conversion
+  const { conversion, valuationReason } = await moneyConversion(id);
+  return { ...(visible as MoneyVisibleEvent), conversion, valuationReason, explanation: conversion
     ? 'Geprüfte ereigniszeitbezogene Provider-Indexbewertung. Rate ist exakt rational; Zeitablauf allein bewertet das historische Ereignis nicht neu.'
     : 'Native Bewertung oder kein aktuell prüfbarer FX-Konversionsbeleg. Unbekannte Bewertung ist kein Nullbetrag.' };
 }
 
-async function relationEvidence(kind: UiTradeRelation, row: Record<string, any>): Promise<unknown> {
-  if (kind === 'money') {
-    try { return redactReview(await moneyEvidence(row.id)); }
-    catch (error) { return { ...row, valuationStatus: 'unresolved', valuationReason: String(error).slice(0, 2000), originalUnverified: true }; }
-  }
-  if (kind === 'events') {
-    const { detailsJson, ...event } = row;
-    return redactReview({ ...event, detailsOmitted: Boolean(event.detailsOmitted), details: detailsJson ? JSON.parse(detailsJson) : null });
-  }
-  return redactReview({ ...row, ...(kind === 'orders' ? { reduceOnly: row.reduceOnly === 1 } : {}) });
+function orderEvidence(row: Record<string, unknown>): unknown {
+  return redactReview({ ...row, reduceOnly: row.reduceOnly === 1 });
+}
+
+function eventEvidence(row: Record<string, unknown>): unknown {
+  const { detailsJson, ...event } = row;
+  return redactReview({ ...event, detailsOmitted: Boolean(event.detailsOmitted), details: detailsJson ? JSON.parse(detailsJson as string) : null });
+}
+
+async function moneyRelationEvidence(row: Record<string, unknown>): Promise<unknown> {
+  try { return redactReview(await moneyEvidence(row.id as string)); }
+  catch (error) { return { ...row, valuationStatus: 'unresolved', valuationReason: String(error).slice(0, 2000), originalUnverified: true }; }
+}
+
+function relationEvidence(kind: UiTradeRelation, row: Record<string, unknown>): Promise<unknown> {
+  if (kind === 'money') return moneyRelationEvidence(row);
+  if (kind === 'events') return Promise.resolve(eventEvidence(row));
+  if (kind === 'orders') return Promise.resolve(orderEvidence(row));
+  return Promise.resolve(redactReview({ ...row }));
 }
 
 /** Relations are independently pageable; no raw account fingerprints, provider payloads or floating-point money. */
@@ -52,21 +67,46 @@ export async function uiTradeRelationPage(intentId: string, kind: UiTradeRelatio
   const limit = Number(query.get('limit') || 40);
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new Error('Invalid trade relation page size.');
   const definition = RELATIONS[kind]; const filter = filterFingerprint({ intentId, kind, limit });
-  const cursor = decodeUiCursor(query.get('cursor'), filter); const observedAt = cursor?.observedAt ?? Date.now();
-  return withDatabaseTransaction(async database => {
-    if (!await database.get('SELECT id FROM trading_trade_intents WHERE id = ?', [intentId])) return null;
-    const where = [definition.scope, `${definition.clock} <= ?`]; const parameters: unknown[] = [intentId, observedAt];
-    if (cursor) { where.push(`(${definition.clock} < ? OR (${definition.clock} = ? AND id < ?))`); parameters.push(cursor.createdAt, cursor.createdAt, cursor.id); }
-    const rows = await database.all(`SELECT ${definition.fields}, ${definition.clock} AS cursorTime FROM ${definition.table} WHERE ${where.join(' AND ')} ORDER BY ${definition.clock} DESC, id DESC LIMIT ?`, [...parameters, limit + 1]);
-    const entries = [];
-    for (const { cursorTime: _clock, ...row } of rows.slice(0, limit)) {
-      entries.push(await relationEvidence(kind, row));
-    }
-    const last = rows[Math.min(limit, rows.length) - 1];
-    return { contractVersion: 1, intentId, kind, entries, observedAt, hasMore: rows.length > limit,
-      snapshotContext: 'Creation/recording cutoff; status and valuation are checked at the page observation. Event details above 16000 characters are explicitly omitted.',
-      nextCursor: rows.length > limit && last ? encodeUiCursor({ version: 1, filter, observedAt, createdAt: last.cursorTime, id: last.id }) : null };
-  });
+  const cursor = decodeUiCursor(query.get('cursor'), filter);
+  const observedAt = cursor?.observedAt ?? Date.now();
+  await Promise.resolve();
+  return withDatabaseTransaction(database => relationPage(database, intentId, kind, definition, filter, observedAt, cursor, limit));
+}
+
+function relationPageWindow(
+  definition: (typeof RELATIONS)[UiTradeRelation], intentId: string, observedAt: number,
+  cursor: { createdAt: number; id: string } | null,
+): { where: string[]; parameters: unknown[] } {
+  const where = [definition.scope, `${definition.clock} <= ?`];
+  const parameters: unknown[] = [intentId, observedAt];
+  if (cursor) { where.push(`(${definition.clock} < ? OR (${definition.clock} = ? AND id < ?))`); parameters.push(cursor.createdAt, cursor.createdAt, cursor.id); }
+  return { where, parameters };
+}
+
+async function relationPageEntries(
+  database: Database,
+  definition: (typeof RELATIONS)[UiTradeRelation], where: string[], parameters: unknown[], limit: number, kind: UiTradeRelation,
+): Promise<{ rows: Array<Record<string, unknown>>; entries: unknown[] }> {
+  const rows = await database.all(`SELECT ${definition.fields}, ${definition.clock} AS cursorTime FROM ${definition.table} WHERE ${where.join(' AND ')} ORDER BY ${definition.clock} DESC, id DESC LIMIT ?`, [...parameters, limit + 1]);
+  const entries = [];
+  for (const { cursorTime: _clock, ...row } of rows.slice(0, limit)) {
+    entries.push(await relationEvidence(kind, row));
+  }
+  return { rows, entries };
+}
+
+async function relationPage(
+  database: Database,
+  intentId: string, kind: UiTradeRelation, definition: (typeof RELATIONS)[UiTradeRelation],
+  filter: string, observedAt: number, cursor: { createdAt: number; id: string } | null, limit: number,
+): Promise<unknown> {
+  if (!await database.get('SELECT id FROM trading_trade_intents WHERE id = ?', [intentId])) return null;
+  const { where, parameters } = relationPageWindow(definition, intentId, observedAt, cursor);
+  const { rows, entries } = await relationPageEntries(database, definition, where, parameters, limit, kind);
+  const last = rows[Math.min(limit, rows.length) - 1];
+  return { contractVersion: 1, intentId, kind, entries, observedAt, hasMore: rows.length > limit,
+    snapshotContext: 'Creation/recording cutoff; status and valuation are checked at the page observation. Event details above 16000 characters are explicitly omitted.',
+    nextCursor: rows.length > limit && last ? encodeUiCursor({ version: 1, filter, observedAt, createdAt: last.cursorTime as number, id: last.id as string }) : null };
 }
 
 /** Aggregations still cover every original; relation rows are fetched through their bounded page contract. */

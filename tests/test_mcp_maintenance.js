@@ -179,7 +179,7 @@ await fixture(async ({ databasePath, owner, directory }) => {
 await fixture(async ({ databasePath, owner }) => {
   const fixturePath = fileURLToPath(new URL('./fixtures/maintenance_participant_child.js', import.meta.url));
   const child = spawn(process.execPath, ['--import', 'tsx', fixturePath, databasePath], { stdio: ['ignore', 'ignore', 'pipe', 'ipc'], windowsHide: true });
-  let lease;
+  let lease = null;
   try {
     const [ready] = await once(child, 'message');
     assert.equal(ready.state, 'opened');
@@ -197,7 +197,7 @@ await fixture(async ({ databasePath, owner }) => {
 });
 
 const tracker = createMaintenanceWorkTracker();
-let finish;
+let finish = null;
 const pending = tracker.run(() => new Promise(resolve => { finish = resolve; }));
 await delay(0);
 const draining = tracker.stopAndDrain(Date.now() + 1000);
@@ -206,7 +206,7 @@ finish('old work finished');
 await Promise.all([pending, draining]);
 
 const blockedTracker = createMaintenanceWorkTracker();
-let finishBlocked;
+let finishBlocked = null;
 const blocked = blockedTracker.run(() => new Promise(resolve => { finishBlocked = resolve; }));
 await delay(0);
 await assert.rejects(blockedTracker.stopAndDrain(Date.now() + 30), /did not drain/);

@@ -48,7 +48,7 @@ export async function assertProcessLockOwner(owner: ProcessLock, stateDirectory?
   }
 }
 
-async function ownershipTurn<T>(owner: ProcessLock, action: () => Promise<T>): Promise<T> {
+function ownershipTurn<T>(owner: ProcessLock, action: () => Promise<T>): Promise<T> {
   const ownership = ownershipOf(owner);
   const attempt = ownership.tail.then(action);
   ownership.tail = attempt.then(() => undefined, () => undefined);
@@ -56,7 +56,7 @@ async function ownershipTurn<T>(owner: ProcessLock, action: () => Promise<T>): P
 }
 
 /** Counter operations and owner release share one queue; a released owner cannot authorize later work. */
-export async function withProcessLockOwner<T>(owner: ProcessLock, stateDirectory: string, action: (directory: string) => Promise<T>): Promise<T> {
+export function withProcessLockOwner<T>(owner: ProcessLock, stateDirectory: string, action: (directory: string) => Promise<T>): Promise<T> {
   return ownershipTurn(owner, async () => {
     const directory = await fs.realpath(path.resolve(stateDirectory));
     await assertProcessLockOwner(owner, directory);
@@ -135,8 +135,8 @@ async function createProcessLock(lockPath: string, payload: LockPayload): Promis
   const owner: ProcessLock = Object.freeze({
     path: lockPath,
     release: async () => {
-      const ownership = issuedOwnership.get(owner)!;
-      if (ownership.released) return;
+      const ownership = issuedOwnership.get(owner);
+      if (!ownership || ownership.released) return;
       await ownershipTurn(owner, async () => {
         if (ownership.released) return;
         await assertProcessLockOwner(owner);

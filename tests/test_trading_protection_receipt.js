@@ -128,7 +128,7 @@ async function historyDoesNotRemoveProtection() {
   const read = paper.openState.bind(paper);
   const oldStop = (await read(account)).orders.find(order => order.role === 'stop_loss');
   await paper.cancelOrder(account, oldStop.clientOrderId);
-  paper.accountSnapshot = async () => { throw new Error('unknown money'); };
+  paper.accountSnapshot = () => { throw new Error('unknown money'); };
   paper.openState = async bound => {
     const remote = await read(bound);
     remote.acquisition.sources.find(source => source.source === 'fills').completeness = 'partial';

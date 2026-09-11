@@ -83,7 +83,7 @@ function stableBytes(file, limit = BUILD_INPUT_POLICY.maxFileBytes) {
   const before = ordinaryFile(file);
   requireBuild(before.size >= 0n && before.size <= BigInt(limit), 'source file exceeds byte budget');
   const handle = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-  let bytes;
+  let content = null;
   try {
     const opened = fstatSync(handle, { bigint: true });
     requireBuild(opened.isFile() && opened.nlink === 1n && sameFile(before, opened), 'source changed before opening');
@@ -96,13 +96,13 @@ function stableBytes(file, limit = BUILD_INPUT_POLICY.maxFileBytes) {
     }
     requireBuild(BigInt(length) === before.size && sameFile(before, fstatSync(handle, { bigint: true })),
       'source changed during verification');
-    bytes = buffer.subarray(0, length);
+    content = buffer.subarray(0, length);
   } finally {
     closeSync(handle);
   }
   requireBuild(sameFile(before, ordinaryFile(file)), 'source changed after reading');
   canonicalDirectory(path.dirname(file));
-  return bytes;
+  return content;
 }
 
 function fixturePath(relative) {

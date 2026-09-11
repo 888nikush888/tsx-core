@@ -91,7 +91,7 @@ async function expectedOrders(input: TradingOperationInput): Promise<OperationOr
 }
 
 /** Prepared is a durable promise of no dispatch yet; dispatching is conservatively in-flight. */
-export async function prepareTradingOperation(input: TradingOperationInput): Promise<string> {
+export function prepareTradingOperation(input: TradingOperationInput): Promise<string> {
   return withDatabaseTransaction(async () => {
     const orders = await expectedOrders(input);
     const logicalKey = hash(JSON.stringify([input.kind, input.intentId, orders.map(order => order.client_order_id)]));
@@ -188,7 +188,11 @@ export async function runJournaledExchangeWrite<T>(input: TradingOperationInput 
       return input.send();
     };
     const pending = input.beforeSend
-      ? (await withDatabaseDispatchFence(() => withDispatchWitness(input, id, input.beforeSend!), start)).pending : start();
+      ? (await withDatabaseDispatchFence(() => {
+        const fence = input.beforeSend;
+        if (!fence) throw new Error('Dispatch fence is missing.');
+        return withDispatchWitness(input, id, fence);
+      }, start)).pending : start();
     const result = await pending;
     phase = await withDatabaseTransaction(async () => {
       const orders = await input.persist(result);
@@ -350,7 +354,7 @@ export async function hasUndispatchedPlanProof(intent: TradingIntent, allowAband
   if (orders.length !== plan.orders.length) return false;
   const covered = new Set(operations.flatMap(operation => (JSON.parse(operation.expected_orders_json) as OperationOrder[]).map(order => order.client_order_id)));
   const filled = await getDatabase().get(
-    `SELECT fills.id FROM trading_fills AS fills JOIN trading_orders AS orders ON orders.id = fills.order_id WHERE orders.intent_id = ? LIMIT 1`, [intent.id],
+    'SELECT fills.id FROM trading_fills AS fills JOIN trading_orders AS orders ON orders.id = fills.order_id WHERE orders.intent_id = ? LIMIT 1', [intent.id],
   );
   return !filled && orders.every(order => unsubmittedOrderMatchesPlan(order, plan, covered));
 }
@@ -367,7 +371,7 @@ function undispatchedPlanShape(intent: TradingIntent): TradingPlan | null {
 }
 
 /** Resume only a provably unsubmitted persisted plan, never a negative remote lookup. */
-export async function recoverUndispatchedPlan(intent: TradingIntent): Promise<boolean> {
+export function recoverUndispatchedPlan(intent: TradingIntent): Promise<boolean> {
   return withDatabaseTransaction(async () => {
     if (!await hasUndispatchedPlanProof(intent, false)) return false;
     await getDatabase().run(
@@ -378,7 +382,7 @@ export async function recoverUndispatchedPlan(intent: TradingIntent): Promise<bo
 }
 
 /** No remote cancellation: only positive local no-dispatch evidence can release the reservation. */
-export async function abandonUndispatchedPlan(intent: TradingIntent): Promise<boolean> {
+export function abandonUndispatchedPlan(intent: TradingIntent): Promise<boolean> {
   return withDatabaseTransaction(async () => {
     if (!await hasUndispatchedPlanProof(intent, true)) return false;
     const now = Date.now();

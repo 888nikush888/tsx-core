@@ -436,7 +436,7 @@ def load_inventory(path: Path) -> Any:
         raise InventoryError('Inventory exceeds its bounded JSON size.')
     try:
         return json.loads(data.decode('utf-8'), object_pairs_hook=_unique_object, parse_constant=_invalid_constant)
-    except (ValueError, RecursionError) as error:
+    except (RecursionError, UnicodeDecodeError) as error:
         raise InventoryError('Invalid strict inventory JSON.') from error
 
 
@@ -460,7 +460,7 @@ def main(arguments: list[str] | None = None) -> int:
                 validate_inventory(document)
             print(f'Offline inventory verified: {len(document["inventory"]["restIds"])} pinned REST IDs; no provider acceptance.')
         return 0
-    except (OSError, TypeError, ValueError) as error:
+    except (OSError, TypeError) as error:
         print(f'Inventory verification failed: {error}', file=sys.stderr)
         return 1
 

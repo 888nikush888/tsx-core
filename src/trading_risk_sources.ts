@@ -8,7 +8,7 @@ import { calculateFxRiskReservation } from './trading_fx_risk.js';
 import type { ExchangeFillAccounting, ExchangeOpenState, TradingAccount, TradingSide } from './trading_types.js';
 
 export const riskHash = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-export const riskFingerprint = (account: TradingAccount): string => account.exchange === 'paper' ? `paper:${account.id}` : account.externalAccountId!;
+export const riskFingerprint = (account: TradingAccount): string => account.exchange === 'paper' ? `paper:${account.id}` : account.externalAccountId ?? '';
 interface RiskOrder extends OwnershipOrder { intent_id: string; client_order_id: string; exchange_order_id: string | null;
   provider_symbol: string | null; generation: number; status: string; price: string | null; trigger_price: string | null;
   order_type: string; request_json: string; entry_drain_requested_at: number | null }
@@ -68,14 +68,16 @@ function currentStop(source: RiskIntentSource, remote: ExchangeOpenState, accoun
       && row.providerSymbol === order.provider_symbol && row.symbol === source.symbol);
     if (matches.length !== 1) continue;
     const current = matches[0];
+    if (!current) continue;
     const protection = { ...current, accountId, intentId: source.id, symbol: source.symbol } as ProtectionOrder;
     if (protectiveStopCoverage(protection, { accountId, intentId: source.id, symbol: source.symbol, side: source.side,
-      quantity, minimumTrigger: minimum }).protected) stopPrices.push(current.triggerPrice!);
+      quantity, minimumTrigger: minimum }).protected && current.triggerPrice) stopPrices.push(current.triggerPrice);
   }
-  if (!stopPrices.length) throw new Error('Risk stop coverage is unproven.');
+  const first = stopPrices[0];
+  if (!first) throw new Error('Risk stop coverage is unproven.');
   return stopPrices.slice(1).reduce(
     (best, price) => (compareDecimal(price, best) > 0) === (source.side === 'LONG') ? price : best,
-    stopPrices[0],
+    first,
   );
 }
 
@@ -86,7 +88,8 @@ function marketMetadata(source: RiskIntentSource, account: TradingAccount, remot
     return JSON.parse(source.contract.metadata_json) as ExchangeFillAccounting;
   }
   const fill = source.fills.find(row => row.account_fingerprint === riskFingerprint(account) && row.accounting_json);
-  return fill ? JSON.parse(fill.accounting_json!) as ExchangeFillAccounting : null;
+  if (!fill?.accounting_json) return null;
+  return JSON.parse(fill.accounting_json) as ExchangeFillAccounting;
 }
 
 function assertRiskMarketBinding(source: RiskIntentSource, account: TradingAccount, metadata: ExchangeFillAccounting | null,

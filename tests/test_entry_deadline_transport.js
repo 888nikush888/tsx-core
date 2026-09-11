@@ -75,7 +75,7 @@ try {
     await assert.rejects(adapter.submitProtectedEntry(account, request(), stop), error => {
       assert.equal(error instanceof TradingRiskError, false, 'An HTTP error code alone cannot prove that an operation was never dispatched.');
       assert.notEqual(error.sideEffects, false);
-      assert.match(error.message, new RegExp(code));
+      assert.match(error.message, new RegExp(`${code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
       return true;
     });
     assert.equal(sent.length, before + 1, 'No submit retry on a remote deadline error.');

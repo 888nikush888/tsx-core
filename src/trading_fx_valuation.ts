@@ -78,7 +78,7 @@ async function verifyValuation(account: FxAccount, row: OriginalEvent, stored: V
 }
 
 /** Pinned event-time valuation; elapsed wall time never reprices a historical event. */
-export async function readFxMoneyValuation(eventId: string): Promise<FxMoneyValuation | null> {
+export function readFxMoneyValuation(eventId: string): Promise<FxMoneyValuation | null> {
   return withDatabaseTransaction(async db => {
     const stored = await db.get<ValuationRow>('SELECT * FROM trading_fx_money_valuations WHERE event_id=?', [eventId]);
     if (!stored) return null;
@@ -87,19 +87,22 @@ export async function readFxMoneyValuation(eventId: string): Promise<FxMoneyValu
   });
 }
 /** Only an event ID and the held account are accepted. Amount, currencies, time and rate come from originals. */
-export async function valueFxMoneyEvent(account: FxAccount, eventId: string): Promise<FxMoneyValuation> {
+export function valueFxMoneyEvent(account: FxAccount, eventId: string): Promise<FxMoneyValuation> {
   account = snapshotFxAccount(account);
   return withDatabaseTransaction(async db => {
     const row = await originalEvent(eventId), binding = await reportingBinding(account, row);
     const existing = await db.get<ValuationRow>('SELECT * FROM trading_fx_money_valuations WHERE event_id=?', [eventId]);
     if (existing) return verifyValuation(account, row, existing);
     await assertUnconflicted(eventId);
-    const conversion = await persistFxConversion(account, row.asset!, binding.reportingCurrency, row.occurred_at);
+    if (!row.asset) return invalidFx('MONEY_PAIR_UNSUPPORTED');
+    const conversion = await persistFxConversion(account, row.asset, binding.reportingCurrency, row.occurred_at);
     const proof = valuation(row, conversion.id, binding.reportingCurrency, conversion.conversion.rate);
     await db.run(`INSERT INTO trading_fx_money_valuations
       (event_id,account_id,conversion_id,reporting_currency,payload_json,content_hash,recorded_at) VALUES (?,?,?,?,?,?,?)`,
     [row.id, account.id, conversion.id, binding.reportingCurrency, JSON.stringify(proof), proof.contentHash, Date.now()]);
-    return (await readFxMoneyValuation(eventId))!;
+    const persisted = await readFxMoneyValuation(eventId);
+    if (!persisted) return invalidFx('MONEY_EVENT_UNAVAILABLE');
+    return persisted;
   });
 }
 

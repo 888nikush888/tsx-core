@@ -101,26 +101,26 @@ export class EnvironmentTokenAuthenticator implements DashboardAuthenticator {
   isConfigured(): boolean {
     const adminToken = configuredToken('DASHBOARD_ADMIN_TOKEN');
     const viewerToken = configuredToken('DASHBOARD_VIEWER_TOKEN');
-    return !!adminToken && (!viewerToken || !safeTokenEquals(adminToken, viewerToken));
+    return Boolean(adminToken) && (!viewerToken || !safeTokenEquals(adminToken, viewerToken));
   }
 
-  async authenticate(authorization: string | string[] | undefined): Promise<AuthenticatedActor | null> {
+  authenticate(authorization: string | string[] | undefined): Promise<AuthenticatedActor | null> {
     const token = bearerToken(authorization);
-    if (!token) return null;
+    if (!token) return Promise.resolve(null);
     const id = tokenActorId(token);
     const adminToken = configuredToken('DASHBOARD_ADMIN_TOKEN');
-    if (adminToken && safeTokenEquals(token, adminToken)) return { role: 'admin', id };
+    if (adminToken && safeTokenEquals(token, adminToken)) return Promise.resolve({ role: 'admin', id });
     const viewerToken = configuredToken('DASHBOARD_VIEWER_TOKEN');
-    if (viewerToken && safeTokenEquals(token, viewerToken)) return { role: 'viewer', id };
+    if (viewerToken && safeTokenEquals(token, viewerToken)) return Promise.resolve({ role: 'viewer', id });
     const localSessionDigest = createHash('sha256').update(token).digest('hex');
     const localSession = this.localAdminSessions.get(localSessionDigest);
     const currentAdminDigest = adminToken && createHash('sha256').update(adminToken).digest('hex');
     if (localSession && this.localSessionsEnabled() && currentAdminDigest === localSession.adminTokenDigest
       && localSession.expiresAt > Date.now()) {
-      return { role: 'admin', id: `local-session:${localSessionDigest.slice(0, 16)}` };
+      return Promise.resolve({ role: 'admin', id: `local-session:${localSessionDigest.slice(0, 16)}` });
     }
     if (localSession) this.revokeLocalAdminSessions();
-    return null;
+    return Promise.resolve(null);
   }
 }
 
@@ -235,23 +235,23 @@ export class TailscaleServeAuthenticator implements DashboardAuthenticator {
     return this.administrators.size > 0;
   }
 
-  async authenticate(
+  authenticate(
     _authorization: AuthorizationHeader,
     headers?: RequestHeaders,
   ): Promise<AuthenticatedActor | null> {
     const loginHeader = singleHeader(headers, 'tailscale-user-login');
-    if (!loginHeader) return null;
+    if (!loginHeader) return Promise.resolve(null);
     const login = loginHeader.toLocaleLowerCase('en-US');
     let role: DashboardRole | null = null;
     if (this.administrators.has(login)) role = 'admin';
     else if (this.viewers.has(login)) role = 'viewer';
-    if (!role) return null;
+    if (!role) return Promise.resolve(null);
     const name = singleHeader(headers, 'tailscale-user-name');
-    return {
+    return Promise.resolve({
       role,
       id: `tailscale:${createHash('sha256').update(login).digest('hex').slice(0, 32)}`,
       identity: { provider: 'tailscale', login, name },
-    };
+    });
   }
 }
 

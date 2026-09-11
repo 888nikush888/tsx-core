@@ -48,11 +48,15 @@ export function assertProtectionObservationCurrent(token: ProtectionObservation)
   if (live.epoch() !== token.epoch) throw new EntryAdmissionRevokedError();
 }
 
+function protectionTokenMatches(live: LiveObservation, token: ProtectionObservation): boolean {
+  return live.token.producerId === token.producerId
+    && live.token.observationId === token.observationId && live.epoch() === token.epoch;
+}
+
 export function protectionObservationCurrent(token: ProtectionObservation, receipt?: string): boolean {
   const live = observations().get(token.accountId);
   if (live === undefined) return false;
-  return live.token.producerId === token.producerId
-    && live.token.observationId === token.observationId && live.epoch() === token.epoch
+  return protectionTokenMatches(live, token)
     && (receipt === undefined || live.receiptHash === protectionReceiptHash(receipt));
 }
 

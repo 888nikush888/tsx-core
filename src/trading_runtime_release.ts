@@ -31,15 +31,17 @@ async function assertAccountScope(expected: string[]): Promise<void> {
 }
 
 /** Canonical lock order; no account holder requests the outer @runtime lock. */
-async function withAccountOwners<T>(
+function withAccountOwners<T>(
   dependencies: RuntimeReleaseDependencies, ids: string[], epochs: Map<string, string>,
   operation: (owners: Map<string, AccountOwner>) => Promise<T>,
   owners = new Map<string, AccountOwner>(), index = 0,
 ): Promise<T> {
   if (index === ids.length) return operation(owners);
-  const accountId = ids[index]!;
-  return dependencies.engine.mutations.run(accountId, async context => {
-    const epoch = epochs.get(accountId)!;
+  const accountId = ids[index];
+  if (accountId === undefined) throw new Error('Release account index is out of bounds.');
+  return dependencies.engine.mutations.run(accountId, context => {
+    const epoch = epochs.get(accountId);
+    if (epoch === undefined) throw new Error('Release epoch is missing for the account.');
     dependencies.engine.mutations.assertEpoch(context, epoch);
     owners.set(accountId, { context, epoch });
     return withAccountOwners(dependencies, ids, epochs, operation, owners, index + 1);
@@ -83,7 +85,7 @@ async function proveAccounts(dependencies: RuntimeReleaseDependencies, prepared:
   return proofs;
 }
 
-async function commitGlobalRelease(dependencies: RuntimeReleaseDependencies, ids: string[], prepared: PreparedAccount[]) {
+function commitGlobalRelease(dependencies: RuntimeReleaseDependencies, ids: string[], prepared: PreparedAccount[]) {
   return withDatabaseTransaction(async () => {
     await assertAccountScope(ids);
     if (!(await getTradingRuntimeState()).killSwitchActive) throw new Error('Global kill switch is no longer active.');
@@ -110,8 +112,10 @@ export async function releaseGlobalTradingKillSwitch(dependencies: RuntimeReleas
   const epochs = new Map(ids.map(id => [id, dependencies.engine.mutations.entryEpoch(id)]));
   return withAccountOwners(dependencies, ids, epochs, async owners => {
     const prepared: PreparedAccount[] = [];
-    for (const accountId of ids) {
-      prepared.push(await prepareAccount(dependencies, accountId, owners.get(accountId)!, requestedAt));
+  for (const accountId of ids) {
+    const owner = owners.get(accountId);
+    if (owner === undefined) throw new Error('Release owner is missing for the account.');
+    prepared.push(await prepareAccount(dependencies, accountId, owner, requestedAt));
       assertOwners(dependencies, prepared);
     }
     return commitGlobalRelease(dependencies, ids, prepared);

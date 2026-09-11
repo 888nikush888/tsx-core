@@ -27,15 +27,15 @@ export async function storedAccountLogCheckpoint(account: TradingAccount): Promi
   await assertBinding(account, checkpoint);
   return checkpoint;
 }
-export async function accountLogCheckpoint(account: TradingAccount): Promise<AccountLogCheckpoint | null> {
+export function accountLogCheckpoint(account: TradingAccount): Promise<AccountLogCheckpoint | null> {
   const source = accountLogSource(account.exchange);
-  if (!source || !account.externalAccountId || !account.credentialGeneration) return null;
+  if (!source || !account.externalAccountId || !account.credentialGeneration) return Promise.resolve(null);
   return withDatabaseTransaction(async () => {
     const now = Date.now(), today = new Date(now).setUTCHours(0, 0, 0, 0);
     const since = await requiredSince(account.id, today);
     const row = await getDatabase().get<{ payload_json: string }>(`SELECT payload_json FROM trading_account_log_checkpoints
       WHERE account_id = ? AND account_fingerprint = ? AND namespace = ?`, [account.id, account.externalAccountId, source.namespace]);
-    const initial: AccountLogCheckpoint = { version: 1, ...source, accountFingerprint: account.externalAccountId!, credentialGeneration: account.credentialGeneration!,
+    const initial: AccountLogCheckpoint = { version: 1, ...source, accountFingerprint: account.externalAccountId, credentialGeneration: account.credentialGeneration,
       revision: 0, requiredSince: since, windowSince: since, windowUntil: null, cursor: null, scannedThrough: null,
       nextReadAt: 0, lastServedAt: 0, providerAccountUid: null, reason: null };
     const previous = row ? validateAccountLogCheckpoint(JSON.parse(row.payload_json)) : null;
@@ -67,7 +67,8 @@ function assertReceiptChain(previous: AccountLogCheckpoint, progress: AccountLog
     return;
   }
   if (progress.receipts.length !== 1) throw new Error('Account-log producer returned more than one page per turn.');
-  const receipt = progress.receipts[0]!;
+  const receipt = progress.receipts[0];
+  if (!receipt) throw new Error('Account-log producer returned more than one page per turn.');
   const audit = receipt.lane === 'audit';
   const current = audit ? previous.audit ?? { windowSince: previous.requiredSince, windowUntil: null, cursor: null, completedAt: 0 } : previous;
   if (receipt.cursor !== current.cursor || receipt.since !== current.windowSince

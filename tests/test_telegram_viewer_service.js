@@ -159,7 +159,7 @@ async function verifyCallbackFailure(directory) {
   await state.initialize();
   const bot = fakeBot();
   const core = fakeCore();
-  core.get = async () => { throw new Error('projection unavailable'); };
+  core.get = () => { throw new Error('projection unavailable'); };
   const service = new TelegramViewerService({ core, bot, state });
   await service.refreshSettings();
   bot.updates.push({

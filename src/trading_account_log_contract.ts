@@ -95,7 +95,9 @@ function window(since: number, until: number): void {
 }
 function record(value: unknown, namespace: string): AccountLogRecord {
   const row = object(value);
-  const allowed = new Set(ACCOUNT_LOG_FIELDS[namespace]!.split(' '));
+  const fields = ACCOUNT_LOG_FIELDS[namespace];
+  if (!fields) throw new Error('Unknown account-log namespace.');
+  const allowed = new Set(fields.split(' '));
   const result: AccountLogRecord = {};
   for (const [field, item] of Object.entries(row)) {
     if (!allowed.has(field)) throw new Error('Unallowlisted account-log economic field.');

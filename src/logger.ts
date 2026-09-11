@@ -90,7 +90,7 @@ function reportLogWriteFailure(error: unknown): void {
 function writeToLogFile(line: string): void {
   if (!logFileReady) return;
   logFilePath = currentLogFilePath();
-  void fs.appendFile(logFilePath, `${line}\n`, 'utf8').then(
+  fs.appendFile(logFilePath, `${line}\n`, 'utf8').then(
     () => { logWriteFailureReported = false; },
     reportLogWriteFailure
   );

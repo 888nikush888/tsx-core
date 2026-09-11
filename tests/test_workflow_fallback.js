@@ -361,7 +361,7 @@ try {
   const technicalAdapter = {
     exchange: 'paper',
     accountSnapshot: (...args) => paper.accountSnapshot(...args),
-    marketSnapshot: async () => { throw new Error('Exchange executor request failed (502): simulated timeout'); },
+    marketSnapshot: () => { throw new Error('Exchange executor request failed (502): simulated timeout'); },
     submitOrder: (...args) => paper.submitOrder(...args),
     submitProtectedEntry: (...args) => paper.submitProtectedEntry(...args),
     cancelOrder: (...args) => paper.cancelOrder(...args),
@@ -370,7 +370,7 @@ try {
   await new TradingEngine([technicalAdapter]).processIntent(technicalPrimary.id);
   assert.equal((await getTradingIntent(technicalPrimary.id)).status, 'unknown');
   const technicalRun = await getDatabase().get(
-    "SELECT id, status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = ?",
+    'SELECT id, status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = ?',
     ['fallback-technical-stop'],
   );
   assert.deepEqual(
@@ -383,7 +383,7 @@ try {
     [technicalRun.id],
   )).count), 0, 'Technical failures must never promote a fallback account.');
   await getDatabase().run(
-    "UPDATE trading_risk_events SET acknowledged_at = ? WHERE intent_id = ?",
+    'UPDATE trading_risk_events SET acknowledged_at = ? WHERE intent_id = ?',
     [Date.now(), technicalPrimary.id],
   );
 
@@ -395,7 +395,7 @@ try {
   let marketCallsAfterAccountFailure = 0;
   const accountFailureAdapter = {
     ...technicalAdapter,
-    accountSnapshot: async () => { throw new Error('Exchange executor request failed (503): account unavailable'); },
+    accountSnapshot: () => { throw new Error('Exchange executor request failed (503): account unavailable'); },
     marketSnapshot: async () => { marketCallsAfterAccountFailure += 1; throw new Error('must not run'); },
   };
   await new TradingEngine([accountFailureAdapter]).processIntent(accountFailurePrimary.id);
@@ -416,7 +416,7 @@ try {
     [accountFailureRun.id],
   )).count), 0);
   await getDatabase().run(
-    "UPDATE trading_risk_events SET acknowledged_at = ? WHERE intent_id = ?",
+    'UPDATE trading_risk_events SET acknowledged_at = ? WHERE intent_id = ?',
     [Date.now(), accountFailurePrimary.id],
   );
 
@@ -492,7 +492,7 @@ try {
   assert.equal((await getTradingIntent(capacityPromoted.intentId)).blockReason, 'MAX_CONCURRENT_POSITIONS');
   assert.deepEqual(
     await getDatabase().get(
-      "SELECT status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = 'fallback-capacity'",
+      'SELECT status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = \'fallback-capacity\'',
     ),
     { status: 'stopped', stopReason: 'MAX_CONCURRENT_POSITIONS' },
     'The A→B full-capacity policy must not leak into the pair-only B→C edge.',
@@ -591,7 +591,7 @@ try {
     'An unresolved order must win over an otherwise eligible capacity fallback.');
   assert.deepEqual(
     await getDatabase().get(
-      "SELECT status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = 'fallback-hard-safety'",
+      'SELECT status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = \'fallback-hard-safety\'',
     ),
     { status: 'stopped', stopReason: 'UNRESOLVED_ORDER' },
   );
@@ -600,7 +600,7 @@ try {
      JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
      WHERE run.source_signal_id = 'fallback-hard-safety' AND candidate.rank > 0 AND candidate.intent_id IS NOT NULL`,
   )).count), 0);
-  await getDatabase().run("DELETE FROM trading_orders WHERE id = 'capacity-unknown-order'");
+  await getDatabase().run('DELETE FROM trading_orders WHERE id = \'capacity-unknown-order\'');
 
   await getDatabase().run(
     'UPDATE trading_accounts SET max_concurrent_positions = 10 WHERE id = ?',
@@ -625,12 +625,12 @@ try {
      WHERE run.source_signal_id = 'fallback-critical-owned' AND candidate.rank > 0 AND candidate.intent_id IS NOT NULL`,
   )).count), 0, 'Critical risk must win over an otherwise eligible owned-symbol fallback.');
   await getDatabase().run(
-    "UPDATE trading_risk_events SET acknowledged_at = ? WHERE id = 'fallback-critical-risk'",
+    'UPDATE trading_risk_events SET acknowledged_at = ? WHERE id = \'fallback-critical-risk\'',
     [Date.now()],
   );
 
   await getDatabase().run(
-    "UPDATE trading_accounts SET kill_switch_active = 1, kill_switch_reason = 'test' WHERE id = ?",
+    'UPDATE trading_accounts SET kill_switch_active = 1, kill_switch_reason = \'test\' WHERE id = ?',
     [primaryAccount.id],
   );
   await saveSignal('fallback-account-kill', '-100-fallback-a', 24, '<signal/>', '<signal/>');
@@ -685,7 +685,7 @@ try {
     'SELECT plan_json FROM trading_trade_intents WHERE id = ?', [capacitySeedIntentId],
   )).plan_json;
   await getDatabase().run(
-    "UPDATE trading_trade_intents SET plan_json = 'not-json' WHERE id = ?",
+    'UPDATE trading_trade_intents SET plan_json = \'not-json\' WHERE id = ?',
     [capacitySeedIntentId],
   );
   await saveSignal('fallback-daily-risk', '-100-fallback-a', 27, '<signal/>', '<signal/>');
@@ -757,7 +757,7 @@ try {
   await engine.processIntent(expiredPrimary.id);
   assert.equal((await getTradingIntent(expiredPrimary.id)).blockReason, 'ENTRY_INTENT_EXPIRED');
   const expiredRun = await getDatabase().get(
-    "SELECT id, status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = ?",
+    'SELECT id, status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = ?',
     ['fallback-expired'],
   );
   assert.deepEqual(
@@ -786,8 +786,8 @@ try {
     exchange: 'paper',
     accountSnapshot: (...args) => paper.accountSnapshot(...args),
     marketSnapshot: (...args) => paper.marketSnapshot(...args),
-    submitOrder: async () => { throw new Error('simulated submit timeout'); },
-    submitProtectedEntry: async () => { throw new Error('simulated submit timeout'); },
+    submitOrder: () => { throw new Error('simulated submit timeout'); },
+    submitProtectedEntry: () => { throw new Error('simulated submit timeout'); },
     cancelOrder: (...args) => paper.cancelOrder(...args),
     openState: (...args) => paper.openState(...args),
   };
