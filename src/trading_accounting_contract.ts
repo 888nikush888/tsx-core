@@ -11,7 +11,7 @@ function object(value: unknown): Record<string, unknown> {
 }
 
 function token(value: unknown, maximum = 256): asserts value is string {
-  if (typeof value !== 'string' || !value || value.length > maximum || value.trim() !== value || /[\x00-\x1f]/.test(value)) throw new Error('Invalid accounting evidence identity.');
+  if (typeof value !== 'string' || !value || value.length > maximum || value.trim() !== value || /[\u0000-\u001F]/.test(value)) throw new Error('Invalid accounting evidence identity.');
 }
 
 function asset(value: unknown): asserts value is string {

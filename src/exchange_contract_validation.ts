@@ -22,7 +22,7 @@ export function contractObject(value: unknown): Record<string, unknown> {
 }
 
 function identifier(value: unknown, label: string): asserts value is string {
-  if (typeof value !== 'string' || !value.trim() || value.length > 256 || /[\x00-\x1f]/.test(value)) {
+  if (typeof value !== 'string' || !value.trim() || value.length > 256 || /[\u0000-\u001F]/.test(value)) {
     throw new Error(`Invalid exchange ${label} identifier.`);
   }
 }

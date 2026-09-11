@@ -3,7 +3,7 @@ import { sonarGet } from './sonar_read.js';
 export function sonarScope(environment) {
   const key = environment.SONAR_PULL_REQUEST?.trim();
   if (!key) {
-    if (environment.SONAR_BRANCH && /[\x00-\x20\x7f]|\$\{/u.test(environment.SONAR_BRANCH)) {
+    if (environment.SONAR_BRANCH && /[\u0000-\u0020\u007F]|\$\{/u.test(environment.SONAR_BRANCH)) {
       throw new Error('SonarCloud branch refs contain whitespace, control characters or scanner property expressions.');
     }
     return { branch: environment.SONAR_BRANCH || 'main', pullRequest: null };
@@ -16,7 +16,7 @@ export function sonarScope(environment) {
   // The scanner recursively expands ${...}, including inside environment values.
   // Such refs cannot be represented literally without changing their identity.
   if ([environment.SONAR_PULL_REQUEST_BRANCH, environment.SONAR_PULL_REQUEST_BASE]
-    .some(ref => /[\x00-\x20\x7f]|\$\{/u.test(ref))) {
+    .some(ref => /[\u0000-\u0020\u007F]|\$\{/u.test(ref))) {
     throw new Error('SonarCloud pull request refs contain whitespace, control characters or scanner property expressions.');
   }
   return { branch: null, pullRequest: { key, branch, base } };
