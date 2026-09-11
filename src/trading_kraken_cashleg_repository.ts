@@ -34,7 +34,7 @@ export async function readKrakenOccurrence(ref: CashlegOccurrenceRef): Promise<K
 /** The indexes bound lookup by execution/booking identity. Duplicate audit receipts do not exhaust the distinct-original budget. */
 export async function relatedKrakenOccurrences(accountId: string, fingerprint: string, records: AccountLogRecord[]): Promise<KrakenCashlegOccurrence[]> {
   const keys = records.flatMap(row => [['execution_uid', row.execution], ['booking_uid', row.booking_uid], ['log_id', row.id]])
-    .filter((entry): entry is [string, string] => typeof entry[1] === 'string' && !!entry[1]);
+    .filter((entry): entry is [string, string] => typeof entry[1] === 'string' && Boolean(entry[1]));
   if (!keys.length || keys.length > 6) throw new KrakenCashlegError('invalid_lookup_identity');
   const unions = keys.map(([column]) => `SELECT receipt_id,ordinal FROM trading_kraken_log_occurrences
     WHERE account_id=? AND account_fingerprint=? AND ${column}=?`).join(' UNION ');

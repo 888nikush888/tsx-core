@@ -754,7 +754,7 @@ async function forwardRawMessage(message, config, context: OutboxExecutionContex
     const response = await invokeWithRetry(client, {
       _: 'forwardMessages', chat_id: pinnedTargetChatId(context), from_chat_id: message.chat_id, message_ids: [message.id],
       options: { _: 'sendMessageOptions' }, as_album: false,
-      send_copy: !!config.forwardOptions?.sendCopy, remove_caption: !!config.forwardOptions?.removeCaption
+      send_copy: Boolean(config.forwardOptions?.sendCopy), remove_caption: Boolean(config.forwardOptions?.removeCaption)
     }, context.signal);
     const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
     addLog(`[SUCCESS] Paket ${message.id} erfolgreich übertragen und bestätigt.`);
@@ -1144,7 +1144,7 @@ async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext
     const response = await invokeWithRetry(client, {
       _: 'forwardMessages', chat_id: pinnedTargetChatId(context), from_chat_id: g.fromChatId, message_ids: ids,
       options: { _: 'sendMessageOptions' }, as_album: true,
-      send_copy: !!config.forwardOptions?.sendCopy, remove_caption: !!config.forwardOptions?.removeCaption
+      send_copy: Boolean(config.forwardOptions?.sendCopy), remove_caption: Boolean(config.forwardOptions?.removeCaption)
     }, context.signal);
     const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
     addLog(`[SUCCESS] Album-Paketgruppe ${gId} erfolgreich übertragen und bestätigt.`);

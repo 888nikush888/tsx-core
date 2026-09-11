@@ -915,10 +915,10 @@ export class BackupScheduler {
     const status = structuredClone(this.status);
     const offsiteHealthy = !this.replicator && !this.offsiteRequired
       ? true
-      : !!status.lastOffsiteSuccessAt && !status.lastError && Date.now() - status.lastOffsiteSuccessAt <= this.intervalMs * 2;
+      : Boolean(status.lastOffsiteSuccessAt) && !status.lastError && Date.now() - status.lastOffsiteSuccessAt <= this.intervalMs * 2;
     return {
       ...status,
-      healthy: !!status.lastSuccessAt && !status.lastError && Date.now() - status.lastSuccessAt <= this.intervalMs * 2 && offsiteHealthy,
+      healthy: Boolean(status.lastSuccessAt) && !status.lastError && Date.now() - status.lastSuccessAt <= this.intervalMs * 2 && offsiteHealthy,
       offsiteHealthy,
       offsiteRequired: this.offsiteRequired
     };
