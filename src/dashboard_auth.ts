@@ -101,7 +101,7 @@ export class EnvironmentTokenAuthenticator implements DashboardAuthenticator {
   isConfigured(): boolean {
     const adminToken = configuredToken('DASHBOARD_ADMIN_TOKEN');
     const viewerToken = configuredToken('DASHBOARD_VIEWER_TOKEN');
-    return !!adminToken && (!viewerToken || !safeTokenEquals(adminToken, viewerToken));
+    return Boolean(adminToken) && (!viewerToken || !safeTokenEquals(adminToken, viewerToken));
   }
 
   async authenticate(authorization: string | string[] | undefined): Promise<AuthenticatedActor | null> {

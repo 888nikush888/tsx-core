@@ -73,7 +73,7 @@ async function readSource(intentId: string): Promise<{ intent: IntentSource; fil
     'SELECT id, role, side, reduce_only, quantity, filled_quantity FROM trading_orders WHERE intent_id = ? ORDER BY id', [intentId]);
   const position = await getDatabase().get<PositionAuditSource>(`SELECT id, status, quantity, average_entry_price, realized_pnl, opened_at, closed_at
     FROM trading_positions WHERE intent_id = ?`, [intentId]);
-  const hasPosition = !!position && (position.status !== 'opening' || position.quantity !== '0');
+  const hasPosition = Boolean(position) && (position.status !== 'opening' || position.quantity !== '0');
   // The compatibility total is read for the existing row contract, not used as an economic source.
   return { intent, fills, orders, hasPosition, position: position ?? null };
 }

@@ -53,7 +53,7 @@ function bybitPerpetualSymbol(symbol: string, settlementAsset: unknown): boolean
   // Pinned CCXT4.5.75: spot has no ':'; futures/options always append an expiry suffix.
   // This classifies the exact ORIGINAL unified symbol. It never manufactures the native market ID.
   const match = /^([A-Z0-9]+)\/(USDT|USDC):(USDT|USDC)$/.exec(symbol);
-  return !!match && match[2] === match[3] && match[3] === settlementAsset;
+  return Boolean(match) && match[2] === match[3] && match[3] === settlementAsset;
 }
 
 function ackMatches(value: unknown, row: FillRow): boolean {
