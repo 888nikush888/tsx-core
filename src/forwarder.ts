@@ -670,39 +670,36 @@ async function parseSignalNative(
   }
 }
 
+async function supergroupFallback(idStr: string): Promise<string | null> {
+  if (!idStr.startsWith('-100')) return null;
+  try {
+    const supergroupId = Number(idStr.slice(4));
+    const chat = await invokeWithRetry(client, { _: 'createSupergroupChat', supergroup_id: supergroupId, force: false });
+    return String(chat.id);
+  } catch (error_) {
+    addLog(`[DEBUG] Supergroup-Fallback für ${idStr} fehlgeschlagen: ${error_.message}`);
+    return null;
+  }
+}
+
 async function resolveChatId(identifier) {
   const idStr = String(identifier).trim();
-  
-  if (/^-?\d+$/.test(idStr)) {
-    // Es ist eine ID. Versuche zuerst getChat für alle IDs.
-    // TDLib erwartet für chat_id oft eine Zahl, wenn es in int53 passt.
-    // In tdl kann man meist Strings oder Number übergeben.
-    
+  if (!/^-?\d+$/.test(idStr)) {
+    const username = idStr.startsWith('@') ? idStr.slice(1) : idStr;
     try {
-      const chat = await invokeWithRetry(client, { _: 'getChat', chat_id: Number(idStr) });
+      const chat = await client.invoke({ _: 'searchPublicChat', username });
       return String(chat.id);
-    } catch (e) {
-      addLog(`[DEBUG] getChat für ${idStr} fehlgeschlagen: ${e.message}`);
-      
-      // Fallback für Supergroups / Channels, falls getChat fehlschlägt (oft weil der Chat nicht geladen ist)
-      if (idStr.startsWith('-100')) {
-        try {
-          const supergroupId = Number(idStr.slice(4));
-          const chat = await invokeWithRetry(client, { _: 'createSupergroupChat', supergroup_id: supergroupId, force: false });
-          return String(chat.id);
-        } catch (error_) {
-          addLog(`[DEBUG] Supergroup-Fallback für ${idStr} fehlgeschlagen: ${error_.message}`);
-        }
-      }
-    }
-    throw new Error(`Kanal mit ID ${idStr} konnte nicht geladen werden.`);
+    } catch (e) { throw new Error(`Kanal @${username} nicht gefunden (${e.message})`, { cause: e }); }
   }
-  
-  const username = idStr.startsWith('@') ? idStr.slice(1) : idStr;
   try {
-    const chat = await client.invoke({ _: 'searchPublicChat', username });
+    const chat = await invokeWithRetry(client, { _: 'getChat', chat_id: Number(idStr) });
     return String(chat.id);
-  } catch (e) { throw new Error(`Kanal @${username} nicht gefunden (${e.message})`, { cause: e }); }
+  } catch (e) {
+    addLog(`[DEBUG] getChat für ${idStr} fehlgeschlagen: ${e.message}`);
+    const fallback = await supergroupFallback(idStr);
+    if (fallback) return fallback;
+  }
+  throw new Error(`Kanal mit ID ${idStr} konnte nicht geladen werden.`);
 }
 
 async function resolveConfiguredSources(config) {
@@ -1072,26 +1069,25 @@ async function processXmlSignal(message, text, contentType, xmlParsing, dupeBloc
 
 async function forwardSingleMessage(message, config, context: OutboxExecutionContext) {
   if (context.signal.aborted) throw new Error('Task aborted');
-  const { text, type } = getMessageTextAndType(message);
-  const shouldForwardToTelegram = telegramForwardingEnabled(config);
+  const xmlResult = await processSingleXml(message, config, context);
+  if (xmlResult.handled) return xmlResult.result;
+  if (xmlResult.forwardRaw) return forwardRawMessage(message, config, context);
+  throw new Error(`Message ${message.id} produced no configured side effect.`);
+}
 
+async function processSingleXml(message, config, context: OutboxExecutionContext): Promise<XmlProcessingResult & { forwardRaw: boolean }> {
+  const { text } = getMessageTextAndType(message);
+  const shouldForwardToTelegram = telegramForwardingEnabled(config);
   const xmlParsing = config.xmlParsing || {};
   const dupeBlocker = config.dupeBlocker || {};
   const activeWorkflow = config.durableIngress.workflowRevisionId;
-
-  let xmlResult: XmlProcessingResult = { handled: false };
-  if ((activeWorkflow || xmlParsing.enabled) && text?.trim()) {
-    if (!externalParsingAuthorized()) {
-      throw new Error('AI parsing is blocked until the external data-processing policy is explicitly accepted in the Web UI.');
-    }
-    xmlResult = await processXmlSignal(message, text, type, xmlParsing, dupeBlocker, shouldForwardToTelegram, context);
+  if (!((activeWorkflow || xmlParsing.enabled) && text?.trim())) return { handled: false, forwardRaw: Boolean(activeWorkflow || shouldForwardToTelegram) };
+  if (!externalParsingAuthorized()) {
+    throw new Error('AI parsing is blocked until the external data-processing policy is explicitly accepted in the Web UI.');
   }
-
-  if (xmlResult.handled) return xmlResult.result;
-  if ((activeWorkflow && xmlResult.workflowOriginal) || shouldForwardToTelegram) {
-    return forwardRawMessage(message, config, context);
-  }
-  throw new Error(`Message ${message.id} produced no configured side effect.`);
+  const type = getMessageTextAndType(message).type;
+  const result: XmlProcessingResult = await processXmlSignal(message, text, type, xmlParsing, dupeBlocker, shouldForwardToTelegram, context);
+  return { ...result, forwardRaw: Boolean((activeWorkflow && result.workflowOriginal) || shouldForwardToTelegram) };
 }
 
 function telegramForwardingEnabled(config: Config): boolean {
