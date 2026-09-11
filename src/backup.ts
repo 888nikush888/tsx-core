@@ -736,20 +736,16 @@ async function stageTemplates(plan: RestorePlan): Promise<void> {
   }
 }
 
-async function preserveCurrentFiles(plan: RestorePlan, progress: RestoreProgress): Promise<void> {
-  if (plan.previousDb) await fs.rename(plan.targetDb, plan.previousDb);
-  if (plan.previousConfig) await fs.rename(plan.targetConfig, plan.previousConfig);
-  if (plan.runtimeSettings?.previous) {
-    await assertRegularFile(plan.runtimeSettings.target, 'Existing runtime settings');
-    await fs.rename(plan.runtimeSettings.target, plan.runtimeSettings.previous);
+async function preserveTemplates(plan: RestorePlan): Promise<void> {
+  if (!plan.templates?.previous) return;
+  const existingTemplates = await fs.lstat(plan.templates.target);
+  if (!existingTemplates.isDirectory() || existingTemplates.isSymbolicLink()) {
+    throw new Error('Existing templates target must be a real directory, not a symbolic link.');
   }
-  if (plan.templates?.previous) {
-    const existingTemplates = await fs.lstat(plan.templates.target);
-    if (!existingTemplates.isDirectory() || existingTemplates.isSymbolicLink()) {
-      throw new Error('Existing templates target must be a real directory, not a symbolic link.');
-    }
-    await fs.rename(plan.templates.target, plan.templates.previous);
-  }
+  await fs.rename(plan.templates.target, plan.templates.previous);
+}
+
+async function preserveSidecars(plan: RestorePlan, progress: RestoreProgress): Promise<void> {
   for (const suffix of ['-wal', '-shm']) {
     const original = `${plan.targetDb}${suffix}`;
     if (await fileExists(original)) {
@@ -759,6 +755,17 @@ async function preserveCurrentFiles(plan: RestorePlan, progress: RestoreProgress
       progress.movedSidecars.push({ original, preserved });
     }
   }
+}
+
+async function preserveCurrentFiles(plan: RestorePlan, progress: RestoreProgress): Promise<void> {
+  if (plan.previousDb) await fs.rename(plan.targetDb, plan.previousDb);
+  if (plan.previousConfig) await fs.rename(plan.targetConfig, plan.previousConfig);
+  if (plan.runtimeSettings?.previous) {
+    await assertRegularFile(plan.runtimeSettings.target, 'Existing runtime settings');
+    await fs.rename(plan.runtimeSettings.target, plan.runtimeSettings.previous);
+  }
+  await preserveTemplates(plan);
+  await preserveSidecars(plan, progress);
 }
 
 async function installRestore(plan: RestorePlan, progress: RestoreProgress): Promise<void> {
