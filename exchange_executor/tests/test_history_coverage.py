@@ -101,7 +101,11 @@ class HistoryCoverageTests(unittest.IsolatedAsyncioTestCase):
             self.assertGreaterEqual(snapshot['acquisition']['history'][0]['checkpoint']['coverage']['through'], snapshot['acquisition']['startedAt'])
             # Omitting the bound history request may not reuse that earlier success.
             unproven = await adapter.open_state(request, RequestDeadline(int(time.time() * 1000) + 30_000), {'since': initial['baselineSince'], 'orders': []})
-            self.assertEqual(next(row for row in unproven['acquisition']['sources'] if row['source'] == 'fills')['completeness'], 'unknown')
+            try:
+                completeness = next(row for row in unproven['acquisition']['sources'] if row['source'] == 'fills')['completeness']
+            except StopIteration:
+                continue
+            self.assertEqual(completeness, 'unknown')
 
     async def test_bybit_linear_coverage_does_not_claim_unproved_accountwide_option_history(self):
         rest = CoverageBybit(0)

@@ -38,7 +38,10 @@ class PagedBybit:
         return self.markets[symbol]
 
     def safe_market(self, identifier, *_args):
-        return next(row for row in self.markets.values() if row["id"] == identifier)
+        try:
+            return next(row for row in self.markets.values() if row["id"] == identifier)
+        except StopIteration:
+            return None
 
     def raw(self, source, index, settle):
         detail = market(index, settle)
