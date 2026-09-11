@@ -198,8 +198,8 @@ class CurrentStateTests(unittest.IsolatedAsyncioTestCase):
         for category, source in (("inverse", "positions"), ("option", "positions"), ("spot", "orders")):
             rest = PagedBybit(1, 1)
 
-            def foreign(response, kind, params):
-                if kind == source and params["category"] == category:
+            def foreign(response, kind, params, src=source, cat=category):
+                if kind == src and params["category"] == cat:
                     response["result"]["list"] = [{"symbol": "foreign", "size": "1"}]
                 return response
 

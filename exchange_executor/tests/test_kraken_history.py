@@ -77,7 +77,7 @@ class KrakenHistoryTests(unittest.IsolatedAsyncioTestCase):
         for quantity in (None, "", "-1", True):
             rest = KrakenRest(1)
 
-            async def invalid(params):
+            async def invalid(params, quantity=quantity):
                 row = event(0, params["since"] + 1, "orders")
                 row["event"]["OrderPlaced"]["order"]["quantity"] = quantity
                 return {"accountUid": UID, "len": 1, "elements": [row]}
@@ -147,7 +147,7 @@ class KrakenHistoryTests(unittest.IsolatedAsyncioTestCase):
             rest = KrakenRest(1)
             original = state()
 
-            async def invalid(params):
+            async def invalid(params, flaw=flaw, rest=rest):
                 row = event(0, params["since"] + 1, "executions")
                 response = {"accountUid": UID, "len": 1, "elements": [row]}
                 if flaw == "token":

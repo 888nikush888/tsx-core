@@ -214,7 +214,7 @@ class StreamTransportTests(unittest.IsolatedAsyncioTestCase):
                 await harness.reconnect()
                 self.assertEqual(harness.status(), "degraded", "A network retry must not clear a prior auth/contract error")
                 harness.socket.resolve([], "orders")
-                await settle(lambda: harness.status() == "healthy")
+                await settle(lambda h=harness: h.status() == "healthy")
                 self.assertEqual(harness.stream.poll(0)["events"], [])
             finally:
                 await harness.close()
@@ -244,10 +244,10 @@ class StreamTransportTests(unittest.IsolatedAsyncioTestCase):
                 harness.require_auth = True
                 harness.socket = harness.new_socket()
                 harness.resume.put_nowait(None)
-                await settle(lambda: harness.socket.sent)
+                await settle(lambda h=harness: h.socket.sent)
                 self.assertEqual(harness.status(), "degraded", "Sending authentication alone is not recovery")
                 harness.socket.resolve(True, "auth")
-                await settle(lambda: harness.status() == "healthy")
+                await settle(lambda h=harness: h.status() == "healthy")
                 self.assertIn("orders", harness.socket.subscriptions)
             finally:
                 await harness.close()
