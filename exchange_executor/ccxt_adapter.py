@@ -405,6 +405,10 @@ class CcxtAdapter:
                 symbol=requested_symbol,
             ) from error
 
+    @staticmethod
+    def get_market(clients: AccountClients, requested_symbol: str) -> dict[str, Any]:
+        return CcxtAdapter._market(clients, requested_symbol)
+
     async def verify(self, account: dict[str, str], deadline: RequestDeadline) -> dict[str, Any]:
         clients = await self._clients(account, deadline)
         balance = await _within(deadline, clients.rest.fetch_balance())
