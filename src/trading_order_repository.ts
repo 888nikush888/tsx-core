@@ -46,7 +46,7 @@ type IdentifiedOrderEvidence = Omit<ExchangeOrderResult, 'filledQuantity'> & { f
 
 function providerOrderKey(local: LocalOrderRow, result: IdentifiedOrderEvidence): { symbol: string | null; key: string | null } {
   const symbol = result.providerSymbol ?? local.provider_symbol ?? (local.exchange === 'paper' ? local.symbol : null);
-  if (symbol !== null && (!symbol.trim() || symbol.length > 256 || /[\x00-\x1f]/.test(symbol))) {
+  if (symbol !== null && (!symbol.trim() || symbol.length > 256 || /[\u0000-\u001f]/.test(symbol))) {
     throw new Error('Invalid provider symbol for remote order identity.');
   }
   if (local.provider_symbol && symbol !== local.provider_symbol) throw new Error('Remote order namespace changed.');
