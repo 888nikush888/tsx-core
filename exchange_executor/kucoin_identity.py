@@ -19,13 +19,17 @@ def _permissions(value: Any) -> list[str]:
     values = raw.split(",")
     require(values and len(values) <= 16 and len(values) == len(set(values)),
             "KuCoin API permissions are duplicated or unbounded.")
-    normalized = sorted(token(value, "API permission",) for value in values)
+    normalized = sorted(
+        p
+        for p in (token(value, "API permission") for value in values)
+        if p is not None
+    )
     require({"General", "Futures"}.issubset(normalized),
             "KuCoin API key lacks General or Futures permission.")
     return normalized
 
 
-def _uid_list(value: Any, label: str) -> list[str]:
+def _uid_list(value: Any, label: str) -> list[str | None]:
     require(type(value) is list and len(value) <= 1_000,
             f"KuCoin {label} is not a bounded identity list.")
     result = [token(item, f"{label} identity") for item in value]

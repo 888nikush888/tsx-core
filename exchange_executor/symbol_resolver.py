@@ -83,6 +83,7 @@ def _positive_multiplier(value: Any) -> bool:
 def _product_kind(market: dict[str, Any]) -> str:
     kind = market.get("type")
     _require_metadata(isinstance(kind, str) and kind in _PRODUCT_FLAGS, "type")
+    assert isinstance(kind, str)
     for flag in _PRODUCT_FLAGS:
         _require_metadata(market.get(flag) is (flag == kind), flag)
     _require_metadata(market.get("contract") is (kind != "spot"), "contract")
@@ -91,7 +92,7 @@ def _product_kind(market: dict[str, Any]) -> str:
     if kind in ("spot", "swap"):
         _require_metadata(market["expiry"] is None, "perpetual/spot expiry")
     else:
-        _require_metadata(type(market["expiry"]) is int and 0 < market["expiry"] <= 9_007_199_254_740_991, "expiry")
+        _require_metadata(type(market.get("expiry")) is int and 0 < market["expiry"] <= 9_007_199_254_740_991, "expiry")
     return kind
 
 
