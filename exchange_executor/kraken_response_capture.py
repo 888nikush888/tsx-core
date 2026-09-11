@@ -127,7 +127,7 @@ def _number(token: str) -> Decimal:
     except InvalidOperation as error:
         raise _error('number syntax') from error
     # Check before formatting: 1e100000000 must not allocate a huge string.
-    if not result.is_finite() or abs(result.as_tuple().exponent) > MAX_NUMBER_TEXT or result.adjusted() > MAX_NUMBER_TEXT:
+    if not result.is_finite() or abs(int(result.as_tuple().exponent)) > MAX_NUMBER_TEXT or result.adjusted() > MAX_NUMBER_TEXT:
         raise _error('number range')
     if len(format(result, 'f')) > MAX_NUMBER_TEXT:
         raise _error('expanded number length')

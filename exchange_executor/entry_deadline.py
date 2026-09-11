@@ -38,7 +38,7 @@ class EntryDeadline:
     def bound_budget(self, transport: RequestDeadline) -> RequestDeadline:
         # The executor independently enforces the original horizon even if a caller
         # supplies a later transport deadline. Independent reducing keeps its own budget.
-        return RequestDeadline(min(transport.deadline_at_ms, self.expires_at)) if self.required else transport
+        return RequestDeadline(int(min(transport.deadline_at_ms, self.expires_at))) if self.required else transport
 
 
 _current: ContextVar[EntryDeadline | None] = ContextVar('tsx_entry_deadline', default=None)

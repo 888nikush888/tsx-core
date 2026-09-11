@@ -99,7 +99,7 @@ async def _hyperliquid(clients: Any, market: dict[str, Any], deadline: RequestDe
     user = _bound_hyperliquid_user(clients)
     abstraction = await _hyperliquid_abstraction(clients.rest, user, deadline)
     _require(abstraction == 'disabled', 'ACCOUNT_MODE_UNSUPPORTED')
-    coin = (market.get("info") or {}).get("name") or market.get("base")
+    coin = str((market.get("info") or {}).get("name") or market.get("base"))
     _require(isinstance(coin, str) and ":" not in coin and coin == market.get("base"), "PERP_DEX_SCOPE_UNPROVEN")
     result = await _read(clients.rest, "publicPostInfo", {"type": "activeAssetData", "user": user, "coin": coin}, deadline)
     _require(isinstance(result.get("user"), str) and result["user"].lower() == user and result.get("coin") == coin, "ACTIVE_ASSET_BINDING_MISMATCH")
@@ -127,6 +127,7 @@ async def _hyperliquid_position_consistency(rest: Any, user: str, coin: str, lev
         position = _object(row.get("position"))
         symbol = position.get("coin")
         _require(isinstance(symbol, str) and bool(symbol) and symbol not in seen, "POSITION_MODE_CONTRADICTORY")
+        assert isinstance(symbol, str)
         seen.add(symbol)
         if symbol == coin:
             actual = _object(position.get("leverage"))
@@ -175,6 +176,7 @@ def _base_evidence(clients: Any, market: dict[str, Any]) -> dict[str, Any]:
     account = clients.account
     profile = profile_for(account["exchange"])
     _require(profile is not None, "EXECUTION_PROFILE_UNSUPPORTED")
+    assert profile is not None
     observed = _now()
     return {"version": 1, "exchange": account["exchange"], "symbol": f'{str(market["base"]).upper()}USDT', "providerSymbol": market["symbol"],
             "accountFingerprint": external_account_id(account["exchange"], account["mode"], clients.account_identity),

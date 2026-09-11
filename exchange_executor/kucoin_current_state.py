@@ -100,6 +100,7 @@ def _status(raw: dict[str, Any]) -> str:
     return mapped
 
 
+
 def normalize_kucoin_order(rest: Any, raw: dict[str, Any], *, stop_scope: bool,
                            terminal_allowed: bool) -> dict[str, Any]:
     symbol = native_symbol(raw.get("symbol"))
@@ -107,8 +108,9 @@ def normalize_kucoin_order(rest: Any, raw: dict[str, Any], *, stop_scope: bool,
     require(raw.get("settleCurrency") == "USDT" and raw.get("marginMode") == "CROSS"
             and raw.get("positionSide") == "BOTH",
             "KuCoin order is outside the reviewed USDT/CROSS/BOTH scope.")
-    reduce_only = raw.get("reduceOnly")
-    require(type(reduce_only) is bool, "KuCoin order reduce-only evidence is missing.")
+    raw_reduce_only = raw.get("reduceOnly")
+    require(isinstance(raw_reduce_only, bool), "KuCoin order reduce-only evidence is missing.")
+    reduce_only: bool = raw_reduce_only
     side = raw.get("side")
     require(side in {"buy", "sell"}, "KuCoin order side is invalid.")
     order_type = token(raw.get("type"), "order type").lower()
