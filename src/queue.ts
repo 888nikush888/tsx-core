@@ -92,6 +92,9 @@ export class ConcurrencyQueue {
     }
     return new Promise<boolean>(resolve => {
       let settled = false;
+      const onIdle = () => {};
+      let timer: any;
+
       const finish = (drained: boolean) => {
         if (settled) return;
         settled = true;

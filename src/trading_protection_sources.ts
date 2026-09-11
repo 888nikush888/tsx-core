@@ -11,6 +11,10 @@ export async function protectionScopes(accountId?: string): Promise<Array<{ acco
 }
 
 /** Every account field except the two documented reconciliation metadata timestamps is immutable at receipt commit. */
+function hash<T>(obj: T): string {
+  return createHash('sha256').update(JSON.stringify(obj)).digest('hex');
+}
+
 export async function protectionAccountSource(accountId: string): Promise<{ version: number; digest: string }> {
   const account = await getDatabase().get<Record<string, unknown>>('SELECT * FROM trading_accounts WHERE id = ?', [accountId]);
   if (!account) throw new Error('PROTECTION_ACCOUNT_MISSING');

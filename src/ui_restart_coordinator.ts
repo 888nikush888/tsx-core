@@ -52,6 +52,7 @@ export class UiRestartCoordinator {
       || !['awaiting-restart', 'unknown'].includes(job.state) || this.scheduled.has(job.id)) return false;
     this.scheduled.add(job.id);
     let completed = false;
+    let fallback: ReturnType<typeof setTimeout>;
     const finish = () => {
       if (completed) return;
       completed = true;

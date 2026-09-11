@@ -180,6 +180,10 @@ async function abortableDelay(delayMs: number, signal?: AbortSignal): Promise<vo
     return;
   }
   await new Promise<void>((resolve, reject) => {
+    function onAbort() {
+      clearTimeout(timer);
+      reject(new Error('Aborted'));
+    }
     const timer = setTimeout(() => {
       signal?.removeEventListener('abort', onAbort);
       resolve();
