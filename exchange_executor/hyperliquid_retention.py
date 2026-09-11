@@ -80,9 +80,8 @@ def _validate_retention_horizon(probe: dict[str, Any]) -> None:
     phase, fixed = probe['phase'], probe['fixedUntil']
     if phase == 'horizon' and fixed is not None:
         raise ExchangeContractError('Hyperliquid horizon was fixed before reading its source.')
-    if phase in {'scan', 'verify', 'proved'}:
-        if fixed is None or not probe['startedAt'] <= fixed <= now_ms() + 60_000 or probe['cursor'] > fixed + 1:
-            raise ExchangeContractError('Invalid Hyperliquid fixed retention horizon.')
+    if phase in {'scan', 'verify', 'proved'} and (fixed is None or not probe['startedAt'] <= fixed <= now_ms() + 60_000 or probe['cursor'] > fixed + 1):
+        raise ExchangeContractError('Invalid Hyperliquid fixed retention horizon.')
 
 
 def _validate_retention_time(probe: dict[str, Any]) -> None:

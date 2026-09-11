@@ -405,9 +405,8 @@ def validate_complete(document: Any, *, completion_verifier: Callable[..., Compl
         if (verdict.inventory_hash != document['inventoryHash'] or verdict.exchange_id != exchange['id']
                 or verdict.decision_verified is not True):
             raise InventoryError('Completion evidence verdict does not bind this inventory and decision.')
-        if assessment['decision'] in ('existing', 'eligible'):
-            if exchange['profile'] is None or verdict.implementation_verified is not True:
-                raise InventoryError('Eligible/existing profile lacks verified implementation evidence.')
+        if assessment['decision'] in ('existing', 'eligible') and (exchange['profile'] is None or verdict.implementation_verified is not True):
+            raise InventoryError('Eligible/existing profile lacks verified implementation evidence.')
 
 
 def _unique_object(items: list[tuple[str, Any]]) -> dict[str, Any]:

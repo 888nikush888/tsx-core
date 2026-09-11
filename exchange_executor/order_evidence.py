@@ -65,9 +65,8 @@ def merge_order_evidence(current: dict[str, Any], incoming: dict[str, Any]) -> d
 def merge_ccxt_order(current: dict[str, Any], incoming: dict[str, Any]) -> dict[str, Any]:
     for field in ("id", "symbol", "clientOrderId", "side", "reduceOnly", "amount"):
         left, right = current.get(field), incoming.get(field)
-        if left is not None and right is not None and str(left) != str(right):
-            if field != "amount" or Decimal(str(left)) != Decimal(str(right)):
-                raise ExchangeContractError(f"Remote order has conflicting {field} evidence.")
+        if left is not None and right is not None and str(left) != str(right) and (field != "amount" or Decimal(str(left)) != Decimal(str(right))):
+            raise ExchangeContractError(f"Remote order has conflicting {field} evidence.")
     quantity = current.get("amount") if current.get("amount") is not None else incoming.get("amount")
 
     def evidence(order):
