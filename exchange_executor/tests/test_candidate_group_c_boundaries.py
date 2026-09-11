@@ -200,7 +200,8 @@ class CandidateGroupCBoundaryTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await client.close()
 
-    async def test_weex_current_orders_are_split_between_normal_and_algo_endpoints(self):
+    @staticmethod
+    async def test_weex_current_orders_are_split_between_normal_and_algo_endpoints():
         client = client_for("weex")
         client.contractPrivateGetCapiV3OpenOrders = AsyncMock(return_value=[])
         client.contractPrivateGetCapiV3OpenAlgoOrders = AsyncMock(return_value=[])
