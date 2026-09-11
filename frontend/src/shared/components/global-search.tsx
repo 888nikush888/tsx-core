@@ -30,7 +30,7 @@ export function GlobalSearch() {
   };
   return <><button className="secondary-button min-h-11" type="button" onClick={() => setOpen(true)}>Global suchen</button>
     <Dialog open={open} onOpenChange={value => value ? setOpen(true) : close()}><DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl"><DialogHeader><DialogTitle>Globale Suche</DialogTitle><DialogDescription>Konten, Objekt-IDs, Symbol, Ressourcenname, Vorfallkategorie oder Einstellungsname. Signalvolltexte und Zugangsdaten werden nicht durchsucht. Der Suchtext bleibt außerhalb von Adresse und Browserhistorie.</DialogDescription></DialogHeader>
-      <label>Suchbegriff<input autoFocus type="search" className="block w-full border bg-background p-2" maxLength={80} value={text} onChange={event => setText(event.target.value)} /></label>
+      <label>Suchbegriff<input type="search" className="block w-full border bg-background p-2" maxLength={80} value={text} onChange={event => setText(event.target.value)} /></label>
       <label>Suchbereich<select className="block border bg-background p-2" value={kind} onChange={event => { setKind(event.target.value); setCursor(''); }}>{Object.entries(categories).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       {error && <p role="alert">{error} · Suche konnte nicht aktuell geprüft werden.</p>}
       {searchContent()}
