@@ -101,7 +101,7 @@ export async function assessRestoreEligibility(database: Database, now = Date.no
 
 export function requireRestoreEligibility(eligibility: RestoreEligibility): void {
   if (eligibility.status !== 'eligible') {
-    throw new Error(`Restore refused because the backup captures unresolved trading exposure or incomplete evidence `
+    throw new Error('Restore refused because the backup captures unresolved trading exposure or incomplete evidence '
       + `(${eligibility.status}: ${eligibility.reasons.join('; ')}).`);
   }
 }

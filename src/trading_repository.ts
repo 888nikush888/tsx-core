@@ -266,7 +266,7 @@ export async function createSignalContractDraftVersion(
     );
     if (!sourceRow) throw new Error('Source signal contract version does not exist.');
     const existingDraft = await getDatabase().get(
-      `SELECT id FROM trading_signal_contract_versions WHERE contract_id = ? AND status = 'draft'`,
+      "SELECT id FROM trading_signal_contract_versions WHERE contract_id = ? AND status = 'draft'",
       [id],
     );
     if (existingDraft) throw new Error('Signal contract already has an editable draft version.');
@@ -278,10 +278,7 @@ export async function createSignalContractDraftVersion(
     const definition = contractVersionFromRow(sourceRow).definition;
     const versionId = `${id}:v${version}`;
     await getDatabase().run(
-      `INSERT INTO trading_signal_contract_versions (
-         id, contract_id, version, status, definition_json, definition_sha256,
-         created_at, published_at, archived_at
-       ) VALUES (?, ?, ?, 'draft', ?, ?, ?, NULL, NULL)`,
+      "INSERT INTO trading_signal_contract_versions ( id, contract_id, version, status, definition_json, definition_sha256, created_at, published_at, archived_at ) VALUES (?, ?, ?, 'draft', ?, ?, ?, NULL, NULL)",
       [versionId, id, version, JSON.stringify(definition), signalContractDefinitionSha256(definition), now],
     );
     return contractVersionFromRow(await getDatabase().get(
@@ -1032,19 +1029,9 @@ export async function getTradingAccount(id: string): Promise<TradingAccount | nu
 export async function getTradingOverview(): Promise<TradingOverview> {
   const [runtime, counts, reconciliation] = await Promise.all([
     getTradingRuntimeState(),
-    getDatabase().get<any>(`SELECT
-      (SELECT COUNT(*) FROM trading_accounts WHERE retired_at IS NULL) AS accounts,
-      (CASE WHEN EXISTS (SELECT 1 FROM workflow_active_revision WHERE singleton_id = 1)
-        THEN (SELECT COUNT(*) FROM workflow_execution_paths AS path
-              JOIN workflow_active_revision AS active ON active.revision_id = path.workflow_revision_id
-              WHERE active.singleton_id = 1 AND path.enabled = 1)
-        ELSE (SELECT COUNT(*) FROM trading_routes WHERE enabled = 1)
-       END) AS routes,
-      (SELECT COUNT(*) FROM trading_positions WHERE status IN ('opening', 'open', 'closing', 'emergency')) AS positions,
-      (SELECT COUNT(*) FROM trading_trade_intents WHERE status IN ('pending', 'planned', 'submitting', 'monitoring')) AS intents,
-      (SELECT COUNT(*) FROM trading_orders WHERE status = 'unknown') AS unknown_orders`),
+    getDatabase().get<any>("SELECT\n      (SELECT COUNT(*) FROM trading_accounts WHERE retired_at IS NULL) AS accounts,\n      (CASE WHEN EXISTS (SELECT 1 FROM workflow_active_revision WHERE singleton_id = 1)\n        THEN (SELECT COUNT(*) FROM workflow_execution_paths AS path\n              JOIN workflow_active_revision AS active ON active.revision_id = path.workflow_revision_id\n              WHERE active.singleton_id = 1 AND path.enabled = 1)\n        ELSE (SELECT COUNT(*) FROM trading_routes WHERE enabled = 1)\n       END) AS routes,\n      (SELECT COUNT(*) FROM trading_positions WHERE status IN ('opening', 'open', 'closing', 'emergency')) AS positions,\n      (SELECT COUNT(*) FROM trading_trade_intents WHERE status IN ('pending', 'planned', 'submitting', 'monitoring')) AS intents,\n      (SELECT COUNT(*) FROM trading_orders WHERE status = 'unknown') AS unknown_orders"),
     getDatabase().get<{ latest: number | null }>(
-      `SELECT MAX(completed_at) AS latest FROM trading_reconciliation_runs WHERE status = 'succeeded'`,
+      "SELECT MAX(completed_at) AS latest FROM trading_reconciliation_runs WHERE status = 'succeeded'"
     ),
   ]);
   return {

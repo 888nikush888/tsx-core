@@ -898,7 +898,7 @@ async function testRepositoryValidation(defaults, accounts) {
   delete legacyStoredConfiguration.exits.stopLossMode;
   const legacyHash = strategyConfigurationSha256(legacyStoredConfiguration);
   await getDatabase().run(
-    `UPDATE trading_strategy_versions SET configuration_json = ?, configuration_sha256 = ? WHERE id = ?`,
+    'UPDATE trading_strategy_versions SET configuration_json = ?, configuration_sha256 = ? WHERE id = ?',
     [JSON.stringify(legacyStoredConfiguration), legacyHash, legacyDraft.id],
   );
   const loadedLegacy = await getTradingStrategyVersion(legacyDraft.id);
@@ -1257,7 +1257,7 @@ async function testRepositoryRouting(defaults, accounts) {
     /Only an existing draft/,
   );
   await assert.rejects(
-    getDatabase().run(`UPDATE trading_strategy_versions SET name = 'tampered' WHERE id = ?`, [published.id]),
+    getDatabase().run("UPDATE trading_strategy_versions SET name = 'tampered' WHERE id = ?", [published.id]),
     /immutable/,
   );
 

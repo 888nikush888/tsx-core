@@ -12,9 +12,9 @@ const MODELS = {
   strategy: { table: 'trading_strategy_versions', reference: 'strategyVersionId', clock: 'created_at',
     fields: 'id, strategy_id AS familyId, name, description, version, status, configuration_sha256 AS contentHash, created_at AS createdAt' },
   contract: { table: 'trading_signal_contract_versions', reference: 'contractVersionId', clock: 'created_at',
-    fields: `id, contract_id AS familyId, (SELECT name FROM trading_signal_contracts WHERE id = contract_id) AS name, version, status, definition_sha256 AS contentHash, created_at AS createdAt` },
+    fields: 'id, contract_id AS familyId, (SELECT name FROM trading_signal_contracts WHERE id = contract_id) AS name, version, status, definition_sha256 AS contentHash, created_at AS createdAt' },
   schema: { table: 'trading_signal_schemas', reference: 'schemaId', clock: 'created_at',
-    fields: `id, name, description, CASE enabled WHEN 1 THEN 'enabled' ELSE 'disabled' END AS status, template_name AS templateName, updated_at AS updatedAt, created_at AS createdAt` },
+    fields: "id, name, description, CASE enabled WHEN 1 THEN 'enabled' ELSE 'disabled' END AS status, template_name AS templateName, updated_at AS updatedAt, created_at AS createdAt" },
 } as const;
 export type UiModelKind = keyof typeof MODELS;
 function modelKind(value: unknown): UiModelKind {

@@ -87,7 +87,7 @@ export async function acceptIncomingMessage(message: any, config: any, now = Dat
     await saveIncomingMessage(chatId, message.id, config.sourceAliases?.[chatId] || chatId, text || '', type, 'received');
     const status = previousInbox ? 'needs_review' : 'pending';
     await database.run(
-      `INSERT INTO incoming_work VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      'INSERT INTO incoming_work VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [id, chatId, message.id, JSON.stringify(message), JSON.stringify(snapshot), workflowRevisionId, status,
         previousInbox ? 'Existing legacy inbox has no proven durable work; historical replay is blocked.' : null, now, now]
     );

@@ -82,7 +82,7 @@ async function localHistoryProof(accountId: string): Promise<LocalLedgerProof | 
 }
 
 async function baselineRow(account: TradingAccount): Promise<BaselineRow | undefined> {
-  return getDatabase().get<BaselineRow>(`SELECT * FROM trading_account_baselines WHERE account_id = ? AND account_fingerprint = ?`,
+  return getDatabase().get<BaselineRow>('SELECT * FROM trading_account_baselines WHERE account_id = ? AND account_fingerprint = ?',
     [account.id, account.externalAccountId]);
 }
 

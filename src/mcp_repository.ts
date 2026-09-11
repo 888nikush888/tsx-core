@@ -678,12 +678,10 @@ export async function connectMcpSession(input: {
   await withDatabaseTransaction(async database => {
     await assertRuntimeActiveFrom(database);
     await database.run(
-      `INSERT INTO mcp_agent_sessions (
-         id, agent_id, client_name, client_version, connected_at, last_seen_at
-       ) VALUES (?, ?, ?, ?, ?, ?)`,
+      'INSERT INTO mcp_agent_sessions (id, agent_id, client_name, client_version, connected_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?)',
       [id, agentId, clientName, clientVersion, now, now],
     );
-    await database.run(`UPDATE mcp_agents SET last_seen_at = ? WHERE id = ?`, [now, agentId]);
+    await database.run('UPDATE mcp_agents SET last_seen_at = ? WHERE id = ?', [now, agentId]);
   });
   return { id, agentId, clientName, clientVersion, connectedAt: now, lastSeenAt: now, disconnectedAt: null };
 }
@@ -693,13 +691,11 @@ export async function touchMcpSession(idValue: unknown, agentIdValue: unknown): 
   const agentId = identifier(agentIdValue, 'MCP agent identifier', 64);
   const now = Date.now();
   const result = await getDatabase().run(
-    `UPDATE mcp_agent_sessions SET last_seen_at = ?
-     WHERE id = ? AND agent_id = ? AND disconnected_at IS NULL
-       AND EXISTS (SELECT 1 FROM mcp_runtime_state WHERE singleton_id = 1 AND mode = 'active')`,
+    "UPDATE mcp_agent_sessions SET last_seen_at = ? WHERE id = ? AND agent_id = ? AND disconnected_at IS NULL AND EXISTS (SELECT 1 FROM mcp_runtime_state WHERE singleton_id = 1 AND mode = 'active')",
     [now, id, agentId],
   );
   if (Number(result.changes || 0) === 1) {
-    await getDatabase().run(`UPDATE mcp_agents SET last_seen_at = ? WHERE id = ?`, [now, agentId]);
+    await getDatabase().run('UPDATE mcp_agents SET last_seen_at = ? WHERE id = ?', [now, agentId]);
     return true;
   }
   return false;

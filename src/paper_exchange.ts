@@ -125,9 +125,7 @@ async function updateOpeningPosition(row: any, fillQuantity: string, fillPrice: 
       multiplyDecimal(fillQuantity, fillPrice),
     );
     await database.run(
-      `UPDATE trading_paper_positions
-       SET quantity = ?, average_entry_price = ?, margin_used = ?, updated_at = ?
-       WHERE account_id = ? AND symbol = ?`,
+      'UPDATE trading_paper_positions\n       SET quantity = ?, average_entry_price = ?, margin_used = ?, updated_at = ?\n       WHERE account_id = ? AND symbol = ?',
       [
         quantity,
         divideDecimal(weighted, quantity),
@@ -139,14 +137,12 @@ async function updateOpeningPosition(row: any, fillQuantity: string, fillPrice: 
     );
   } else {
     await database.run(
-      `INSERT INTO trading_paper_positions (
-         account_id, symbol, side, quantity, average_entry_price, margin_used, realized_pnl, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, '0', ?)`,
+      "INSERT INTO trading_paper_positions (\n         account_id, symbol, side, quantity, average_entry_price, margin_used, realized_pnl, updated_at\n       ) VALUES (?, ?, ?, ?, ?, ?, '0', ?)",
       [row.account_id, row.symbol, side, fillQuantity, fillPrice, margin, now],
     );
   }
   await database.run(
-    `UPDATE trading_paper_accounts SET available_balance = ?, updated_at = ? WHERE account_id = ?`,
+    'UPDATE trading_paper_accounts SET available_balance = ?, updated_at = ? WHERE account_id = ?',
     [subtractDecimal(account.available_balance, margin), now, row.account_id],
   );
 }
@@ -283,7 +279,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
     const normalizedAvailable = decimal(availableBalance);
     if (compareDecimal(normalizedAvailable, normalizedEquity) > 0) throw new Error('Available paper balance cannot exceed equity.');
     await getDatabase().run(
-      `UPDATE trading_paper_accounts SET equity = ?, available_balance = ?, updated_at = ? WHERE account_id = ?`,
+      'UPDATE trading_paper_accounts SET equity = ?, available_balance = ?, updated_at = ? WHERE account_id = ?',
       [normalizedEquity, normalizedAvailable, now, accountId],
     );
   }
