@@ -1531,7 +1531,7 @@ export function ResourceEditor({
 }: ResourceEditorProps) {
   const readOnly = useOperatorReadOnly();
   const initialized = useRef<string | null>(null);
-  const initialRevision = useRef<number | undefined>(undefined);
+  const initialRevision = useRef<number | undefined>();
   const [touched, setTouched] = useState(false);
   const { confirm, confirmationDialog } = useConfirmationDialog();
   useDirtyGuard(draftOnly && open && touched);
@@ -1552,7 +1552,7 @@ export function ResourceEditor({
     useState<SignalContractDefinition | null>(null);
   const [contractTouched, setContractTouched] = useState(false);
   const [contractId, setContractId] = useState("new-contract");
-  const baseDefinitionSha256 = useRef<string | undefined>(undefined);
+  const baseDefinitionSha256 = useRef<string | undefined>();
   const [schemaDraft, setSchemaDraft] = useState<SignalSchemaDraft | null>(null);
   const [archiveConfirmation, setArchiveConfirmation] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState(false);

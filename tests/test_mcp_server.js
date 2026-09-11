@@ -153,7 +153,7 @@ try {
   client = new Client({ name: 'tsx-core-test', version: '1.0.0' });
   const transport = new StreamableHTTPClientTransport(
     new URL(`http://127.0.0.1:${port}/mcp`),
-    { requestInit: { headers: { Authorization: `Bearer ${token}` } } },
+    { requestInit: { headers: { Authorization: `Bearer ${token}` } } }
   );
   await client.connect(transport);
   const tools = await client.listTools();

@@ -23,7 +23,7 @@ describe("workflow connection routing dialog", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Routing übernehmen" }));
-    expect(onSave).toHaveBeenCalledWith(undefined);
+    expect(onSave).toHaveBeenCalledWith();
   });
 
   it("requires and returns an explicit channel selection", () => {

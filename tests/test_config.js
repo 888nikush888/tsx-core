@@ -33,7 +33,7 @@ try {
 
   const savedSync = JSON.parse(await readFile(syncPath, 'utf8'));
   assert.equal(savedSync.apiId, 12345);
-  assert.equal(savedSync.apiHash, undefined);
+  assert.equal(savedSync.apiHash);
   assert.equal(readConfigSync(syncPath).apiId, 12345);
   assert.deepEqual((await readdir(root)).filter(name => name.endsWith('.tmp')), []);
 
@@ -66,7 +66,7 @@ try {
   malformedValues.sourceAliases = ['not-a-map'];
   const sanitized = validateConfig(malformedValues);
   assert.equal(sanitized.apiId, 0);
-  assert.equal(sanitized.apiHash, undefined);
+  assert.equal(sanitized.apiHash);
   assert.equal(sanitized.forwardOptions.maxConcurrency, DEFAULT_CONFIG.forwardOptions.maxConcurrency);
   assert.equal(sanitized.forwardOptions.queueTimeoutSeconds, DEFAULT_CONFIG.forwardOptions.queueTimeoutSeconds);
 

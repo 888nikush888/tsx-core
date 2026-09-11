@@ -67,7 +67,8 @@ function testBoundedReviewTree() {
   do { const result = uiReviewTree(root, new URLSearchParams({ path: '["text"]', ...(cursor ? { cursor } : {}) }), 'review-1'); text += result.text; cursor = result.nextCursor; } while (cursor);
   assert.equal(text, root.text, 'Review text slices must not split or lose Unicode original data.');
   const large = setupContentReview({ content: { workflow: root }, library: { resources: ['x'.repeat(300000)] } }, { systemConfig: {}, workflow: {}, models: {}, accountReferences: [] });
-  assert.equal(large.paged, true); assert.ok(Buffer.byteLength(JSON.stringify(large)) < 2000); assert.equal(large.existingLibrary, undefined);
+  assert.equal(large.paged, true); assert.ok(Buffer.byteLength(JSON.stringify(large)) < 2000);
+  assert.equal(large.existingLibrary);
 }
 async function testMcpMetadata(agent, resource) {
   for (let index = 0; index < 33; index++) {

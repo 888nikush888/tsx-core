@@ -159,7 +159,7 @@ export async function backfillAccountFillIdentities(account: TradingAccount): Pr
     let cursors = backfillCursors.get(database);
     if (!cursors) { cursors = new Map(); backfillCursors.set(database, cursors); }
     let rows = await nextBackfillRows(account.id, cursors.get(account.id));
-    if (!rows.length && cursors.has(account.id)) rows = await nextBackfillRows(account.id, undefined);
+    if (!rows.length && cursors.has(account.id)) rows = await nextBackfillRows(account.id);
     for (const row of rows) await bindLegacyFillIdentity(account, row.id);
     if (rows.length === BACKFILL_ATTEMPTS) cursors.set(account.id, rows.at(-1)!);
     else cursors.delete(account.id);

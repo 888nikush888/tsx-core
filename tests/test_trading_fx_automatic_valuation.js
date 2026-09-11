@@ -59,13 +59,13 @@ try {
   await assert.rejects(assertFundingObservationCurrent(account, recovered.observation), /stale|unresolved/);
   const unsupported = await funding(account, 'other-asset', 'BNB');
   assert.equal(unsupported.observed.status, 'incomplete'); assert.equal(unsupported.event.reportingValue, null);
-  assert.equal(await getDatabase().get('SELECT event_id FROM trading_fx_valuation_work WHERE event_id=?', [unsupported.event.id]), undefined);
+  assert.equal(await getDatabase().get('SELECT event_id FROM trading_fx_valuation_work WHERE event_id=?', [unsupported.event.id]));
   const old = await funding(account, 'before-retained-quotes', 'USDT', at - 20_000);
   assert.equal(old.event.reportingValue, null, 'A current quote never fabricates historical valuation.');
   const unreviewed = await fixture('unreviewed', 0);
   const unreviewedResult = await funding(unreviewed, 'unreviewed-event');
   assert.equal(unreviewedResult.observed.status, 'incomplete');
-  assert.equal(await getDatabase().get('SELECT event_id FROM trading_fx_valuation_work WHERE account_id=?', [unreviewed.id]), undefined);
+  assert.equal(await getDatabase().get('SELECT event_id FROM trading_fx_valuation_work WHERE account_id=?', [unreviewed.id]));
   assert.equal((await getDatabase().get('SELECT COUNT(*) AS n FROM trading_fx_receipts')).n, 2, 'The observation hook does not fetch additional quotes.');
   console.log('Bounded automatic local FX replay, restart, late evidence, missing history and unsupported assets/profiles passed.');
 } finally {

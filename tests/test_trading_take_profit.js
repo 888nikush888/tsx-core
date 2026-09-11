@@ -151,7 +151,7 @@ async function proveAmbiguousLegacyReview() {
   assert.equal(protectedState.orders.filter(order => order.role === 'stop_loss' && order.status === 'open').length, 1,
     'Legacy review never blocks independent restoration of the proved own stop.');
   assert.equal((await getTradingAccount(context.account.id)).killSwitchActive, true);
-  assert.equal(await getDatabase().get('SELECT intent_id FROM trading_take_profit_allocations WHERE intent_id = ?', [context.intent.id]), undefined);
+  assert.equal(await getDatabase().get('SELECT intent_id FROM trading_take_profit_allocations WHERE intent_id = ?', [context.intent.id]));
   assert.equal((await getDatabase().get("SELECT COUNT(*) AS n FROM trading_risk_events WHERE code = 'TP_ALLOCATION_RECOVERED' AND intent_id = ?", [context.intent.id])).n, 0);
   await closeDb();
   await initDb(context.file);
