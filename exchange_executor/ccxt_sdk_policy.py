@@ -21,10 +21,12 @@ class HyperliquidNoAutomaticSetup:
     Returning False records no approval and leaves builder attachment disabled.
     """
 
-    async def handle_builder_fee_approval(self) -> bool:
+    @staticmethod
+    async def handle_builder_fee_approval() -> bool:
         return False
 
-    async def set_ref(self) -> bool:
+    @staticmethod
+    async def set_ref() -> bool:
         return False
 
 

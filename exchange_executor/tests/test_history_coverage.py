@@ -33,7 +33,8 @@ class RetainedHyperliquid:
         self.saturated = saturated
         self.calls = []
 
-    def handle_public_address(self, *_args):
+    @staticmethod
+    def handle_public_address(*_args):
         return 'fixture-wallet', {}
 
     async def publicPostInfo(self, params):
@@ -50,7 +51,8 @@ class RetainedHyperliquid:
         return {'id': 'retained', 'coin': 'BTC', 'tid': 1, 'time': self.earliest, 'oid': 2,
                 'px': '10', 'sz': '1', 'side': 'B'}
 
-    def parse_trade(self, row):
+    @staticmethod
+    def parse_trade(row):
         return {**row, 'timestamp': row['time']}
 
 

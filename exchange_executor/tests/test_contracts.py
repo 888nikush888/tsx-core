@@ -343,7 +343,8 @@ class DelayedMarketClient:
             "watchMyTrades": True, "watchPositions": True,
         }
 
-    def set_sandbox_mode(self, _enabled) -> None:
+    @staticmethod
+    def set_sandbox_mode(_enabled) -> None:
         return None
 
     async def load_markets(self) -> None:
@@ -515,10 +516,12 @@ class FakeProtectedRest:
         self.cleanup_orders.append(args)
         return {"id": "cleanup"}
 
-    def amount_to_precision(self, _symbol, amount):
+    @staticmethod
+    def amount_to_precision(_symbol, amount):
         return str(amount)
 
-    def price_to_precision(self, _symbol, price):
+    @staticmethod
+    def price_to_precision(_symbol, price):
         return str(price)
 
 
@@ -618,7 +621,8 @@ class FakeHyperliquidRest(FakeProtectedRest):
 
 
 class HyperliquidOrderTests(unittest.IsolatedAsyncioTestCase):
-    def deadline(self):
+    @staticmethod
+    def deadline():
         return RequestDeadline(int(time.time() * 1_000) + 30_000)
 
     async def test_every_profile_blocks_preflight_with_unknown_quantity_or_external_order(self) -> None:
@@ -765,7 +769,8 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
 
 
 class ProtectedEntryTests(unittest.IsolatedAsyncioTestCase):
-    def deadline(self):
+    @staticmethod
+    def deadline():
         return RequestDeadline(int(time.time() * 1_000) + 30_000)
 
     async def test_invalid_protected_pair_is_rejected_before_any_exchange_access(self) -> None:

@@ -55,13 +55,16 @@ class PagedBybit:
     async def privateGetV5OrderHistory(self, params):
         return await self._page("orders", params)
 
-    def parse_trade(self, value, _market=None):
+    @staticmethod
+    def parse_trade(value, _market=None):
         return value
 
-    def parse_order(self, value, _market=None):
+    @staticmethod
+    def parse_order(value, _market=None):
         return value
 
-    def safe_market(self, *_args):
+    @staticmethod
+    def safe_market(*_args):
         return {"linear": True, "contract": True}
 
 
@@ -176,14 +179,17 @@ class PaginationTests(unittest.IsolatedAsyncioTestCase):
         captured = []
 
         class Rest:
-            def handle_public_address(self, *_args):
+            @staticmethod
+            def handle_public_address(*_args):
                 return "fixture-wallet", {}
 
-            async def publicPostInfo(self, params):
+            @staticmethod
+            async def publicPostInfo(params):
                 captured.append(params)
                 return [{"id": str(i), "time": params["startTime"]} for i in range(2000)]
 
-            def parse_trade(self, row):
+            @staticmethod
+            def parse_trade(row):
                 return row
 
         _, fills, updates = await read_history_pages(Rest(), "hyperliquid", [original], budget())
@@ -201,7 +207,8 @@ class PaginationTests(unittest.IsolatedAsyncioTestCase):
                     'px': '10', 'sz': '1', 'side': 'B'} for index in range(7)]
 
         class Rest:
-            def handle_public_address(self, *_args):
+            @staticmethod
+            def handle_public_address(*_args):
                 return "fixture-wallet", {}
 
             async def publicPostInfo(self, params):

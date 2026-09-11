@@ -66,7 +66,8 @@ class HistoryRest:
 
 
 class HistoryReaderTests(unittest.IsolatedAsyncioTestCase):
-    def deadline(self):
+    @staticmethod
+    def deadline():
         return RequestDeadline(int(time.time() * 1000) + 30_000)
 
     async def test_open_state_shares_five_additional_calls_between_exact_lookup_and_backfill(self):

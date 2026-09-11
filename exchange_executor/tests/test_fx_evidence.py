@@ -66,11 +66,12 @@ class FxEvidenceTests(unittest.IsolatedAsyncioTestCase):
         self.clock_patch.stop()
         await self.rest.close()
 
-    def budget(self, remaining=5, resume_at=0):
+    @staticmethod
+    def budget(remaining=5, resume_at=0):
         return RecoveryReadBudget(RequestDeadline(int(time.time() * 1000) + 30_000), remaining=remaining, resume_at=resume_at)
 
     async def read(self, legs=(BTC_USD, BTC_USDT, USDC_USD), mode='live', budget=None):
-        return await read_fx_evidence(self.rest, mode, list(legs), budget or self.budget())
+        return await read_fx_evidence(self.rest, mode, list(legs), budget or type(self).budget())
 
     async def test_real_sdk_preserves_fixed_original_legs_envelope_time_and_explicit_weaker_time_basis(self):
         result = await self.read()

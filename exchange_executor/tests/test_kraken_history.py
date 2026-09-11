@@ -40,7 +40,8 @@ class KrakenRest:
         self.last_response_headers = {}
         self.uid = UID
 
-    def safe_market(self, _identifier):
+    @staticmethod
+    def safe_market(_identifier):
         return {"id": "PF_XBTUSD", "symbol": SYMBOL, "contract": True, "linear": True, "contractSize": 1, "base": "BTC"}
 
     def market(self, identifier):

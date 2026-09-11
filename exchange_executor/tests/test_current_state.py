@@ -40,7 +40,8 @@ class PagedBybit:
     def safe_market(self, identifier, *_args):
         return next(row for row in self.markets.values() if row["id"] == identifier)
 
-    def raw(self, source, index, settle):
+    @staticmethod
+    def raw(source, index, settle):
         detail = market(index, settle)
         return {"id": f"order-{settle}-{index}", "symbol": detail["id"], "positionIdx": 0, "size": "1",
                 "side": "buy" if source == "orders" else "long", "amount": "1", "filled": "0", "status": "open",

@@ -237,7 +237,8 @@ class AdditionalExchangeInventoryTests(unittest.TestCase):
             with self.assertRaises(InventoryError):
                 load_inventory(fixture)
 
-    def test_checked_in_first_manifest_matches_local_pin(self):
+    @staticmethod
+    def test_checked_in_first_manifest_matches_local_pin():
         manifest = ROOT.parent / 'docs/testing/ccxt-expansion-matrix.json'
         validate_inventory(load_inventory(manifest))
 

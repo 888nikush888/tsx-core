@@ -58,7 +58,8 @@ class CurrentProfileTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await rest.close()
 
-    def kraken(self):
+    @staticmethod
+    def kraken():
         rest = krakenfutures()
         rest.fetch = network_forbidden
         detail = {**market(0, "USD"), "id": "pf_coin0usd"}
