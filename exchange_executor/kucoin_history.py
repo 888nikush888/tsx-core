@@ -44,7 +44,7 @@ def _state(value: Any, expected_uid: str) -> dict[str, Any]:
             "KuCoin history window is invalid or exceeds seven days.")
     cursor = result.get("cursor")
     require(cursor is None or (type(cursor) is str
-            and re.fullmatch(r"(?a)[1-9]\d{0,8}(?::\d{1,9})?", cursor)),
+            and re.fullmatch(r"(?a)[1-9]\d{0,8}(?::\d{1,9})?", cursor) is not None),
             "KuCoin history cursor is invalid.")
     return result
 

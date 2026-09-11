@@ -23,7 +23,7 @@ def _expected(value: Any) -> tuple[list[dict[str, str]], dict[str, dict[str, str
                 "KuCoin batch leg role is invalid.")
         result.append({
             "role": row["role"],
-            "clientOrderId": token(row.get("clientOrderId"), "expected client order id"),
+            "clientOrderId": token(row["clientOrderId"], "expected client order id"),
             "providerSymbol": native_symbol(row.get("providerSymbol")),
         })
     require({row["role"] for row in result} == {"entry", "stop_loss"},
@@ -99,7 +99,8 @@ def classify_kucoin_batch_ack(response: Any, expected_legs: Any) -> list[dict[st
             exchange_id = result["exchangeOrderId"]
             require(exchange_id is None or exchange_id not in seen_exchange_ids,
                     "KuCoin batch outcome duplicated an exchange order identity.")
-            seen_clients.add(client_id)
+            if client_id is not None:
+                seen_clients.add(client_id)
             if exchange_id is not None:
                 seen_exchange_ids.add(exchange_id)
             confirmed.append(result)

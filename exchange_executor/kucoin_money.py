@@ -35,7 +35,7 @@ def _window(state: Any, *, maximum_width: int) -> tuple[int, int, str | None]:
     require(since <= until and until - since <= maximum_width,
             "KuCoin money window is invalid or too wide.")
     cursor = state.get("cursor")
-    require(cursor is None or (type(cursor) is str and re.fullmatch(r"(?a)\d{1,16}", cursor)),
+    require(cursor is None or (type(cursor) is str and re.fullmatch(r"(?a)\d{1,16}", cursor) is not None),
             "KuCoin money cursor is invalid.")
     return since, until, cursor
 
@@ -206,7 +206,7 @@ async def read_kucoin_ledger_page(
     page_rows = rows(data.get("dataList"), "transaction history", maximum=LEDGER_PAGE_SIZE)
     has_more = data.get("hasMore")
     require(type(has_more) is bool, "KuCoin ledger omitted continuation evidence.")
-    require(not has_more or page_rows,
+    require(not has_more or bool(page_rows),
             "KuCoin ledger returned a non-advancing continuation page.")
     records = [_ledger(raw, uid, since, until) for raw in page_rows]
     require(len({row["id"] for row in records}) == len(records),
