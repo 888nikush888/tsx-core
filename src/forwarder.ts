@@ -323,7 +323,7 @@ async function scheduleRemainingIngress(): Promise<void> {
   if (!remaining.count) return;
   ingressWakeup = setTimeout(() => {
     ingressWakeup = null;
-    outboxScheduler.requestPump();
+    this.outboxScheduler.requestPump();
   }, 850);
   ingressWakeup.unref();
 }
