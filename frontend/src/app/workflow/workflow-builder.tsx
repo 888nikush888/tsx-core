@@ -1325,7 +1325,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
     useState<WorkflowConnectionDraft | null>(null);
   const [fallbackPolicyOpen, setFallbackPolicyOpen] = useState(false);
   const [pendingFallbackChannelNodeIds, setPendingFallbackChannelNodeIds] =
-    useState<string[] | undefined>(undefined);
+    useState<string[] | undefined>();
   const [routeOverviewOpen, setRouteOverviewOpen] = useState(false);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
   const libraryTriggerRef = useRef<HTMLButtonElement>(null);
@@ -1845,7 +1845,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
     if (activated) {
       setSelectedEdgeId(edgeId);
       setFallbackPolicyOpen(false);
-      setPendingFallbackChannelNodeIds(undefined);
+      setPendingFallbackChannelNodeIds();
       setConnectionDraft(null);
     }
   }, [activateGraph, connectionDraft, pendingFallbackChannelNodeIds]);
@@ -2857,7 +2857,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
         saving={saving}
         onClose={() => {
           setFallbackPolicyOpen(false);
-          setPendingFallbackChannelNodeIds(undefined);
+          setPendingFallbackChannelNodeIds();
           setConnectionDraft(null);
         }}
         onSave={(fallbackOn, applyToChain) =>

@@ -807,7 +807,7 @@ function safestActiveStop(activeStops: ActiveStop[], side: 'LONG' | 'SHORT'): Ac
       ? compareDecimal(candidate.triggerPrice, best.triggerPrice) > 0
       : compareDecimal(candidate.triggerPrice, best.triggerPrice) < 0;
     return candidateIsSafer ? candidate : best;
-  }, undefined);
+  });
 }
 
 export class TradingEngine {

@@ -126,8 +126,8 @@ function testRequestBoundary() {
       assert.throws(() => validate(row), /RECOVERY_SCHEDULE/);
     }
   }
-  assert.equal(validateRecoveryScheduleInputs({ history: [] }, expected), undefined);
-  assert.equal(validateRecoveryScheduleProgress(undefined, {}, read, expected), undefined);
+  assert.equal(validateRecoveryScheduleInputs({ history: [] }, expected));
+  assert.equal(validateRecoveryScheduleProgress(undefined, {}, read, expected));
   assert.throws(() => validateRecoveryScheduleProgress({}, {}, read, expected), /RECOVERY_SCHEDULE/);
   assert.throws(() => validateRecoveryScheduleProgress(undefined, {}, { ...read, fxEvidence: {} }, expected), /RECOVERY_SCHEDULE/);
 }

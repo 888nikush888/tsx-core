@@ -232,7 +232,7 @@ const marketXml = `<signal>
 <targets><target id="1">110</target><target id="2">120</target></targets>
 <stoploss>90</stoploss><leverage>5</leverage><risk>1.5</risk><averaging>99</averaging>
 </signal>`;
-const marketSignal = validateSignalXml(marketXml, undefined, typedSelection);
+const marketSignal = validateSignalXml(marketXml, typedSelection);
 assert.deepEqual(marketSignal.execution, {
   schema: 'typed-contract',
   action: 'LONG',
@@ -254,10 +254,10 @@ assert.deepEqual(marketSignal.groundingFields, [
 ]);
 
 const withoutLeverageXml = marketXml.replace('<leverage>5</leverage>', '');
-assert.equal(validateSignalXml(withoutLeverageXml, undefined, typedSelection).execution.suggestedLeverage, undefined);
+assert.equal(validateSignalXml(withoutLeverageXml, typedSelection).execution.suggestedLeverage, undefined);
 for (const leverage of ['1', '125']) {
   const accepted = marketXml.replace('<leverage>5</leverage>', `<leverage>${leverage}</leverage>`);
-  assert.equal(validateSignalXml(accepted, undefined, typedSelection).execution.suggestedLeverage, Number(leverage));
+  assert.equal(validateSignalXml(accepted, typedSelection).execution.suggestedLeverage, Number(leverage));
 }
 
 const typedInvalidCases = [
@@ -276,7 +276,7 @@ const typedInvalidCases = [
   [marketXml.replace('</signal>', '<unknown>1</unknown></signal>'), /Unknown tag/],
 ];
 for (const [candidate, pattern] of typedInvalidCases) {
-  assert.throws(() => validateSignalXml(candidate, undefined, typedSelection), pattern);
+  assert.throws(() => validateSignalXml(candidate, typedSelection), pattern);
 }
 
 const rangeDefinition = standard();

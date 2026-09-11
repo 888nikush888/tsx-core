@@ -175,7 +175,7 @@ function testDecimalAndStrategyContracts() {
   invalidConfiguration(value => { value.allowedSignalSchemas = ['standard', 7]; }, /array of strings/);
   invalidConfiguration(value => { value.allowedSignalSchemas = ['standard', 'STANDARD']; }, /duplicates/);
   invalidConfiguration(value => { value.allowedSignalSchemas = ['bad schema']; }, /identifier/);
-  assert.throws(() => signalSchemaIdentifier(undefined), /identifier is invalid/);
+  assert.throws(() => signalSchemaIdentifier(), /identifier is invalid/);
   invalidConfiguration(value => { value.allowedSymbols = ['BTC-USDT']; }, /invalid normalized symbol/);
   invalidConfiguration(value => { value.allowedSides = []; }, /LONG and\/or SHORT/);
   invalidConfiguration(value => { value.entry.orderType = 'stop'; }, /market or limit/);
@@ -205,7 +205,7 @@ function testDecimalAndStrategyContracts() {
 
 function testSignalLeverageContracts() {
   const withoutLeverage = STANDARD_SIGNAL.replace('<leverage>3</leverage>\n', '');
-  assert.equal(validateSignalXml(withoutLeverage, 'default').execution.suggestedLeverage, undefined);
+  assert.equal(validateSignalXml(withoutLeverage, 'default').execution.suggestedLeverage);
   for (const leverage of [1, 125]) {
     const xml = STANDARD_SIGNAL.replace('<leverage>3</leverage>', `<leverage>${leverage}</leverage>`);
     assert.equal(validateSignalXml(xml, 'default').execution.suggestedLeverage, leverage);
