@@ -2,7 +2,7 @@
   "version": 1,
   "date": "2026-09-13",
   "baseline": "d72cf40",
-  "verifiedTree": "4f53e363d13682f7fdb085aef8616c5a00a6c431",
+  "verifiedTree": "cc1b3626445915927241d4596caae5dc1406cb1d",
   "scope": "24 DeepSource fixer heads plus one additional triage branch; not a claim of closed scanner findings",
   "branches": [
     {
@@ -671,15 +671,24 @@
     }
   ],
   "verification": {
-    "report": "fixer-reconciliation-verification-2026-09-13.md",
+    "report": "fixer-quality-verification-2026-09-13.md",
     "evidence": "fixer-reconciliation-evidence-2026-09-13.json",
-    "backend": "All 226 registry test files passed before final forwarding/HTTP/metrics restorations; all nine affected suites passed after those restorations. Full final CI coverage remains required.",
+    "backend": "All 226 registry test files passed with complete module coverage after the final additive metrics test. Unchanged coverage ratchet passed.",
     "python": "All 547 tests passed after independent Group C evidence renewal; no Python changes afterward.",
     "frontend": "All 321 tests in 38 files passed; no frontend source changes afterward.",
     "typecheck": "passed after final source restorations",
     "lint": "backend, frontend and Python passed",
     "build": "passed after final source restorations",
-    "ancestry": "All 25 frozen and re-fetched remote heads are ancestors of the combined revision."
+    "ancestry": "All 25 frozen and re-fetched remote heads are ancestors of the combined revision.",
+    "moduleCoverage": {
+      "statements": 96.48,
+      "lines": 96.48,
+      "branches": 86.44,
+      "functions": 99.2
+    },
+    "complexity": "Zero warnings and threshold violations; worst complexity 15, unchanged baseline.",
+    "snykCode": "85 current findings: 81 individually supported false positives, four separately accepted internal HTTP risks, zero unresolved for the reviewed final source. No bulk ignores.",
+    "localBranches": "Twenty older local branches checked; no missing product correction found."
   },
   "reviewDocuments": [
     "fixer-regex-independent-review-2026-09-11.md",
@@ -687,7 +696,10 @@
     "fixer-anonymous-callback-review-2026-09-13.md",
     "fixer-extraction-review-2026-09-13.md",
     "fixer-python-receipt-review-2026-09-13.md",
-    "fixer-group-c-renewal-verification-2026-09-13.md"
+    "fixer-group-c-renewal-verification-2026-09-13.md",
+    "fixer-complexity-independent-review-2026-09-13.md",
+    "fixer-metrics-coverage-review-2026-09-13.md",
+    "fixer-local-branch-completeness-2026-09-13.md"
   ],
   "dependencySetup": "Existing locked installation shared via junctions; not a clean installation check.",
   "remaining": [
@@ -707,5 +719,6 @@
     }
   },
   "integratedRevision": "47e61b932eee26aceea1d5a5a0cea185bacb327e",
-  "lastRemoteInventoryDate": "2026-09-13"
+  "lastRemoteInventoryDate": "2026-09-13",
+  "verifiedSourceRevision": "2f16fc25f9c248b20749cd0e1b24a650d8f94dde"
 }
