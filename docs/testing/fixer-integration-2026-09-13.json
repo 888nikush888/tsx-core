@@ -673,7 +673,7 @@
   "verification": {
     "frontend": "321 tests in 38 files passed",
     "build": "passed on 6c12e76; later changes only repair JavaScript test syntax",
-    "backend": "First run failed on malformed template-fixer test string. Corrected; full repeat running, reports/fixer-integration/node-tests-corrected.log. No full-suite pass claimed.",
+    "backend": "ALL 226 TEST FILES PASSED on 9079ddd; reports/fixer-integration/node-tests-corrected.log. Applies to 24-fixer integration, before triage reconciliation.",
     "python": "547 executed: 545 passed, 2 review-policy errors. Evidence hash drift: exchange_executor/tests/test_candidate_group_c_boundaries.py staticmethod change; independent review and receipt renewal pending.",
     "typecheck": "passed",
     "lint": "passed on 9079ddd"
