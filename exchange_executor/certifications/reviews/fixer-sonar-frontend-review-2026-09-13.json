@@ -1,0 +1,370 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-sonar-frontend-review",
+  "scanSnapshotRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+  "reviewedRevision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+  "entries": [
+    {
+      "key": "AaCaAplkQzi-Va3r5ZAx",
+      "rule": "typescript:S4624",
+      "reportedLine": 32,
+      "sonarHash": "cc27b72d9884776df42fa421f5d795a1",
+      "disposition": "source-fixed-awaiting-rescan",
+      "rationale": "Nested template replaced with one conditional string label. UiParameter constrains type to string and unit to string|null. All valid empty/nonempty unit outcomes retained; no API or permission path changed.",
+      "sourceBinding": {
+        "path": "frontend/src/features/operations/capabilities.tsx",
+        "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+        "gitBlobSha256": "4a8d6883136c1fba6f2ef05328f7fa32fd73a5ce24ff29b79df40d616064ff84",
+        "workingRawSha256": "fba996347ee31260e2f5bbf775635d0c1a90d00b1d58e107c42d43332254dd95",
+        "workingLfSha256": "bade72645c1f86b331cf02ebc56d5832dfdf95aa157988fb93cc7cf91529bc64",
+        "workingEqualsRevisionLf": false
+      },
+      "contextBindings": [
+        {
+          "path": "src/ui_contracts.ts",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "5ce33185d9c79c90802207e3efc752d1213fedfe0ecd02bc252ac9f735e9aa9d",
+          "workingRawSha256": "5ce33185d9c79c90802207e3efc752d1213fedfe0ecd02bc252ac9f735e9aa9d",
+          "workingLfSha256": "5ce33185d9c79c90802207e3efc752d1213fedfe0ecd02bc252ac9f735e9aa9d",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/tests/operator-directory-regressions.test.tsx",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "9a7afcda69263ef24296d824aee2587f4e01b2daf7abe4672c84139d06a2ab1e",
+          "workingRawSha256": "9a7afcda69263ef24296d824aee2587f4e01b2daf7abe4672c84139d06a2ab1e",
+          "workingLfSha256": "9a7afcda69263ef24296d824aee2587f4e01b2daf7abe4672c84139d06a2ab1e",
+          "workingEqualsRevisionLf": true
+        }
+      ]
+    },
+    {
+      "key": "AaCaApndQzi-Va3r5ZA3",
+      "rule": "typescript:S3776",
+      "reportedLine": 2248,
+      "sonarHash": "b64a4703e9db030a1b1493ab9bf202f9",
+      "disposition": "source-fixed-awaiting-rescan",
+      "rationale": "Extracted the unchanged synchronous candidate-node binding block. Existing-node lookup and missing-node error precede mutation; new-node branch keeps filter, ID generation, position and push order. Call remains after resource persistence/publishing and graph clone and before activateGraph. No promise boundary, read-only guard, HTTP payload, notice, or return behavior changed. Estimated caller cognitive reduction 17 to13; provider rescan still required.",
+      "sourceBinding": {
+        "path": "frontend/src/app/workflow/workflow-builder.tsx",
+        "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+        "gitBlobSha256": "48bf9d4325f9791978a313985540530ce69604e9f6543af678cbb465e90b9ae9",
+        "workingRawSha256": "d0d0bd036548967676647d7e0f790d30165068dc74b0bacc968dcffbda2e10ff",
+        "workingLfSha256": "1875110f9f67628fafe1a405e00f4cbd5c1b8881ff9be049cc812505e1e50157",
+        "workingEqualsRevisionLf": false
+      },
+      "contextBindings": [
+        {
+          "path": "frontend/tests/workflow-builder-resilience.test.tsx",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "01cffb6b590e6718dbf5e136ed117c914bafe74427bb73eaeb8425f3ae0598e2",
+          "workingRawSha256": "01cffb6b590e6718dbf5e136ed117c914bafe74427bb73eaeb8425f3ae0598e2",
+          "workingLfSha256": "01cffb6b590e6718dbf5e136ed117c914bafe74427bb73eaeb8425f3ae0598e2",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/tests/workflow-builder-history.test.tsx",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "7ef2776ff1d1288e3a6240edc827cc3c72184db13461e28f3ddfb78900b5c0dc",
+          "workingRawSha256": "7ef2776ff1d1288e3a6240edc827cc3c72184db13461e28f3ddfb78900b5c0dc",
+          "workingLfSha256": "7ef2776ff1d1288e3a6240edc827cc3c72184db13461e28f3ddfb78900b5c0dc",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/tests/workflow-resource-editor.test.tsx",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "847a6d5816b7111d70ac84bb552ed3594efc8a438d7b7c45f4d4cd3837e48f70",
+          "workingRawSha256": "847a6d5816b7111d70ac84bb552ed3594efc8a438d7b7c45f4d4cd3837e48f70",
+          "workingLfSha256": "847a6d5816b7111d70ac84bb552ed3594efc8a438d7b7c45f4d4cd3837e48f70",
+          "workingEqualsRevisionLf": true
+        }
+      ]
+    },
+    {
+      "key": "AaCaApnvQzi-Va3r5ZA4",
+      "rule": "typescript:S7758",
+      "reportedLine": 26,
+      "sonarHash": "c98fe4b28117877bdf5971dcc0482bd3",
+      "disposition": "false-positive-candidate-behavior-contract",
+      "rationale": "The hash deliberately consumes the first UTF-16 code unit of each spread Unicode character. It is deterministic layout selection, not character decoding. codePointAt changes supplementary-character offsets: emoji regression pins32 rather than24. Existing test also pins empty, ASCII and lone surrogate behavior. Changing this would perturb graph geometry without fixing a decoding defect.",
+      "sourceBinding": {
+        "path": "frontend/src/app/workflow/workflow-edge.tsx",
+        "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+        "gitBlobSha256": "016483ca83c02387a246632e26a72d0a8e1d13185e145671212e6109a7cfe0f9",
+        "workingRawSha256": "016483ca83c02387a246632e26a72d0a8e1d13185e145671212e6109a7cfe0f9",
+        "workingLfSha256": "016483ca83c02387a246632e26a72d0a8e1d13185e145671212e6109a7cfe0f9",
+        "workingEqualsRevisionLf": true
+      },
+      "contextBindings": [
+        {
+          "path": "frontend/tests/workflow-edge.test.ts",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "14fa8e32f1e70d80753347d7998ca4fae0dab10d9e498d32d00c0431b238a9fd",
+          "workingRawSha256": "14fa8e32f1e70d80753347d7998ca4fae0dab10d9e498d32d00c0431b238a9fd",
+          "workingLfSha256": "14fa8e32f1e70d80753347d7998ca4fae0dab10d9e498d32d00c0431b238a9fd",
+          "workingEqualsRevisionLf": true
+        }
+      ]
+    },
+    {
+      "key": "AaCaApmqQzi-Va3r5ZA2",
+      "rule": "typescript:S6551",
+      "reportedLine": 14,
+      "sonarHash": "2ac34fb449334e90674e5f1d6961d1c7",
+      "disposition": "open-bounded-display-robustness-review",
+      "rationale": "Null/boolean/React-element cases have explicit rendering contracts; remaining unknown values use String. Inspected callers normally select primitive database fields or construct React links/MoneyAmount, but generic rows and JSON response parsing do not exclude arbitrary objects. A plain object becomes [object Object]; therefore not a blanket false positive. No demonstrated exploit or current production object field is asserted. Safe follow-up needs an explicit object display contract (e.g. JSON vs unavailable) and caller checks; blindly applying generic valueText changes Dates/arrays and may expose nested values.",
+      "sourceBinding": {
+        "path": "frontend/src/shared/components/evidence.tsx",
+        "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+        "gitBlobSha256": "14f56733d051a7946db3b480f992aa70adc9758c275b9880fe1f462a4a33ce98",
+        "workingRawSha256": "14f56733d051a7946db3b480f992aa70adc9758c275b9880fe1f462a4a33ce98",
+        "workingLfSha256": "14f56733d051a7946db3b480f992aa70adc9758c275b9880fe1f462a4a33ce98",
+        "workingEqualsRevisionLf": true
+      },
+      "contextBindings": [
+        {
+          "path": "frontend/src/lib/api.ts",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingRawSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingLfSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/src/shared/value-text.ts",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "e0665d0d990332c7757c0325780c6f5764aac3d7d99b59b339ed10504f598655",
+          "workingRawSha256": "e0665d0d990332c7757c0325780c6f5764aac3d7d99b59b339ed10504f598655",
+          "workingLfSha256": "e0665d0d990332c7757c0325780c6f5764aac3d7d99b59b339ed10504f598655",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/src/features/trades/trade-relations.tsx",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "44a43c7cb677c0ea00a867d1b4bb22e4d0ed29b648ad93c8b68c2007eae1eb0f",
+          "workingRawSha256": "44a43c7cb677c0ea00a867d1b4bb22e4d0ed29b648ad93c8b68c2007eae1eb0f",
+          "workingLfSha256": "44a43c7cb677c0ea00a867d1b4bb22e4d0ed29b648ad93c8b68c2007eae1eb0f",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/src/features/risk-analytics/account-evidence.tsx",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "a0d1d818cac87a0f96511cb976538594d3ead080f191d3c822eed468c0fd08e1",
+          "workingRawSha256": "a0d1d818cac87a0f96511cb976538594d3ead080f191d3c822eed468c0fd08e1",
+          "workingLfSha256": "a0d1d818cac87a0f96511cb976538594d3ead080f191d3c822eed468c0fd08e1",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/src/features/operations/deployment.tsx",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "3cf426f057edb98c13764291026995fc6c18c5636c1f6c7ca7466c8a7a04d352",
+          "workingRawSha256": "3cf426f057edb98c13764291026995fc6c18c5636c1f6c7ca7466c8a7a04d352",
+          "workingLfSha256": "3cf426f057edb98c13764291026995fc6c18c5636c1f6c7ca7466c8a7a04d352",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/tests/runtime-evidence-regressions.test.tsx",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "f12a7cba350cd060f4fe8e2c29d71cd1a1975311b86dbca2f2f429ccc3575d5a",
+          "workingRawSha256": "f12a7cba350cd060f4fe8e2c29d71cd1a1975311b86dbca2f2f429ccc3575d5a",
+          "workingLfSha256": "f12a7cba350cd060f4fe8e2c29d71cd1a1975311b86dbca2f2f429ccc3575d5a",
+          "workingEqualsRevisionLf": true
+        }
+      ]
+    },
+    {
+      "key": "AaCaApl3Qzi-Va3r5ZAy",
+      "rule": "typescript:S6551",
+      "reportedLine": 55,
+      "sonarHash": "a85726bef802c3fd373e8506036ec872",
+      "disposition": "open-bounded-input-contract-review",
+      "rationale": "accountId is unknown, and validatedObservation validates numeric/time/currency/mode but not account identity. Plain object IDs stringify identically and can collapse distinct malformed observations into one account series. Same-origin API callers usually supply string identities, but jsonRequest has no response schema validation. This is a real malformed-input robustness gap, not proof of current backend corruption. Define accepted identity types before changing conversion; valid string and null aggregate behavior must remain.",
+      "sourceBinding": {
+        "path": "frontend/src/features/risk-analytics/equity-chart.tsx",
+        "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+        "gitBlobSha256": "5729a3d0b8c3130ad4112b90940fa3c9c4f3b0d3251c70e925aecf9e8993d0f5",
+        "workingRawSha256": "5729a3d0b8c3130ad4112b90940fa3c9c4f3b0d3251c70e925aecf9e8993d0f5",
+        "workingLfSha256": "5729a3d0b8c3130ad4112b90940fa3c9c4f3b0d3251c70e925aecf9e8993d0f5",
+        "workingEqualsRevisionLf": true
+      },
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/risk-analytics/analytics.tsx",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
+          "workingRawSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
+          "workingLfSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/src/lib/api.ts",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingRawSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingLfSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/tests/operations-panel-helpers.test.ts",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "c675f2fef82e2aa68c338f0dc76cb96817c90e5364a251eb5dbd1a61cfa34ec3",
+          "workingRawSha256": "c675f2fef82e2aa68c338f0dc76cb96817c90e5364a251eb5dbd1a61cfa34ec3",
+          "workingLfSha256": "c675f2fef82e2aa68c338f0dc76cb96817c90e5364a251eb5dbd1a61cfa34ec3",
+          "workingEqualsRevisionLf": true
+        }
+      ]
+    },
+    {
+      "key": "AaCaApl3Qzi-Va3r5ZAz",
+      "rule": "typescript:S6551",
+      "reportedLine": 61,
+      "sonarHash": "67831f6ff67bdfcb0693aef250c97305",
+      "disposition": "open-bounded-input-contract-review",
+      "rationale": "Account name is unknown and the caller forwards same-origin API accounts without runtime schema validation. Plain object name yields [object Object] in sort labels. Existing tests cover valid names and missing-name fallback, not object names. This is an unresolved display/input contract issue; rejecting invalid names or falling back to account ID is a targeted option, but silently serializing arbitrary objects would alter sort/display semantics.",
+      "sourceBinding": {
+        "path": "frontend/src/features/risk-analytics/equity-chart.tsx",
+        "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+        "gitBlobSha256": "5729a3d0b8c3130ad4112b90940fa3c9c4f3b0d3251c70e925aecf9e8993d0f5",
+        "workingRawSha256": "5729a3d0b8c3130ad4112b90940fa3c9c4f3b0d3251c70e925aecf9e8993d0f5",
+        "workingLfSha256": "5729a3d0b8c3130ad4112b90940fa3c9c4f3b0d3251c70e925aecf9e8993d0f5",
+        "workingEqualsRevisionLf": true
+      },
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/risk-analytics/analytics.tsx",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
+          "workingRawSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
+          "workingLfSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/src/lib/api.ts",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingRawSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingLfSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/tests/operations-panel-helpers.test.ts",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "c675f2fef82e2aa68c338f0dc76cb96817c90e5364a251eb5dbd1a61cfa34ec3",
+          "workingRawSha256": "c675f2fef82e2aa68c338f0dc76cb96817c90e5364a251eb5dbd1a61cfa34ec3",
+          "workingLfSha256": "c675f2fef82e2aa68c338f0dc76cb96817c90e5364a251eb5dbd1a61cfa34ec3",
+          "workingEqualsRevisionLf": true
+        }
+      ]
+    },
+    {
+      "key": "AaCaApl3Qzi-Va3r5ZA0",
+      "rule": "typescript:S6551",
+      "reportedLine": 62,
+      "sonarHash": "c65c76927f05bf3d8733f67ea64c6124",
+      "disposition": "open-bounded-input-contract-review",
+      "rationale": "Account name is unknown and the caller forwards same-origin API accounts without runtime schema validation. Plain object name yields [object Object] in sort labels. Existing tests cover valid names and missing-name fallback, not object names. This is an unresolved display/input contract issue; rejecting invalid names or falling back to account ID is a targeted option, but silently serializing arbitrary objects would alter sort/display semantics.",
+      "sourceBinding": {
+        "path": "frontend/src/features/risk-analytics/equity-chart.tsx",
+        "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+        "gitBlobSha256": "5729a3d0b8c3130ad4112b90940fa3c9c4f3b0d3251c70e925aecf9e8993d0f5",
+        "workingRawSha256": "5729a3d0b8c3130ad4112b90940fa3c9c4f3b0d3251c70e925aecf9e8993d0f5",
+        "workingLfSha256": "5729a3d0b8c3130ad4112b90940fa3c9c4f3b0d3251c70e925aecf9e8993d0f5",
+        "workingEqualsRevisionLf": true
+      },
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/risk-analytics/analytics.tsx",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
+          "workingRawSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
+          "workingLfSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/src/lib/api.ts",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingRawSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingLfSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/tests/operations-panel-helpers.test.ts",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "c675f2fef82e2aa68c338f0dc76cb96817c90e5364a251eb5dbd1a61cfa34ec3",
+          "workingRawSha256": "c675f2fef82e2aa68c338f0dc76cb96817c90e5364a251eb5dbd1a61cfa34ec3",
+          "workingLfSha256": "c675f2fef82e2aa68c338f0dc76cb96817c90e5364a251eb5dbd1a61cfa34ec3",
+          "workingEqualsRevisionLf": true
+        }
+      ]
+    },
+    {
+      "key": "AaCaApl3Qzi-Va3r5ZA1",
+      "rule": "typescript:S6551",
+      "reportedLine": 67,
+      "sonarHash": "722215a63288fc64340d154fa790a884",
+      "disposition": "open-bounded-input-contract-review",
+      "rationale": "Account name is unknown and the caller forwards same-origin API accounts without runtime schema validation. Plain object name yields [object Object] in legend/tooltip series name. Existing tests cover valid names and missing-name fallback, not object names. This is an unresolved display/input contract issue; rejecting invalid names or falling back to account ID is a targeted option, but silently serializing arbitrary objects would alter sort/display semantics.",
+      "sourceBinding": {
+        "path": "frontend/src/features/risk-analytics/equity-chart.tsx",
+        "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+        "gitBlobSha256": "5729a3d0b8c3130ad4112b90940fa3c9c4f3b0d3251c70e925aecf9e8993d0f5",
+        "workingRawSha256": "5729a3d0b8c3130ad4112b90940fa3c9c4f3b0d3251c70e925aecf9e8993d0f5",
+        "workingLfSha256": "5729a3d0b8c3130ad4112b90940fa3c9c4f3b0d3251c70e925aecf9e8993d0f5",
+        "workingEqualsRevisionLf": true
+      },
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/risk-analytics/analytics.tsx",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
+          "workingRawSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
+          "workingLfSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/src/lib/api.ts",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingRawSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingLfSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+          "workingEqualsRevisionLf": true
+        },
+        {
+          "path": "frontend/tests/operations-panel-helpers.test.ts",
+          "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+          "gitBlobSha256": "c675f2fef82e2aa68c338f0dc76cb96817c90e5364a251eb5dbd1a61cfa34ec3",
+          "workingRawSha256": "c675f2fef82e2aa68c338f0dc76cb96817c90e5364a251eb5dbd1a61cfa34ec3",
+          "workingLfSha256": "c675f2fef82e2aa68c338f0dc76cb96817c90e5364a251eb5dbd1a61cfa34ec3",
+          "workingEqualsRevisionLf": true
+        }
+      ]
+    }
+  ],
+  "changesOwned": [
+    "frontend/src/features/operations/capabilities.tsx",
+    "frontend/src/app/workflow/workflow-builder.tsx"
+  ],
+  "validation": [
+    {
+      "command": "frontend/node_modules/typescript/bin/tsc -b frontend",
+      "result": "PASS",
+      "compiler": "frontend TypeScript5.9.3 via Node22.23.2"
+    },
+    {
+      "command": "vitest run --configLoader runner --environment jsdom (seven named suites)",
+      "result": "7 suites,67 tests PASS",
+      "log": "reports/security-services/fixer-sonar-frontend-targeted.log",
+      "sha256": "5d63675a8b15a17dff80e579c633fd537817f75736da5bd99f0257c53ca552f7"
+    },
+    {
+      "command": "node reports/security-services/fixer-sonar-frontend-probe.cjs",
+      "result": "18 old/new graph branch comparisons and16 valid label comparisons PASS",
+      "limits": "isolated comparison does not replace API or browser integration tests"
+    }
+  ],
+  "limits": [
+    "No Sonar mutation, commit or push performed. Two source fixes still require scanner confirmation.",
+    "Only workflow-edge is an FP candidate; five stringification findings remain open pending explicit input/display contract review. No all-frontend-clean claim."
+  ]
+}

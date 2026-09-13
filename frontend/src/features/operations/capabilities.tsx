@@ -28,8 +28,9 @@ function ParameterEvidence({ entry }: Readonly<{ entry: UiParameter }>) {
     }
     return 'Original, Deployment oder feste Sicherheitsgrenze';
   };
+  const typeAndUnit = entry.unit ? `${entry.type} · ${entry.unit}` : entry.type;
   return <EvidenceFields fields={[
-          ['Typ und Einheit', `${entry.type}${entry.unit ? ` · ${entry.unit}` : ''}`], ['Grenzen', entry.constraints],
+          ['Typ und Einheit', typeAndUnit], ['Grenzen', entry.constraints],
           ['Vorlage / Default', entry.defaultPresent ? show(entry.default) : 'Kein Wert vorgegeben; Pflichtfeld oder bedingter Validatorstandard.'],
           ['Leer / null / 0', entry.emptyMeaning], ['Quelle', entry.source], ['Scope', entry.scope], ['Wirkung', entry.effect],
     ['Bearbeitung', editingContract()],

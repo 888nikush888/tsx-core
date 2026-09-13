@@ -1273,6 +1273,35 @@ async function persistGraphDraft(graph: WorkflowGraph, meta: any) {
   });
 }
 
+function bindSavedResourceToGraph(
+  candidate: WorkflowGraph,
+  selectedNode: WorkflowGraph["nodes"][number] | null,
+  resource: WorkflowResource,
+  editorKind: WorkflowGraph["nodes"][number]["kind"],
+): WorkflowGraph["nodes"][number] | null {
+  let addedNode: WorkflowGraph["nodes"][number] | null = null;
+  if (selectedNode) {
+    const node = candidate.nodes.find((item) => item.id === selectedNode.id);
+    if (!node) throw new Error('Der bearbeitete Knoten ist nicht mehr im aktuellen Entwurf. Graph neu laden und vergleichen.');
+    node.resourceVersionId = resource.id;
+  } else {
+    const sameColumn = candidate.nodes.filter(
+      (item) => item.kind === editorKind,
+    );
+    addedNode = {
+      id: newId("node"),
+      kind: editorKind,
+      resourceVersionId: resource.id,
+      position: {
+        x: KIND_META[editorKind].order * COLUMN_GAP,
+        y: sameColumn.length * 150,
+      },
+    };
+    candidate.nodes.push(addedNode);
+  }
+  return addedNode;
+}
+
 export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {}) {
   const readOnly = useOperatorReadOnly();
   const [draftMeta, setDraftMeta] = useState<any>(null);
@@ -2273,26 +2302,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
     );
     const resource = publishPayload.resource as WorkflowResource;
     const candidate = structuredClone(graphRef.current);
-    let addedNode: WorkflowGraph["nodes"][number] | null = null;
-    if (selectedNode) {
-      const node = candidate.nodes.find((item) => item.id === selectedNode.id);
-      if (!node) throw new Error('Der bearbeitete Knoten ist nicht mehr im aktuellen Entwurf. Graph neu laden und vergleichen.');
-      node.resourceVersionId = resource.id;
-    } else {
-      const sameColumn = candidate.nodes.filter(
-        (item) => item.kind === editorKind,
-      );
-      addedNode = {
-        id: newId("node"),
-        kind: editorKind,
-        resourceVersionId: resource.id,
-        position: {
-          x: KIND_META[editorKind].order * COLUMN_GAP,
-          y: sameColumn.length * 150,
-        },
-      };
-      candidate.nodes.push(addedNode);
-    }
+    const addedNode = bindSavedResourceToGraph(candidate, selectedNode, resource, editorKind);
     const activated = await activateGraph(
       candidate,
       base ? `${value.name} aktualisiert` : `${value.name} hinzugefügt`,

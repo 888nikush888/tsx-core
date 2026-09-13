@@ -1,4 +1,3 @@
-import type { ChannelRiskMode, WeakChannelAction } from './trading_types.js';
 import type { AccountRow, StrategyRow, SignalSchemaRow, ContractVersionRow, IntentRow, RuntimeRow } from './trading_repository_rows.js';
 import type { WorkflowResourceRow, WorkflowPathRow, WorkflowRevisionRow, LegacyWorkflowRouteRow, LegacyRiskPolicyRow, FallbackCurrentRow, FallbackNextRow, FallbackRunRow, FallbackCandidateViewRow } from './workflow_repository_rows.js';
 import { isStringMember, requireString } from './contract_values.js';
@@ -12,6 +11,8 @@ import { composeSignalSchemaContract } from './signal_contract.js';
 import { validateStrategyConfiguration } from './trading_strategy.js';
 import type { Config } from './config.js';
 import type {
+  ChannelRiskMode,
+  WeakChannelAction,
   ExecutableSignal,
   StrategyConfiguration,
   TradingIntent,
