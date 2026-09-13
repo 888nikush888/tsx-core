@@ -22,7 +22,7 @@ const SAMPLE_SIGNAL_WITH_XML_DECL = `<?xml version="1.0" encoding="UTF-8"?>
         <max>66710.87500000</max>
     </entry_range>
     <targets>
-        <target id="1">64739.12500000</target>`
+        <target id="1">64739.12500000</target>
         <target id="2">63753.25000000</target>
     </targets>
     <stoploss>67411.20656250</stoploss>
@@ -201,5 +201,4 @@ async function runTests() {
 await runTests().catch(err => {
   console.error('Test-Fehler:', err);
   process.exit(1);
-}
 });
