@@ -73,7 +73,9 @@ function resolveSecretFile(env: NodeJS.ProcessEnv, secretName: string): void {
   const secretPath = path.resolve(fileReference);
   assertSecretFileSize(secretPath, fileVariable);
   env[secretName] = readSecretLine(secretPath, fileVariable);
-  Reflect.deleteProperty(env, fileVariable);
+  if (!Reflect.deleteProperty(env, fileVariable)) {
+    throw new TypeError(`${fileVariable} could not be removed from the environment.`);
+  }
 }
 
 export function resolveSecretFiles(env: NodeJS.ProcessEnv = process.env): void {

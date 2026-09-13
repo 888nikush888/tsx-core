@@ -19,6 +19,16 @@ try {
   assert.equal(secretEnv.DASHBOARD_ADMIN_TOKEN, 'a'.repeat(64));
   assert.equal(secretEnv.DASHBOARD_ADMIN_TOKEN_FILE, undefined, 'Secret file reference must be consumed');
 
+  const retainedReferenceEnv = {};
+  Object.defineProperty(retainedReferenceEnv, 'DASHBOARD_ADMIN_TOKEN_FILE', {
+    value: secretPath, writable: true, enumerable: true, configurable: false,
+  });
+  assert.throws(() => resolveSecretFiles(retainedReferenceEnv), TypeError,
+    'A file reference that cannot be consumed must not report successful resolution');
+  assert.equal(retainedReferenceEnv.DASHBOARD_ADMIN_TOKEN_FILE, secretPath);
+  assert.equal(retainedReferenceEnv.DASHBOARD_ADMIN_TOKEN, 'a'.repeat(64),
+    'Preserve the existing order: the secret is assigned before reference removal is attempted');
+
   assert.throws(
     () => resolveSecretFiles({ OPENROUTER_API_KEY: 'direct', OPENROUTER_API_KEY_FILE: secretPath }),
     /cannot both be configured/
