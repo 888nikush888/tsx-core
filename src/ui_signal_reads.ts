@@ -20,7 +20,7 @@ const LISTS = {
   },
   outbox: {
     table: 'pending_tasks', clock: 'added_at', status: 'status',
-    fields: `id, type, chat_id AS channelId, message_id AS messageId, media_group_id AS albumId, status, attempts, last_error AS reason, added_at AS createdAt, updated_at AS updatedAt, completed_at AS completedAt, workflow_revision_id AS workflowRevisionId, ingress_work_id AS ingressWorkId, CASE WHEN json_valid(config_json) THEN CAST(json_extract(config_json, '$.durableIngress.targetChatId') AS TEXT) END AS targetChatId, CASE WHEN json_valid(result_json) THEN CASE WHEN json_extract(result_json, '$.acknowledged') = 1 THEN 'operator-acknowledged' ELSE json_extract(result_json, '$.mode') END END AS resultMode, CASE WHEN json_valid(result_json) THEN json_extract(result_json, '$.destinationMessageIds') END AS confirmedMessageIds`,
+    fields: "id, type, chat_id AS channelId, message_id AS messageId, media_group_id AS albumId, status, attempts, last_error AS reason, added_at AS createdAt, updated_at AS updatedAt, completed_at AS completedAt, workflow_revision_id AS workflowRevisionId, ingress_work_id AS ingressWorkId, CASE WHEN json_valid(config_json) THEN CAST(json_extract(config_json, '$.durableIngress.targetChatId') AS TEXT) END AS targetChatId, CASE WHEN json_valid(result_json) THEN CASE WHEN json_extract(result_json, '$.acknowledged') = 1 THEN 'operator-acknowledged' ELSE json_extract(result_json, '$.mode') END END AS resultMode, CASE WHEN json_valid(result_json) THEN json_extract(result_json, '$.destinationMessageIds') END AS confirmedMessageIds",
     states: ['pending', 'preparing', 'sending', 'completed', 'failed', 'unknown', 'needs_review'],
   },
 } as const;
@@ -44,7 +44,7 @@ function signalFilters(kind: UiSignalList, query: URLSearchParams) {
   return { status, channel, objectId, limit };
 }
 
-export async function uiSignalPage(kind: UiSignalList, query: URLSearchParams) {
+export async function uiSignalPage(kind: UiSignalList, query: URLSearchParams) {  
   const { status, channel, objectId, limit } = signalFilters(kind, query);
   const messageId = originalMessageFilter(query);
   const definition = LISTS[kind];

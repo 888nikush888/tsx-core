@@ -326,17 +326,14 @@ export async function hasUndispatchedPlanProof(intent: TradingIntent, allowAband
   const plan = undispatchedPlanShape(intent);
   if (!plan) return false;
   const account = await getDatabase().get<OrderIdentityAccount & { mode: string }>(
-    `SELECT id, exchange, mode, external_account_id AS externalAccountId, credential_generation AS credentialGeneration
-     FROM trading_accounts WHERE id = ? AND retired_at IS NULL`, [intent.accountId]);
+    'SELECT id, exchange, mode, external_account_id AS externalAccountId, credential_generation AS credentialGeneration FROM trading_accounts WHERE id = ? AND retired_at IS NULL', [intent.accountId]);
   if (account?.exchange !== intent.exchange || account.mode !== intent.mode) return false;
   const stored = await getDatabase().get<{ status: string; plan_json: string }>(
     'SELECT status, plan_json FROM trading_trade_intents WHERE id = ? AND account_id = ?', [intent.id, intent.accountId],
   );
   if (stored?.status !== intent.status || stored.plan_json !== JSON.stringify(intent.plan)) return false;
   const position = await getDatabase().get(
-    `SELECT id FROM trading_positions WHERE intent_id = ? AND account_id = ? AND status IN ('opening', 'emergency')
-     AND quantity = '0' AND average_entry_price IS NULL AND opened_at IS NULL AND closed_at IS NULL
-     AND (? = 1 OR emergency_requested_at IS NULL)`, [intent.id, intent.accountId, Number(allowAbandoned)],
+    "SELECT id FROM trading_positions WHERE intent_id = ? AND account_id = ? AND status IN ('opening', 'emergency') AND quantity = '0' AND average_entry_price IS NULL AND opened_at IS NULL AND closed_at IS NULL AND (? = 1 OR emergency_requested_at IS NULL)", [intent.id, intent.accountId, Number(allowAbandoned)],
   );
   if (!position) return false;
   const orders = await getDatabase().all<UnsubmittedOrder[]>(
@@ -350,7 +347,7 @@ export async function hasUndispatchedPlanProof(intent: TradingIntent, allowAband
   if (orders.length !== plan.orders.length) return false;
   const covered = new Set(operations.flatMap(operation => (JSON.parse(operation.expected_orders_json) as OperationOrder[]).map(order => order.client_order_id)));
   const filled = await getDatabase().get(
-    `SELECT fills.id FROM trading_fills AS fills JOIN trading_orders AS orders ON orders.id = fills.order_id WHERE orders.intent_id = ? LIMIT 1`, [intent.id],
+    'SELECT fills.id FROM trading_fills AS fills JOIN trading_orders AS orders ON orders.id = fills.order_id WHERE orders.intent_id = ? LIMIT 1', [intent.id],
   );
   return !filled && orders.every(order => unsubmittedOrderMatchesPlan(order, plan, covered));
 }

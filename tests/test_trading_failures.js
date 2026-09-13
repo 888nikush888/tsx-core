@@ -762,8 +762,7 @@ async function testTransientExecutorIncidentBlocksOnlyNewEntriesUntilReconciled(
   await assert.rejects(engine.reconcileAccount(account.id), /503/);
   assert.equal((await getTradingAccount(account.id)).killSwitchActive, false);
   const openIncident = await getDatabase().get(
-    `SELECT category, status FROM trading_account_incidents
-     WHERE account_id = ? AND status = 'open'`,
+    "SELECT category, status FROM trading_account_incidents\nWHERE account_id = ? AND status = 'open'",
     [account.id],
   );
   assert.deepEqual(openIncident, { category: 'reconciliation_transient', status: 'open' });

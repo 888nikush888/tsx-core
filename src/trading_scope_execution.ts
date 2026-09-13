@@ -51,7 +51,7 @@ function realExecution(fill: StoredExecution, order: ScopeOrder, account: Tradin
 export async function observedOrderExecutions(account: TradingAccount, order: ScopeOrder): Promise<{
   executions: RealExecution[]; proof: ObservedOrderExecutionSet;
 }> {
-  const fills = await getDatabase().all<StoredExecution[]>(`SELECT * FROM trading_fills WHERE account_id=? AND order_id=? ORDER BY exchange_fill_id LIMIT 201`,
+  const fills = await getDatabase().all<StoredExecution[]>('SELECT * FROM trading_fills WHERE account_id=? AND order_id=? ORDER BY exchange_fill_id LIMIT 201',
     [account.id, order.id]);
   const executions = fills.map(fill => realExecution(fill, order, account)).filter((value): value is RealExecution => value !== null);
   const proof: ObservedOrderExecutionSet = { orderId: order.exchange_order_id, status: 'not_proven',

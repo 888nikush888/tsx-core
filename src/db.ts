@@ -3061,14 +3061,14 @@ export async function withDatabaseDispatchFence<T>(verify: () => Promise<void>, 
 
 export async function getTotalForwardedCount(): Promise<number> {
   const row = await getDatabase().get<{ value: number }>(
-    `SELECT value FROM forwarding_stats WHERE key = 'total_forwarded_count'`
+    "SELECT value FROM forwarding_stats WHERE key = 'total_forwarded_count'"
   );
   return Number(row?.value || 0);
 }
 
 export async function getLastForwardedAt(): Promise<number | null> {
   const row = await getDb().get<{ value: number }>(
-    `SELECT value FROM forwarding_stats WHERE key = 'last_forwarded_at'`
+    "SELECT value FROM forwarding_stats WHERE key = 'last_forwarded_at'"
   );
   const value = Number(row?.value || 0);
   return Number.isSafeInteger(value) && value > 0 ? value : null;
@@ -3211,7 +3211,7 @@ export async function commitAiUsage(reservationId: string, allowance: number, ac
 
 export async function getAiUsage(usageDay: string): Promise<{ requestCount: number; usedTokens: number; reservedTokens: number }> {
   const row = await getDb().get<any>(
-    `SELECT request_count, used_tokens, reserved_tokens FROM ai_usage_daily WHERE usage_day = ?`,
+    'SELECT request_count, used_tokens, reserved_tokens FROM ai_usage_daily WHERE usage_day = ?',
     [usageDay]
   );
   return {
@@ -3231,8 +3231,8 @@ export async function getOutboxStatusCounts(): Promise<Record<OutboxStatus, numb
     unknown: 0,
     needs_review: 0
   };
-  const rows = await getDb().all<Array<{ status: OutboxStatus; count: number }>>(
-    `SELECT status, COUNT(*) AS count FROM pending_tasks GROUP BY status`
+  const rows = await getDb().all<Array<{ status: OutboxStatus; count: number }>>( 
+    'SELECT status, COUNT(*) AS count FROM pending_tasks GROUP BY status'
   );
   for (const row of rows) {
     if (row.status in counts) counts[row.status] = Number(row.count || 0);
@@ -3243,7 +3243,7 @@ export async function getOutboxStatusCounts(): Promise<Record<OutboxStatus, numb
 export async function getOldestPendingOutboxAgeSeconds(now = Date.now()): Promise<number> {
   if (!Number.isSafeInteger(now) || now < 0) throw new Error('Outbox age timestamp must be a non-negative safe integer.');
   const row = await getDb().get<{ oldest: number | null }>(
-    `SELECT MIN(added_at) AS oldest FROM pending_tasks WHERE status IN ('pending', 'preparing', 'sending')`
+    "SELECT MIN(added_at) AS oldest FROM pending_tasks WHERE status IN ('pending', 'preparing', 'sending')"
   );
   if (row?.oldest === null || row?.oldest === undefined) return 0;
   const oldest = Number(row.oldest);
@@ -3730,7 +3730,7 @@ export async function recoverInterruptedOutboxTasks(): Promise<{ requeued: numbe
 }
 
 export async function getOutboxTask(id: string): Promise<OutboxTask | null> {
-  const row = await getDb().get(`SELECT * FROM pending_tasks WHERE id = ?`, [id]);
+  const row = await getDb().get('SELECT * FROM pending_tasks WHERE id = ?', [id]);
   return row ? mapOutboxRow(row) : null;
 }
 
@@ -3739,13 +3739,11 @@ export async function listOutboxTasks(statuses?: OutboxStatus[], limit = 100): P
   let rows: any[];
   if (statuses && statuses.length > 0) {
     rows = await getDb().all(
-      `SELECT * FROM pending_tasks
-       WHERE status IN (SELECT value FROM json_each(?))
-       ORDER BY added_at ASC LIMIT ?`,
+      'SELECT * FROM pending_tasks WHERE status IN (SELECT value FROM json_each(?)) ORDER BY added_at ASC LIMIT ?',
       [JSON.stringify(statuses), safeLimit]
     );
   } else {
-    rows = await getDb().all(`SELECT * FROM pending_tasks ORDER BY added_at ASC LIMIT ?`, [safeLimit]);
+    rows = await getDb().all('SELECT * FROM pending_tasks ORDER BY added_at ASC LIMIT ?', [safeLimit]);
   }
   return rows.map(mapOutboxRow);
 }
@@ -3801,12 +3799,12 @@ export async function saveMediaGroupBuffer(groupId: string, fromChatId: string, 
 
 export async function removeMediaGroupBuffer(groupId: string): Promise<void> {
   const database = getDb();
-  await database.run(`DELETE FROM media_group_buffer WHERE group_id = ?`, [groupId]);
+  await database.run('DELETE FROM media_group_buffer WHERE group_id = ?', [groupId]);
 }
 
 export async function getMediaGroupBuffers(): Promise<Record<string, any>> {
   const database = getDb();
-  const rows = await database.all(`SELECT * FROM media_group_buffer`);
+  const rows = await database.all('SELECT * FROM media_group_buffer');
   const result: Record<string, any> = {};
   for (const r of rows) {
     result[r.group_id] = {
@@ -3842,7 +3840,7 @@ export async function updateIncomingMessageStatus(
 ): Promise<void> {
   const database = getDb();
   await database.run(
-    `UPDATE incoming_messages SET status = ? WHERE chat_id = ? AND message_id = ?`,
+    'UPDATE incoming_messages SET status = ? WHERE chat_id = ? AND message_id = ?',
     [status, chatId, messageId]
   );
 }
@@ -3850,7 +3848,7 @@ export async function updateIncomingMessageStatus(
 export async function getIncomingMessages(limit = 100): Promise<any[]> {
   const database = getDb();
   return await database.all(
-    `SELECT * FROM incoming_messages ORDER BY created_at DESC LIMIT ?`,
+    'SELECT * FROM incoming_messages ORDER BY created_at DESC LIMIT ?',
     [limit]
   );
 }
@@ -3858,7 +3856,7 @@ export async function getIncomingMessages(limit = 100): Promise<any[]> {
 export async function getProcessedSignals(limit = 100): Promise<any[]> {
   const database = getDb();
   return await database.all(
-    `SELECT * FROM signals ORDER BY created_at DESC LIMIT ?`,
+    'SELECT * FROM signals ORDER BY created_at DESC LIMIT ?',
     [limit]
   );
 }
@@ -3951,7 +3949,7 @@ export async function clearDb(): Promise<DatabaseClearResult> {
 
 export async function deleteIncomingMessage(id: number): Promise<void> {
   const database = getDb();
-  await database.run(`DELETE FROM incoming_messages WHERE id = ?`, [id]);
+  await database.run('DELETE FROM incoming_messages WHERE id = ?', [id]);
 }
 
 export class SignalReferencedError extends Error {
@@ -3971,7 +3969,7 @@ export function isForeignKeyConstraint(error: unknown): boolean {
 export async function deleteProcessedSignal(id: string): Promise<void> {
   const database = getDb();
   try {
-    await database.run(`DELETE FROM signals WHERE id = ?`, [id]);
+    await database.run('DELETE FROM signals WHERE id = ?', [id]);
   } catch (error) {
     if (isForeignKeyConstraint(error)) throw new SignalReferencedError();
     throw error;

@@ -273,7 +273,7 @@ export async function createSignalContractDraftVersion(
     );
     if (!sourceRow) throw new Error('Source signal contract version does not exist.');
     const existingDraft = await getDatabase().get(
-      `SELECT id FROM trading_signal_contract_versions WHERE contract_id = ? AND status = 'draft'`,
+      "SELECT id FROM trading_signal_contract_versions WHERE contract_id = ? AND status = 'draft'",
       [id],
     );
     if (existingDraft) throw new Error('Signal contract already has an editable draft version.');
@@ -285,10 +285,7 @@ export async function createSignalContractDraftVersion(
     const definition = contractVersionFromRow(sourceRow).definition;
     const versionId = `${id}:v${version}`;
     await getDatabase().run(
-      `INSERT INTO trading_signal_contract_versions (
-         id, contract_id, version, status, definition_json, definition_sha256,
-         created_at, published_at, archived_at
-       ) VALUES (?, ?, ?, 'draft', ?, ?, ?, NULL, NULL)`,
+      "INSERT INTO trading_signal_contract_versions ( id, contract_id, version, status, definition_json, definition_sha256, created_at, published_at, archived_at ) VALUES (?, ?, ?, 'draft', ?, ?, ?, NULL, NULL)",
       [versionId, id, version, JSON.stringify(definition), signalContractDefinitionSha256(definition), now],
     );
     return contractVersionFromRow(await getDatabase().get(
@@ -1055,7 +1052,7 @@ export async function getTradingOverview(): Promise<TradingOverview> {
       (SELECT COUNT(*) FROM trading_trade_intents WHERE status IN ('pending', 'planned', 'submitting', 'monitoring')) AS intents,
       (SELECT COUNT(*) FROM trading_orders WHERE status = 'unknown') AS unknown_orders`),
     getDatabase().get<{ latest: number | null }>(
-      `SELECT MAX(completed_at) AS latest FROM trading_reconciliation_runs WHERE status = 'succeeded'`,
+      "SELECT MAX(completed_at) AS latest FROM trading_reconciliation_runs WHERE status = 'succeeded'"
     ),
   ]);
   return {

@@ -76,7 +76,7 @@ try {
   const { before, event } = await fixture(valid, false);
   await initDb(valid);
   assert.deepEqual(await originals(getDatabase()), before, 'Migration40 preserves every local ID, original byte string, valuation, conflict and pending revision.');
-  assert.equal((await getDatabase().get("SELECT identity_status FROM trading_fills WHERE id='original-fill'")).identity_status, 'legacy_unresolved');
+  assert.equal((await getDatabase().get("SELECT identity_status FROM trading_fills WHERE id='original-fill'\")).identity_status, 'legacy_unresolved');
   assert.equal((await recordMoneyEvent({ ...event, source: 'new-transport', providerEventId: 'new-transport-label' })).id, 'original-money');
   assert.deepEqual((await originals(getDatabase())).money, before.money, 'Canonical fill replay preserves the legacy money original and ID.');
   await closeDb(); await initDb(valid);

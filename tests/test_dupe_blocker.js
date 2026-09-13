@@ -7,36 +7,11 @@ import path from 'path';
 import os from 'os';
 import { mkdtemp, rm } from 'fs/promises';
 
-const SAMPLE_SIGNAL_1 = `<signal>
-    <action>SHORT</action>
-    <pair>BTCUSDT</pair>
-    <entry_range>
-        <min>65700.00000000</min>
-        <max>66710.87500000</max>
-    </entry_range>
-    <targets>
-        <target id="1">64739.12500000</target>
-        <target id="2">63753.25000000</target>
-    </targets>
-    <stoploss>67411.20656250</stoploss>
-    <leverage>15</leverage>
-</signal>`;
+const SAMPLE_SIGNAL_1 = '<signal>\n    <action>SHORT</action>\n    <pair>BTCUSDT</pair>\n    <entry_range>\n        <min>65700.00000000</min>\n        <max>66710.87500000</max>\n    </entry_range>\n    <targets>\n        <target id="1">64739.12500000</target>\n        <target id="2">63753.25000000</target>\n    </targets>\n    <stoploss>67411.20656250</stoploss>\n    <leverage>15</leverage>\n</signal>';
 
 const SAMPLE_SIGNAL_1_DIFFERENT_WHITESPACE = "<signal><action>SHORT</action><pair>BTCUSDT</pair><entry_range><min>65700.00000000</min><max>66710.87500000</max></entry_range><targets><target id=\"1\">64739.12500000</target><target id=\"2\">63753.25000000</target></targets><stoploss>67411.20656250</stoploss><leverage>15</leverage></signal>";
 
-const SAMPLE_SIGNAL_2 = `<signal>
-    <action>LONG</action>
-    <pair>ETHUSDT</pair>
-    <entry_range>
-        <min>3500.00000000</min>
-        <max>3600.00000000</max>
-    </entry_range>
-    <targets>
-        <target id="1">3700.00000000</target>
-    </targets>
-    <stoploss>3400.00000000</stoploss>
-    <leverage>10</leverage>
-</signal>`;
+const SAMPLE_SIGNAL_2 = '<signal>\n    <action>LONG</action>\n    <pair>ETHUSDT</pair>\n    <entry_range>\n        <min>3500.00000000</min>\n        <max>3600.00000000</max>\n    </entry_range>\n    <targets>\n        <target id="1">3700.00000000</target>\n    </targets>\n    <stoploss>3400.00000000</stoploss>\n    <leverage>10</leverage>\n</signal>';
 
 const SAMPLE_SIGNAL_WITH_XML_DECL = `<?xml version="1.0" encoding="UTF-8"?>
 <signal>
@@ -47,7 +22,7 @@ const SAMPLE_SIGNAL_WITH_XML_DECL = `<?xml version="1.0" encoding="UTF-8"?>
         <max>66710.87500000</max>
     </entry_range>
     <targets>
-        <target id="1">64739.12500000</target>
+        <target id="1">64739.12500000</target>`
         <target id="2">63753.25000000</target>
     </targets>
     <stoploss>67411.20656250</stoploss>
@@ -226,4 +201,5 @@ async function runTests() {
 await runTests().catch(err => {
   console.error('Test-Fehler:', err);
   process.exit(1);
+}
 });
