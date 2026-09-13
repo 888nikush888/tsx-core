@@ -1,7 +1,8 @@
 # First scanner follow-up after fixer integration
 
 The 25-branch integration remains complete. This follow-up addresses four
-DeepSource JavaScript type findings and nine Python import findings without
+DeepSource JavaScript type findings, nine Python import findings and six redundant
+arguments in Promise test fixtures without
 changing runtime delivery or provider acceptance behavior.
 
 ## Current scanner evidence
@@ -23,6 +24,10 @@ Neither service is currently claimed clean.
 
 ## Changes and verification
 
+- Six individually reviewed calls to `Promise.resolve(undefined)` in three tests
+  now use `Promise.resolve()`. They still return a Promise fulfilled with the
+  missing-row value. All three affected tests pass. The eight separately reported
+  `assert.equal` calls retain their required `undefined` expected argument.
 - Delivery tracking now describes consumed optional Telegram fields explicitly
   and uses `unknown` for scalar payload values instead of four `any` annotations.
   No executable statement changed. Independent TypeScript 6.0.3 compilation to
@@ -39,7 +44,7 @@ Neither service is currently claimed clean.
   positives, four explicitly accepted internal HTTP risks, zero unresolved.
 
 No scanner rule, risk acceptance, provider authorization,
-implementation receipt or approval pin changed. These 13 DeepSource fixes still
+implementation receipt or approval pin changed. These 19 DeepSource fixes still
 require a scan of their published revision to confirm remote closure.
 
 A subsequent documentation-only change replaces 13 independently reviewed

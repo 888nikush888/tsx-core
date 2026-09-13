@@ -34,7 +34,7 @@ try {
   const originalGet = db.get;
   try {
     db.get = function (sql, ...parameters) {
-      if (sql === 'SELECT * FROM workflow_adaptive_risk_state WHERE state_key = ?') return Promise.resolve(undefined);
+      if (sql === 'SELECT * FROM workflow_adaptive_risk_state WHERE state_key = ?') return Promise.resolve();
       return originalGet.call(this, sql, ...parameters);
     };
     await assert.rejects(resolveWorkflowAdaptiveRisk(request), /state is missing after persistence/);
@@ -47,7 +47,7 @@ try {
   let reads = 0;
   try {
     db.get = function (sql, ...parameters) {
-      if (sql === 'SELECT * FROM workflow_adaptive_risk_state WHERE state_key = ?' && ++reads === 2) return Promise.resolve(undefined);
+      if (sql === 'SELECT * FROM workflow_adaptive_risk_state WHERE state_key = ?' && ++reads === 2) return Promise.resolve();
       return originalGet.call(this, sql, ...parameters);
     };
     await assert.rejects(resolveWorkflowAdaptiveRisk({ ...request,

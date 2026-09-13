@@ -1401,7 +1401,7 @@ async function testRepositoryReadbackGuards() {
   }
   try {
     database.get = function (sql, ...parameters) {
-      if (String(sql) === 'SELECT * FROM trading_strategy_versions WHERE id = ?') return Promise.resolve(undefined);
+      if (String(sql) === 'SELECT * FROM trading_strategy_versions WHERE id = ?') return Promise.resolve();
       return originalGet.call(this, sql, ...parameters);
     };
     await assert.rejects(updateTradingStrategyDraft(guarded.id, { name: 'Updated fixture', configuration: configuration() }), /Updated strategy version is missing/);
@@ -1411,7 +1411,7 @@ async function testRepositoryReadbackGuards() {
   let strategyReads = 0;
   try {
     database.get = function (sql, ...parameters) {
-      if (String(sql) === 'SELECT * FROM trading_strategy_versions WHERE id = ?' && ++strategyReads === 2) return Promise.resolve(undefined);
+      if (String(sql) === 'SELECT * FROM trading_strategy_versions WHERE id = ?' && ++strategyReads === 2) return Promise.resolve();
       return originalGet.call(this, sql, ...parameters);
     };
     await assert.rejects(publishTradingStrategyVersion(guarded.id), /Published strategy version is missing/);
@@ -1420,7 +1420,7 @@ async function testRepositoryReadbackGuards() {
   }
   try {
     database.get = function (sql, ...parameters) {
-      if (String(sql) === 'SELECT * FROM trading_strategy_versions WHERE id = ?') return Promise.resolve(undefined);
+      if (String(sql) === 'SELECT * FROM trading_strategy_versions WHERE id = ?') return Promise.resolve();
       return originalGet.call(this, sql, ...parameters);
     };
     await assert.rejects(archiveTradingStrategyVersion(guarded.id), /Archived strategy version is missing/);

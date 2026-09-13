@@ -52,7 +52,7 @@ try {
   try {
     database.get = function (sql, ...parameters) {
       if (String(sql) === 'SELECT id, created_at FROM workflow_signal_runs WHERE source_signal_id = ? AND workflow_revision_id = ?') {
-        return Promise.resolve(undefined);
+        return Promise.resolve();
       }
       return originalGet.call(this, sql, ...parameters);
     };
