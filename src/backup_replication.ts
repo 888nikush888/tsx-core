@@ -356,7 +356,7 @@ export class HttpsBackupReplicator implements BackupReplicator {
   private readonly minRetentionDays: number | undefined;
 
   constructor(private readonly options: HttpsBackupReplicatorOptions) {
-    validateUrlTemplate(options.urlTemplate, !!options.allowInsecureLoopback);
+    validateUrlTemplate(options.urlTemplate, Boolean(options.allowInsecureLoopback));
     if (!options.bearerToken || options.bearerToken.length < 32 || /[\r\n]/.test(options.bearerToken)) {
       throw new Error('BACKUP_OFFSITE_TOKEN must contain at least 32 characters without line breaks.');
     }
@@ -511,7 +511,7 @@ export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.en
   }
   const required = strictBoolean(env.BACKUP_OFFSITE_REQUIRED, enterprise);
   const values = [env.BACKUP_OFFSITE_URL_TEMPLATE, env.BACKUP_OFFSITE_TOKEN, env.BACKUP_ENCRYPTION_KEY];
-  const configured = values.some(value => !!value?.trim());
+  const configured = values.some(value => Boolean(value?.trim()));
   if (!configured && !required) return { required, replicator: null };
   if (values.some(value => !value?.trim())) {
     throw new Error('Off-site backup requires BACKUP_OFFSITE_URL_TEMPLATE, BACKUP_OFFSITE_TOKEN and BACKUP_ENCRYPTION_KEY.');

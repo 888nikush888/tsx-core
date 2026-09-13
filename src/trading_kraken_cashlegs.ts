@@ -8,7 +8,7 @@ import type { TradingAccount } from './trading_types.js';
 /** Existing own execution first. A ledger occurrence never creates a fill or an order identity. */
 export async function projectKrakenCashleg(account: TradingAccount, row: AccountLogRecord): Promise<void> {
   const related = await relatedKrakenOccurrences(account.id, account.externalAccountId!, [row]);
-  const executions = [...new Set(related.map(item => item.record.execution).filter((value): value is string => !!value))];
+  const executions = [...new Set(related.map(item => item.record.execution).filter((value): value is string => Boolean(value)))];
   if (!executions.length || executions.length > 1000) throw new KrakenCashlegError('missing_execution');
   const events = await getDatabase().all<Array<{ id: string; execution: string }>>(`SELECT event.id,fills.exchange_fill_id AS execution
     FROM trading_money_events event JOIN trading_fills fills ON fills.id=event.fill_id

@@ -51,7 +51,7 @@ function matchesHyperliquid(info: Record<string, any>, fill: ExchangeFill, ident
 function matchesKraken(info: Record<string, any>, fill: ExchangeFill, identity: ExchangeFillIdentity): boolean {
   return info.identitySource === 'kraken_history_execution_v3' && info.executionUid === fill.exchangeFillId
     && info.orderUid === fill.exchangeOrderId && info.tradeable === identity.providerMarketId
-    && typeof info.accountUid === 'string' && !!info.accountUid && info.executionTimestamp === fill.filledAt;
+    && typeof info.accountUid === 'string' && Boolean(info.accountUid) && info.executionTimestamp === fill.filledAt;
 }
 
 export function fillAccountFingerprint(account: Pick<TradingAccount, 'exchange' | 'mode' | 'id' | 'externalAccountId'>): string | null {
