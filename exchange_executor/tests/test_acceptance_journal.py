@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import ctypes
 import os
 import sqlite3
 import subprocess
@@ -16,6 +17,20 @@ from acceptance_fixtures import (
 )
 from acceptance_journal import AcceptanceJournal, JournalRefused
 from provider_acceptance_runner import AcceptanceGuard, AcceptanceRefused, journal_binding
+
+
+def windows_command_processor() -> Path:
+    system_directory = ctypes.WinDLL("kernel32", use_last_error=True).GetSystemDirectoryW
+    system_directory.argtypes = [ctypes.POINTER(ctypes.c_wchar), ctypes.c_uint]
+    system_directory.restype = ctypes.c_uint
+    buffer = ctypes.create_unicode_buffer(32768)
+    length = system_directory(buffer, len(buffer))
+    if length == 0 or length >= len(buffer):
+        raise OSError("Cannot resolve the Windows system directory for the junction fixture.")
+    command = Path(buffer.value) / "cmd.exe"
+    if not command.is_absolute() or not command.is_file():
+        raise OSError("Windows system command processor is unavailable.")
+    return command
 
 
 class AcceptanceJournalTests(unittest.TestCase):
@@ -319,7 +334,10 @@ class AcceptanceJournalTests(unittest.TestCase):
         target_directory = self.path.parent / "actual-directory"
         target_directory.mkdir()
         if os.name == "nt":
-            subprocess.run(["cmd", "/c", "mklink", "/J", str(alias_directory), str(target_directory)],
+            fixture_root = Path(self.directory.name).resolve(strict=True)
+            for fixture_path in (alias_directory, target_directory):
+                self.assertEqual(fixture_path.resolve().parent, fixture_root)
+            subprocess.run([str(windows_command_processor()), "/d", "/c", "mklink", "/J", str(alias_directory), str(target_directory)],
                            check=True, capture_output=True, timeout=10,
                            creationflags=subprocess.CREATE_NO_WINDOW)
         else:

@@ -38,7 +38,7 @@ Neither service is currently claimed clean.
   existing source-bound verifier passes unchanged: 81 individually reviewed false
   positives, four explicitly accepted internal HTTP risks, zero unresolved.
 
-No scanner rule, test threshold, risk acceptance, provider authorization,
+No scanner rule, risk acceptance, provider authorization,
 implementation receipt or approval pin changed. These 13 DeepSource fixes still
 require a scan of their published revision to confirm remote closure.
 
@@ -52,6 +52,27 @@ unchanged. These replacements are not new runtime fixes or evidence that the
 remote scanner has already closed the corresponding findings. The fourteenth
 introduced secret finding is a non-secret browser storage key identifier and
 remains a separately reviewed false-positive proposal.
+
+A separate Codacy finding exposed an unqualified Windows command-processor path
+in the journal junction test. The fixture now obtains the absolute system path
+from `GetSystemDirectoryW`, validates it and its temporary-directory arguments,
+and disables command-processor AutoRun. Its existing 28 acceptance tests pass on
+Windows, including actual junction creation. Spoofed PATH, ComSpec and SystemRoot
+values do not affect executable selection. The Unix symlink branch is unchanged.
+
+The c684aaf GitHub core job 103692702455 passed both complete 226-file Node runs,
+all 547 Python tests, build and static gates including monitoring. The CI merge
+commit and c684aaf have identical Git tree fec5f0e6a1591381b34f43f9c789d325c97e0155.
+All four browser and mutation jobs also passed. Module coverage was
+96.48/86.50/99.20/96.48 percent (statements/branches/functions/lines) on Linux and
+96.48/86.44/99.20/96.48 on Windows. An independent check approved raising the
+baseline to their componentwise minimum; no threshold was lowered. Linux used
+the CI clean dependency installation; Windows used the existing locked dependency
+installation and is not a new clean-install claim.
+
+The container job stopped at the implementation comparison before image checks.
+Its failure is retained as an open gate; the successful core tests do not replace
+it. A refreshed Sonar check and scans of the follow-up commits remain necessary.
 
 ## Evidence and remaining work
 

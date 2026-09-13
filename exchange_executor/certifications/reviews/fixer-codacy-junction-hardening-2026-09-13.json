@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "findingId": "e86951acdb98919a71b791ef7906baf2",
+  "baselineRevision": "cc306679b74e09d8e82c4ac8fccd04f3f9e0629a",
+  "path": "exchange_executor/tests/test_acceptance_journal.py",
+  "beforeGitBlobSha256": "d408c9b32ec06bf7e0b76f9015caa053bb0cb5261167ccff8b73e16b98dfe15f",
+  "afterSourceSha256": "fe9701c1ad7ccf5f89514c4f1bde27daa55872e35127b931f99f0afc1de29958",
+  "change": "Junction fixture invokes verified absolute cmd.exe obtained using Win32 GetSystemDirectoryW; no PATH search or ComSpec/SystemRoot trust. /d disables cmd AutoRun. CREATE_NO_WINDOW, bounded subprocess timeout, fixture arguments and Unix symlink branch remain intact. Before junction creation both resolved fixture paths are checked to be direct children of the TemporaryDirectory.",
+  "verification": {
+    "platform": "Windows",
+    "python": "3.12.14",
+    "resolvedCommandProcessor": "C:\\WINDOWS\\system32\\cmd.exe",
+    "environmentSpoofingCheck": "PATH, ComSpec and SystemRoot replaced within temporary mock environment; resolver still returned exact system executable.",
+    "existingSuites": [
+      "test_acceptance_journal",
+      "test_acceptance_journal_crash",
+      "test_provider_acceptance"
+    ],
+    "passed": 28,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "junctionTest": "test_real_hardlink_and_directory_aliases_are_refused executed on Windows and passed",
+    "logPath": "reports/security-services/fixer-codacy-junction-tests.log",
+    "logSha256": "e9defa0e0dc41a1f884b05725bf3110206cf983206b6576793d5dc4210cbe05b",
+    "ruff": "passed",
+    "diffCheck": "passed"
+  },
+  "limits": "No provider operations, source receipt/pin changes, commits or push. Source delta is confined to this test file. The trusted OS system executable is selected; this does not attest integrity of a compromised Windows installation. Codacy rescan remains required."
+}
