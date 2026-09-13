@@ -1,0 +1,983 @@
+{
+  "reviewedRevision": "bf1a5548639c0332fcf4c4a37f7fa4d68a734b18",
+  "priorReport": {
+    "path": "exchange_executor/certifications/reviews/snyk-code-backup-callback-review-2026-09-13.json",
+    "sha256": "6ddf9479549bf0be323d45075d42eccac206eed3ea18fd56cdc01a2aa280170e"
+  },
+  "scan": {
+    "path": "reports/security-services/fixer-env-runtime-final-snyk.sarif.json",
+    "sha256": "542df5a2a5965f06d7a82dc8a40c988ca90158154b5d556b76dde37eb67a1515",
+    "resultCount": 85,
+    "addedIds": [],
+    "removedIds": []
+  },
+  "executionEvidence": {
+    "path": "reports/security-services/fixer-env-runtime-final-snyk-execution.json",
+    "sha256": "eba548bbbd90fa2d34fe35764caa8c9f3f6beb8649a56ae30a5ec121aa32ab8d",
+    "revision": "bf1a5548639c0332fcf4c4a37f7fa4d68a734b18",
+    "scannerExit": 1,
+    "finishedAt": "2026-09-13T09:25:24.6575903Z"
+  },
+  "changedEntries": [
+    {
+      "findingId": "88fce105-6148-4b77-904c-f82f35a3d8d9",
+      "ruleId": "javascript/PT",
+      "path": "src/backup_cli.ts",
+      "line": 29,
+      "reviewedSourceSha256": "d0fd89cea0779ef15598a6d07d1ce7930ee2c9df815c71a2036ed0ef17c8fd7d",
+      "disposition": "false-positive",
+      "rationale": "Independently re-read changed env.secretFileReference and backup_cli loadEnv/restore call chain. Complete env delta replaces fileReference ? fileReference : null with fileReference || null. Both evaluate the same already-trimmed local env value once and yield that truthy value or null; file reads, operator-selected artifact/config/database destinations, lease acquisition and restore-plan paths are unchanged. No secret-file value or remote payload becomes a new restore target. The original local operator-authority PT rationale remains valid, including that statSync symlink handling is not claimed as a new confinement defense. Final env delta additionally checks Reflect.deleteProperty false and throws TypeError after secret assignment at historical strict-delete position. Independent red/green fixture and re-run confirm retained secret/reference with failure, not successful continuation. loadEnv cannot silently accept an undeletable reference; artifact/config/database path authority is unchanged. No atomicity claim.",
+      "contextPaths": [
+        {
+          "path": "src/backup.ts",
+          "sha256": "a23d7288132879e2daf137781ea5cb0aef966aae21e80153198729a7bd5f4c4e"
+        },
+        {
+          "path": "src/config.ts",
+          "sha256": "835d6fb83af653ea6d239170e451eaade10299fa7a9bbe6287c6f383f5ff0b53"
+        },
+        {
+          "path": "src/env.ts",
+          "sha256": "428af0810fc4b713e4c3cc013e33e3ae221fb04fe4a2c77a0d7a226009f3aa30"
+        },
+        {
+          "path": "src/mcp_maintenance.ts",
+          "sha256": "a5006fde7855214bd22049ee45131294c65f07d2d0afc94c22f491a6798c9ef6"
+        },
+        {
+          "path": "src/process_lock.ts",
+          "sha256": "6ac5512f4bd22e95333a379180bf7335cb31762f775a85e6718bc8741161e2e8"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/backup_cli.ts",
+          "line": 86
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 86
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 86
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 86
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 93
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 72
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 79
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 79
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 22
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 29
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 847
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 854
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 854
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 854
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 855
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 398
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 856
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 631
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 637
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 637
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 637
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 662
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 172
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 670
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 181
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 183
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 183
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 183
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 670
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 670
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 669
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 668
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 668
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 648
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 857
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 772
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 772
+        }
+      ],
+      "fingerprints": {
+        "0": "1090fda6bdb19a96f7c986fa79f7d3ea71f331bcd97b5c0da72bc061c67a0081",
+        "1": "227ff053.4773f344.c9330245.64cd0520.ef9f7d82.8020cfdf.83265159.0b329124.6bb676bb.b6e32c83.c9330245.64cd0520.3f452f8c.93224842.9852386e.83183368",
+        "snyk/asset/finding/v1": "88fce105-6148-4b77-904c-f82f35a3d8d9",
+        "identity": "88fce105-6148-4b77-904c-f82f35a3d8d9"
+      },
+      "evidenceSha256": "e1c14756a5b78da449d9d8c71dd913c6e453102e109000235a5d9d0c83eeae0e",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-backup-callback-review-2026-09-13.json",
+        "rationale": "Re-read the refactored run -> runDatabaseCommand -> restoreOfflineBackup path and the complete flagged restore-plan/rename chain. The artifact directory is explicitly selected by a local offline CLI operator. Database path comes from local FORWARDER_DB_PATH/default state directory; config path comes from local configuration path authority. Backup members do not choose these destinations: supported core names and strictly validated template segments are resolved within the artifact root, and manifest members, parents, hashes and staged copies are verified. The reported preserveTemplates rename uses plan.templates.target and a generated pre-restore suffix; that target is operational templates configuration, not the artifact argument. A real process owner and maintenance lease are acquired and quiesced, with scope/activity revalidation before rename. Local restore intentionally reads the selected artifact and installs into configured state. There is no untrusted remote path selector or member-controlled rename destination in this reported flow.",
+        "evidenceSha256": "e1c14756a5b78da449d9d8c71dd913c6e453102e109000235a5d9d0c83eeae0e"
+      },
+      "changedBindings": [
+        {
+          "path": "src/env.ts",
+          "oldSha256": "16179827f026d45b47abf9686279fe133d00f3c7f908dccec905cf857e32dbe7",
+          "newSha256": "428af0810fc4b713e4c3cc013e33e3ae221fb04fe4a2c77a0d7a226009f3aa30"
+        }
+      ],
+      "flowChanged": false
+    },
+    {
+      "findingId": "164aa45d-3766-4932-9dd7-4f2729603758",
+      "ruleId": "javascript/PT",
+      "path": "src/signal_parser.ts",
+      "line": 596,
+      "reviewedSourceSha256": "606910e2de5b08cf5925a12909500027b9ec1bbebbd408710c4fee47a9ceb515",
+      "disposition": "false-positive",
+      "rationale": "Re-read the entire current isMain/argv/runCli block: block-local filePath still comes exclusively from local --file argument, readFile now at line596, while exported parser input is messageText. Complete source delta extracts retry classification/delay into nextAttemptDelay: nonretryable still throws original error, exhausted attempts return null, zero delay remains a real awaited delay, logging stays before abortableDelay and lastError assignment stays in catch. The helper creates no filesystem selector and CLI branch itself is unchanged after ten-line shift. No remote signal path reaches filePath; intended local operator file read remains a false-positive for this exact trace. Exact parser source is identical to independently reviewed e3a5857; fresh final SARIF identity, path and flow rechecked.",
+      "contextPaths": [
+        {
+          "path": "package.json",
+          "sha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/signal_parser.ts",
+          "line": 580
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 580
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 580
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 580
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 580
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 589
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 589
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 589
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 589
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 596
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 596
+        }
+      ],
+      "fingerprints": {
+        "0": "819a9b88783967716f6bfb699b9ed0c83383f4489f75ecc90d9e56ef6ceef483",
+        "1": "c3f8dfad.4773f344.c9330245.d7919eeb.ef9f7d82.8020cfdf.e2ef5c06.ae94f388.c3f8dfad.b6e32c83.c9330245.cdaeacef.3f452f8c.8f47a30e.5c2e6593.83183368",
+        "snyk/asset/finding/v1": "164aa45d-3766-4932-9dd7-4f2729603758",
+        "identity": "164aa45d-3766-4932-9dd7-4f2729603758"
+      },
+      "evidenceSha256": "697e13c2fd0166a0ce0788c0358192a8b460e07e0f6efd7ec0038a5e8431bc11",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-backup-callback-review-2026-09-13.json",
+        "rationale": "Re-read the current signal_parser isMain gate and entire argument parsing/runCli branch. filePath is a block-local variable assigned exclusively from the explicitly supplied local --file argument. runCli reads that file as its intended input; messageText received through the exported parser functions does not set filePath or enter this CLI branch. There is no service or remote-signal path selector in the reported flow. Package entry points do not turn the CLI into a privileged remote file-reading operation. Restricting this operator-selected input to an arbitrary directory would alter intended CLI functionality without addressing a demonstrated trust-boundary crossing.",
+        "evidenceSha256": "3a78cc56f5f7181f59a545c86d1b0a2e182b82e456ba5f3e199a9c7d136b475c"
+      },
+      "changedBindings": [
+        {
+          "path": "src/signal_parser.ts",
+          "oldSha256": "2e7206529e201d670786b019a5862826cd039274a14f4f79e9c2be178df950d5",
+          "newSha256": "606910e2de5b08cf5925a12909500027b9ec1bbebbd408710c4fee47a9ceb515"
+        }
+      ],
+      "flowChanged": true
+    },
+    {
+      "findingId": "15b62184-5d10-4c9f-8c45-36cebd259223",
+      "ruleId": "javascript/HttpToHttps",
+      "path": "src/alert_relay.ts",
+      "line": 174,
+      "reviewedSourceSha256": "b0fa3a8b814445094bc1b1de4a72cb6ea1c91d859f126da667ec6f642b051725",
+      "disposition": "open",
+      "rationale": "Re-read createAlertRelay HTTP listener, loopback default and applyManagedRuntimeSettings caller. The changed bound runtime_settings file only restores TypeError when an empty-value environment property cannot be deleted in ManagedRuntimeSettingsStore.applyToEnvironment. Alert relay imports validateRuntimeSettings and reads a configured settings file; that validator and webhook URL rules are unchanged. No listener, incoming token requirement, outbound HTTPS setting or internal transport scope changes. Actual plaintext risk remains OPEN under the unchanged owner record; expiry is not extended.",
+      "contextPaths": [
+        {
+          "path": "config/runtime-settings.json",
+          "sha256": "f9967bbcc742463e571b866555e7518f0983dd5ea2d9d70c6f84b7d5b223c4b1"
+        },
+        {
+          "path": "src/runtime_settings.ts",
+          "sha256": "76658832bfaee560614f3e5b1d20048344740e3098e1a30b130dd90968e50b34"
+        },
+        {
+          "path": "docker-compose.monitoring.yml",
+          "sha256": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be"
+        },
+        {
+          "path": "monitoring/alertmanager.yml",
+          "sha256": "e047d6db783d3b3768dd53fd5d64101a8fd1a617f501ef80d69e9b0e3788e341"
+        },
+        {
+          "path": "docs/PRODUCTION_GUIDE.md",
+          "sha256": "08bf60bab34a23a9458f0fab8909646427dba756c3a6732a068fcf4e97ef5363"
+        },
+        {
+          "path": "tests/test_alert_relay.js",
+          "sha256": "a25a4d351da79220b4f6df16172bf8f6f3e3f825a6de9990c08a5547695b10ea"
+        },
+        {
+          "path": "docs/risk-acceptances/RA-2026-09-08-internal-http.md",
+          "sha256": "7b5076bdd1d9e4dd40ddf44d5096310f0fd0ccb6466c32a602a48d68b76634ff"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/alert_relay.ts",
+          "line": 174
+        }
+      ],
+      "fingerprints": {
+        "0": "c0a5d8c086e8826c0dadf0c0e6c7ee55da973d1dfa75b360b56f5f4a1c4feac4",
+        "1": "aac70831.4773f344.8b18f948.c559ebce.ac82cb7b.6f0d36d4.81cad6bb.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.81cad6bb.89d75565",
+        "identity": "15b62184-5d10-4c9f-8c45-36cebd259223",
+        "snyk/asset/finding/v1": "15b62184-5d10-4c9f-8c45-36cebd259223"
+      },
+      "evidenceSha256": "f87ff93f5d2119b9859d5d54c276899ee94fd8a8aa0f8de85dd8a33c3116902e",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-backup-callback-review-2026-09-13.json",
+        "rationale": "Actual plaintext HTTP remains at createAlertRelay line 174. Incoming POST /alerts still requires a length-checked constant-time Bearer match before delivery; /healthz exposes only alive status. startAlertRelay and environment startup default to loopback. Compose explicitly binds inside its network on 0.0.0.0 but publishes no relay host port; Alertmanager calls http://alert-relay:9095/alerts using its mounted credentials file. Outgoing production webhook still requires HTTPS. Changes since wave8 strengthen unknown payload validation and do not widen transport or authentication. Current source and single-location flow were re-read rather than inheriting the old source hash. Internal payload and credentials remain cleartext: open, covered only by the separate unchanged acceptance.",
+        "evidenceSha256": "f87ff93f5d2119b9859d5d54c276899ee94fd8a8aa0f8de85dd8a33c3116902e"
+      },
+      "changedBindings": [
+        {
+          "path": "src/runtime_settings.ts",
+          "oldSha256": "909dc9f3c65963d694f4b4317497b8e701feacc767531202391bf81e7ccf883b",
+          "newSha256": "76658832bfaee560614f3e5b1d20048344740e3098e1a30b130dd90968e50b34"
+        }
+      ],
+      "flowChanged": false
+    },
+    {
+      "findingId": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+      "ruleId": "javascript/HttpToHttps",
+      "path": "src/web_server.ts",
+      "line": 3258,
+      "reviewedSourceSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653",
+      "disposition": "open",
+      "rationale": "Re-read web listener and managed runtime application context. Final runtime_settings change preserves ordered mapping writes but throws TypeError on false deletion before publishing active snapshot; the new fixture confirms retained origin and active null. It does not add an HTTP listener or alter default bind, proxy/auth policy or existing accepted internal transport scope. Prior successful ordinary environment application remains unchanged. Actual HTTP remains OPEN, accepted solely by the unchanged owner record; partial earlier env writes remain possible as historically, not claimed atomic.",
+      "contextPaths": [
+        {
+          "path": "src/forwarder.ts",
+          "sha256": "71537e7d74b2b9d9ea00176b16779e90cbceb79628676cf7008cf22bfa31c62c"
+        },
+        {
+          "path": "src/dashboard_auth.ts",
+          "sha256": "a9ed5eb9bbc7b1f3d021ae9bfd601ac67df25fea88a6f3fc6b0b8a22650badf5"
+        },
+        {
+          "path": "src/runtime_settings.ts",
+          "sha256": "76658832bfaee560614f3e5b1d20048344740e3098e1a30b130dd90968e50b34"
+        },
+        {
+          "path": "src/secure_compare.ts",
+          "sha256": "8877e8301e78dc68392bb1d026a88c61babadd854b85b741c8329e3940b50313"
+        },
+        {
+          "path": "config/runtime-settings.json",
+          "sha256": "f9967bbcc742463e571b866555e7518f0983dd5ea2d9d70c6f84b7d5b223c4b1"
+        },
+        {
+          "path": "docker-compose.yml",
+          "sha256": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642"
+        },
+        {
+          "path": "docs/PRODUCTION_GUIDE.md",
+          "sha256": "08bf60bab34a23a9458f0fab8909646427dba756c3a6732a068fcf4e97ef5363"
+        },
+        {
+          "path": "tests/test_web_server.js",
+          "sha256": "785f92778ea758bd28e9db59ec5b36d5143053c5e05d82b5d51a06fe19f1c616"
+        },
+        {
+          "path": "docs/risk-acceptances/RA-2026-09-08-internal-http.md",
+          "sha256": "7b5076bdd1d9e4dd40ddf44d5096310f0fd0ccb6466c32a602a48d68b76634ff"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/web_server.ts",
+          "line": 3258
+        }
+      ],
+      "fingerprints": {
+        "0": "5c90026f6c6f58b249cb188f22517e93b56ff24ab8a00e58ac80295dd30e33e5",
+        "1": "aac70831.4773f344.607187b5.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.cd61fc56.89d75565",
+        "identity": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+        "snyk/asset/finding/v1": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59"
+      },
+      "evidenceSha256": "468d657d92e426174f71f7b869a468c37b573643d10b59c15e8f6221357a9e1b",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-backup-callback-review-2026-09-13.json",
+        "rationale": "Re-read startWebServer createServer at current line 3258 and default WEB_HOST-or-127.0.0.1 listener. Complete committed delta adds fifteen lines of deferred backup helpers and replaces only their three callers; listener, auth dispatch and forwarder/Compose/proxy context remain unchanged. Current fingerprint and flow shift by fifteen lines with no new transport endpoint. Actual internal HTTP risk remains OPEN under the exact existing owner acceptance, with no scope or expiry extension. Helper checks alter only late unavailable-job diagnostics, not the listener or transport protection.",
+        "evidenceSha256": "468d657d92e426174f71f7b869a468c37b573643d10b59c15e8f6221357a9e1b"
+      },
+      "changedBindings": [
+        {
+          "path": "src/runtime_settings.ts",
+          "oldSha256": "909dc9f3c65963d694f4b4317497b8e701feacc767531202391bf81e7ccf883b",
+          "newSha256": "76658832bfaee560614f3e5b1d20048344740e3098e1a30b130dd90968e50b34"
+        }
+      ],
+      "changedFlow": true,
+      "flowChanged": false
+    }
+  ],
+  "unchangedIds": [
+    "2450255f-e697-4aae-ae63-736ad651be82",
+    "98bcc36f-5e43-4d4b-9dc9-2b23b5bb5b77",
+    "ca8d4075-1f15-40f9-9432-667e0a033660",
+    "142dd478-3551-4536-9562-b365bf50d287",
+    "9c50b436-5043-4541-a5c5-14a432cae733",
+    "6914aa0e-59d7-4481-9e11-2f13f86d60f4",
+    "497d44e9-fe5f-4767-a66f-325c51e5dc95",
+    "9886fba1-1186-4e41-b1fa-6a6877440237",
+    "bc179edb-989f-4eee-b6f0-4e0403e76fa0",
+    "436da650-a34e-44b8-a133-bdad1b5788d7",
+    "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+    "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+    "4763ab6d-7279-4288-a467-5dbccf673f01",
+    "8c0f552c-7615-4368-8f6a-6689679b611c",
+    "32304334-8c66-4f4a-b4fa-26033d0ab225",
+    "eebfa362-b2bf-4b0f-a9a3-4199084f5f44",
+    "6747340c-e7a2-460b-87c7-e2e6c3802226",
+    "a3737d56-de9a-41e7-b30b-fb374b214f91",
+    "a1ed4a9a-f08f-4f3b-b73b-87630d94a0c9",
+    "9b50cbda-ded3-4582-a09b-87e659bcbca8",
+    "efe2fbab-8939-42b3-acf3-d6f219f541f4",
+    "3fd501f8-60d2-4533-84c1-0f8135a93b85",
+    "aee14560-3ac3-41fd-9b53-37a838268421",
+    "55b8a65d-ce8d-4e3d-9039-678277b8ee68",
+    "06e9dbdb-8290-450a-95cc-25b789bcdde2",
+    "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4",
+    "e6282f6d-4f71-47ff-befa-7369873e4557",
+    "1498a7a1-5346-49c7-b0b0-52ec594b5b0c",
+    "e0d3690e-5911-4fa5-96ab-c0893d808e7f",
+    "33137bb2-42a6-4b20-8cfb-c4a953d91b6e",
+    "95e532db-4651-47f3-b9da-40e0da5e0fcc",
+    "4d819ebc-b7ba-4de3-a71e-5daea6c942e7",
+    "82e95abb-7def-48e9-9e03-f12ddb87396e",
+    "68016b09-7ac9-40c1-8640-8412bc77d91e",
+    "f1107dfb-8004-470e-ae80-5b3230735eea",
+    "67212bb4-5c74-4ec1-a6f6-6404626cdc02",
+    "68a1f53d-6f82-4221-baf2-f9f213aab9f2",
+    "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737",
+    "9481f398-aa6b-4990-a250-a4ef4297442e",
+    "3aa7677b-1f71-466e-9cd9-f08e3382c0c0",
+    "75e4084d-676d-47b5-a497-7b0b5d3a6d2c",
+    "86777f7f-c030-435e-9086-f29fcbffcb58",
+    "35c81c03-fadd-4a16-a0e3-8e81108e18c4",
+    "d2853e9a-03af-4436-8200-1c45936744c5",
+    "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee",
+    "d1163842-b198-4156-ab79-efd0cd8da57d",
+    "2585237f-36d5-4607-9e5c-3f4b73b518da",
+    "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8",
+    "0b078f4b-85ab-487e-8951-7a4f6ec03335",
+    "d3f09f66-f994-4652-86bf-651b0262e797",
+    "f62614bc-117e-48c1-8267-e866c507367a",
+    "d724e3e9-b7ca-4eec-ac14-037f58090f2a",
+    "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14",
+    "367a2dd3-ef73-4e71-8066-f992a958af8a",
+    "24d61af9-11c9-4687-9dff-3e2b1b30670d",
+    "5da511d6-c50f-42ce-a617-e5650025b7c2",
+    "703c021a-6966-44a3-a93c-1405ac1a891b",
+    "285f0b22-9dea-413f-b89e-1d183d4f1f84",
+    "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34",
+    "2e366098-cb83-4d7f-961a-1fea7a162a44",
+    "62138ff6-d19f-4588-80f1-62274219af01",
+    "661f9264-b2a0-4f46-8f75-c629b1c80f36",
+    "40ffaf95-f7bb-43b9-a3d7-2e1edf90464c",
+    "70cd754b-0fc7-4cc2-b484-1e2c90036277",
+    "34a2fb72-f24d-4687-b513-e791a4ab2632",
+    "3823fd00-85ed-47e6-b085-8b3b2655febc",
+    "d75bc03c-19a7-4475-809c-525e9240e836",
+    "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+    "bd4b655d-7094-41a4-8532-ca8faca295a0",
+    "0e0cc32d-e62a-494f-b96a-0871ca8206b0",
+    "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb",
+    "dbeab5ab-3bb3-4484-b2a3-3d56187dd885",
+    "a42d6e8a-142f-4310-951e-4781a06c3fa5",
+    "c18a03f4-6ea4-45f2-8cc7-2f2e45325bbf",
+    "38bece03-53dc-4566-a862-e4d59a573c82",
+    "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
+    "4494650c-4f77-4efc-9956-2a491467ddaf",
+    "4bd5af47-516b-4885-9a70-71b7fa515f95",
+    "ce402f84-0ed8-4cb8-9f26-60e05779e11f",
+    "8bf5572e-a361-4a6c-b7e6-54793f17bcc0",
+    "7039073d-34a6-4901-9897-4c0a40ca7b0a"
+  ],
+  "committedBindingChecks": 182,
+  "verification": {
+    "resultCount": 85,
+    "reviewedFalsePositives": 81,
+    "acceptedRisks": 4,
+    "remaining": 0,
+    "disposition": "clean",
+    "findings": [
+      {
+        "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
+        "ruleId": "javascript/DOMXSS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "98bcc36f-5e43-4d4b-9dc9-2b23b5bb5b77",
+        "ruleId": "javascript/HardcodedNonCryptoSecret",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "88fce105-6148-4b77-904c-f82f35a3d8d9",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "164aa45d-3766-4932-9dd7-4f2729603758",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "142dd478-3551-4536-9562-b365bf50d287",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9c50b436-5043-4541-a5c5-14a432cae733",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "6914aa0e-59d7-4481-9e11-2f13f86d60f4",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "497d44e9-fe5f-4767-a66f-325c51e5dc95",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9886fba1-1186-4e41-b1fa-6a6877440237",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "bc179edb-989f-4eee-b6f0-4e0403e76fa0",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "436da650-a34e-44b8-a133-bdad1b5788d7",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+        "ruleId": "javascript/Sqli/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+        "ruleId": "javascript/Sqli/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4763ab6d-7279-4288-a467-5dbccf673f01",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "8c0f552c-7615-4368-8f6a-6689679b611c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "32304334-8c66-4f4a-b4fa-26033d0ab225",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "6747340c-e7a2-460b-87c7-e2e6c3802226",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a3737d56-de9a-41e7-b30b-fb374b214f91",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a1ed4a9a-f08f-4f3b-b73b-87630d94a0c9",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9b50cbda-ded3-4582-a09b-87e659bcbca8",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "efe2fbab-8939-42b3-acf3-d6f219f541f4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3fd501f8-60d2-4533-84c1-0f8135a93b85",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "aee14560-3ac3-41fd-9b53-37a838268421",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "55b8a65d-ce8d-4e3d-9039-678277b8ee68",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "06e9dbdb-8290-450a-95cc-25b789bcdde2",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "e6282f6d-4f71-47ff-befa-7369873e4557",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "1498a7a1-5346-49c7-b0b0-52ec594b5b0c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "e0d3690e-5911-4fa5-96ab-c0893d808e7f",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "95e532db-4651-47f3-b9da-40e0da5e0fcc",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4d819ebc-b7ba-4de3-a71e-5daea6c942e7",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "82e95abb-7def-48e9-9e03-f12ddb87396e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "68016b09-7ac9-40c1-8640-8412bc77d91e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f1107dfb-8004-470e-ae80-5b3230735eea",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "67212bb4-5c74-4ec1-a6f6-6404626cdc02",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "68a1f53d-6f82-4221-baf2-f9f213aab9f2",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9481f398-aa6b-4990-a250-a4ef4297442e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "75e4084d-676d-47b5-a497-7b0b5d3a6d2c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "86777f7f-c030-435e-9086-f29fcbffcb58",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "35c81c03-fadd-4a16-a0e3-8e81108e18c4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d2853e9a-03af-4436-8200-1c45936744c5",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d1163842-b198-4156-ab79-efd0cd8da57d",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "2585237f-36d5-4607-9e5c-3f4b73b518da",
+        "ruleId": "javascript/XSS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8",
+        "ruleId": "javascript/XSS/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0b078f4b-85ab-487e-8951-7a4f6ec03335",
+        "ruleId": "javascript/reDOS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d3f09f66-f994-4652-86bf-651b0262e797",
+        "ruleId": "javascript/reDOS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f62614bc-117e-48c1-8267-e866c507367a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d724e3e9-b7ca-4eec-ac14-037f58090f2a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "367a2dd3-ef73-4e71-8066-f992a958af8a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "24d61af9-11c9-4687-9dff-3e2b1b30670d",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "5da511d6-c50f-42ce-a617-e5650025b7c2",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "703c021a-6966-44a3-a93c-1405ac1a891b",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "285f0b22-9dea-413f-b89e-1d183d4f1f84",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "2e366098-cb83-4d7f-961a-1fea7a162a44",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "62138ff6-d19f-4588-80f1-62274219af01",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "661f9264-b2a0-4f46-8f75-c629b1c80f36",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "40ffaf95-f7bb-43b9-a3d7-2e1edf90464c",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "70cd754b-0fc7-4cc2-b484-1e2c90036277",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "34a2fb72-f24d-4687-b513-e791a4ab2632",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3823fd00-85ed-47e6-b085-8b3b2655febc",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "15b62184-5d10-4c9f-8c45-36cebd259223",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "d75bc03c-19a7-4475-809c-525e9240e836",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "bd4b655d-7094-41a4-8532-ca8faca295a0",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0e0cc32d-e62a-494f-b96a-0871ca8206b0",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "dbeab5ab-3bb3-4484-b2a3-3d56187dd885",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a42d6e8a-142f-4310-951e-4781a06c3fa5",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "c18a03f4-6ea4-45f2-8cc7-2f2e45325bbf",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "38bece03-53dc-4566-a862-e4d59a573c82",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "ruleId": "javascript/IndirectCommandInjection",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4bd5af47-516b-4885-9a70-71b7fa515f95",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "ce402f84-0ed8-4cb8-9f26-60e05779e11f",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "path": "reports/security-services/fixer-env-runtime-removal-independent-review.json",
+      "sha256": "f589fab9e91df1c78ba957929b90a5fd2523aeeb45ea8f7537f5dae5d04cce8b"
+    },
+    {
+      "path": "reports/security-services/fixer-sonar-wave2-snyk-independent-review.json",
+      "sha256": "95a0f31210df2db08a3d331b27f6f3c2cbf0c5155b30725b5a3f6dd7e7a05496"
+    },
+    {
+      "path": "docs/risk-acceptances/RA-2026-09-08-internal-http.md",
+      "sha256": "7b5076bdd1d9e4dd40ddf44d5096310f0fd0ccb6466c32a602a48d68b76634ff"
+    }
+  ],
+  "limits": [
+    "No workflow/platform/source edits. Original active review preserved.",
+    "Actual CLI exit1 is explicitly recorded and checked for this final revision. Earlier e3 scan exit assumption is not reused.",
+    "Only parser fingerprint changes; four total source/context affected entries reviewed individually.",
+    "No direct Snyk source/context bindings reference the two changed regression test files; their separate independent tests support changed production behavior.",
+    "No atomicity claim or owner acceptance expansion."
+  ]
+}
