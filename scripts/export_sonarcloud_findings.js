@@ -130,15 +130,15 @@ function validatedComputeTaskUrl(properties, configuration) {
 }
 
 async function readComputeTask(configuration, options) {
-  let reportTask;
+  let reportContent = null;
   try {
-    reportTask = await readFile(configuration.reportTaskFile, 'utf8');
+    reportContent = await readFile(configuration.reportTaskFile, 'utf8');
   } catch (error) {
     if (error?.code === 'ENOENT' && !options.requireComputeTask) return null;
     throw error;
   }
 
-  const properties = parseReportTask(reportTask);
+  const properties = parseReportTask(reportContent);
   const taskUrl = validatedComputeTaskUrl(properties, configuration);
 
   const needsIdentity = configuration.pullRequest || configuration.branch !== 'main';

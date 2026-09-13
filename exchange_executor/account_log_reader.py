@@ -98,7 +98,7 @@ def _audit(value, required_since):
 
 def _select_lane(state, now):
     today = now // DAY * DAY
-    if state['revision'] % 2 == 1 and state['requiredSince'] < today <= (state['scannedThrough'] or 0):
+    if state['revision'] % 2 == 1 and state['requiredSince'] < today and today <= (state['scannedThrough'] or 0):
         audit = state.get('audit', {'windowSince': state['requiredSince'], 'windowUntil': None,
                                     'cursor': None, 'completedAt': 0})
         end = audit['windowUntil'] if audit['windowUntil'] is not None else min(today, audit['windowSince'] + 7 * DAY)

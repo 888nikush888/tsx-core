@@ -61,7 +61,7 @@ async function localReservation(file) {
 async function postJournalDecisionChange(file) {
   const { intent, engine } = await fixture(file);
   const prepare = engine.preparePendingIntent.bind(engine);
-  let prepared;
+  let prepared = null;
   engine.preparePendingIntent = async (...args) => { prepared = await prepare(...args); return prepared; };
   const database = getDatabase();
   const run = database.run.bind(database);

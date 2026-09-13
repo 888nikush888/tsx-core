@@ -73,10 +73,10 @@ async function recoverActiveCancelAttempt(account: TradingAccount, remote: Excha
   if (attempt.phase === 'resolved' && !previous) return;
   const attemptedAt = previous?.attemptedAt ?? attempt.updated_at;
   const active = exactActiveCancelEvidence(row, remote, account, attemptedAt);
-  if (!active) return;
+  if (!active || !remote.acquisition) return;
   // Persist only the normalized positive target observation, not provider raw payloads or unrelated account data.
   const evidence: StillActiveEvidence = { source: 'fresh_exact_cancel_still_active', projection: 'exact_target_only', attemptedAt,
-    target: { ...active.order, raw: null }, observedAt: remote.observedAt, acquisition: remote.acquisition!,
+    target: { ...active.order, raw: null }, observedAt: remote.observedAt, acquisition: remote.acquisition,
     accountFingerprint: account.externalAccountId };
   await recordStillActive(attempt, evidence);
 }

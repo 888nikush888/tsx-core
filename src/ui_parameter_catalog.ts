@@ -17,19 +17,19 @@ export const CONFIG_PARAMETER_FIELDS: FieldSpec[] = [
   ['apiId', 'integer', 'Sichere Ganzzahl >=0; ungültig normalisiert auf 0', undefined, '0 bedeutet keine nutzbare Telegram API ID.'],
   ['sourceChannels', 'string[]', 'Kanonische Telegram-Quellen oder auflösbare Namen'],
   ['targetChannel', 'string', 'Telegram-Ziel; Auflösung bei Verbindungsaufbau'],
-  ...['sendCopy', 'removeCaption', 'forwardToTarget'].map(key => ['forwardOptions.' + key, 'boolean', 'true|false'] as FieldSpec),
+  ...['sendCopy', 'removeCaption', 'forwardToTarget'].map(key => [`forwardOptions.${key}`, 'boolean', 'true|false'] as FieldSpec),
   ['forwardOptions.maxConcurrency', 'integer', '1..100; ungültig wird auf Default normalisiert', 'gleichzeitige Queue-Aufträge'],
   ['forwardOptions.queueTimeoutSeconds', 'integer', '0..86400; positive Werte bei aktivem Parser mindestens Requesttimeout + 5 s', 's', '0 deaktiviert dieses Queue-Zeitlimit.'],
-  ...['allowedKeywords', 'blockedKeywords', 'allowedTypes', 'regexPatterns'].map(key => ['filters.' + key, 'string[]', 'Legacy-Filter für neu angenommene Nachrichten; Muster über parseRegex', undefined, 'Leere Liste bedeutet keine Bedingung dieser Liste.'] as FieldSpec),
+  ...['allowedKeywords', 'blockedKeywords', 'allowedTypes', 'regexPatterns'].map(key => [`filters.${key}`, 'string[]', 'Legacy-Filter für neu angenommene Nachrichten; Muster über parseRegex', undefined, 'Leere Liste bedeutet keine Bedingung dieser Liste.'] as FieldSpec),
   ['sourceFilters', 'record', 'Kanonische Quell-ID → regexPatterns; unzulässige Quellen werden zurückgewiesen', undefined, 'Fehlende Quelle erbt globale Regex; [] ist ausdrücklich leer.'],
   ['sourceAliases', 'record', 'Kanonische Quell-ID → sichtbarer Alias', undefined, 'Entfernen löscht den Alias.'],
-  ...['enabled', 'externalDataPolicyAccepted', 'saveToFile', 'forwardXmlToTarget'].map(key => ['xmlParsing.' + key, 'boolean', 'true|false; Dateiausgabe nur Legacy'] as FieldSpec),
+  ...['enabled', 'externalDataPolicyAccepted', 'saveToFile', 'forwardXmlToTarget'].map(key => [`xmlParsing.${key}`, 'boolean', 'true|false; Dateiausgabe nur Legacy'] as FieldSpec),
   ['xmlParsing.signalsDir', 'string', 'Legacy-Dateiausgabe; kein Wartungs-/Shellcommand'],
   ['xmlParsing.sourceTemplates', 'record', 'Kanonische Quell-ID → Template', undefined, 'Fehlende Zuordnung erbt den Parserstandard.'],
   ['xmlParsing.primaryModel', 'string', '1..128 Zeichen: Buchstaben, Ziffern, . _ : / -; ungültig normalisiert auf Default'],
   ['xmlParsing.fallbackModel', 'string', '1..128 Zeichen: Buchstaben, Ziffern, . _ : / -; ungültig normalisiert auf Default'],
   ['xmlParsing.timeout', 'integer', 'Legacy-Parser-Gesamtzeitlimit; globale Requestgrenze und Workflowtimeout gelten separat', 'ms', '0/fehlend verwendet den bisherigen Parserstandard.'],
-  ...Object.entries(AI_LIMIT_RANGES).map(([key, range]) => ['xmlParsing.aiLimits.' + key, 'integer', range.join('..') + '; ungültig normalisiert auf Default',
+  ...Object.entries(AI_LIMIT_RANGES).map(([key, range]) => [`xmlParsing.aiLimits.${key}`, 'integer', `${range.join('..')}; ungültig normalisiert auf Default`,
     AI_LIMIT_LABELS[key as keyof typeof AI_LIMIT_LABELS][1]] as FieldSpec),
   ['dupeBlocker.enabled', 'boolean', 'true|false'],
   ['dupeBlocker.cooldownHours', 'number', 'Legacy-Cooldown, nichtnegativ; Workflowvariante separat begrenzt', 'h', '0 sperrt identische Signale dauerhaft.'],
@@ -129,13 +129,33 @@ export function uiParameterCatalog(): UiParameter[] {
   return [...runtimeParameters(), ...parameterFields(configFamily, CONFIG_PARAMETER_FIELDS, DEFAULT_CONFIG), ...viewerParameters(),
     ...uiModelParameters(), ...objectParameters(), ...paperParameters(), ...boundaryParameters()];
 }
+function selectedParameterPrefix(query: URLSearchParams): string {
+  const prefix = query.get('prefix') ?? '';
+  if (!/^[a-zA-Z0-9._-]{0,80}$/.test(prefix)) throw new Error('Invalid parameter filters.');
+  return prefix;
+}
+
+function selectedParameterLimit(query: URLSearchParams): number {
+  const limit = Number(query.get('limit') ?? 30);
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) throw new Error('Invalid parameter filters.');
+  return limit;
+}
+
+function parameterSelection(query: URLSearchParams): { prefix: string; limit: number } {
+  return { prefix: selectedParameterPrefix(query), limit: selectedParameterLimit(query) };
+}
+
+function parameterCursorOffset(entries: { path: string }[], cursor: { id: string } | null): number {
+  const offset = cursor ? Number(cursor.id) : 0;
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > entries.length) throw new Error('Invalid parameter cursor.');
+  return offset;
+}
+
 export function uiParameters(query: URLSearchParams) {
-  const prefix = query.get('prefix') ?? ''; const limit = Number(query.get('limit') ?? 30);
-  if (!/^[a-zA-Z0-9._-]{0,80}$/.test(prefix) || !Number.isSafeInteger(limit) || limit < 1 || limit > 50) throw new Error('Invalid parameter filters.');
+  const { prefix, limit } = parameterSelection(query);
   const catalog = uiParameterCatalog(); const filter = filterFingerprint({ catalog, prefix, limit });
   const cursor = decodeUiCursor(query.get('cursor'), filter); const observedAt = cursor?.observedAt ?? Date.now();
-  const entries = catalog.filter(item => item.path.startsWith(prefix)); const offset = cursor ? Number(cursor.id) : 0;
-  if (!Number.isSafeInteger(offset) || offset < 0 || offset > entries.length) throw new Error('Invalid parameter cursor.');
+  const entries = catalog.filter(item => item.path.startsWith(prefix)); const offset = parameterCursorOffset(entries, cursor);
   const hasMore = entries.length > offset + limit;
   return { contractVersion: 1, observedAt, total: entries.length, entries: entries.slice(offset, offset + limit), hasMore,
     nextCursor: hasMore ? encodeUiCursor({ version: 1, filter, observedAt, createdAt: 0, id: String(offset + limit) }) : null,

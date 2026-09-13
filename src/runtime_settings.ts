@@ -451,7 +451,7 @@ export class ManagedRuntimeSettingsStore {
   applyToEnvironment(): void {
     for (const [key, environmentName] of Object.entries(ENVIRONMENT_MAPPING) as Array<[keyof RuntimeSettings, string]>) {
       const value = this.settings[key];
-      if (value === '') delete this.env[environmentName];
+      if (value === '') Reflect.deleteProperty(this.env, environmentName);
       else this.env[environmentName] = String(value);
     }
     this.active = this.snapshot();

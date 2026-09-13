@@ -84,7 +84,7 @@ try {
     riskContracts: await database.all('SELECT * FROM trading_risk_contracts ORDER BY intent_id'),
   });
   const before = await evidence();
-  let result;
+  let result = null;
   await assert.doesNotReject(async () => { result = await pruneOperationalData(90, 100, NOW); },
     'Operational retention must exclude immutable accounting evidence before reaching the intent FK-RESTRICT boundary.');
   assert.equal(result.tradingIntents, 1, 'Only a terminal intent without any accounting or fill evidence may be pruned.');

@@ -14,7 +14,7 @@ const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-ui-commands-'));
 if (!path.resolve(directory).startsWith(path.resolve(os.tmpdir()) + path.sep) || !path.basename(directory).startsWith('tsx-ui-commands-')) throw new Error('Unsafe fixture cleanup.');
 const admin = 'ui-command-admin-'.repeat(3); const viewer = 'ui-command-viewer-'.repeat(3);
 const oldEnvironment = { ...process.env };
-let server;
+let server = null;
 async function accountEvidenceHttpReads(base) {
   await seedTradingFixtures();
   const database = getDatabase(); const now = Date.now(); const id = 'd'.repeat(64);

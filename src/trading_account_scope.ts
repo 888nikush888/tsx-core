@@ -23,9 +23,14 @@ function nonExecution(record: AccountLogRecord): boolean {
     if (record.type === 'SETTLEMENT' && record.category === 'linear' && record.funding != null) {
       signedDecimal(record.funding); return true;
     }
-    if (!['TRANSFER_IN', 'TRANSFER_OUT'].includes(record.type!) || record.orderId || record.tradeId || record.orderLinkId || record.side) return false;
-    signedDecimal(record.change!);
-    return ['qty', 'funding', 'fee'].every(field => record[field] == null || record[field] === '' || signedDecimal(record[field]!) === '0');
+    const change = record.change;
+    if (!['TRANSFER_IN', 'TRANSFER_OUT'].includes(record.type ?? '') || record.orderId || record.tradeId || record.orderLinkId || record.side) return false;
+    if (change === undefined || change === null) return false;
+    signedDecimal(change);
+    return ['qty', 'funding', 'fee'].every(field => {
+      const value = record[field];
+      return value == null || value === '' || signedDecimal(value) === '0';
+    });
   } catch { return false; }
 }
 async function conflictingOccurrence(account: TradingAccount, stored: StoredAccountLogReceipt, record: AccountLogRecord): Promise<boolean> {
@@ -62,12 +67,14 @@ async function classifyTrade(account: TradingAccount, record: AccountLogRecord, 
   orders.set(order.id, observed.proof);
   const matches = observed.executions.filter(execution => executionMatches(record, execution));
   if (matches.length !== 1) { output.reason = matches.length ? 'ambiguous_real_executions' : 'real_execution_not_observed'; return; }
-  if (observed.proof.status !== 'observed_terminal_execution_set') { output.reason = 'terminal_execution_set_unproved'; return; }
-  output.status = 'correlated_execution'; output.reason = null; output.orderId = record.orderId; output.executionId = matches[0]!.executionId;
+  const match = matches[0];
+  if (!match || observed.proof.status !== 'observed_terminal_execution_set') { output.reason = 'terminal_execution_set_unproved'; return; }
+  output.status = 'correlated_execution'; output.reason = null; output.orderId = record.orderId; output.executionId = match.executionId;
 }
 async function projectReceipt(account: TradingAccount, stored: StoredAccountLogReceipt, origin: AccountOriginScope): Promise<void> {
   const receipt = validateAccountLogReceipt(stored.receipt);
-  if (receipt.namespace !== accountLogSource('bybit')!.namespace || receipt.accountFingerprint !== account.externalAccountId
+  const bybitNamespace = accountLogSource('bybit')?.namespace;
+  if (receipt.namespace !== bybitNamespace || receipt.accountFingerprint !== account.externalAccountId
     || receipt.credentialGeneration !== account.credentialGeneration || receipt.records.length > 50
     || (receipt.providerAccountUid !== null && origin.providerAccountUid !== null && receipt.providerAccountUid !== origin.providerAccountUid)) {
     await setAccountLogConsumerResult(stored.id, 'scope', 'unresolved', { version: 1, finality: 'not_proven', reason: 'receipt_source_binding_unproved' }); return;

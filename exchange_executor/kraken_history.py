@@ -44,12 +44,18 @@ def _valid_continuation_token(token: Any) -> bool:
                              and all(ord(char) >= 32 for char in token))
 
 
+def _header_token(rest: Any) -> str | None:
+    headers = getattr(rest, "last_response_headers", {}) or {}
+    if not isinstance(headers, dict):
+        raise ExchangeContractError("Invalid Kraken history continuation envelope.")
+    return next((value for key, value in headers.items() if str(key).lower() == "next-continuation-token"), None)
+
+
 def _next_token(response: dict[str, Any], rest: Any) -> str | None:
     body_token = response.get("continuationToken")
-    headers = getattr(rest, "last_response_headers", {}) or {}
-    if not isinstance(headers, dict) or (body_token is not None and not isinstance(body_token, str)):
+    if body_token is not None and not isinstance(body_token, str):
         raise ExchangeContractError("Invalid Kraken history continuation envelope.")
-    header_token = next((value for key, value in headers.items() if str(key).lower() == "next-continuation-token"), None)
+    header_token = _header_token(rest)
     if body_token and header_token and body_token != header_token:
         raise ExchangeContractError("Kraken history continuation headers contradict the body.")
     token = body_token or header_token

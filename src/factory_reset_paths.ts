@@ -32,42 +32,58 @@ function assertSafeExactLeaf(root: string, applicationRoot: string): void {
  * aliases. Application data must remain below the checkout; only the exact
  * ManagedSecretStore root may use the dedicated external boundary.
  */
+function assertApplicationBoundary(root: string, applicationRoot: string): void {
+  if (!isStrictDescendant(root, applicationRoot)) {
+    throw new Error(`Factory reset refuses to erase a path outside the application root: ${root}`);
+  }
+}
+
+function assertManagedSecretBoundary(root: string, applicationRoot: string, configuredRoot: string): void {
+  const resolvedConfigured = path.resolve(configuredRoot);
+  if (comparable(root) !== comparable(resolvedConfigured)) {
+    throw new Error(`Factory reset refuses an unconfigured managed-secret path: ${root}`);
+  }
+  assertSafeExactLeaf(root, applicationRoot);
+}
+
+function verifyNoSymlinkTraversal(canonical: string, root: string): void {
+  if (comparable(canonical) !== comparable(root)) {
+    throw new Error(`Factory reset path must not traverse a symbolic link or junction: ${root}`);
+  }
+}
+
+async function assertCanonicalMaterialized(root: string, applicationRoot: string, boundary: FactoryResetBoundary): Promise<string> {
+  const stats = await fs.lstat(root);
+  if (!stats.isDirectory() || stats.isSymbolicLink()) {
+    throw new Error(`Factory reset path must be a real directory: ${root}`);
+  }
+  const canonical = await fs.realpath(root);
+  verifyNoSymlinkTraversal(canonical, root);
+  if (boundary.kind !== 'application') return canonical;
+  const canonicalApplicationRoot = await fs.realpath(applicationRoot);
+  if (!isStrictDescendant(canonical, canonicalApplicationRoot)) {
+    throw new Error(`Factory reset resolved outside the application root: ${root}`);
+  }
+  return canonical;
+}
+
+/**
+ * Resolves and materializes a reset target without accepting symlink/junction
+ * aliases. Application data must remain below the checkout; only the exact
+ * ManagedSecretStore root may use the dedicated external boundary.
+ */
 export async function assertFactoryResetTarget(
   directory: string,
   boundary: FactoryResetBoundary,
 ): Promise<string> {
   const root = path.resolve(directory);
   const applicationRoot = path.resolve(boundary.applicationRoot);
-  if (boundary.kind === 'application') {
-    if (!isStrictDescendant(root, applicationRoot)) {
-      throw new Error(`Factory reset refuses to erase a path outside the application root: ${root}`);
-    }
-  } else {
-    const configuredRoot = path.resolve(boundary.configuredRoot);
-    if (comparable(root) !== comparable(configuredRoot)) {
-      throw new Error(`Factory reset refuses an unconfigured managed-secret path: ${root}`);
-    }
-    assertSafeExactLeaf(root, applicationRoot);
-  }
-
-  await fs.mkdir(root, { recursive: true, mode: 0o700 }).catch((error: any) => {
-    if (error?.code !== 'EEXIST') throw error;
+  if (boundary.kind === 'application') assertApplicationBoundary(root, applicationRoot);
+  else assertManagedSecretBoundary(root, applicationRoot, boundary.configuredRoot);
+  await fs.mkdir(root, { recursive: true, mode: 0o700 }).catch((error: unknown) => {
+    if ((error as NodeJS.ErrnoException)?.code !== 'EEXIST') throw error;
   });
-  const stats = await fs.lstat(root);
-  if (!stats.isDirectory() || stats.isSymbolicLink()) {
-    throw new Error(`Factory reset path must be a real directory: ${root}`);
-  }
-  const canonical = await fs.realpath(root);
-  if (comparable(canonical) !== comparable(root)) {
-    throw new Error(`Factory reset path must not traverse a symbolic link or junction: ${root}`);
-  }
-  if (boundary.kind === 'application') {
-    const canonicalApplicationRoot = await fs.realpath(applicationRoot);
-    if (!isStrictDescendant(canonical, canonicalApplicationRoot)) {
-      throw new Error(`Factory reset resolved outside the application root: ${root}`);
-    }
-  }
-  return canonical;
+  return assertCanonicalMaterialized(root, applicationRoot, boundary);
 }
 
 export async function clearFactoryResetTarget(

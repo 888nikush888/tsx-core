@@ -99,7 +99,7 @@ async function testUnknownEntry(directory) {
 
 async function testIncompleteProtectedEvidence(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'incomplete-protected.db'));
-  let known;
+  let known = null;
   const adapter = wrappedAdapter(paper, (...args) => paper.submitOrder(...args), async (current, entry) => {
     known = await paper.submitOrder(current, entry);
     throw new TradingUnresolvedOrderError('Stop acknowledgement was lost.', [known]);
@@ -409,7 +409,7 @@ async function testRuntimeStopWinsPendingIntentRace(directory) {
 
 async function testStopDuringPreparationRevokesDispatch(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'mid-prepare-stop.db'));
-  let releaseSnapshot;
+  let releaseSnapshot = null;
   const { promise: entered, resolve: enteredSnapshot } = Promise.withResolvers();
   const hold = new Promise(resolve => { releaseSnapshot = resolve; });
   let submissions = 0;
@@ -526,11 +526,21 @@ async function testEntryTtlCancelsAndClosesEmptyPosition(directory) {
   await closeDb();
 }
 
+function recordSlippageRemoteOutcome(remote, request, result, executed) {
+  remote.orders.push({ ...request, ...result, symbol: 'ETHUSDT' });
+  if (executed) remote.fills.push({ clientOrderId: result.clientOrderId, exchangeOrderId: result.exchangeOrderId,
+    exchangeFillId: `fill-${request.role}`, symbol: 'ETHUSDT', providerSymbol: 'ETHUSDT', price: result.averagePrice,
+    quantity: request.quantity, fee: '0', feeAsset: 'USDT', filledAt: Date.now(), raw: {} });
+  if (request.role === 'entry') remote.positions = [{ symbol: 'ETHUSDT', providerSymbol: 'ETHUSDT', side: 'LONG',
+    quantity: request.quantity, averageEntryPrice: '3100', unrealizedPnl: '0' }];
+  if (request.role === 'flatten') remote.positions = [];
+}
+
 async function testAdverseEntrySlippageFlattens(directory) {
   const { paper, intent } = await setup(path.join(directory, 'entry-slippage.db'));
   const roles = [];
   const remote = { orders: [], fills: [], positions: [], observedAt: Date.now() };
-  const adapter = wrappedAdapter(paper, async (_account, request) => {
+  const adapter = wrappedAdapter(paper, (_account, request) => {
     roles.push(request.role);
     const executed = request.role !== 'stop_loss';
     const result = {
@@ -543,13 +553,7 @@ async function testAdverseEntrySlippageFlattens(directory) {
       error: null,
       raw: {},
     };
-    remote.orders.push({ ...request, ...result, symbol: 'ETHUSDT' });
-    if (executed) remote.fills.push({ clientOrderId: result.clientOrderId, exchangeOrderId: result.exchangeOrderId,
-      exchangeFillId: `fill-${request.role}`, symbol: 'ETHUSDT', providerSymbol: 'ETHUSDT', price: result.averagePrice,
-      quantity: request.quantity, fee: '0', feeAsset: 'USDT', filledAt: Date.now(), raw: {} });
-    if (request.role === 'entry') remote.positions = [{ symbol: 'ETHUSDT', providerSymbol: 'ETHUSDT', side: 'LONG',
-      quantity: request.quantity, averageEntryPrice: '3100', unrealizedPnl: '0' }];
-    if (request.role === 'flatten') remote.positions = [];
+    recordSlippageRemoteOutcome(remote, request, result, executed);
     return result;
   });
   adapter.openState = () => Promise.resolve(completeSafetyState(structuredClone(remote)));
@@ -645,15 +649,15 @@ function orderSnapshot(request, status, filledQuantity, averagePrice = null) {
 
 async function testPartialEntryProtectionAndTerminalResizing(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'partial-entry.db'));
-  let entryRequest;
-  let activeStop;
+  let entryRequest = null;
+  let activeStop = null;
   const submittedStops = new Map();
   const cancelledStopIds = new Set();
   let terminal = false;
   let cancelledStops = 0;
   const submittedTakeProfits = [];
   const entryFilledAt = Date.now();
-  const adapter = wrappedAdapter(paper, async (_targetAccount, request) => {
+  const adapter = wrappedAdapter(paper, (_targetAccount, request) => {
     if (request.role === 'entry') {
       entryRequest = request;
       return orderResult(request, 'partially_filled', '0.1', '3050');
@@ -667,16 +671,16 @@ async function testPartialEntryProtectionAndTerminalResizing(directory) {
       submittedTakeProfits.push(request);
       return orderResult(request, 'open', '0');
     }
-    throw new Error(`Unexpected ${request.role} submission.`);
+    return Promise.reject(new Error(`Unexpected ${request.role} submission.`));
   });
-  adapter.cancelOrder = async (_targetAccount, clientOrderId) => {
+  adapter.cancelOrder = (_targetAccount, clientOrderId) => Promise.resolve().then(() => {
     const cancelled = submittedStops.get(clientOrderId);
     assert.ok(cancelled, 'Only a previously confirmed stop may be cancelled.');
     assert.notEqual(clientOrderId, activeStop.clientOrderId, 'Replacement must be active before the stale stop is cancelled.');
     cancelledStops += 1;
     cancelledStopIds.add(clientOrderId);
     return orderResult(cancelled, 'cancelled', '0');
-  };
+  });
   adapter.openState = () => Promise.resolve(completeSafetyState({
     orders: terminal
       ? [

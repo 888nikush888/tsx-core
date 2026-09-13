@@ -67,7 +67,7 @@ await rejectedListener;
 await new Promise((resolve, reject) => listener.close(error => error ? reject(error) : resolve()));
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-startup-authority-'));
-let bridge;
+let bridge = null;
 try {
   await initDb(path.join(directory, 'test.db'));
   await setMcpRuntimeMode('active', 'test:local');

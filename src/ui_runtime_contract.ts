@@ -10,20 +10,27 @@ export const RUNTIME_INTEGER_RANGES = {
   shutdownGraceMs: [1_000, 120_000],
 } as const;
 
+const RUNTIME_GROUP_PREFIXES: ReadonlyArray<[string, string]> = [
+  ['backup', 'Backups / Offsite'], ['data', 'Aufbewahrung'],
+];
+const RUNTIME_GROUP_PATTERNS: ReadonlyArray<[RegExp, string]> = [
+  [/^(dashboard|tailscale|oidc|enterprise)/, 'Authentifizierung'],
+  [/^(audit|alert)/, 'Audit / Benachrichtigungen'],
+];
+
 export function runtimeFieldGroup(key: string): string {
-  if (/^(dashboard|tailscale|oidc|enterprise)/.test(key)) return 'Authentifizierung';
-  if (key.startsWith('backup')) return 'Backups / Offsite';
-  if (key.startsWith('data')) return 'Aufbewahrung';
-  if (/^(audit|alert)/.test(key)) return 'Audit / Benachrichtigungen';
+  for (const [prefix, group] of RUNTIME_GROUP_PREFIXES) if (key.startsWith(prefix)) return group;
+  for (const [pattern, group] of RUNTIME_GROUP_PATTERNS) if (pattern.test(key)) return group;
   if (key === 'jsonLogging') return 'Beobachtbarkeit';
   return 'Laufzeit';
 }
 
+const RUNTIME_UNIT_SUFFIXES: ReadonlyArray<[string, string]> = [
+  ['Ms', 'ms'], ['Seconds', 's'], ['Days', 'Tage'], ['Bytes', 'Bytes'],
+];
+
 export function runtimeFieldUnit(key: string): string | null {
-  if (key.endsWith('Ms')) return 'ms';
-  if (key.endsWith('Seconds')) return 's';
-  if (key.endsWith('Days')) return 'Tage';
-  if (key.endsWith('Bytes')) return 'Bytes';
+  for (const [suffix, unit] of RUNTIME_UNIT_SUFFIXES) if (key.endsWith(suffix)) return unit;
   if (/Count$|BatchSize$/.test(key)) return 'Anzahl';
   return null;
 }

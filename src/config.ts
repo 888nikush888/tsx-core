@@ -246,7 +246,11 @@ export function canonicalizeResolvedSources(
       config.sourceAliases[canonicalId] = configured;
     }
   }
-  config.sourceChannels = input.sourceChannels.map(source => resolutionByConfigured.get(source)!);
+  config.sourceChannels = input.sourceChannels.map(source => {
+    const resolved = resolutionByConfigured.get(source);
+    if (!resolved) throw new Error(`Telegram source ${source} was not resolved.`);
+    return resolved;
+  });
 
   return {
     config,

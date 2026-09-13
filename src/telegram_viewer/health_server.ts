@@ -15,6 +15,37 @@ async function expectedToken(provider: TokenProvider): Promise<string> {
   return typeof provider === 'function' ? await provider() : provider;
 }
 
+const HEALTH_PATHS: ReadonlySet<string> = new Set(['/healthz', '/health']);
+const READINESS_PATHS: ReadonlySet<string> = new Set(['/readyz', '/ready']);
+
+function serveHealthProbe(response: http.ServerResponse, status: Record<string, unknown>): void {
+  send(response, status.healthy === false ? 503 : 200, { healthy: status.healthy !== false });
+}
+
+function serveReadinessProbe(response: http.ServerResponse, status: Record<string, unknown>): void {
+  send(response, status.ready === true ? 200 : 503, { ready: status.ready === true });
+}
+
+function viewerRequestPathname(request: http.IncomingMessage): string {
+  return new URL(request.url || '/', 'https://viewer.local').pathname;
+}
+
+async function serveViewerStatus(
+  response: http.ServerResponse,
+  status: Record<string, unknown>,
+  serviceToken: TokenProvider,
+  authorization: unknown,
+): Promise<void> {
+  const match = /^Bearer ([A-Za-z0-9_-]{20,256})$/.exec(String(authorization || ''));
+  const expected = await expectedToken(serviceToken);
+  if (!constantTimeStringEqual(expected, match?.[1])) {
+    response.setHeader('WWW-Authenticate', 'Bearer realm="tsx-telegram-viewer"');
+    send(response, 401, { error: 'Authentication required.' });
+    return;
+  }
+  send(response, 200, status);
+}
+
 export function startTelegramViewerHealthServer(options: {
   host?: string;
   port?: number;
@@ -22,31 +53,24 @@ export function startTelegramViewerHealthServer(options: {
   status: () => Record<string, unknown>;
 }): http.Server {
   const server = http.createServer((request, response) => {
-    void (async () => {
+    (async () => {
       if (request.method !== 'GET') {
         response.setHeader('Allow', 'GET');
         send(response, 405, { error: 'Method not allowed.' });
         return;
       }
-      const pathname = new URL(request.url || '/', 'https://viewer.local').pathname;
+      const pathname = viewerRequestPathname(request);
       const status = options.status();
-      if (pathname === '/healthz' || pathname === '/health') {
-        send(response, status.healthy === false ? 503 : 200, { healthy: status.healthy !== false });
+      if (HEALTH_PATHS.has(pathname)) {
+        serveHealthProbe(response, status);
         return;
       }
-      if (pathname === '/readyz' || pathname === '/ready') {
-        send(response, status.ready === true ? 200 : 503, { ready: status.ready === true });
+      if (READINESS_PATHS.has(pathname)) {
+        serveReadinessProbe(response, status);
         return;
       }
       if (pathname === '/status') {
-        const match = /^Bearer ([A-Za-z0-9_-]{20,256})$/.exec(String(request.headers.authorization || ''));
-        const expected = await expectedToken(options.serviceToken);
-        if (!constantTimeStringEqual(expected, match?.[1])) {
-          response.setHeader('WWW-Authenticate', 'Bearer realm="tsx-telegram-viewer"');
-          send(response, 401, { error: 'Authentication required.' });
-          return;
-        }
-        send(response, 200, status);
+        await serveViewerStatus(response, status, options.serviceToken, request.headers.authorization);
         return;
       }
       send(response, 404, { error: 'Not found.' });

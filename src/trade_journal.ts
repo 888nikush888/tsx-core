@@ -346,7 +346,7 @@ async function loadJournalOrders(database: Database, intentIds: string[]): Promi
 
 async function loadJournalFills(database: Database, orders: JournalRow[]): Promise<JournalRow[]> {
   const orderIds = orders.map(order => String(order.id));
-  if (orderIds.length === 0) return [];
+  if (orderIds.length === 0) return Promise.resolve([]);
   return database.all<JournalRow[]>(
     `SELECT fill.id, orders.intent_id AS intentId, fill.order_id AS orderId,
             fill.exchange_fill_id AS exchangeFillId, fill.price, fill.quantity,
@@ -379,7 +379,7 @@ async function loadJournalSchemas(database: Database, rows: JournalRow[]): Promi
   const schemaIds = [...new Set(rows.map(row => {
     return executableSchemaId(row.signal_json);
   }).filter((value): value is string => Boolean(value)))];
-  if (schemaIds.length === 0) return [];
+  if (schemaIds.length === 0) return Promise.resolve([]);
   return database.all<JournalRow[]>(
     `SELECT schema.id, schema.name, schema.contract_version_id AS contractVersionId,
             version.definition_sha256 AS definitionSha256
@@ -465,6 +465,8 @@ function journalTimeline(events: JournalRow[]): Record<string, number> {
 
 function mapJournalRow(row: JournalRow, relations: JournalRelations): TradeJournalEntry {
   const intentId = String(row.id);
+  const money = relations.moneyByIntent.get(intentId);
+  if (!money) throw new Error('Trade journal money relation is missing.');
   const rowOrders = (relations.ordersByIntent.get(intentId) || [])
     .map(order => ({ ...order, reduceOnly: Boolean(order.reduceOnly) }));
   const rowFills = relations.fillsByIntent.get(intentId) || [];
@@ -501,7 +503,7 @@ function mapJournalRow(row: JournalRow, relations: JournalRelations): TradeJourn
     orders: rowOrders,
     fills: rowFills,
     fees: feeTotals(rowFills),
-    money: relations.moneyByIntent.get(intentId)!,
+    money,
     timeline: journalTimeline(relations.timelineByIntent.get(intentId) || []),
     review: {
       notes: nullableString(row.notes) || '',

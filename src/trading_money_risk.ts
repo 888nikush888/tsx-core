@@ -56,15 +56,19 @@ function zeroWithTerms(terms: number): MoneyValue {
   return { ...moneyValueFromDecimal('0'), terms };
 }
 
+function consumedLossForInexact(loss: MoneyValue): MoneyValue {
+  const lower = loss.lower.startsWith('-') ? '0' : loss.lower;
+  const upper = loss.upper.startsWith('-') ? '0' : loss.upper;
+  if (upper === '0') return zeroWithTerms(loss.terms);
+  return validateMoneyValue({ ...loss, lower, upper });
+}
+
 function consumedLossFor(dayPnl: MoneyValue): MoneyValue {
   const loss = negateMoneyValue(dayPnl);
   if (loss.exact) {
     return compareBound(loss, rationalFromDecimal('0'), 'lower') > 0 ? loss : zeroWithTerms(loss.terms);
   }
-  const lower = loss.lower.startsWith('-') ? '0' : loss.lower;
-  const upper = loss.upper.startsWith('-') ? '0' : loss.upper;
-  if (upper === '0') return zeroWithTerms(loss.terms);
-  return validateMoneyValue({ ...loss, lower, upper });
+  return consumedLossForInexact(loss);
 }
 
 function normalizedBudget(value: string): string {

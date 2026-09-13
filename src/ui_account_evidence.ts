@@ -5,7 +5,7 @@ import { moneyLedgerSnapshot } from './trading_money_ledger.js';
 import { riskFingerprint } from './trading_risk_sources.js';
 import { decodeUiCursor, encodeUiCursor, filterFingerprint } from './ui_cursor.js';
 import { uiObjectId } from './ui_trading_reads.js';
-import { redactReview } from './ui_change_review.js';
+import { redactReview, redactReviewRecord } from './ui_change_review.js';
 
 async function accountRiskObservation(accountId: string, observationId: string | null) {
   return getDatabase().get(`SELECT observation.id, observation.account_id AS accountId, observation.account_fingerprint AS fingerprint,
@@ -24,7 +24,7 @@ async function accountRiskObservation(accountId: string, observationId: string |
 function observationSummary(row: any, account: NonNullable<Awaited<ReturnType<typeof getTradingAccount>>>, now: number) {
   if (!row) return null;
   const { fingerprint, credentialGeneration, ...visible } = row;
-  return { ...redactReview(visible), identityMatches: fingerprint === riskFingerprint(account), credentialGenerationMatches: credentialGeneration === account.credentialGeneration,
+  return { ...redactReviewRecord(visible), identityMatches: fingerprint === riskFingerprint(account), credentialGenerationMatches: credentialGeneration === account.credentialGeneration,
     timestampFresh: row.observedAt <= now && row.expiresAt > now && row.utcDay === new Date(now).setUTCHours(0, 0, 0, 0),
     isCurrentObservation: row.id === row.currentObservationId,
     scope: 'Stored reconciliation projection. Timestamp/identity checks do not validate the current entry epoch, changed orders or FX proofs; not an entry authorization.' };

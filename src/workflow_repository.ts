@@ -120,7 +120,7 @@ interface WorkflowHistoryState {
 function workflowHistoryLabel(value: unknown): string {
   const label = value ?? DEFAULT_WORKFLOW_HISTORY_LABEL;
   if (typeof label !== 'string' || !label.trim() || label.trim().length > 160
-    || /[\u0000-\u001f\u007f]/.test(label)) {
+    || /[\u0000-\u001f\u007f]/u.test(label)) {
     throw new Error('Workflow history label is invalid.');
   }
   return label.trim();
@@ -233,22 +233,27 @@ function validateRegexConfiguration(value: ResourceConfiguration): Record<string
   return { ...value, patterns, mode };
 }
 
+function promptValue(value: ResourceConfiguration): Record<string, unknown> {
+  if (value.prompt === undefined) return {};
+  const prompt = typeof value.prompt === 'string' ? value.prompt.trim() : '';
+  if (!prompt || prompt.length > 50_000) {
+    throw new Error('Parser prompt must contain between 1 and 50000 characters.');
+  }
+  return { prompt };
+}
+
 function validateParserConfiguration(value: ResourceConfiguration): Record<string, unknown> {
   const timeoutMs = Number(value.timeoutMs ?? 120_000);
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 2_000 || timeoutMs > 120_000) {
     throw new Error('Parser timeout must be between 2000 and 120000 milliseconds.');
   }
   if (value.saveToFile === true) throw new Error('Workflow parsers may not save signals to files.');
-  if (value.prompt !== undefined && (typeof value.prompt !== 'string'
-    || !value.prompt.trim() || value.prompt.trim().length > 50_000)) {
-    throw new Error('Parser prompt must contain between 1 and 50000 characters.');
-  }
   return {
     ...value,
     templateName: stringValue(value.templateName ?? 'default', 'Parser template name', 128),
     ...(value.primaryModel ? { primaryModel: stringValue(value.primaryModel, 'Primary parser model', 128) } : {}),
     ...(value.fallbackModel ? { fallbackModel: stringValue(value.fallbackModel, 'Fallback parser model', 128) } : {}),
-    ...(value.prompt !== undefined ? { prompt: requireString(value.prompt, 'Parser prompt').trim() } : {}),
+    ...promptValue(value),
     timeoutMs,
     saveToFile: false,
   };
@@ -736,13 +741,14 @@ function workflowEdgeFallbackPolicy(
   if (!Array.isArray(edge.fallbackOn) || edge.fallbackOn.length < 1 || edge.fallbackOn.length > 3) {
     throw new Error(`Account fallback edge ${id} fallback policy must contain between one and three reasons.`);
   }
-  if (edge.fallbackOn.some((reason: unknown) => !isWorkflowFallbackReason(reason))) {
+  const reasons = edge.fallbackOn as unknown[];
+  if (reasons.some(reason => !isWorkflowFallbackReason(reason))) {
     throw new Error(`Account fallback edge ${id} contains an unsupported fallback reason.`);
   }
-  if (new Set(edge.fallbackOn).size !== edge.fallbackOn.length) {
+  if (new Set(reasons).size !== reasons.length) {
     throw new Error(`Account fallback edge ${id} fallback policy contains a duplicate reason.`);
   }
-  return canonicalWorkflowFallbackPolicy(edge.fallbackOn);
+  return canonicalWorkflowFallbackPolicy(reasons as WorkflowFallbackReason[]);
 }
 
 function workflowEdgeChannelScope(
@@ -2454,7 +2460,7 @@ export async function stopWorkflowFallback(intentId: string, reason: string, now
 export async function listWorkflowFallbackRuns(limit = 200): Promise<Array<Record<string, unknown>>> {
   const boundedLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(500, limit)) : 200;
   const runs = await getDatabase().all<FallbackRunRow[]>(
-    `SELECT run.* FROM trading_fallback_runs AS run ORDER BY run.created_at DESC LIMIT ?`,
+    'SELECT run.* FROM trading_fallback_runs AS run ORDER BY run.created_at DESC LIMIT ?',
     [boundedLimit],
   );
   const result: Array<Record<string, unknown>> = [];

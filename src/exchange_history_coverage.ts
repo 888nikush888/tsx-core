@@ -38,8 +38,8 @@ export function assertCoverageContinuation(previous: ExchangeHistoryCheckpoint, 
 function assertRetentionCoverageBound(state: ExchangeHistoryCheckpoint): void {
   const retention = state.retention;
   if (!retention) return;
-  if (retention.phase !== 'proved' || retention.fixedUntil === null
-    || state.coverage!.profile !== PROFILES.hyperliquid || state.coverage!.through > Math.min(retention.originalUntil, retention.fixedUntil)) {
+  if (retention.phase !== 'proved' || retention.fixedUntil === null || !state.coverage
+    || state.coverage.profile !== PROFILES.hyperliquid || state.coverage.through > Math.min(retention.originalUntil, retention.fixedUntil)) {
     throw new Error('Historical coverage exceeds verified retention.');
   }
 }
@@ -59,10 +59,13 @@ export function fillCoverageReason(exchange: string, evidence: ExchangeAcquisiti
   const profile = PROFILES[exchange];
   const rows = evidence.history?.filter(row => row.checkpoint.source === 'fills' && row.checkpoint.providerSymbol === null) ?? [];
   if (!profile || rows.length !== 1) return 'FILL_COVERAGE_MISSING';
-  const { checkpoint, pages } = rows[0]!;
+  const first = rows[0];
+  if (!first) return 'FILL_COVERAGE_MISSING';
+  const { checkpoint, pages } = first;
   const reason = checkpointProofReason(exchange, checkpoint);
   if (reason) return reason;
-  const coverage = checkpoint.coverage!;
+  const coverage = checkpoint.coverage;
+  if (!coverage) return 'FILL_COVERAGE_UNPROVED';
   if (coverage.since > since || coverage.since !== checkpoint.baselineSince) return 'FILL_BASELINE_UNPROVED';
   if (pages === 0 || coverage.through < evidence.startedAt || coverage.through > evidence.completedAt) return 'FILL_COVERAGE_NOT_FRESH';
   if (!retentionIsFresh(checkpoint, evidence)) return 'FILL_COVERAGE_NOT_FRESH';
@@ -72,7 +75,9 @@ export function fillCoverageReason(exchange: string, evidence: ExchangeAcquisiti
 function retentionIsFresh(checkpoint: ExchangeHistoryCheckpoint, evidence: ExchangeAcquisitionEvidence): boolean {
   const retention = checkpoint.retention;
   if (!retention) return true;
-  return retention.fixedUntil !== null && checkpoint.coverage!.through <= Math.min(retention.fixedUntil, retention.originalUntil)
+  const coverage = checkpoint.coverage;
+  if (!coverage) return false;
+  return retention.fixedUntil !== null && coverage.through <= Math.min(retention.fixedUntil, retention.originalUntil)
     && retention.validatedAt !== null && retention.validatedAt >= evidence.startedAt && retention.validatedAt <= evidence.completedAt;
 }
 

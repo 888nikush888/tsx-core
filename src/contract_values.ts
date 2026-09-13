@@ -12,9 +12,16 @@ export function requireString(value: unknown, label: string): string {
 export function unknownErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (error === null) return 'null';
-  switch (typeof error) {
-    case 'string': return error;
-    case 'number': case 'boolean': case 'bigint': case 'symbol': case 'undefined': return String(error);
-    default: return 'A non-Error value was thrown; inspect the operation receipt for context.';
-  }
+  return primitiveErrorMessage(error)
+    ?? 'A non-Error value was thrown; inspect the operation receipt for context.';
+}
+
+const STRINGIFIABLE_PRIMITIVE_TYPES: ReadonlySet<string> = new Set([
+  'string', 'number', 'boolean', 'bigint', 'symbol', 'undefined',
+]);
+
+function primitiveErrorMessage(error: unknown): string | null {
+  if (typeof error === 'string') return error;
+  if (!STRINGIFIABLE_PRIMITIVE_TYPES.has(typeof error)) return null;
+  return String(error);
 }

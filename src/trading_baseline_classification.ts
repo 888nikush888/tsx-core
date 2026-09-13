@@ -9,17 +9,35 @@ const knownReference = `EXISTS (SELECT 1 FROM trading_orders AS orders WHERE ord
   AND ((orders.provider_symbol = evidence.provider_symbol AND orders.exchange_order_id = json_extract(evidence.payload_json, '$.exchangeOrderId'))
     OR orders.client_order_id = json_extract(evidence.payload_json, '$.clientOrderId')))`;
 
-function historicalBeforeBoundary(row: HistoricalEvidence, boundary: number): boolean {
-  const event = JSON.parse(row.payload_json);
-  const stamp = row.kind === 'fill' ? event.filledAt : event.providerTimestamp;
-  if (!historicalIdentity(row, event)
-    || !Number.isSafeInteger(stamp) || stamp <= 0 || stamp >= boundary) return false;
-  if (row.kind === 'order') return row.reason === 'historical_order_event'
-    || (row.reason === 'unmanaged_order' && ['filled', 'cancelled', 'rejected'].includes(event.status));
-  if (row.reason !== 'unmapped_fill' || event.exchangeFillId !== row.provider_id) return false;
-  try { decimal(event.price, { positive: true }); decimal(event.quantity, { positive: true }); signedDecimal(event.fee); }
+function historicalEventTimestampValid(event: Record<string, unknown>, kind: string, boundary: number): boolean {
+  const stamp = kind === 'fill' ? event.filledAt : event.providerTimestamp;
+  return typeof stamp === 'number' && Number.isSafeInteger(stamp) && stamp > 0 && stamp < boundary;
+}
+
+function historicalOrderReasonValid(reason: unknown, status: unknown): boolean {
+  if (reason === 'historical_order_event') return true;
+  return reason === 'unmanaged_order' && typeof status === 'string'
+    && ['filled', 'cancelled', 'rejected'].includes(status);
+}
+
+function historicalFillIdentityValid(row: HistoricalEvidence, event: Record<string, unknown>): boolean {
+  return row.reason === 'unmapped_fill' && event.exchangeFillId === row.provider_id;
+}
+
+function historicalFillMoneyValid(event: Record<string, unknown>): boolean {
+  const { price, quantity, fee } = event;
+  if (typeof price !== 'string' || typeof quantity !== 'string' || typeof fee !== 'string') return false;
+  try { decimal(price, { positive: true }); decimal(quantity, { positive: true }); signedDecimal(fee); }
   catch { return false; }
   return true;
+}
+
+function historicalBeforeBoundary(row: HistoricalEvidence, boundary: number): boolean {
+  const event: Record<string, unknown> = JSON.parse(row.payload_json);
+  if (!historicalIdentity(row, event) || !historicalEventTimestampValid(event, row.kind, boundary)) return false;
+  if (row.kind === 'order') return historicalOrderReasonValid(row.reason, event.status);
+  if (!historicalFillIdentityValid(row, event)) return false;
+  return historicalFillMoneyValid(event);
 }
 
 function historicalIdentity(row: HistoricalEvidence, event: Record<string, unknown>): boolean {

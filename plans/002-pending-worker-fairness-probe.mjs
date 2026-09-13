@@ -13,7 +13,7 @@ import { seedTradingFixtures } from '../tests/trading_fixtures.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-pending-fairness-probe-'));
 const originalNow = Date.now;
-let runtime;
+let runtime = null;
 try {
   await initDb(path.join(directory, 'test.db'));
   await seedTradingFixtures();

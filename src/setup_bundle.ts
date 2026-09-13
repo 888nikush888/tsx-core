@@ -60,12 +60,12 @@ const HIGH_CONFIDENCE_SECRET_VALUES = [
 ];
 
 function canonicalJson(value: unknown): string {
-  const visit = (candidate: any): any => {
+  const visit = (candidate: unknown): unknown => {
     if (Array.isArray(candidate)) return candidate.map(visit);
     if (!candidate || typeof candidate !== 'object') return candidate;
     return Object.fromEntries(Object.keys(candidate)
       .sort((left, right) => left.localeCompare(right))
-      .map(key => [key, visit(candidate[key])]));
+      .map(key => [key, visit((candidate as Record<string, unknown>)[key])]));
   };
   return JSON.stringify(visit(value));
 }
@@ -426,7 +426,7 @@ function validateBundleStrategy(strategyValue: unknown): void {
   validateStrategyConfiguration(strategy.configuration);
 }
 
-function uniqueModelIdentifiers(values: any[], key: string, label: string): Set<string> {
+function uniqueModelIdentifiers(values: Array<Record<string, unknown>>, key: string, label: string): Set<string> {
   const identifiers = new Set(values.map(value => String(value[key])));
   if (identifiers.size !== values.length) throw new Error(`Setup bundle ${label} identifiers are duplicated.`);
   return identifiers;
@@ -504,7 +504,8 @@ export async function suggestPortableAccountMappings(bundle: PortableSetupBundle
       && account.exchange === reference.exchange && account.mode === reference.mode);
     const matching = exactId.length === 1 ? exactId : candidates.filter(account =>
       account.name === reference.name && account.exchange === reference.exchange && account.mode === reference.mode);
-    if (matching.length === 1) automatic[reference.sourceAccountId] = matching[0]!.id;
+    const match = matching[0];
+    if (matching.length === 1 && match) automatic[reference.sourceAccountId] = match.id;
     else unresolved.push(reference.sourceAccountId);
   }
   return { automatic, unresolved, candidates };

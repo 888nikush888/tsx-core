@@ -33,7 +33,7 @@ async function leaseTarget(label, action) {
   await mkdir(target);
   const databasePath = path.join(target, 'forwarder.db');
   const owner = await acquireProcessLock(path.join(target, '.process_active'));
-  let lease;
+  let lease = null;
   try {
     lease = await beginMcpOfflineMaintenance('isolated backup proof fixture', databasePath, owner);
     await lease.waitForQuiescence();

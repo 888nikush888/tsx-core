@@ -392,7 +392,7 @@ function createCompletionClient(apiKey: string, limits: AiLimits): RequestComple
       'X-Title': 'TSX Core',
     },
   });
-  return async (request, requestOptions) =>
+  return (request, requestOptions) =>
     client.chat.completions.create(
       request as any,
       requestOptions as any
@@ -439,7 +439,8 @@ function validatedCompletion(
   if (!Array.isArray(response.choices) || response.choices.length !== 1) {
     throw new SignalValidationError('AI response must contain exactly one choice.');
   }
-  const choice = response.choices[0]!;
+  const choice = response.choices[0];
+  if (!choice) throw new SignalValidationError('AI response must contain exactly one choice.');
   if (choice.finish_reason !== 'stop') {
     throw new SignalValidationError(
       `AI response did not finish cleanly (finish_reason=${choice.finish_reason || 'missing'}).`
@@ -506,7 +507,9 @@ function hasAnotherAttempt(
   attempt: number,
   plans: Array<{ model: string; attempts: number }>
 ): boolean {
-  return attempt < plans[planIndex]!.attempts || planIndex < plans.length - 1;
+  const plan = plans[planIndex];
+  if (!plan) return false;
+  return attempt < plan.attempts || planIndex < plans.length - 1;
 }
 
 export async function parseSignalToXml(
@@ -537,7 +540,8 @@ export async function parseSignalToXml(
   const plans = modelPlan(models, limits);
   let lastError: any;
   for (let planIndex = 0; planIndex < plans.length; planIndex += 1) {
-    const plan = plans[planIndex]!;
+    const plan = plans[planIndex];
+    if (!plan) continue;
     for (let attempt = 1; attempt <= plan.attempts; attempt += 1) {
       try {
         return await runProviderAttempt(context, plan.model);

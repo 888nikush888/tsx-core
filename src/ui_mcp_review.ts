@@ -33,7 +33,7 @@ function affectedProposalPaths(action: string, payload: Record<string, any>, bef
   collect(payload); collect(before);
   return (active?.compiled.paths ?? []).filter(path => action === 'workflow.activate' || action === 'trading.release_kill_switch'
     || Object.values(path).some(value => typeof value === 'string' && identifiers.has(value))
-    || path.nodeIds.some(id => active!.graph.nodes.some(node => node.id === id && identifiers.has(node.resourceVersionId))));
+    || (active ? path.nodeIds.some(id => active.graph.nodes.some(node => node.id === id && identifiers.has(node.resourceVersionId))) : false));
 }
 
 // Requested fields are separate from server normalization and trade execution evidence.

@@ -41,7 +41,7 @@
     {
       "route": "GET /api/access",
       "handler": "accessStatusHandler",
-      "handlerSha256": "ea1bc6e5350a2680621df6e2f91278e22bb0e48e59e45cf72f42fdefe55632fe",
+      "handlerSha256": "48546495e235bf4ccab7c49f8fc733381e678dc771f68de35146ea753fc17e40",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -238,7 +238,7 @@
     {
       "route": "POST /api/control",
       "handler": "controlHandler",
-      "handlerSha256": "8fda53d5d43877e343ea58fbc682c402d525c252d174b7f7520e51c1c0df406a",
+      "handlerSha256": "190972e94a109da08552f8ff5695938f478ac7f596d7d42035395da5690899c4",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -339,7 +339,7 @@
     {
       "route": "POST /api/setup-bundle/preview",
       "handler": "previewSetupBundleHandler",
-      "handlerSha256": "ca2cd140351ce6c7f35c1fa5519751ab6d8ca3691ef6f6ee0bd62b5bc06336bb",
+      "handlerSha256": "522198062895af99acfa5df6a26b70cf79936ed4958aac51dcc9611b15d00a97",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -348,7 +348,7 @@
     {
       "route": "POST /api/setup-bundle/apply",
       "handler": "applySetupBundleHandler",
-      "handlerSha256": "fa43716f754ec9b41b1d9177f892ff8ea4d02f2713d7b5f6caa51026ac72093b",
+      "handlerSha256": "4c47aa0c8f261f3ed0fbb3359f9e703b977db9a14b05c8d3568ff35edb0ac735",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -388,7 +388,7 @@
     {
       "route": "POST /api/operations/backup",
       "handler": "runBackupHandler",
-      "handlerSha256": "6534a4ba13b173587e678226aa0d6cbab5ee678fc5467216f6b47054af10ac65",
+      "handlerSha256": "a65c3bde91b41059da5be9ddc9d18ffe7c07c575a338184649f7512aba2930b8",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -464,7 +464,7 @@
     {
       "route": "POST /api/backups/recover-offsite",
       "handler": "recoverOffsiteBackupHandler",
-      "handlerSha256": "58be1f9d80b9d21c0a93477b30ed014afffbfaae8e18979a38fa32ff9d606220",
+      "handlerSha256": "e41919a318c72f67cad92e4928e5c0aca43236d20b498be20571e5e3c994bb86",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -607,7 +607,7 @@
     {
       "route": "GET /api/workflow/drafts",
       "handler": "uiWorkflowDraftHandler",
-      "handlerSha256": "490f8408befa34677bde7171bf697894d81fb98c5fed1423fdbb94129678d7b4",
+      "handlerSha256": "ffad471c1d04f04a468353ef93294af1703fdfe5423e39d2e06ead13c94ac424",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -627,7 +627,7 @@
     {
       "route": "POST /api/operations/backup-drill",
       "handler": "uiBackupDrillHandler",
-      "handlerSha256": "a5185483f7cb64392c829e4f6066b75143f45736fe42e508c76ff93baf2c3cfe",
+      "handlerSha256": "5c4a8f7da9556822feeac8aed615021139611d77935db7eef1b90d4e8066979e",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -638,7 +638,7 @@
     {
       "route": "GET /api/workflow/parser-test",
       "handler": "uiParserLabHandler",
-      "handlerSha256": "4b322213f037982b97e44cdd81441f907861a98247fec97a9f0fdb54b3697743",
+      "handlerSha256": "b2592c329c6a449285f813b7443974c2e25f46b36135dcbcc56f5d8747b7f5bc",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -649,7 +649,7 @@
     {
       "route": "POST /api/workflow/parser-test/preview",
       "handler": "uiParserLabHandler",
-      "handlerSha256": "4b322213f037982b97e44cdd81441f907861a98247fec97a9f0fdb54b3697743",
+      "handlerSha256": "b2592c329c6a449285f813b7443974c2e25f46b36135dcbcc56f5d8747b7f5bc",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -660,7 +660,7 @@
     {
       "route": "POST /api/workflow/parser-test",
       "handler": "uiParserLabHandler",
-      "handlerSha256": "4b322213f037982b97e44cdd81441f907861a98247fec97a9f0fdb54b3697743",
+      "handlerSha256": "b2592c329c6a449285f813b7443974c2e25f46b36135dcbcc56f5d8747b7f5bc",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -671,7 +671,7 @@
     {
       "route": "POST /api/workflow/drafts",
       "handler": "uiWorkflowDraftHandler",
-      "handlerSha256": "490f8408befa34677bde7171bf697894d81fb98c5fed1423fdbb94129678d7b4",
+      "handlerSha256": "ffad471c1d04f04a468353ef93294af1703fdfe5423e39d2e06ead13c94ac424",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -682,7 +682,7 @@
     {
       "route": "DELETE /api/workflow/drafts",
       "handler": "uiWorkflowDraftHandler",
-      "handlerSha256": "490f8408befa34677bde7171bf697894d81fb98c5fed1423fdbb94129678d7b4",
+      "handlerSha256": "ffad471c1d04f04a468353ef93294af1703fdfe5423e39d2e06ead13c94ac424",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -1034,7 +1034,7 @@
     {
       "route": "GET /api/workflow/objects",
       "handler": "uiWorkflowObjectsHandler",
-      "handlerSha256": "dba14c1d3e27cc9abe7426ffd68a0899fe47b25cc650d35fad8bfb1f6f8d7d6d",
+      "handlerSha256": "49fb6f74f38523fc8a9ac270d03f36dec3fe54061fd0b9e4d28cbee52e3d8e3e",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -1168,7 +1168,7 @@
     {
       "route": "GET /api/mcp",
       "handler": "mcpSnapshotHandler",
-      "handlerSha256": "e9ebe2792f0f8dd3b2dd67381e8cfa758c064880502cb0f84ab1e6934d53eae8",
+      "handlerSha256": "47260364f21d555571a70318cb0d8407a6489ea22d8ff56b3ad1073ac585a54f",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -1177,7 +1177,7 @@
     {
       "route": "GET /api/mcp/proposals/detail",
       "handler": "mcpProposalDetailHandler",
-      "handlerSha256": "150f8865e15fd7547cf4b885eb83ce73690837963bb9437601f332177577acb1",
+      "handlerSha256": "59ecc9ca0b4a602338df370ba198ddd4507b6fe4d5fa477162a93f3740233a15",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],

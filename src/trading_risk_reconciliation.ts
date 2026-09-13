@@ -24,11 +24,13 @@ async function reconciledRiskStatus(input: ReconciledRiskInput, snapshot: Tradin
   exceeded: boolean; reason: string | null }> {
   let exceeded = false;
   try {
-    const reserve = await existingRiskCommitment(input.account, '', input.epoch, snapshot.accounting!.reportingCurrency);
+    const accounting = snapshot.accounting;
+    if (!accounting) throw new Error('Current account money evidence is unresolved.');
+    const reserve = await existingRiskCommitment(input.account, '', input.epoch, accounting.reportingCurrency);
     const now = Date.now();
     const ledger = await moneyLedgerSnapshot(input.account.id, new Date(now).setUTCHours(0, 0, 0, 0), now + 1);
     if (ledger.valuationStatus !== 'valued' || ledger.value === null) throw new Error('Current account ledger is unresolved.');
-    if (ledger.reportingCurrency !== snapshot.accounting!.reportingCurrency) throw new Error('Risk reporting currency differs from the bound ledger.');
+    if (ledger.reportingCurrency !== accounting.reportingCurrency) throw new Error('Risk reporting currency differs from the bound ledger.');
     let reason: string | null = null;
     for (const reservation of reserve.reservations) {
       const budget = await input.budgetForIntent(reservation.intentId, snapshot.equity);

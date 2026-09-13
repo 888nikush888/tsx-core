@@ -495,7 +495,10 @@ class FakeProtectedRest:
     parse_position = parse_order
 
     def safe_market(self, identifier, *_args):
-        return next(market for market in self.markets.values() if market['id'] == identifier)
+        for market in self.markets.values():
+            if market['id'] == identifier:
+                return market
+        raise StopIteration(f"Market {identifier} is not registered.")
 
     async def publicPostInfo(self, params):
         if params['type'] == 'userAbstraction':

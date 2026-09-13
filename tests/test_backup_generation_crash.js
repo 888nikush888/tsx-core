@@ -26,7 +26,7 @@ const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const unsupportedDirectories = [];
 
 async function bounded(promise, label) {
-  let timer;
+  let timer = null;
   try {
     return await Promise.race([promise, new Promise((_, reject) => {
       timer = setTimeout(() => reject(new Error(`${label} did not finish within 15 seconds.`)), 15_000);
