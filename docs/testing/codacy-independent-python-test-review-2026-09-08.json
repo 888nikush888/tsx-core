@@ -362,14 +362,14 @@
         "line": 48,
         "sourceSha256": "7e22a0ab4c2b74c1fa9f04f1e9d4dd52b1bb901002f4a4818fa4f57fc4827031",
         "lineSha256": "d3ff8303840c7116d0acab14c40df6e020fcbe4c5fa114554f59e85aec4bc42d",
-        "text": "  const stale = JSON.stringify({ pid: 2_147_483_647, startedAt: '2000-01-01T00:00:00.000Z', token: 'stale-lock-token-1234' });"
+        "text": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
       },
       "reviewed": {
         "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
         "line": 48,
         "sourceSha256": "7e22a0ab4c2b74c1fa9f04f1e9d4dd52b1bb901002f4a4818fa4f57fc4827031",
         "lineSha256": "d3ff8303840c7116d0acab14c40df6e020fcbe4c5fa114554f59e85aec4bc42d",
-        "text": "  const stale = JSON.stringify({ pid: 2_147_483_647, startedAt: '2000-01-01T00:00:00.000Z', token: 'stale-lock-token-1234' });"
+        "text": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
       },
       "mapping": "unchanged reported expression; line remapped where necessary",
       "rationale": "The PID fixture 2147483647 equals 2^31-1 and is exactly representable as a JavaScript safe integer. It is written only to a private mkdtemp lock file to require explicit stale-owner recovery, and unchanged bytes are asserted. This review confirms numeric precision, not that every possible OS guarantees that PID is absent.",
@@ -377,7 +377,7 @@
         {
           "start": 28,
           "end": 54,
-          "source": "\nconst directory = await mkdtemp(path.join(os.tmpdir(), 'forwarder-process-lock-'));\nconst lockPath = path.join(directory, '.process_active');\n\ntry {\n  console.log('1. Testing exclusive process lock acquisition...');\n  const lock = await acquireProcessLock(lockPath);\n  await assertProcessLockOwner(lock, directory);\n  await assert.rejects(assertProcessLockOwner({ ...lock }, directory), /ownership capability/);\n  await assert.rejects(\n    acquireProcessLock(lockPath),\n    error => error instanceof ProcessLockActiveError && error.message.includes(String(process.pid))\n  );\n  await lock.release();\n  await assert.rejects(assertProcessLockOwner(lock, directory), /was released/);\n  const replacement = await acquireProcessLock(lockPath);\n  await replacement.release();\n  console.log('   -> OK');\n\n  console.log('2. Testing stale-lock recovery requires explicit ownership review...');\n  const stale = JSON.stringify({ pid: 2_147_483_647, startedAt: '2000-01-01T00:00:00.000Z', token: 'stale-lock-token-1234' });\n  await writeFile(lockPath, stale, 'utf8');\n  const attempts = await Promise.allSettled([acquireProcessLock(lockPath), acquireProcessLock(lockPath)]);\n  assert.ok(attempts.every(result => result.status === 'rejected' && result.reason instanceof ProcessLockRecoveryRequiredError));\n  assert.equal(await readFile(lockPath, 'utf8'), stale, 'Concurrent stale readers must never remove or replace the lock.');\n  await staleReadSwapCannotDeleteNewOwner(lockPath, stale);\n  await rm(lockPath, { force: true }); // Explicit cleanup of this test-owned temporary fixture only."
+          "source": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
         }
       ]
     },
@@ -391,14 +391,14 @@
         "line": 86,
         "sourceSha256": "db9be578b896ea588d95085bd5605735c228f133fbdc10293e7ddc595da4d46c",
         "lineSha256": "fdf112b9e58e9a82f08321274c8a44e0b24561b6932cb282338398868608714f",
-        "text": "        client.secret = \"offline-fixture-secret\""
+        "text": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
       },
       "reviewed": {
         "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
         "line": 86,
         "sourceSha256": "db9be578b896ea588d95085bd5605735c228f133fbdc10293e7ddc595da4d46c",
         "lineSha256": "fdf112b9e58e9a82f08321274c8a44e0b24561b6932cb282338398868608714f",
-        "text": "        client.secret = \"offline-fixture-secret\""
+        "text": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
       },
       "mapping": "unchanged reported expression; line remapped where necessary",
       "rationale": "The public offline-fixture secret/passphrase drives a real HMAC signing comparison for an IOC attachment. DNS/socket calls are blocked in asyncSetUp; the client defaults to a failing fetch mock, then this test installs a capture callback returning a local ACK. Signature equality is checked locally, no order is transmitted, and clients are closed.",
@@ -527,7 +527,7 @@
         "text": "                       {'secret': 'not-allowlisted'}, {'anchor': None}, {'cursor': self.now + 2}):"
       },
       "mapping": "unchanged reported expression; line remapped where necessary",
-      "rationale": "secret:not-allowlisted is one member of a finite malformed-checkpoint test array. Each changed retention object must cause ExchangeContractError; the value is deliberately rejected schema data, not an account credential.",
+      "rationale": "Documentation rationale describes a deliberately forbidden checkpoint field/value. Underlying retention test places it among malformed variants that must raise ExchangeContractError. It is schema-adversarial data, not a credential or accepted checkpoint secret.",
       "evidence": [
         {
           "start": 183,
@@ -847,7 +847,7 @@
         {
           "start": 30,
           "end": 73,
-          "source": "                                       \"newOrderTrigger\": {**trigger, \"triggerOptions\": {\"triggerPrice\": \"91\"}}}}\n    else:\n        body = {\"OrderPlaced\": {\"order\": detail, \"reason\": \"new_user_order\", \"reducedQuantity\": \"\"}}\n    return {\"uid\": f\"{endpoint}-event-{index}\", \"timestamp\": stamp, \"event\": body}\n\n\nclass KrakenRest:\n    def __init__(self, count=1205):\n        self.count = count\n        self.calls = []\n        self.last_response_headers = {}\n        self.uid = UID\n\n    @staticmethod\n    def safe_market(_identifier):\n        return {\"id\": \"PF_XBTUSD\", \"symbol\": SYMBOL, \"contract\": True, \"linear\": True, \"contractSize\": 1, \"base\": \"BTC\"}\n\n    def market(self, identifier):\n        return self.safe_market(identifier)\n\n    async def page(self, endpoint, params):\n        self.calls.append((endpoint, dict(params)))\n        self.last_response_headers = {}\n        token = params.get(\"continuation_token\")\n        if token is None:\n            self.last_response_headers = {\"Next-Continuation-Token\": \"after-empty\"}\n            return {\"accountUid\": self.uid, \"len\": 0, \"elements\": []}\n        index = 0 if token == \"after-empty\" else int(token)\n        count = 1 if endpoint == \"triggers\" else self.count\n        end = min(index + params[\"count\"], count)\n        rows = [event(i, params[\"since\"] + 1, endpoint) for i in range(index, end)]\n        response = {\"accountUid\": self.uid, \"len\": len(rows), \"elements\": rows}\n        if end < count:\n            response[\"continuationToken\"] = str(end - 1)\n        return response\n\n    async def historyGetOrders(self, params):\n        return await self.page(\"orders\", params)\n\n    async def historyGetTriggers(self, params):\n        return await self.page(\"triggers\", params)\n\n    async def historyGetExecutions(self, params):\n        return await self.page(\"executions\", params)"
+          "source": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
         }
       ]
     },
@@ -861,14 +861,14 @@
         "line": 87,
         "sourceSha256": "db9be578b896ea588d95085bd5605735c228f133fbdc10293e7ddc595da4d46c",
         "lineSha256": "3991e0f762e5d34bc78045d1f03a20a10682c5dc385b0271c3c3477e98aa129c",
-        "text": "        client.password = \"offline-fixture-passphrase\""
+        "text": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
       },
       "reviewed": {
         "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
         "line": 87,
         "sourceSha256": "db9be578b896ea588d95085bd5605735c228f133fbdc10293e7ddc595da4d46c",
         "lineSha256": "3991e0f762e5d34bc78045d1f03a20a10682c5dc385b0271c3c3477e98aa129c",
-        "text": "        client.password = \"offline-fixture-passphrase\""
+        "text": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
       },
       "mapping": "unchanged reported expression; line remapped where necessary",
       "rationale": "The public offline-fixture secret/passphrase drives a real HMAC signing comparison for an IOC attachment. DNS/socket calls are blocked in asyncSetUp; the client defaults to a failing fetch mock, then this test installs a capture callback returning a local ACK. Signature equality is checked locally, no order is transmitted, and clients are closed.",
@@ -1133,7 +1133,7 @@
         {
           "start": 50,
           "end": 73,
-          "source": "    async def page(self, endpoint, params):\n        self.calls.append((endpoint, dict(params)))\n        self.last_response_headers = {}\n        token = params.get(\"continuation_token\")\n        if token is None:\n            self.last_response_headers = {\"Next-Continuation-Token\": \"after-empty\"}\n            return {\"accountUid\": self.uid, \"len\": 0, \"elements\": []}\n        index = 0 if token == \"after-empty\" else int(token)\n        count = 1 if endpoint == \"triggers\" else self.count\n        end = min(index + params[\"count\"], count)\n        rows = [event(i, params[\"since\"] + 1, endpoint) for i in range(index, end)]\n        response = {\"accountUid\": self.uid, \"len\": len(rows), \"elements\": rows}\n        if end < count:\n            response[\"continuationToken\"] = str(end - 1)\n        return response\n\n    async def historyGetOrders(self, params):\n        return await self.page(\"orders\", params)\n\n    async def historyGetTriggers(self, params):\n        return await self.page(\"triggers\", params)\n\n    async def historyGetExecutions(self, params):\n        return await self.page(\"executions\", params)"
+          "source": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
         },
         {
           "start": 204,
@@ -1502,7 +1502,7 @@
         {
           "start": 568,
           "end": 582,
-          "source": "def test_secret(exchange=\"bybit\"):\n    return {\"apiKey\": \"fixture-key\", \"secret\": \"fixture-secret\"} if exchange != \"hyperliquid\" else {\n        \"privateKey\": \"0x\" + \"1\" * 64, \"walletAddress\": \"0x\" + \"2\" * 40,\n    }\n\n\ndef bound_test_account(exchange=\"bybit\"):\n    secret = test_secret(exchange)\n    return {\n        \"id\": \"account-1\", \"exchange\": exchange, \"mode\": \"testnet\",\n        \"expectedAccountFingerprint\": external_account_id(exchange, \"testnet\", _account_identity(secret, exchange, \"testnet\")),\n        \"credentialGeneration\": credential_generation(SimpleNamespace(\n            credential_fingerprint=_credential_fingerprint(secret, exchange, \"testnet\"),\n        )),\n    }"
+          "source": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
         }
       ]
     },
@@ -1768,5 +1768,90 @@
     "sourceBindingChecks": "50 original/current bindings verified against immutable Git blobs; 50 unique IDs, no overlap with prior90 test reviews or76 production reviews",
     "numericLiterals": "Number.isSafeInteger and exact BigInt equality passed for 2147483647,1700000000000,86400000; fixed UTC date minus86400000 also safe",
     "decimalSideEffect": "A standalone Python3.12 reproduction of the exact original Decimal-string multiplication at precision28 set both Inexact and Rounded flags; no repository test suite was run for this review"
+  },
+  "documentationRedactions": {
+    "amendedAt": "2026-09-13",
+    "originalRevision": "c684aafc4c43de9031c68a1a3145d0430f43f850",
+    "originalReportSha256": "cef3f42eeb24b5f450d1d1d96c7bb51da0cef0d31519b3f9c8eb9d1aebc717ae",
+    "scope": "Only repeated synthetic fixture strings in documentation; source files, source bindings, issue identities, classifications and test behavior are unchanged. Redacted excerpt fields are references, not verbatim quotes. One rationale is restated without its literal fixture value.",
+    "fields": [
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTpuZ3dkcmx5ZGU=",
+        "originalLine": 365,
+        "field": "text",
+        "originalFieldValueSha256": "d3ff8303840c7116d0acab14c40df6e020fcbe4c5fa114554f59e85aec4bc42d",
+        "reason": "Documentation original-source snapshot of the stale-process-owner test. The token field is a fixed synthetic lock marker inserted only into a mkdtemp-owned lock file. It tests refusal of automatic stale-owner recovery; it is not a provider or dashboard credential."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTpwcXduZHB5bnk=",
+        "originalLine": 372,
+        "field": "text",
+        "originalFieldValueSha256": "d3ff8303840c7116d0acab14c40df6e020fcbe4c5fa114554f59e85aec4bc42d",
+        "reason": "Documentation reviewed-source snapshot of the same synthetic stale-owner lock. The constant supports unchanged-file and ownership assertions after rejected acquire attempts; it is not an operational authentication secret."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTplYXh5ZXFreW4=",
+        "originalLine": 380,
+        "field": "source",
+        "originalFieldValueSha256": "4b4dd197555094018c6a131470517c3111901a5cc16f3eadd0da71f00122b94f",
+        "reason": "Documentation context excerpt includes the synthetic stale-lock payload and its local refusal/unchanged-byte assertions. Parent scope is a private temporary directory; the excerpt itself is non-executable JSON evidence, not credential configuration."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTprdnlkb21qZGQ=",
+        "originalLine": 394,
+        "field": "text",
+        "originalFieldValueSha256": "fdf112b9e58e9a82f08321274c8a44e0b24561b6932cb282338398868608714f",
+        "reason": "Documentation original-source snapshot of a fabricated regional SDK signing secret. Underlying test blocks socket/DNS transport, replaces fetch with a local capture callback and compares HMAC output locally. No real account or transmitted provider order is involved."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTp4cmducXB2bnI=",
+        "originalLine": 401,
+        "field": "text",
+        "originalFieldValueSha256": "fdf112b9e58e9a82f08321274c8a44e0b24561b6932cb282338398868608714f",
+        "reason": "Documentation reviewed-source snapshot of the same fabricated regional SDK secret. The current test still creates the fake value directly, runs the pinned signer, captures the request locally and checks no socket/DNS calls. This is an offline vector, not leaked provider access."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTpveWFkd25xZG0=",
+        "originalLine": 530,
+        "field": "rationale",
+        "originalFieldValueSha256": "860080b9fea291a4fb715db464cb0a13833f512cca021878cfac7eccfd593c06",
+        "reason": "Documentation rationale describes a deliberately forbidden checkpoint field/value. Underlying retention test places it among malformed variants that must raise ExchangeContractError. It is schema-adversarial data, not a credential or accepted checkpoint secret."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTp2dm1ub2x4bmU=",
+        "originalLine": 850,
+        "field": "source",
+        "originalFieldValueSha256": "bde27bd14cead772e9d371b9e7ddfaba5308c8f2698a27410643a6f4f74e0fe3",
+        "reason": "Documentation excerpt of KrakenRest.page fixture. The variable named token is a locally generated pagination continuation marker selecting array offsets and response rows, never authorization material; all fixture endpoint methods delegate to this local page function."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTptcmRud3F5bmQ=",
+        "originalLine": 864,
+        "field": "text",
+        "originalFieldValueSha256": "3991e0f762e5d34bc78045d1f03a20a10682c5dc385b0271c3c3477e98aa129c",
+        "reason": "Documentation original-source snapshot of a fabricated SDK passphrase paired with the offline signing fixture. Its only use is SDK request construction under transport-blocking guards and a captured local ACK; it does not unlock an actual account."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTpyZWtuYW9sbm0=",
+        "originalLine": 871,
+        "field": "text",
+        "originalFieldValueSha256": "3991e0f762e5d34bc78045d1f03a20a10682c5dc385b0271c3c3477e98aa129c",
+        "reason": "Documentation reviewed-source snapshot of that same fabricated signing passphrase. Current usage remains the isolated real-serializer/local-capture test with guarded socket/DNS and no provider transport. It is intentionally public fixture data."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTpnZXZkcG5vZG4=",
+        "originalLine": 1136,
+        "field": "source",
+        "originalFieldValueSha256": "95db10fb6dfb4dc5a2464af660b0588d83e2f0217828ff705f5aaec5c51731a2",
+        "reason": "Documentation context excerpt contains the local synthetic pagination continuation marker used in a missing-durable-consumer failure case. KrakenRest produces in-memory rows and checkpoint state; no authentication or external connection uses this marker."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTp5Z3luZGttZ3c=",
+        "originalLine": 1505,
+        "field": "source",
+        "originalFieldValueSha256": "a6099c420f29e33ec5b0e3bb1dc4b6666bb0488ec3cfb5826cb256c9bfd31a98",
+        "reason": "Documentation excerpt of test_secret and bound_test_account helpers. Values are fabricated fixed test strings or repeated-digit key/address vectors used to derive fake identity and credential fingerprints. FakeRegistry provides in-memory clients and captures writes; they are not operational provider secrets."
+      }
+    ]
   }
 }

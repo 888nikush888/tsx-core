@@ -1333,11 +1333,11 @@
         },
         {
           "line": 39,
-          "text": "  process.env.DASHBOARD_ADMIN_TOKEN = ADMIN_TOKEN;"
+          "text": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
         },
         {
           "line": 40,
-          "text": "  process.env.DASHBOARD_VIEWER_TOKEN = VIEWER_TOKEN;"
+          "text": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
         },
         {
           "line": 41,
@@ -2733,5 +2733,27 @@
         }
       ]
     }
-  ]
+  ],
+  "documentationRedactions": {
+    "amendedAt": "2026-09-13",
+    "originalRevision": "c684aafc4c43de9031c68a1a3145d0430f43f850",
+    "originalReportSha256": "84b4c4f25594fea8422aca5239397535ade73e0852f67f7d3e1b574b0293858d",
+    "scope": "Only repeated synthetic fixture strings in documentation; source files, source bindings, issue identities, classifications and test behavior are unchanged. Redacted excerpt fields are references, not verbatim quotes. One rationale is restated without its literal fixture value.",
+    "fields": [
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTpxcGVucWthcGQ=",
+        "originalLine": 1336,
+        "field": "text",
+        "originalFieldValueSha256": "88f6a97b0bf0849576e178d05b4ef4a97d9794262ff8fa9f3c6a286e65bba3b1",
+        "reason": "Documentation evidence line quotes the synthetic administrator token used by the web-server test. The underlying test declares that token as a literal fixture constant, installs it only in test environment and accesses a temporary loopback dashboard. The JSON review is not runtime configuration."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTpkYWt3cGdlYXg=",
+        "originalLine": 1340,
+        "field": "text",
+        "originalFieldValueSha256": "a79d378b3fa2d72cd5b6b96b62ae83bac77a8e610b9a87c2bd1339df235f1b78",
+        "reason": "Documentation evidence line quotes the separate synthetic viewer token from the same loopback web fixture. It verifies role/auth behavior with a fixed public test token, not a real operator credential or external service credential."
+      }
+    ]
+  }
 }

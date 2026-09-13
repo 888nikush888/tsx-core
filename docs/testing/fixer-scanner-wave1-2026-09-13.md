@@ -42,6 +42,17 @@ No scanner rule, test threshold, risk acceptance, provider authorization,
 implementation receipt or approval pin changed. These 13 DeepSource fixes still
 require a scan of their published revision to confirm remote closure.
 
+A subsequent documentation-only change replaces 13 independently reviewed
+synthetic fixture copies in two historical Codacy reports with Git/hash
+references. Each report retains its original revision and complete report hash;
+each affected field retains its original line and value hash. One rationale is
+restated without its fixture literal. Independent structural comparison confirms
+that all issue IDs, source bindings, classifications and other rationales remain
+unchanged. These replacements are not new runtime fixes or evidence that the
+remote scanner has already closed the corresponding findings. The fourteenth
+introduced secret finding is a non-secret browser storage key identifier and
+remains a separately reviewed false-positive proposal.
+
 ## Evidence and remaining work
 
 The local evidence directory `reports/security-services` contains the full
