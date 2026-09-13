@@ -166,8 +166,9 @@ function previousTotals(row: AllocationRow, plan: TradingPlan, hash: string): st
 }
 
 function unchangedAllocation(row: AllocationRow | undefined, json: string, fillsJson: string, completedJson: string, unallocated: string): boolean {
-  return Boolean(row && row.target_totals_json === json && row.unallocated_quantity === unallocated
-    && row.observed_fills_json === fillsJson && row.completed_targets_json === completedJson);
+  if (!row) return false;
+  return row.target_totals_json === json && row.unallocated_quantity === unallocated
+    && row.observed_fills_json === fillsJson && row.completed_targets_json === completedJson;
 }
 
 async function persistAllocation(intentId: string, hash: string, row: AllocationRow | undefined,

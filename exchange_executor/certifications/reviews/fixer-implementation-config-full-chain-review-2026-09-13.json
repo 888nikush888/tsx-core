@@ -1,0 +1,284 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-implementation-configuration-full-chain-review",
+  "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+  "selection": "Exactly eight requested configuration inputs; complete origin-to-committed-c396 Git hunks inspected. Uncommitted agent edits excluded.",
+  "reviewedCount": 8,
+  "entries": [
+    {
+      "path": ".deepsource.toml",
+      "sourceSha256": "42a97689cb0fe3c97bdb0e809ca7b66d0b6f7715b5069016268e85291c254ba2",
+      "reviewedGitBlobSha256": "42a97689cb0fe3c97bdb0e809ca7b66d0b6f7715b5069016268e85291c254ba2",
+      "reviewedRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+      "baselineGitBlobSha256": null,
+      "deltaKind": "complete-added-file",
+      "completeDiffSha256": "63360e48756d6ffa4f5d700cc793b7d83e78361b249e436c7f02ad5462bec860",
+      "completeDiffBytes": 1439,
+      "role": "Full new analyzer input",
+      "rationale": "All four analyzers enabled. Generated-artifact exclusions only; test classification is not exclusion. ESM/TypeScript with Node/browser/Vitest/React matches module intent. Low JS and medium Python complexity, Airbnb/mypy retained; no blanket source or rule suppression. Historical cloud comparison remains historical, not proof of current platform application.",
+      "contextBindings": [
+        {
+          "path": "docs/deepsource-configuration.md",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "21d325d0212b4cb33705c0342629e0f7817f92cda2d5f7c560659b926eb3a05b"
+        },
+        {
+          "path": "package.json",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00"
+        },
+        {
+          "path": "frontend/package.json",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "fb5adc39a0253c85ae5d2dc484095e5309e96138991928e01e3a670300e453af"
+        }
+      ],
+      "disposition": "complete-origin-delta-reviewed",
+      "restrictionsWeakenedByDelta": false,
+      "findings": []
+    },
+    {
+      "path": ".github/workflows/quality.yml",
+      "sourceSha256": "18432af0370bbb5c960d0a243932f73617d7b8600c19a1ca95da6a38f67520fd",
+      "reviewedGitBlobSha256": "18432af0370bbb5c960d0a243932f73617d7b8600c19a1ca95da6a38f67520fd",
+      "reviewedRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+      "baselineGitBlobSha256": "5745e6b120c1553b44829c0cbd5cc9b13e1da1729beb7e429c8888bc419f33e1",
+      "deltaKind": "modified",
+      "completeDiffSha256": "b41d682ec819d98fe622802affa11a0f14246ac2ed738a9d7873931eb900b233",
+      "completeDiffBytes": 445,
+      "role": "Mutation execution budget",
+      "rationale": "Sole hunk changes schema job30 to50min; other shards retain30. Full source/test selection, --force, score gates and missing-report failure unchanged. Historical40min campaign rationale is consistent with50min job. Increased runtime opportunity does not weaken required score or fabricate completed mutation evidence.",
+      "contextBindings": [
+        {
+          "path": "docs/quality/schema-mutation-budget.md",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "90d78ae862c824ce234501accad3ad94265c3f79ceaa51a25b21d249dab1ead8"
+        },
+        {
+          "path": "scripts/run_mutation_shards.js",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "263ead6c26b564c85d4bad46b27f1041445167b5e27b2ee8acbdc7027247f387"
+        }
+      ],
+      "disposition": "complete-origin-delta-reviewed",
+      "restrictionsWeakenedByDelta": false,
+      "findings": []
+    },
+    {
+      "path": ".github/workflows/security-services.yml",
+      "sourceSha256": "06ec41010b0b3372aeb140b4f378b1f96c8d2f842511320dc36ed3460ff573ad",
+      "reviewedGitBlobSha256": "06ec41010b0b3372aeb140b4f378b1f96c8d2f842511320dc36ed3460ff573ad",
+      "reviewedRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+      "baselineGitBlobSha256": null,
+      "deltaKind": "complete-added-file",
+      "completeDiffSha256": "833a53636527411b8a83221cc7cbf83f71eda2d349f37f97c4e3a4945181cc3b",
+      "completeDiffBytes": 6309,
+      "role": "Additional source-bound Snyk gate",
+      "rationale": "Complete141-line workflow inspected. contents read only, checkout credentials not persisted, forkPR credential exclusion explicit. Five scopes retain npm dev and Python development/runtime findings with ignore-policy/include-ignores. Missing token, invalid SARIF and unexpected exits fail. Exact scanner/action pins and always-upload retain evidence. Code checker selects a historical individual review and checks exact source/context/flow evidence;182 bound source/context occurrences match committedc396. This mechanical match does not renew source dispositions. Same-repository trusted code is the stated secret boundary; scheduled default branch and PR merge commits remain distinct GITHUB_SHA evidence.",
+      "contextBindings": [
+        {
+          "path": "docs/testing/snyk-onboarding.md",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "dda731cebff9adf4877dfe057e4b6dc4f88d83364a59cbd69edb71adfa93219e"
+        },
+        {
+          "path": "scripts/check_snyk_code_review.js",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "9190f11dd8f3adda1d9245a17d9468d471aefb5beb922de60877fbbf15876233"
+        },
+        {
+          "path": "scripts/check_risk_acceptances.js",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "71aef4f8b6183179c6a71a97b7efc68d6b26bf651defea8701e802849da1f46b"
+        },
+        {
+          "path": "exchange_executor/certifications/reviews/snyk-code-backup-callback-review-2026-09-13.json",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "6ddf9479549bf0be323d45075d42eccac206eed3ea18fd56cdc01a2aa280170e"
+        }
+      ],
+      "disposition": "complete-origin-delta-reviewed",
+      "restrictionsWeakenedByDelta": false,
+      "findings": []
+    },
+    {
+      "path": "Dockerfile",
+      "sourceSha256": "8ccada3b0bec90f59a020a8c0566cf2d62df22b43dc3bf8d65da522f6ca22b56",
+      "reviewedGitBlobSha256": "8ccada3b0bec90f59a020a8c0566cf2d62df22b43dc3bf8d65da522f6ca22b56",
+      "reviewedRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+      "baselineGitBlobSha256": "cae1c50eac7ec854ec2532ee415cff047367a63d2badba9b5fec86a730efa580",
+      "deltaKind": "modified",
+      "completeDiffSha256": "86720b762a92a22cb3a40a7ccb3ca8635f0ee4f1e8e50d903dccf63b1c5f0b8e",
+      "completeDiffBytes": 479,
+      "role": "Required builder script input",
+      "rationale": "Sole new COPY supplies copy_declarations.js before npm run build, which already invokes it. Helper copies input .d.ts contracts into dist; no external fetch. Runtime image digest, UID65532, install flags, healthcheck and hardening unchanged. This repairs missing build input and adds no runtime privilege.",
+      "contextBindings": [
+        {
+          "path": "package.json",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00"
+        },
+        {
+          "path": "scripts/copy_declarations.js",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "9662e8c0207968e476f770caf15352889f3571e353710684df7b6c996a4d9eea"
+        },
+        {
+          "path": ".dockerignore",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "6728f1c85aa72a1386b6a94f8ecb47330d02727ed080fe0c31f6516a2da554b1"
+        }
+      ],
+      "disposition": "complete-origin-delta-reviewed",
+      "restrictionsWeakenedByDelta": false,
+      "findings": []
+    },
+    {
+      "path": "coverage-baseline.json",
+      "sourceSha256": "3c0ddfd9b848c1c9fda2c7a2b2d26413458e3aa2d353be9e3e978ed181044bf2",
+      "reviewedGitBlobSha256": "3c0ddfd9b848c1c9fda2c7a2b2d26413458e3aa2d353be9e3e978ed181044bf2",
+      "reviewedRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+      "baselineGitBlobSha256": "ec55b4f16445ce6bb65d03ae5d778a4e528baae366a123464261c950aa8b68a9",
+      "deltaKind": "modified",
+      "completeDiffSha256": "244ddd2631bd6036d5df7536bfc20185743ca0a0b6f9ab65d7d3902eb2cfea35",
+      "completeDiffBytes": 556,
+      "role": "Stricter coverage minimums",
+      "rationale": "Scope/platform declarations unchanged. Statements/lines96.21 to96.48, branches86.23 to86.44, functions99.19 to99.20 all increase. Consumer rejects values below minima. Historical evidence distinguishes module/critical coverage; no fresh platform measurement claimed.",
+      "contextBindings": [
+        {
+          "path": "scripts/check_module_coverage.js",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "46606239b374571f9ab3ed7f0f02e974235f4519f326292026b2edcf8f5f4d79"
+        },
+        {
+          "path": "docs/testing/fixer-quality-verification-2026-09-13.md",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "3df6ba41f74b544674e3ff6220777038e87f358834c62456ca99596b5049669f"
+        },
+        {
+          "path": "docs/testing/fixer-final-evidence-2026-09-13.json",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "b6dae91008a9c16e0966fb378b28c4e032f0b2993e564a5070f87948f924f645"
+        }
+      ],
+      "disposition": "complete-origin-delta-reviewed",
+      "restrictionsWeakenedByDelta": false,
+      "findings": []
+    },
+    {
+      "path": "docker-compose.monitoring.yml",
+      "sourceSha256": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be",
+      "reviewedGitBlobSha256": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be",
+      "reviewedRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+      "baselineGitBlobSha256": "63d917e7671f61fd3d8cbcee745b01491bf60db5e11b188ab379050950a1ba93",
+      "deltaKind": "modified",
+      "completeDiffSha256": "4683c905fd2e53bab5a948e012f15d66172dfc79821567d31c95c9232f8e735d",
+      "completeDiffBytes": 480,
+      "role": "Explicit relay container listener",
+      "rationale": "Only ALERT_RELAY_HOST=0.0.0.0 added to preserve Alertmanager service-network reachability after standalone default changed to loopback. No relay host port published; token-file authorization, read-only mounts, capabilities and resource limits unchanged. Internal network exposure is intentional and plaintext remains explicitly accepted, not fixed TLS. No live deployment or all-network isolation claim.",
+      "contextBindings": [
+        {
+          "path": "src/alert_relay.ts",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "b0fa3a8b814445094bc1b1de4a72cb6ea1c91d859f126da667ec6f642b051725"
+        },
+        {
+          "path": "monitoring/alertmanager.yml",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "e047d6db783d3b3768dd53fd5d64101a8fd1a617f501ef80d69e9b0e3788e341"
+        },
+        {
+          "path": "docs/testing/snyk-http-and-diagnostics-boundaries.md",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "314e404b447a7993949012c7aa8130af3e8292d8e16f1d1a2cf547d6bdf6a72d"
+        },
+        {
+          "path": "docs/risk-acceptances/RA-2026-09-08-internal-http.md",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "7b5076bdd1d9e4dd40ddf44d5096310f0fd0ccb6466c32a602a48d68b76634ff"
+        }
+      ],
+      "disposition": "complete-origin-delta-reviewed",
+      "restrictionsWeakenedByDelta": false,
+      "findings": []
+    },
+    {
+      "path": "docker-compose.yml",
+      "sourceSha256": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642",
+      "reviewedGitBlobSha256": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642",
+      "reviewedRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+      "baselineGitBlobSha256": "f1dcf8a0b74d86e967e4c88455b98565b3560e6e7ef8188f4cdb7f3f4a457e2f",
+      "deltaKind": "modified",
+      "completeDiffSha256": "0e74a6f33d1af7ac52911de392309ba68717d444b296f3b727fae5824ab4e176",
+      "completeDiffBytes": 469,
+      "role": "Explicit viewer container listener",
+      "rationale": "Only TELEGRAM_VIEWER_HEALTH_HOST=0.0.0.0 added after standalone loopback hardening. Existing internal8081 expose/viewer network unchanged and no host port published. Local healthcheck still reaches listener. Read-only filesystem, token auth for detailed status, mounts and restrictions unchanged. Existing plaintext risk remains accepted; current deployments not inspected.",
+      "contextBindings": [
+        {
+          "path": "src/telegram_viewer/runtime.ts",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "ca9a7ba2e7a1acd182aad501aed653b66ac4e83ac37edb7d8010e61e3fa5c7f7"
+        },
+        {
+          "path": "src/telegram_viewer/health_server.ts",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "3b15d6b702fcfad33d17606e2a49feefc88b1b0a4be3f2a68c759f0bbebb5177"
+        },
+        {
+          "path": "docs/testing/snyk-http-and-diagnostics-boundaries.md",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "314e404b447a7993949012c7aa8130af3e8292d8e16f1d1a2cf547d6bdf6a72d"
+        },
+        {
+          "path": "docs/risk-acceptances/RA-2026-09-08-internal-http.md",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "7b5076bdd1d9e4dd40ddf44d5096310f0fd0ccb6466c32a602a48d68b76634ff"
+        }
+      ],
+      "disposition": "complete-origin-delta-reviewed",
+      "restrictionsWeakenedByDelta": false,
+      "findings": []
+    },
+    {
+      "path": "exchange_executor/requirements-dev.lock",
+      "sourceSha256": "682e51233fd39581be82c0a4e892ed539ad7d7f171e623cae2023e45c3b49a72",
+      "reviewedGitBlobSha256": "682e51233fd39581be82c0a4e892ed539ad7d7f171e623cae2023e45c3b49a72",
+      "reviewedRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+      "baselineGitBlobSha256": "2f383814906714e80a91360d943b086e33c7ac31c3691341637ebd2007f0474b",
+      "deltaKind": "modified",
+      "completeDiffSha256": "896350dc0a542244c89c914a42b9082f41d2a8dae11e7d9e82e5ab91794e4376",
+      "completeDiffBytes": 1048,
+      "role": "Windows quality-wheel allowlist extension",
+      "rationale": "Versions coverage7.10.7 and ruff0.15.7 plus existing Linux hashes unchanged; exactly one Windows wheel hash added each. Runtime dependency set not extended. Workflow keeps --require-hashes and --only-binary. Historical dependency review records official metadata/fresh hash-checked installation; this review verifies complete delta and provenance, not a new registry fetch or install.",
+      "contextBindings": [
+        {
+          "path": "docs/testing/security-dependency-updates-2026-09-08.md",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "90e38939d4b22290b656af4bd4b02859d11cf4fe0248551682124bf13bdb3142"
+        },
+        {
+          "path": ".github/workflows/security-services.yml",
+          "revision": "c3966c5974315a07499e66a39285628dd4b3255d",
+          "gitBlobSha256": "06ec41010b0b3372aeb140b4f378b1f96c8d2f842511320dc36ed3460ff573ad"
+        }
+      ],
+      "disposition": "complete-origin-delta-reviewed",
+      "restrictionsWeakenedByDelta": false,
+      "findings": []
+    }
+  ],
+  "validation": {
+    "deepsourceTomlParse": "PASS",
+    "selectedSnykReviewSourceContextBindingsChecked": 182,
+    "sourceContextMismatches": 0,
+    "newTestsOrScansExecuted": false,
+    "servicesStarted": false
+  },
+  "limits": [
+    "No receipt approval, new scanner disposition, provider success or all-implementation stability certification.",
+    "Historical reviews inform scope; no automatic renewal of their tests or individual source reviews.",
+    "Internal wildcard binds deliberately preserve service reachability and previously accepted plaintext risk. No new encryption claimed.",
+    "No configuration or source edits performed."
+  ]
+}

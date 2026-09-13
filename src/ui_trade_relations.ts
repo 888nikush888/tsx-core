@@ -70,7 +70,7 @@ export async function uiTradeRelationPage(intentId: string, kind: UiTradeRelatio
   const cursor = decodeUiCursor(query.get('cursor'), filter);
   const observedAt = cursor?.observedAt ?? Date.now();
   await Promise.resolve();
-  return withDatabaseTransaction(database => relationPage(database, intentId, kind, definition, filter, observedAt, cursor, limit));
+  return withDatabaseTransaction(database => relationPage(database, intentId, kind, definition, { filter, observedAt, cursor, limit }));
 }
 
 function relationPageWindow(
@@ -95,10 +95,17 @@ async function relationPageEntries(
   return { rows, entries };
 }
 
+interface RelationPageContext {
+  filter: string;
+  observedAt: number;
+  cursor: { createdAt: number; id: string } | null;
+  limit: number;
+}
+
 async function relationPage(
   database: Database,
   intentId: string, kind: UiTradeRelation, definition: (typeof RELATIONS)[UiTradeRelation],
-  filter: string, observedAt: number, cursor: { createdAt: number; id: string } | null, limit: number,
+  { filter, observedAt, cursor, limit }: RelationPageContext,
 ): Promise<unknown> {
   if (!await database.get('SELECT id FROM trading_trade_intents WHERE id = ?', [intentId])) return null;
   const { where, parameters } = relationPageWindow(definition, intentId, observedAt, cursor);

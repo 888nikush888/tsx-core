@@ -57,7 +57,8 @@ export async function assertExitCancellationSafe(account: TradingAccount, row: C
   const positions = remote.positions.filter(item => item.symbol === row.symbol);
   if (proof.flat && proof.entriesTerminal && positions.length === 0 && await entriesProvedTerminal(account, row, remote)) return;
   const remotePosition = positions[0];
-  if (positions.length !== 1 || !remotePosition || remotePosition.providerSymbol !== row.provider_symbol || remotePosition.side !== position.side
+  if (positions.length !== 1 || !remotePosition) throw new Error('Exit cancellation lacks exact current owned exposure.');
+  if (remotePosition.providerSymbol !== row.provider_symbol || remotePosition.side !== position.side
     || compareDecimal(remotePosition.quantity, proof.ownership.netQuantity) !== 0) throw new Error('Exit cancellation lacks exact current owned exposure.');
   if (row.role === 'stop_loss' && !await hasIndependentProtection(account, row, remote, position.side, proof.ownership.netQuantity, position.stop_price)) {
     throw new Error('Stop cancellation requires a fresh independent replacement covering owned exposure and entry remainder.');

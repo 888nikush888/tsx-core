@@ -51,7 +51,8 @@ export function assertTierEvidence(
     'Existing or unknown actual tier scope blocks scale-in.');
   try { validateTierTable(value.tiers); } catch { throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Complete consistent leverage tiers are required.'); }
   const firstTier = value.tiers[0];
-  requireEvidence(firstTier !== undefined && firstTier.maxLeverage === market.maxLeverage, 'Display maximum conflicts with actual tiers.');
+  requireEvidence(firstTier !== undefined, 'Display maximum conflicts with actual tiers.');
+  requireEvidence(firstTier.maxLeverage === market.maxLeverage, 'Display maximum conflicts with actual tiers.');
   return value;
 }
 

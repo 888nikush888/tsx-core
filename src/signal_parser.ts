@@ -512,6 +512,24 @@ function hasAnotherAttempt(
   return attempt < plan.attempts || planIndex < plans.length - 1;
 }
 
+function nextAttemptDelay(
+  error: unknown,
+  planIndex: number,
+  attempt: number,
+  plans: Array<{ model: string; attempts: number }>,
+  limits: AiLimits,
+): number | null {
+  const classification = classifyAiError(error);
+  if (!classification.retryable) throw error;
+  if (!hasAnotherAttempt(planIndex, attempt, plans)) return null;
+  const exponentialDelay = limits.backoffMs * 2 ** (attempt - 1);
+  const delayMs = retryDelayMilliseconds(error, exponentialDelay, limits);
+  console.error(
+    `[XML-Parser WARN] category=${classification.code} status=${classification.httpStatus || 'none'} retry_in_ms=${delayMs}`
+  );
+  return delayMs;
+}
+
 export async function parseSignalToXml(
   messageText: string,
   templateName?: string,
@@ -547,16 +565,8 @@ export async function parseSignalToXml(
         return await runProviderAttempt(context, plan.model);
       } catch (error) {
         lastError = error;
-        const classification = classifyAiError(error);
-        if (!classification.retryable) throw error;
-        if (hasAnotherAttempt(planIndex, attempt, plans)) {
-          const exponentialDelay = limits.backoffMs * 2 ** (attempt - 1);
-          const delayMs = retryDelayMilliseconds(error, exponentialDelay, limits);
-          console.error(
-            `[XML-Parser WARN] category=${classification.code} status=${classification.httpStatus || 'none'} retry_in_ms=${delayMs}`
-          );
-          await abortableDelay(delayMs, options.signal);
-        }
+        const delayMs = nextAttemptDelay(error, planIndex, attempt, plans, limits);
+        if (delayMs !== null) await abortableDelay(delayMs, options.signal);
       }
     }
   }

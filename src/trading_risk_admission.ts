@@ -139,7 +139,8 @@ export async function verifyRiskAdmission(proof: RiskAdmissionProof, plan: Tradi
   if (riskHash(source) !== proof.existing.sourceHash) unavailable('order, fill, stop or operation sources changed.');
   const ledger = await dailyLedger(proof.accountId);
   const accounting = proof.accountSnapshot.accounting;
-  if (!accounting || ledger.reportingCurrency !== accounting.reportingCurrency) unavailable('reporting currency differs from the bound ledger.');
+  if (!accounting) unavailable('reporting currency differs from the bound ledger.');
+  if (ledger.reportingCurrency !== accounting.reportingCurrency) unavailable('reporting currency differs from the bound ledger.');
   if (ledger.hash !== proof.ledgerHash) unavailable('monetary evidence changed.');
   assertDailyBudget(proof.budget, ledger.value, proof.accountSnapshot.unrealizedPnl, proof.existing.value, proof.candidateValue);
   assertRiskAdmissionFresh(proof);

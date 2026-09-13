@@ -40,7 +40,7 @@ export function applyEnvContent(content: string, env: NodeJS.ProcessEnv = proces
 
 function secretFileReference(env: NodeJS.ProcessEnv, fileVariable: string): string | null {
   const fileReference = env[fileVariable]?.trim();
-  return fileReference ? fileReference : null;
+  return fileReference || null;
 }
 
 function assertSecretNotDoubled(env: NodeJS.ProcessEnv, secretName: string, fileVariable: string): void {

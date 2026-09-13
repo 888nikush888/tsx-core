@@ -2520,6 +2520,10 @@ export class TradingEngine {
   }
 }
 
+function protectedEntryFailureMessage(error: unknown): string {
+  return error instanceof Error && error.message ? error.message : 'Protected entry outcome is unknown.';
+}
+
 async function submitTrackedProtectedEntry(input: {
   adapter: TradingExchangeAdapter;
   account: TradingAccount;
@@ -2584,7 +2588,7 @@ async function submitTrackedProtectedEntry(input: {
        WHERE intent_id = ? AND client_order_id IN (?, ?)
          AND status IN ('created', 'submitting', 'unknown')`,
       [
-        error instanceof Error && error.message ? error.message : 'Protected entry outcome is unknown.',
+        protectedEntryFailureMessage(error),
         Date.now(),
         input.intent.id,
         input.entry.clientOrderId,

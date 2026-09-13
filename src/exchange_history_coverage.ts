@@ -38,8 +38,8 @@ export function assertCoverageContinuation(previous: ExchangeHistoryCheckpoint, 
 function assertRetentionCoverageBound(state: ExchangeHistoryCheckpoint): void {
   const retention = state.retention;
   if (!retention) return;
-  if (retention.phase !== 'proved' || retention.fixedUntil === null || !state.coverage
-    || state.coverage.profile !== PROFILES.hyperliquid || state.coverage.through > Math.min(retention.originalUntil, retention.fixedUntil)) {
+  if (retention.phase !== 'proved' || retention.fixedUntil === null
+    || state.coverage?.profile !== PROFILES.hyperliquid || state.coverage.through > Math.min(retention.originalUntil, retention.fixedUntil)) {
     throw new Error('Historical coverage exceeds verified retention.');
   }
 }

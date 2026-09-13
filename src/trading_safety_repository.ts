@@ -53,6 +53,15 @@ async function safetyOrders(accountId: string, remote: ExchangeOpenState): Promi
   return rows.map(order => ({ ...order, reduceOnly: Number(order.reduceOnly) === 1, remoteConfirmed: remoteConfirms(order, remote) }));
 }
 
+function ownedExposureMatches(
+  single: ExchangeOpenState['positions'][number] | undefined,
+  need: SafetyPosition['need'],
+  ownership: NonNullable<SafetyPosition['ownership']>,
+): boolean {
+  if (single === undefined) return false;
+  return single.side === need.side && compareDecimal(single.quantity, ownership.netQuantity) === 0;
+}
+
 async function safetyPositions(accountId: string, remote: ExchangeOpenState): Promise<SafetyPosition[]> {
   const rows = await getDatabase().all<Array<SafetyPosition['need']>>(
     `SELECT account_id AS accountId, intent_id AS intentId, symbol, side, quantity, stop_price AS minimumTrigger
@@ -68,8 +77,7 @@ async function safetyPositions(accountId: string, remote: ExchangeOpenState): Pr
     } catch { /* Unproved is not zero. */ }
     const single = matches[0];
     const remoteMatches = ownership !== null
-      && (matches.length === 0 ? ownership.netQuantity === '0' : matches.length === 1 && single !== undefined && single.side === need.side
-        && compareDecimal(single.quantity, ownership.netQuantity) === 0);
+      && (matches.length === 0 ? ownership.netQuantity === '0' : matches.length === 1 && ownedExposureMatches(single, need, ownership));
     const projectionMatches = ownership !== null && compareDecimal(need.quantity, ownership.netQuantity) === 0;
     positions.push({ need, ownership, remoteMatches, projectionMatches });
   }
