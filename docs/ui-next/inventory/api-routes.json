@@ -388,7 +388,7 @@
     {
       "route": "POST /api/operations/backup",
       "handler": "runBackupHandler",
-      "handlerSha256": "a65c3bde91b41059da5be9ddc9d18ffe7c07c575a338184649f7512aba2930b8",
+      "handlerSha256": "8474dfafaf286046ff137a585e6a35b0dc99216bd648a9ba74c8203166a3ff87",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -464,7 +464,7 @@
     {
       "route": "POST /api/backups/recover-offsite",
       "handler": "recoverOffsiteBackupHandler",
-      "handlerSha256": "e41919a318c72f67cad92e4928e5c0aca43236d20b498be20571e5e3c994bb86",
+      "handlerSha256": "1afd47fcf25856352c5631572f06eb7caf20552eafa3ba67347fc3c699902b83",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -627,7 +627,7 @@
     {
       "route": "POST /api/operations/backup-drill",
       "handler": "uiBackupDrillHandler",
-      "handlerSha256": "5c4a8f7da9556822feeac8aed615021139611d77935db7eef1b90d4e8066979e",
+      "handlerSha256": "405df0dc85d130d4a804f537ae3087cfb0befdd98b81107a2b87dc46472c18c2",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [

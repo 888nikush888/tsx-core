@@ -1,0 +1,47 @@
+{
+  "baseRevision": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+  "workingTreeChanges": true,
+  "bindings": [
+    {
+      "path": "frontend/src/features/operations/runtime-parameters.tsx",
+      "beforeSourceSha256": "bb4c0325606f8295bb9a92e95a4339d13082063ccaeb4b615f2abe616004998c",
+      "afterSourceSha256": "005296306f8f4e43d3b7f9786a09216dd33990881889856504142b1a0339b35b",
+      "beforeJsSha256": "05c64710b488c1cb3b8f0fd5c3393de30186ab30de3337339b78c75d59a284be",
+      "afterJsSha256": "05c64710b488c1cb3b8f0fd5c3393de30186ab30de3337339b78c75d59a284be",
+      "byteIdentical": true
+    },
+    {
+      "path": "src/trading_credentials.ts",
+      "beforeSourceSha256": "ff74c6a0411b64195adbbd54116d0e753aa2f410c2816d9694f73c8c8a44a8fa",
+      "afterSourceSha256": "3a4806847e6e7151840df30df68bae089d9f490e3a816736c117152fb5e40a2a",
+      "beforeJsSha256": "41313400bb671412300d59c1256dd8f52035c391290125d18ce2908d05625988",
+      "afterJsSha256": "41313400bb671412300d59c1256dd8f52035c391290125d18ce2908d05625988",
+      "byteIdentical": true
+    }
+  ],
+  "entries": [
+    {
+      "id": "Q2hlY2tJc3N1ZTpsbXFkdndrcWE=",
+      "rationale": "Runtime draft now Record<string,unknown>: server settings may preserve unknown fields. Consumers discriminate boolean, render evidence from unknown, or use existing field UI. No object-to-string coercion or filtering introduced."
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTphbmF2eHJlYXc=",
+      "rationale": "onChange now accepts Record<string,unknown>; both production callers useVersionedDraft and preserve arbitrary saved fields. Edits spread prior draft and replace one field with checkbox boolean or string/number. Select value uses an erased React value assertion to retain existing forwarding for malformed inputs, not invented validation."
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpwcXdubWFrbHY=",
+      "rationale": "normalizeLegacyStored parameter is object, the actual outer normalizeStored contract after null/object/array validation. Helper uses Object.keys and the existing StoredCredentialsV1 assertion. Exchange allowlist, field allowlist, missing fields, singleLine validation, safe timestamp validation, failure propagation and ordering remain unchanged; no catch or fabricated error added."
+    }
+  ],
+  "validation": {
+    "backendTypecheck": "PASS tsc --noEmit",
+    "frontendTypecheck": "PASS tsc -b",
+    "credentials": "PASS existing test_trading_credentials.js via node --import tsx; includes three legacy migrations, invalid data and filesystem failures",
+    "frontend": "PASS three existing files, 19 tests: runtime-evidence-regressions, ui-next-foundations, sonar-ui-semantics"
+  },
+  "limits": [
+    "No commit or scanner/platform mutation.",
+    "Only the requested three any occurrences changed; other existing any outside this scope remain.",
+    "React select assertion preserves runtime forwarding, not a claim malformed server data is validated by this type."
+  ]
+}

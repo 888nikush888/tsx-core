@@ -1385,6 +1385,21 @@ function operationsHandler({ res, appState }: RequestContext): void {
   });
 }
 
+async function backupJobArtifact(context: RequestContext) {
+  if (!context.appState.runBackupNow) throw new HttpError(503, 'Backup control is unavailable.');
+  return { artifactName: path.basename(await context.appState.runBackupNow()) };
+}
+
+async function recoveredBackupJobArtifact(context: RequestContext, objectName: string) {
+  if (!context.appState.recoverOffsiteBackup) throw new HttpError(503, 'Off-site backup recovery is unavailable.');
+  return { artifactName: await context.appState.recoverOffsiteBackup(objectName) };
+}
+
+function runBackupDrillJob(context: RequestContext, name: string) {
+  if (!context.appState.runBackupDrill) throw new HttpError(503, 'Isolated restore drills are unavailable.');
+  return context.appState.runBackupDrill(name);
+}
+
 async function runBackupHandler(context: RequestContext): Promise<void> {
   if (!context.appState.runBackupNow) {
     sendJson(context.res, 503, { error: 'Backup control is unavailable.', requestId: context.requestId });
@@ -1397,7 +1412,7 @@ async function runBackupHandler(context: RequestContext): Promise<void> {
       if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
       const accepted = await store.accept({ id: jobId, kind: 'backup-create', actorId: requireActor(context).id, scope: { database: 'current', configuration: 'current' }, request: { action: 'backup-create' } });
       sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
-      if (accepted.created) store.run(jobId, async () => ({ artifactName: path.basename(await context.appState.runBackupNow!()) })).catch(error => addLog(`[ERROR] Backup job persistence failed: ${errorMessage(error)}`));
+      if (accepted.created) store.run(jobId, () => backupJobArtifact(context)).catch(error => addLog(`[ERROR] Backup job persistence failed: ${errorMessage(error)}`));
       return;
     }
     const artifact = await context.appState.runBackupNow();
@@ -1590,7 +1605,7 @@ async function recoverOffsiteBackupHandler(context: RequestContext): Promise<voi
       if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
       const accepted = await store.accept({ id: payload.jobId, kind: 'backup-recover', actorId: requireActor(context).id, scope: { objectName }, request: { objectName } });
       sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
-      if (accepted.created) store.run(accepted.job.id, async () => ({ artifactName: await context.appState.recoverOffsiteBackup!(objectName) })).catch(error => addLog(`[ERROR] Offsite recovery job persistence failed: ${errorMessage(error)}`));
+      if (accepted.created) store.run(accepted.job.id, () => recoveredBackupJobArtifact(context, objectName)).catch(error => addLog(`[ERROR] Offsite recovery job persistence failed: ${errorMessage(error)}`));
       return;
     }
     const artifactName = await context.appState.recoverOffsiteBackup(objectName);
@@ -2318,7 +2333,7 @@ async function uiBackupDrillHandler(context: RequestContext): Promise<void> {
     const name = backupArtifactName(payload.name);
     const accepted = await store.accept({ id: payload.jobId, kind: 'backup-drill', actorId: requireActor(context).id, scope: { artifactName: name }, request: { name } });
     sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
-    if (accepted.created) store.run(accepted.job.id, () => context.appState.runBackupDrill!(name)).catch(error => addLog(`[ERROR] Operator drill result persistence failed: ${errorMessage(error)}`));
+    if (accepted.created) store.run(accepted.job.id, () => runBackupDrillJob(context, name)).catch(error => addLog(`[ERROR] Operator drill result persistence failed: ${errorMessage(error)}`));
   } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error))); }
 }
 

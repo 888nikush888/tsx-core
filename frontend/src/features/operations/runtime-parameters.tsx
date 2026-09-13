@@ -1,4 +1,5 @@
 import { valueText } from "@/shared/value-text";
+import type { SelectHTMLAttributes } from 'react';
 import { EvidenceFields } from '@/shared/components/evidence';
 import { useSettingFocus } from '@/shared/forms/use-setting-focus';
 
@@ -75,7 +76,7 @@ function runtimeEvidenceText(item: unknown) {
   return valueText(item);
 }
 
-export function RuntimeParameters({ value, onChange, payload, readOnly = false }: Readonly<{ value: Record<string, any>; onChange: (value: Record<string, any>) => void; payload: RuntimeParameterPayload | null; readOnly?: boolean }>) {
+export function RuntimeParameters({ value, onChange, payload, readOnly = false }: Readonly<{ value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void; payload: RuntimeParameterPayload | null; readOnly?: boolean }>) {
   const parameters = payload?.parameters ?? [];
   useSettingFocus(parameters.map(field => `runtime.${field.path}`));
   const groups = [...new Set(parameters.map(item => item.group))];
@@ -89,7 +90,7 @@ export function RuntimeParameters({ value, onChange, payload, readOnly = false }
           return <input type="checkbox" disabled={disabled} checked={value[field.path] === true} onChange={event => onChange({ ...value, [field.path]: event.target.checked })} />;
         }
         if (field.values) {
-          return <select disabled={disabled} value={value[field.path] ?? ''} onChange={event => onChange({ ...value, [field.path]: event.target.value })}>{field.values.map(item => <option key={item}>{item}</option>)}</select>;
+          return <select disabled={disabled} value={value[field.path] as SelectHTMLAttributes<HTMLSelectElement>['value'] ?? ''} onChange={event => onChange({ ...value, [field.path]: event.target.value })}>{field.values.map(item => <option key={item}>{item}</option>)}</select>;
         }
         return <input disabled={disabled} type={field.type === 'number' ? 'number' : 'text'} step={field.type === 'number' ? 1 : undefined} min={field.range?.[0]} max={field.range?.[1]} maxLength={field.maxLength}
           value={runtimeFieldValue(field, value[field.path])} onChange={event => onChange({ ...value, [field.path]: parseRuntimeField(field, event.target.value) })} />;

@@ -139,7 +139,7 @@ function storedCredentials(
   return { version: 2, accountId, ...normalized, updatedAt: now };
 }
 
-function normalizeLegacyStored(accountId: string, input: Record<string, any>): { stored: StoredCredentialsV2; migrated: boolean } {
+function normalizeLegacyStored(accountId: string, input: object): { stored: StoredCredentialsV2; migrated: boolean } {
   const legacy = input as StoredCredentialsV1;
   if (!['hyperliquid', 'bybit', 'krakenfutures'].includes(legacy.exchange)) {
     throw new Error('Trading credential file is invalid.');
