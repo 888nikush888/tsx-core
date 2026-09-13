@@ -8,7 +8,7 @@ import { useConfirmationDialog } from '@/components/confirmation-dialog';
 
 type AccountIdentity = Pick<TradingAccount, 'name' | 'exchange' | 'mode' | 'enabled' | 'status' | 'killSwitchActive' | 'killSwitchReason' | 'maxConcurrentPositions'> & {
   identityFingerprint: string | null;
-  credentialGeneration: number;
+  credentialGeneration: string | null;
   stateVersion: number;
   lastVerifiedAt: number | null;
   reason: string | null;
