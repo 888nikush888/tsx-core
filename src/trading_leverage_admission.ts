@@ -55,6 +55,15 @@ export function assertTierEvidence(
   return value;
 }
 
+function assertCurrentPlanTier(value: TradingLeverageTierEvidence, plan: TradingPlan, decision: NonNullable<TradingPlan['leverageTierDecision']>): void {
+  let index: number;
+  try { index = tierForQuantity(value.tiers, plan.quantity, value.markPrice); }
+  catch { throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Current notional is outside proven tiers.'); }
+  const tier = value.tiers[index];
+  requireEvidence(index === decision.tierIndex && tier !== undefined && plan.leverage <= tier.maxLeverage,
+    'Current mark changed the original leverage tier.');
+}
+
 export function assertPlanTierDecision(account: TradingAccount, plan: TradingPlan, market: TradingMarketSnapshot): void {
   const value = assertTierEvidence(account, plan.symbol, market);
   const decision = plan.leverageTierDecision;
@@ -62,12 +71,7 @@ export function assertPlanTierDecision(account: TradingAccount, plan: TradingPla
     && decision.contractSize === value.contractSize && decision.providerSymbol === value.providerSymbol,
   'Original tier table or contract changed.');
   requireEvidence(decision.quantity === plan.quantity && decision.leverage === plan.leverage, 'Original tier sizing changed.');
-  let index: number;
-  try { index = tierForQuantity(value.tiers, plan.quantity, value.markPrice); }
-  catch { throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Current notional is outside proven tiers.'); }
-  const tier = value.tiers[index];
-  requireEvidence(index === decision.tierIndex && tier !== undefined && plan.leverage <= tier.maxLeverage,
-    'Current mark changed the original leverage tier.');
+  assertCurrentPlanTier(value, plan, decision);
   const entry = plan.orders.find(order => order.role === 'entry');
   requireEvidence(entry?.quantity === plan.quantity, 'Entry quantity changed after tier planning.');
   if (decision.version === 2) requireEvidence(plan.fxSizing?.notionalCurrency === value.currency, 'Tier FX budget lacks the original sizing context.');

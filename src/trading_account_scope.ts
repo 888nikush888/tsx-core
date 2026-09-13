@@ -71,12 +71,15 @@ async function classifyTrade(account: TradingAccount, record: AccountLogRecord, 
   if (!match || observed.proof.status !== 'observed_terminal_execution_set') { output.reason = 'terminal_execution_set_unproved'; return; }
   output.status = 'correlated_execution'; output.reason = null; output.orderId = record.orderId; output.executionId = match.executionId;
 }
+function receiptBindingUnproved(account: TradingAccount, receipt: ReturnType<typeof validateAccountLogReceipt>, origin: AccountOriginScope): boolean {
+  const bybitNamespace = accountLogSource('bybit')?.namespace;
+  return receipt.namespace !== bybitNamespace || receipt.accountFingerprint !== account.externalAccountId
+    || receipt.credentialGeneration !== account.credentialGeneration || receipt.records.length > 50
+    || (receipt.providerAccountUid !== null && origin.providerAccountUid !== null && receipt.providerAccountUid !== origin.providerAccountUid);
+}
 async function projectReceipt(account: TradingAccount, stored: StoredAccountLogReceipt, origin: AccountOriginScope): Promise<void> {
   const receipt = validateAccountLogReceipt(stored.receipt);
-  const bybitNamespace = accountLogSource('bybit')?.namespace;
-  if (receipt.namespace !== bybitNamespace || receipt.accountFingerprint !== account.externalAccountId
-    || receipt.credentialGeneration !== account.credentialGeneration || receipt.records.length > 50
-    || (receipt.providerAccountUid !== null && origin.providerAccountUid !== null && receipt.providerAccountUid !== origin.providerAccountUid)) {
+  if (receiptBindingUnproved(account, receipt, origin)) {
     await setAccountLogConsumerResult(stored.id, 'scope', 'unresolved', { version: 1, finality: 'not_proven', reason: 'receipt_source_binding_unproved' }); return;
   }
   const orders = new Map<string, ObservedOrderExecutionSet>(), records: AccountScopeRecord[] = [];

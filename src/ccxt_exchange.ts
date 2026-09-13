@@ -84,6 +84,16 @@ function assertObject(value: unknown, label: string): Record<string, any> {
   return value as Record<string, any>;
 }
 
+function assertOpenStateEnvelope(response: Record<string, unknown>): void {
+  if (!Array.isArray(response.orders) || !Array.isArray(response.positions) || !Array.isArray(response.fills)) {
+    throw new TypeError('Exchange executor returned an invalid open-state contract.');
+  }
+  if (typeof response.accountFingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(response.accountFingerprint)) {
+    throw new Error('Exchange executor returned an invalid account fingerprint.');
+  }
+  if (!response.acquisition) throw new Error('Exchange executor omitted acquisition evidence.');
+}
+
 function isTypedSymbolUnavailableResponse(input: {
   endpoint: string;
   status: number;
@@ -343,13 +353,7 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
         ? boundAccountPayload(account) : accountPayload(account), recovery }, 30_000, absoluteDeadline),
       'Exchange executor',
     );
-    if (!Array.isArray(response.orders) || !Array.isArray(response.positions) || !Array.isArray(response.fills)) {
-      throw new TypeError('Exchange executor returned an invalid open-state contract.');
-    }
-    if (typeof response.accountFingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(response.accountFingerprint)) {
-      throw new Error('Exchange executor returned an invalid account fingerprint.');
-    }
-    if (!response.acquisition) throw new Error('Exchange executor omitted acquisition evidence.');
+    assertOpenStateEnvelope(response);
     const state = validateOpenState(response, account.externalAccountId);
     const acquisition = state.acquisition;
     if (!acquisition) throw new Error('Exchange executor omitted acquisition evidence.');

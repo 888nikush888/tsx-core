@@ -2784,7 +2784,7 @@ async function bootstrapHandler(
 ): Promise<void> {
   try {
     bootstrapTokenState(authenticator);
-    const secretStore = requireBootstrapSecretStore(context);
+    requireBootstrapSecretStore(context);
     await requireBootstrapProof(context);
     requireBootstrapOrigin(context);
     const actor: AuthenticatedActor = { role: 'admin', id: 'bootstrap:proved-operator' };

@@ -2,7 +2,7 @@ import { exportPortableSetupBundle, type PortableSetupBundle } from './setup_bun
 import { getActiveWorkflow, listWorkflowResources } from './workflow_repository.js';
 import { listSignalContracts, listTradingStrategies, listTradingSignalSchemas, listTradingAccounts } from './trading_repository.js';
 import { listChannelRiskPolicies } from './trading_channel_risk.js';
-import { redactReview, redactReviewRecord } from './ui_change_review.js';
+import { redactReviewRecord } from './ui_change_review.js';
 
 const effect = 'Setup wird ersetzt. Vorhandene ungebundene Ressourcen und Modelle werden nach Referenzprüfung archiviert bzw. stillgelegt. Konten werden nur ausdrücklich zugeordnet. Historische Trades bleiben gepinnt. Secrets sind ausgeschlossen.';
 export function setupContentReview(current: Awaited<ReturnType<typeof uiSetupCurrentState>>, bundle: PortableSetupBundle) {

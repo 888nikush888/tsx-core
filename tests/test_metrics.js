@@ -122,6 +122,11 @@ async function runTests() {
   assert.strictEqual(response.status, 200);
   assert.strictEqual((await response.json()).status, 'alive');
 
+  response = await fetch(`${baseUrl}/not-a-metrics-endpoint`);
+  assert.equal(response.status, 404, 'Unknown paths must not fall through to operational metrics.');
+  assert.match(response.headers.get('content-type'), /^text\/plain;/);
+  assert.equal(await response.text(), 'Not Found');
+
   response = await fetch(`${baseUrl}/readyz`);
   assert.strictEqual(response.status, 503, 'Disconnected routing must not report ready');
   operational = { ...operational, isRunning: true, connectionState: 'connected' };

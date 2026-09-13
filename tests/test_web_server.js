@@ -332,6 +332,12 @@ async function testExchangeCatalogApi(baseUrl, appState) {
   }
 }
 
+async function testEmptyWorkflowDetailId(baseUrl) {
+  const response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 400, 'An explicitly empty detail identifier must not become a list request.');
+  assert.equal((await response.json()).error, 'Invalid workflow object identifier.');
+}
+
 async function testWorkflowResourceApi(baseUrl) {
   let response = await fetch(`${baseUrl}/api/workflow`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200);
@@ -354,9 +360,7 @@ async function testWorkflowResourceApi(baseUrl) {
   response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&resourceId=${encodeURIComponent(draft.resourceId)}&limit=1`, { headers: headers(VIEWER_TOKEN) });
   assert.equal(response.status, 200); assert.equal((await response.json()).entries[0].id, draft.id);
   response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);
-  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=`, { headers: headers(VIEWER_TOKEN) });
-  assert.equal(response.status, 400, 'An explicitly empty detail identifier must not become a list request.');
-  assert.equal((await response.json()).error, 'Invalid workflow object identifier.');
+  await testEmptyWorkflowDetailId(baseUrl);
   response = await fetch(`${baseUrl}/api/workflow/models?kind=schema`, { headers: headers(VIEWER_TOKEN) });
   assert.equal(response.status, 200); assert.ok(Array.isArray((await response.json()).entries));
   response = await fetch(`${baseUrl}/api/workflow/models?kind=strategy&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);

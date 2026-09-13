@@ -659,6 +659,20 @@ function contractTargets(root: XmlNode, definition: SignalContractDefinition): A
   });
 }
 
+function assertOrderedContractTarget(
+  action: 'LONG' | 'SHORT',
+  target: { min: string; max: string },
+  previous: { min: string; max: string } | undefined,
+): void {
+  if (!previous) throw new SignalValidationError('Target ordering cannot be verified.');
+  if (action === 'LONG' && compareDecimals(target.min, previous.max) <= 0) {
+    throw new SignalValidationError('LONG targets must be strictly ordered away from entry.');
+  }
+  if (action === 'SHORT' && compareDecimals(target.max, previous.min) >= 0) {
+    throw new SignalValidationError('SHORT targets must be strictly ordered away from entry.');
+  }
+}
+
 function assertContractGeometry(
   definition: SignalContractDefinition,
   action: 'LONG' | 'SHORT',
@@ -691,14 +705,7 @@ function assertContractGeometry(
       }
     }
     if (!definition.geometry.orderedTargets || index === 0) return;
-    const previous = targets[index - 1];
-    if (!previous) throw new SignalValidationError('Target ordering cannot be verified.');
-    if (action === 'LONG' && compareDecimals(target.min, previous.max) <= 0) {
-      throw new SignalValidationError('LONG targets must be strictly ordered away from entry.');
-    }
-    if (action === 'SHORT' && compareDecimals(target.max, previous.min) >= 0) {
-      throw new SignalValidationError('SHORT targets must be strictly ordered away from entry.');
-    }
+    assertOrderedContractTarget(action, target, targets[index - 1]);
   });
 }
 
