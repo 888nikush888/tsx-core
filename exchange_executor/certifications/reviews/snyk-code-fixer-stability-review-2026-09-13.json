@@ -4418,7 +4418,8 @@
     },
     {
       "file": "exchange_executor/certifications/reviews/fixer-secret-removal-snyk-independent-review-2026-09-13.json",
-      "sha256": "3e2f3c94fda53f88eea9a286a02542b30619d51c07affdfbb03bde20e7e1dcee"
+      "sha256": "5b476e7a9b831cf886a16d6ea00df6e90ccaf297d76f592e8d7d9db929a2c8d7",
+      "hashBasis": "Exact committed Git blob (LF-normalized repository artifact)"
     }
   ]
 }
