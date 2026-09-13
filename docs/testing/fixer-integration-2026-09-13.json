@@ -2,14 +2,14 @@
   "version": 1,
   "date": "2026-09-13",
   "baseline": "d72cf40",
-  "verifiedTree": "9079ddd2ff4ca2acccf615c7eb6baccd46a07dd3",
+  "verifiedTree": "4f53e363d13682f7fdb085aef8616c5a00a6c431",
   "scope": "24 DeepSource fixer heads plus one additional triage branch; not a claim of closed scanner findings",
   "branches": [
     {
       "branch": "origin/codex/security-quality-triage-2026-09-08",
       "head": "3cf589b69b52bc66d2690e7cf62dc4e49f605dca",
-      "integrated": false,
-      "mergeEvidence": null,
+      "integrated": true,
+      "mergeEvidence": "254ef5a6afa3cc3ad90c43d85be028c6dca94edc d47ee411a762bbb9a222b197c126b89f0fb977f7 3cf589b69b52bc66d2690e7cf62dc4e49f605dca merge: reconcile triage fixes while preserving runtime and validation contracts",
       "files": [
         "docs/testing/security-services-triage-2026-09-08.md",
         "exchange_executor/account_log_reader.py",
@@ -671,21 +671,41 @@
     }
   ],
   "verification": {
-    "frontend": "321 tests in 38 files passed",
-    "build": "passed on 6c12e76; later changes only repair JavaScript test syntax",
-    "backend": "ALL 226 TEST FILES PASSED on 9079ddd; reports/fixer-integration/node-tests-corrected.log. Applies to 24-fixer integration, before triage reconciliation.",
-    "python": "547 executed: 545 passed, 2 review-policy errors. Evidence hash drift: exchange_executor/tests/test_candidate_group_c_boundaries.py staticmethod change; independent review and receipt renewal pending.",
-    "typecheck": "passed",
-    "lint": "passed on 9079ddd"
+    "report": "fixer-reconciliation-verification-2026-09-13.md",
+    "evidence": "fixer-reconciliation-evidence-2026-09-13.json",
+    "backend": "All 226 registry test files passed before final forwarding/HTTP/metrics restorations; all nine affected suites passed after those restorations. Full final CI coverage remains required.",
+    "python": "All 547 tests passed after independent Group C evidence renewal; no Python changes afterward.",
+    "frontend": "All 321 tests in 38 files passed; no frontend source changes afterward.",
+    "typecheck": "passed after final source restorations",
+    "lint": "backend, frontend and Python passed",
+    "build": "passed after final source restorations",
+    "ancestry": "All 25 frozen and re-fetched remote heads are ancestors of the combined revision."
   },
   "reviewDocuments": [
     "fixer-regex-independent-review-2026-09-11.md",
-    "fixer-triage-independent-review-2026-09-11.md"
+    "fixer-triage-independent-review-2026-09-11.md",
+    "fixer-anonymous-callback-review-2026-09-13.md",
+    "fixer-extraction-review-2026-09-13.md",
+    "fixer-python-receipt-review-2026-09-13.md",
+    "fixer-group-c-renewal-verification-2026-09-13.md"
   ],
   "dependencySetup": "Existing locked installation shared via junctions; not a clean installation check.",
   "remaining": [
-    "Integrate additional triage branch, resolving independently documented regressions.",
-    "Review/renew affected exact-file evidence after final integration.",
-    "Finish complete backend verification and final scans; original all-findings goal remains active."
-  ]
+    "Publish combined candidate and validate current CI coverage, browser, mutation and scanner results.",
+    "Independently review and renew existing-profile implementation receipt after final gate evidence; container/release approval remains open.",
+    "Complete all-finding remediation and source-bound dispositions on fresh full scanner inventories. Aikido excluded; four documented HTTP risks retain user acceptance."
+  ],
+  "previousVerification": {
+    "verifiedRevision": "9079ddd2ff4ca2acccf615c7eb6baccd46a07dd3",
+    "verification": {
+      "frontend": "321 tests in 38 files passed",
+      "build": "passed on 6c12e76; later changes only repair JavaScript test syntax",
+      "backend": "ALL 226 TEST FILES PASSED on 9079ddd; reports/fixer-integration/node-tests-corrected.log. Applies to 24-fixer integration, before triage reconciliation.",
+      "python": "547 executed: 545 passed, 2 review-policy errors. Evidence hash drift: exchange_executor/tests/test_candidate_group_c_boundaries.py staticmethod change; independent review and receipt renewal pending.",
+      "typecheck": "passed",
+      "lint": "passed on 9079ddd"
+    }
+  },
+  "integratedRevision": "47e61b932eee26aceea1d5a5a0cea185bacb327e",
+  "lastRemoteInventoryDate": "2026-09-13"
 }
