@@ -16,6 +16,26 @@ export interface ConfirmedDelivery {
   destinationMessageIds: string[];
 }
 
+interface DeliveryError {
+  message?: unknown;
+}
+
+interface DeliveryMessage {
+  id?: unknown;
+  sending_state?: { _?: unknown; error?: DeliveryError | null } | null;
+}
+
+interface DeliveryUpdate {
+  _?: unknown;
+  old_message_id?: unknown;
+  message?: DeliveryMessage | null;
+  error?: DeliveryError | null;
+}
+
+interface DeliveryResult extends DeliveryMessage {
+  messages?: unknown;
+}
+
 export class TelegramDeliveryTracker {
   private readonly waiters = new Map<string, DeliveryWaiter>();
   private readonly recentOutcomes = new Map<string, DeliveryOutcome>();
@@ -30,7 +50,7 @@ export class TelegramDeliveryTracker {
     }
   }
 
-  public handleUpdate(update: Record<string, any>): boolean {
+  public handleUpdate(update: DeliveryUpdate): boolean {
     if (update?._ === 'updateMessageSendSucceeded') {
       const oldMessageId = String(update.old_message_id);
       const destinationMessageId = String(update.message?.id ?? update.old_message_id);
@@ -51,15 +71,15 @@ export class TelegramDeliveryTracker {
     return false;
   }
 
-  public async waitForResult(result: Record<string, any>, signal?: AbortSignal): Promise<ConfirmedDelivery> {
-    let messages: Array<Record<string, any>> = [];
+  public async waitForResult(result: DeliveryResult, signal?: AbortSignal): Promise<ConfirmedDelivery> {
+    let messages: DeliveryMessage[] = [];
     if (Array.isArray(result?.messages)) messages = result.messages;
     else if (result?.id !== undefined) messages = [result];
     if (messages.length === 0) {
       throw new Error('Telegram send returned no destination messages to confirm.');
     }
 
-    const destinationMessageIds = await Promise.all(messages.map(async (message: Record<string, any>) => {
+    const destinationMessageIds = await Promise.all(messages.map(async (message: DeliveryMessage) => {
       if (message?.id === undefined || message?.id === null) {
         throw new Error('Telegram send returned a message without an id.');
       }

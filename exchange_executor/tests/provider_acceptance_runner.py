@@ -19,27 +19,30 @@ import ccxt_profiles
 from acceptance_journal import AcceptanceJournal, digest
 
 
+import acceptance_contracts as _contracts
 from acceptance_contracts import (
-    TESTNET_ORIGINS as TESTNET_ORIGINS,
-    AUTHORIZATION as AUTHORIZATION,
-    AcceptanceRefused as AcceptanceRefused,
-    require as require,
-    positive_decimal as positive_decimal,
-    validate_origins as validate_origins,
-    validate_plan as validate_plan,
-    validate_limits as validate_limits,
-    journal_binding as journal_binding,
-    validate_journal_binding as validate_journal_binding,
-    fields as fields,
-    identifier as identifier,
-    quantity as quantity,
-    exact_sum as exact_sum,
-    validate_request as validate_request,
-    validate_notional as validate_notional,
-    validate_original as validate_original,
-    validate_order_original as validate_order_original,
-    validate_journal_event as validate_journal_event,
+    AUTHORIZATION,
+    AcceptanceRefused,
+    require,
+    positive_decimal,
+    validate_plan,
+    journal_binding,
+    quantity,
+    validate_request,
+    validate_notional,
+    validate_original,
+    validate_journal_event,
 )
+
+# Preserve the runner's historical contract exports for existing importers.
+TESTNET_ORIGINS = _contracts.TESTNET_ORIGINS
+validate_origins = _contracts.validate_origins
+validate_limits = _contracts.validate_limits
+validate_journal_binding = _contracts.validate_journal_binding
+fields = _contracts.fields
+identifier = _contracts.identifier
+exact_sum = _contracts.exact_sum
+validate_order_original = _contracts.validate_order_original
 
 
 class AcceptanceGuard:
