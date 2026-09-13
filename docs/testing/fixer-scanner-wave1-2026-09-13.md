@@ -17,10 +17,16 @@ not a complete branch inventory. A separately completed default-branch export
 still contains 4,459 unique findings at the old main revision.
 
 Codacy's enabled integration branch was fully analyzed at the same head and
-contains 343 unique active findings, zero ignored. All reported source lines
+initially contained 343 unique active findings, zero ignored. All reported source lines
 were checked against that Git revision. The separate PR delta is 35 added and
 52 fixed findings; it must not substitute for the full branch inventory.
 Neither service is currently claimed clean.
+
+One individually reviewed control-character rejection expression was subsequently
+marked false positive in Codacy. Readback confirms its exact ID and rationale in
+the ignored list, while the analyzed active inventory still contains it. Remote
+closure is not claimed until a fresh analysis reconciles these views. No bulk
+classification was applied.
 
 ## Changes and verification
 
@@ -39,7 +45,7 @@ Neither service is currently claimed clean.
   internally used imports no longer repeat their own names as aliases. Its 28
   existing offline acceptance/journal tests and Ruff pass. An independent review
   repeated those tests and checked the assignments and import ordering.
-- A fresh Snyk Code scan after these two source edits returns 85 findings. The
+- A fresh Snyk Code scan after all follow-up source and test edits returns 85 findings. The
   existing source-bound verifier passes unchanged: 81 individually reviewed false
   positives, four explicitly accepted internal HTTP risks, zero unresolved.
 
@@ -77,7 +83,10 @@ installation and is not a new clean-install claim.
 
 The container job stopped at the implementation comparison before image checks.
 Its failure is retained as an open gate; the successful core tests do not replace
-it. A refreshed Sonar check and scans of the follow-up commits remain necessary.
+it. The Sonar job completed coverage generation, but scanner initialization failed
+with HTTP 503 from SonarCloud's settings endpoint. It produced no current analysis
+or quality-gate result. A refreshed Sonar check and scans of the follow-up commits
+remain necessary. The separate security-services workflow passed all five jobs.
 
 ## Evidence and remaining work
 
