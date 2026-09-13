@@ -2995,7 +2995,6 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
             <Label>
               Kanal-ID
               <Input
-                autoFocus
                 value={simulation.channelId}
                 onChange={(event) =>
                   setSimulation({

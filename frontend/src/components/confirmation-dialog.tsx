@@ -78,7 +78,6 @@ export function useConfirmationDialog() {
           <label className="app-confirmation-input">
             {confirmationInputLabel(options)}
             <Input
-              autoFocus
               autoComplete="off"
               value={input}
               placeholder={options?.inputPlaceholder}
