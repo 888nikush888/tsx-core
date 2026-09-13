@@ -796,7 +796,7 @@ export class TradingWebControl {
     const release = lowering ? this.engine.mutations.holdEntries() : undefined;
     const epoch = this.engine.mutations.entryEpoch('@runtime');
     try {
-      return await this.engine.mutations.run('@runtime', async context => {
+      return await this.engine.mutations.run('@runtime', context => {
         const assertAuthority = () => this.engine.mutations.assertEpoch(context, epoch);
         if (action === 'execution') return this.setExecutionRuntime(payload, assertAuthority);
         if (action === 'live') return this.setLiveRuntime(payload, assertAuthority);

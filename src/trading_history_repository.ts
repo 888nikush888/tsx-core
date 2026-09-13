@@ -29,23 +29,47 @@ export async function historyCheckpoints(account: TradingAccount, since: number)
   return states;
 }
 
-async function alignEvidenceWindow(account: TradingAccount, previous: ExchangeHistoryCheckpoint, since: number, boundary?: number): Promise<ExchangeHistoryCheckpoint> {
-  const provenAdvance = boundary !== undefined && since <= boundary && since > previous.baselineSince;
-  const legacyCoverage = previous.source === 'fills' && previous.coverage === undefined;
-  if (since >= previous.baselineSince && !provenAdvance && !legacyCoverage) return previous;
+function evidenceWindowProvenAdvance(previous: ExchangeHistoryCheckpoint, since: number, boundary?: number): boolean {
+  return boundary !== undefined && since <= boundary && since > previous.baselineSince;
+}
+
+function evidenceWindowLegacyCoverage(previous: ExchangeHistoryCheckpoint): boolean {
+  return previous.source === 'fills' && previous.coverage === undefined;
+}
+
+function recoveredEvidenceReset(
+  previous: ExchangeHistoryCheckpoint, since: number, provenAdvance: boolean, legacyCoverage: boolean,
+): ExchangeHistoryCheckpoint {
   // A restore/import can reveal an older obligation. Invalidate in-flight responses and re-read,
   // never pretend a cursor for a later time range also covered the earlier evidence.
   const restartSince = provenAdvance ? since : Math.min(since, previous.baselineSince);
   const advanceReason = provenAdvance ? 'proven_baseline_window' : 'earlier_obligation_discovered';
-  const reset: ExchangeHistoryCheckpoint = { ...previous, revision: previous.revision + 1, baselineSince: restartSince,
+  return { ...previous, revision: previous.revision + 1, baselineSince: restartSince,
     windowSince: restartSince, windowUntil: null, cursor: null, scannedThrough: null, nextReadAt: 0, coverage: null, retention: null,
     completeness: 'unknown', reason: legacyCoverage ? 'legacy_coverage_unproved' : advanceReason };
+}
+
+function evidenceWindowCurrent(previous: ExchangeHistoryCheckpoint, since: number, provenAdvance: boolean, legacyCoverage: boolean): boolean {
+  return since >= previous.baselineSince && !provenAdvance && !legacyCoverage;
+}
+
+async function commitEvidenceReset(
+  account: TradingAccount, previous: ExchangeHistoryCheckpoint, reset: ExchangeHistoryCheckpoint,
+): Promise<void> {
   const result = await getDatabase().run(
     `UPDATE trading_history_checkpoints SET revision = ?, checkpoint_json = ?, updated_at = ?
      WHERE account_id = ? AND account_fingerprint = ? AND source = ? AND provider_symbol = ? AND revision = ?`,
     [reset.revision, JSON.stringify(reset), Date.now(), account.id, account.externalAccountId, previous.source, previous.providerSymbol ?? '', previous.revision],
   );
   if (result.changes !== 1) throw new Error('History checkpoint changed during earlier-obligation recovery.');
+}
+
+async function alignEvidenceWindow(account: TradingAccount, previous: ExchangeHistoryCheckpoint, since: number, boundary?: number): Promise<ExchangeHistoryCheckpoint> {
+  const provenAdvance = evidenceWindowProvenAdvance(previous, since, boundary);
+  const legacyCoverage = evidenceWindowLegacyCoverage(previous);
+  if (evidenceWindowCurrent(previous, since, provenAdvance, legacyCoverage)) return previous;
+  const reset = recoveredEvidenceReset(previous, since, provenAdvance, legacyCoverage);
+  await commitEvidenceReset(account, previous, reset);
   return reset;
 }
 

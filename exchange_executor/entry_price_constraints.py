@@ -39,24 +39,34 @@ def _original_boundary(request: dict[str, Any]) -> dict[str, Any]:
     return boundary
 
 
-def assert_boundary(request: dict[str, Any], price_tick: str) -> str:
+def _boundary_values(request: dict[str, Any], price_tick: str) -> tuple[dict[str, Any], dict[str, Decimal], str]:
     boundary = _original_boundary(request)
     values = {key: Decimal(decimal_string(boundary[key], key, positive=True)) for key in BOUNDARY_FIELDS - {'version'}}
     if values['maxSlippagePercent'] > 5 or values['priceTick'] != Decimal(price_tick):
         raise EntryPriceConstraintError('Original entry boundary does not match its certified market tick or slippage.')
-    if request.get('maxSlippagePercent') != boundary['maxSlippagePercent']:
-        raise EntryPriceConstraintError('Original entry slippage changed.')
     side = request.get('side')
     if side not in ('buy', 'sell'):
         raise EntryPriceConstraintError('Bounded entry side is invalid.')
+    return boundary, values, side
+
+
+def _boundary_limit(values: dict[str, Decimal], side: str, boundary: dict[str, Any]) -> str:
     allowed = _rounded_boundary(values, side)
     if allowed <= 0 or values['limitPrice'] != allowed:
         raise EntryPriceConstraintError('Tick rounding widened or changed the original entry price boundary.')
+    return boundary['limitPrice']
+
+
+def assert_boundary(request: dict[str, Any], price_tick: str) -> str:
+    boundary, values, side = _boundary_values(request, price_tick)
+    if request.get('maxSlippagePercent') != boundary['maxSlippagePercent']:
+        raise EntryPriceConstraintError('Original entry slippage changed.')
+    limit = _boundary_limit(values, side, boundary)
     if (request.get('role'), request.get('orderType'), request.get('timeInForce')) != ('entry', 'limit', 'IOC'):
         raise EntryPriceConstraintError('Bounded entry requires the protected limit IOC order form.')
     if request.get('postOnly') is True or request.get('reduceOnly') is True or request.get('price') != boundary['limitPrice']:
         raise EntryPriceConstraintError('Submitted entry contradicts its original price boundary.')
-    return boundary['limitPrice']
+    return limit
 
 
 def apply_entry_boundary(profile: ExchangeProfile, request: dict[str, Any], spec: dict[str, Any], price_tick: str) -> None:

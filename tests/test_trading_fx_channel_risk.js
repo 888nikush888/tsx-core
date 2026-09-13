@@ -26,7 +26,7 @@ const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-fx-channel-risk-'));
 const filename = path.join(directory, 'risk.db');
 const now = Date.UTC(2026, 7, 31, 12);
 const closedAt = now - 86400000;
-let strategyId;
+let strategyId = null;
 const strategy = { ...structuredClone(DEFAULT_STRATEGY_CONFIGURATION), sizing: {
   ...DEFAULT_STRATEGY_CONFIGURATION.sizing, maxAdaptiveRiskPercent: '10' } };
 const policy = (channelId, changes = {}) => ({ channelId, mode: 'automatic',

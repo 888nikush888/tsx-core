@@ -14,12 +14,17 @@ export const MAX_ENTRY_DRAIN_ATTEMPTS = MAX_CANCEL_ATTEMPTS;
 export const TERMINAL_ORDER_STATES = ['filled', 'cancelled', 'rejected'] as const;
 
 /** Zero position quantity is deliberately not an input to this proof. */
-export function entryCommitmentReason(status: string, unresolvedOperation: boolean): string | null {
-  if (unresolvedOperation) return 'ENTRY_OPERATION_UNRESOLVED';
-  if ((TERMINAL_ORDER_STATES as readonly string[]).includes(status)) return null;
+function nonTerminalEntryReason(status: string): string | null {
   if (status === 'created') return 'ENTRY_DISPATCH_INTENT';
   if (status === 'open' || status === 'partially_filled') return 'ENTRY_CAN_FILL';
   return 'ENTRY_OUTCOME_UNRESOLVED';
+}
+
+/** Zero position quantity is deliberately not an input to this proof. */
+export function entryCommitmentReason(status: string, unresolvedOperation: boolean): string | null {
+  if (unresolvedOperation) return 'ENTRY_OPERATION_UNRESOLVED';
+  if ((TERMINAL_ORDER_STATES as readonly string[]).includes(status)) return null;
+  return nonTerminalEntryReason(status);
 }
 
 /** Caller owns the account mutation coordinator. This intent survives timeouts and restarts. */

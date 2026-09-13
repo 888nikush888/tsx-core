@@ -84,11 +84,11 @@ async function verifyResilientLoop() {
   await resilientLoop(() => Promise.resolve(), () => 250, loopService, 1);
   await resilientLoop(() => Promise.resolve(), () => 0, loopService, 2);
   await resilientLoop(() => Promise.reject(new Error('short failure')), () => 250, loopService, 1);
-  await resilientLoop(() => Promise.reject('non-error failure'), () => 250, loopService, 1);
+  await resilientLoop(() => Promise.reject(new Error('non-error failure')), () => 250, loopService, 1);
   assert.strictEqual(loopState.healthy, 3);
   assert.strictEqual(loopState.failures.length, 2);
   assert.strictEqual(loopState.failures[0].message, 'short failure');
-  assert.strictEqual(loopState.failures[1], 'non-error failure', 'Non-Error rejections retain their original diagnostic value.');
+  assert.strictEqual(loopState.failures[1].message, 'non-error failure', 'Non-Error rejections retain their original diagnostic value.');
 }
 
 function verifyTrustedInternalTransport() {

@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { getDatabase, withDatabaseTransaction } from './db.js';
 import { addDecimal, compareDecimal, decimal, divideDecimal, minDecimal, multiplyDecimal, quantizeDecimalDown, subtractDecimal, sumDecimals } from './trading_decimal.js';
 import { loadOwnershipProof } from './trading_ownership.js';
@@ -157,7 +157,9 @@ function completionState(row: AllocationRow, totals: string[], filled: string[])
 }
 
 function previousTotals(row: AllocationRow, plan: TradingPlan, hash: string): string[] {
-  if (row.plan_hash !== hash) throw new Error('Persisted TP allocation conflicts with the immutable trade plan.');
+  const stored = Buffer.from(row.plan_hash, 'utf8');
+  const expected = Buffer.from(hash, 'utf8');
+  if (stored.length !== expected.length || !timingSafeEqual(stored, expected)) throw new Error('Persisted TP allocation conflicts with the immutable trade plan.');
   const parsed: unknown = JSON.parse(row.target_totals_json);
   if (!Array.isArray(parsed) || parsed.length !== plan.targetAllocationsPercent.length) throw new Error('Invalid stored TP allocation.');
   return parsed.map(value => decimal(value));

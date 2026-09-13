@@ -74,8 +74,9 @@ export async function observedOrderExecutions(account: TradingAccount, order: Sc
 /** Ledger tradeId and execId have different contracts. Correlate exact owned order plus a unique full economic match. */
 export function executionMatches(record: AccountLogRecord, execution: RealExecution): boolean {
   try {
+    if (!record.qty || !record.tradePrice || !record.fee) return false;
     return record.symbol === execution.symbol && record.currency === execution.currency && Number(record.transactionTime) === execution.timestamp
-      && decimal(record.qty!, { positive: true }) === execution.quantity && decimal(record.tradePrice!, { positive: true }) === execution.price
-      && signedDecimal(record.fee!) === execution.fee;
+      && decimal(record.qty, { positive: true }) === execution.quantity && decimal(record.tradePrice, { positive: true }) === execution.price
+      && signedDecimal(record.fee) === execution.fee;
   } catch { return false; }
 }

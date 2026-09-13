@@ -529,12 +529,18 @@ export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.en
     0,
     3650
   );
+  const urlTemplate = env.BACKUP_OFFSITE_URL_TEMPLATE;
+  const bearerToken = env.BACKUP_OFFSITE_TOKEN;
+  const encryptionKeyValue = env.BACKUP_ENCRYPTION_KEY;
+  if (!urlTemplate?.trim() || !bearerToken?.trim() || !encryptionKeyValue?.trim()) {
+    throw new Error('Off-site backup requires BACKUP_OFFSITE_URL_TEMPLATE, BACKUP_OFFSITE_TOKEN and BACKUP_ENCRYPTION_KEY.');
+  }
   return {
     required,
     replicator: new HttpsBackupReplicator({
-      urlTemplate: env.BACKUP_OFFSITE_URL_TEMPLATE!,
-      bearerToken: env.BACKUP_OFFSITE_TOKEN!,
-      encryptionKey: parseBackupEncryptionKey(env.BACKUP_ENCRYPTION_KEY!),
+      urlTemplate,
+      bearerToken,
+      encryptionKey: parseBackupEncryptionKey(encryptionKeyValue),
       timeoutMs: timeout,
       maxRecoveryBytes: configuredRecoveryLimit,
       minRetentionDays: configuredRetentionDays || (enterprise ? 30 : undefined)

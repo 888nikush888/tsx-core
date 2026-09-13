@@ -33,7 +33,7 @@ export function createProcessRestartRequest(shutdown: () => Promise<unknown>, sh
     }, shutdownTimeoutMs);
     const finish = (fallbackCode: number) => { clearTimeout(watchdog); exit(fallbackCode); };
     setTimeout(() => {
-      void Promise.resolve().then(shutdown).then(
+      Promise.resolve().then(shutdown).then(
         () => finish(0),
         () => finish(1),
       );
@@ -52,17 +52,18 @@ export class UiRestartCoordinator {
       || !['awaiting-restart', 'unknown'].includes(job.state) || this.scheduled.has(job.id)) return false;
     this.scheduled.add(job.id);
     let completed = false;
-    const finish = () => {
+    const requestRestart = this.requestRestart;
+    const fallback = setTimeout(finish, RESTART_RESPONSE_GRACE_MS);
+    function finish() {
       if (completed) return;
       completed = true;
       clearTimeout(fallback);
       response?.removeListener('finish', finish);
       response?.removeListener('close', finish);
-      this.requestRestart();
-    };
+      requestRestart();
+    }
     // Keep this timer referenced: successful destructive work must complete even if
     // its disconnected response was the last remaining event-loop handle.
-    const fallback = setTimeout(finish, RESTART_RESPONSE_GRACE_MS);
     response?.once('finish', finish);
     response?.once('close', finish);
     if (!response || response.destroyed || response.closed || response.writableFinished) finish();

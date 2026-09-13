@@ -47,7 +47,7 @@ async function rejectsUnproved(name, mutate, reason) {
   assert.equal((await getDatabase().get('SELECT COUNT(*) AS n FROM trading_kraken_cashleg_evidence WHERE event_id=?', [event.id])).n, 0, name);
   const consumer = await getDatabase().get(`SELECT result_json FROM trading_account_log_consumers work
     JOIN trading_account_log_receipts receipt ON receipt.id=work.receipt_id WHERE receipt.account_id=?`, [trade.account.id]);
-  assert.match(consumer.result_json, new RegExp(reason), name);
+  assert.match(consumer.result_json, new RegExp(`${reason.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`), name);
 }
 
 async function originalUnitConflict() {

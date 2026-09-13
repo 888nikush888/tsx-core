@@ -293,7 +293,7 @@ async function testTradingAnalyticsApi(baseUrl) {
 }
 
 async function testExchangeCatalogApi(baseUrl, appState) {
-  let response;
+  let response = null;
   const originalTradingControl = appState.tradingControl;
   appState.tradingControl = {
     exchangeCatalog: () => Promise.resolve(({
@@ -354,6 +354,9 @@ async function testWorkflowResourceApi(baseUrl) {
   response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&resourceId=${encodeURIComponent(draft.resourceId)}&limit=1`, { headers: headers(VIEWER_TOKEN) });
   assert.equal(response.status, 200); assert.equal((await response.json()).entries[0].id, draft.id);
   response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);
+  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 400, 'An explicitly empty detail identifier must not become a list request.');
+  assert.equal((await response.json()).error, 'Invalid workflow object identifier.');
   response = await fetch(`${baseUrl}/api/workflow/models?kind=schema`, { headers: headers(VIEWER_TOKEN) });
   assert.equal(response.status, 200); assert.ok(Array.isArray((await response.json()).entries));
   response = await fetch(`${baseUrl}/api/workflow/models?kind=strategy&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);
@@ -1401,7 +1404,7 @@ async function testOperationsControl(baseUrl, controls) {
 }
 
 async function testMutationSerialization(baseUrl, controls) {
-  let releaseBackup;
+  let releaseBackup = null;
   controls.backupBarrier = new Promise(resolve => { releaseBackup = resolve; });
   const backupRequest = fetch(`${baseUrl}/api/operations/backup`, { method: 'POST', headers: mutationHeaders() });
   const deadline = Date.now() + 1000;
@@ -1569,6 +1572,12 @@ async function testBrowserAndDestructiveContracts(baseUrl, appState) {
   assert.strictEqual(appState.controls.restartCalls, 2);
   response = await fetch(`${baseUrl}/api/does-not-exist`, { headers: headers(ADMIN_TOKEN) });
   assert.strictEqual(response.status, 404, 'Unknown API routes must not fall through to the SPA');
+  response = await fetch(`${baseUrl}/..%2foutside.txt`, { signal: AbortSignal.timeout(2000) });
+  assert.equal(response.status, 403, 'A validly encoded path outside the static root remains forbidden.');
+  assert.equal((await response.json()).error, 'Invalid static file path.');
+  response = await fetch(`${baseUrl}/%ZZ`, { signal: AbortSignal.timeout(2000) });
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, 'Invalid URL encoding.');
   response = await fetch(`${baseUrl}/.directory-response-test`, { signal: AbortSignal.timeout(2000) });
   assert.strictEqual(response.status, 200, 'A static directory path must receive a bounded SPA response');
   assert.ok(Number(response.headers.get('content-length')) > 0, 'SPA responses must declare their exact size');
@@ -1813,7 +1822,7 @@ async function testRecoveryLocalStartup(testDir, appState) {
   const previousAuthMode = process.env.DASHBOARD_AUTH_MODE;
   const previousAllowedOrigin = process.env.DASHBOARD_ALLOWED_ORIGIN;
   const secretStore = new ManagedSecretStore(path.join(testDir, 'recovery-secrets'));
-  let recoveryServer;
+  let recoveryServer = null;
   try {
     delete process.env.DASHBOARD_ADMIN_TOKEN;
     delete process.env.DASHBOARD_VIEWER_TOKEN;

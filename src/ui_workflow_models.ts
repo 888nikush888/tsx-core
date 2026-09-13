@@ -5,7 +5,7 @@ import { getTradingSignalSchemaById, getTradingStrategyVersion, getSignalContrac
   deleteTradingSignalSchema, updateTradingSignalSchema } from './trading_repository.js';
 import { createWorkflowResourceDraft, getActiveWorkflow } from './workflow_repository.js';
 import { decodeUiCursor, encodeUiCursor, filterFingerprint } from './ui_cursor.js';
-import { reviewHash, redactReview } from './ui_change_review.js';
+import { reviewHash, redactReview, redactReviewRecord } from './ui_change_review.js';
 import { uiObjectId } from './ui_trading_reads.js';
 
 const MODELS = {
@@ -65,7 +65,11 @@ export async function uiModelDetail(inputKind: unknown, inputId: unknown) {
 
 async function schemaLifecycle(id: string, action: string) {
   if (action === 'delete') return { deleted: await deleteTradingSignalSchema(id) };
-  if (action === 'enable' || action === 'disable') return { model: await updateTradingSignalSchema(id, { ...(await getTradingSignalSchemaById(id))!, enabled: action === 'enable' }) };
+  if (action === 'enable' || action === 'disable') {
+    const current = await getTradingSignalSchemaById(id);
+    if (!current) throw new Error('Signal schema does not exist.');
+    return { model: await updateTradingSignalSchema(id, { ...current, enabled: action === 'enable' }) };
+  }
   throw new Error('Unsupported model action.');
 }
 
@@ -98,6 +102,6 @@ export async function mutateUiModel(input: { kind: unknown; id: unknown; action:
     if (action === 'delete' && current.resourceCount > 0) throw new Error('Retained resource versions still reference this model.');
     if (['archive', 'disable'].includes(action) && current.activeReferenceCount > 0) throw new Error('Active workflow references block this model change.');
     const result = await modelLifecycle(kind, id, action, current);
-    return { contractVersion: 1, kind, id, action, ...redactReview(result), observedAt: Date.now(), effect: 'Command committed. No workflow activation or trade execution.' };
+    return { contractVersion: 1, kind, id, action, ...redactReviewRecord(result), observedAt: Date.now(), effect: 'Command committed. No workflow activation or trade execution.' };
   });
 }

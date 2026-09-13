@@ -23,8 +23,9 @@ async function entriesProvedTerminal(account: TradingAccount, row: CancelOrder, 
     const local = await loadCancelOrder(account.id, entry.client_order_id);
     const found = remote.orders.filter(order => order.clientOrderId === local.client_order_id && order.exchangeOrderId === local.exchange_order_id
       && order.providerSymbol === local.provider_symbol && order.symbol === local.symbol);
-    if (found.length !== 1 || !['filled', 'cancelled', 'rejected'].includes(found[0]!.status)
-      || found[0]!.status !== local.status || found[0]!.filledQuantity !== local.filled_quantity) return false;
+    const match = found[0];
+    if (found.length !== 1 || !match || !['filled', 'cancelled', 'rejected'].includes(match.status)
+      || match.status !== local.status || match.filledQuantity !== local.filled_quantity) return false;
   }
   return true;
 }
@@ -55,8 +56,9 @@ export async function assertExitCancellationSafe(account: TradingAccount, row: C
   const proof = await loadTradeLifecycle(row.intent_id, position.side);
   const positions = remote.positions.filter(item => item.symbol === row.symbol);
   if (proof.flat && proof.entriesTerminal && positions.length === 0 && await entriesProvedTerminal(account, row, remote)) return;
-  if (positions.length !== 1 || positions[0]!.providerSymbol !== row.provider_symbol || positions[0]!.side !== position.side
-    || compareDecimal(positions[0]!.quantity, proof.ownership.netQuantity) !== 0) throw new Error('Exit cancellation lacks exact current owned exposure.');
+  const remotePosition = positions[0];
+  if (positions.length !== 1 || !remotePosition || remotePosition.providerSymbol !== row.provider_symbol || remotePosition.side !== position.side
+    || compareDecimal(remotePosition.quantity, proof.ownership.netQuantity) !== 0) throw new Error('Exit cancellation lacks exact current owned exposure.');
   if (row.role === 'stop_loss' && !await hasIndependentProtection(account, row, remote, position.side, proof.ownership.netQuantity, position.stop_price)) {
     throw new Error('Stop cancellation requires a fresh independent replacement covering owned exposure and entry remainder.');
   }

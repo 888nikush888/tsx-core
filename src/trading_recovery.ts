@@ -188,7 +188,11 @@ export async function runJournaledExchangeWrite<T>(input: TradingOperationInput 
       return input.send();
     };
     const pending = input.beforeSend
-      ? (await withDatabaseDispatchFence(() => withDispatchWitness(input, id, input.beforeSend!), start)).pending : start();
+      ? (await withDatabaseDispatchFence(() => {
+        const fence = input.beforeSend;
+        if (!fence) throw new Error('Dispatch fence is missing.');
+        return withDispatchWitness(input, id, fence);
+      }, start)).pending : start();
     const result = await pending;
     phase = await withDatabaseTransaction(async () => {
       const orders = await input.persist(result);

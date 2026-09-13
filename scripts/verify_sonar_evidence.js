@@ -87,16 +87,16 @@ function validateSummary(summary, options) {
 }
 
 async function verifiedArtifact(directory, summary, name) {
-  let bytes;
+  let artifact = null;
   try {
-    bytes = await readFile(path.join(directory, name));
+    artifact = await readFile(path.join(directory, name));
   } catch (error) {
     throw new Error('SonarCloud evidence rejected: artifact is missing or unreadable.', { cause: error });
   }
   const manifest = summary.artifacts?.[name];
-  requireEvidence(manifest?.sha256 === createHash('sha256').update(bytes).digest('hex')
-    && manifest.bytes === bytes.byteLength, 'artifact hash or size differs');
-  return bytes.toString('utf8');
+  requireEvidence(manifest?.sha256 === createHash('sha256').update(artifact).digest('hex')
+    && manifest.bytes === artifact.byteLength, 'artifact hash or size differs');
+  return artifact.toString('utf8');
 }
 
 async function verifiedArtifacts(directory, summary) {

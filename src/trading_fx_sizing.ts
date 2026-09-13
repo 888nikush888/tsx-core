@@ -48,8 +48,9 @@ export function fxSizingContext(input: FxSizingInput): TradingFxSizingContext | 
     riskAmountCurrency: (input.strategy.sizing.positionSizingMode ?? 'risk_percent') === 'risk_percent' ? reporting : settlement };
 }
 function sizingBudgets(input: FxQuantityInput) {
-  if (!fxSizingContext(input)) return invalidFx('SIZING_CONVERSION_UNPROVEN');
-  const rate = input.fxConversion!.conversion.rate;
+  const fx = input.fxConversion;
+  if (!fxSizingContext(input) || !fx) return invalidFx('SIZING_CONVERSION_UNPROVEN');
+  const rate = fx.conversion.rate;
   const leverage = positive(String(input.leverage));
   const capitalReporting = divideRational(multiplyRational(nonnegative(input.account.equity), positive(input.percent)), positive('100'));
   const capital = divideRational(capitalReporting, rate);

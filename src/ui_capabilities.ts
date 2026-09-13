@@ -79,7 +79,7 @@ export const UI_CAPABILITY_GROUPS: Group[] = [
 export function uiCapabilityGroup(route: string): Group {
   const pathname = route.slice(route.indexOf(' ') + 1);
   const entry = UI_CAPABILITY_GROUPS.find(item => item.paths.includes(pathname));
-  if (!entry) throw new Error('Unmapped operator route: ' + route);
+  if (!entry) throw new Error(`Unmapped operator route: ${route}`);
   return entry;
 }
 
@@ -93,7 +93,7 @@ function currentBlockers(entry: typeof UI_ROUTE_INVENTORY[number], state: UiCapa
   if (state.recovery && !entry.recoveryAllowed) blockers.push('Im Recovery-Modus nicht zugelassen.');
   const write = !entry.route.startsWith('GET ');
   const repair = state.recovery && ['POST /api/config', 'POST /api/secrets', 'POST /api/runtime-settings'].includes(entry.route);
-  if (write && !state.canMutate && !repair && entry.route !== 'POST /api/restart') blockers.push('Startfreigabe fehlt: ' + (state.startupReason ?? state.startupPhase ?? 'unbekannt'));
+  if (write && !state.canMutate && !repair && entry.route !== 'POST /api/restart') blockers.push(`Startfreigabe fehlt: ${state.startupReason ?? state.startupPhase ?? 'unbekannt'}`);
   if (write && state.mutationInProgress) blockers.push('Ein anderer Steuerungsbefehl läuft.');
   return blockers;
 }

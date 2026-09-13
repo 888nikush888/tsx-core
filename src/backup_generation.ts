@@ -171,7 +171,7 @@ function safeMember(name: string): boolean {
   if (['config.json', 'runtime-settings.json'].includes(name)) return true;
   if (!name.startsWith('templates/') || name.length > 250) return false;
   return name.slice(10).split('/').every(segment => segment.length > 0 && segment.length <= 128
-    && segment === segment.trim() && segment !== '.' && segment !== '..' && !/[\\/<>:"|?*\x00-\x1f]/.test(segment));
+    && segment === segment.trim() && segment !== '.' && segment !== '..' && !/[\\/<>:"|?*\x00-\x1f]/u.test(segment));
 }
 
 function configurationResources(sources: ConfigurationSources): { resources: Record<string, Resource>; contents: Map<string, Buffer> } {
@@ -291,13 +291,13 @@ function commitGeneration(root: string, sources: ConfigurationSources, previous 
 /** Initial adoption is permitted only under the application's genuine process ownership. */
 export async function initializeConfigurationGeneration(sources: ConfigurationSources, owner: ProcessLock): Promise<ConfigurationGenerationEvidence> {
   const normalized = Object.fromEntries(Object.entries(sources).map(([key, value]) => [key, path.resolve(value)])) as unknown as ConfigurationSources;
-  return withProcessLockOwner(owner, path.dirname(normalized.databasePath), async () => {
+  return withProcessLockOwner(owner, path.dirname(normalized.databasePath), () => {
     const barrier = acquireBarrier(normalized.configurationPath);
     try {
       const current = readHead(barrier.root, normalized.configurationPath);
       if (current && canonicalJson(current.sources) !== canonicalJson(normalized)) throw new Error('Configuration generation source mapping changed; maintenance required.');
       if (current) assertSourceCoherence(current);
-      return evidence(current || commitGeneration(barrier.root, normalized));
+      return Promise.resolve(evidence(current || commitGeneration(barrier.root, normalized)));
     } finally { barrier.release(); }
   });
 }

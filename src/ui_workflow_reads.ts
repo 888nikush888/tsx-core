@@ -2,7 +2,7 @@ import { getDatabase } from './db.js';
 import { decodeUiCursor, encodeUiCursor, filterFingerprint } from './ui_cursor.js';
 import { getActiveWorkflow, getWorkflowResourceById, getWorkflowRevisionById } from './workflow_repository.js';
 import { WORKFLOW_RESOURCE_KINDS } from './ui_contracts.js';
-import { redactReview } from './ui_change_review.js';
+import { redactReview, redactReviewRecord } from './ui_change_review.js';
 import { uiResourcePublication } from './ui_resource_publication.js';
 import { getTradingStrategyVersion } from './trading_repository.js';
 import { uiEffectiveParameters } from './ui_effective_parameters.js';
@@ -67,7 +67,7 @@ async function resourceDetail(objectId: string, observedAt: number) {
     const resource = await getWorkflowResourceById(objectId); if (!resource) return null;
     const active = await getActiveWorkflow();
     const nodeIds = new Set(active?.graph.nodes.filter(node => node.resourceVersionId === objectId).map(node => node.id) ?? []);
-    const visibleResource = redactReview(resource, 0, false);
+    const visibleResource = redactReviewRecord({ ...resource }, false);
     return { contractVersion: 1, observedAt, resource: visibleResource,
       editingBlockedByRedaction: JSON.stringify(visibleResource.configuration) !== JSON.stringify(resource.configuration),
       publication: redactReview(await uiResourcePublication(objectId)),

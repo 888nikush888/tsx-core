@@ -99,8 +99,9 @@ export async function recordTradingNotificationEvent(input: {
   details: unknown;
   now?: unknown;
 }): Promise<{ inserted: boolean; event: TradingNotificationEvent }> {
-  const id = input.id === undefined ? randomUUID() : identifier(input.id, 'Notification event identifier')!;
-  const dedupeKey = identifier(input.dedupeKey, 'Notification event dedupe key')!;
+  const id = input.id === undefined ? randomUUID() : identifier(input.id, 'Notification event identifier');
+  const dedupeKey = identifier(input.dedupeKey, 'Notification event dedupe key');
+  if (!id || !dedupeKey) throw new Error('Notification event identity is invalid.');
   const type = eventType(input.eventType);
   const intentId = identifier(input.intentId, 'Notification intent identifier', true);
   const channelId = channelIdentifier(input.channelId);
@@ -166,7 +167,8 @@ export async function createTelegramViewerTestEvent(input: {
   message: unknown;
   now?: unknown;
 }): Promise<TelegramViewerTestEvent> {
-  const createdBy = identifier(input.createdBy, 'Telegram viewer test-event actor')!;
+  const createdBy = identifier(input.createdBy, 'Telegram viewer test-event actor');
+  if (!createdBy) throw new Error('Telegram viewer test-event actor is invalid.');
   if (typeof input.message !== 'string' || input.message.trim().length < 1 || input.message.trim().length > 1_000
     || /\0/.test(input.message)) {
     throw new Error('Telegram viewer test-event message is invalid.');

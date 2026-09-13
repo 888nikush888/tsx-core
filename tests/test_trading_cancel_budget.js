@@ -29,7 +29,7 @@ await coordinator.run('@runtime', async () => {
     await coordinator.run('a', async () => assert.throws(() => claimCancelAttempt('a', 'new-pass'), /budget/i), a);
   });
 });
-let expired;
+let expired = null;
 await coordinator.run('a', async () => { expired = claimCancelAttempt('a', 'unused'); });
 await coordinator.run('a', async () => {
   assert.throws(() => consumeCancelAttempt(expired, 'a', 'unused'), /permit/i);

@@ -351,23 +351,25 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
     }
     if (!response.acquisition) throw new Error('Exchange executor omitted acquisition evidence.');
     const state = validateOpenState(response, account.externalAccountId);
-    assertHistoryResponse(recovery.history, state.acquisition!.history);
-    assertCompleteFillCoverage(account.exchange, state.acquisition!, recovery.since);
+    const acquisition = state.acquisition;
+    if (!acquisition) throw new Error('Exchange executor omitted acquisition evidence.');
+    assertHistoryResponse(recovery.history, acquisition.history);
+    assertCompleteFillCoverage(account.exchange, acquisition, recovery.since);
     const requested = new Set(recovery.orders.map(order => order.clientOrderId));
-    if (state.acquisition!.checkedOrders.length !== requested.size
-      || state.acquisition!.checkedOrders.some(order => !requested.has(order.clientOrderId))) {
+    if (acquisition.checkedOrders.length !== requested.size
+      || acquisition.checkedOrders.some(order => !requested.has(order.clientOrderId))) {
       throw new Error('Exchange acquisition evidence does not match the requested recovery scope.');
     }
-    assertAccountLogResponse(recovery.accountLogs, state.acquisition!.accountLogs);
-    assertAccountModeResponse(recovery.readAccountMode, state.acquisition!.accountMode,
+    assertAccountLogResponse(recovery.accountLogs, acquisition.accountLogs);
+    assertAccountModeResponse(recovery.readAccountMode, acquisition.accountMode,
       { accountFingerprint: account.externalAccountId, credentialGeneration: account.credentialGeneration });
     if (recovery.recoverySchedule) {
       const context = await requireFxAccountContext(account);
-      validateRecoveryScheduleProgress(state.acquisition!.recoverySchedule, recovery, state.acquisition!, {
-        accountId: account.id, accountFingerprint: account.externalAccountId!, credentialGeneration: account.credentialGeneration!,
+      validateRecoveryScheduleProgress(acquisition.recoverySchedule, recovery, acquisition, {
+        accountId: account.id, accountFingerprint: account.externalAccountId ?? '', credentialGeneration: account.credentialGeneration ?? '',
         mode: context.mode, executionProfileHash: context.profileHash,
       });
-    } else if (state.acquisition!.recoverySchedule || state.acquisition!.fxEvidence) throw new Error('Unexpected scheduled recovery evidence.');
+    } else if (acquisition.recoverySchedule || acquisition.fxEvidence) throw new Error('Unexpected scheduled recovery evidence.');
     state.orders = await correlateNativeOrderEvidence(account, state.orders);
     const localOrders = await getDatabase().all<LocalCorrelationOrder[]>(
       `SELECT orders.client_order_id, orders.exchange_order_id, orders.provider_symbol, orders.role, intent.symbol,

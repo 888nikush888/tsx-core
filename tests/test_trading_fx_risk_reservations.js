@@ -26,7 +26,7 @@ const originalNow = Date.now;
 const at = Date.now() - 1000;
 let now = at + 100;
 Date.now = () => now;
-let strategyId;
+let strategyId = null;
 const metadata = { version: 1, source: 'ccxt-market-v1', providerSymbol: 'BTC/USDT:USDT',
   settlementAsset: 'USDT', linear: true, quantityUnit: 'base' };
 

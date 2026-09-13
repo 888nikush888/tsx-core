@@ -20,7 +20,7 @@ function shape(value: unknown, keys: string): Record<string, any> {
 }
 function token(value: unknown): asserts value is string {
   if (typeof value !== 'string' || value.length === 0 || value.length > 256 || value.trim() !== value
-    || /[\x00-\x1f\x7f]/.test(value) || /[\uD800-\uDFFF]/u.test(value)) invalid();
+    || /[\x00-\x1f\x7f]/u.test(value) || /[\uD800-\uDFFF]/u.test(value)) invalid();
 }
 function positive(value: unknown): string {
   if (typeof value !== 'string' || value.trim() !== value) return invalid();
@@ -48,8 +48,9 @@ function coefficient(value: string): { value: bigint; scale: number } {
   return { value: BigInt(integer + fraction), scale: fraction.length };
 }
 function exactProduct(input: string, factor: string, output: string): boolean {
-  const a = coefficient(input), b = coefficient(factor), c = coefficient(output);
-  return a.value * b.value * 10n ** BigInt(c.scale) === c.value * 10n ** BigInt(a.scale + b.scale);
+  const inputCoefficient = coefficient(input), factorCoefficient = coefficient(factor), outputCoefficient = coefficient(output);
+  return inputCoefficient.value * factorCoefficient.value * 10n ** BigInt(outputCoefficient.scale)
+    === outputCoefficient.value * 10n ** BigInt(inputCoefficient.scale + factorCoefficient.scale);
 }
 function arithmetic(value: unknown, row: Record<string, any>): void {
   const a = shape(value, 'operation decimalPrecision decimalRounding exactProduct');

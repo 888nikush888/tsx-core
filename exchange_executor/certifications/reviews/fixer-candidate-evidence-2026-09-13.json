@@ -1,0 +1,30 @@
+{
+  "kind": "reviewed_candidate_evidence_refresh",
+  "schemaVersion": 1,
+  "priorReview": "exchange_executor/certifications/reviews/security-candidate-evidence-2026-09-08.json",
+  "independentDeltaReview": "docs/testing/fixer-python-receipt-review-2026-09-13.md",
+  "reviewedBy": "triage_remaining_semantics independently of root implementation; root verified exact five-reference-only renewal",
+  "evidenceChanges": {
+    "exchange_executor/tests/test_candidate_group_c_boundaries.py": {
+      "beforeSha256": "8b8fc20f58054e2c72aee39eae062c59e3db956adc4b72432d4bb2b8359ba3d3",
+      "afterSha256": "904f3dfa25712f7bab71902b5f5a0d86492e44ee3d7debcf34ba93ef2f6a65bd"
+    }
+  },
+  "oldAssessmentsHash": "251bf1783593245fe1f0eb3ca2b58ed4158e66e79ad8f33177691fff10f59395",
+  "newAssessmentsHash": "75c17ba5fda13f5df677e33f7dc2e43e64df8e228cf5564081bf2fde14b74c04",
+  "inventoryHash": "5a76c0381e97811ce155f2eaa523570cabdd0bc0d8e81b72c8950f0d8f0dd69f",
+  "inventoryUnchanged": true,
+  "assessmentCount": 103,
+  "affectedAssessmentIds": [
+    "modetrade",
+    "weex",
+    "woo",
+    "woofipro",
+    "xt"
+  ],
+  "unchangedEvidenceFiles": 20,
+  "decisionsAndReasonsUnchanged": true,
+  "providerAcceptanceVerified": false,
+  "implementationReceiptsRenewed": false,
+  "liveProviderActionsPerformed": false
+}

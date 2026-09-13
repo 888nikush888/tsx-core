@@ -16,11 +16,16 @@ export function isWorkflowFallbackReason(value: unknown): value is WorkflowFallb
     && WORKFLOW_FALLBACK_REASON_ORDER.has(value as WorkflowFallbackReason);
 }
 
+function fallbackRank(reason: WorkflowFallbackReason): number {
+  const rank = WORKFLOW_FALLBACK_REASON_ORDER.get(reason);
+  if (rank === undefined) throw new Error('Unknown workflow fallback reason.');
+  return rank;
+}
+
 export function canonicalWorkflowFallbackPolicy(
   values: readonly WorkflowFallbackReason[],
 ): WorkflowFallbackReason[] {
   return [...values].sort(
-    (left, right) => WORKFLOW_FALLBACK_REASON_ORDER.get(left)!
-      - WORKFLOW_FALLBACK_REASON_ORDER.get(right)!,
+    (left, right) => fallbackRank(left) - fallbackRank(right),
   );
 }

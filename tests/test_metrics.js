@@ -103,10 +103,14 @@ async function testMetricsTracker() {
 
 async function runTests() {
   let operational = { ...HEALTHY_OPERATIONAL_METRICS };
+  let operationalFailure = null;
   const server = startMetricsServer(0, {
     totalForwardedCountCallback: () => 7,
     getQueueStateCallback: () => ({ running: 1, queued: 2, maxConcurrency: 3 }),
-    getOperationalMetricsCallback: () => Promise.resolve(operational)
+    getOperationalMetricsCallback: async () => {
+      if (operationalFailure !== null) throw operationalFailure;
+      return operational;
+    }
   });
   await once(server, 'listening');
   const address = server.address();
@@ -184,6 +188,17 @@ async function runTests() {
 
   response = await fetch(`${baseUrl}/metrics`, { method: 'POST' });
   assert.strictEqual(response.status, 405);
+  operationalFailure = { message: 'fixture unavailable', context: { detail: 'internal-only' } };
+  for (const endpoint of ['/readyz', '/metrics']) {
+    response = await fetch(`${baseUrl}${endpoint}`);
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), { status: 'unavailable', error: 'fixture unavailable' },
+      'Operational failures must expose only their existing message, not arbitrary internal context.');
+  }
+  operationalFailure = 'internal-only';
+  response = await fetch(`${baseUrl}/metrics`);
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { status: 'unavailable' });
   await stopMetricsServer();
   await testMetricsTracker();
 

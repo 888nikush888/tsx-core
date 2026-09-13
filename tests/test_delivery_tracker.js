@@ -1,7 +1,27 @@
 import assert from 'assert';
 import { TelegramDeliveryTracker } from '../src/delivery_tracker.js';
 
+async function mixedBatchFailureKeepsPendingRejectionsHandled() {
+  const tracker = new TelegramDeliveryTracker(1000);
+  const unhandled = [];
+  const recordUnhandled = error => unhandled.push(error);
+  process.on('unhandledRejection', recordUnhandled);
+  try {
+    await assert.rejects(tracker.waitForResult({ messages: [
+      { id: -301, sending_state: { _: 'messageSendingStatePending' } },
+      { sending_state: null },
+    ] }), /message without an id/);
+    tracker.close('mixed batch cleanup');
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepStrictEqual(unhandled, [], 'A malformed batch member must not leave earlier pending delivery rejections unhandled.');
+  } finally {
+    tracker.close();
+    process.removeListener('unhandledRejection', recordUnhandled);
+  }
+}
+
 async function runTests() {
+  await mixedBatchFailureKeepsPendingRejectionsHandled();
   assert.throws(() => new TelegramDeliveryTracker(0), /positive safe integer/);
   assert.throws(() => new TelegramDeliveryTracker(1.5), /positive safe integer/);
   const tracker = new TelegramDeliveryTracker(50);

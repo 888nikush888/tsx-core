@@ -10,16 +10,30 @@ import { TelegramViewerStateRepository } from './state_repository.js';
 const BOT_TOKEN_PATTERN = /^[1-9]\d{4,19}:[A-Za-z0-9_-]{20,128}$/;
 const SERVICE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
-export async function readRuntimeSecret(directory: string, fileName: string, pattern: RegExp): Promise<string> {
+async function verifiedSecretRoot(directory: string): Promise<string> {
   const root = path.resolve(directory);
   const rootStats = await fs.lstat(root);
   if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) throw new Error('Viewer secret mount is invalid.');
+  return root;
+}
+
+async function verifiedSecretFile(root: string, fileName: string): Promise<string> {
   const target = path.join(root, fileName);
   const stats = await fs.lstat(target);
   if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 512) throw new Error('Viewer secret file is invalid.');
-  const value = (await fs.readFile(target, 'utf8')).trim();
+  return target;
+}
+
+function verifiedSecretValue(value: string, pattern: RegExp): string {
   if (!pattern.test(value) || /[\0\r\n]/.test(value)) throw new Error('Viewer secret value is invalid.');
   return value;
+}
+
+export async function readRuntimeSecret(directory: string, fileName: string, pattern: RegExp): Promise<string> {
+  const root = await verifiedSecretRoot(directory);
+  const target = await verifiedSecretFile(root, fileName);
+  const value = (await fs.readFile(target, 'utf8')).trim();
+  return verifiedSecretValue(value, pattern);
 }
 
 export function delay(milliseconds: number): Promise<void> {
