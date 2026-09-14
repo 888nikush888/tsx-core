@@ -26,9 +26,14 @@ function objectValue(value: unknown): value is Record<string, unknown> {
 function formattedText(value: unknown): boolean {
   return value === undefined || (objectValue(value) && (value.text === undefined || typeof value.text === 'string'));
 }
+function messageText(value: Record<string, unknown>): boolean {
+  // TDLib uses plain text only for this service action; routing does not consume it.
+  if (value._ === 'messageCustomServiceAction' && typeof value.text === 'string') return true;
+  return formattedText(value.text);
+}
 function messageContent(value: unknown): boolean {
   return value === undefined || (objectValue(value) && (value._ === undefined || typeof value._ === 'string')
-    && formattedText(value.text) && formattedText(value.caption));
+    && messageText(value) && formattedText(value.caption));
 }
 
 function messageEnvelope(value: Record<string, unknown>): boolean {

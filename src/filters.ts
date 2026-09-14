@@ -12,7 +12,7 @@ export interface FilterMessage {
   id?: string | number;
   content?: {
     _?: string;
-    text?: { text?: string };
+    text?: { text?: string } | string;
     caption?: { text?: string };
   };
 }
@@ -181,7 +181,8 @@ interface MessageTextAndType {
 }
 
 function messageText(content: NonNullable<FilterMessage['content']>, field: 'text' | 'caption' | null): string {
-  return field ? (content[field]?.text || '') : '';
+  const value = field ? content[field] : undefined;
+  return typeof value === 'string' ? '' : value?.text || '';
 }
 
 const MESSAGE_TYPES = new Map<string, { type: string; textField: 'text' | 'caption' | null }>([

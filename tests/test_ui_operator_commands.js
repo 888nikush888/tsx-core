@@ -74,6 +74,51 @@ try {
   assert.equal((await command()).status, 202); assert.equal(calls.drill, 1, 'Repeated operator key must never repeat the drill.');
   response = await post('/api/operations/backup', {}, null, admin, { 'X-Operator-Job-ID': 'backup-fixture-job-1' }); assert.equal(response.status, 202);
   assert.equal((await waitJob('backup-fixture-job-1')).result.artifactName, 'backup-2026-fixture');
+  let recoveryCalls = 0;
+  app.recoverOffsiteBackup = function (objectName) {
+    assert.equal(this, app, 'Deferred recovery must retain the application receiver.');
+    assert.equal(objectName, 'backup-2026-fixture.tgfb');
+    recoveryCalls++;
+    return Promise.resolve('backup-2026-recovered');
+  };
+  const recover = (jobId, token = admin, confirmation = 'recover-offsite-backup') =>
+    post('/api/backups/recover-offsite', { jobId, objectName: 'backup-2026-fixture.tgfb' }, confirmation, token);
+  assert.equal((await recover('recovery-fixture-job-1', viewer)).status, 403);
+  assert.equal((await recover('recovery-fixture-job-1', admin, null)).status, 412);
+  assert.equal(recoveryCalls, 0);
+  response = await recover('recovery-fixture-job-1'); assert.equal(response.status, 202);
+  assert.equal((await response.json()).created, true);
+  const recovered = await waitJob('recovery-fixture-job-1');
+  assert.equal(recovered.state, 'succeeded');
+  assert.deepEqual(recovered.result, { artifactName: 'backup-2026-recovered' });
+  response = await recover('recovery-fixture-job-1'); assert.equal(response.status, 202);
+  assert.equal((await response.json()).created, false);
+  assert.equal(recoveryCalls, 1, 'Repeated recovery job must not repeat the external operation.');
+  app.recoverOffsiteBackup = () => Promise.reject(new Error('Fixture recovery download failed.'));
+  assert.equal((await recover('recovery-failed-job-1')).status, 202);
+  const failedRecovery = await waitJob('recovery-failed-job-1');
+  assert.equal(failedRecovery.state, 'failed');
+  assert.equal(failedRecovery.result, null);
+  assert.match(failedRecovery.error, /Fixture recovery download failed/);
+  const originalRun = store.run;
+  let releaseRecovery;
+  const recoveryGate = new Promise(resolve => { releaseRecovery = resolve; });
+  store.run = async function (id, operation, restart) {
+    await recoveryGate;
+    return originalRun.call(this, id, operation, restart);
+  };
+  try {
+    assert.equal((await recover('recovery-unavailable-job-1')).status, 202);
+    delete app.recoverOffsiteBackup;
+    releaseRecovery();
+    const unavailableRecovery = await waitJob('recovery-unavailable-job-1');
+    assert.equal(unavailableRecovery.state, 'failed');
+    assert.equal(unavailableRecovery.result, null);
+    assert.match(unavailableRecovery.error, /Off-site backup recovery is unavailable/);
+  } finally {
+    releaseRecovery();
+    store.run = originalRun;
+  }
   response = await post('/api/backups/restore', { jobId: 'restore-fixture-job-1', name: 'backup-2026-fixture' }, 'restore-backup'); assert.equal(response.status, 200);
   response = await post('/api/backups/restore', { jobId: 'restore-fixture-job-1', name: 'backup-2026-fixture' }, 'restore-backup'); assert.equal(response.status, 202);
   assert.equal(calls.restore, 1); assert.equal(calls.restart, 1);

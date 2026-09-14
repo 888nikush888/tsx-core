@@ -5,6 +5,7 @@ import path from 'node:path';
 import { initDb, closeDb, getDatabase, listOutboxTasks } from '../src/db.js';
 import { acceptIncomingMessage, processIncomingWork, pinnedWorkflowParserSelection } from '../src/incoming_work_repository.js';
 import { readIngressMessage } from '../src/ingress_contracts.js';
+import { getMessageTextAndType } from '../src/filters.js';
 
 const message = { id: 1, chat_id: -1001, content: { _: 'messageText', text: { text: 'hello', entities: [{ _: 'fixture' }] } },
   unconsumedPayload: { nested: ['retained'] } };
@@ -15,7 +16,9 @@ const directory = await mkdtemp(path.join(os.tmpdir(), 'ingress-contract-'));
 try {
   await initDb(path.join(directory, 'test.db'));
   for (const invalid of [{ ...message, id: 1.5 }, { ...message, chat_id: {} },
-    { ...message, media_group_id: {} }, { ...message, content: { text: { text: {} } } }]) {
+    { ...message, media_group_id: {} }, { ...message, content: { text: { text: {} } } },
+    { ...message, content: { _: 'messageText', text: 'invalid formatted text' } },
+    { ...message, content: { _: 'messagePhoto', caption: 'invalid formatted caption' } }]) {
     await assert.rejects(acceptIncomingMessage(invalid, config), /Incoming message/);
   }
   assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM incoming_work')).count, 0);
@@ -30,6 +33,24 @@ try {
   const tasks = await listOutboxTasks();
   assert.equal(tasks.length, 1, 'Malformed persisted content must not block unrelated work or create replay effects.');
   assert.equal(tasks[0].messageId, 2);
+  const serviceMessage = { ...message, id: 3,
+    content: { _: 'messageCustomServiceAction', text: 'A non-standard service action' } };
+  assert.deepEqual(getMessageTextAndType(serviceMessage), { text: '', type: 'messageCustomServiceAction' },
+    'The TDLib service text must retain its historical non-text routing classification.');
+  const staged = await acceptIncomingMessage({ ...message, id: 4 }, config);
+  await getDatabase().run('UPDATE incoming_work SET message_json = ? WHERE id = ?',
+    [JSON.stringify({ ...serviceMessage, id: 4 }), staged.id]);
+  await closeDb();
+  await initDb(path.join(directory, 'test.db'));
+  await processIncomingWork();
+  assert.equal((await getDatabase().get('SELECT status FROM incoming_work WHERE id = ?', [staged.id])).status, 'routed',
+    'A valid service message persisted before the guard upgrade must resume normally.');
+  const fresh = await acceptIncomingMessage(serviceMessage, config);
+  await processIncomingWork();
+  assert.equal((await getDatabase().get('SELECT status FROM incoming_work WHERE id = ?', [fresh.id])).status, 'routed');
+  assert.deepEqual(readIngressMessage(JSON.stringify(serviceMessage)), serviceMessage);
+  assert.deepEqual((await listOutboxTasks()).map(task => task.messageId).sort((a, b) => a - b), [2, 3, 4]);
+
 } finally {
   await closeDb();
   await rm(directory, { recursive: true, force: true });
