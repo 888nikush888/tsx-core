@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "runtime-settings-historical-deletion-contract-regression-fix",
+  "baseline": {
+    "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+    "gitBlobOid": "d03ebcacd9a29621f08554b72c38f080b2e91c28",
+    "gitBlobSha256": "31981e7951f6864d0f6d2a3d054bbe60208d74d64b2b7f691dd0aa99cf92a08b"
+  },
+  "before": {
+    "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+    "gitBlobOid": "16a91ac09133541196f128576e8631fdfc4bb9b6",
+    "gitBlobSha256": "909dc9f3c65963d694f4b4317497b8e701feacc767531202391bf81e7ccf883b"
+  },
+  "after": {
+    "revision": "bf1a5548639c0332fcf4c4a37f7fa4d68a734b18",
+    "gitBlobOid": "2b4c0fa7a6722309f6300e4db282813497bcb435",
+    "gitBlobSha256": "76658832bfaee560614f3e5b1d20048344740e3098e1a30b130dd90968e50b34"
+  },
+  "test": {
+    "revision": "bf1a5548639c0332fcf4c4a37f7fa4d68a734b18",
+    "gitBlobOid": "6beb49b2679e4e65bf79137aa97c752f15e14576",
+    "gitBlobSha256": "daefe6d4f37151d61f7859b3eac880ba7ca81b1091b4405c04cbb42d0fee2ede"
+  },
+  "regression": "Public injected environment supports a writable nonconfigurable DASHBOARD_ALLOWED_ORIGIN. Empty configured setting historically strict-deletes and throws TypeError. Unchecked Reflect returned false but assigned active snapshot. Correction checks false and throws TypeError before active assignment.",
+  "scope": "Only src/runtime_settings.ts and tests/test_runtime_settings.js changed by this agent; parent independently committed with separate env correction. No failure-atomic guarantee: earlier mapping entries can already be applied.",
+  "tests": [
+    {
+      "log": "reports/security-services/fixer-runtime-env-removal-before.log",
+      "sha256": "7db38f7d527d807d36378bb35d2c94f9d0b9bfd1c4cbb195e3c473d74906fe23",
+      "result": "expected red missing TypeError"
+    },
+    {
+      "log": "reports/security-services/fixer-runtime-env-removal-after.log",
+      "sha256": "6c9fd4e5df703bdba7096024d282c02b602ace07680c06d1838a55a8fa40a4be",
+      "result": "pass"
+    },
+    {
+      "log": "reports/security-services/fixer-runtime-env-removal-eslint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": "pass"
+    }
+  ],
+  "sourceDiffSha256": "12c6bfba6d00d7dbdaea5b34235bb8fe0e87b43c1b5a1e6d2f473afcc99484e8",
+  "receiptApproval": false
+}

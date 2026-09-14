@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-two-source-gap-followup",
+  "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+  "priorReview": {
+    "path": "reports/security-services/fixer-implementation-src-wave2-review.json",
+    "sha256": "d215b0661ffd5f4485761d273a6f0ca00a35d0749b6779d012e5af837d0e0b11",
+    "scope": "Prior full historical hunks plus these two specifically identified obligations; other prior gaps unaffected."
+  },
+  "entries": [
+    {
+      "path": "src/forwarder.ts",
+      "sourceBinding": {
+        "path": "src/forwarder.ts",
+        "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+        "gitBlobSha256": "71537e7d74b2b9d9ea00176b16779e90cbceb79628676cf7008cf22bfa31c62c",
+        "workingRawSha256": "71537e7d74b2b9d9ea00176b16779e90cbceb79628676cf7008cf22bfa31c62c"
+      },
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "priorFullDeltaSha256": "f2c5e1a919421e968f02201f646296487db2884f911e08c329a23436e8d4ab52",
+      "priorClassification": "gap",
+      "completeDeltaFollowup": true,
+      "classification": "stated-full-delta-gap-closed-with-source-and-execution-evidence",
+      "completeDeltaCoverageWithPriorReview": true,
+      "closedGap": "Installed TDLib error/rejection producer and recovery classification",
+      "evidence": [
+        "tdl8.1.0 Client._handleReceive wraps unsolicited error objects in TDLibError; handleReceive emits the native Error, wrapping non-Error or cross-realm thrown values in local UnknownError. Actual installed prototype methods exercised without native client startup.",
+        "Request error replies reject pending calls with TDLibError; three restriction codes remain recognized by existing tests. Client._handleClose rejects with same-realm new Error(Client was closed), satisfying current expected-close suppression.",
+        "The client.on(error) diagnostic callback still reads err.message||err; it was not changed into a restrictive instance check. The relevant change is process unhandled-rejection expected-close suppression and diagnostic/restriction helpers.",
+        "Native Errors preserve identity; cross-realm/plain thrown values normalized by TDLib already lacked their arbitrary message in the old outward UnknownError. Arbitrary application-created plain objects no longer impersonate restricted-content or expected-close errors. This is intentional stricter classification, not an SDK producer regression.",
+        "Current valid provider/native/system errors remain supported. No blanket equivalence is asserted for externally fabricated unhandled rejection objects with a message property or cross-realm Error injected directly into process handlers. Such values now fail closed instead of silently suppressing fatal recovery."
+      ],
+      "limits": [
+        "Installed JS producer source inspected and hashed; no live TDLib account, native library or operational reconnect test performed.",
+        "This closes the stated error-shape gap alongside prior full-file delta review; does not establish arbitrary object equivalence or whole-program execution approval."
+      ]
+    },
+    {
+      "path": "src/signal_schema.ts",
+      "sourceBinding": {
+        "path": "src/signal_schema.ts",
+        "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+        "gitBlobSha256": "cc62363ef835b6cfc60dee0869095ebdecebc249b03744113c8a7241f3bec2e4",
+        "workingRawSha256": "cc62363ef835b6cfc60dee0869095ebdecebc249b03744113c8a7241f3bec2e4"
+      },
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "priorFullDeltaSha256": "89a858c32fcff7d85493b78bb109b1809cb11c04aef4d4192de3c062f2191e34",
+      "priorClassification": "gap",
+      "completeDeltaFollowup": true,
+      "classification": "stated-full-delta-gap-closed-with-source-and-execution-evidence",
+      "completeDeltaCoverageWithPriorReview": true,
+      "closedGap": "Trailing-digit XML contract grammar and one shared pattern deadline",
+      "evidence": [
+        "Receipt-origin signal_contract PATH_PATTERN already permits trailing digits in every lowercase path segment, including nested paths. Parser previously rejected those otherwise valid configured tags; current grammar aligns parser with unchanged contract validator.",
+        "Actual validateSignalContractDefinition and validateSignalXml probes accept note1, note_0 and group1.note2; invalid leading digit/underscore, hyphen, uppercase and empty path segment remain rejected by contract validation. Unapproved numbered tags and malformed/mismatched XML remain rejected.",
+        "Existing complete contract test executes30ordinary individually cheap field regexes successfully; substituting a monotonically advancing clock across fields then rejects within shared budget. One deadline is created before additionalFields iteration; remaining timeout is derived per field, never reset to100.",
+        "Existing bounded subprocess fixtures reject three catastrophic patterns with a5second outer timeout; cheap Unicode/escaped/grouped patterns retain semantics. Additional allowed-value/length checks precede pattern matching and geometry checks still follow field validation.",
+        "The100ms value is an aggregate field-pattern execution budget with elapsed/setup overhead; it does not claim a hard100ms wall bound for the entire signal parser or unrestricted concurrent requests. Limiting formerly unbounded regex execution intentionally rejects excessive work."
+      ],
+      "limits": [
+        "Grammar expansion repairs mismatch with existing authorable contract, not permission for arbitrary tags.",
+        "Shared-budget clock test is deterministic policy evidence; subprocess tests additionally exercise real vm timeout. No global CPU/rate-limit guarantee is inferred."
+      ]
+    }
+  ],
+  "contextBindings": [
+    {
+      "path": "src/forwarder_errors.ts",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobSha256": "c2ed10cfee7a3417ed642ce89e9db1507127b6eadd8776ad08635644e1978430",
+      "workingRawSha256": "c2ed10cfee7a3417ed642ce89e9db1507127b6eadd8776ad08635644e1978430"
+    },
+    {
+      "path": "src/contract_values.ts",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobSha256": "871e1ef8c09fed21648fb385c02c6c79f76b19289e8eea4970d43e984c82f613",
+      "workingRawSha256": "871e1ef8c09fed21648fb385c02c6c79f76b19289e8eea4970d43e984c82f613"
+    },
+    {
+      "path": "src/signal_contract.ts",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobSha256": "3df10a6bcec099329a14d4cd47b2f605380b23903b58234e02b656578773e240",
+      "workingRawSha256": "3df10a6bcec099329a14d4cd47b2f605380b23903b58234e02b656578773e240"
+    },
+    {
+      "path": "src/filters.ts",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobSha256": "ee3f295e61fef83344e59c71cc2c748b904a9714efd7a05ff7a0b924b9eeea79",
+      "workingRawSha256": "ee3f295e61fef83344e59c71cc2c748b904a9714efd7a05ff7a0b924b9eeea79"
+    },
+    {
+      "path": "tests/test_forwarder_error_types.js",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobSha256": "4088dfd9de15f64760bd598550d43b7f4ca048bfdcb8a27cf921052dc1f8ac5f",
+      "workingRawSha256": "4088dfd9de15f64760bd598550d43b7f4ca048bfdcb8a27cf921052dc1f8ac5f"
+    },
+    {
+      "path": "tests/test_signal_contract_validation.js",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobSha256": "e7c65e92ec9ccbc9288c87a5f8ac17e851828e05b0d6b886ea458fd2cefe6e7e",
+      "workingRawSha256": "e7c65e92ec9ccbc9288c87a5f8ac17e851828e05b0d6b886ea458fd2cefe6e7e"
+    },
+    {
+      "path": "tests/test_signal_parser.js",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobSha256": "5e91c00dcb89ef2bcf98fe2794f5fc5dbe978eff2dde321b743695959d739425",
+      "workingRawSha256": "5e91c00dcb89ef2bcf98fe2794f5fc5dbe978eff2dde321b743695959d739425"
+    },
+    {
+      "path": "tests/fixtures/signal_contract_regex_child.js",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobSha256": "366e8466744bb3ad2d20fba550d91847f1c708808948d465fd45899979bebbc8",
+      "workingRawSha256": "366e8466744bb3ad2d20fba550d91847f1c708808948d465fd45899979bebbc8"
+    },
+    {
+      "path": "package.json",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobSha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00",
+      "workingRawSha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00"
+    },
+    {
+      "path": "package-lock.json",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobSha256": "86f4c2706a029c7672cda1849370b4ea5f70060fd66eac74c4bec5b6313724fa",
+      "workingRawSha256": "86f4c2706a029c7672cda1849370b4ea5f70060fd66eac74c4bec5b6313724fa"
+    }
+  ],
+  "installedProducerBindings": [
+    {
+      "path": "node_modules/tdl/dist/client.js",
+      "sha256": "ce66c4914c3de7b724b508a754811f02ea6b9bdbd914829afb5b2524296f4aeb"
+    },
+    {
+      "path": "node_modules/tdl/dist/index.js",
+      "sha256": "23317df17ae95f37d9c00e3700fa76445d5e8e45f7d3da2e62949eac23a907c8"
+    },
+    {
+      "path": "node_modules/tdl/package.json",
+      "sha256": "5ec6d3e1448f7a83bfacbb950f0b3ca17fbaf9391f02b6516cf2aa4c92a5c8eb"
+    }
+  ],
+  "declaredDependency": {
+    "version": "8.1.0",
+    "integrity": "sha512-idpw60gjJdiJALQg0+6UbxtJTMxVhzZAgCO6QzL81gqBYCkEFjm9zM9HwTTQGeOaAavw4yRHymR68yUUiCoKrA==",
+    "limits": "Lock identifies expected package; inspected installed-file hashes are separate from tarball integrity, not a new install attestation."
+  },
+  "validation": {
+    "existingSuitesPassed": [
+      "test_signal_contract_validation.js",
+      "test_signal_parser.js",
+      "test_forwarder_error_types.js"
+    ],
+    "boundedProbe": {
+      "path": "reports/security-services/fixer-two-gap-probe.mjs",
+      "sha256": "fd34f374523948af3c2c092bf4d50884320381684d4020c4fdd0048807e4cd7c",
+      "cases": {
+        "sdk": 8,
+        "validDigitPaths": 3,
+        "invalidContractPaths": 5,
+        "invalidXml": 3
+      },
+      "result": "PASS"
+    },
+    "logs": [
+      {
+        "path": "reports/security-services/fixer-two-gap-probe.log",
+        "sha256": "5bfedb74f798de6df9a7de18b4974524baff74b31c4f82a401eb4562e2713e08"
+      },
+      {
+        "path": "reports/security-services/fixer-two-gap-test_signal_contract_validation.js.log",
+        "sha256": "26bb59dfb1c558a25994fcf8b0d809bc964e22b12dd58e6c8af24881782a7574"
+      },
+      {
+        "path": "reports/security-services/fixer-two-gap-test_signal_parser.js.log",
+        "sha256": "c2373dab67cd23d2ec460adc9270e351f846686c8773e74ba89e4f387ed7443b"
+      },
+      {
+        "path": "reports/security-services/fixer-two-gap-test_forwarder_error_types.js.log",
+        "sha256": "b6613d5b4f9c73b86ddc3e1e6cb520c4251bf0dfbc8778540275f063e344cc4d"
+      }
+    ]
+  },
+  "remainingStatedGaps": [],
+  "sourceEdits": false,
+  "limits": [
+    "File-specific gap closure, not implementation receipt or scanner disposition approval. No commits/platform changes or live service startup.",
+    "Existing prior full-file review remains part of the chain; this report does not overwrite its historical findings or close unrelated ingress variants."
+  ]
+}
