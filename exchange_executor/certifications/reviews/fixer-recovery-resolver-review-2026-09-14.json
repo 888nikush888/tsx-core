@@ -1,0 +1,12 @@
+{
+  "rule": "JS-0119",
+  "path": "tests/test_ui_operator_commands.js",
+  "sourceSha256": "ec105e7f5506c7a8e93ce56e033fb73c18d804853d0391b299cda9edd70b2d5c",
+  "change": "Use Node22 Promise.withResolvers to initialize gate and resolver together. Same delayed-operation release and finally cleanup, no fallback no-op.",
+  "validation": "Existing full operator command test PASS on pinned Node22; log captured.",
+  "log": {
+    "path": "reports/security-services/fixer-recovery-resolver-test.log",
+    "sha256": "aa4d4e189527b54558331b114bd4cd252cd2b56ebd45584b805b452e68c112b3"
+  },
+  "limits": "Remote DeepSource confirmation pending."
+}

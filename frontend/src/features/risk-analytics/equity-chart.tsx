@@ -52,19 +52,23 @@ function equityPoint(point: EquityObservation): EquityPoint | null {
 function validatedObservation(point: EquityObservation): { accountId: string; currency: string; point: EquityPoint } | null {
   const observation = equityPoint(point);
   if (!observation) return null;
-  const accountId = point.accountId == null ? "aggregate" : String(point.accountId);
+  if (point.accountId != null && typeof point.accountId !== "string") return null;
+  const accountId = point.accountId ?? "aggregate";
   const currency = equityObservationGroup(point);
   return currency ? { accountId, currency, point: observation } : null;
 }
+function accountName(account: EquityAccount | undefined, fallback: string): string {
+  return typeof account?.name === "string" ? account.name : fallback;
+}
 function groupSeries(byAccount: AccountPoints, accounts: Map<string, EquityAccount>): EquityChartSeries[] {
   const accountIds = [...byAccount.keys()].sort((left, right) => {
-    const leftName = String(accounts.get(left)?.name ?? left);
-    const rightName = String(accounts.get(right)?.name ?? right);
+    const leftName = accountName(accounts.get(left), left);
+    const rightName = accountName(accounts.get(right), right);
     return leftName.localeCompare(rightName, "de-DE");
   });
   return accountIds.map((accountId, index) => ({
     accountId, dataKey: `account_${index}`,
-    name: String(accounts.get(accountId)?.name ?? (accountId === "aggregate" ? "Equity" : accountId)),
+    name: accountName(accounts.get(accountId), accountId === "aggregate" ? "Equity" : accountId),
   }));
 }
 function groupPoints(series: EquityChartSeries[], byAccount: AccountPoints): EquityChartGroup['points'] {
@@ -84,7 +88,7 @@ export function buildEquityChartGroups<Point extends EquityObservation, Account 
   inputPoints: Point[],
   inputAccounts: Account[],
 ): EquityChartGroup[] {
-  const accounts = new Map(inputAccounts.map((account) => [String(account.id), account]));
+  const accounts = new Map(inputAccounts.flatMap(account => typeof account.id === "string" ? [[account.id, account] as const] : []));
   const grouped = new Map<string, AccountPoints>();
   for (const point of inputPoints) {
     const observation = validatedObservation(point);

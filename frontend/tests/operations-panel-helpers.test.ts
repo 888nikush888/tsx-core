@@ -34,6 +34,39 @@ describe("buildEquityChartGroups", () => {
       },
     ]);
   });
+  it("excludes malformed identities without merging them into a valid string identity", () => {
+    const point = { observedAt: 1000, equity: "1.000000000000000001", reportingCurrency: "USD", accountingSource: "original", mode: "live" };
+    const groups = buildEquityChartGroups([
+      { ...point, accountId: "[object Object]" },
+      { ...point, accountId: { id: "first" }, equity: "900" },
+      { ...point, accountId: { id: "second" }, equity: "800" },
+      { ...point, accountId: ["valid"], equity: "700" },
+      { ...point, accountId: 42, equity: "600" },
+      { ...point, accountId: "valid", equity: "2" },
+      { ...point, accountId: "valid", reportingCurrency: "EUR", equity: "3" },
+      { ...point, accountId: null, equity: "4" },
+    ], [{ id: "[object Object]", name: "Literal identity" },
+      { id: { id: "first" }, name: "Must not override" },
+      { id: "valid", name: { privateField: "Not a label" } }]);
+    expect(groups.map(group => group.currency)).toEqual(["EUR (live)", "USD (live)"]);
+    const usd = groups[1];
+    expect(usd.series.map(item => [item.accountId, item.name])).toEqual([
+      ["aggregate", "Equity"], ["[object Object]", "Literal identity"], ["valid", "valid"],
+    ]);
+    expect(usd.points).toEqual([{ observedAt: 1000, account_0: 4, account_0Exact: "4",
+      account_1: 1, account_1Exact: "1.000000000000000001", account_2: 2, account_2Exact: "2" }]);
+    expect(groups[0].points[0].account_0Exact).toBe("3");
+    expect(JSON.stringify(groups)).not.toContain("privateField");
+  });
+  it("retains valid empty labels and missing-name fallbacks without object coercion", () => {
+    let coerced = false;
+    const object = { toString() { coerced = true; throw new Error("Do not coerce"); } };
+    const point = { observedAt: 1, equity: "1", reportingCurrency: "USD", accountingSource: "original", mode: "paper" };
+    const groups = buildEquityChartGroups([{ ...point, accountId: "empty" }, { ...point, accountId: "unknown" },
+      { ...point, accountId: object }], [{ id: "empty", name: "" }, { id: "unknown", name: object }, { id: object, name: "bad" }]);
+    expect(groups[0].series.map(item => item.name)).toEqual(["", "unknown"]);
+    expect(coerced).toBe(false);
+  });
   it("keeps original currencies and modes separate and retains exact tooltip amounts", () => {
     const known = { accountId: "account", observedAt: 1, equity: "0.000000000000000000123456789", reportingCurrency: "USD", accountingSource: "original", mode: "live" };
     const groups = buildEquityChartGroups([known, { ...known, mode: "testnet" }, { ...known, reportingCurrency: null }, { ...known, equity: null }, { ...known, accountingSource: null }, { ...known, mode: 1 }, { ...known, mode: { toString: () => "live" } }], [{ id: "account", capabilities: { reportingCurrency: "USDT" } }]);

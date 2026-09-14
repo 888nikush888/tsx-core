@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "kind": "equity-scalar-identity-and-label-remediation",
+  "baseRevision": "253f8f98406fc1c5801b47e4f7308b44d7756295",
+  "sourceBindings": [
+    {
+      "path": "frontend/src/features/risk-analytics/equity-chart.tsx",
+      "baseRevision": "253f8f98406fc1c5801b47e4f7308b44d7756295",
+      "baseGitBlobSha256": "5729a3d0b8c3130ad4112b90940fa3c9c4f3b0d3251c70e925aecf9e8993d0f5",
+      "workingRawSha256": "46adf9a33fb28ab63ed2b71520f129532d0196983f5d3a620ded0689959e5389",
+      "workingLfSha256": "06dc14efeda5659c825457610895c6a3f9d1819193dbe3bf9b050b7550f67cdf"
+    },
+    {
+      "path": "frontend/tests/operations-panel-helpers.test.ts",
+      "baseRevision": "253f8f98406fc1c5801b47e4f7308b44d7756295",
+      "baseGitBlobSha256": "c675f2fef82e2aa68c338f0dc76cb96817c90e5364a251eb5dbd1a61cfa34ec3",
+      "workingRawSha256": "9406e19f350651bbd35efe2199d29921236fae42e13a7ae08466df8caa7fb380",
+      "workingLfSha256": "fa8976c52a0d186dbd37ce8a1b9ebbbbc17d643cfc3637928ac5a25d29ca25b6"
+    }
+  ],
+  "sonarIssues": [
+    "AaCaApl3Qzi-Va3r5ZAy",
+    "AaCaApl3Qzi-Va3r5ZAz",
+    "AaCaApl3Qzi-Va3r5ZA0",
+    "AaCaApl3Qzi-Va3r5ZA1"
+  ],
+  "status": "source-fixed-awaiting-provider-rescan",
+  "producerTrace": [
+    "trading_telemetry.listTradingEquityPoints selects account_id and emits String(row.accountId); getFilteredTradingAnalytics passes equityPerformance(filteredEquity).",
+    "trading_repository maps account.id/name through String and TradingAccount declares both string. Analytics UI passes performance.equity and trading.accounts from same-origin jsonRequest; response has no schema validation.",
+    "String-only chart IDs therefore retain all currently produced values; null/undefined point IDs preserve existing aggregate fallback. Malformed object/array/number/bool IDs are deliberately excluded rather than coerced into another account."
+  ],
+  "change": [
+    "validatedObservation rejects non-null non-string accountId before grouping; empty string stays a string, with no trimming or normalization.",
+    "Account lookup omits non-string IDs, preventing an object account entry from overriding a literal string identity.",
+    "accountName returns only existing string names; otherwise existing ID/Equity fallback, including unchanged empty-string labels. Sorting still uses ID fallback, while aggregate display still uses Equity.",
+    "No changes to currency/mode grouping, chronological ordering, exact decimal tooltip values, null aggregate behavior, field serialization or provider calls."
+  ],
+  "contextBindings": [
+    {
+      "path": "src/trading_telemetry.ts",
+      "baseRevision": "253f8f98406fc1c5801b47e4f7308b44d7756295",
+      "baseGitBlobSha256": "3b0817983efe2f95be5a4d53185f160b276d59c9424bf2ded0a448a07aa3e4a9",
+      "workingRawSha256": "3b0817983efe2f95be5a4d53185f160b276d59c9424bf2ded0a448a07aa3e4a9",
+      "workingLfSha256": "3b0817983efe2f95be5a4d53185f160b276d59c9424bf2ded0a448a07aa3e4a9"
+    },
+    {
+      "path": "src/trading_repository.ts",
+      "baseRevision": "253f8f98406fc1c5801b47e4f7308b44d7756295",
+      "baseGitBlobSha256": "e6e66619c460a1500fc116fed381c820231c2dbcfd16837684a3364166045c93",
+      "workingRawSha256": "e6e66619c460a1500fc116fed381c820231c2dbcfd16837684a3364166045c93",
+      "workingLfSha256": "e6e66619c460a1500fc116fed381c820231c2dbcfd16837684a3364166045c93"
+    },
+    {
+      "path": "src/trading_types.ts",
+      "baseRevision": "253f8f98406fc1c5801b47e4f7308b44d7756295",
+      "baseGitBlobSha256": "25669cf51079b5845e0d1167d277d77c635468b45b22cbcf060318bcb3c3bfde",
+      "workingRawSha256": "25669cf51079b5845e0d1167d277d77c635468b45b22cbcf060318bcb3c3bfde",
+      "workingLfSha256": "25669cf51079b5845e0d1167d277d77c635468b45b22cbcf060318bcb3c3bfde"
+    },
+    {
+      "path": "frontend/src/features/risk-analytics/analytics.tsx",
+      "baseRevision": "253f8f98406fc1c5801b47e4f7308b44d7756295",
+      "baseGitBlobSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
+      "workingRawSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c",
+      "workingLfSha256": "19b80580ab1f3a76b954a236c8d3519f97993e9d3ceca71cb939f367f7a32f8c"
+    },
+    {
+      "path": "frontend/src/lib/api.ts",
+      "baseRevision": "253f8f98406fc1c5801b47e4f7308b44d7756295",
+      "baseGitBlobSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+      "workingRawSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+      "workingLfSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf"
+    }
+  ],
+  "regression": [
+    "Two different object IDs formerly collapsed onto literal [object Object] identity and could overwrite its label; test preserves valid literal ID while excluding objects, arrays and numbers.",
+    "Same valid account remains isolated acrossUSD/EUR; same-currency valid accounts and null aggregate remain separate; exact original monetary string retained.",
+    "Throwing toString values in point ID, account ID and name are never invoked; private object fields never serialized. Empty valid label and unknown-account fallback retained."
+  ],
+  "validation": [
+    {
+      "command": "vitest operations-panel-helpers before fix",
+      "result": "2 new tests fail;14 existing pass",
+      "log": "reports/security-services/fixer-equity-identity-before.log",
+      "logSha256": "e9b4d1bc91a5d77963b0bf6530d952cc756f06920bfed9d93def6aa05b3a10c2"
+    },
+    {
+      "command": "vitest operations-panel-helpers and operator-state-regressions after fix",
+      "result": "2suites30tests PASS",
+      "log": "reports/security-services/fixer-equity-identity-after.log",
+      "logSha256": "e35e35b16d5e569c2d74101a7c66b5e30f719c229a93302d49bcd607e669de3f"
+    },
+    {
+      "command": "frontend own TypeScript tsc -b frontend",
+      "result": "PASS",
+      "log": "reports/security-services/fixer-equity-identity-typecheck.log",
+      "logSha256": "181c316fb4c5426efd6270ac7e3c173164befcd66ed50622e4d111f89f779ef0"
+    }
+  ],
+  "limits": [
+    "No Sonar/platform disposition changed, no commit/push.",
+    "Backend malformed identity data already stringified before transmission cannot be distinguished from a legitimate literal string by frontend; this closes frontend unknown-object conversion, not arbitrary upstream corruption.",
+    "Shared EvidenceTable separate S6551 issue is outside this change."
+  ]
+}

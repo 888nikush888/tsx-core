@@ -101,8 +101,7 @@ try {
   assert.equal(failedRecovery.result, null);
   assert.match(failedRecovery.error, /Fixture recovery download failed/);
   const originalRun = store.run;
-  let releaseRecovery;
-  const recoveryGate = new Promise(resolve => { releaseRecovery = resolve; });
+  const { promise: recoveryGate, resolve: releaseRecovery } = Promise.withResolvers();
   store.run = async function (id, operation, restart) {
     await recoveryGate;
     return originalRun.call(this, id, operation, restart);

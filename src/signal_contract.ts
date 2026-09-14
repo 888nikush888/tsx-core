@@ -93,7 +93,7 @@ function safePattern(value: unknown, label: string): string | undefined {
     throw new Error(`${label} contains unsupported high-risk regular-expression constructs.`);
   }
   try {
-    void new RegExp(pattern, 'u');
+    new RegExp(pattern, 'u');
   } catch (error) {
     throw new Error(`${label} is not a valid regular expression.`, { cause: error });
   }

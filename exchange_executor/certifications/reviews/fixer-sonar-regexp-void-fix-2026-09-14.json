@@ -1,0 +1,23 @@
+{
+  "baseRevision": "253f8f98406fc1c5801b47e4f7308b44d7756295",
+  "issue": "AaCaApgVQzi-Va3r5ZAN",
+  "rule": "typescript:S3735",
+  "source": {
+    "path": "src/signal_contract.ts",
+    "beforeGitSha256": "3df10a6bcec099329a14d4cd47b2f605380b23903b58234e02b656578773e240",
+    "afterSha256": "c7dff51c06d538a2cce203c6495b3649bad8206d37995b3b6661730a207c22d4"
+  },
+  "change": "Remove only void operator before RegExp construction. Constructor, Unicode flag, try/catch, original error cause and returned pattern remain.",
+  "priorIndependentReview": {
+    "path": "reports/security-services/fixer-sonar-promise-void-independent-review.json",
+    "sha256": "07f55d6f1018c84bbad939d6523f913328962b819ed8f42f18e83ea7f4d89358"
+  },
+  "checks": [
+    "existing signal contract validation suite PASS",
+    "existing ESLint on changed file PASS"
+  ],
+  "limits": [
+    "Remote Sonar/DeepSource confirmation pending.",
+    "No constructor or pattern validation removed."
+  ]
+}
