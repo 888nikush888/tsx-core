@@ -1,0 +1,321 @@
+{
+  "baseRevision": "d00bd164a451fd775e251005f1f0ddae5d043fd0",
+  "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "entries": [
+    {
+      "issueId": "AaCaApjzQzi-Va3r5ZAj",
+      "path": "src/dashboard_auth.ts",
+      "owner": "authenticate",
+      "oldSourceReturn": "return Promise.resolve(null);",
+      "newReturn": "return null;",
+      "historicalAsyncDirectReturn": "return null;",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "authenticate Promise contract is explicit in DashboardAuthenticator; web_server awaits it before authorization. Keep async so synchronous token/header/hash errors remain rejected Promises. All guards and actor fields must remain unchanged.",
+      "sourceBeforeSha256": "a9ed5eb9bbc7b1f3d021ae9bfd601ac67df25fea88a6f3fc6b0b8a22650badf5",
+      "sourceAfterSha256": "f21c02da3de736ef39afda8963d54bc4e10c6f66e9cd98fd79f5f361afc3bdc2"
+    },
+    {
+      "issueId": "AaCaApjzQzi-Va3r5ZAk",
+      "path": "src/dashboard_auth.ts",
+      "owner": "authenticate",
+      "oldSourceReturn": "return Promise.resolve({ role: 'admin', id });",
+      "newReturn": "return { role: 'admin', id };",
+      "historicalAsyncDirectReturn": "return { role: 'admin', id };",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "authenticate Promise contract is explicit in DashboardAuthenticator; web_server awaits it before authorization. Keep async so synchronous token/header/hash errors remain rejected Promises. All guards and actor fields must remain unchanged.",
+      "sourceBeforeSha256": "a9ed5eb9bbc7b1f3d021ae9bfd601ac67df25fea88a6f3fc6b0b8a22650badf5",
+      "sourceAfterSha256": "f21c02da3de736ef39afda8963d54bc4e10c6f66e9cd98fd79f5f361afc3bdc2"
+    },
+    {
+      "issueId": "AaCaApjzQzi-Va3r5ZAl",
+      "path": "src/dashboard_auth.ts",
+      "owner": "authenticate",
+      "oldSourceReturn": "return Promise.resolve({ role: 'viewer', id });",
+      "newReturn": "return { role: 'viewer', id };",
+      "historicalAsyncDirectReturn": "return { role: 'viewer', id };",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "authenticate Promise contract is explicit in DashboardAuthenticator; web_server awaits it before authorization. Keep async so synchronous token/header/hash errors remain rejected Promises. All guards and actor fields must remain unchanged.",
+      "sourceBeforeSha256": "a9ed5eb9bbc7b1f3d021ae9bfd601ac67df25fea88a6f3fc6b0b8a22650badf5",
+      "sourceAfterSha256": "f21c02da3de736ef39afda8963d54bc4e10c6f66e9cd98fd79f5f361afc3bdc2"
+    },
+    {
+      "issueId": "AaCaApjzQzi-Va3r5ZAm",
+      "path": "src/dashboard_auth.ts",
+      "owner": "authenticate",
+      "oldSourceReturn": "return Promise.resolve({ role: 'admin', id: `local-session:${localSessionDigest.slice(0, 16)}` });",
+      "newReturn": "return { role: 'admin', id: `local-session:${localSessionDigest.slice(0, 16)}` };",
+      "historicalAsyncDirectReturn": "return { role: 'admin', id: `local-session:${localSessionDigest.slice(0, 16)}` };",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "authenticate Promise contract is explicit in DashboardAuthenticator; web_server awaits it before authorization. Keep async so synchronous token/header/hash errors remain rejected Promises. All guards and actor fields must remain unchanged.",
+      "sourceBeforeSha256": "a9ed5eb9bbc7b1f3d021ae9bfd601ac67df25fea88a6f3fc6b0b8a22650badf5",
+      "sourceAfterSha256": "f21c02da3de736ef39afda8963d54bc4e10c6f66e9cd98fd79f5f361afc3bdc2"
+    },
+    {
+      "issueId": "AaCaApjzQzi-Va3r5ZAn",
+      "path": "src/dashboard_auth.ts",
+      "owner": "authenticate",
+      "oldSourceReturn": "return Promise.resolve(null);",
+      "newReturn": "return null;",
+      "historicalAsyncDirectReturn": "return null;",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "authenticate Promise contract is explicit in DashboardAuthenticator; web_server awaits it before authorization. Keep async so synchronous token/header/hash errors remain rejected Promises. All guards and actor fields must remain unchanged.",
+      "sourceBeforeSha256": "a9ed5eb9bbc7b1f3d021ae9bfd601ac67df25fea88a6f3fc6b0b8a22650badf5",
+      "sourceAfterSha256": "f21c02da3de736ef39afda8963d54bc4e10c6f66e9cd98fd79f5f361afc3bdc2"
+    },
+    {
+      "issueId": "AaCaApjzQzi-Va3r5ZAo",
+      "path": "src/dashboard_auth.ts",
+      "owner": "authenticate",
+      "oldSourceReturn": "return Promise.resolve(null);",
+      "newReturn": "return null;",
+      "historicalAsyncDirectReturn": "return null;",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "authenticate Promise contract is explicit in DashboardAuthenticator; web_server awaits it before authorization. Keep async so synchronous token/header/hash errors remain rejected Promises. All guards and actor fields must remain unchanged.",
+      "sourceBeforeSha256": "a9ed5eb9bbc7b1f3d021ae9bfd601ac67df25fea88a6f3fc6b0b8a22650badf5",
+      "sourceAfterSha256": "f21c02da3de736ef39afda8963d54bc4e10c6f66e9cd98fd79f5f361afc3bdc2"
+    },
+    {
+      "issueId": "AaCaApjzQzi-Va3r5ZAp",
+      "path": "src/dashboard_auth.ts",
+      "owner": "authenticate",
+      "oldSourceReturn": "return Promise.resolve(null);",
+      "newReturn": "return null;",
+      "historicalAsyncDirectReturn": "return null;",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "authenticate Promise contract is explicit in DashboardAuthenticator; web_server awaits it before authorization. Keep async so synchronous token/header/hash errors remain rejected Promises. All guards and actor fields must remain unchanged.",
+      "sourceBeforeSha256": "a9ed5eb9bbc7b1f3d021ae9bfd601ac67df25fea88a6f3fc6b0b8a22650badf5",
+      "sourceAfterSha256": "f21c02da3de736ef39afda8963d54bc4e10c6f66e9cd98fd79f5f361afc3bdc2"
+    },
+    {
+      "issueId": "AaCaApjzQzi-Va3r5ZAq",
+      "path": "src/dashboard_auth.ts",
+      "owner": "authenticate",
+      "oldSourceReturn": "return Promise.resolve({\n    role,\n    id: `tailscale:${createHash('sha256').update(login).digest('hex').slice(0, 32)}`,\n    identity: { provider: 'tailscale', login, name },\n});",
+      "newReturn": "return {\n    role,\n    id: `tailscale:${createHash('sha256').update(login).digest('hex').slice(0, 32)}`,\n    identity: { provider: 'tailscale', login, name },\n};",
+      "historicalAsyncDirectReturn": "return {\n    role,\n    id: `tailscale:${createHash('sha256').update(login).digest('hex').slice(0, 32)}`,\n    identity: { provider: 'tailscale', login, name },\n};",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "authenticate Promise contract is explicit in DashboardAuthenticator; web_server awaits it before authorization. Keep async so synchronous token/header/hash errors remain rejected Promises. All guards and actor fields must remain unchanged.",
+      "sourceBeforeSha256": "a9ed5eb9bbc7b1f3d021ae9bfd601ac67df25fea88a6f3fc6b0b8a22650badf5",
+      "sourceAfterSha256": "f21c02da3de736ef39afda8963d54bc4e10c6f66e9cd98fd79f5f361afc3bdc2"
+    },
+    {
+      "issueId": "AaCaApi9Qzi-Va3r5ZAT",
+      "path": "src/mcp_control_bridge.ts",
+      "owner": "start",
+      "oldSourceReturn": "return Promise.resolve();",
+      "newReturn": "return;",
+      "historicalAsyncDirectReturn": "return;",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "start is async Promise<void>. Already-started branch must not restart worker; normal branch starts run then logs and resolves without awaiting the long-running worker. Direct return must not become return this.worker or await this.run.",
+      "sourceBeforeSha256": "dd4fd8af769618b74c57d3eb1a33a86db34fbd6b9e12a8ef69aef27e60b58faf",
+      "sourceAfterSha256": "d69a6e203dc57da42db816de3ed1ebc5961487ae2f8cb18a162c448f3b116dad"
+    },
+    {
+      "issueId": "AaCaApi9Qzi-Va3r5ZAU",
+      "path": "src/mcp_control_bridge.ts",
+      "owner": "start",
+      "oldSourceReturn": "return Promise.resolve();",
+      "newReturn": "implicit async fallthrough",
+      "historicalAsyncDirectReturn": "Historical start ends immediately after log with no explicit return; now restored exactly.",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "start is async Promise<void>. Already-started branch must not restart worker; normal branch starts run then logs and resolves without awaiting the long-running worker. Direct return must not become return this.worker or await this.run.",
+      "sourceBeforeSha256": "dd4fd8af769618b74c57d3eb1a33a86db34fbd6b9e12a8ef69aef27e60b58faf",
+      "sourceAfterSha256": "d69a6e203dc57da42db816de3ed1ebc5961487ae2f8cb18a162c448f3b116dad"
+    },
+    {
+      "issueId": "AaCaApkLQzi-Va3r5ZAr",
+      "path": "src/mcp_repository.ts",
+      "owner": "preflightWorkflowAction",
+      "oldSourceReturn": "return Promise.resolve();",
+      "newReturn": "return;",
+      "historicalAsyncDirectReturn": "return;",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "preflightWorkflowAction is async and awaited by proposal preflight. Resource-create branch adds impact then resolves undefined; activation and lifecycle branches already return their async preflight operations. Keep impact push and all delegated branches.",
+      "sourceBeforeSha256": "d823b7625c620be2c6751d18c7969fabd85dd1ba81325fdbad3c8d85ba9b928d",
+      "sourceAfterSha256": "d9ba2dae24ae84ddf7c6c0d521a2c547a447bda2f6480b593c62693f5934ecb1"
+    },
+    {
+      "issueId": "AaCaApkzQzi-Va3r5ZAt",
+      "path": "src/telegram_viewer_secrets.ts",
+      "owner": "readBotToken",
+      "oldSourceReturn": "return Promise.resolve(this.botTokenValue);",
+      "newReturn": "return this.botTokenValue;",
+      "historicalAsyncDirectReturn": "return this.botTokenValue;",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "Both getters explicitly return Promise and callers await them. Snapshot primitive field access remains at call time. Keep async rather than making the credential API return a raw string; no credential logging or changed error fallback.",
+      "sourceBeforeSha256": "119140501370e3e5c9b27fb89582109da2774910ec3387533a673fffef4abd7b",
+      "sourceAfterSha256": "60ca85675aff92970396feba2567694c9dda35e6f3306aea46b6c0bde8919b5c"
+    },
+    {
+      "issueId": "AaCaApkzQzi-Va3r5ZAu",
+      "path": "src/telegram_viewer_secrets.ts",
+      "owner": "serviceToken",
+      "oldSourceReturn": "return Promise.resolve(this.serviceTokenValue);",
+      "newReturn": "return this.serviceTokenValue;",
+      "historicalAsyncDirectReturn": "return this.serviceTokenValue;",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "Both getters explicitly return Promise and callers await them. Snapshot primitive field access remains at call time. Keep async rather than making the credential API return a raw string; no credential logging or changed error fallback.",
+      "sourceBeforeSha256": "119140501370e3e5c9b27fb89582109da2774910ec3387533a673fffef4abd7b",
+      "sourceAfterSha256": "60ca85675aff92970396feba2567694c9dda35e6f3306aea46b6c0bde8919b5c"
+    },
+    {
+      "issueId": "AaCaAplLQzi-Va3r5ZAv",
+      "path": "src/trade_journal.ts",
+      "owner": "loadJournalFills",
+      "oldSourceReturn": "return Promise.resolve([]);",
+      "newReturn": "return [];",
+      "historicalAsyncDirectReturn": "return [];",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "loadJournalRelations awaits schemas through Promise.all and fills after loading orders. Empty arrays are per-call fresh values and no SQL runs in empty branches. Keep map/validation evaluation and async failure boundary; do not change nonempty queries.",
+      "sourceBeforeSha256": "acd6e94c0e00c4ec0a4d9e2558e221cd2141931cee9b27e005e8093debc30d7a",
+      "sourceAfterSha256": "f2d85845b436caae56712c0253bd47fdcc2390c770a9f254a92d90c06fcc2413"
+    },
+    {
+      "issueId": "AaCaAplLQzi-Va3r5ZAw",
+      "path": "src/trade_journal.ts",
+      "owner": "loadJournalSchemas",
+      "oldSourceReturn": "return Promise.resolve([]);",
+      "newReturn": "return [];",
+      "historicalAsyncDirectReturn": "return [];",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "loadJournalRelations awaits schemas through Promise.all and fills after loading orders. Empty arrays are per-call fresh values and no SQL runs in empty branches. Keep map/validation evaluation and async failure boundary; do not change nonempty queries.",
+      "sourceBeforeSha256": "acd6e94c0e00c4ec0a4d9e2558e221cd2141931cee9b27e005e8093debc30d7a",
+      "sourceAfterSha256": "f2d85845b436caae56712c0253bd47fdcc2390c770a9f254a92d90c06fcc2413"
+    },
+    {
+      "issueId": "AaCaApcvQzi-Va3r5Y_-",
+      "path": "src/trading_account_log_repository.ts",
+      "owner": "accountLogCheckpoint",
+      "oldSourceReturn": "return Promise.resolve(null);",
+      "newReturn": "return null;",
+      "historicalAsyncDirectReturn": "return null;",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "trading recovery awaits accountLogCheckpoint. Missing source/external identity/generation short-circuits to null with no transaction; other branch returns withDatabaseTransaction. Keep async and exact guard evaluation.",
+      "sourceBeforeSha256": "adac188ec39923f70eb793d0d1489d584a6c108e73349e3bcdad8db6248f7ae5",
+      "sourceAfterSha256": "258e9bc1fa94f39a026a705fbab10038f60f4bbb931863feb08c5eed01715d8e"
+    },
+    {
+      "issueId": "AaCaApcMQzi-Va3r5Y_5",
+      "path": "src/ui_trade_relations.ts",
+      "owner": "relationEvidence",
+      "oldSourceReturn": "return Promise.resolve(eventEvidence(row));",
+      "newReturn": "return eventEvidence(row);",
+      "historicalAsyncDirectReturn": "Reviewed historical relationEvidence inline event/order/fill branches: same redactReview expressions now in synchronous eventEvidence/orderEvidence helpers; JSON.parse errors remain within async relationEvidence.",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "relationPageEntries awaits each relationEvidence result before pushing, so returned event/order/redacted values stay data. money branch already returns its asynchronous helper. Retain async so evidence-function synchronous throws remain rejections.",
+      "sourceBeforeSha256": "959399fe2ad68cfbe2de116af6e55b3d59032cd8b85f7e02b06fa2b29b4d5cb3",
+      "sourceAfterSha256": "34f3bcfa8454812adf2c9c19215349ca7e30b23a92f5c95599d8bb29933ebdba"
+    },
+    {
+      "issueId": "AaCaApcNQzi-Va3r5Y_6",
+      "path": "src/ui_trade_relations.ts",
+      "owner": "relationEvidence",
+      "oldSourceReturn": "return Promise.resolve(orderEvidence(row));",
+      "newReturn": "return orderEvidence(row);",
+      "historicalAsyncDirectReturn": "Reviewed historical relationEvidence inline event/order/fill branches: same redactReview expressions now in synchronous eventEvidence/orderEvidence helpers; JSON.parse errors remain within async relationEvidence.",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "relationPageEntries awaits each relationEvidence result before pushing, so returned event/order/redacted values stay data. money branch already returns its asynchronous helper. Retain async so evidence-function synchronous throws remain rejections.",
+      "sourceBeforeSha256": "959399fe2ad68cfbe2de116af6e55b3d59032cd8b85f7e02b06fa2b29b4d5cb3",
+      "sourceAfterSha256": "34f3bcfa8454812adf2c9c19215349ca7e30b23a92f5c95599d8bb29933ebdba"
+    },
+    {
+      "issueId": "AaCaApcNQzi-Va3r5Y_7",
+      "path": "src/ui_trade_relations.ts",
+      "owner": "relationEvidence",
+      "oldSourceReturn": "return Promise.resolve(redactReview({ ...row }));",
+      "newReturn": "return redactReview({ ...row });",
+      "historicalAsyncDirectReturn": "Reviewed historical relationEvidence inline event/order/fill branches: same redactReview expressions now in synchronous eventEvidence/orderEvidence helpers; JSON.parse errors remain within async relationEvidence.",
+      "historicalRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "asyncRetained": true,
+      "callerAssessment": "relationPageEntries awaits each relationEvidence result before pushing, so returned event/order/redacted values stay data. money branch already returns its asynchronous helper. Retain async so evidence-function synchronous throws remain rejections.",
+      "sourceBeforeSha256": "959399fe2ad68cfbe2de116af6e55b3d59032cd8b85f7e02b06fa2b29b4d5cb3",
+      "sourceAfterSha256": "34f3bcfa8454812adf2c9c19215349ca7e30b23a92f5c95599d8bb29933ebdba"
+    }
+  ],
+  "semantics": "All nineteen already-async functions restore a matching historical direct return. Removing Promise.resolve removes added adoption microtasks, intentionally restoring historical timing; async rejection boundary remains. Non-async Promise factories untouched.",
+  "testsPending": false,
+  "tests": [
+    {
+      "path": "tests/test_dashboard_auth.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-async-return-dashboard_auth.log",
+      "logSha256": "794582037a005913b8c2984bb6a3e3948b693214cc7a6f1fc4b6029486101026"
+    },
+    {
+      "path": "tests/test_mcp_control_plane.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-async-return-mcp_control_plane.log",
+      "logSha256": "9865a7b26000e870d33b901718226b0d0f760d441894a8e64eb76036246826a4"
+    },
+    {
+      "path": "tests/test_mcp_server.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-async-return-mcp_server.log",
+      "logSha256": "a113776ce476c15486a0ee47a7dd25daa2468978af672ba031a6f246ea1a27a8"
+    },
+    {
+      "path": "tests/test_telegram_viewer_core.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-async-return-telegram_viewer_core.log",
+      "logSha256": "b8a8330e60a04063d70cf2f52dce0e2a4374eb476f7051a0e0db4ac2a6e8467e"
+    },
+    {
+      "path": "tests/test_trade_journal_streams.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-async-return-trade_journal_streams.log",
+      "logSha256": "543b1834dd8cf47884e8f9863e384154f1448b4e44433e9523f693d83b2262f5"
+    },
+    {
+      "path": "tests/test_trading_account_log.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-async-return-trading_account_log.log",
+      "logSha256": "bf731eaf4eb6de3c23afab9217b3717d32d34a480fa2402c28917f135ca27c96"
+    },
+    {
+      "path": "tests/test_startup_authority.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-async-return-startup_authority.log",
+      "logSha256": "f457f0f46b7ca1bd1b11a5324a1e00ca86ca107b9b226fc759f6ff69f7f031f4"
+    },
+    {
+      "path": "tests/test_ui_next_reads.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-async-return-ui_next_reads.log",
+      "logSha256": "7ed208c035cb95faed4dd0362870587b23a1b2d43b6623ab0fa5305344648564"
+    }
+  ],
+  "typecheck": "PASS tsc --noEmit",
+  "eslint": "PASS seven edited files --quiet",
+  "historicalAssessment": "16 exact normalized AST direct-return statements found within matching historical async functions;3 ui_trade_relations statements proven by reading historical inline event/order/fill redaction versus current synchronous extracted helpers. Both preserve JSON.parse throwing inside async boundary. Money asynchronous branch untouched.",
+  "limits": [
+    "Microtask adoption from Promise.resolve intentionally removed, restoring historical immediate async fulfillment; no claim of timing identity with pre-fix wrappers.",
+    "Initial guessed test_ui_trade_relations.js path did not exist; no product test failure, actual test_ui_next_reads.js found and passed.",
+    "Only19 approved async return statements changed across7files; no nonasync factory, signature, catch or guard altered.",
+    "No commit or push."
+  ],
+  "refinement": "Removed only terminal start return after independently confirming historical fallthrough. Early already-running return retained.",
+  "diffSha256": "0fd85bf0c3681849a4b49e48c774f1f3d0d61949563ac83acc51007e27fdf453",
+  "finalMcpTest": {
+    "exitCode": 0,
+    "log": "reports/security-services/fixer-async-return-mcp_control_plane-final.log",
+    "sha256": "9865a7b26000e870d33b901718226b0d0f760d441894a8e64eb76036246826a4"
+  }
+}

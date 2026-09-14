@@ -84,12 +84,11 @@ export class McpControlBridge {
   }
 
   async start(): Promise<void> {
-    if (this.worker !== null) return Promise.resolve();
+    if (this.worker !== null) return;
     this.recovered = false;
     this.abortController = new AbortController();
     this.worker = this.run(this.abortController.signal);
     this.log('[INFO] MCP control bridge started.');
-    return Promise.resolve();
   }
 
   async stop(): Promise<void> {

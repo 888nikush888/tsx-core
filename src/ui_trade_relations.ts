@@ -55,9 +55,9 @@ async function moneyRelationEvidence(row: Record<string, unknown>): Promise<unkn
 
 async function relationEvidence(kind: UiTradeRelation, row: Record<string, unknown>): Promise<unknown> {
   if (kind === 'money') return moneyRelationEvidence(row);
-  if (kind === 'events') return Promise.resolve(eventEvidence(row));
-  if (kind === 'orders') return Promise.resolve(orderEvidence(row));
-  return Promise.resolve(redactReview({ ...row }));
+  if (kind === 'events') return eventEvidence(row);
+  if (kind === 'orders') return orderEvidence(row);
+  return redactReview({ ...row });
 }
 
 /** Relations are independently pageable; no raw account fingerprints, provider payloads or floating-point money. */

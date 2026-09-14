@@ -122,7 +122,7 @@ export class TelegramViewerSecretStore {
   }
 
   async readBotToken(): Promise<string | null> {
-    return Promise.resolve(this.botTokenValue);
+    return this.botTokenValue;
   }
 
   async setBotToken(value: unknown): Promise<void> {
@@ -142,7 +142,7 @@ export class TelegramViewerSecretStore {
   }
 
   async serviceToken(): Promise<string> {
-    return Promise.resolve(this.serviceTokenValue);
+    return this.serviceTokenValue;
   }
 
   async rotateServiceToken(): Promise<string> {
