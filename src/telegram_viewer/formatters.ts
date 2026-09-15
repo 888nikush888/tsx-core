@@ -24,7 +24,22 @@ function safeDetails(details: Record<string, unknown>): string[] {
     .map(([key, value]) => `${key}: ${String(value).slice(0, 500)}`);
 }
 
-function values(payload: Record<string, unknown>, key: string): any[] {
+// These compiler views permit only the original JavaScript property operations.
+// They do not validate a record or its fields: values remain unknown, primitives
+// retain native boxing, and null/property-membership errors remain native.
+function legacyField(value: unknown, key: string): unknown {
+  return (value as Record<string, unknown>)[key];
+}
+
+function legacyOptionalField(value: unknown, key: string): unknown {
+  return (value as Record<string, unknown> | null | undefined)?.[key];
+}
+
+function legacyHasField(value: unknown, key: string): boolean {
+  return key in (value as object);
+}
+
+function values(payload: Record<string, unknown>, key: string): unknown[] {
   const value = payload[key];
   if (Array.isArray(value)) return value;
   const singular = key.endsWith('s') ? key.slice(0, -1) : key;
@@ -50,26 +65,28 @@ function exactMoneyText(value: MoneyValue): string {
   return `[${value.lower}, ${value.upper}] (konservative Grenzen)`;
 }
 
-function moneyText(summary: Record<string, unknown>): string | null {
-  if (summary.accountingStatus !== undefined && summary.accountingStatus !== 'complete') return null;
-  const currency = currencyUnit(summary.reportingCurrency);
+function moneyText(summary: unknown): string | null {
+  if (legacyField(summary, 'accountingStatus') !== undefined && legacyField(summary, 'accountingStatus') !== 'complete') return null;
+  const currency = currencyUnit(legacyField(summary, 'reportingCurrency'));
   try {
-    if (summary.realizedPnlValue === undefined) {
-      if (typeof summary.realizedPnl !== 'string') return null;
-      const value = moneyValueFromDecimal(summary.realizedPnl);
-      const suffix = summary.accountingStatus === 'complete' && currency ? ' (vollständig; exakt)' : '';
+    if (legacyField(summary, 'realizedPnlValue') === undefined) {
+      if (typeof legacyField(summary, 'realizedPnl') !== 'string') return null;
+      // Preserve the second legacy getter read; the decimal parser validates it at runtime.
+      const parseLegacyDecimal = moneyValueFromDecimal as (input: unknown) => MoneyValue;
+      const value = parseLegacyDecimal(legacyField(summary, 'realizedPnl'));
+      const suffix = legacyField(summary, 'accountingStatus') === 'complete' && currency ? ' (vollständig; exakt)' : '';
       const currencyLabel = currency ? ` ${currency}` : ' (Währung ungeklärt)';
       return `${value.decimal}${currencyLabel}${suffix}`;
     }
-    if (!currency || summary.realizedPnlValue === null || summary.accountingStatus !== 'complete') return null;
-    const value = validateMoneyValue(summary.realizedPnlValue);
-    if (value.decimal !== summary.realizedPnl) return null;
+    if (!currency || legacyField(summary, 'realizedPnlValue') === null || legacyField(summary, 'accountingStatus') !== 'complete') return null;
+    const value = validateMoneyValue(legacyField(summary, 'realizedPnlValue'));
+    if (value.decimal !== legacyField(summary, 'realizedPnl')) return null;
     return `${exactMoneyText(value)} ${currency} (vollständig)`;
   } catch { return null; }
 }
 
-function subtotalLines(label: string, summary: Record<string, unknown>): string[] {
-  const values = summary.valuedSubtotalValuesByCurrency;
+function subtotalLines(label: string, summary: unknown): string[] {
+  const values = legacyField(summary, 'valuedSubtotalValuesByCurrency');
   if (!values || typeof values !== 'object' || Array.isArray(values)) return [];
   return Object.entries(values).flatMap(([currency, input]) => {
     if (!currencyUnit(currency)) return [];
@@ -78,17 +95,17 @@ function subtotalLines(label: string, summary: Record<string, unknown>): string[
   });
 }
 
-function moneyLines(label: string, summary: Record<string, unknown>): string[] {
-  if (!('realizedPnl' in summary) && !('realizedPnlValue' in summary)) return [];
+function moneyLines(label: string, summary: unknown): string[] {
+  if (!(legacyHasField(summary, 'realizedPnl')) && !(legacyHasField(summary, 'realizedPnlValue'))) return [];
   const text = moneyText(summary);
   return text ? [`${label} ${text}`] : [`${label} ungeklärt`, ...subtotalLines(label, summary)];
 }
 
-function accountingLines(item: Record<string, unknown>): string[] {
+function accountingLines(item: unknown): string[] {
   const components: Array<[string, string]> = [['pricePnl', 'Preis-PnL'], ['signedFees', 'Gebühren (signiert)'], ['funding', 'Funding']];
   return [...moneyLines('PnL', item), ...components.flatMap(([key, label]) => {
-    const value = item[key];
-    return value && typeof value === 'object' && !Array.isArray(value) ? moneyLines(label, value as Record<string, unknown>) : [];
+    const value = legacyField(item, key);
+    return value && typeof value === 'object' && !Array.isArray(value) ? moneyLines(label, value) : [];
   })];
 }
 
@@ -118,30 +135,30 @@ function leverageLines(value: unknown): string[] {
   return lines.filter((item): item is string => item !== null);
 }
 
-export function formatSummary(payload: Record<string, any>): string {
+export function formatSummary(payload: Record<string, unknown>): string {
   return clipped([
     'TSX Core · Übersicht',
-    `Konten: ${payload.accounts?.total ?? 0}`,
-    `Aktive Positionen: ${payload.positions?.active ?? 0}`,
-    `Offene Intents: ${payload.intents?.active ?? 0}`,
-    `Offene Incidents: ${payload.incidents?.open ?? 0}`,
+    `Konten: ${legacyOptionalField(payload.accounts, 'total') ?? 0}`,
+    `Aktive Positionen: ${legacyOptionalField(payload.positions, 'active') ?? 0}`,
+    `Offene Intents: ${legacyOptionalField(payload.intents, 'active') ?? 0}`,
+    `Offene Incidents: ${legacyOptionalField(payload.incidents, 'open') ?? 0}`,
   ].join('\n'));
 }
 
 export function formatAccounts(payload: Record<string, unknown>): string {
   return listMessage('Accounts', values(payload, 'accounts').map(item => line([
-    item.name || item.id || 'Konto', item.exchange, item.mode, item.status,
+    legacyField(item, 'name') || legacyField(item, 'id') || 'Konto', legacyField(item, 'exchange'), legacyField(item, 'mode'), legacyField(item, 'status'),
     accountEquityLine(item),
   ])));
 }
 
 export function formatPositions(payload: Record<string, unknown>): string {
   const items = values(payload, 'positions').map(item => [
-    line([item.symbol || item.id || 'Position', item.exchange, item.mode, item.side, item.status]),
-    ...leverageLines(item.leverage),
-    item.quantity !== undefined ? `Menge: ${item.quantity}` : null,
-    item.averageEntryPrice !== null && item.averageEntryPrice !== undefined ? `Entry: ${item.averageEntryPrice}` : null,
-    item.stopPrice !== null && item.stopPrice !== undefined ? `Stop: ${item.stopPrice}` : null,
+    line([legacyField(item, 'symbol') || legacyField(item, 'id') || 'Position', legacyField(item, 'exchange'), legacyField(item, 'mode'), legacyField(item, 'side'), legacyField(item, 'status')]),
+    ...leverageLines(legacyField(item, 'leverage')),
+    legacyField(item, 'quantity') !== undefined ? `Menge: ${legacyField(item, 'quantity')}` : null,
+    legacyField(item, 'averageEntryPrice') !== null && legacyField(item, 'averageEntryPrice') !== undefined ? `Entry: ${legacyField(item, 'averageEntryPrice')}` : null,
+    legacyField(item, 'stopPrice') !== null && legacyField(item, 'stopPrice') !== undefined ? `Stop: ${legacyField(item, 'stopPrice')}` : null,
     ...accountingLines(item),
   ].filter((value): value is string => Boolean(value)).join('\n'));
   return listMessage('Positionen', items);
@@ -149,30 +166,30 @@ export function formatPositions(payload: Record<string, unknown>): string {
 
 export function formatOrders(payload: Record<string, unknown>): string {
   return listMessage('Orders', values(payload, 'orders').map(item => line([
-    item.symbol || item.id || 'Order', item.exchange, item.role, item.side, item.status,
-    item.filledQuantity !== undefined ? `${item.filledQuantity}/${item.quantity ?? '?'}` : null,
+    legacyField(item, 'symbol') || legacyField(item, 'id') || 'Order', legacyField(item, 'exchange'), legacyField(item, 'role'), legacyField(item, 'side'), legacyField(item, 'status'),
+    legacyField(item, 'filledQuantity') !== undefined ? `${legacyField(item, 'filledQuantity')}/${legacyField(item, 'quantity') ?? '?'}` : null,
   ])));
 }
 
 export function formatTrades(payload: Record<string, unknown>): string {
   return listMessage('Trades', values(payload, 'trades').map(item => {
     const summary = line([
-      item.symbol || item.id || 'Trade', item.exchange, item.mode, item.side, item.status,
+      legacyField(item, 'symbol') || legacyField(item, 'id') || 'Trade', legacyField(item, 'exchange'), legacyField(item, 'mode'), legacyField(item, 'side'), legacyField(item, 'status'),
     ]);
-    return [summary, ...leverageLines(item.leverage), ...accountingLines(item)].join('\n');
+    return [summary, ...leverageLines(legacyField(item, 'leverage')), ...accountingLines(item)].join('\n');
   }));
 }
 
 export function formatPerformance(payload: Record<string, unknown>): string {
   return listMessage('Performance', values(payload, 'groups').map(item => [line([
-    item.channelId || item.accountId || 'Gruppe', item.exchange, item.mode,
-    item.trades !== undefined ? `${item.trades} Trades` : null,
+    legacyField(item, 'channelId') || legacyField(item, 'accountId') || 'Gruppe', legacyField(item, 'exchange'), legacyField(item, 'mode'),
+    legacyField(item, 'trades') !== undefined ? `${legacyField(item, 'trades')} Trades` : null,
   ]), ...accountingLines(item)].join('\n')));
 }
 
 export function formatRisk(payload: Record<string, unknown>): string {
   return listMessage('Risk', values(payload, 'events').map(item => line([
-    item.severity, item.code || item.eventType || item.id, item.accountId, item.acknowledgedAt ? 'quittiert' : null,
+    legacyField(item, 'severity'), legacyField(item, 'code') || legacyField(item, 'eventType') || legacyField(item, 'id'), legacyField(item, 'accountId'), legacyField(item, 'acknowledgedAt') ? 'quittiert' : null,
   ])));
 }
 
@@ -188,7 +205,7 @@ export function formatSystem(payload: Record<string, unknown>): string {
 
 export function formatEvents(payload: Record<string, unknown>): string {
   return listMessage('Events', values(payload, 'events').map(item => line([
-    item.eventType || item.code || item.id || 'Event', item.exchange, item.mode, item.accountId, item.intentId,
+    legacyField(item, 'eventType') || legacyField(item, 'code') || legacyField(item, 'id') || 'Event', legacyField(item, 'exchange'), legacyField(item, 'mode'), legacyField(item, 'accountId'), legacyField(item, 'intentId'),
   ])));
 }
 
@@ -275,10 +292,10 @@ export const TELEGRAM_VIEWER_UNKNOWN_COMMAND = [
   'Dieser Befehl ist nicht verfügbar. Der Viewer bietet ausschließlich lesenden Zugriff.',
 ].join('\n');
 
-function accountEquityLine(item: Record<string, unknown>): string | null {
-  if (item.equity === null || item.equity === undefined) return null;
-  const currency = item.reportingCurrency ? ` ${item.reportingCurrency}` : '';
-  return `Equity ${item.equity}${currency}`;
+function accountEquityLine(item: unknown): string | null {
+  if (legacyField(item, 'equity') === null || legacyField(item, 'equity') === undefined) return null;
+  const currency = legacyField(item, 'reportingCurrency') ? ` ${legacyField(item, 'reportingCurrency')}` : '';
+  return `Equity ${legacyField(item, 'equity')}${currency}`;
 }
 function exchangeLine(event: TradingNotificationEvent): string | null {
   if (!event.exchange) return null;

@@ -22,6 +22,15 @@ import {
 import { TelegramViewerService } from '../src/telegram_viewer/service.js';
 import { TelegramViewerStateRepository } from '../src/telegram_viewer/state_repository.js';
 
+// Legacy projection lists must preserve primitive fallback versus monetary rejection.
+assert.strictEqual(formatAccounts({ accounts: [0, false, 'legacy'] }), 'TSX Core · Accounts\nKonto\nKonto\nKonto');
+assert.strictEqual(formatAccounts({ accounts: [], account: { name: 'ignored' } }), 'TSX Core · Accounts\nKeine Einträge.');
+assert.throws(() => formatAccounts({ accounts: [null] }), { name: 'TypeError' });
+assert.throws(() => formatPositions({ positions: [0] }), { name: 'TypeError' });
+assert.throws(() => formatTrades({ trades: ['legacy'] }), { name: 'TypeError' });
+assert.strictEqual(formatSummary({ accounts: { total: false }, positions: null }),
+  'TSX Core · Übersicht\nKonten: false\nAktive Positionen: 0\nOffene Intents: 0\nOffene Incidents: 0');
+
 const SETTINGS = {
   enabled: true,
   allowedUserIds: ['1001'],
