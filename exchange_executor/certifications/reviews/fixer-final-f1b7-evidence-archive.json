@@ -1,0 +1,33 @@
+{
+  "kind": "deterministic-verified-final-new-evidence-archive",
+  "sourceRevision": "f1b7b9dcec419cb7b055b8e718076b0fbb414e97",
+  "archive": "exchange_executor/certifications/reviews/fixer-final-f1b7-evidence.tar.gz",
+  "sha256": "08959768353cc9f3be169d6ebcdec53a0a443dbb0e2e910ce32090e6be08a636",
+  "archiveBytes": 553464,
+  "manifest": "exchange_executor/certifications/reviews/fixer-final-f1b7-evidence-manifest.json",
+  "manifestSha256": "145538cf50a4f15ac35795678346fb05a8cb5ad8e918ba7edf368091e143166a",
+  "rawFiles": 76,
+  "membersIncludingManifest": 77,
+  "rawBytes": 2641975,
+  "inheritedExactFiles": 51,
+  "inheritedAssetsNotDuplicated": [
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-current-review-coverage-8465469.json.gz",
+      "sha256": "b5c042f31070437eaceb48f04b7d125b7cdea7fa840406da376c4a6817a4ded5"
+    }
+  ],
+  "unresolvedHistoricalNameReferences": [],
+  "allMemberBytesAndSha256Verified": true,
+  "allNewRawFilesStillMatch": true,
+  "determinism": "Sorted USTAR entries, zero time/uid/gid, empty user/group names, fixed0444mode; gzip mtime0 and no filename.",
+  "sourceReceiptPinsChanged": false,
+  "providerAcceptanceVerified": false
+}

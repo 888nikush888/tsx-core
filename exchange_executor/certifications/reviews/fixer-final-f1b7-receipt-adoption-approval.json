@@ -1,0 +1,43 @@
+{
+  "kind": "independent-exact-receipt-adoption-approval",
+  "revision": "f1b7b9dcec419cb7b055b8e718076b0fbb414e97",
+  "candidate": {
+    "path": "reports/security-services/hyperliquid-f1b7-receipt-candidate-lf.json",
+    "sha256": "2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264"
+  },
+  "independentReview": {
+    "path": "reports/security-services/fixer-final-f1b7-independent-receipt-review.json",
+    "sha256": "63fa8656bffa01215acbf0d79470a0d7fe35ee563d3594b3ebd68c7f30cd0d86"
+  },
+  "implementationEvidenceApprovedForExactReceiptAdoption": true,
+  "providerAcceptanceVerified": false,
+  "containerRuntimeVerified": false,
+  "actualCandidateValidation": {
+    "function": "ccxt_certification_evidence.validate_receipt",
+    "python": "3.12.14",
+    "ccxt": "4.5.75",
+    "executor": "tmp/tsx-core-candidate-proof-20260915/exchange_executor",
+    "exitCode": 0,
+    "toolChunk": "842f87",
+    "syntheticPinInjected": false
+  },
+  "coverage": {
+    "recursiveDocuments": 35,
+    "recursivePathHashBindings": 58,
+    "historicalArchiveMembers": 4,
+    "rawFilesEqualGitWithSingleLink": 968,
+    "beforeAfterSourceAndRuntimeEqual": true,
+    "requirements": 62,
+    "witnesses": 97,
+    "sourceDeltaInputs": 30,
+    "sourceDeltaInputsWithoutReview": [],
+    "nodeRawLog": "ALL 226 TEST FILES PASSED; coverage96.56/86.64/99.24/96.56; ratchetpassed",
+    "pythonRawLog": "Ran548tests in114.301s;OK; actual accountwide history and symbol preference methods explicitly ok"
+  },
+  "conditions": [
+    "Adopt only exact independently reviewed bytes and matching pin.",
+    "Keep historical evidence archives unchanged; archive new evidence with exact member hashes.",
+    "Actual post-adoption runtime gate and rebuilt container scans remain required.",
+    "Other profiles remain quarantined; no provider acceptance or scope expansion."
+  ]
+}
