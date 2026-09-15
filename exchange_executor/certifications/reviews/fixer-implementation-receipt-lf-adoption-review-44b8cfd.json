@@ -1,0 +1,66 @@
+{
+  "kind": "independent-implementation-receipt-lf-transport-adoption-review",
+  "revision": "44b8cfd2608391fcc0435e39a6dba2632c526398",
+  "candidate": {
+    "path": "C:\\Users\\nikla\\Documents\\ChatGPT\\TSX CORE SERVER INSTALLATION\\tmp\\tsx-core-security-services\\reports\\security-services\\hyperliquid-44b8cfd-reviewed-receipt-candidate-lf.json",
+    "sha256": "7bb3df93bd03bb02dbf41e3165467072d80d07d6f7d5495cc45bdc32b65ad1fa"
+  },
+  "implementationEvidenceApprovedForExactReceiptAdoption": true,
+  "providerAcceptanceVerified": false,
+  "containerRuntimeVerified": false,
+  "sourceTreeHash": "fe98e8d59b873867423787d60fa7e427d69efb750ffe05ed54382e8ce934f535",
+  "requirements": {
+    "reviewed": 62,
+    "open": 0
+  },
+  "runtime": {
+    "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+    "ccxt": "4.5.75",
+    "executorTreeHash": "1146c23cba8a7393d5bc38782a1a7dd7ee9e10572f6a53c243ea945d2ab13f8f",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7"
+  },
+  "parity": {
+    "path": "C:\\Users\\nikla\\Documents\\ChatGPT\\TSX CORE SERVER INSTALLATION\\tmp\\tsx-core-security-services\\reports\\security-services\\fixer-hyperliquid-parity-final-44b8cfd.json",
+    "sha256": "62d469cc48bfc2f1fea3b705c525eec8bd8bcdd1de33882187174ed25bf77257"
+  },
+  "execution": {
+    "path": "C:\\Users\\nikla\\Documents\\ChatGPT\\TSX CORE SERVER INSTALLATION\\tmp\\tsx-core-security-services\\reports\\security-services\\fixer-implementation-execution-final-44b8cfd.json",
+    "sha256": "cc9f24bbfc01e98029955e5e284fded6edc9a5aebec62af12c6079dba8697a9a"
+  },
+  "completeSource": {
+    "path": "C:\\Users\\nikla\\Documents\\ChatGPT\\TSX CORE SERVER INSTALLATION\\tmp\\tsx-core-security-services\\reports\\security-services\\fixer-implementation-complete-source-final-44b8cfd.json",
+    "sha256": "3609e0833f4c6c7a43e36191d555650d9c1a2dd12634dec749f2e3c8e2a1484c"
+  },
+  "actualChecks": [
+    "Exact967collector file bytes match immutable44Git blobs.",
+    "ExistingPythonvalidate_receipt with actual44LFexecutor/lockedSDK/Python passes full schema/scope/hash validation.",
+    "Full101Node226/Python547 plus precise10later deltas and targeted executions independently reviewed; no unnecessary full rerun substituted or invented.",
+    "Actual new20history tests/loghash/SDKsourcebinding close final offline history-scope requirement.",
+    "Root final immutableLF44 history20 rerun EXIT0 in1.446s; exact log and execution hashes verified and44before/after inventories deep-equal."
+  ],
+  "conditions": [
+    "Install only these exact candidate bytes and independently reviewed matching pin; any changed candidate/report/source commitment requires fresh comparison/review.",
+    "Run official root build receipt gate after adoption and finished non-root image runtime gate without network/source mounts; retain all existing image/native/security/test checks. This review does not assert those future executions passed.",
+    "Other profiles remain quarantined. No provider acceptance/live entitlement granted.",
+    "Runtime executor hash excludes tests by existing policy, so addedhistorytest changes root test/source commitments, not productionexecutorTreeHash; no hash weakened."
+  ],
+  "pinsOrActiveReceiptChanged": false,
+  "transportVerification": {
+    "originalCandidate": {
+      "path": "C:\\Users\\nikla\\Documents\\ChatGPT\\TSX CORE SERVER INSTALLATION\\tmp\\tsx-core-security-services\\reports\\security-services\\hyperliquid-44b8cfd-reviewed-receipt-candidate.json",
+      "sha256": "cf256f5711038405209c4e1ca55ea2955918defde9db35ff2d473f54919eb8a6"
+    },
+    "originalIndependentApproval": {
+      "path": "C:\\Users\\nikla\\Documents\\ChatGPT\\TSX CORE SERVER INSTALLATION\\tmp\\tsx-core-security-services\\reports\\security-services\\fixer-implementation-receipt-adoption-review-44b8cfd.json",
+      "sha256": "4ba0b9f7b842a6870e41e231151bb728f7487592ba7cf3c199da50ac8a6cd875"
+    },
+    "transformation": "Only byte substitution CRLF to LF; all other bytes retained, including final newline count.",
+    "jsonValueDeepEqual": true,
+    "containsCarriageReturn": false,
+    "evidenceHashValuesUnchanged": true,
+    "originalArtifactsAndManifestUnmodified": true,
+    "crlfPairsReplaced": 32,
+    "note": "This additional approval supersedes only the original candidate byte binding for Git transport. All independently reviewed source, scope, runtime and evidence conclusions and pending official gate conditions remain unchanged. Archived parity and execution report hashes continue to bind their original raw bytes."
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "revision": "44b8cfd2608391fcc0435e39a6dba2632c526398",
+  "archive": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+  "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+  "archiveBytes": 3085576,
+  "verifiedFiles": 361,
+  "manifestSha256": "fada7a04dadf44a2b002597adb1367a8c2330e9fd6d3cd45ef23196c65cb82d8",
+  "allRawBytesRoundtripVerified": true,
+  "existingCommittedAssets": [
+    {
+      "sourcePath": "C:\\Users\\nikla\\Documents\\ChatGPT\\TSX CORE SERVER INSTALLATION\\tmp\\tsx-core-security-services\\exchange_executor\\certifications\\reviews\\fixer-implementation-current-review-coverage-8465469.json.gz",
+      "rawSha256": "b5c042f31070437eaceb48f04b7d125b7cdea7fa840406da376c4a6817a4ded5",
+      "bytes": 2796533,
+      "archivePath": "active/exchange_executor/certifications/reviews/fixer-implementation-current-review-coverage-8465469.json.gz",
+      "gitRevision": "44b8cfd2608391fcc0435e39a6dba2632c526398",
+      "gitPath": "exchange_executor/certifications/reviews/fixer-implementation-current-review-coverage-8465469.json.gz",
+      "action": "reference-existing-committed-gzip-asset-do-not-duplicate"
+    }
+  ]
+}
