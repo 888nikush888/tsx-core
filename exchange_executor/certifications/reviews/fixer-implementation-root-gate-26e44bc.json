@@ -1,0 +1,45 @@
+{
+  "kind": "actual-post-adoption-root-gate-and-regression-evidence",
+  "revision": "26e44bcbd651a7496cf8ebe08ee693cdd140471c",
+  "rootGate": {
+    "exitCode": 0,
+    "toolChunk": "8f586d",
+    "result": {
+      "buildInputsMatch": true,
+      "runtimeReceiptsVerified": true,
+      "checkoutRevision": "26e44bcbd651a7496cf8ebe08ee693cdd140471c",
+      "sourceTreeHash": "fe98e8d59b873867423787d60fa7e427d69efb750ffe05ed54382e8ce934f535",
+      "receipts": [
+        {
+          "exchange": "hyperliquid",
+          "receiptSha256": "7bb3df93bd03bb02dbf41e3165467072d80d07d6f7d5495cc45bdc32b65ad1fa",
+          "reviewedSourceRevision": "44b8cfd2608391fcc0435e39a6dba2632c526398"
+        }
+      ],
+      "quarantinedProfiles": [
+        "bybit",
+        "krakenfutures"
+      ],
+      "providerAcceptanceVerified": false,
+      "performedGateExecution": false
+    },
+    "rawLogSha256": "a098a4d5ae3913c42de904aa350a2bd6dafcaf117983404340b139581391b737"
+  },
+  "pythonRegressions": {
+    "exitCode": 0,
+    "toolChunk": "b5a029",
+    "tests": 24,
+    "seconds": 0.956,
+    "rawLogSha256": "8441e128e09bd749bb99c1cbee04b8210c36c0d853c80eac1a2850cc25f209cd",
+    "command": "locked Python -B -m unittest test_certification_evidence test_implementation_runtime -v"
+  },
+  "nodeBridge": {
+    "exitCode": 0,
+    "session": 30282,
+    "completionChunk": "0d5060",
+    "rawLogSha256": "8c7d6bb7770b1eb23467b1ef20447380ed81c8282e12e6c93e17e3b464b00cfa",
+    "output": "PASS implementation build bridge: bound inputs, drift, independent pins, safe filesystem and CLI boundaries",
+    "command": "Node22 --import tsx tests/test_exchange_implementation_bridge.js"
+  },
+  "limits": "Actual root source/runtime receipt comparison passed; no finished container image verified yet. Provider acceptance false and Bybit/Kraken profiles quarantined."
+}
