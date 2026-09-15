@@ -1,0 +1,204 @@
+{
+  "kind": "baseline-batch1-implementation-and-targeted-verification",
+  "revision": "3b31d40fb285b62b93003117b1b8d42367b6d733",
+  "worktree": "C:\\Users\\nikla\\Documents\\ChatGPT\\TSX CORE SERVER INSTALLATION\\tmp\\tsx-core-fixer-next-599cc55",
+  "scope": [
+    "src/exchange_order_identity_contract.ts",
+    "src/trading_strategy.ts",
+    "tests/test_trading_order_identity_bindings.js"
+  ],
+  "findings": [
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnllZ2Q=",
+      "path": "src/trading_strategy.ts",
+      "line": 79,
+      "rule": "JS-0323"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJwa20=",
+      "path": "src/trading_strategy.ts",
+      "line": 74,
+      "rule": "JS-0323"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlvbXE=",
+      "path": "src/trading_strategy.ts",
+      "line": 71,
+      "rule": "JS-0323"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRlams=",
+      "path": "src/trading_strategy.ts",
+      "line": 69,
+      "rule": "JS-0323"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9tamE=",
+      "path": "src/exchange_order_identity_contract.ts",
+      "line": 51,
+      "rule": "JS-0323"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxkeXc=",
+      "path": "src/exchange_order_identity_contract.ts",
+      "line": 51,
+      "rule": "JS-0323"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlnb3g=",
+      "path": "src/exchange_order_identity_contract.ts",
+      "line": 51,
+      "rule": "JS-0323"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFqbXc=",
+      "path": "src/exchange_order_identity_contract.ts",
+      "line": 42,
+      "rule": "JS-0323"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZlYXc=",
+      "path": "src/exchange_order_identity_contract.ts",
+      "line": 42,
+      "rule": "JS-0323"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtsamw=",
+      "path": "src/exchange_order_identity_contract.ts",
+      "line": 18,
+      "rule": "JS-0323"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl3bW0=",
+      "path": "src/exchange_order_identity_contract.ts",
+      "line": 6,
+      "rule": "JS-0323"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VxYXc=",
+      "path": "src/exchange_order_identity_contract.ts",
+      "line": 4,
+      "rule": "JS-0323"
+    }
+  ],
+  "changed": {
+    "strategy": "unknown input dictionaries; membership predicate narrows exact literal contracts; one documented validator input adapter preserves decimal trim behavior without casting unchecked values into valid strings.",
+    "identity": "unknown envelope input, assertion function returns the original evidence only after scope/profile/native/field-set checks; no final whole-evidence cast or intersection. Primitive wallet guard fixes existing acceptance of toString objects.",
+    "test": "Existing native-binding suite now asserts malformed object wallet rejected with original Error/message, no coercion invocation, no local order identity or evidence binding saved; valid evidence retains object identity."
+  },
+  "behaviorChange": {
+    "confirmed": "Non-string wallet evidence is now rejected as malformed before regex conversion.",
+    "redBefore": {
+      "log": "reports/security-services/fixer-baseline-batch1-wallet-red-node22.log",
+      "sha256": "65465d04d68484ba394cde052aabde6539a56974301d0c06855924f9c438af7a",
+      "node": "22.23.2",
+      "exitCode": 1,
+      "failure": "Missing expected exception (Error)."
+    },
+    "callerClassification": "The existing Hyperliquid lookup scope Error and message are reused, not a new TypeError/code. correlateNativeOrderEvidence validates before account/order binding writes; test checks unchanged order/binding state. Ordinary SDK primitive strings and Kraken paths are retained.",
+    "limits": "Malformed Symbol wallet input now receives the same scope Error instead of the prior native RegExp conversion TypeError; this is part of the explicitly authorized primitive-string boundary tightening."
+  },
+  "verification": {
+    "revision": "3b31d40fb285b62b93003117b1b8d42367b6d733",
+    "node": "v22.23.2",
+    "sources": [
+      {
+        "path": "src/exchange_order_identity_contract.ts",
+        "beforeGitBytesSha256": "b9053561c17abe5087cd73a99dbed5cd7854c2b9643bf4f17848d2647e8ec89f",
+        "afterBytesSha256": "9736ba1a7006595748318be348291baef0f1a94d0859e18067945221f8a4da3c"
+      },
+      {
+        "path": "src/trading_strategy.ts",
+        "beforeGitBytesSha256": "bd9a834a0120eb2231c9c13e47cb08f89fb59e54bf26c711a3583661ad2d4d48",
+        "afterBytesSha256": "ffa2df2209a476e01cf23d2e055d425a3d56154b0b8f71cfa77cada1a8cb3824"
+      },
+      {
+        "path": "tests/test_trading_order_identity_bindings.js",
+        "beforeGitBytesSha256": "6c6a18f0d594d7f6589b13e8940cebe357cfd8d95ecc76f4b034855cd833cac9",
+        "afterBytesSha256": "dc06dce0147ae143df0f9418c9745e2690fcc320a481358baa886e1bbefaaa62"
+      }
+    ],
+    "strategyDifferentialCases": 121,
+    "strategyDifferentialResult": "PASS: identical values/errors/trim calls for 117 invalid or edge cases and 4 accepted schema versions against HEAD",
+    "typeOnlyClaim": false,
+    "reason": "Membership helper and decimal boundary alias preserve tested semantics; exact evidence assertion wrapper added; malformed non-string wallet deliberately rejected.",
+    "executions": [
+      {
+        "name": "typecheck",
+        "command": [
+          "C:\\Users\\nikla\\AppData\\Local\\Programs\\node22\\node-v22.23.2-win-x64\\node.exe",
+          "node_modules/typescript/bin/tsc",
+          "--noEmit"
+        ],
+        "exitCode": 0,
+        "log": "reports/security-services/fixer-baseline-batch1-final-typecheck.log",
+        "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "lint",
+        "command": [
+          "C:\\Users\\nikla\\AppData\\Local\\Programs\\node22\\node-v22.23.2-win-x64\\node.exe",
+          "node_modules/eslint/bin/eslint.js",
+          "src/exchange_order_identity_contract.ts",
+          "src/trading_strategy.ts",
+          "tests/test_trading_order_identity_bindings.js"
+        ],
+        "exitCode": 0,
+        "log": "reports/security-services/fixer-baseline-batch1-final-lint.log",
+        "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "order-identity",
+        "command": [
+          "C:\\Users\\nikla\\AppData\\Local\\Programs\\node22\\node-v22.23.2-win-x64\\node.exe",
+          "--import",
+          "tsx",
+          "tests/test_trading_order_identity_requests.js"
+        ],
+        "exitCode": 0,
+        "log": "reports/security-services/fixer-baseline-batch1-final-order-identity.log",
+        "logSha256": "ff4c6fe2acfffdb644b6123ffec324c6b35f5eecdf2e8bc1be3ea160a22a2c46"
+      },
+      {
+        "name": "native-bindings",
+        "command": [
+          "C:\\Users\\nikla\\AppData\\Local\\Programs\\node22\\node-v22.23.2-win-x64\\node.exe",
+          "--import",
+          "tsx",
+          "tests/test_trading_order_identity_bindings.js"
+        ],
+        "exitCode": 0,
+        "log": "reports/security-services/fixer-baseline-batch1-final-native-bindings.log",
+        "logSha256": "7c5dbfda2056bd167aad5aa1ad7d0a6f85f0bd537f5e3972c0e2bc81eb54134f"
+      },
+      {
+        "name": "exchange-contract",
+        "command": [
+          "C:\\Users\\nikla\\AppData\\Local\\Programs\\node22\\node-v22.23.2-win-x64\\node.exe",
+          "--import",
+          "tsx",
+          "tests/test_exchange_contract_validation.js"
+        ],
+        "exitCode": 0,
+        "log": "reports/security-services/fixer-baseline-batch1-final-exchange-contract.log",
+        "logSha256": "983c3559953b44949477a21a6738bc4d3bcc7c434d33aa6ac347e3671db463ff"
+      },
+      {
+        "name": "trading-core",
+        "command": [
+          "C:\\Users\\nikla\\AppData\\Local\\Programs\\node22\\node-v22.23.2-win-x64\\node.exe",
+          "--import",
+          "tsx",
+          "tests/test_trading_core.js"
+        ],
+        "exitCode": 0,
+        "log": "reports/security-services/fixer-baseline-batch1-final-trading-core.log",
+        "logSha256": "24aa857f25c0ff5a5ff61061673af79844084663d5fd4ae5680ca72c672f428c"
+      }
+    ]
+  },
+  "diffSha256": "d5d41a2ccd27df765805bd8e341d5e72cd7af2453510b0676fb6a49797e5f096",
+  "typeOnly": false,
+  "supersededEvidence": "Earlier fixer-baseline-batch1-verification.json covered the preliminary cast-only draft and default Node24. Final Node22 verification above supersedes it completely; no final emitted-JS byte identity is claimed.",
+  "remainingScope": "12 baseline any source occurrences addressed locally; DeepSource closure not yet verified. Overall 4459 Main inventory / 501 unchanged-file candidates remain tracked separately. No commits, pins, pushes, platform dispositions or Services source changes."
+}

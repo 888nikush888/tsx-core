@@ -7,6 +7,7 @@ import { initDb, closeDb, getDatabase, saveSignal } from '../src/db.js';
 import { listTradingAccounts, listTradingStrategies } from '../src/trading_repository.js';
 import { prepareTradingOperation, transitionTradingOperation } from '../src/trading_recovery.js';
 import { prepareProtectedOrderIdentityRequests } from '../src/trading_order_identity.js';
+import { validateOrderIdentityEvidence } from '../src/exchange_order_identity_contract.js';
 import { correlateNativeOrderEvidence } from '../src/trading_order_identity_bindings.js';
 import { persistTradingOrderResult } from '../src/trading_order_repository.js';
 import { protectionSourceDigest } from '../src/trading_protection_sources.js';
@@ -114,6 +115,16 @@ try {
     raw: { id: '1234', clientOrderId: null, symbol: 'BTC/USDC:USDC', info: { order: { oid: 1234, coin: 'BTC', cloid: null } } },
     identityEvidence: { version: 1, profile: 'hyperliquid_cloid_lookup_v1', clientOrderId: cloid, exchangeOrderId: '1234',
       providerSymbol: 'BTC/USDC:USDC', providerMarketId: 'BTC', user, startedAt: now - 1, completedAt: now } };
+  assert.equal(validateOrderIdentityEvidence(remote), remote.identityEvidence);
+  let walletCoercions = 0;
+  const malformedWallet = { toString() { walletCoercions += 1; return user; } };
+  const invalidWalletRemote = { ...remote, identityEvidence: { ...remote.identityEvidence, user: malformedWallet } };
+  const invalidWalletError = { name: 'Error', message: 'Hyperliquid lookup scope contradicts its original order.' };
+  assert.throws(() => validateOrderIdentityEvidence(invalidWalletRemote), invalidWalletError);
+  await assert.rejects(correlateNativeOrderEvidence(hl, [invalidWalletRemote]), invalidWalletError);
+  assert.equal(walletCoercions, 0, 'Malformed wallet evidence must never execute object coercion.');
+  assert.equal((await getDatabase().get('SELECT exchange_order_id FROM trading_orders WHERE id=?', [cloid])).exchange_order_id, null);
+  assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM trading_order_identity_bindings WHERE account_id=?', [hl.id])).count, 0);
   for (const changed of [{ quantity: '2' }, { identityEvidence: { ...remote.identityEvidence, user: `0x${'e'.repeat(40)}` } }]) {
     await assert.rejects(correlateNativeOrderEvidence(hl, [{ ...remote, ...changed }]));
     assert.equal((await getDatabase().get('SELECT exchange_order_id FROM trading_orders WHERE id=?', [cloid])).exchange_order_id, null);

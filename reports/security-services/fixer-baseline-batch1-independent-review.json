@@ -1,0 +1,117 @@
+{
+  "kind": "independent-batch1-final-source-review",
+  "baseRevision": "c9e34c4ef266a8fa46539adf03de25a28256ae0b",
+  "scope": [
+    "src/exchange_order_identity_contract.ts",
+    "src/trading_strategy.ts",
+    "tests/test_trading_order_identity_bindings.js"
+  ],
+  "implementationReport": {
+    "path": "reports/security-services/fixer-baseline-batch1-implementation-report.json",
+    "sha256": "6eed8c9cbae626643188caf570916be105032b0331178ce36272d33d836fc5d2"
+  },
+  "sources": [
+    {
+      "path": "src/exchange_order_identity_contract.ts",
+      "currentLfSha256": "9736ba1a7006595748318be348291baef0f1a94d0859e18067945221f8a4da3c",
+      "currentRawSha256": "9736ba1a7006595748318be348291baef0f1a94d0859e18067945221f8a4da3c",
+      "priorGitBlobSha256": "b9053561c17abe5087cd73a99dbed5cd7854c2b9643bf4f17848d2647e8ec89f"
+    },
+    {
+      "path": "src/trading_strategy.ts",
+      "currentLfSha256": "ffa2df2209a476e01cf23d2e055d425a3d56154b0b8f71cfa77cada1a8cb3824",
+      "currentRawSha256": "ffa2df2209a476e01cf23d2e055d425a3d56154b0b8f71cfa77cada1a8cb3824",
+      "priorGitBlobSha256": "bd9a834a0120eb2231c9c13e47cb08f89fb59e54bf26c711a3583661ad2d4d48"
+    },
+    {
+      "path": "tests/test_trading_order_identity_bindings.js",
+      "currentLfSha256": "dc06dce0147ae143df0f9418c9745e2690fcc320a481358baa886e1bbefaaa62",
+      "currentRawSha256": "dc06dce0147ae143df0f9418c9745e2690fcc320a481358baa886e1bbefaaa62",
+      "priorGitBlobSha256": "6c6a18f0d594d7f6589b13e8940cebe357cfd8d95ecc76f4b034855cd833cac9"
+    }
+  ],
+  "findings": [
+    {
+      "area": "Wallet producer and consumer",
+      "verdict": "Approved bounded malformed-input tightening",
+      "rationale": "Python cloid_lookup_scope requires a string wallet matching the 40-hex address and returns lower-case; cloid_lookup_identity places that user into the witness. Normal JSON transport therefore supplies the exact primitive string accepted by the new guard. JavaScript previously allowed a coercible wallet object through RegExp.test even though the declared witness required a string and downstream createHmac requires a supported key type. New guard rejects before regex/object conversion, preserving the existing scope Error text. clientOrderId already passes id() string validation before the new redundant type guard. Kraken branch, exact field inventory, time validation short circuit, native identifiers and valid proof object identity remain intact."
+    },
+    {
+      "area": "Failure classification",
+      "verdict": "Explicit deliberate difference for malformed non-string values, not type-only",
+      "rationale": "The new wallet rejection uses Error with the existing Hyperliquid scope message, without adding TypeError or codes. Existing TypeError classification can be account-wide; Symbol formerly throws native RegExp TypeError and now gets the ordinary scope Error. Thus universal error-class equivalence must not be claimed. The implementer report already states this authorized malformed-input boundary change. Valid producers cannot emit Symbol or callable coercion objects through JSON. bindObservedOrder calls validation before reading/binding the local order; the added integration assertions prove no order ID or binding persists for malformed wallet input."
+    },
+    {
+      "area": "Strategy decimal adapter",
+      "verdict": "Behavior preserving, not an additional runtime validator",
+      "rationale": "The adapter is a direct alias of the existing decimal function, with only its input signature widened. It passes the same values/options in the same evaluation positions. decimal still invokes value.trim() before parsing, so non-string failures, custom trim behavior and returned canonical strings remain legacy behavior. No claim that unknown input has already become a valid string is needed. Membership helper delegates to the same Array.includes primitive over unchanged literal choices; defaults, error text, order and schema-dependent branches are retained."
+    },
+    {
+      "area": "Regression strength",
+      "verdict": "Existing assertions retained; meaningful additional negative flow",
+      "rationale": "The test diff only imports the validator and inserts assertions. Existing provider correlation, mismatches and C0-boundary tests are unchanged. New direct validation checks valid evidence reference identity and malformed object rejection; real correlateNativeOrderEvidence path checks rejection, zero coercion calls, unchanged exchange_order_id and zero account bindings. This is stronger than merely asserting a type predicate."
+    }
+  ],
+  "recordedVerification": [
+    {
+      "name": "typecheck",
+      "path": "reports/security-services/fixer-baseline-batch1-final-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "recordedExitCode": 0
+    },
+    {
+      "name": "lint",
+      "path": "reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "recordedExitCode": 0
+    },
+    {
+      "name": "order-identity",
+      "path": "reports/security-services/fixer-baseline-batch1-final-order-identity.log",
+      "sha256": "ff4c6fe2acfffdb644b6123ffec324c6b35f5eecdf2e8bc1be3ea160a22a2c46",
+      "recordedExitCode": 0
+    },
+    {
+      "name": "native-bindings",
+      "path": "reports/security-services/fixer-baseline-batch1-final-native-bindings.log",
+      "sha256": "7c5dbfda2056bd167aad5aa1ad7d0a6f85f0bd537f5e3972c0e2bc81eb54134f",
+      "recordedExitCode": 0
+    },
+    {
+      "name": "exchange-contract",
+      "path": "reports/security-services/fixer-baseline-batch1-final-exchange-contract.log",
+      "sha256": "983c3559953b44949477a21a6738bc4d3bcc7c434d33aa6ac347e3671db463ff",
+      "recordedExitCode": 0
+    },
+    {
+      "name": "trading-core",
+      "path": "reports/security-services/fixer-baseline-batch1-final-trading-core.log",
+      "sha256": "24aa857f25c0ff5a5ff61061673af79844084663d5fd4ae5680ca72c672f428c",
+      "recordedExitCode": 0
+    }
+  ],
+  "contextBindings": [
+    {
+      "path": "src/trading_decimal.ts",
+      "currentLfSha256": "30f9058ce628d90bfe6303933e7f19e2fad81cb965aa9a30e7aa3e4b43bfb415"
+    },
+    {
+      "path": "src/trading_order_identity_bindings.ts",
+      "currentLfSha256": "2177ef43783f1a539a55157c0a2ce14771d471064150bd550beaf2c6debb33c7"
+    },
+    {
+      "path": "src/trading_engine.ts",
+      "currentLfSha256": "99531ae5985e4e4eb07ee65342c9f9206d140b5e408d74abe8da3878b51c0cc5"
+    },
+    {
+      "path": "exchange_executor/provider_order_identity.py",
+      "currentLfSha256": "e9586b805c4efd0f934bb29c6cc97c02f492184819eca08a517f1782e6398bfa"
+    }
+  ],
+  "limits": [
+    "Independent full diff and focused producer/consumer review, not new execution of the implementer 121-case differential or full suite.",
+    "Recorded six target/type/lint logs hash-verified; no source changes, commits or Services worktree changes.",
+    "No entire implementation receipt or scanner closure approval.",
+    "The decimal adapter intentionally does not harden pre-existing custom trim acceptance; changing that contract requires a separate scoped change."
+  ]
+}
