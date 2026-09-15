@@ -16,7 +16,21 @@ import { resolveDisplayedLeverage } from '@/features/trades/plan-display';
 import { EquityChart } from '@/features/risk-analytics/equity-chart';
 import { OperatorAttention } from './attention';
 
-function overviewGates(runtime: TradingSnapshot['overview']['runtime'] | undefined, systemStatus: Record<string, any> | null) {
+type SystemStatus = { connectionState?: string; queue?: { running?: unknown; queued?: unknown } };
+type Operations = { startup?: { phase?: string }; protectionScanComplete?: boolean; backup?: { healthy?: unknown } | null; audit?: { healthy?: unknown } | null };
+type PortfolioAccount = Record<string, unknown> & { accountId: string; name?: string; exchange?: string; mode?: string; error?: string | null; equity?: string | null; reportingCurrency?: string | null; observedAt?: number | null };
+type Portfolio = { accounts?: PortfolioAccount[]; observedAt?: number; cached?: boolean };
+type Access = { identity?: { name?: string; login?: string } | null; actorId?: string; role?: string; remoteAccess?: { connected?: boolean; provider?: string | null } };
+type Signal = { id: string | number; channel_id?: string | null; channelId?: string | null; created_at?: number | null; createdAt?: number | null; template_name?: string | null; templateName?: string | null; status?: string | null };
+type Intent = { id: string; accountId: string; channelId: string; symbol?: string; side?: string; status: string; plan?: { markPrice?: string; leverage?: unknown; leverageDecision?: { effective?: unknown } | null } | null };
+type Order = { id: string; intentId: string; symbol?: string; status: string; role?: string; triggerPrice?: string | null; price?: string | null };
+type Position = { id: string; intentId: string; accountId: string; symbol: string; side: string; status: string; averageEntryPrice?: string | null; stopPrice?: string | null; quantity?: string; protection?: { protected?: boolean; reason?: string; evaluatedAt?: number | null } | null; realizedPnlValue?: unknown; realizedPnl?: unknown; reportingCurrency?: unknown; accountingStatus?: unknown };
+type PaperMarket = { accountId: string; symbol: string; markPrice?: string; updatedAt?: number };
+type RiskEvent = { id: string; severity: string; code: string; accountId?: string | null; createdAt: number };
+
+type CockpitSnapshot = Omit<TradingSnapshot, 'activity'> & { activity: Omit<TradingSnapshot['activity'], 'riskEvents'> & { riskEvents: RiskEvent[] } };
+
+function overviewGates(runtime: TradingSnapshot['overview']['runtime'] | undefined, systemStatus: SystemStatus | null) {
   const liveStatus = () => {
     if (!runtime) {
       return 'unbekannt';
@@ -69,7 +83,7 @@ function overviewGates(runtime: TradingSnapshot['overview']['runtime'] | undefin
 }
 
 function ServiceEvidence({ operations, observations, portfolio, systemStatus }: Readonly<{
-  operations: any; observations: Record<string, number>; portfolio: any; systemStatus: Record<string, any> | null;
+  operations: Operations | null; observations: Record<string, number>; portfolio: Portfolio | null; systemStatus: SystemStatus | null;
 }>) {
   const backupEvidence = () => {
     if (operations?.backup?.healthy === true) {
@@ -103,7 +117,7 @@ export function Overview({
   onOpenIncidents,
 }: Readonly<{
   trading: TradingSnapshot | null;
-  systemStatus: Record<string, any> | null;
+  systemStatus: SystemStatus | null;
   onRefresh: () => Promise<void>;
   onOpenIncidents?: () => void;
 }>) {
@@ -111,12 +125,12 @@ export function Overview({
   const [message, setMessage] = useState("");
   const { confirm, confirmationDialog } = useConfirmationDialog();
   const readOnly = useOperatorReadOnly();
-  const [portfolio, setPortfolio] = useState<any>(null);
-  const [signals, setSignals] = useState<any[] | null>(null);
-  const [access, setAccess] = useState<any>(null);
+  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const [signals, setSignals] = useState<Signal[] | null>(null);
+  const [access, setAccess] = useState<Access | null>(null);
   const [sourceErrors, setSourceErrors] = useState<Record<string, string>>({});
   const [observations, setObservations] = useState<Record<string, number>>({});
-  const [operations, setOperations] = useState<any>(null);
+  const [operations, setOperations] = useState<Operations | null>(null);
   const readDashboard = useCallback(async (signal: AbortSignal) => {
     return Promise.all(['/api/trading/portfolio', '/api/processed-signals', '/api/access', '/api/operations'].map(async source => {
       try { return { source, value: await jsonRequest(source, { signal }), error: '', observedAt: Date.now() }; }
@@ -136,8 +150,8 @@ export function Overview({
   const runtime = overview?.runtime;
   const gates = overviewGates(runtime, systemStatus);
   const portfolioTotal = (key: string) => portfolioSnapshotTotal(portfolio?.accounts, key);
-  const openPositions = (trading?.activity.positions || []).filter((position: any) => ["opening", "open", "closing", "emergency"].includes(position.status));
-  const intentById = new Map((trading?.intents || []).map((intent: any) => [intent.id, intent]));
+  const openPositions = ((trading?.activity.positions as Position[] | undefined) || []).filter((position) => ["opening", "open", "closing", "emergency"].includes(position.status));
+  const intentById = new Map(((trading?.intents as Intent[] | undefined) || []).map((intent) => [intent.id, intent]));
   const accountById = new Map((trading?.accounts || []).map((account) => [account.id, account]));
   const openIncidents = (trading?.accountIncidents || []).filter((incident) => incident.status === "open");
   const mutate = async (key: string, url: string, body: unknown) => {
@@ -258,24 +272,24 @@ export function Overview({
         </div>
         <div className={`operation-metric ${((overview?.unknownOrderCount ?? 0) > 0 ? "danger" : "")}`}>
           <strong>{overview?.openPositionCount ?? "unbekannt"}</strong><span>Offene Positionen</span>
-          {openPositions.slice(0, 5).map((p: any) => (
+          {openPositions.slice(0, 5).map((p) => (
             <small key={p.id} style={{ display: "block", marginTop: 4 }}>{p.symbol} · {p.side} — {p.status}</small>
           ))}
           {trading && openPositions.length === 0 && <small style={{ color: "var(--muted-foreground)" }}>Keine Position</small>}
         </div>
         <div className="operation-metric">
           <strong>{overview?.pendingIntentCount ?? "unbekannt"}</strong><span>Wartende Intents</span>
-          {trading && (trading?.intents || []).filter((i: any) => ["pending","planned","submitting"].includes(i.status)).slice(0,5).map((i: any) => (
+          {trading && ((trading?.intents as Intent[] | undefined) || []).filter((i) => ["pending","planned","submitting"].includes(i.status)).slice(0,5).map((i) => (
             <small key={i.id} style={{ display: "block", marginTop: 4 }}>{i.symbol || i.channelId} · {i.status}</small>
           ))}
-          {trading && (trading?.intents || []).filter((i: any) => ["pending","planned","submitting"].includes(i.status)).length === 0 && <small style={{ color: "var(--muted-foreground)" }}>Keine Intents</small>}
+          {trading && ((trading?.intents as Intent[] | undefined) || []).filter((i) => ["pending","planned","submitting"].includes(i.status)).length === 0 && <small style={{ color: "var(--muted-foreground)" }}>Keine Intents</small>}
         </div>
         <div className={`operation-metric ${((overview?.unknownOrderCount ?? 0) > 0 ? "danger" : "")}`}>
           <strong>{overview?.unknownOrderCount ?? "unbekannt"}</strong><span>Unklare Orders</span>
-          {trading && (trading?.activity.orders || []).filter((o: any) => o.status === "unknown").slice(0,5).map((o: any) => (
+          {trading && ((trading?.activity.orders as Order[] | undefined) || []).filter((o) => o.status === "unknown").slice(0,5).map((o) => (
             <small key={o.id} style={{ display: "block", marginTop: 4 }}>{o.symbol || o.intentId} · {o.status}</small>
           ))}
-          {trading && (trading?.activity.orders || []).filter((o: any) => o.status === "unknown").length === 0 && <small style={{ color: "var(--muted-foreground)" }}>Keine unklaren Orders</small>}
+          {trading && ((trading?.activity.orders as Order[] | undefined) || []).filter((o) => o.status === "unknown").length === 0 && <small style={{ color: "var(--muted-foreground)" }}>Keine unklaren Orders</small>}
         </div>
       </div>
       <section className="operations-card">
@@ -303,7 +317,7 @@ export function Overview({
           <div className="system-line"><span>Rolle</span><strong>{access?.role || "–"}</strong></div>
           <div className="system-line"><span>Remote-Zugriff</span><strong>{remoteAccessStatus()}</strong></div>
           <div className="system-line"><span>Letzter Abgleich</span><strong>{time(overview?.latestReconciliationAt)}</strong></div>
-          {(portfolio?.accounts || []).map((account: any) => <div className="system-line" key={account.accountId}><span>{account.name} · {account.exchange}/{account.mode}</span><strong>{account.error || `${account.equity ?? "unbekannt"} ${account.reportingCurrency ?? ""} · ${time(account.observedAt)}`}</strong></div>)}
+          {(portfolio?.accounts || []).map((account) => <div className="system-line" key={account.accountId}><span>{account.name} · {account.exchange}/{account.mode}</span><strong>{account.error || `${account.equity ?? "unbekannt"} ${account.reportingCurrency ?? ""} · ${time(account.observedAt)}`}</strong></div>)}
         </section>
       </div>
       <section className="operations-card">
@@ -312,17 +326,17 @@ export function Overview({
         {trading?.coverage && Object.values(trading.coverage).some(Boolean) && <p>Mindestens eine Quelle enthält weitere Daten. Die Listenlinks öffnen die vollständige Seitenauswahl. Equity zeigt höchstens 1.000 Originalbeobachtungen ab dem 90-Tage-Fensterbeginn.</p>}
         <div className="position-table" role="table" aria-label="Aktive Positionen">
           <div className="position-row heading" role="row"><span role="columnheader">Position</span><span role="columnheader">Fill-Durchschnitt / Paper-Mark</span><span role="columnheader">SL (gemeldet)</span><span role="columnheader">TPs</span><span role="columnheader">Hebel</span><span role="columnheader">Realisierter PnL</span></div>
-          {openPositions.map((position: any) => {
-            const intent: any = intentById.get(position.intentId);
-            const orders = trading?.activity.orders || [];
-            const relatedOrders = orders.filter((order: any) => order.intentId === position.intentId);
-            const targets = relatedOrders.filter((order: any) => String(order.role).startsWith("take_profit")).map((order: any) => order.triggerPrice || order.price);
-            const paperMarket = trading?.activity.paperMarkets?.find((market: any) => market.accountId === position.accountId && market.symbol === position.symbol);
+          {openPositions.map((position) => {
+            const intent = intentById.get(position.intentId);
+            const orders = (trading?.activity.orders as Order[] | undefined) || [];
+            const relatedOrders = orders.filter((order) => order.intentId === position.intentId);
+            const targets = relatedOrders.filter((order) => String(order.role).startsWith("take_profit")).map((order) => order.triggerPrice || order.price);
+            const paperMarket = (trading?.activity.paperMarkets as PaperMarket[] | undefined)?.find((market) => market.accountId === position.accountId && market.symbol === position.symbol);
             const leverage = resolveDisplayedLeverage(intent?.plan);
             return <div className="position-row" role="row" key={position.id}>
               <strong role="cell"><Link to={`/trading/trades/${encodeURIComponent(position.intentId)}`}>{position.symbol} · {position.side}</Link><small>{accountById.get(position.accountId)?.name || position.accountId}</small></strong>
               <span role="cell">{position.averageEntryPrice ?? "unbekannt"} / {paperMarket?.markPrice ?? "nicht verfügbar"}<small>Planreferenz: {intent?.plan?.markPrice ?? "unbekannt"} · Mark beobachtet: {time(paperMarket?.updatedAt)} · Unrealisierter PnL: nicht verfügbar</small></span>
-              <span role="cell">{position.stopPrice || relatedOrders.find((order: any) => order.role === "stop_loss")?.triggerPrice || "unbekannt"}<small>Restmenge {position.quantity ?? 'unbekannt'} · Schutz: {position.protection?.protected === true ? 'aktuell belegt' : 'nicht aktuell bewiesen'} · {position.protection?.reason ?? 'Originalbeleg im Trade-Detail'}. Prüfung {time(position.protection?.evaluatedAt)}.</small></span>
+              <span role="cell">{position.stopPrice || relatedOrders.find((order) => order.role === "stop_loss")?.triggerPrice || "unbekannt"}<small>Restmenge {position.quantity ?? 'unbekannt'} · Schutz: {position.protection?.protected === true ? 'aktuell belegt' : 'nicht aktuell bewiesen'} · {position.protection?.reason ?? 'Originalbeleg im Trade-Detail'}. Prüfung {time(position.protection?.evaluatedAt)}.</small></span>
               <span role="cell">{targets.length ? targets.join(" · ") : 'keine Orderbelege im Ausschnitt'}</span>
               <span role="cell">{leverage ? `${leverage}×` : "unbekannt"}</span>
               <span role="cell"><MoneyAmount value={position.realizedPnlValue} amount={position.realizedPnl} currency={position.reportingCurrency} status={position.accountingStatus} /></span>
@@ -334,13 +348,13 @@ export function Overview({
       <div className="dashboard-grid">
         <section className="operations-card">
           <h3>Aktuelle Signale</h3>
-          {(signals ?? []).slice(0, 5).map((signal: any) => <div className="adaptive-row" key={signal.id}><div><strong>{signal.channel_id || signal.channelId || "Kanal"}</strong><small>{time(signal.created_at || signal.createdAt)} · {signal.template_name || signal.templateName || "Signal"}</small></div><span className="state-badge">{signal.status || "verarbeitet"}</span></div>)}
+          {(signals ?? []).slice(0, 5).map((signal) => <div className="adaptive-row" key={signal.id}><div><strong>{signal.channel_id || signal.channelId || "Kanal"}</strong><small>{time(signal.created_at || signal.createdAt)} · {signal.template_name || signal.templateName || "Signal"}</small></div><span className="state-badge">{signal.status || "verarbeitet"}</span></div>)}
           {signals?.length === 0 && <Empty text="Noch keine verarbeiteten Signale." />}
         </section>
         <section className="operations-card">
           <h3>Offene Intents</h3>
-          {(trading?.intents || []).filter((intent: any) => ["pending", "planned", "submitting", "monitoring", "unknown"].includes(intent.status)).slice(0, 5).map((intent: any) => <div className="adaptive-row" key={intent.id}><div><strong>{intent.symbol} · {intent.side}</strong><small>{intent.channelId} → {accountById.get(intent.accountId)?.name || intent.accountId}</small></div><span className={`state-badge ${intent.status === "unknown" ? "danger" : ""}`}>{intent.status}</span></div>)}
-          {trading && !(trading?.intents || []).some((intent: any) => ["pending", "planned", "submitting", "monitoring", "unknown"].includes(intent.status)) && <Empty text="Keine offenen Intents." />}
+          {((trading?.intents as Intent[] | undefined) || []).filter((intent) => ["pending", "planned", "submitting", "monitoring", "unknown"].includes(intent.status)).slice(0, 5).map((intent) => <div className="adaptive-row" key={intent.id}><div><strong>{intent.symbol} · {intent.side}</strong><small>{intent.channelId} → {accountById.get(intent.accountId)?.name || intent.accountId}</small></div><span className={`state-badge ${intent.status === "unknown" ? "danger" : ""}`}>{intent.status}</span></div>)}
+          {trading && !((trading?.intents as Intent[] | undefined) || []).some((intent) => ["pending", "planned", "submitting", "monitoring", "unknown"].includes(intent.status)) && <Empty text="Keine offenen Intents." />}
         </section>
       </div>
       <section className="operations-card">
@@ -459,7 +473,7 @@ export function Overview({
       </section>
       <section className="operations-card">
         <h3>Letzte Risikoereignisse</h3>
-        {trading?.activity.riskEvents.slice(0, 8).map((event: any) => (
+        {(trading as CockpitSnapshot | null)?.activity.riskEvents.slice(0, 8).map((event) => (
           <div className="event-row" key={event.id}>
             <span className={`severity ${event.severity}`}>
               {event.severity}
