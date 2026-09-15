@@ -8,7 +8,7 @@ RUN sed -ri "s|deb.debian.org/debian-security|snapshot.debian.org/archive/debian
     && sed -ri "s|deb.debian.org/debian|snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources \
     && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99snapshot \
     && apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
+    && apt-get install -y --no-install-recommends ca-certificates=20220214+deb12u1 \
     && rm -rf /var/lib/apt/lists/* \
     && sed -ri 's|^URIs: [^:]+://|URIs: https://|' /etc/apt/sources.list.d/debian.sources
 
@@ -27,7 +27,7 @@ FROM base AS production-dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential python3 \
+    && apt-get install -y --no-install-recommends build-essential=12.9 python3=3.11.4-2 \
     && rm -rf /var/lib/apt/lists/* \
     && npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
     && npm rebuild sqlite3 --build-from-source \
@@ -51,6 +51,7 @@ ENV NODE_ENV=production \
     CONFIG_PATH=/app/config/config.json
 WORKDIR /app
 
+COPY --from=runtime-layout --chown=65532:65532 /runtime/app/ /app/
 COPY --from=runtime-layout --chown=65532:65532 /runtime/app/ /app/
 COPY --from=production-dependencies --chown=65532:65532 /app/node_modules ./node_modules
 COPY --from=builder --chown=65532:65532 /app/dist ./dist
