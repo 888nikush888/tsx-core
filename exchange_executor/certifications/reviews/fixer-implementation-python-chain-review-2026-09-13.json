@@ -1,0 +1,1164 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-consolidation-of-existing-root-executor-python-reviews",
+  "receiptOrigin": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+  "selection": "All 27 changed root Executor Python inputs in current inventory; no tests silently counted as root modules.",
+  "files": [
+    {
+      "path": "exchange_executor/account_log_reader.py",
+      "currentGitBlobSha256": "99e72de502d2bd6b2819afe67db7478c82ce55e637469ee2e81b165bcf13ea4b",
+      "currentWorkingFileSha256": "99e72de502d2bd6b2819afe67db7478c82ce55e637469ee2e81b165bcf13ea4b",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "bea4d83dba292f11b947ac583436a1542fccea602e8cdb3c58774db7a1712ce8",
+          "afterSha256": "bea4d83dba292f11b947ac583436a1542fccea602e8cdb3c58774db7a1712ce8",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "bea4d83dba292f11b947ac583436a1542fccea602e8cdb3c58774db7a1712ce8",
+          "afterSha256": "6d2c86cce0ee528b9ada22b387e2761fd84174ac92ce7770b4b08e1e4ad5b05c",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "d6f627fc26da7f45e673685f8e1b0c0375ac851c38b257c68eaf88e21ac1cc25",
+          "hunks": [
+            "@@ -98,7 +98,7 @@ def _audit(value, required_since):"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "One chained-comparison hunk, then later split comparison. Lane/window operands and strict/lte boundaries covered by original Boolean review and 240 later comparisons."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "beforeSha256": "6d2c86cce0ee528b9ada22b387e2761fd84174ac92ce7770b4b08e1e4ad5b05c",
+          "afterSha256": "99e72de502d2bd6b2819afe67db7478c82ce55e637469ee2e81b165bcf13ea4b",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/fixer-python-implementation-delta-review-2026-09-13.json",
+          "reportSha256": "34025116237d7dac00b3b8492616644dc73070e15d30879a5ec47b4f1413847f",
+          "diffSha256": "78fe4e2e048b3049401c3646655e33ba5bca1a653699257d0ad58b51ffc7f616",
+          "hunks": [
+            "@@ -98,7 +98,7 @@ def _audit(value, required_since):"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "One chained-comparison hunk, then later split comparison. Lane/window operands and strict/lte boundaries covered by original Boolean review and 240 later comparisons.",
+          "storedCompleteDiffEqualsCurrentGitDiff": true
+        }
+      ],
+      "hunkScopeRationale": "One chained-comparison hunk, then later split comparison. Lane/window operands and strict/lte boundaries covered by original Boolean review and 240 later comparisons.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/ccxt_adapter.py",
+      "currentGitBlobSha256": "db5bcb0a5a96b61e4b1647d9b081a26821c1398b3c029c6a14442ed9b29a1c1a",
+      "currentWorkingFileSha256": "db5bcb0a5a96b61e4b1647d9b081a26821c1398b3c029c6a14442ed9b29a1c1a",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "89331f31c3bb41652a0265682153e11130a365f35e314ebb53a629f792663c90",
+          "afterSha256": "89331f31c3bb41652a0265682153e11130a365f35e314ebb53a629f792663c90",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "89331f31c3bb41652a0265682153e11130a365f35e314ebb53a629f792663c90",
+          "afterSha256": "397feb3041cebd29aee14ae63dd331f698302c00368e18c826b303660d312653",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "3a459796fe40e599c0ca26d4c77eb0738ac1e135ec30495433b459ec4f4cdf3f",
+          "hunks": [
+            "@@ -72,7 +72,8 @@ def _contract_size(market: dict[str, Any]) -> Decimal:",
+            "@@ -125,7 +126,8 @@ def _trigger_price(order: dict[str, Any]) -> Any:",
+            "@@ -135,13 +137,15 @@ def _trigger_price(order: dict[str, Any]) -> Any:",
+            "@@ -286,6 +290,13 @@ def _normalized_position(rest: Any, position: dict[str, Any]) -> dict[str, Any]",
+            "@@ -296,12 +307,11 @@ def _normalized_fill(",
+            "@@ -451,8 +461,9 @@ class CcxtAdapter:",
+            "@@ -596,8 +607,8 @@ class CcxtAdapter:",
+            "@@ -606,7 +617,8 @@ class CcxtAdapter:",
+            "@@ -673,8 +685,8 @@ class CcxtAdapter:",
+            "@@ -850,8 +862,8 @@ class CcxtAdapter:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "All dict candidate extraction hunks, _fill_timestamp extraction and three unused-self static methods align with original SDK/static-method and complexity sections. Later get_market wrapper and stream caller were independently covered together; no extra diff remains."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "beforeSha256": "397feb3041cebd29aee14ae63dd331f698302c00368e18c826b303660d312653",
+          "afterSha256": "db5bcb0a5a96b61e4b1647d9b081a26821c1398b3c029c6a14442ed9b29a1c1a",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/fixer-python-implementation-delta-review-2026-09-13.json",
+          "reportSha256": "34025116237d7dac00b3b8492616644dc73070e15d30879a5ec47b4f1413847f",
+          "diffSha256": "e62e0dcd090fed9dcce350f0c47370b75246f644db3d9927d5eb64df506bf48c",
+          "hunks": [
+            "@@ -405,6 +405,10 @@ class CcxtAdapter:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "All dict candidate extraction hunks, _fill_timestamp extraction and three unused-self static methods align with original SDK/static-method and complexity sections. Later get_market wrapper and stream caller were independently covered together; no extra diff remains.",
+          "storedCompleteDiffEqualsCurrentGitDiff": true
+        }
+      ],
+      "hunkScopeRationale": "All dict candidate extraction hunks, _fill_timestamp extraction and three unused-self static methods align with original SDK/static-method and complexity sections. Later get_market wrapper and stream caller were independently covered together; no extra diff remains.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/ccxt_candidate_reviews.py",
+      "currentGitBlobSha256": "cb7b2fb229c71adf288df06c2bfc961050695748972eed62cafc10b5521a916b",
+      "currentWorkingFileSha256": "cb7b2fb229c71adf288df06c2bfc961050695748972eed62cafc10b5521a916b",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "70735136b151723e2e90e06e4eabcb6067f1177e4db1a9be2b6ee49531bc2dd1",
+          "afterSha256": "70735136b151723e2e90e06e4eabcb6067f1177e4db1a9be2b6ee49531bc2dd1",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "beforeSha256": "70735136b151723e2e90e06e4eabcb6067f1177e4db1a9be2b6ee49531bc2dd1",
+          "afterSha256": "cb7b2fb229c71adf288df06c2bfc961050695748972eed62cafc10b5521a916b",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/fixer-remaining-python-review-2026-09-13.json",
+          "reportSha256": "e65038c6cc83d516b3cd615165d359b79cd42484825f0400f137dae12a413284",
+          "diffSha256": "237b68f1611929fba00cff11cb51b414f62b5855838d1b1b645a1fb588e5df91",
+          "hunks": [
+            "@@ -16,8 +16,8 @@ from ccxt_certification import CertificationResult, certification_result"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Complete original-to-current two candidate evidence hash replacements match remaining review and candidate evidence chain; no policy logic/profile additions. This consolidates review evidence only, not new approval authority."
+        }
+      ],
+      "hunkScopeRationale": "Complete original-to-current two candidate evidence hash replacements match remaining review and candidate evidence chain; no policy logic/profile additions. This consolidates review evidence only, not new approval authority.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/ccxt_client.py",
+      "currentGitBlobSha256": "f9efcddcbc0d3bc5bf0dcd525c5ab3dba9c93f1916b1156889aca73fb0686124",
+      "currentWorkingFileSha256": "f9efcddcbc0d3bc5bf0dcd525c5ab3dba9c93f1916b1156889aca73fb0686124",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "23ca9e022acc196121d5ce82ebf30d2ee5b0a0313973196a53a9df5eacd91bc9",
+          "afterSha256": "23ca9e022acc196121d5ce82ebf30d2ee5b0a0313973196a53a9df5eacd91bc9",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "23ca9e022acc196121d5ce82ebf30d2ee5b0a0313973196a53a9df5eacd91bc9",
+          "afterSha256": "f9efcddcbc0d3bc5bf0dcd525c5ab3dba9c93f1916b1156889aca73fb0686124",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "f48c62a0f62ed1b064f3726264ee7b8f6b74ed42823954536513b5bfbdad1879",
+          "hunks": [
+            "@@ -135,8 +135,6 @@ class AccountClients:",
+            "@@ -227,10 +225,6 @@ class CcxtClientRegistry:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Two CancelledError catch-and-reraise deletions align with explicit cancellation review: BaseException inheritance leaves shielded bootstrap/registry exception cleanup unchanged."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "f9efcddcbc0d3bc5bf0dcd525c5ab3dba9c93f1916b1156889aca73fb0686124"
+        }
+      ],
+      "hunkScopeRationale": "Two CancelledError catch-and-reraise deletions align with explicit cancellation review: BaseException inheritance leaves shielded bootstrap/registry exception cleanup unchanged.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/ccxt_sdk_policy.py",
+      "currentGitBlobSha256": "d9c84bdc0d85bc4a3852759e393ac284e7f9e064e0931700e780d0557b7db056",
+      "currentWorkingFileSha256": "d9c84bdc0d85bc4a3852759e393ac284e7f9e064e0931700e780d0557b7db056",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "38e7b16c19f5df240f1696a51c1006cc3f9323e3516a37c05237ca3a8894267d",
+          "afterSha256": "38e7b16c19f5df240f1696a51c1006cc3f9323e3516a37c05237ca3a8894267d",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "38e7b16c19f5df240f1696a51c1006cc3f9323e3516a37c05237ca3a8894267d",
+          "afterSha256": "d9c84bdc0d85bc4a3852759e393ac284e7f9e064e0931700e780d0557b7db056",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "e3268eda7f24291c8243fa4839bcc8ec31e1f7c01d0a64985a2683ac47d3800d",
+          "hunks": [
+            "@@ -30,7 +30,7 @@ class HyperliquidNoAutomaticSetup:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Only tuple type annotation on mixin bases. Same base classes and order."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "d9c84bdc0d85bc4a3852759e393ac284e7f9e064e0931700e780d0557b7db056"
+        }
+      ],
+      "hunkScopeRationale": "Only tuple type annotation on mixin bases. Same base classes and order.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/credentials.py",
+      "currentGitBlobSha256": "24b261ec4c8bca38d523d01ea78b721013a82558133106ce00e217506bc6f120",
+      "currentWorkingFileSha256": "24b261ec4c8bca38d523d01ea78b721013a82558133106ce00e217506bc6f120",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "a22a4bfc44bec3b7191c9196f8d1a3e48388d639a8a57fdd1387d4aaa9c89fd8",
+          "afterSha256": "a22a4bfc44bec3b7191c9196f8d1a3e48388d639a8a57fdd1387d4aaa9c89fd8",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "a22a4bfc44bec3b7191c9196f8d1a3e48388d639a8a57fdd1387d4aaa9c89fd8",
+          "afterSha256": "24b261ec4c8bca38d523d01ea78b721013a82558133106ce00e217506bc6f120",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "0d94e2740cfa73ed61b8911fbefb4266655e28917f3ef8a1c9512f6e28ae26e9",
+          "hunks": [
+            "@@ -83,6 +83,7 @@ class CredentialStore:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Only local credentials: Any annotation; no value conversion or credential normalization delta."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "24b261ec4c8bca38d523d01ea78b721013a82558133106ce00e217506bc6f120"
+        }
+      ],
+      "hunkScopeRationale": "Only local credentials: Any annotation; no value conversion or credential normalization delta.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/current_state.py",
+      "currentGitBlobSha256": "82d6fef27aa116eb7c0d929b1d805751e58abad5b5d3a38b0795b3c79f980b6e",
+      "currentWorkingFileSha256": "82d6fef27aa116eb7c0d929b1d805751e58abad5b5d3a38b0795b3c79f980b6e",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "354823bf57d0013d28031a85de4e626f526a03c2b0166ae7c07e6c94679901de",
+          "afterSha256": "354823bf57d0013d28031a85de4e626f526a03c2b0166ae7c07e6c94679901de",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "354823bf57d0013d28031a85de4e626f526a03c2b0166ae7c07e6c94679901de",
+          "afterSha256": "82d6fef27aa116eb7c0d929b1d805751e58abad5b5d3a38b0795b3c79f980b6e",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "acd6813413c1da129b3adc92edd8d4440b81399232bb7d8164183f3c18e28e8a",
+          "hunks": [
+            "@@ -55,18 +55,25 @@ class CurrentRead:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "_scope_evidence extraction, nullable next default and both call/complete lookups match explicit CurrentRead review. Missing scope now structured incomplete error; page mutation remains after operation."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "82d6fef27aa116eb7c0d929b1d805751e58abad5b5d3a38b0795b3c79f980b6e"
+        }
+      ],
+      "hunkScopeRationale": "_scope_evidence extraction, nullable next default and both call/complete lookups match explicit CurrentRead review. Missing scope now structured incomplete error; page mutation remains after operation.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/entry_deadline.py",
+      "currentGitBlobSha256": "416b0c608f94a4a5b825db6f282938ebba9a1213d0db7bd3bb3c699186a266c3",
+      "currentWorkingFileSha256": "416b0c608f94a4a5b825db6f282938ebba9a1213d0db7bd3bb3c699186a266c3",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "8518af5d1d9da929f0ef269c4456c1cdb2f879dcd2712edbe6bb1c42fdfcca95",
+          "afterSha256": "8518af5d1d9da929f0ef269c4456c1cdb2f879dcd2712edbe6bb1c42fdfcca95",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "8518af5d1d9da929f0ef269c4456c1cdb2f879dcd2712edbe6bb1c42fdfcca95",
+          "afterSha256": "416b0c608f94a4a5b825db6f282938ebba9a1213d0db7bd3bb3c699186a266c3",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "7f16908a4528b015ee1045cb1e30982fa6e15d20a7d6339823f57aff83f6879d",
+          "hunks": [
+            "@@ -4,7 +4,7 @@ from __future__ import annotations",
+            "@@ -38,7 +38,7 @@ class EntryDeadline:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Import cast plus expires_at cast at min under required guard; cast is identity, deadline value/conditional unchanged."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "416b0c608f94a4a5b825db6f282938ebba9a1213d0db7bd3bb3c699186a266c3"
+        }
+      ],
+      "hunkScopeRationale": "Import cast plus expires_at cast at min under required guard; cast is identity, deadline value/conditional unchanged.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/entry_price_constraints.py",
+      "currentGitBlobSha256": "663a36fa3361abc63237059b54135e07145a9deaf55c85a2c1adea93e4a9b2b7",
+      "currentWorkingFileSha256": "663a36fa3361abc63237059b54135e07145a9deaf55c85a2c1adea93e4a9b2b7",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "8f527c3987b111bf5fb8960849e3294c285cdccb1669c2ad4f93bb842b42b803",
+          "afterSha256": "8f527c3987b111bf5fb8960849e3294c285cdccb1669c2ad4f93bb842b42b803",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "8f527c3987b111bf5fb8960849e3294c285cdccb1669c2ad4f93bb842b42b803",
+          "afterSha256": "e916081236f0671675bad0b298d1bdec59f6667236076bd04a1e9652000d5e9d",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "67f90e02ca2d7a31877e55694ff4cf67bd986c4300b34af436fe10d2078df0c4",
+          "hunks": [
+            "@@ -24,10 +24,23 @@ def needs_entry_boundary(request: dict[str, Any]) -> bool:",
+            "@@ -36,11 +49,7 @@ def assert_boundary(request: dict[str, Any], price_tick: str) -> str:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Original _rounded_boundary and _original_boundary extraction matches reviewed precision180/floor-buy/ceil-sell behavior. Later values/limit extraction fully bound by six-file review, including disclosed dual-invalid side/slippage error precedence, identical422/code."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "beforeSha256": "e916081236f0671675bad0b298d1bdec59f6667236076bd04a1e9652000d5e9d",
+          "afterSha256": "663a36fa3361abc63237059b54135e07145a9deaf55c85a2c1adea93e4a9b2b7",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/fixer-python-implementation-delta-review-2026-09-13.json",
+          "reportSha256": "34025116237d7dac00b3b8492616644dc73070e15d30879a5ec47b4f1413847f",
+          "diffSha256": "cc9acb3f909ffd7bb580faf281adabab5842f170e8dcf64ebcc6614d7ae4dafe",
+          "hunks": [
+            "@@ -39,24 +39,34 @@ def _original_boundary(request: dict[str, Any]) -> dict[str, Any]:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Original _rounded_boundary and _original_boundary extraction matches reviewed precision180/floor-buy/ceil-sell behavior. Later values/limit extraction fully bound by six-file review, including disclosed dual-invalid side/slippage error precedence, identical422/code.",
+          "storedCompleteDiffEqualsCurrentGitDiff": true
+        }
+      ],
+      "hunkScopeRationale": "Original _rounded_boundary and _original_boundary extraction matches reviewed precision180/floor-buy/ceil-sell behavior. Later values/limit extraction fully bound by six-file review, including disclosed dual-invalid side/slippage error precedence, identical422/code.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/execution_constraints.py",
+      "currentGitBlobSha256": "2ab81b309e66f41022de1853fe144dbfdea0ec525d8631b394ab57b7c832719e",
+      "currentWorkingFileSha256": "2ab81b309e66f41022de1853fe144dbfdea0ec525d8631b394ab57b7c832719e",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "92bab87bf581941700e643b03ed89e3e780428192f7d6f8e50002ee26b0d7213",
+          "afterSha256": "92bab87bf581941700e643b03ed89e3e780428192f7d6f8e50002ee26b0d7213",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "92bab87bf581941700e643b03ed89e3e780428192f7d6f8e50002ee26b0d7213",
+          "afterSha256": "2ab81b309e66f41022de1853fe144dbfdea0ec525d8631b394ab57b7c832719e",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "00c94e76d7a7670cb0b89620c1ac568f39601e12c01b28e1156b3a994a0ab9de",
+          "hunks": [
+            "@@ -8,7 +8,7 @@ import time",
+            "@@ -56,7 +56,7 @@ async def _read_value(rest: Any, method: str, params: dict[str, Any], deadline:",
+            "@@ -105,7 +105,7 @@ async def _hyperliquid(clients: Any, market: dict[str, Any], deadline: RequestDe",
+            "@@ -127,7 +127,7 @@ async def _hyperliquid_position_consistency(rest: Any, user: str, coin: str, lev",
+            "@@ -146,7 +146,7 @@ def _unique_symbol_rows(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]",
+            "@@ -175,6 +175,7 @@ def _base_evidence(clients: Any, market: dict[str, Any]) -> dict[str, Any]:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "All seven changed regions are typing imports/casts following callable, symbol or profile guards. Existing predicate and SDK call order unchanged; original SDK-cast review applies."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "2ab81b309e66f41022de1853fe144dbfdea0ec525d8631b394ab57b7c832719e"
+        }
+      ],
+      "hunkScopeRationale": "All seven changed regions are typing imports/casts following callable, symbol or profile guards. Existing predicate and SDK call order unchanged; original SDK-cast review applies.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/fx_evidence.py",
+      "currentGitBlobSha256": "12cb01cac79cfd0313115f6e91d6772b9ab52a3959178c099eb81f6105e12ae3",
+      "currentWorkingFileSha256": "12cb01cac79cfd0313115f6e91d6772b9ab52a3959178c099eb81f6105e12ae3",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "cb7b93198bf935dcc923d1fdee2cacebcb5e254e56fa6a521a89c4438f739ad5",
+          "afterSha256": "cb7b93198bf935dcc923d1fdee2cacebcb5e254e56fa6a521a89c4438f739ad5",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "cb7b93198bf935dcc923d1fdee2cacebcb5e254e56fa6a521a89c4438f739ad5",
+          "afterSha256": "12cb01cac79cfd0313115f6e91d6772b9ab52a3959178c099eb81f6105e12ae3",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "7662dcecf1b0db180cdab325d9fbc74797aae6f61d213aea358158bbe4f1132a",
+          "hunks": [
+            "@@ -9,7 +9,7 @@ import copy",
+            "@@ -80,7 +80,7 @@ def fx_hash(domain: str, value: Any) -> str:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Only TypeGuard import and _safe_time return annotation; strict int/safe bound expression unchanged."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "12cb01cac79cfd0313115f6e91d6772b9ab52a3959178c099eb81f6105e12ae3"
+        }
+      ],
+      "hunkScopeRationale": "Only TypeGuard import and _safe_time return annotation; strict int/safe bound expression unchanged.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/history_coverage.py",
+      "currentGitBlobSha256": "8ad501f9157f59a23a9fcd2b1ca9625c59999f90b585ad197a5642e47780a4e7",
+      "currentWorkingFileSha256": "8ad501f9157f59a23a9fcd2b1ca9625c59999f90b585ad197a5642e47780a4e7",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "449e1b9392b6bb155e31c3669c4ab10cbddf2249f09de2b04a069a87cea4a543",
+          "afterSha256": "449e1b9392b6bb155e31c3669c4ab10cbddf2249f09de2b04a069a87cea4a543",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "449e1b9392b6bb155e31c3669c4ab10cbddf2249f09de2b04a069a87cea4a543",
+          "afterSha256": "8ad501f9157f59a23a9fcd2b1ca9625c59999f90b585ad197a5642e47780a4e7",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "1a08cd83b70ec88bca6a7a9c80ba8bb00db37ef301bfed1db529150859fceb2a",
+          "hunks": [
+            "@@ -38,6 +38,12 @@ def covered_window(state: dict[str, Any]) -> bool:",
+            "@@ -50,8 +56,6 @@ def fresh_fill_source(source: dict[str, Any], progress: list[dict[str, Any]], ex"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "_retention_covers helper is negation of original rejection condition; same profile/phase/validation/bound checks, matching original complexity review."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "8ad501f9157f59a23a9fcd2b1ca9625c59999f90b585ad197a5642e47780a4e7"
+        }
+      ],
+      "hunkScopeRationale": "_retention_covers helper is negation of original rejection condition; same profile/phase/validation/bound checks, matching original complexity review.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/history_pagination.py",
+      "currentGitBlobSha256": "4df767693a2135918a84052295bdec7da08f76756b58063f0d8ec1f1a43c2d7b",
+      "currentWorkingFileSha256": "4df767693a2135918a84052295bdec7da08f76756b58063f0d8ec1f1a43c2d7b",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "0a4a1d9b1044b453013a60e6d193440b154f42aaa3bedd955f2f7714715617ff",
+          "afterSha256": "0a4a1d9b1044b453013a60e6d193440b154f42aaa3bedd955f2f7714715617ff",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "0a4a1d9b1044b453013a60e6d193440b154f42aaa3bedd955f2f7714715617ff",
+          "afterSha256": "4df767693a2135918a84052295bdec7da08f76756b58063f0d8ec1f1a43c2d7b",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "0ff5b22c9458a537ef5e8cd9a286b5aae7b79869073c2c11029d244414805144",
+          "hunks": [
+            "@@ -2,6 +2,7 @@",
+            "@@ -181,7 +182,7 @@ def _bybit_envelope(response: Any, limit: int, category: str = 'linear') -> tupl"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Bounded-call lambda replaced with functools.partial binding method plus same category/window dictionary; explicitly covered by original loop-bound callbacks review."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "4df767693a2135918a84052295bdec7da08f76756b58063f0d8ec1f1a43c2d7b"
+        }
+      ],
+      "hunkScopeRationale": "Bounded-call lambda replaced with functools.partial binding method plus same category/window dictionary; explicitly covered by original loop-bound callbacks review.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/hyperliquid_retention.py",
+      "currentGitBlobSha256": "6dae125ecebf3976e95302dcc9568e630cbc1c8505bf265ce6766f12ae5ef973",
+      "currentWorkingFileSha256": "6dae125ecebf3976e95302dcc9568e630cbc1c8505bf265ce6766f12ae5ef973",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "0defde8f535aa590f95ddee27cf855db2d4a249b148f0384a5d3dd09dca722d0",
+          "afterSha256": "0defde8f535aa590f95ddee27cf855db2d4a249b148f0384a5d3dd09dca722d0",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "0defde8f535aa590f95ddee27cf855db2d4a249b148f0384a5d3dd09dca722d0",
+          "afterSha256": "6dae125ecebf3976e95302dcc9568e630cbc1c8505bf265ce6766f12ae5ef973",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "f1a9792540145c0a4538d94ee4f8c798430a0868557c6e4fffcb8c5a1e5a26cb",
+          "hunks": [
+            "@@ -80,9 +80,9 @@ def _validate_retention_horizon(probe: dict[str, Any]) -> None:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Nested horizon check flattened to short-circuit and; same phase/fixed/time/cursor and error."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "6dae125ecebf3976e95302dcc9568e630cbc1c8505bf265ce6766f12ae5ef973"
+        }
+      ],
+      "hunkScopeRationale": "Nested horizon check flattened to short-circuit and; same phase/fixed/time/cursor and error.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/kraken_history.py",
+      "currentGitBlobSha256": "25289f718fa46c6c5cd73db172ee9e2fd6a61f0427ead73cf8101a1395c06886",
+      "currentWorkingFileSha256": "25289f718fa46c6c5cd73db172ee9e2fd6a61f0427ead73cf8101a1395c06886",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "c96d9a8cc00c8a6d6195573e5a15aac56efa72a06e887ffe04a80e93dd55279c",
+          "afterSha256": "c96d9a8cc00c8a6d6195573e5a15aac56efa72a06e887ffe04a80e93dd55279c",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "c96d9a8cc00c8a6d6195573e5a15aac56efa72a06e887ffe04a80e93dd55279c",
+          "afterSha256": "55ca04912947d1adfd3573df484dae3a961dbcd0383b2683b05aa11fc21faed7",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "ba49f78095000452a2ea0c39e93e77ed066fef87dca432aad35b8156553f1161",
+          "hunks": [
+            "@@ -39,6 +39,11 @@ def _cursor(state: dict[str, Any]) -> tuple[str, str | None]:",
+            "@@ -48,11 +53,18 @@ def _next_token(response: dict[str, Any], rest: Any) -> str | None:",
+            "@@ -70,9 +82,7 @@ async def kraken_history_page(rest: Any, state: dict[str, Any], budget: Recovery"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Original continuation validity and collection helper extractions match named complexity review. Later header helper reorders invalid-envelope inspection with same error; later35-case comparison and binding cover exact remaining hunk."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "beforeSha256": "55ca04912947d1adfd3573df484dae3a961dbcd0383b2683b05aa11fc21faed7",
+          "afterSha256": "25289f718fa46c6c5cd73db172ee9e2fd6a61f0427ead73cf8101a1395c06886",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/fixer-python-implementation-delta-review-2026-09-13.json",
+          "reportSha256": "34025116237d7dac00b3b8492616644dc73070e15d30879a5ec47b4f1413847f",
+          "diffSha256": "e94923fc83ad563c25c5254007fe692252a14f7b0a4ccad33b919280b3a450bd",
+          "hunks": [
+            "@@ -44,12 +44,18 @@ def _valid_continuation_token(token: Any) -> bool:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Original continuation validity and collection helper extractions match named complexity review. Later header helper reorders invalid-envelope inspection with same error; later35-case comparison and binding cover exact remaining hunk.",
+          "storedCompleteDiffEqualsCurrentGitDiff": true
+        }
+      ],
+      "hunkScopeRationale": "Original continuation validity and collection helper extractions match named complexity review. Later header helper reorders invalid-envelope inspection with same error; later35-case comparison and binding cover exact remaining hunk.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/kraken_response_capture.py",
+      "currentGitBlobSha256": "d43793f276de964d80adb0b23d13502331dc7e87420f992cc3db74bab1165188",
+      "currentWorkingFileSha256": "d43793f276de964d80adb0b23d13502331dc7e87420f992cc3db74bab1165188",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "48da10805f8ad2666c63d476b52f881a50f80eb8f2ad3b04cd29e8ecd8c06952",
+          "afterSha256": "48da10805f8ad2666c63d476b52f881a50f80eb8f2ad3b04cd29e8ecd8c06952",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "48da10805f8ad2666c63d476b52f881a50f80eb8f2ad3b04cd29e8ecd8c06952",
+          "afterSha256": "d43793f276de964d80adb0b23d13502331dc7e87420f992cc3db74bab1165188",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "f247e75750e079fe635fbdedf5f404d44f13a0e60007b5e46ed88f5f341545a3",
+          "hunks": [
+            "@@ -12,7 +12,7 @@ import re",
+            "@@ -47,7 +47,13 @@ def _client_binding(rest: Any) -> tuple[str, tuple[str, str]]:",
+            "@@ -56,9 +62,7 @@ def _request_params(params: Any) -> dict[str, Any]:",
+            "@@ -77,7 +81,7 @@ class _Capture:",
+            "@@ -90,11 +94,14 @@ class _Capture:",
+            "@@ -127,7 +134,7 @@ def _number(token: str) -> Decimal:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Tuple/exponent casts and NoReturn plus _validate_request_integers/_assert_transport_text helper extraction align with named original review. Finite guard precedes exponent cast; shape precedes transport checks."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "d43793f276de964d80adb0b23d13502331dc7e87420f992cc3db74bab1165188"
+        }
+      ],
+      "hunkScopeRationale": "Tuple/exponent casts and NoReturn plus _validate_request_integers/_assert_transport_text helper extraction align with named original review. Finite guard precedes exponent cast; shape precedes transport checks.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/kucoin_current_state.py",
+      "currentGitBlobSha256": "34338771f8036fee113de809a1c7939667ada4bbb91e377a670762304e923a51",
+      "currentWorkingFileSha256": "34338771f8036fee113de809a1c7939667ada4bbb91e377a670762304e923a51",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "714e787ce55358809c779345daa2b42a90d0ee95468919f69631c291772440c6",
+          "afterSha256": "714e787ce55358809c779345daa2b42a90d0ee95468919f69631c291772440c6",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "714e787ce55358809c779345daa2b42a90d0ee95468919f69631c291772440c6",
+          "afterSha256": "34338771f8036fee113de809a1c7939667ada4bbb91e377a670762304e923a51",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "671f8d7407e457b5c6fdc86b932b9c3a0df31b32d8a3499f43ac0b1f0357aed9",
+          "hunks": [
+            "@@ -1,7 +1,7 @@",
+            "@@ -87,7 +87,7 @@ def _status(raw: dict[str, Any]) -> str:",
+            "@@ -97,7 +97,7 @@ def _status(raw: dict[str, Any]) -> str:",
+            "@@ -123,7 +123,7 @@ def normalize_kucoin_order(rest: Any, raw: dict[str, Any], *, stop_scope: bool,",
+            "@@ -173,7 +173,7 @@ async def _order_scope(rest: Any, read: CurrentRead, scope: str, method: Any,"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Status casts, page params annotation and reduce_only is True after exact bool validation align with original Boolean and SDK guard review."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "34338771f8036fee113de809a1c7939667ada4bbb91e377a670762304e923a51"
+        }
+      ],
+      "hunkScopeRationale": "Status casts, page params annotation and reduce_only is True after exact bool validation align with original Boolean and SDK guard review.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/kucoin_history.py",
+      "currentGitBlobSha256": "b00553f16876272ae99dacf8f3180b03840e57d84a858d22808f4093bc6346c8",
+      "currentWorkingFileSha256": "b00553f16876272ae99dacf8f3180b03840e57d84a858d22808f4093bc6346c8",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "ace1628f567ce8109d0472d1750956a7461056dae468f4200e0aee98ceb73467",
+          "afterSha256": "ace1628f567ce8109d0472d1750956a7461056dae468f4200e0aee98ceb73467",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "ace1628f567ce8109d0472d1750956a7461056dae468f4200e0aee98ceb73467",
+          "afterSha256": "b00553f16876272ae99dacf8f3180b03840e57d84a858d22808f4093bc6346c8",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "d79cfb1382230855b79ba8aeb186e7a5c237d6faa7a2a0c878a3fb2fc7788d0b",
+          "hunks": [
+            "@@ -44,7 +44,7 @@ def _state(value: Any, expected_uid: str) -> dict[str, Any]:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Regex match object becomes is not None only in require condition; same language and rejection."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "b00553f16876272ae99dacf8f3180b03840e57d84a858d22808f4093bc6346c8"
+        }
+      ],
+      "hunkScopeRationale": "Regex match object becomes is not None only in require condition; same language and rejection.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/kucoin_identity.py",
+      "currentGitBlobSha256": "dd841de6a791e07f92a908d4a93dd1e9be67f03acd614df3b2b34be665446d44",
+      "currentWorkingFileSha256": "dd841de6a791e07f92a908d4a93dd1e9be67f03acd614df3b2b34be665446d44",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "38a0d7249bde42b5a3d16a6b63a4359cb30e44743b8c2182a6e4f7d25cc50e46",
+          "afterSha256": "38a0d7249bde42b5a3d16a6b63a4359cb30e44743b8c2182a6e4f7d25cc50e46",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "38a0d7249bde42b5a3d16a6b63a4359cb30e44743b8c2182a6e4f7d25cc50e46",
+          "afterSha256": "dd841de6a791e07f92a908d4a93dd1e9be67f03acd614df3b2b34be665446d44",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "76fff7250e7f2582f4ad98f04a24e433f944c616e077fdffc63d9cec64fc9cb1",
+          "hunks": [
+            "@@ -17,7 +17,7 @@ from kucoin_provider_common import ("
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "values truthiness normalized with bool in require; token split list and all subsequent bounds identical."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "dd841de6a791e07f92a908d4a93dd1e9be67f03acd614df3b2b34be665446d44"
+        }
+      ],
+      "hunkScopeRationale": "values truthiness normalized with bool in require; token split list and all subsequent bounds identical.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/kucoin_money.py",
+      "currentGitBlobSha256": "2c5c2ca0c6ee78bd06e15c85cd9bec9c3b6b30132bdd62037a3571b1a78614e8",
+      "currentWorkingFileSha256": "2c5c2ca0c6ee78bd06e15c85cd9bec9c3b6b30132bdd62037a3571b1a78614e8",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "0351a6b312a879474f03bd69d42e2810550423d52dc656041256aad6818dd9ea",
+          "afterSha256": "0351a6b312a879474f03bd69d42e2810550423d52dc656041256aad6818dd9ea",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "0351a6b312a879474f03bd69d42e2810550423d52dc656041256aad6818dd9ea",
+          "afterSha256": "2c5c2ca0c6ee78bd06e15c85cd9bec9c3b6b30132bdd62037a3571b1a78614e8",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "6489a5171c32c9d95a0382365a835c990b3340fd48876c1b1e07d102cc1c1ecc",
+          "hunks": [
+            "@@ -35,7 +35,7 @@ def _window(state: Any, *, maximum_width: int) -> tuple[int, int, str | None]:",
+            "@@ -206,7 +206,7 @@ async def read_kucoin_ledger_page("
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Regex truth normalization and bool(page_rows) within require only; original Boolean section covers same valid/invalid conditions."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "2c5c2ca0c6ee78bd06e15c85cd9bec9c3b6b30132bdd62037a3571b1a78614e8"
+        }
+      ],
+      "hunkScopeRationale": "Regex truth normalization and bool(page_rows) within require only; original Boolean section covers same valid/invalid conditions.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/kucoin_provider_common.py",
+      "currentGitBlobSha256": "124854d1044039e1e970531f036e82ab66209107e88ac0cfb0620afa09269324",
+      "currentWorkingFileSha256": "124854d1044039e1e970531f036e82ab66209107e88ac0cfb0620afa09269324",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "fc60a2a14099e4c54243bd969e7a764eb06844c9ab75a918e7a7d78812d10307",
+          "afterSha256": "fc60a2a14099e4c54243bd969e7a764eb06844c9ab75a918e7a7d78812d10307",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "fc60a2a14099e4c54243bd969e7a764eb06844c9ab75a918e7a7d78812d10307",
+          "afterSha256": "124854d1044039e1e970531f036e82ab66209107e88ac0cfb0620afa09269324",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "775156568f894f135acfd8b71e86df099615f0b2a9b9acddde63a604117b6d8e",
+          "hunks": [
+            "@@ -9,7 +9,7 @@ from __future__ import annotations",
+            "@@ -32,6 +32,14 @@ def binding(value: Any, label: str) -> str:",
+            "@@ -130,7 +138,7 @@ def market_for(rest: Any, symbol: str) -> dict[str, Any]:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Two token overload declarations retain actual body; guarded market cast does not convert. Original review explicitly describes nullable token runtime boundary."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "124854d1044039e1e970531f036e82ab66209107e88ac0cfb0620afa09269324"
+        }
+      ],
+      "hunkScopeRationale": "Two token overload declarations retain actual body; guarded market cast does not convert. Original review explicitly describes nullable token runtime boundary.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/leverage_tiers.py",
+      "currentGitBlobSha256": "5c2765390ceb7c2c28f3c743772dc9ea48ac68496f664eb064d40605745ce74f",
+      "currentWorkingFileSha256": "5c2765390ceb7c2c28f3c743772dc9ea48ac68496f664eb064d40605745ce74f",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "eec0be1d9eceaffbbf4315a0023840d55b00020429e10bcb487ff10c328fd8b6",
+          "afterSha256": "eec0be1d9eceaffbbf4315a0023840d55b00020429e10bcb487ff10c328fd8b6",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "eec0be1d9eceaffbbf4315a0023840d55b00020429e10bcb487ff10c328fd8b6",
+          "afterSha256": "5c2765390ceb7c2c28f3c743772dc9ea48ac68496f664eb064d40605745ce74f",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "06850b838218d3c698074e9ab5fdc5d3b64c4d5b06acf8287182126e1514c57c",
+          "hunks": [
+            "@@ -2,7 +2,7 @@",
+            "@@ -44,7 +44,8 @@ def validate_tiers(tiers: Any) -> None:",
+            "@@ -71,6 +72,7 @@ def _lower_bound_tiers(rows: Any, leverage) -> list[dict[str, Any]]:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Result annotation/split assignment and guarded marginTableId cast retain values and tier branching."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "5c2765390ceb7c2c28f3c743772dc9ea48ac68496f664eb064d40605745ce74f"
+        }
+      ],
+      "hunkScopeRationale": "Result annotation/split assignment and guarded marginTableId cast retain values and tier branching.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/order_evidence.py",
+      "currentGitBlobSha256": "5015cb92fea6c141505b40784e73b62808b8a3c2d664b6116eecbef44f6d03bc",
+      "currentWorkingFileSha256": "5015cb92fea6c141505b40784e73b62808b8a3c2d664b6116eecbef44f6d03bc",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "b900b2493a0ebf5215ef9ac89795dda94cec98cf6f03f03675f4f6a191d10ad3",
+          "afterSha256": "b900b2493a0ebf5215ef9ac89795dda94cec98cf6f03f03675f4f6a191d10ad3",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "b900b2493a0ebf5215ef9ac89795dda94cec98cf6f03f03675f4f6a191d10ad3",
+          "afterSha256": "5015cb92fea6c141505b40784e73b62808b8a3c2d664b6116eecbef44f6d03bc",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "6361495a52f81e9931ef92a285ea0a94565f1ad46e2e0e67628a1ba972e976be",
+          "hunks": [
+            "@@ -40,20 +40,28 @@ def _merged_status(current: str, incoming: str, filled: Decimal, quantity: Decim",
+            "@@ -65,9 +73,9 @@ def merge_order_evidence(current: dict[str, Any], incoming: dict[str, Any]) -> d"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Optional filled/average helper extraction and nested conflict predicate flattening retain null/Decimal validation, max fill and conflict ordering; original optional-order helpers section applies."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "5015cb92fea6c141505b40784e73b62808b8a3c2d664b6116eecbef44f6d03bc"
+        }
+      ],
+      "hunkScopeRationale": "Optional filled/average helper extraction and nested conflict predicate flattening retain null/Decimal validation, max fill and conflict ordering; original optional-order helpers section applies.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/order_identity.py",
+      "currentGitBlobSha256": "3fc75d5d32c0d4ea00e8be6232143a0d94c961c4a2004d66a0dbeb3d850a38d4",
+      "currentWorkingFileSha256": "3fc75d5d32c0d4ea00e8be6232143a0d94c961c4a2004d66a0dbeb3d850a38d4",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "e3da1ad9950e57055bb32312064ea22fb863d4fcd3a25abadccd74b12adffc6a",
+          "afterSha256": "e3da1ad9950e57055bb32312064ea22fb863d4fcd3a25abadccd74b12adffc6a",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "e3da1ad9950e57055bb32312064ea22fb863d4fcd3a25abadccd74b12adffc6a",
+          "afterSha256": "3fc75d5d32c0d4ea00e8be6232143a0d94c961c4a2004d66a0dbeb3d850a38d4",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "7e56678a6f6fc4033226fe25eab40a662c88d91bd79c907e7f0c7df2621e9ea7",
+          "hunks": [
+            "@@ -25,6 +25,10 @@ def write_order_identity(order: dict[str, Any], expected_client_id: str = \"\") ->",
+            "@@ -34,16 +38,16 @@ def cancel_target("
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "_remote_client exactly reproduces clientOrderId or client_order_id at all three callsites; uniqueness and exchange-ID conflict checks unchanged."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "3fc75d5d32c0d4ea00e8be6232143a0d94c961c4a2004d66a0dbeb3d850a38d4"
+        }
+      ],
+      "hunkScopeRationale": "_remote_client exactly reproduces clientOrderId or client_order_id at all three callsites; uniqueness and exchange-ID conflict checks unchanged.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/server.py",
+      "currentGitBlobSha256": "90442c0b962745834e34b6d2fb1a833561040c5b756acd2f1557e5e05a17f5a7",
+      "currentWorkingFileSha256": "90442c0b962745834e34b6d2fb1a833561040c5b756acd2f1557e5e05a17f5a7",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "b3ea3c096b465ce379aa8bbd8790207a08250e5b787c414836381fd2507c5423",
+          "afterSha256": "b3ea3c096b465ce379aa8bbd8790207a08250e5b787c414836381fd2507c5423",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "beforeSha256": "b3ea3c096b465ce379aa8bbd8790207a08250e5b787c414836381fd2507c5423",
+          "afterSha256": "90442c0b962745834e34b6d2fb1a833561040c5b756acd2f1557e5e05a17f5a7",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/fixer-remaining-python-review-2026-09-13.json",
+          "reportSha256": "e65038c6cc83d516b3cd615165d359b79cd42484825f0400f137dae12a413284",
+          "diffSha256": "33652b791666f4244554ce55b547f7804592463dbc2891e110420063bef62744",
+          "hunks": [
+            "@@ -214,7 +214,7 @@ def create_web_application(application: Application) -> web.Application:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Complete original-to-current single default-host change matches remaining review. Explicit Docker/Compose host override and listener mock test are documented; current boundary follow-up also tested malformed request methods without provider initialization."
+        }
+      ],
+      "hunkScopeRationale": "Complete original-to-current single default-host change matches remaining review. Explicit Docker/Compose host override and listener mock test are documented; current boundary follow-up also tested malformed request methods without provider initialization.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/stream_hub.py",
+      "currentGitBlobSha256": "882f01ffd533f0131cd09a76119829f5f185724fdda910fcf55feb25d3b79a7a",
+      "currentWorkingFileSha256": "882f01ffd533f0131cd09a76119829f5f185724fdda910fcf55feb25d3b79a7a",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "2d0f7708d13a0e74aafd98f1be32184c02efd65167ffa0d5b0ef956c94c6d6c0",
+          "afterSha256": "2d0f7708d13a0e74aafd98f1be32184c02efd65167ffa0d5b0ef956c94c6d6c0",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "2d0f7708d13a0e74aafd98f1be32184c02efd65167ffa0d5b0ef956c94c6d6c0",
+          "afterSha256": "8e5cfdca3f886f786ad80ab9a069c7669610209dc5d7d11667f4046a71c9c14e",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "22993f6873e4891277db6fc99fb563d375c490aa14f5d4d69bbfe33cb08d47e4",
+          "hunks": [
+            "@@ -116,8 +116,6 @@ class AccountStream:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Original CancelledError reraising removal aligns with explicit cancellation review. Later ticker market helper public-name substitution bound with adapter wrapper by six-file review."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "beforeSha256": "8e5cfdca3f886f786ad80ab9a069c7669610209dc5d7d11667f4046a71c9c14e",
+          "afterSha256": "882f01ffd533f0131cd09a76119829f5f185724fdda910fcf55feb25d3b79a7a",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/fixer-python-implementation-delta-review-2026-09-13.json",
+          "reportSha256": "34025116237d7dac00b3b8492616644dc73070e15d30879a5ec47b4f1413847f",
+          "diffSha256": "5e3c36481f7c3fb918324669080af8752f420fb19c6a6c18c979c9e94ee41983",
+          "hunks": [
+            "@@ -100,7 +100,7 @@ class AccountStream:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Original CancelledError reraising removal aligns with explicit cancellation review. Later ticker market helper public-name substitution bound with adapter wrapper by six-file review.",
+          "storedCompleteDiffEqualsCurrentGitDiff": true
+        }
+      ],
+      "hunkScopeRationale": "Original CancelledError reraising removal aligns with explicit cancellation review. Later ticker market helper public-name substitution bound with adapter wrapper by six-file review.",
+      "missingEvidence": []
+    },
+    {
+      "path": "exchange_executor/symbol_resolver.py",
+      "currentGitBlobSha256": "4bfded74fccd159bdff43cd5cccba145fa596cf4b64c2653de0c82d79ebd289f",
+      "currentWorkingFileSha256": "4bfded74fccd159bdff43cd5cccba145fa596cf4b64c2653de0c82d79ebd289f",
+      "workingBytesMatchReviewedGit": true,
+      "status": "complete-original-to-current-file-delta-chain-confirmed",
+      "segments": [
+        {
+          "from": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+          "to": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "beforeSha256": "9bb948618dc194d0045c6a0e1561941f0b6046f5471e8ab87184ecf84dd9cf2b",
+          "afterSha256": "9bb948618dc194d0045c6a0e1561941f0b6046f5471e8ab87184ecf84dd9cf2b",
+          "status": "unchanged-git-bytes"
+        },
+        {
+          "from": "0a0841c6034647a153ebdc27be1475b33b5a4291",
+          "to": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "beforeSha256": "9bb948618dc194d0045c6a0e1561941f0b6046f5471e8ab87184ecf84dd9cf2b",
+          "afterSha256": "4bfded74fccd159bdff43cd5cccba145fa596cf4b64c2653de0c82d79ebd289f",
+          "endpointBindingsMatch": true,
+          "report": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+          "reportSha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc",
+          "diffSha256": "73a6af7252705caf239f55968b1bd75b43a02e540372e8e6d2991fd99ded5126",
+          "hunks": [
+            "@@ -2,7 +2,7 @@ from __future__ import annotations",
+            "@@ -44,7 +44,7 @@ def _require_metadata(condition: bool, field: str) -> None:",
+            "@@ -71,7 +71,9 @@ def _positive_multiplier(value: Any) -> bool:",
+            "@@ -92,7 +94,7 @@ def _product_kind(market: dict[str, Any]) -> str:"
+          ],
+          "completeDiffInspectedForScopeAlignment": true,
+          "scopeAlignment": "Only TypeGuard annotations and identity casts; finite Decimal guard precedes integer exponent assumption, same product metadata predicates."
+        },
+        {
+          "from": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+          "to": "e4eff33bb6cbcf26c56470453de4fc5c07bab50f",
+          "status": "unchanged-git-bytes",
+          "sha256": "4bfded74fccd159bdff43cd5cccba145fa596cf4b64c2653de0c82d79ebd289f"
+        }
+      ],
+      "hunkScopeRationale": "Only TypeGuard annotations and identity casts; finite Decimal guard precedes integer exponent assumption, same product metadata predicates.",
+      "missingEvidence": []
+    }
+  ],
+  "counts": {
+    "selected": 27,
+    "completeChains": 27,
+    "incompleteChains": 0
+  },
+  "existingEvidence": [
+    {
+      "path": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+      "sha256": "8cffa638cdf714190a6185eabb81214e4952104f0e3ca1975e5816cdf90dabcc"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-python-implementation-delta-review-2026-09-13.json",
+      "sha256": "34025116237d7dac00b3b8492616644dc73070e15d30879a5ec47b4f1413847f"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-remaining-python-review-2026-09-13.json",
+      "sha256": "e65038c6cc83d516b3cd615165d359b79cd42484825f0400f137dae12a413284"
+    }
+  ],
+  "reviewMethod": "Read actual complete original-security-stage hunks for all25 included root modules, actual later5root-module hunks and the other2root-module full diffs. Matched each to stated independent rationale; checked all historical/current source endpoints and later stored complete diffs. Original5b025-to-security-baseline0a084 bytes verified identical per root file. This adds chain consolidation; does not pretend to rerun original tests.",
+  "executionLimits": "Original security review reported546 tests with543pass and3 then-unresolved source-pin errors; not recharacterized as all-green. Later six-file review102pass and275comparisons, remaining review55pass/28acceptance documented. No new test suite executed here and no final execution receipt approval.",
+  "junctionBoundary": "Windows junction addendum concerns exchange_executor/tests/test_acceptance_journal.py, a test-category input, not one of these27root modules. Its genuine source/test review remains available but does not silently certify other Python test inputs.",
+  "authorityLimits": "No receipt/pin changes; providerAcceptanceVerified remains false; no live/provider or container operations; scoped FP reports never used as full semantic approval."
+}

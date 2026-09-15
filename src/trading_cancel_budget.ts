@@ -36,9 +36,23 @@ export function claimCancelAttempt(accountId: string, clientOrderId: string): Ca
   return permit;
 }
 
+function assertLiveCancelPermit(
+  record: { budget: Budget; used: boolean } | undefined, currentBudget: Budget | undefined,
+): asserts record is { budget: Budget; used: boolean } {
+  if (!record || record.used || !record.budget.active || currentBudget !== record.budget) {
+    throw new Error('Cancel permit is invalid, consumed or expired.');
+  }
+}
+
+function assertMatchingCancelPermit(permit: CancelAttemptPermit, accountId: string, clientOrderId: string): void {
+  if (permit.accountId !== accountId || permit.clientOrderId !== clientOrderId) {
+    throw new Error('Cancel permit is invalid, consumed or expired.');
+  }
+}
+
 export function consumeCancelAttempt(permit: CancelAttemptPermit, accountId: string, clientOrderId: string): void {
   const record = permits.get(permit);
-  if (!record || record.used || !record.budget.active || current.getStore() !== record.budget
-    || permit.accountId !== accountId || permit.clientOrderId !== clientOrderId) throw new Error('Cancel permit is invalid, consumed or expired.');
+  assertLiveCancelPermit(record, current.getStore());
+  assertMatchingCancelPermit(permit, accountId, clientOrderId);
   record.used = true;
 }

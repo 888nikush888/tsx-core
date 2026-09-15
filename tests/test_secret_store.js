@@ -48,6 +48,18 @@ try {
   assert.equal(store.status().dashboardViewerToken.configured, true);
   await store.removeDashboardViewerToken();
   assert.equal(store.status().dashboardViewerToken.configured, false);
+  const fixedPropertyEnv = {};
+  Object.defineProperty(fixedPropertyEnv, 'DASHBOARD_VIEWER_TOKEN', {
+    value: '', writable: true, configurable: false, enumerable: true,
+  });
+  const fixedPropertyStore = new ManagedSecretStore(path.join(directory, 'fixed-property'), fixedPropertyEnv);
+  await fixedPropertyStore.initialize();
+  const retainedViewer = await fixedPropertyStore.rotateDashboardToken('viewer');
+  await assert.rejects(fixedPropertyStore.removeDashboardViewerToken(), TypeError);
+  assert.equal(fixedPropertyEnv.DASHBOARD_VIEWER_TOKEN, retainedViewer);
+  assert.equal(fixedPropertyStore.status().dashboardViewerToken.source, 'managed');
+  assert.equal(fixedPropertyStore.status().dashboardViewerToken.configured, true,
+    'A failed token removal must not report the still-active credential as missing.');
   await store.set({
     auditWebhookToken: 'audit-token-0123456789abcdef0123456789abcdef',
     alertRelayToken: 'relay-token-0123456789abcdef0123456789abcdef',

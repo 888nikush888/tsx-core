@@ -1,0 +1,190 @@
+{
+  "kind": "independent-three-contextual-sonar-issue-review",
+  "reviewedRevision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+  "scannerRevision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+  "scannerInventory": {
+    "path": "reports/security-services/sonar-20aea4b/reports/sonarcloud/open-issues.tsv",
+    "sha256": "6223182f351f1b476613a7b74780b23d1b2a85ff3f012f3c7dc2e34b9166ee30"
+  },
+  "entries": [
+    {
+      "issueId": "AaCkbUDUNs79UeRQ26Pg",
+      "rule": "typescript:S1523",
+      "path": "src/signal_schema.ts",
+      "line": 618,
+      "recommendation": "Individual false-positive disposition for dynamic-code injection; retain execution deadline.",
+      "rationale": [
+        "The only executed VM JavaScript is the literal validate(). No pattern, field name, XML content or other untrusted text is interpolated into the executed program. The context contains an application-defined validate callback closing over separately validated data.",
+        "The callback invokes additional-field validators in order; dynamic RegExp consumes pattern data as regexp syntax, not JavaScript source. This is not reliance on VM as a general security sandbox. One 100ms VM boundary deliberately interrupts native regexp backtracking for the whole batch.",
+        "Call chain was reread: validateDynamicContract revalidates contract definition, invokes additional-field loop, and returns execution output only on success; native timeout is wrapped as SignalValidationError. Removing VM or moving regexp execution outside it would regress the verified denial-of-service bound.",
+        "Existing regression checks three pathological patterns both first and after29 fields, exact native timeout cause, 30 benign patterns with exactly one boundary, shared deadline exhaustion and benign Unicode. These files and caller bindings remain exact historical bytes at the reviewed revision."
+      ],
+      "sourceAndContextBindings": [
+        {
+          "path": "src/signal_schema.ts",
+          "revision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+          "gitBlobSha256": "69be3d8a092d59135813b71c77f862fb8527dc655100c8e5a07b116dc3010df2",
+          "currentWorkingLfMatches": true,
+          "historicalSha256Matches": true
+        },
+        {
+          "path": "src/signal_contract.ts",
+          "revision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+          "gitBlobSha256": "c7dff51c06d538a2cce203c6495b3649bad8206d37995b3b6661730a207c22d4",
+          "currentWorkingLfMatches": true,
+          "historicalSha256Matches": true
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "revision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+          "gitBlobSha256": "606910e2de5b08cf5925a12909500027b9ec1bbebbd408710c4fee47a9ceb515",
+          "currentWorkingLfMatches": true,
+          "historicalSha256Matches": true
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "revision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+          "gitBlobSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b",
+          "currentWorkingLfMatches": true,
+          "historicalSha256Matches": true
+        },
+        {
+          "path": "tests/test_signal_contract_validation.js",
+          "revision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+          "gitBlobSha256": "09c433d6a74db11089a7bd5528b11af9de8335e46ce7313c76e96fac6c745225",
+          "currentWorkingLfMatches": true,
+          "historicalSha256Matches": true
+        },
+        {
+          "path": "tests/fixtures/signal_contract_regex_child.js",
+          "revision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+          "gitBlobSha256": "9f49f8d4d79ed843031ed7f81adf9a981e6e970d6c94f0b50215bd8998109736",
+          "currentWorkingLfMatches": true,
+          "historicalSha256Matches": true
+        }
+      ],
+      "testEvidence": "Existing source-bound independent Codacy report and concrete fixture inspected; no new pathological suite launched.",
+      "limits": [
+        "A valid request may consume its bounded validation budget; aggregate request load is not proved safe by this issue disposition.",
+        "No arbitrary-JavaScript sandbox guarantee; no scanner/API mutation."
+      ]
+    },
+    {
+      "issueId": "AaCaApfpQzi-Va3r5ZAK",
+      "rule": "typescript:S7786",
+      "path": "src/trading_take_profit.ts",
+      "line": 28,
+      "recommendation": "Accept this narrowly justified Error-class rule deviation; do not substitute TypeError.",
+      "rationale": [
+        "This guards missing stored target allocation evidence. Only ensureTakeProfitCoverage calls it, before its local try/catch. Error propagates to applyRemoteState per-position handling.",
+        "Current isAccountWidePositionFailure explicitly classifies TypeError as account-wide; ordinary Error without SQLite code is position-local. Substitution would stop protection work for subsequent independent positions, changing trading failure isolation.",
+        "Existing emergency test requires all independent positions attempted; money-value test expressly prohibits accidental TypeError classification for analogous missing monetary evidence. Current engine delta since historical review only changes the unrelated remote-account fingerprint branch to await+return."
+      ],
+      "sourceAndContextBindings": [
+        {
+          "path": "src/trading_take_profit.ts",
+          "revision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+          "gitBlobSha256": "24e989141748771d05c15d170eb2be66bf84826df03f2af33ea4962fada79212",
+          "currentWorkingLfMatches": true
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "revision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+          "gitBlobSha256": "99531ae5985e4e4eb07ee65342c9f9206d140b5e408d74abe8da3878b51c0cc5",
+          "currentWorkingLfMatches": true
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "revision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+          "gitBlobSha256": "9ab8475127df430662e8efe98669f954c7db602bf574e8908092d9fb0f212d7c",
+          "currentWorkingLfMatches": true
+        },
+        {
+          "path": "tests/test_trading_emergency.js",
+          "revision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+          "gitBlobSha256": "4dae1e532ec7d9ffbe12436f8edb789d779638384934bcb670cbd36eea90d902",
+          "currentWorkingLfMatches": true
+        },
+        {
+          "path": "tests/test_trading_money_value.js",
+          "revision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+          "gitBlobSha256": "7eb03daa5da030089f454431a320cb73667ac63f61d2c8fa591efcba6168bcee",
+          "currentWorkingLfMatches": true
+        }
+      ],
+      "actualProbe": {
+        "toolChunkId": "0ba87f",
+        "exitCode": 0,
+        "method": "Extract and transpile actual current sqliteFailure, mismatchIsAccountWide and isAccountWidePositionFailure bodies; inject distinct unrelated Error classes.",
+        "ordinaryErrorAccountWide": false,
+        "typeErrorAccountWide": true
+      },
+      "limits": [
+        "Classifier probe is not a full trading suite rerun. It proves the precise proposed error-class behavior difference."
+      ]
+    },
+    {
+      "issueId": "AaCaApnvQzi-Va3r5ZA4",
+      "rule": "typescript:S7758",
+      "path": "frontend/src/app/workflow/workflow-edge.tsx",
+      "line": 26,
+      "recommendation": "A small compatible source fix is available; prefer explicit first-code-unit codePointAt over claiming every codePointAt replacement is incompatible.",
+      "rationale": [
+        "Current hash iterates Unicode characters but intentionally takes each first UTF-16 unit; direct character.codePointAt(0) changes supplementary-character curve offsets (emoji32 to24).",
+        "Historical commit7bf8c6e65f1bdbff48a0046f7aa453c2296ea393 introduced character[0].codePointAt(0)! with an explicit UTF16 compatibility comment;66e036c0cad696cf9c87af4d930afdb1e22176ac reverted just this expression. Parallel branch equivalents are024dac2 and57bfdb5.",
+        "The reverting commit message is broad frontend evidence/type work and does not record a concrete hash regression or compiler reason for this particular reversion. Therefore no invented reason is assigned. The earlier full-delta frontend review already establishes first-unit equivalence; the later Sonar report only demonstrates that the direct code-point substitution differs and does not refute the first-unit alternative.",
+        "Existing workflow-edge tests pin empty, ASCII, supplementary and isolated-low-surrogate curve geometry. Exhaustive bounded scalar/code-unit probe checks all0x110000 String.fromCodePoint inputs and confirms character[0].codePointAt(0) equals charCodeAt(0). Empty ID invokes no reducer."
+      ],
+      "proposedExpression": "character.slice(0, 1).codePointAt(0) ?? 0",
+      "proposalDetails": "Use parentheses around this contribution in the addition. slice(0,1) explicitly retains one UTF-16 code unit and avoids indexed-access/non-null assertions; fallback is unreachable for a character yielded by string iteration. Require frontend compiler, existing geometry test and lint, then fresh Sonar scan. No source edit made.",
+      "sourceAndContextBindings": [
+        {
+          "path": "frontend/src/app/workflow/workflow-edge.tsx",
+          "revision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+          "gitBlobSha256": "016483ca83c02387a246632e26a72d0a8e1d13185e145671212e6109a7cfe0f9",
+          "currentWorkingLfMatches": true
+        },
+        {
+          "path": "frontend/tests/workflow-edge.test.ts",
+          "revision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+          "gitBlobSha256": "14fa8e32f1e70d80753347d7998ca4fae0dab10d9e498d32d00c0431b238a9fd",
+          "currentWorkingLfMatches": true
+        }
+      ],
+      "actualProbe": {
+        "toolChunkId": "0ba87f",
+        "exitCode": 0,
+        "equivalenceCases": 1114112,
+        "oldEmojiOffset": 32,
+        "directCodePointEmojiOffset": 24
+      },
+      "limits": [
+        "No claim the previous reversion was technically necessary; available Git history does not state a reason.",
+        "No full frontend suite or production build executed in this read-only task."
+      ]
+    }
+  ],
+  "historicalReports": [
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-codacy-signal-schema-regexp-independent-review-2026-09-15.json",
+      "sha256": "765a7b9d935a8d4ff1683efb5611535c978fb0460641d22ebecba32a8c1c8cb7"
+    },
+    {
+      "path": "reports/security-services/fixer-take-profit-allocation-error-class-review.json",
+      "sha256": "cdcb33fc766be0ceb083b638c7d7f6634d6fccb9121fe450f3515a79d5860860"
+    },
+    {
+      "path": "reports/security-services/fixer-sonar-frontend-review.json",
+      "sha256": "826c4a82779781367f27b693c78e14c3e3eed7983c3d82499dcaf3bc2b2f48c3"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-frontend-delta-review-2026-09-13.json",
+      "sha256": "42aad5f8d0e4ac73ee8277545d56d51b48cd56e3299c87673fafa0777ae08f10"
+    }
+  ],
+  "probeCorrection": "First classifier probe failed because sqliteFailure dependency was omitted; corrected probe includes all three actual helper bodies and passes. No production failure inferred.",
+  "limits": [
+    "Three specific issue IDs only; not whole repository or PR inventory approval.",
+    "No source, test or platform mutation; only report written."
+  ]
+}

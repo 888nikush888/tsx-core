@@ -91,7 +91,7 @@ class KucoinProviderSdkBoundaryTests(unittest.IsolatedAsyncioTestCase):
                 rest = self.client(exchange)
                 calls = []
 
-                async def intercepted(url, method="GET", headers=None, body=None):
+                async def intercepted(url, method="GET", headers=None, body=None, *, calls=calls):
                     parsed = urlsplit(url)
                     calls.append((parsed.path, parse_qs(parsed.query), method))
                     self.assertTrue(headers.get("KC-API-SIGN"))

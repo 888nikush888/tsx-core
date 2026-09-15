@@ -1,5 +1,8 @@
-# Linux x86_64 / CPython 3.12 quality-only dependency. Runtime images do not install this file.
+# Linux x86_64 and Windows x86_64 / CPython 3.12 quality-only dependencies.
+# Runtime images do not install this file. Wheel hashes verified against PyPI release metadata.
 coverage==7.10.7 \
-    --hash=sha256:314f2c326ded3f4b09be11bc282eb2fc861184bc95748ae67b360ac962770be7
+    --hash=sha256:314f2c326ded3f4b09be11bc282eb2fc861184bc95748ae67b360ac962770be7 \
+    --hash=sha256:f51328ffe987aecf6d09f3cd9d979face89a617eacdaea43e7b3080777f647ba
 ruff==0.15.7 \
-    --hash=sha256:dce0896488562f09a27b9c91b1f58a097457143931f3c4d519690dea54e624c5
+    --hash=sha256:dce0896488562f09a27b9c91b1f58a097457143931f3c4d519690dea54e624c5 \
+    --hash=sha256:4d53d712ddebcd7dace1bc395367aec12c057aacfe9adbb6d832302575f4d3a1

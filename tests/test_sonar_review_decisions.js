@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -25,13 +26,27 @@ const original = JSON.parse(await readFile(path.join(repository, REVIEW_MANIFEST
 const prOriginal = JSON.parse(await readFile(path.join(repository, PR_REVIEW_MANIFEST), 'utf8'));
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status });
 
+// These transport fixtures exercise historical, immutable review decisions.
+// Current source changes must not silently redefine what was reviewed for PR29.
+const historicalSources = new Map();
+function reviewedFixture(binding) {
+  if (!historicalSources.has(binding.path)) {
+    historicalSources.set(binding.path, execFileSync('git', ['show', `be8cf5af59f60d69ad946d778973add8161b7672:${binding.path}`],
+      { cwd: repository, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }));
+  }
+  const bytes = historicalSources.get(binding.path);
+  assert.equal(createHash('sha256').update(bytes).digest('hex'), binding.sha256,
+    `Historical fixture must match the reviewed binding: ${binding.path}`);
+  return bytes;
+}
+
 async function resetManifest(manifest = original) {
   await mkdir(path.dirname(path.join(root, REVIEW_MANIFEST)), { recursive: true });
   await writeFile(path.join(root, REVIEW_MANIFEST), JSON.stringify(manifest));
   for (const decision of original.decisions) {
     for (const file of [decision.source, ...decision.tests]) {
       await mkdir(path.dirname(path.join(root, file.path)), { recursive: true });
-      await writeFile(path.join(root, file.path), await readFile(path.join(repository, file.path)));
+      await writeFile(path.join(root, file.path), reviewedFixture(file));
     }
   }
 }
@@ -340,10 +355,10 @@ async function createPullRequestFixture() {
   // Real Git history proves the distinction between the analyzed revision and a later unchanged checkout.
   await writeFile(source, '// changed source fixture\n');
   const changedSource = commit();
-  await writeFile(source, await readFile(path.join(repository, prDecision.source.path)));
+  await writeFile(source, reviewedFixture(prDecision.source));
   await writeFile(test, '// changed keyboard regression fixture\n');
   const changedTest = commit();
-  await writeFile(test, await readFile(path.join(repository, prDecision.tests[0].path)));
+  await writeFile(test, reviewedFixture(prDecision.tests[0]));
   const analyzedRevision = commit();
   const checkoutRevision = commit();
   const futureRevision = commit();

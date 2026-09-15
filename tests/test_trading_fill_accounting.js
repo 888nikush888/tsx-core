@@ -31,7 +31,7 @@ try {
   await intent('partial');
   await insertAccountedFill({ intentId: 'partial', id: 'entry', price: '100', quantity: '2', fee: '1', filledAt: today - 100 });
   await insertAccountedFill({ intentId: 'partial', id: 'tp', role: 'take_profit', price: '120', fee: '-0.25', filledAt: today + 100 });
-  let result = await snapshot();
+  const result = await snapshot();
   assert.equal(result.amount, '20.25', 'Today includes partial price PnL and rebate, but not yesterday’s entry fee.');
   assert.equal(result.pricePnl, '20');
   assert.equal(result.fees, '0.25');

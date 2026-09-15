@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "reviewedRevision": "c121c7657ab40a29d260c9b7b2aae46ada3a3876",
+  "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
+  "decision": "fix-reviewed-pending-new-scan",
+  "sourceBindings": [
+    {
+      "path": "frontend/src/lib/navigation.tsx",
+      "sha256": "3263bd0d901845398a30c7357aaf20159cb13980aa7818e9d399fb2ca7e3c1d8"
+    },
+    {
+      "path": "frontend/tests/navigation.test.tsx",
+      "sha256": "0a7c4079de17885b33af94c1e43231d84e45630ae9b708511e7b8f95945e202f"
+    }
+  ],
+  "rationale": "browserUrl starts from the fixed current origin and assigns pathname/search via URL setters. A path with leading double slash is serialized as an absolute same-origin URL; ordinary paths retain relative hrefs. URL parsing can no longer reinterpret pathname text as an authority. Existing fragment behavior and navigation callbacks remain unchanged. Regression tests cover double/triple slash, target=_blank anchor origin, and normal-click history updates.",
+  "verification": {
+    "independentTargetedRun": "4navigation tests passed in integrating worktree; both reviewed files exactly match git blobs at reviewedRevision.",
+    "node": "22.23.2",
+    "vitest": "4.1.11",
+    "log": "reports/security-services/snyk-navigation-independent-tests.log"
+  },
+  "limits": "This later source fix does not change the historical wave3 open disposition; fresh scan and exact-source review are still required."
+}

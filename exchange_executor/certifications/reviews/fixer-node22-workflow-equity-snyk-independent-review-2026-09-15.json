@@ -1,0 +1,1562 @@
+{
+  "schemaVersion": 1,
+  "reviewedBaseRevision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+  "reviewedState": "Git 26127c6 plus explicit frozen working delta; not yet attributed to a future source commit",
+  "priorReview": {
+    "path": "exchange_executor/certifications/reviews/snyk-code-async-restoration-review-2026-09-14.json",
+    "sha256": "902512f98f12cc14b17c9290fffafb1814ebc86054c833486893a218b07375b2",
+    "reviewedRevision": "ad11761b6bc6b6ef622a46855e8e64cebbe87257"
+  },
+  "scan": {
+    "path": "reports/security-services/fixer-node22-workflow-equity-snyk.sarif.json",
+    "sha256": "f358103fc130b617be9e8e847d981a7cd0dedc271e41e7f3115fb1045e60e0ac",
+    "same85Ids": true,
+    "all85FingerprintsAndFlowDigestsUnchanged": true
+  },
+  "executionEvidence": {
+    "path": "reports/security-services/fixer-node22-workflow-equity-snyk-execution.json",
+    "sha256": "c534e1a4dfff2dd26211fcf98d54ccbc1a4b84c51697d1cffe9fe5b097d9633f",
+    "uncommittedSource": [
+      "src/workflow_repository.ts",
+      "frontend/src/features/risk-analytics/equity-chart.tsx",
+      "tests/test_workflow_input_types.js"
+    ],
+    "finishedAt": "2026-09-15T07:45:10.9971020Z",
+    "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+    "scannerExit": 1
+  },
+  "updatedEntries": [
+    {
+      "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+      "ruleId": "javascript/PT",
+      "path": "scripts/verify_exchange_implementation.js",
+      "line": 93,
+      "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
+      "disposition": "false-positive",
+      "rationale": "The current CLI accepts exactly --python and one explicit absolute local interpreter path. Re-read its full runtimeReceipts -> verifyImplementationBuild -> stableBytes flow. The Python bridge text, repository root and certification directory are fixed by this script; the bridge enumerates repository PROFILES and certification_result validates exchange identifiers against [a-z][a-z0-9_]{1,63}, profile identity, pinned SDK and independently trusted receipt hashes before returning rows. The later receipt path is therefore not a remotely chosen archive member. stableBytes validates canonical parents, an ordinary non-symlink single-link file, O_RDONLY/O_NOFOLLOW where available, and matching identities before/during/after the bounded read. The reported readSync argument is an opened descriptor rather than an unvalidated path string. A user selecting a malicious local Python executable already exercises the explicit local execution capability; this CLI is not an untrusted runtime selector exposed by the application. False positive for this exact reported path-traversal flow, not a claim that arbitrary interpreters are trusted. Independent current-source reassessment: Complete package.json delta only changes devDependency @types/node 26.1.1 to 22.20.2. No CLI script, argument, executable selection or runtime dependency changed. Rechecked unchanged explicit local Python selector and fixed bridge/receipt stableBytes flow; no new remote path authority. This is context freshness only, not certification receipt approval.",
+      "contextPaths": [
+        {
+          "path": "exchange_executor/ccxt_certification.py",
+          "sha256": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2"
+        },
+        {
+          "path": "exchange_executor/ccxt_certification_evidence.py",
+          "sha256": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8"
+        },
+        {
+          "path": "exchange_executor/ccxt_implementation_reviews.py",
+          "sha256": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289"
+        },
+        {
+          "path": "exchange_executor/ccxt_profiles.py",
+          "sha256": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd"
+        },
+        {
+          "path": "package.json",
+          "sha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 310
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 285
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 298
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 298
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 321
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 321
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 81
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 93
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 93
+        }
+      ],
+      "fingerprints": {
+        "0": "9c63133ec86a0b7dccd7902fd601b73f3781845fe63b366f34b16eec1729ecd5",
+        "1": "f3d714f2.4773f344.eec2c252.d7919eeb.4a62e1e5.292a53dc.c08dd55c.eb397db7.214d3e14.b6e32c83.96e35b6b.c8688b2b.6c287ca9.5fce695c.f0256597.62f49dc2",
+        "identity": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "snyk/asset/finding/v1": "ca8d4075-1f15-40f9-9432-667e0a033660"
+      },
+      "evidenceSha256": "d70371c49aeb96057c8ea6367095a4d8038226599f2efa6a5d9f69b0cd1bb653",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-async-restoration-review-2026-09-14.json",
+        "rationale": "The current CLI accepts exactly --python and one explicit absolute local interpreter path. Re-read its full runtimeReceipts -> verifyImplementationBuild -> stableBytes flow. The Python bridge text, repository root and certification directory are fixed by this script; the bridge enumerates repository PROFILES and certification_result validates exchange identifiers against [a-z][a-z0-9_]{1,63}, profile identity, pinned SDK and independently trusted receipt hashes before returning rows. The later receipt path is therefore not a remotely chosen archive member. stableBytes validates canonical parents, an ordinary non-symlink single-link file, O_RDONLY/O_NOFOLLOW where available, and matching identities before/during/after the bounded read. The reported readSync argument is an opened descriptor rather than an unvalidated path string. A user selecting a malicious local Python executable already exercises the explicit local execution capability; this CLI is not an untrusted runtime selector exposed by the application. False positive for this exact reported path-traversal flow, not a claim that arbitrary interpreters are trusted."
+      },
+      "changedBindings": [
+        {
+          "path": "package.json",
+          "priorSha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00",
+          "newSha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+        }
+      ]
+    },
+    {
+      "findingId": "164aa45d-3766-4932-9dd7-4f2729603758",
+      "ruleId": "javascript/PT",
+      "path": "src/signal_parser.ts",
+      "line": 596,
+      "reviewedSourceSha256": "606910e2de5b08cf5925a12909500027b9ec1bbebbd408710c4fee47a9ceb515",
+      "disposition": "false-positive",
+      "rationale": "Re-read the entire current isMain/argv/runCli block: block-local filePath still comes exclusively from local --file argument, readFile now at line596, while exported parser input is messageText. Complete source delta extracts retry classification/delay into nextAttemptDelay: nonretryable still throws original error, exhausted attempts return null, zero delay remains a real awaited delay, logging stays before abortableDelay and lastError assignment stays in catch. The helper creates no filesystem selector and CLI branch itself is unchanged after ten-line shift. No remote signal path reaches filePath; intended local operator file read remains a false-positive for this exact trace. Exact parser source is identical to independently reviewed e3a5857; fresh final SARIF identity, path and flow rechecked. Independent current-source reassessment: Complete package.json delta only changes devDependency @types/node 26.1.1 to 22.20.2. Parser CLI script and --file argument loop remain unchanged; readFile remains inside isMain local CLI block. Type declarations do not add a remote file selector.",
+      "contextPaths": [
+        {
+          "path": "package.json",
+          "sha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/signal_parser.ts",
+          "line": 580
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 580
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 580
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 580
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 580
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 589
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 589
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 589
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 589
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 596
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 596
+        }
+      ],
+      "fingerprints": {
+        "0": "819a9b88783967716f6bfb699b9ed0c83383f4489f75ecc90d9e56ef6ceef483",
+        "1": "c3f8dfad.4773f344.c9330245.d7919eeb.ef9f7d82.8020cfdf.e2ef5c06.ae94f388.c3f8dfad.b6e32c83.c9330245.cdaeacef.3f452f8c.8f47a30e.5c2e6593.83183368",
+        "snyk/asset/finding/v1": "164aa45d-3766-4932-9dd7-4f2729603758",
+        "identity": "164aa45d-3766-4932-9dd7-4f2729603758"
+      },
+      "evidenceSha256": "697e13c2fd0166a0ce0788c0358192a8b460e07e0f6efd7ec0038a5e8431bc11",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-async-restoration-review-2026-09-14.json",
+        "rationale": "Re-read the entire current isMain/argv/runCli block: block-local filePath still comes exclusively from local --file argument, readFile now at line596, while exported parser input is messageText. Complete source delta extracts retry classification/delay into nextAttemptDelay: nonretryable still throws original error, exhausted attempts return null, zero delay remains a real awaited delay, logging stays before abortableDelay and lastError assignment stays in catch. The helper creates no filesystem selector and CLI branch itself is unchanged after ten-line shift. No remote signal path reaches filePath; intended local operator file read remains a false-positive for this exact trace. Exact parser source is identical to independently reviewed e3a5857; fresh final SARIF identity, path and flow rechecked."
+      },
+      "changedBindings": [
+        {
+          "path": "package.json",
+          "priorSha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00",
+          "newSha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+        }
+      ],
+      "flowChanged": true
+    },
+    {
+      "findingId": "6747340c-e7a2-460b-87c7-e2e6c3802226",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_exchange_contract_validation.js",
+      "line": 31,
+      "reviewedSourceSha256": "b792cf23f24b2ea24e4bc2bfdd38a36a74ee3aa39d1f767ec8530486419ff459",
+      "disposition": "false-positive",
+      "rationale": "Line 31: Acquisition-evidence redaction sentinel is deliberately present in untrusted input; the following assertion forbids it in validated output. Independent current-source reassessment: Full test delta solely extends primitive diagnostic cases with NaN, Infinity, Symbol and rejects foreign function/object coercion. Acquisition-evidence input sentinel and the assertion forbidding it in validated output remain byte-identical. Sentinel is still deliberate isolated test data, not a credential.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_exchange_contract_validation.js",
+          "line": 31
+        },
+        {
+          "path": "tests/test_exchange_contract_validation.js",
+          "line": 31
+        }
+      ],
+      "fingerprints": {
+        "0": "d9e44b7776e2850bd49192ad60b8c6b6096d57d5edd9434af14d697e0e8c338a",
+        "1": "fc3065be.3f481afb.1b459778.e052b9a9.79a7d027.fcf3002d.fdccee38.f562c5fc.fc3065be.94f191c0.3d62749e.e052b9a9.3b4d01cf.becd9ff1.71100302.c425cb87",
+        "snyk/asset/finding/v1": "6747340c-e7a2-460b-87c7-e2e6c3802226",
+        "identity": "6747340c-e7a2-460b-87c7-e2e6c3802226"
+      },
+      "evidenceSha256": "61f6d603c0d51a46171aaca3db30fb316f51f89fa07c13af31f0f680e9171029",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-async-restoration-review-2026-09-14.json",
+        "rationale": "Line 31: Acquisition-evidence redaction sentinel is deliberately present in untrusted input; the following assertion forbids it in validated output."
+      },
+      "changedBindings": [
+        {
+          "path": "tests/test_exchange_contract_validation.js",
+          "priorSha256": "a76d3c7fb41e757069600bce5f4eabb73fcc4f069b3e96404ffe262ea3df1fde",
+          "newSha256": "b792cf23f24b2ea24e4bc2bfdd38a36a74ee3aa39d1f767ec8530486419ff459"
+        }
+      ]
+    },
+    {
+      "findingId": "a3737d56-de9a-41e7-b30b-fb374b214f91",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_exchange_contract_validation.js",
+      "line": 31,
+      "reviewedSourceSha256": "b792cf23f24b2ea24e4bc2bfdd38a36a74ee3aa39d1f767ec8530486419ff459",
+      "disposition": "false-positive",
+      "rationale": "Line 31: Acquisition-evidence redaction sentinel is deliberately present in untrusted input; the following assertion forbids it in validated output. Independent current-source reassessment: Separately verified second occurrence remains in the same acquisition-evidence redaction fixture and unchanged output exclusion assertion. New diagnostic edge assertions neither use the sentinel for authentication nor expose a provider secret; prior individual fixture rationale remains valid.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_exchange_contract_validation.js",
+          "line": 31
+        },
+        {
+          "path": "tests/test_exchange_contract_validation.js",
+          "line": 31
+        }
+      ],
+      "fingerprints": {
+        "0": "d9e44b7776e2850bd49192ad60b8c6b6096d57d5edd9434af14d697e0e8c338a",
+        "1": "e7fd436d.3f481afb.5ef5a079.d7919eeb.79a7d027.f7edcf51.11c09b46.e0f43150.eda9ef34.4773f344.9f5fea6f.d7919eeb.3f452f8c.5fce695c.11c09b46.695b0397",
+        "identity": "a3737d56-de9a-41e7-b30b-fb374b214f91",
+        "snyk/asset/finding/v1": "a3737d56-de9a-41e7-b30b-fb374b214f91"
+      },
+      "evidenceSha256": "5c870d2cafd5437d5cd659756d9b98e7308acdc7a2dcbf468aec9a72ab320e4d",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-async-restoration-review-2026-09-14.json",
+        "rationale": "Line 31: Acquisition-evidence redaction sentinel is deliberately present in untrusted input; the following assertion forbids it in validated output."
+      },
+      "changedBindings": [
+        {
+          "path": "tests/test_exchange_contract_validation.js",
+          "priorSha256": "a76d3c7fb41e757069600bce5f4eabb73fcc4f069b3e96404ffe262ea3df1fde",
+          "newSha256": "b792cf23f24b2ea24e4bc2bfdd38a36a74ee3aa39d1f767ec8530486419ff459"
+        }
+      ]
+    },
+    {
+      "findingId": "d3f09f66-f994-4652-86bf-651b0262e797",
+      "ruleId": "javascript/reDOS",
+      "path": "src/incoming_work_repository.ts",
+      "line": 179,
+      "reviewedSourceSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b",
+      "disposition": "false-positive",
+      "rationale": "Re-read the actual pending-row -> readIngressMessage -> acceptsLegacySource -> shouldForward -> matchesAllRegexPatterns -> parseRegex chain. Database input is JSON-decoded and message identity/text fields are checked before filtering; invalid classification remains needs_review. Configured regular expressions are intentional filter input, not HTML/code execution. The new helper extraction preserves nested-quantifier rejection, the 150-character compiled-pattern cap, removal of stateful g/y flags and 100-entry cache. Every production match in this flow truncates text to 8000 characters and calls safeRegexTest with a 100-ms VM CPU timeout; VM exceptions reject the filter. This bound is not inferred solely from the heuristic: the actual vm.runInContext call still executes regex.test with timeout, and the existing test exercised a matching-engine timeout and verified its native timeout cause during this review. The reported source-to-RegExp construction trace omits the bounded match boundary. No unlimited match execution was found in this reported flow. Independently re-read complete e58bd77 filters/ingress delta and persisted ingress caller. Plain string content.text is now permitted solely for messageCustomServiceAction, not messageText; caption validation remains formatted-only. MESSAGE_TYPES does not map this service action, so getMessageTextAndType returns empty text and the service type. The helper also explicitly returns empty text for a primitive string instead of consuming it as ordinary signal text. Normal formatted text is unchanged. Regex compile cap, heuristic, flag/cache logic, 8000-character truncation and actual 100-ms VM timeout remain byte-identical. New persisted-restart and ordinary-message rejection tests independently passed. No additional unbounded matching path is introduced by admitting the non-text service envelope. Independent current-source reassessment: Complete contract_values delta replaces typeof Set membership by explicit primitive typeof checks only. Error.message/null and foreign object/function fallback remain unchanged, including no arbitrary object coercion. filters uses unknownErrorMessage solely for caught diagnostic text; pattern parser, cache, 8000-char match bound and VM100ms timeout remain unchanged. No new regex evaluator or bypass arises.",
+      "contextPaths": [
+        {
+          "path": "src/filters.ts",
+          "sha256": "9135f07539b9582c98ec48fb116e243b4b1dd215fd6440743adc057bac5fdb0f"
+        },
+        {
+          "path": "src/ingress_contracts.ts",
+          "sha256": "5419ee6e96ab6685aabd5b2f388fae430c2ef483de1af3225f2ad23531674b98"
+        },
+        {
+          "path": "src/contract_values.ts",
+          "sha256": "81a3497fe7474e808ae1515d088cf9b0faa188d50e2372cab46d4c82b5336374"
+        },
+        {
+          "path": "tests/test_filters.js",
+          "sha256": "46f771d4d7cf1c6d6627502f058b19500a65b451f7028a15fa43dd9a2c32ce7b"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 221
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 194
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 202
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 173
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 179
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 179
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 179
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 280
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 286
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 300
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 303
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 293
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 305
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 249
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 255
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 255
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 255
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 305
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 306
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 260
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 264
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 266
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 125
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 126
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 126
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 126
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 132
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 132
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 144
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 150
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 145
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 162
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 164
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 164
+        }
+      ],
+      "fingerprints": {
+        "0": "b43f9879c4c47a37f1a7a3c288adc5e49058518e2bed49b3a37e9d49d7ca218e",
+        "1": "2d06e3d6.93dc32e3.607187b5.b62a4246.ef9f7d82.8020cfdf.29e74e17.3357ef26.6bb676bb.b6e32c83.df10db2d.3fe041cc.8695fa9e.5fce695c.55818220.e6930396",
+        "snyk/asset/finding/v1": "d3f09f66-f994-4652-86bf-651b0262e797",
+        "identity": "d3f09f66-f994-4652-86bf-651b0262e797"
+      },
+      "evidenceSha256": "c464f99ad641abfbb34942542f1c66c2c01975a9fb09652b17940545ac2bb939",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-async-restoration-review-2026-09-14.json",
+        "rationale": "Re-read the actual pending-row -> readIngressMessage -> acceptsLegacySource -> shouldForward -> matchesAllRegexPatterns -> parseRegex chain. Database input is JSON-decoded and message identity/text fields are checked before filtering; invalid classification remains needs_review. Configured regular expressions are intentional filter input, not HTML/code execution. The new helper extraction preserves nested-quantifier rejection, the 150-character compiled-pattern cap, removal of stateful g/y flags and 100-entry cache. Every production match in this flow truncates text to 8000 characters and calls safeRegexTest with a 100-ms VM CPU timeout; VM exceptions reject the filter. This bound is not inferred solely from the heuristic: the actual vm.runInContext call still executes regex.test with timeout, and the existing test exercised a matching-engine timeout and verified its native timeout cause during this review. The reported source-to-RegExp construction trace omits the bounded match boundary. No unlimited match execution was found in this reported flow. Independently re-read complete e58bd77 filters/ingress delta and persisted ingress caller. Plain string content.text is now permitted solely for messageCustomServiceAction, not messageText; caption validation remains formatted-only. MESSAGE_TYPES does not map this service action, so getMessageTextAndType returns empty text and the service type. The helper also explicitly returns empty text for a primitive string instead of consuming it as ordinary signal text. Normal formatted text is unchanged. Regex compile cap, heuristic, flag/cache logic, 8000-character truncation and actual 100-ms VM timeout remain byte-identical. New persisted-restart and ordinary-message rejection tests independently passed. No additional unbounded matching path is introduced by admitting the non-text service envelope."
+      },
+      "changedBindings": [
+        {
+          "path": "src/contract_values.ts",
+          "priorSha256": "871e1ef8c09fed21648fb385c02c6c79f76b19289e8eea4970d43e984c82f613",
+          "newSha256": "81a3497fe7474e808ae1515d088cf9b0faa188d50e2372cab46d4c82b5336374"
+        }
+      ]
+    },
+    {
+      "findingId": "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+      "ruleId": "javascript/HttpToHttps",
+      "path": "src/telegram_viewer/health_server.ts",
+      "line": 55,
+      "reviewedSourceSha256": "34f8c841e22275f97d537366c47cff93c5a88ca144f0d9567a2cdb801bc67484",
+      "disposition": "open",
+      "rationale": "Actual plaintext HTTP remains at startTelegramViewerHealthServer line 55. Runtime and direct listener default to 127.0.0.1. Compose explicitly uses 0.0.0.0 inside the container without a viewer host port publication. Health/readiness expose boolean-only probe responses; detailed /status still requires the same bounded Bearer syntax and constant-time comparison against the service token. The forwarder status caller restricts plaintext endpoints to configured internal/loopback host names and sends the service token. Extracted response/authentication helpers retain awaited token lookup and rejection handling. No wider listener/deployment boundary was introduced. Token and detailed status remain cleartext on the internal hop: open under the unchanged separate acceptance, not false-positive. Independent current-source reassessment: Rechecked sole private status caller receives native Node request.headers.authorization string|undefined. Narrowed parameter and removal of redundant String preserve bounded Bearer match, awaited expected token, constant-time comparison,401 challenge and200 result for supported header values. GET/probe routes, default loopback bind and HTTP transport unchanged. Plaintext remains open under identical four-ID owner acceptance, expiry 2026-10-08; this is not a fixed vulnerability.",
+      "contextPaths": [
+        {
+          "path": "src/telegram_viewer/runtime.ts",
+          "sha256": "ca9a7ba2e7a1acd182aad501aed653b66ac4e83ac37edb7d8010e61e3fa5c7f7"
+        },
+        {
+          "path": "src/telegram_viewer/internal_transport.ts",
+          "sha256": "f5af73b14ca63db86b3bf0b1449072552aa9fc388ca269b99a9aee0d7be6835c"
+        },
+        {
+          "path": "src/forwarder.ts",
+          "sha256": "71537e7d74b2b9d9ea00176b16779e90cbceb79628676cf7008cf22bfa31c62c"
+        },
+        {
+          "path": "src/secure_compare.ts",
+          "sha256": "8877e8301e78dc68392bb1d026a88c61babadd854b85b741c8329e3940b50313"
+        },
+        {
+          "path": "docker-compose.yml",
+          "sha256": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642"
+        },
+        {
+          "path": "docs/PRODUCTION_GUIDE.md",
+          "sha256": "08bf60bab34a23a9458f0fab8909646427dba756c3a6732a068fcf4e97ef5363"
+        },
+        {
+          "path": "docs/risk-acceptances/RA-2026-09-08-internal-http.md",
+          "sha256": "7b5076bdd1d9e4dd40ddf44d5096310f0fd0ccb6466c32a602a48d68b76634ff"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/telegram_viewer/health_server.ts",
+          "line": 55
+        }
+      ],
+      "fingerprints": {
+        "0": "2028fa19da0b731dd7a7c16ea9fd94b6988284e40c65001a31b7a2fce0f98565",
+        "1": "aac70831.4773f344.8b18f948.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.cd61fc56.89d75565",
+        "snyk/asset/finding/v1": "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+        "identity": "75310963-3f26-40a8-b6da-3e8ab4d6c57b"
+      },
+      "evidenceSha256": "f548850929a1ee7d170cb7376bde218bf0021693fd5842a85d50249cc652e2ea",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-async-restoration-review-2026-09-14.json",
+        "rationale": "Actual plaintext HTTP remains at startTelegramViewerHealthServer line 55. Runtime and direct listener default to 127.0.0.1. Compose explicitly uses 0.0.0.0 inside the container without a viewer host port publication. Health/readiness expose boolean-only probe responses; detailed /status still requires the same bounded Bearer syntax and constant-time comparison against the service token. The forwarder status caller restricts plaintext endpoints to configured internal/loopback host names and sends the service token. Extracted response/authentication helpers retain awaited token lookup and rejection handling. No wider listener/deployment boundary was introduced. Token and detailed status remain cleartext on the internal hop: open under the unchanged separate acceptance, not false-positive."
+      },
+      "changedBindings": [
+        {
+          "path": "src/telegram_viewer/health_server.ts",
+          "priorSha256": "3b15d6b702fcfad33d17606e2a49feefc88b1b0a4be3f2a68c759f0bbebb5177",
+          "newSha256": "34f8c841e22275f97d537366c47cff93c5a88ca144f0d9567a2cdb801bc67484"
+        }
+      ]
+    },
+    {
+      "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+      "ruleId": "javascript/IndirectCommandInjection",
+      "path": "scripts/verify_exchange_implementation.js",
+      "line": 292,
+      "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
+      "disposition": "false-positive",
+      "rationale": "Re-read CLI arity/flag guard, runtimeReceipts and the complete Python bridge. Only --python plus one absolute executable path is permitted. The selected executable is canonicalized with realpath and checked as an ordinary file under a canonical parent. spawnSync receives an argument array containing fixed -I, -B, -c, fixed bridge code and the fixed repository root; shell:false, windowsHide, a 30-second timeout and a 2-MiB output limit remain explicit. Shell metacharacters in the selected path do not become shell syntax. Running the operator-selected local Python interpreter is the intended capability, not an attacker-supplied shell command. The service does not provide a remote route to this CLI selector. This is an individual false-positive determination for indirect command injection, not an assertion that malicious local executables would be safe. Independent current-source reassessment: Complete package.json delta only aligns Node development types 26.1.1 to 22.20.2; no scripts/runtime selector change. Rechecked explicit absolute Python runtime, realpath/ordinary file checks and fixed argument-array spawn with shell:false, timeout and byte cap. Operator executable authority remains intentionally local.",
+      "contextPaths": [
+        {
+          "path": "exchange_executor/ccxt_certification.py",
+          "sha256": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2"
+        },
+        {
+          "path": "exchange_executor/ccxt_certification_evidence.py",
+          "sha256": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8"
+        },
+        {
+          "path": "exchange_executor/ccxt_implementation_reviews.py",
+          "sha256": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289"
+        },
+        {
+          "path": "exchange_executor/ccxt_profiles.py",
+          "sha256": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd"
+        },
+        {
+          "path": "package.json",
+          "sha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 310
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 285
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        }
+      ],
+      "fingerprints": {
+        "0": "e1d3eb3719a30ed49544043e6e83f3cd5f632c014aef3fafd3dd09c3fa1546a5",
+        "1": "bbc827ce.4773f344.8b18f948.d7919eeb.ef9f7d82.d4a8c500.83265159.3e55546e.bbc827ce.3df76230.2736cee9.c8688b2b.3f452f8c.93224842.83265159.62f49dc2",
+        "identity": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "snyk/asset/finding/v1": "4494650c-4f77-4efc-9956-2a491467ddaf"
+      },
+      "evidenceSha256": "066a1a42a40d523a48378883ddbda6edd2cd0d4e6d18d42f5feded9279f4cc05",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-async-restoration-review-2026-09-14.json",
+        "rationale": "Re-read CLI arity/flag guard, runtimeReceipts and the complete Python bridge. Only --python plus one absolute executable path is permitted. The selected executable is canonicalized with realpath and checked as an ordinary file under a canonical parent. spawnSync receives an argument array containing fixed -I, -B, -c, fixed bridge code and the fixed repository root; shell:false, windowsHide, a 30-second timeout and a 2-MiB output limit remain explicit. Shell metacharacters in the selected path do not become shell syntax. Running the operator-selected local Python interpreter is the intended capability, not an attacker-supplied shell command. The service does not provide a remote route to this CLI selector. This is an individual false-positive determination for indirect command injection, not an assertion that malicious local executables would be safe."
+      },
+      "changedBindings": [
+        {
+          "path": "package.json",
+          "priorSha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00",
+          "newSha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+        }
+      ]
+    },
+    {
+      "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+      "ruleId": "javascript/PT",
+      "path": "scripts/verify_exchange_implementation.js",
+      "line": 85,
+      "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
+      "disposition": "false-positive",
+      "rationale": "Independently inspected the distinct stableBytes openSync sink in the reported CLI -> interpreter output -> receipt exchange flow. The script derives repositoryRoot from its own module location and the certification directory is constant. Its fixed Python bridge obtains exchanges only from local PROFILES and accepts certification_result success, whose strict identifier/profile checks and approved receipt pins precede output. Receipt schema/hash comparison precedes the final local receipt read. openSync uses read-only flags with no-follow support, after canonical-parent and lstat regular-file/single-link checks, then verifies descriptor identity. It does not grant arbitrary write access as suggested by the generic finding. Explicit selection of the local Python executable is operator authority; no HTTP or signal input chooses it. This assessment covers the particular flagged open path, not all possible filesystem attacks. Independent current-source reassessment: Complete package.json delta only aligns Node development types 26.1.1 to 22.20.2. Distinct openSync receipt sink and stableBytes canonical parent/single-link/no-follow/descriptor checks remain unchanged; no new path source or write access introduced.",
+      "contextPaths": [
+        {
+          "path": "exchange_executor/ccxt_certification.py",
+          "sha256": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2"
+        },
+        {
+          "path": "exchange_executor/ccxt_certification_evidence.py",
+          "sha256": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8"
+        },
+        {
+          "path": "exchange_executor/ccxt_implementation_reviews.py",
+          "sha256": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289"
+        },
+        {
+          "path": "exchange_executor/ccxt_profiles.py",
+          "sha256": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd"
+        },
+        {
+          "path": "package.json",
+          "sha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 310
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 285
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 298
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 298
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 321
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 321
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 81
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        }
+      ],
+      "fingerprints": {
+        "0": "31976754b939a4ac1c87edf980b2fcafb931a2ece19265229dad845dba590806",
+        "1": "b6950d85.4773f344.4dd76406.d7919eeb.3a121ca8.d4a8c500.c08dd55c.eb397db7.bbc827ce.277c621c.cf0dc3a8.5e127924.3f452f8c.93224842.f43bf3be.bd73fe9f",
+        "identity": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "snyk/asset/finding/v1": "7039073d-34a6-4901-9897-4c0a40ca7b0a"
+      },
+      "evidenceSha256": "24dc6e7c46113a1c28cc3c6cd24209f6e4245d0b65c6448a32b382c624d13545",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-async-restoration-review-2026-09-14.json",
+        "rationale": "Independently inspected the distinct stableBytes openSync sink in the reported CLI -> interpreter output -> receipt exchange flow. The script derives repositoryRoot from its own module location and the certification directory is constant. Its fixed Python bridge obtains exchanges only from local PROFILES and accepts certification_result success, whose strict identifier/profile checks and approved receipt pins precede output. Receipt schema/hash comparison precedes the final local receipt read. openSync uses read-only flags with no-follow support, after canonical-parent and lstat regular-file/single-link checks, then verifies descriptor identity. It does not grant arbitrary write access as suggested by the generic finding. Explicit selection of the local Python executable is operator authority; no HTTP or signal input chooses it. This assessment covers the particular flagged open path, not all possible filesystem attacks."
+      },
+      "changedBindings": [
+        {
+          "path": "package.json",
+          "priorSha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00",
+          "newSha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+        }
+      ]
+    }
+  ],
+  "unchangedIds": [
+    "2450255f-e697-4aae-ae63-736ad651be82",
+    "98bcc36f-5e43-4d4b-9dc9-2b23b5bb5b77",
+    "88fce105-6148-4b77-904c-f82f35a3d8d9",
+    "142dd478-3551-4536-9562-b365bf50d287",
+    "9c50b436-5043-4541-a5c5-14a432cae733",
+    "6914aa0e-59d7-4481-9e11-2f13f86d60f4",
+    "497d44e9-fe5f-4767-a66f-325c51e5dc95",
+    "9886fba1-1186-4e41-b1fa-6a6877440237",
+    "bc179edb-989f-4eee-b6f0-4e0403e76fa0",
+    "436da650-a34e-44b8-a133-bdad1b5788d7",
+    "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+    "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+    "4763ab6d-7279-4288-a467-5dbccf673f01",
+    "8c0f552c-7615-4368-8f6a-6689679b611c",
+    "32304334-8c66-4f4a-b4fa-26033d0ab225",
+    "eebfa362-b2bf-4b0f-a9a3-4199084f5f44",
+    "a1ed4a9a-f08f-4f3b-b73b-87630d94a0c9",
+    "9b50cbda-ded3-4582-a09b-87e659bcbca8",
+    "efe2fbab-8939-42b3-acf3-d6f219f541f4",
+    "3fd501f8-60d2-4533-84c1-0f8135a93b85",
+    "aee14560-3ac3-41fd-9b53-37a838268421",
+    "55b8a65d-ce8d-4e3d-9039-678277b8ee68",
+    "06e9dbdb-8290-450a-95cc-25b789bcdde2",
+    "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4",
+    "e6282f6d-4f71-47ff-befa-7369873e4557",
+    "1498a7a1-5346-49c7-b0b0-52ec594b5b0c",
+    "e0d3690e-5911-4fa5-96ab-c0893d808e7f",
+    "33137bb2-42a6-4b20-8cfb-c4a953d91b6e",
+    "95e532db-4651-47f3-b9da-40e0da5e0fcc",
+    "4d819ebc-b7ba-4de3-a71e-5daea6c942e7",
+    "82e95abb-7def-48e9-9e03-f12ddb87396e",
+    "68016b09-7ac9-40c1-8640-8412bc77d91e",
+    "f1107dfb-8004-470e-ae80-5b3230735eea",
+    "67212bb4-5c74-4ec1-a6f6-6404626cdc02",
+    "68a1f53d-6f82-4221-baf2-f9f213aab9f2",
+    "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737",
+    "9481f398-aa6b-4990-a250-a4ef4297442e",
+    "3aa7677b-1f71-466e-9cd9-f08e3382c0c0",
+    "75e4084d-676d-47b5-a497-7b0b5d3a6d2c",
+    "86777f7f-c030-435e-9086-f29fcbffcb58",
+    "35c81c03-fadd-4a16-a0e3-8e81108e18c4",
+    "d2853e9a-03af-4436-8200-1c45936744c5",
+    "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee",
+    "d1163842-b198-4156-ab79-efd0cd8da57d",
+    "2585237f-36d5-4607-9e5c-3f4b73b518da",
+    "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8",
+    "0b078f4b-85ab-487e-8951-7a4f6ec03335",
+    "f62614bc-117e-48c1-8267-e866c507367a",
+    "d724e3e9-b7ca-4eec-ac14-037f58090f2a",
+    "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14",
+    "367a2dd3-ef73-4e71-8066-f992a958af8a",
+    "24d61af9-11c9-4687-9dff-3e2b1b30670d",
+    "5da511d6-c50f-42ce-a617-e5650025b7c2",
+    "703c021a-6966-44a3-a93c-1405ac1a891b",
+    "285f0b22-9dea-413f-b89e-1d183d4f1f84",
+    "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34",
+    "2e366098-cb83-4d7f-961a-1fea7a162a44",
+    "62138ff6-d19f-4588-80f1-62274219af01",
+    "661f9264-b2a0-4f46-8f75-c629b1c80f36",
+    "40ffaf95-f7bb-43b9-a3d7-2e1edf90464c",
+    "70cd754b-0fc7-4cc2-b484-1e2c90036277",
+    "34a2fb72-f24d-4687-b513-e791a4ab2632",
+    "3823fd00-85ed-47e6-b085-8b3b2655febc",
+    "15b62184-5d10-4c9f-8c45-36cebd259223",
+    "d75bc03c-19a7-4475-809c-525e9240e836",
+    "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+    "bd4b655d-7094-41a4-8532-ca8faca295a0",
+    "0e0cc32d-e62a-494f-b96a-0871ca8206b0",
+    "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb",
+    "dbeab5ab-3bb3-4484-b2a3-3d56187dd885",
+    "a42d6e8a-142f-4310-951e-4781a06c3fa5",
+    "c18a03f4-6ea4-45f2-8cc7-2f2e45325bbf",
+    "38bece03-53dc-4566-a862-e4d59a573c82",
+    "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
+    "4bd5af47-516b-4885-9a70-71b7fa515f95",
+    "ce402f84-0ed8-4cb8-9f26-60e05779e11f",
+    "8bf5572e-a361-4a6c-b7e6-54793f17bcc0"
+  ],
+  "totalBindingChecks": 182,
+  "rawLfDifferences": [
+    {
+      "path": "package.json",
+      "workingRawSha256": "8e9ce40eb2fbe14bc3b55faf6d5349b277e669216ae194ec6ff1649865e9782f",
+      "gitNormalizedLfSha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+    }
+  ],
+  "uncommittedDeltaBindings": [
+    {
+      "path": "src/workflow_repository.ts",
+      "workingRawSha256": "8382e600d42f058c5352d8778121c9c45a43e10e760e84dc9c963f248f9c4c04",
+      "gitNormalizedLfSha256": "8382e600d42f058c5352d8778121c9c45a43e10e760e84dc9c963f248f9c4c04",
+      "intersectsReviewedBindings": false
+    },
+    {
+      "path": "frontend/src/features/risk-analytics/equity-chart.tsx",
+      "workingRawSha256": "b07560991e783207978d0faf386935afde736c34bb87572680bfa86e9df329e4",
+      "gitNormalizedLfSha256": "767dc0780440134537be3f22a6bac2e60c41a17ada688e2952a789637a2d7448",
+      "intersectsReviewedBindings": false
+    },
+    {
+      "path": "tests/test_workflow_input_types.js",
+      "workingRawSha256": "1a71c8b20131a2317dbefc8b711007354a97d5123811f518fefef01faf995018",
+      "gitNormalizedLfSha256": "1d0195356dde588346148bb41bf5502a53bdfe917213afcbf48f137cc60755e6",
+      "intersectsReviewedBindings": false
+    }
+  ],
+  "verification": {
+    "resultCount": 85,
+    "reviewedFalsePositives": 81,
+    "acceptedRisks": 4,
+    "remaining": 0,
+    "disposition": "clean",
+    "findings": [
+      {
+        "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
+        "ruleId": "javascript/DOMXSS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "98bcc36f-5e43-4d4b-9dc9-2b23b5bb5b77",
+        "ruleId": "javascript/HardcodedNonCryptoSecret",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "88fce105-6148-4b77-904c-f82f35a3d8d9",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "164aa45d-3766-4932-9dd7-4f2729603758",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "142dd478-3551-4536-9562-b365bf50d287",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9c50b436-5043-4541-a5c5-14a432cae733",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "6914aa0e-59d7-4481-9e11-2f13f86d60f4",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "497d44e9-fe5f-4767-a66f-325c51e5dc95",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9886fba1-1186-4e41-b1fa-6a6877440237",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "bc179edb-989f-4eee-b6f0-4e0403e76fa0",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "436da650-a34e-44b8-a133-bdad1b5788d7",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+        "ruleId": "javascript/Sqli/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+        "ruleId": "javascript/Sqli/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4763ab6d-7279-4288-a467-5dbccf673f01",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "8c0f552c-7615-4368-8f6a-6689679b611c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "32304334-8c66-4f4a-b4fa-26033d0ab225",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "6747340c-e7a2-460b-87c7-e2e6c3802226",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a3737d56-de9a-41e7-b30b-fb374b214f91",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a1ed4a9a-f08f-4f3b-b73b-87630d94a0c9",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9b50cbda-ded3-4582-a09b-87e659bcbca8",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "efe2fbab-8939-42b3-acf3-d6f219f541f4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3fd501f8-60d2-4533-84c1-0f8135a93b85",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "aee14560-3ac3-41fd-9b53-37a838268421",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "55b8a65d-ce8d-4e3d-9039-678277b8ee68",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "06e9dbdb-8290-450a-95cc-25b789bcdde2",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "e6282f6d-4f71-47ff-befa-7369873e4557",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "1498a7a1-5346-49c7-b0b0-52ec594b5b0c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "e0d3690e-5911-4fa5-96ab-c0893d808e7f",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "95e532db-4651-47f3-b9da-40e0da5e0fcc",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4d819ebc-b7ba-4de3-a71e-5daea6c942e7",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "82e95abb-7def-48e9-9e03-f12ddb87396e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "68016b09-7ac9-40c1-8640-8412bc77d91e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f1107dfb-8004-470e-ae80-5b3230735eea",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "67212bb4-5c74-4ec1-a6f6-6404626cdc02",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "68a1f53d-6f82-4221-baf2-f9f213aab9f2",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9481f398-aa6b-4990-a250-a4ef4297442e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "75e4084d-676d-47b5-a497-7b0b5d3a6d2c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "86777f7f-c030-435e-9086-f29fcbffcb58",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "35c81c03-fadd-4a16-a0e3-8e81108e18c4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d2853e9a-03af-4436-8200-1c45936744c5",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d1163842-b198-4156-ab79-efd0cd8da57d",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "2585237f-36d5-4607-9e5c-3f4b73b518da",
+        "ruleId": "javascript/XSS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8",
+        "ruleId": "javascript/XSS/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0b078f4b-85ab-487e-8951-7a4f6ec03335",
+        "ruleId": "javascript/reDOS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d3f09f66-f994-4652-86bf-651b0262e797",
+        "ruleId": "javascript/reDOS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f62614bc-117e-48c1-8267-e866c507367a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d724e3e9-b7ca-4eec-ac14-037f58090f2a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "367a2dd3-ef73-4e71-8066-f992a958af8a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "24d61af9-11c9-4687-9dff-3e2b1b30670d",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "5da511d6-c50f-42ce-a617-e5650025b7c2",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "703c021a-6966-44a3-a93c-1405ac1a891b",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "285f0b22-9dea-413f-b89e-1d183d4f1f84",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "2e366098-cb83-4d7f-961a-1fea7a162a44",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "62138ff6-d19f-4588-80f1-62274219af01",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "661f9264-b2a0-4f46-8f75-c629b1c80f36",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "40ffaf95-f7bb-43b9-a3d7-2e1edf90464c",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "70cd754b-0fc7-4cc2-b484-1e2c90036277",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "34a2fb72-f24d-4687-b513-e791a4ab2632",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3823fd00-85ed-47e6-b085-8b3b2655febc",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "15b62184-5d10-4c9f-8c45-36cebd259223",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "d75bc03c-19a7-4475-809c-525e9240e836",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "bd4b655d-7094-41a4-8532-ca8faca295a0",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0e0cc32d-e62a-494f-b96a-0871ca8206b0",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "dbeab5ab-3bb3-4484-b2a3-3d56187dd885",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a42d6e8a-142f-4310-951e-4781a06c3fa5",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "c18a03f4-6ea4-45f2-8cc7-2f2e45325bbf",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "38bece03-53dc-4566-a862-e4d59a573c82",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "ruleId": "javascript/IndirectCommandInjection",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4bd5af47-516b-4885-9a70-71b7fa515f95",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "ce402f84-0ed8-4cb8-9f26-60e05779e11f",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      }
+    ]
+  },
+  "limits": [
+    "No workflow/source/platform mutation.",
+    "Checker executed against LF-normalized reviewed source bytes. Raw CRLF differences explicitly listed; final source commit hashes must match before adoption.",
+    "No zero scanner findings claim:85 scanner results,81 reviewed false positives,4 owner-accepted open HTTP risks.",
+    "All three frozen working delta paths have no direct or contextual binding among these182; full unchanged85 flow identity nevertheless checked.",
+    "No broad full-suite pass or certification implementation approval implied."
+  ],
+  "gitBaseBindingVerification": {
+    "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+    "all182BindingsMatchGitBlobs": true,
+    "checked": 182
+  }
+}

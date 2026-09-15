@@ -1,0 +1,15 @@
+{
+  "path": "tests/test_telegram_viewer_runtime.js",
+  "baseRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+  "baseSha256": "d3a836a8d7259d247b960e86e5590fa495dfaa203e4b4088e53391a74e3e5c1a",
+  "workingRawSha256": "d7ba0de74466c0a6e6d5b0ec6c7c87be3b08601b4b56f4d7b6da61996f263f78",
+  "workingLfSha256": "d7ba0de74466c0a6e6d5b0ec6c7c87be3b08601b4b56f4d7b6da61996f263f78",
+  "deltaSha256": "2b35fc4feb74ff6bd98acf3c79e7230cc3643209af58af147b6306452d03576b",
+  "fullHistoricalTestSha256": "42f18bf7eab40fa79e789c63e5997a40e34b9b327d492fb953ac84b5dfdbaa38",
+  "runtimeGitSha256": "ca9a7ba2e7a1acd182aad501aed653b66ac4e83ac37edb7d8010e61e3fa5c7f7",
+  "rationale": "Two-line root correction restores Promise rejection with primitive string and asserts recordFailure receives that string itself. Actual runtime catch passes error unchanged; no normalization to Error is claimed. Original Error-case message and healthy/failurecounts remain. This specifically restores lost historical branch while retaining newly added health tests.",
+  "validation": "Root targeted viewer log read: TELEGRAM VIEWER RUNTIME TESTS PASSED; reviewer did not run heavy tests.",
+  "log": "reports/security-services/fixer-viewer-nonerror-restored-after.log",
+  "logSha256": "8df7e3761a0d6bd91a97fdc1703f7809cd7f2f561bd35068d95fed60faff631d",
+  "disposition": "independently-reviewed-followup-corrects-identified-test-gap"
+}

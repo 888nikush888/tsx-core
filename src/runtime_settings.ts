@@ -451,8 +451,11 @@ export class ManagedRuntimeSettingsStore {
   applyToEnvironment(): void {
     for (const [key, environmentName] of Object.entries(ENVIRONMENT_MAPPING) as Array<[keyof RuntimeSettings, string]>) {
       const value = this.settings[key];
-      if (value === '') delete this.env[environmentName];
-      else this.env[environmentName] = String(value);
+      if (value === '') {
+        if (!Reflect.deleteProperty(this.env, environmentName)) {
+          throw new TypeError(`${environmentName} could not be removed from the environment.`);
+        }
+      } else this.env[environmentName] = String(value);
     }
     this.active = this.snapshot();
   }

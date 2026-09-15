@@ -50,8 +50,19 @@ export function assertTierEvidence(
   requireEvidence(value.scope?.complete === true && value.scope.positionQuantity === '0' && value.scope.openOrderCount === 0,
     'Existing or unknown actual tier scope blocks scale-in.');
   try { validateTierTable(value.tiers); } catch { throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Complete consistent leverage tiers are required.'); }
-  requireEvidence(value.tiers[0]!.maxLeverage === market.maxLeverage, 'Display maximum conflicts with actual tiers.');
+  const firstTier = value.tiers[0];
+  requireEvidence(firstTier !== undefined, 'Display maximum conflicts with actual tiers.');
+  requireEvidence(firstTier.maxLeverage === market.maxLeverage, 'Display maximum conflicts with actual tiers.');
   return value;
+}
+
+function assertCurrentPlanTier(value: TradingLeverageTierEvidence, plan: TradingPlan, decision: NonNullable<TradingPlan['leverageTierDecision']>): void {
+  let index: number;
+  try { index = tierForQuantity(value.tiers, plan.quantity, value.markPrice); }
+  catch { throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Current notional is outside proven tiers.'); }
+  const tier = value.tiers[index];
+  requireEvidence(index === decision.tierIndex && tier !== undefined && plan.leverage <= tier.maxLeverage,
+    'Current mark changed the original leverage tier.');
 }
 
 export function assertPlanTierDecision(account: TradingAccount, plan: TradingPlan, market: TradingMarketSnapshot): void {
@@ -61,15 +72,12 @@ export function assertPlanTierDecision(account: TradingAccount, plan: TradingPla
     && decision.contractSize === value.contractSize && decision.providerSymbol === value.providerSymbol,
   'Original tier table or contract changed.');
   requireEvidence(decision.quantity === plan.quantity && decision.leverage === plan.leverage, 'Original tier sizing changed.');
-  let index: number;
-  try { index = tierForQuantity(value.tiers, plan.quantity, value.markPrice); }
-  catch { throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Current notional is outside proven tiers.'); }
-  requireEvidence(index === decision.tierIndex && plan.leverage <= value.tiers[index]!.maxLeverage,
-    'Current mark changed the original leverage tier.');
+  assertCurrentPlanTier(value, plan, decision);
   const entry = plan.orders.find(order => order.role === 'entry');
   requireEvidence(entry?.quantity === plan.quantity, 'Entry quantity changed after tier planning.');
   if (decision.version === 2) requireEvidence(plan.fxSizing?.notionalCurrency === value.currency, 'Tier FX budget lacks the original sizing context.');
-  try { assertTierDecisionBudget(decision, value.currency, plan.quantity, value.markPrice, entry.price!); }
+  if (!entry?.price) throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Current valuation exceeds the original margin/notional budget.');
+  try { assertTierDecisionBudget(decision, value.currency, plan.quantity, value.markPrice, entry.price); }
   catch { throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Current valuation exceeds the original margin/notional budget.'); }
 }
 

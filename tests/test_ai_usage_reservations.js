@@ -13,9 +13,9 @@ async function commitResponseFailure(afterCommit) {
   const charged = [];
   await parseSignalToXml('LONG BTCUSDT entry 90 target 95 stop 85', 'default', { primaryModel: 'local-fake' }, {
     promptTemplate: 'Extract signal',
-    requestCompletion: async () => {
+    requestCompletion: () => {
       providerCalls += 1;
-      return { choices: [{ finish_reason: 'stop', message: { content: xml } }], usage: { total_tokens: 7 } };
+      return Promise.resolve({ choices: [{ finish_reason: 'stop', message: { content: xml } }], usage: { total_tokens: 7 } });
     },
     budget: {
       reserve: reserveAiUsage,
@@ -37,9 +37,9 @@ async function persistentCommitFailure() {
   let commitCalls = 0;
   await assert.rejects(parseSignalToXml('LONG BTCUSDT entry 90 target 95 stop 85', 'default', { primaryModel: 'local-fake', fallbackModel: 'local-fallback' }, {
     promptTemplate: 'Extract signal', limits: { backoffMs: 0 },
-    requestCompletion: async () => {
+    requestCompletion: () => {
       providerCalls += 1;
-      return { choices: [{ finish_reason: 'stop', message: { content: xml } }], usage: { total_tokens: 9 } };
+      return Promise.resolve({ choices: [{ finish_reason: 'stop', message: { content: xml } }], usage: { total_tokens: 9 } });
     },
     budget: { reserve: reserveAiUsage, commit: async (_id, _allowance, actual) => {
       commitCalls += 1;

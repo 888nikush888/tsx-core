@@ -1,7 +1,7 @@
 """Complete raw current-state reader for the bounded KuCoin Classic scope."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from common import IncompleteCurrentStateError
 from current_state import CurrentRead
@@ -87,7 +87,7 @@ def _status(raw: dict[str, Any]) -> str:
         "cancelled": "canceled",
         "canceled": "canceled",
         "rejected": "rejected",
-    }.get(value.lower())
+    }.get(cast(str, value).lower())
     require(mapped is not None, "KuCoin order status is outside the reviewed vocabulary.")
     is_active = raw.get("isActive")
     cancel_exists = raw.get("cancelExist")
@@ -97,7 +97,7 @@ def _status(raw: dict[str, Any]) -> str:
             "KuCoin order status conflicts with its activity flag.")
     require(not cancel_exists or mapped == "canceled",
             "KuCoin order cancellation evidence is contradictory.")
-    return mapped
+    return cast(str, mapped)
 
 
 def normalize_kucoin_order(rest: Any, raw: dict[str, Any], *, stop_scope: bool,
@@ -123,7 +123,7 @@ def normalize_kucoin_order(rest: Any, raw: dict[str, Any], *, stop_scope: bool,
             "KuCoin current-order page contains a terminal order.")
     stop_kind = raw.get("stop")
     if stop_scope:
-        require(stop_kind in {"up", "down"} and reduce_only,
+        require(stop_kind in {"up", "down"} and reduce_only is True,
                 "KuCoin stop scope contains an unprotected or non-stop order.")
         trigger = exact_decimal(raw.get("stopPrice"), "stop trigger price", positive=True)
         trigger_type = token(raw.get("stopPriceType"), "stop trigger type")
@@ -173,7 +173,7 @@ async def _order_scope(rest: Any, read: CurrentRead, scope: str, method: Any,
     expected_total = None
     seen = 0
     while True:
-        params = {"currentPage": page_number, "pageSize": PAGE_SIZE}
+        params: dict[str, Any] = {"currentPage": page_number, "pageSize": PAGE_SIZE}
         if not stop_scope:
             params["status"] = "active"
         response = await read.call("orders", scope, lambda params=params: method(dict(params)))

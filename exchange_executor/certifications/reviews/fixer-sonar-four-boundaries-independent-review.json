@@ -1,0 +1,247 @@
+{
+  "kind": "independent-four-boundary-delta-review",
+  "baseRevision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+  "scope": "Current uncommitted four production boundaries and four corresponding test deltas; viewer/forwarder explicitly excluded because reviewer authored viewer patch.",
+  "reviewMethod": "Read complete eight-file diff and relevant producer, persistence, caller and test-harness bodies. Bind current working files as LF-normalized bytes plus raw bytes; these are not yet committed source bindings.",
+  "entries": [
+    {
+      "boundary": "Workflow compiled output mode",
+      "verdict": "reviewed-bounded-delta-no-regression-found",
+      "changedFiles": [
+        {
+          "path": "src/workflow_repository.ts",
+          "currentLfSha256": "c78567972bf9635dd64653cc88083b0b2dfaf57997aa48ad0c5487fc8084f088",
+          "workingRawSha256": "c78567972bf9635dd64653cc88083b0b2dfaf57997aa48ad0c5487fc8084f088",
+          "headBlobSha256": "8382e600d42f058c5352d8778121c9c45a43e10e760e84dc9c963f248f9c4c04",
+          "diffSha256": "ae07e0514d4057afda4c28909619eb73e8ec8486672eaa8322b571fa51ea19f2"
+        },
+        {
+          "path": "tests/test_workflow_input_types.js",
+          "currentLfSha256": "ba78d2347949fd51571027de2bd81f51c125ecdf777ea913ef8638991319d625",
+          "workingRawSha256": "ba78d2347949fd51571027de2bd81f51c125ecdf777ea913ef8638991319d625",
+          "headBlobSha256": "1d0195356dde588346148bb41bf5502a53bdfe917213afcbf48f137cc60755e6",
+          "diffSha256": "0cb4b228bca72854bd8b846c634fce47f94da046bda90d8d576c7b31bc5f7436"
+        }
+      ],
+      "inspectedContextBindings": [
+        {
+          "path": "src/contract_values.ts",
+          "currentLfSha256": "b56516782dbc13bdac7bb1066d33d14b358ae51f69dfe73e26869b1561f6ef27",
+          "workingRawSha256": "b56516782dbc13bdac7bb1066d33d14b358ae51f69dfe73e26869b1561f6ef27",
+          "headBlobSha256": "b56516782dbc13bdac7bb1066d33d14b358ae51f69dfe73e26869b1561f6ef27",
+          "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "tests/fixtures/ingress_workflow_fixture.js",
+          "currentLfSha256": "28c58154a994b55c5e21887a64d601ab1d7e2148140c608b413e3e1dfb512359",
+          "workingRawSha256": "28c58154a994b55c5e21887a64d601ab1d7e2148140c608b413e3e1dfb512359",
+          "headBlobSha256": "28c58154a994b55c5e21887a64d601ab1d7e2148140c608b413e3e1dfb512359",
+          "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "src/ui_contracts.ts",
+          "currentLfSha256": "5ce33185d9c79c90802207e3efc752d1213fedfe0ecd02bc252ac9f735e9aa9d",
+          "workingRawSha256": "5ce33185d9c79c90802207e3efc752d1213fedfe0ecd02bc252ac9f735e9aa9d"
+        }
+      ],
+      "rationale": [
+        "Consumer changes only String(output?.mode ?? audit_only) to requireString with the same nullish fallback and position in return construction; definition hash calculation, sorting and plan merge are unchanged.",
+        "validateOutputConfiguration enforces primitive membership in four string modes before create/update/publish; normalized configurations are persisted with hashes and compiledEffectiveConfiguration preserves these resources. legacyOutputMode produces three valid literal string modes. JSON persistence cannot introduce boxed strings.",
+        "New tests inspect the actual private consumer AST from this fixed repository file and inject it with real requireString/createHash; the base execution path comes from a published JSON-round-tripped fixture. Four invalid primitive/object/array values now fail at the explicit boundary. Four enum values plus empty string preserve exact bytes; absent/null output and mode preserve audit_only. Existing production API fixture checks remain."
+      ],
+      "limits": [
+        "Intentional defensive rejection of malformed non-string stored modes; empty or otherwise unrecognized strings are still not newly normalized or enum-rejected in this consumer. No broader persisted-workflow recertification."
+      ],
+      "laterWorkingDeltaAddendum": {
+        "previousBinding": {
+          "path": "src/workflow_repository.ts",
+          "currentLfSha256": "c78567972bf9635dd64653cc88083b0b2dfaf57997aa48ad0c5487fc8084f088",
+          "workingRawSha256": "c78567972bf9635dd64653cc88083b0b2dfaf57997aa48ad0c5487fc8084f088",
+          "headBlobSha256": "8382e600d42f058c5352d8778121c9c45a43e10e760e84dc9c963f248f9c4c04",
+          "diffSha256": "ae07e0514d4057afda4c28909619eb73e8ec8486672eaa8322b571fa51ea19f2"
+        },
+        "change": "isWorkflowResourceKind changes string-array .some(kind => kind === value) to existing isStringMember(value, WORKFLOW_RESOURCE_KINDS).",
+        "assessment": "Same matches for the fixed primitive-string kind list: nonstrings never strictly equal its members; typeof check explicitly rejects them. Includes versus strict equality differs only for NaN, absent from this string list. No coercion, trimming or state change.",
+        "testEvidence": "Root reports workflow-builder regression passed; no rerun by reviewer."
+      }
+    },
+    {
+      "boundary": "Portable setup model identifier uniqueness",
+      "verdict": "reviewed-bounded-delta-no-regression-found",
+      "changedFiles": [
+        {
+          "path": "src/setup_bundle.ts",
+          "currentLfSha256": "0cc5da47a972e043fb705e48bd642362497574af8d2b24a288572169b504b3c3",
+          "workingRawSha256": "0cc5da47a972e043fb705e48bd642362497574af8d2b24a288572169b504b3c3",
+          "headBlobSha256": "92f77eb1ea8f17df10b698a4734d23f14d0cda0f3fb56b04a3988a89d4f79d27",
+          "diffSha256": "96543d078309d4156696626dca47230ddda64a8c4dd73aac9d021b64662db5d1"
+        },
+        {
+          "path": "tests/test_setup_bundle.js",
+          "currentLfSha256": "e6dda41434678f12c4e39fae06675a1461d02799bd0eef75a30c02b774ff5f15",
+          "workingRawSha256": "e6dda41434678f12c4e39fae06675a1461d02799bd0eef75a30c02b774ff5f15",
+          "headBlobSha256": "dcb90c3b650f307c13b2799566ad3cf8169a1af63758f8e9c502a76dd4b36bc0",
+          "diffSha256": "6b46b2773e194727c6e7794865ebf71eee5069bf60bc06f68e1e44d7fa1107d2"
+        }
+      ],
+      "inspectedContextBindings": [
+        {
+          "path": "src/contract_values.ts",
+          "currentLfSha256": "b56516782dbc13bdac7bb1066d33d14b358ae51f69dfe73e26869b1561f6ef27",
+          "workingRawSha256": "b56516782dbc13bdac7bb1066d33d14b358ae51f69dfe73e26869b1561f6ef27",
+          "headBlobSha256": "b56516782dbc13bdac7bb1066d33d14b358ae51f69dfe73e26869b1561f6ef27",
+          "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "rationale": [
+        "Contracts, schemas and strategies each pass boundedString identifier validation before uniqueModelIdentifiers. It checks primitive string type and length and returns original bytes. Thus requireString retains already-valid identifier values, set equality, duplicate error text and collection validation order.",
+        "The added negative tests correctly observe existing earlier id-is-invalid errors rather than claim the new helper is newly reachable for these malformed inputs. Distinct whitespace-prefixed/suffixed identifiers remain distinct after checksum recomputation; exact duplicates retain the existing failure.",
+        "The only production delta executes in pure bundle validation before imports, account mapping or database side effects; no checksum, model reference or collection-size gate weakened."
+      ],
+      "limits": [
+        "Public tests exercise the earlier validator and the valid uniqueness path; they are not branch coverage proof that malformed identifiers reach the newly hardened private helper."
+      ]
+    },
+    {
+      "boundary": "Migration CLI error diagnostic",
+      "verdict": "reviewed-bounded-delta-no-regression-found",
+      "changedFiles": [
+        {
+          "path": "src/migration_cli.ts",
+          "currentLfSha256": "1e5047ba218e047d557f285bec84d84d663f3bbcdd463fdd45632338661bdacb",
+          "workingRawSha256": "1e5047ba218e047d557f285bec84d84d663f3bbcdd463fdd45632338661bdacb",
+          "headBlobSha256": "5314eaffed3f0fa4f8a14bb729792563f202e438275a9af8b7976a06b9d4e3f9",
+          "diffSha256": "b6928e069dcaf8f4092d5ce259ac39687adf5e2d166fa54e11173fd19546ba8e"
+        },
+        {
+          "path": "tests/test_migration_cli.js",
+          "currentLfSha256": "bace9295d37ca34efa48c70e61d0f42f36d9766257558e90416ff849a0a52ba2",
+          "workingRawSha256": "bace9295d37ca34efa48c70e61d0f42f36d9766257558e90416ff849a0a52ba2",
+          "headBlobSha256": "599553a90447301aa5a783d469df2bf35d411cc055b102866b46a758a1680063",
+          "diffSha256": "6023acf26e6eb4329e2a7f7515bc87fe143b115a577bbf0480228bbea2174d0f"
+        }
+      ],
+      "inspectedContextBindings": [
+        {
+          "path": "src/contract_values.ts",
+          "currentLfSha256": "b56516782dbc13bdac7bb1066d33d14b358ae51f69dfe73e26869b1561f6ef27",
+          "workingRawSha256": "b56516782dbc13bdac7bb1066d33d14b358ae51f69dfe73e26869b1561f6ef27",
+          "headBlobSha256": "b56516782dbc13bdac7bb1066d33d14b358ae51f69dfe73e26869b1561f6ef27",
+          "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "src/migration_recovery.ts",
+          "currentLfSha256": "12b45ec06d712e2af808de1ff6be33ecf240a640d3727fe2adb63e1a00103bcb",
+          "workingRawSha256": "12b45ec06d712e2af808de1ff6be33ecf240a640d3727fe2adb63e1a00103bcb",
+          "headBlobSha256": "12b45ec06d712e2af808de1ff6be33ecf240a640d3727fe2adb63e1a00103bcb",
+          "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "rationale": [
+        "Only final catch formatting changes to unknownErrorMessage. The imported helper has no initialization side effects. Error.message, string, numeric, boolean, null and undefined diagnostics are preserved. Object/function rejection values use a fixed diagnostic without arbitrary coercion; failure exitCode remains 1.",
+        "Restore argument confirmation, lease acquisition/quiescence, actual restore, rollback and nested-finally owner/lease cleanup remain untouched. Diagnostic formatting runs after those completion paths.",
+        "The test extracts the one real top-level catch block, uses fixed repository TypeScript as code and separately passes rejection values as VM data. A fake process and console isolate effects; host Error and actual helper preserve the real instanceof relation. Existing spawned real CLI tests still cover confirmation, active-owner refusal and delayed native-handle close."
+      ],
+      "limits": [
+        "Added VM checks isolate the diagnostic, not the full restore path; pre-existing real process tests remain the integration proof. Objects no longer disclose arbitrary serialized/stringified contents by design."
+      ]
+    },
+    {
+      "boundary": "Evidence table scalar formatting",
+      "verdict": "reviewed-bounded-delta-no-regression-found",
+      "changedFiles": [
+        {
+          "path": "frontend/src/shared/components/evidence.tsx",
+          "currentLfSha256": "52ee7e24e3bcbb4285a0e78441d407c62ef011a6cd3ee6f643b48391bdcf3310",
+          "workingRawSha256": "52ee7e24e3bcbb4285a0e78441d407c62ef011a6cd3ee6f643b48391bdcf3310",
+          "headBlobSha256": "14f56733d051a7946db3b480f992aa70adc9758c275b9880fe1f462a4a33ce98",
+          "diffSha256": "5793ed4f1ac00f4f44f1d9fec44f9e24011db5dfae1bb917107bd219418eb426"
+        },
+        {
+          "path": "frontend/tests/runtime-evidence-regressions.test.tsx",
+          "currentLfSha256": "cc1ddffb3981ce300a821ff29dc26598103d7ec20e2e8f7374910ebd4f93be35",
+          "workingRawSha256": "cc1ddffb3981ce300a821ff29dc26598103d7ec20e2e8f7374910ebd4f93be35",
+          "headBlobSha256": "f12a7cba350cd060f4fe8e2c29d71cd1a1975311b86dbca2f2f429ccc3575d5a",
+          "diffSha256": "ddc3ed7ff947006bb426b41164a71eacd73314b7beb1d9b0648c9361015184da"
+        }
+      ],
+      "inspectedContextBindings": [
+        {
+          "path": "frontend/src/features/workflows/workflow-library.tsx",
+          "currentLfSha256": "2de8408c23921fcf51a2d8910024c6b4020dee2cc8f31a01b1f4f36f70018638",
+          "workingRawSha256": "2de8408c23921fcf51a2d8910024c6b4020dee2cc8f31a01b1f4f36f70018638",
+          "headBlobSha256": "2de8408c23921fcf51a2d8910024c6b4020dee2cc8f31a01b1f4f36f70018638",
+          "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "frontend/src/features/operations/setup-review-tree.tsx",
+          "currentLfSha256": "bdab196e83eca8418529c2d4ff12ba785cb426487b8a1f2f137b2d04b759743d",
+          "workingRawSha256": "bdab196e83eca8418529c2d4ff12ba785cb426487b8a1f2f137b2d04b759743d",
+          "headBlobSha256": "bdab196e83eca8418529c2d4ff12ba785cb426487b8a1f2f137b2d04b759743d",
+          "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "src/ui_review_tree.ts",
+          "currentLfSha256": "d9ca26a03ef71ad95f888e1865e7cfdd6beb7167b7b3aa1b9fdfa9256126ae67",
+          "workingRawSha256": "d9ca26a03ef71ad95f888e1865e7cfdd6beb7167b7b3aa1b9fdfa9256126ae67",
+          "headBlobSha256": "d9ca26a03ef71ad95f888e1865e7cfdd6beb7167b7b3aa1b9fdfa9256126ae67",
+          "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "frontend/src/features/trades/trade-relations.tsx",
+          "currentLfSha256": "44a43c7cb677c0ea00a867d1b4bb22e4d0ed29b648ad93c8b68c2007eae1eb0f",
+          "workingRawSha256": "44a43c7cb677c0ea00a867d1b4bb22e4d0ed29b648ad93c8b68c2007eae1eb0f",
+          "headBlobSha256": "44a43c7cb677c0ea00a867d1b4bb22e4d0ed29b648ad93c8b68c2007eae1eb0f",
+          "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "frontend/src/features/trades/trading-list.tsx",
+          "currentLfSha256": "6a661494f094ad28ae91c8843a1accfeb50091221b2eefc4490aee7ddda95450",
+          "workingRawSha256": "6a661494f094ad28ae91c8843a1accfeb50091221b2eefc4490aee7ddda95450",
+          "headBlobSha256": "6a661494f094ad28ae91c8843a1accfeb50091221b2eefc4490aee7ddda95450",
+          "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "frontend/src/features/risk-analytics/account-evidence.tsx",
+          "currentLfSha256": "a0d1d818cac87a0f96511cb976538594d3ead080f191d3c822eed468c0fd08e1",
+          "workingRawSha256": "a0d1d818cac87a0f96511cb976538594d3ead080f191d3c822eed468c0fd08e1",
+          "headBlobSha256": "a0d1d818cac87a0f96511cb976538594d3ead080f191d3c822eed468c0fd08e1",
+          "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "frontend/src/features/signals/ingress-relations.tsx",
+          "currentLfSha256": "e2eded756350c7d299e8dbfdad09f9b9b3e4ef79cac88b8318401c53669814bc",
+          "workingRawSha256": "e2eded756350c7d299e8dbfdad09f9b9b3e4ef79cac88b8318401c53669814bc",
+          "headBlobSha256": "e2eded756350c7d299e8dbfdad09f9b9b3e4ef79cac88b8318401c53669814bc",
+          "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "rationale": [
+        "The unchanged preceding branches preserve null/undefined availability label, booleans and genuine React elements. Strings remain byte-for-byte text; numbers, bigint and symbols retain String formatting, including NaN/Infinity. Ordinary objects, arrays and functions now get an explicit invalid-value label without calling their coercion methods.",
+        "Inspected table columns use primitive projections or actual Link/MoneyAmount/acknowledgment elements. Structured strategy parameter values are explicitly JSON.stringify-ed by workflow-library before reaching the table. Setup-review backend nodeEntry converts object/array containers to null plus child metadata and an open control; the tree does not rely on generic object stringification.",
+        "The added DOM regression checks exact labels for object/array/function and exact supported scalar text, with a throwing object toString spy proving non-invocation. Existing tests still check zero/false/empty/null/undefined and the intact rendered link. EvidenceFields, row keys, table shape and navigation behavior are unchanged."
+      ],
+      "limits": [
+        "This intentionally changes unsupported object/array/function cell display. No claim that every possible future API field is scalar; callers introducing structured cells must render them explicitly. No full frontend or 967-input review renewal."
+      ]
+    }
+  ],
+  "validationEvidence": [
+    {
+      "path": "reports/security-services/fixer-sonar-boundaries-targets.log",
+      "sha256": "c44cb41d527ad2e85fe17706e300990eb8d46bb1eb6565fef1064c6a0324477e",
+      "assessment": "Existing root-executed log inspected; no tests rerun by this reviewer."
+    },
+    {
+      "path": "reports/security-services/fixer-sonar-boundaries-typecheck.log",
+      "sha256": "0f77cf5c5793fa7775c3788752e4340bd346e4611e0e2631773e072255b4ddd4",
+      "assessment": "Existing root-executed log inspected; no tests rerun by this reviewer."
+    }
+  ],
+  "rootReportedAdditionalChecks": "Root reports frontend six tests and all lint at zero; these are attributed reports, not independent executions.",
+  "verdict": "No concrete regression found within the four reviewed deltas. All intentional malformed-value behavior changes are explicit above.",
+  "limits": [
+    "No source edits or test execution during this review.",
+    "No scanner disposition mutation, whole-inventory receipt approval, or assurance for subsequent source changes."
+  ]
+}

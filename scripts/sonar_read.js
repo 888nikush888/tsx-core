@@ -32,6 +32,10 @@ function retryDelay(response, attempt, options) {
   return Number.isFinite(milliseconds) ? Math.max(backoff, milliseconds) : backoff;
 }
 
+function isNetworkFailure(error) {
+  return error instanceof TypeError || ['AbortError', 'TimeoutError'].includes(error?.name);
+}
+
 async function request(url, options) {
   const remaining = remainingBudget(options);
   try {
@@ -48,38 +52,53 @@ async function request(url, options) {
     return { response, body };
   } catch (error) {
     remainingBudget(options);
-    if (error instanceof TypeError || ['AbortError', 'TimeoutError'].includes(error?.name)) return { networkFailure: true };
+    if (isNetworkFailure(error)) return { networkFailure: true };
     throw new Error('SonarCloud read failed before a valid response.', { cause: error });
   }
 }
 
 function parseObject(body) {
-  let parsed;
+  let parsedBody = null;
   try {
-    parsed = JSON.parse(body);
+    parsedBody = JSON.parse(body);
   } catch {
     throw new Error('SonarCloud returned invalid JSON.');
   }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+  if (!parsedBody || typeof parsedBody !== 'object' || Array.isArray(parsedBody)) {
     throw new Error('SonarCloud returned an invalid JSON object.');
   }
-  return parsed;
+  return parsedBody;
+}
+
+function requestUrl(endpoint, parameters, hostUrl) {
+  const url = new URL(endpoint, hostUrl);
+  for (const [name, value] of Object.entries(parameters)) url.searchParams.set(name, String(value));
+  return url;
+}
+
+function validateRetryableFailure(result) {
+  const status = result.response?.status;
+  if (!result.networkFailure && !RETRY_STATUSES.has(status)) {
+    throw new Error(`SonarCloud read failed with HTTP ${status}.`);
+  }
+}
+
+async function prepareRetry(result, attempt, options) {
+  validateRetryableFailure(result);
+  await result.response?.body?.cancel();
+  if (attempt === MAX_ATTEMPTS) return false;
+  const delay = retryDelay(result.response, attempt, options);
+  if (delay >= remainingBudget(options)) throw new Error('SonarCloud retry would exceed the 60-second read budget.');
+  await options.sleepImpl(delay);
+  return true;
 }
 
 export async function sonarGet(endpoint, parameters, options) {
-  const url = new URL(endpoint, options.hostUrl);
-  for (const [name, value] of Object.entries(parameters)) url.searchParams.set(name, String(value));
+  const url = requestUrl(endpoint, parameters, options.hostUrl);
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     const result = await request(url, options);
     if (result.response?.ok) return parseObject(result.body);
-    const status = result.response?.status;
-    if (!result.networkFailure && !RETRY_STATUSES.has(status)) {
-      throw new Error(`SonarCloud read failed with HTTP ${status}.`);
-    }
-    await result.response?.body?.cancel();
-    if (attempt === MAX_ATTEMPTS) throw new Error('SonarCloud read failed after 3 attempts.');
-    const delay = retryDelay(result.response, attempt, options);
-    if (delay >= remainingBudget(options)) throw new Error('SonarCloud retry would exceed the 60-second read budget.');
-    await options.sleepImpl(delay);
+    if (!await prepareRetry(result, attempt, options)) break;
   }
+  throw new Error('SonarCloud read failed after 3 attempts.');
 }

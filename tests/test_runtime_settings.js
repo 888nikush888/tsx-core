@@ -23,6 +23,17 @@ try {
   assert.equal(env.DASHBOARD_ALLOWED_ORIGIN, undefined);
   assert.equal(env.TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES, 'false');
 
+  const fixedPropertyEnv = {};
+  Object.defineProperty(fixedPropertyEnv, 'DASHBOARD_ALLOWED_ORIGIN', {
+    value: 'https://retained.example.invalid', writable: true, configurable: false, enumerable: true,
+  });
+  const fixedPropertyStore = new ManagedRuntimeSettingsStore(path.join(directory, 'fixed-property.json'), fixedPropertyEnv);
+  await fixedPropertyStore.initialize();
+  assert.throws(() => fixedPropertyStore.applyToEnvironment(), TypeError);
+  assert.equal(fixedPropertyEnv.DASHBOARD_ALLOWED_ORIGIN, 'https://retained.example.invalid');
+  assert.equal(fixedPropertyStore.describe().active, null,
+    'A failed environment update must not report unapplied runtime settings as active.');
+
   const standalone = { ...store.snapshot(), shutdownGraceMs: 45_000, backupIntervalMs: 60_000 };
   await store.set(standalone);
   assert.equal(JSON.parse(await readFile(filePath, 'utf8')).shutdownGraceMs, 45_000);

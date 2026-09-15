@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "scope": "Exactly six previously reviewed Promise.resolve(undefined) -> Promise.resolve() edits; eight assertion expected operands independently confirmed unchanged.",
+  "files": [
+    {
+      "path": "tests/test_channel_risk_type_guards.js",
+      "beforeSha256": "b1a68f2312cd6918051ff9b51953484a46f5b7be429180c800940ef2c60e778a",
+      "afterSha256": "c70283b5ab736f3ad1fbc61c19d8ac82128ef3ad0eaeca4a7074c985615e5425",
+      "findingIds": [
+        "Q2hlY2tJc3N1ZTp5Z3luZGtuZHY=",
+        "Q2hlY2tJc3N1ZTpxcGVucWtucW4="
+      ]
+    },
+    {
+      "path": "tests/test_trading_core.js",
+      "beforeSha256": "005a8872253cee954e63788f4fa3428ec3964f1064c6160719d8eb9760d5dde6",
+      "afterSha256": "2afc82d717bf921396a7e1c8c89dbfa8af38ce80f0cdd05c92c9457938bd78ec",
+      "findingIds": [
+        "Q2hlY2tJc3N1ZTpkYWt3cGd3b2E=",
+        "Q2hlY2tJc3N1ZTpsbXFkcmdka3g=",
+        "Q2hlY2tJc3N1ZTphbmF2cGt2ZW0="
+      ]
+    },
+    {
+      "path": "tests/test_workflow_input_types.js",
+      "beforeSha256": "a22664346f088ae3a17ea2560fdcb6c6d537b3f3fdd6a74f9ecf3312116ae490",
+      "afterSha256": "4a55b5d7e71c5146c43ea143721fe7fb200eb7b041b9f35aeb7bcb75328ea563",
+      "findingIds": [
+        "Q2hlY2tJc3N1ZTp2dm1ub2xucm8="
+      ]
+    }
+  ],
+  "verification": {
+    "node": "22.23.2",
+    "passedTests": [
+      "tests/test_channel_risk_type_guards.js",
+      "tests/test_trading_core.js",
+      "tests/test_workflow_input_types.js"
+    ],
+    "diffCheck": "passed",
+    "requiredAssertionOperandsUnchanged": 8,
+    "pythonTestsRerun": false,
+    "globalLint": "deferred to parent final gate"
+  },
+  "limits": "Only six explicit undefined values removed from native Promise.resolve calls; no async removal, assertion weakening, platform disposition or commit. New source/test hashes invalidate earlier exact-byte bindings for these three test files."
+}

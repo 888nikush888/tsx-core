@@ -44,6 +44,11 @@ function proposalPermission(action: McpAgentProposal['action']): McpPermission {
   return 'trading.kill_switch';
 }
 
+const CONTRACT_REMOVAL_ACTIONS: ReadonlySet<string> = new Set([
+  'contracts.archive',
+  'contracts.delete_draft',
+]);
+
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === 'string') return error;
@@ -205,7 +210,7 @@ export class McpControlBridge {
   }
 
   private executeAuthorizedProposal(proposal: McpAgentProposal): unknown {
-    const payload = proposal.payload as Record<string, any>;
+    const payload = proposal.payload as Record<string, unknown>;
     const handlers: Record<McpAgentProposal['action'], () => unknown> = {
       'contracts.create_version': () => this.control.createSignalContractVersion(payload),
       'contracts.duplicate': () => this.control.duplicateSignalContract(payload),
@@ -322,21 +327,53 @@ export class McpControlBridge {
 
   private async executeAuthorized(request: McpControlRequest): Promise<unknown> {
     const payload = payloadObject(request);
-    switch (request.action) {
+    const action = request.action;
+    if (action.startsWith('contracts.')) {
+      if (CONTRACT_REMOVAL_ACTIONS.has(action)) return this.executeContractRemoval(action, payload);
+      return this.executeContractWrite(action, payload);
+    }
+    if (action.startsWith('risk.')) return this.executeRiskAction(action, payload);
+    if (action.startsWith('trading.')) return this.executeTradingAction(action, payload);
+    throw new Error(`MCP control action is not implemented: ${action}`);
+  }
+
+  private executeContractWrite(action: McpControlAction, payload: Record<string, unknown>): unknown {
+    switch (action) {
       case 'contracts.create':
         return this.control.createSignalContract(payload);
       case 'contracts.update':
         return this.control.updateSignalContract(payload);
       case 'contracts.publish':
         return this.control.publishSignalContract(payload.versionId);
+      default:
+        throw new Error(`MCP control action is not implemented: ${action}`);
+    }
+  }
+
+  private executeContractRemoval(action: McpControlAction, payload: Record<string, unknown>): unknown {
+    switch (action) {
       case 'contracts.archive':
         return this.control.archiveSignalContract(payload.versionId);
       case 'contracts.delete_draft':
         return this.control.removeSignalContractDraft(payload.versionId);
+      default:
+        throw new Error(`MCP control removal action is not implemented: ${action}`);
+    }
+  }
+
+  private executeRiskAction(action: McpControlAction, payload: Record<string, unknown>): unknown {
+    switch (action) {
       case 'risk.update':
         return this.control.setChannelRiskPolicy(payload);
       case 'risk.delete':
         return this.control.removeChannelRiskPolicy(payload.channelId);
+      default:
+        throw new Error(`MCP control risk action is not implemented: ${action}`);
+    }
+  }
+
+  private executeTradingAction(action: McpControlAction, payload: Record<string, unknown>): unknown {
+    switch (action) {
       case 'trading.reconcile':
         return this.control.reconcile(payload.accountId);
       case 'trading.cancel_entries':
@@ -352,6 +389,8 @@ export class McpControlBridge {
           accountId: payload.accountId,
           confirmation: 'FLATTEN MANAGED POSITIONS',
         });
+      default:
+        throw new Error(`MCP control trading action is not implemented: ${action}`);
     }
   }
 }

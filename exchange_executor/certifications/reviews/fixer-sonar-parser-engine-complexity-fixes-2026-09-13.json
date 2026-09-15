@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "baseRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+  "scope": "Exactly two owned Sonar complexity findings, no other source changes",
+  "entries": [
+    {
+      "path": "src/trading_engine.ts",
+      "sonarIssueKey": "AaCaApiiQzi-Va3r5ZAS",
+      "rule": "typescript:S3776",
+      "beforeSourceGitSha256": "c29c95869c61208a1ebcc5a373a8b5c2ee9697545aa58fea61ad346d4afe1323",
+      "afterWorkingFileSha256": "313a8f1f6fdced67333c367cb1660c3ddcf7cd07d11fc5494ca9b2a22bd44e05",
+      "diffSha256": "dd1ec7b410df4175ed53c55692048c867875ef4f7f72c405ae5e41405a8bca82",
+      "diff": "diff --git a/src/trading_engine.ts b/src/trading_engine.ts\nindex c10ab7c..43416b0 100644\n--- a/src/trading_engine.ts\n+++ b/src/trading_engine.ts\n@@ -2520,6 +2520,10 @@ export class TradingEngine {\n   }\n }\n \n+function protectedEntryFailureMessage(error: unknown): string {\n+  return error instanceof Error && error.message ? error.message : 'Protected entry outcome is unknown.';\n+}\n+\n async function submitTrackedProtectedEntry(input: {\n   adapter: TradingExchangeAdapter;\n   account: TradingAccount;\n@@ -2584,7 +2588,7 @@ async function submitTrackedProtectedEntry(input: {\n        WHERE intent_id = ? AND client_order_id IN (?, ?)\n          AND status IN ('created', 'submitting', 'unknown')`,\n       [\n-        error instanceof Error && error.message ? error.message : 'Protected entry outcome is unknown.',\n+        protectedEntryFailureMessage(error),\n         Date.now(),\n         input.intent.id,\n         input.entry.clientOrderId,\n",
+      "rationale": "Extract only synchronous protected-entry failure message expression. Same instanceof/short-circuit/message getter evaluation and fallback string, evaluated at same argument position before Date.now. Dispatch flag, SQL, confirmed-order persistence transaction, abandonment and rethrow order unchanged.",
+      "cognitiveComplexity": {
+        "reportedBefore": 19,
+        "expectedAfter": 15,
+        "method": "Subtract moved increments from precise historical Sonar flow locations; remote Sonar rescan remains necessary, not claimed completed."
+      }
+    },
+    {
+      "path": "src/signal_parser.ts",
+      "sonarIssueKey": "AaCaAphgQzi-Va3r5ZAQ",
+      "rule": "typescript:S3776",
+      "beforeSourceGitSha256": "2e7206529e201d670786b019a5862826cd039274a14f4f79e9c2be178df950d5",
+      "afterWorkingFileSha256": "606910e2de5b08cf5925a12909500027b9ec1bbebbd408710c4fee47a9ceb515",
+      "diffSha256": "83f3c3b8bd907f78fa16cd7aec01b6d0fb4da5b67bbc184f11fab39950185281",
+      "diff": "diff --git a/src/signal_parser.ts b/src/signal_parser.ts\nindex 5e89616..99c9097 100644\n--- a/src/signal_parser.ts\n+++ b/src/signal_parser.ts\n@@ -512,6 +512,24 @@ function hasAnotherAttempt(\n   return attempt < plan.attempts || planIndex < plans.length - 1;\n }\n \n+function nextAttemptDelay(\n+  error: unknown,\n+  planIndex: number,\n+  attempt: number,\n+  plans: Array<{ model: string; attempts: number }>,\n+  limits: AiLimits,\n+): number | null {\n+  const classification = classifyAiError(error);\n+  if (!classification.retryable) throw error;\n+  if (!hasAnotherAttempt(planIndex, attempt, plans)) return null;\n+  const exponentialDelay = limits.backoffMs * 2 ** (attempt - 1);\n+  const delayMs = retryDelayMilliseconds(error, exponentialDelay, limits);\n+  console.error(\n+    `[XML-Parser WARN] category=${classification.code} status=${classification.httpStatus || 'none'} retry_in_ms=${delayMs}`\n+  );\n+  return delayMs;\n+}\n+\n export async function parseSignalToXml(\n   messageText: string,\n   templateName?: string,\n@@ -547,16 +565,8 @@ export async function parseSignalToXml(\n         return await runProviderAttempt(context, plan.model);\n       } catch (error) {\n         lastError = error;\n-        const classification = classifyAiError(error);\n-        if (!classification.retryable) throw error;\n-        if (hasAnotherAttempt(planIndex, attempt, plans)) {\n-          const exponentialDelay = limits.backoffMs * 2 ** (attempt - 1);\n-          const delayMs = retryDelayMilliseconds(error, exponentialDelay, limits);\n-          console.error(\n-            `[XML-Parser WARN] category=${classification.code} status=${classification.httpStatus || 'none'} retry_in_ms=${delayMs}`\n-          );\n-          await abortableDelay(delayMs, options.signal);\n-        }\n+        const delayMs = nextAttemptDelay(error, planIndex, attempt, plans, limits);\n+        if (delayMs !== null) await abortableDelay(delayMs, options.signal);\n       }\n     }\n   }\n",
+      "rationale": "Extract synchronous classification, retryability refusal, another-attempt check, delay calculation and logging into nextAttemptDelay. Null represents no next attempt; numeric zero still executes original abortableDelay. lastError is assigned first, nonretryable error thrown by identity, no new async function or await introduced, provider/model loop and existing rejection boundary retained.",
+      "cognitiveComplexity": {
+        "reportedBefore": 17,
+        "expectedAfter": 13,
+        "method": "Subtract moved increments from precise historical Sonar flow locations; remote Sonar rescan remains necessary, not claimed completed."
+      }
+    }
+  ],
+  "validation": {
+    "targetedTests": [
+      "test_signal_parser.js",
+      "test_trading_dispatch_fence.js",
+      "test_trading_entry_commitment.js",
+      "test_trading_protection_receipt.js"
+    ],
+    "passedFiles": 4,
+    "failures": 0,
+    "skipped": 0,
+    "eslint": "Both changed files passed existing ESLint configuration",
+    "logs": [
+      {
+        "path": "reports/security-services/fixer-sonar-parser-engine-complexity-tests.log",
+        "sha256": "81e53aea6673ea420a19aece8b2c8769bd2d7a2297db5d1a4db7f6fee4fbd0a1"
+      },
+      {
+        "path": "reports/security-services/fixer-sonar-parser-engine-complexity-eslint.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "limits": "No commit/push; no policy/threshold changes; remote Sonar result pending; no provider access or receipt approval."
+}

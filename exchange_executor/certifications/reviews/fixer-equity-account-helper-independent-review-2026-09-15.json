@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "reviewedBaseRevision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+  "reviewedState": "uncommitted working source delta only",
+  "path": "frontend/src/features/risk-analytics/equity-chart.tsx",
+  "baseGitBlobSha256": "af13c5f0b85d5acf42d10d6925e5494e95b41a9a1540cb8eb62ab896f88dcf93",
+  "workingRawSha256": "b07560991e783207978d0faf386935afde736c34bb87572680bfa86e9df329e4",
+  "gitNormalizedLfSha256": "767dc0780440134537be3f22a6bac2e60c41a17ada688e2952a789637a2d7448",
+  "diffSha256": "de9565a398cac1df6b4a89143af148c42100a67a954708115050a942dc1e5b3e",
+  "disposition": "no-regression-identified-in-plain-data-contract",
+  "rationale": "Helper preserves all string IDs including empty, maps null/undefined to aggregate, rejects every other ordinary JS type without coercion. equityPoint validation still precedes ID read; currency validation remains after ID acceptance. Downstream grouping by string Map key, exact tooltip amount and accountName behavior unchanged.",
+  "validation": {
+    "independentProbe": "PASS: transpiled actual old/current validation functions compared for 18 stable ID values; explicit empty/null/undefined results; throwing toString not invoked.",
+    "parentLogsObserved": "38 frontend files / 323 tests passed; production build built in 3.72s. Logs read, not rerun by reviewer.",
+    "logs": [
+      {
+        "path": "reports/security-services/fixer-equity-account-helper-tests.log",
+        "sha256": "18eca07c200596642b615e0605be0733ce3956cb75433d49a47ecd2982d939bd"
+      },
+      {
+        "path": "reports/security-services/fixer-equity-account-helper-build.log",
+        "sha256": "6a93d43d2e837f2aed674b4de794d52992f8573aea3f3adbb59e8c97fe3dd4ef"
+      }
+    ]
+  },
+  "semanticLimits": [
+    "accountId now read once rather than multiple times. Side-effecting getters/proxies can therefore differ; this is not a byte-identical or arbitrary-accessor-equivalence claim. Ordinary stable JSON observations and existing fixture records preserve behavior.",
+    "No new DeepSource scan result asserted.",
+    "Working raw file CRLF differs from Git-normalized LF; both hashes provided.",
+    "Only equity chart delta reviewed; concurrent workflow repository/test changes excluded."
+  ]
+}

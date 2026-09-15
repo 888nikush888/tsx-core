@@ -43,10 +43,10 @@ export function usePoll<T>(
       if (document.hidden) return;
       clearTimeout(timer);
       if (running) refreshRequested = true;
-      else void poll();
+      else poll();
     };
     document.addEventListener('visibilitychange', visible);
-    void poll();
+    poll();
     return () => { controller.abort(); clearTimeout(timer); document.removeEventListener('visibilitychange', visible); };
   }, [read, intervalMs, refreshKey]);
 }

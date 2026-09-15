@@ -76,7 +76,7 @@ class TierEvidenceTests(unittest.IsolatedAsyncioTestCase):
             rest.configured_leverage = 5
             original_read = rest.privateGetV5OrderRealtime
             reads = 0
-            async def order_read(params):
+            async def order_read(params, *, blocked_read=blocked_read, original_read=original_read):
                 nonlocal reads
                 result = await original_read(params)
                 if params.get('settleCoin') == 'USDT':

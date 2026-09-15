@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from functools import partial
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -181,7 +182,7 @@ def _bybit_envelope(response: Any, limit: int, category: str = 'linear') -> tupl
 
 async def _bybit_other_execution_scopes(rest: Any, state: dict[str, Any], budget: RecoveryReadBudget) -> None:
     for category in ('inverse', 'spot', 'option'):
-        response = await budget.call(lambda category=category: rest.privateGetV5ExecutionList({
+        response = await budget.call(partial(rest.privateGetV5ExecutionList, {
             'category': category, 'startTime': state['windowSince'], 'endTime': state['windowUntil'], 'limit': 1}))
         rows, cursor = _bybit_envelope(response, 1, category)
         if rows or cursor:

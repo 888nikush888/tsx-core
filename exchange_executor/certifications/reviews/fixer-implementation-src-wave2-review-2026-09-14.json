@@ -1,0 +1,873 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-full-historical-src-delta-review-wave2",
+  "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "e3a5857cb4280e660d671024002a74698b14344a",
+  "observedCurrentRevision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+  "selection": {
+    "paths": [
+      "src/alert_relay.ts",
+      "src/backup.ts",
+      "src/backup_cli.ts",
+      "src/backup_generation.ts",
+      "src/backup_replication.ts",
+      "src/ccxt_exchange.ts",
+      "src/config.ts",
+      "src/contract_values.ts",
+      "src/crash_guard.ts",
+      "src/dashboard_auth.ts",
+      "src/db.ts",
+      "src/delivery_tracker.ts",
+      "src/executor_origin.ts",
+      "src/filters.ts",
+      "src/forwarder.ts",
+      "src/incoming_work_repository.ts",
+      "src/ingress_contracts.ts",
+      "src/mcp_control_bridge.ts",
+      "src/mcp_repository.ts",
+      "src/metrics.ts",
+      "src/outbox_scheduler.ts",
+      "src/process_lock.ts",
+      "src/runtime_settings.ts",
+      "src/signal_contract.ts",
+      "src/signal_schema.ts",
+      "src/telegram_viewer/clients.ts",
+      "src/telegram_viewer/health_server.ts",
+      "src/telegram_viewer/internal_transport.ts",
+      "src/telegram_viewer/runtime.ts",
+      "src/telegram_viewer/service.ts"
+    ],
+    "excludedLatestCommitPaths": [
+      "exchange_executor/certifications/reviews/fixer-codacy-13cfc7c-binding-review-2026-09-13.json",
+      "exchange_executor/certifications/reviews/fixer-implementation-config-full-chain-review-2026-09-13.json",
+      "exchange_executor/certifications/reviews/fixer-sonar-optional-chain-fixes-independent-review-2026-09-13.json",
+      "exchange_executor/certifications/reviews/fixer-sonar-owned-exposure-review-2026-09-13.json",
+      "exchange_executor/certifications/reviews/fixer-sonar-parser-engine-complexity-fixes-2026-09-13.json",
+      "exchange_executor/certifications/reviews/fixer-sonar-relation-page-review-2026-09-13.json",
+      "exchange_executor/certifications/reviews/fixer-sonar-wave2-root-review-2026-09-13.json",
+      "src/env.ts",
+      "src/exchange_history_coverage.ts",
+      "src/signal_parser.ts",
+      "src/trading_engine.ts",
+      "src/trading_exit_cancel.ts",
+      "src/trading_leverage_admission.ts",
+      "src/trading_risk_admission.ts",
+      "src/trading_safety_repository.ts",
+      "src/trading_take_profit.ts",
+      "src/ui_trade_relations.ts"
+    ]
+  },
+  "counts": {
+    "selected": 30,
+    "completeAtReviewedTarget": 25,
+    "correctedAfterTarget": 1,
+    "remainingSemanticEvidenceGaps": 4
+  },
+  "scope": "Actual full per-file Git deltas and helper/caller context reviewed. No upgrade of unrelated scoped FP bindings to whole-file approval. This is semantic delta coverage only, not implementation receipt approval, provider acceptance or fresh execution certification. No live access. Only authorized runtime settings regression corrected.",
+  "entries": [
+    {
+      "path": "src/alert_relay.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "028ec68c4e5756c886f8d95b96338d00d3e5955a",
+        "gitBlobSha256": "b2ff94a4e793a1921bcaab704b4819293e57525b0605a13eaf9686a63ba64477"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "cd5ea383e9a9cd2483ea010dc6e29537f9843461",
+        "gitBlobSha256": "b0fa3a8b814445094bc1b1de4a72cb6ea1c91d859f126da667ec6f642b051725"
+      },
+      "fullHistoricalDeltaSha256": "1957f3dde773f5dca83ddd50d1b0a178d63dfce60c06cd1c4258846f5012f627",
+      "hunks": [
+        "@@ -86,17 +86,21 @@ function parseAlertPayload(body: Buffer): unknown {",
+        "@@ -174,6 +178,12 @@ export function createAlertRelay(options: AlertRelayOptions): http.Server {",
+        "@@ -188,13 +198,12 @@ async function startFromEnvironment(): Promise<void> {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Envelope/label object guards retain JSON values and source labels; start helper preserves request handler. Default listener tightened to loopback; docker-compose.monitoring.yml explicitly selects 0.0.0.0 for container reachability. Internal HTTP acceptance is separate, not removed by this review."
+    },
+    {
+      "path": "src/backup.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "fa2bbd85a97906aece4f24439110df24c75fdf65",
+        "gitBlobSha256": "ea43fe5a534f17e3f7c40af5b8cb5f4bfd407d671d8a315988a4929d813cddd3"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "396b064e9059ef57e936bc5db4344f96a8c2581a",
+        "gitBlobSha256": "a23d7288132879e2daf137781ea5cb0aef966aae21e80153198729a7bd5f4c4e"
+      },
+      "fullHistoricalDeltaSha256": "10513d9847eba981ec77512489a28c4245d7f7a77b9514fb40459a104f84ebbf",
+      "hunks": [
+        "@@ -166,7 +166,7 @@ function isSafeTemplatePathSegment(segment: string): boolean {",
+        "@@ -257,7 +257,7 @@ async function verifyCoreDatabaseSchema(database: Database): Promise<void> {",
+        "@@ -277,17 +277,17 @@ async function verifyTradingDatabaseSchema(database: Database): Promise<void> {",
+        "@@ -466,7 +466,9 @@ async function snapshotPinnedDatabase(destination: string, config: unknown): Pro",
+        "@@ -720,32 +722,30 @@ async function verifyStagedMember(destination: string, expected: BackupFileMetad",
+        "@@ -757,6 +757,17 @@ async function preserveCurrentFiles(plan: RestorePlan, progress: RestoreProgress",
+        "@@ -900,7 +911,7 @@ export class BackupScheduler {",
+        "@@ -915,10 +926,10 @@ export class BackupScheduler {",
+        "@@ -975,9 +986,9 @@ export class BackupScheduler {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta: equivalent Unicode-mode ASCII filename exclusion, static SQL quote changes, explicit missing pinned config/template guards; preserveTemplates/sidecars extraction keeps DB then config then runtime then templates then WAL/SHM operations. Existing valid manifest paths keep operation and await order. No restore executed here."
+    },
+    {
+      "path": "src/backup_cli.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "9a1fea320647203fd70b02021b61e8bb86f81765",
+        "gitBlobSha256": "55eb30b268c4b02561dd7813ae10461b9e08b3503474474936989ca802f8ec69"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "10050996a20bd005f79bbfa5cd5b9406a51cb137",
+        "gitBlobSha256": "d0fd89cea0779ef15598a6d07d1ce7930ee2c9df815c71a2036ed0ef17c8fd7d"
+      },
+      "fullHistoricalDeltaSha256": "d8105a37957228ad0f5f2b44bb0ad2de5b1b6edc75cf25dbd1159a67a5ece128",
+      "hunks": [
+        "@@ -37,37 +37,41 @@ async function restoreOfflineBackup(artifactPath: string, databasePath: string):",
+        "@@ -78,9 +82,20 @@ async function run(): Promise<void> {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full dispatch extraction retains verify/drill early routes before environment loading, create/prune argument selection and lock-owned database try/finally close/release. Native ENOENT guard and unknown-error rendering only tighten exception inspection."
+    },
+    {
+      "path": "src/backup_generation.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "27de7d4aabc2c45c66ec9c652564f239f5d01fdf",
+        "gitBlobSha256": "315854c58ee6e3aa1db0b35d138dd60990556b0d71f67743e87af14aa53f6159"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "cf339a4322e98fe6665ff013acbe42e7da889ec5",
+        "gitBlobSha256": "50d417ce3771e5462c5b361d674a67198a013f26ab6015f0eef59b72583a5a96"
+      },
+      "fullHistoricalDeltaSha256": "78f833c51860dd0988dd1f2e3d93dbf38caa26e101c93d89d823dc26e069e4aa",
+      "hunks": [
+        "@@ -171,7 +171,7 @@ function safeMember(name: string): boolean {",
+        "@@ -291,13 +291,13 @@ function commitGeneration(root: string, sources: ConfigurationSources, previous"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta replaces empty/await-free initialization callback with synchronous return wrapped by Promise.resolve and explicit Boolean/string style. withProcessLockOwner still awaits callback inside try/finally; synchronous callback errors reject outer async operation and ownership release still runs."
+    },
+    {
+      "path": "src/backup_replication.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "b01e5fe5598e3e738cc03d3383773b8a9582565a",
+        "gitBlobSha256": "d030d9e52c4b7a043f191ae4695c4822e167eec74674a22c50fb59363c410f63"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "9ba1d1409039cc88c6fda7d8cf93d8e7144f4384",
+        "gitBlobSha256": "ed8a03d8a5dd3e416cec9bbc4e45fbbbc622268fbd7d050f9dce21d31e98f0a2"
+      },
+      "fullHistoricalDeltaSha256": "e3c69265c09b8e4fde17fb350cfde2502ffc2ea56255b6a756200d6b56db6c78",
+      "hunks": [
+        "@@ -245,7 +245,7 @@ async function decryptArtifact(bundlePath: string, destination: string, key: Buf",
+        "@@ -356,7 +356,7 @@ export class HttpsBackupReplicator implements BackupReplicator {",
+        "@@ -501,6 +501,16 @@ function optionalBoundedInteger(value: string | undefined, name: string, minimum",
+        "@@ -511,7 +521,7 @@ export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.en",
+        "@@ -529,12 +539,13 @@ export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.en"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta retains configuration validation and offsite credential triple requirement via helper. GCM decrypt authTagLength is fixed to existing TAG_BYTES=16, the same bytes read from serialized artifact; no cipher format or key derivation change. Boolean/catch/string edits retain existing dispatch. This review executes no offsite provider operations."
+    },
+    {
+      "path": "src/ccxt_exchange.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "9f8d0ba18d58093f80cf87f4b46e53471e03ae52",
+        "gitBlobSha256": "85bcfe7f6f22bd9b72fc607b5a2e56f852e077edf230947dcaf7d734a2f5e868"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "3e1e436c8eeaf7e61f689a1460f9dafae8ac574f",
+        "gitBlobSha256": "adc917238be037b2de1a52b7297eb312fbff80cec3887d0a0fc656c612400cdb"
+      },
+      "fullHistoricalDeltaSha256": "0bf84dfedb31b2f53c81c0cd23aaa0816a8218b94abf549aa6373e94decdaad6",
+      "hunks": [
+        "@@ -84,6 +84,16 @@ function assertObject(value: unknown, label: string): Record<string, any> {",
+        "@@ -343,31 +353,27 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta extracts open-state object/array/account envelope guards without moving provider invocation or downstream history/order-scope checks. Missing acquisition now explicit error. FX nullable account fallback cannot silently pass: preceding requireFxAccountContext binds exact live/testnet account fingerprint and credential generation to DB and requires 64-hex strings before schedule validation."
+    },
+    {
+      "path": "src/config.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "3c768f1d0b03c41ed9b51b06613063a91d93aeb4",
+        "gitBlobSha256": "2169171d995a81f527b86a1be937cea35cd5055e2bda4beb55d65604f96a40e7"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "dfe21487fd9f0da0bb8cd5e8b9b491a509716ea7",
+        "gitBlobSha256": "835d6fb83af653ea6d239170e451eaade10299fa7a9bbe6287c6f383f5ff0b53"
+      },
+      "fullHistoricalDeltaSha256": "84ac66706dbb81455de9ce6b8de70fa68fc8a682e99fd78c737086b95e09ac97",
+      "hunks": [
+        "@@ -246,7 +246,11 @@ export function canonicalizeResolvedSources("
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta adds explicit missing resolution error to canonicalizeSourceChannels instead of non-null assertion. Validation/canonical mapping still precede alias/source array construction; valid resolved sources preserve order and identity."
+    },
+    {
+      "path": "src/contract_values.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "e887190c4e63fd9aaa9feee3b700359ce11acd36",
+        "gitBlobSha256": "17a8f1ded288270f63ac12778110fd76d60a8a62a88494909c41687d4c31063b"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "c04100c928a8af327d19648ddbdf8eeb9f990c89",
+        "gitBlobSha256": "871e1ef8c09fed21648fb385c02c6c79f76b19289e8eea4970d43e984c82f613"
+      },
+      "fullHistoricalDeltaSha256": "034b1cae18ddb79492efc1a7359622e0618db075fcc60fa0898e06b79928a48e",
+      "hunks": [
+        "@@ -12,9 +12,16 @@ export function requireString(value: unknown, label: string): string {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta moves primitive type classification from switch to set/helper while preserving null and native Error special handling and direct string return. String conversion stays bounded to same primitive types; objects do not gain arbitrary coercion."
+    },
+    {
+      "path": "src/crash_guard.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "cfef5bd400233b7017686702ee46d2d2add09f18",
+        "gitBlobSha256": "f1c76ee24c4099691b076716694ccfdf75335b1821272d5de9b2a83d917c2394"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "191045c2a4bef512b5b8be63bfd5781e87e8591c",
+        "gitBlobSha256": "96aa91a110f42da31e90a69de1b9a9bc18d6826e5f50a535129971a34515ff1b"
+      },
+      "fullHistoricalDeltaSha256": "616af0ab5377d7ceeeab0bd6676f85cc84905d533b25fbd1259ee29e96261649",
+      "hunks": [
+        "@@ -21,9 +21,10 @@ export class CrashLoopBlockedError extends Error {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta replaces optional reads with nullish row fallback and Number calls; count and lastCrashAt conversion order and fallback values unchanged for absent/primitive/object JSON persistence."
+    },
+    {
+      "path": "src/dashboard_auth.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "1764ee0e216f50cd106330723d84614404e8976b",
+        "gitBlobSha256": "7f9decdb8daf6a81957ab270da42a21b764040e9d6a1b0fcd6fcdfebb971f5f7"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "54aed022e7e1d90e754a33c7b4985fe1200719a4",
+        "gitBlobSha256": "a9ed5eb9bbc7b1f3d021ae9bfd601ac67df25fea88a6f3fc6b0b8a22650badf5"
+      },
+      "fullHistoricalDeltaSha256": "8b6329407056589f8f10d31ebeb6691e10c52c1a1592e77e447cf5576fd95056",
+      "hunks": [
+        "@@ -101,26 +101,26 @@ export class EnvironmentTokenAuthenticator implements DashboardAuthenticator {",
+        "@@ -240,18 +240,18 @@ export class TailscaleServeAuthenticator implements DashboardAuthenticator {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta replaces Boolean idioms and returns explicit resolved promises inside already-async methods. Authentication headers, role selection, expiry and revocation checks unchanged. No callback changed from async to synchronous throwing."
+    },
+    {
+      "path": "src/db.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "4948950905751eceae46c845018bc122de187d05",
+        "gitBlobSha256": "6b961e02941d6e529432767ac97051603171d1a062a67de19eabfebaee18e3d4"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "64ac91b806dac2cc1934deb2ae812fdfa3db3562",
+        "gitBlobSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8"
+      },
+      "fullHistoricalDeltaSha256": "006b079cbc74493a06cf7d79dd08b1fcb9fcfd2da87a30314c2f8f230d7a5c48",
+      "hunks": [
+        "@@ -292,7 +292,7 @@ class SerializedDatabaseAccess {",
+        "@@ -2840,7 +2840,7 @@ async function applyPendingMigration(database: Database, migration: SchemaMigrat",
+        "@@ -3054,21 +3054,21 @@ export async function withDatabaseDispatchFence<T>(verify: () => Promise<void>,",
+        "@@ -3211,7 +3211,7 @@ export async function commitAiUsage(reservationId: string, allowance: number, ac",
+        "@@ -3231,8 +3231,8 @@ export async function getOutboxStatusCounts(): Promise<Record<OutboxStatus, numb",
+        "@@ -3243,7 +3243,7 @@ export async function getOutboxStatusCounts(): Promise<Record<OutboxStatus, numb",
+        "@@ -3533,35 +3533,35 @@ export async function findDuplicateSignal(",
+        "@@ -3730,7 +3730,7 @@ export async function recoverInterruptedOutboxTasks(): Promise<{ requeued: numbe",
+        "@@ -3739,13 +3739,11 @@ export async function listOutboxTasks(statuses?: OutboxStatus[], limit = 100): P",
+        "@@ -3801,12 +3799,12 @@ export async function saveMediaGroupBuffer(groupId: string, fromChatId: string,",
+        "@@ -3842,7 +3840,7 @@ export async function updateIncomingMessageStatus(",
+        "@@ -3850,7 +3848,7 @@ export async function updateIncomingMessageStatus(",
+        "@@ -3858,7 +3856,7 @@ export async function getIncomingMessages(limit = 100): Promise<any[]> {",
+        "@@ -3951,7 +3949,7 @@ export async function clearDb(): Promise<DatabaseClearResult> {",
+        "@@ -3971,7 +3969,7 @@ export function isForeignKeyConstraint(error: unknown): boolean {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta includes no-op drain promise, catch/void style, identical static SQL and duplicate-signal query helper extraction. Cooldown branch, permanent branch, scoped SQL parameters, descending selection, now calculation and age rounding preserved; transaction queue cleanup remains attached."
+    },
+    {
+      "path": "src/delivery_tracker.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "3bd330be0804eb1c7e5dde8f1d3d6e81fc4ac353",
+        "gitBlobSha256": "6f0b4cdad4b1b23763cd75a80a73df4dcda300f419a0da0caaa1dc8d9d8ed248"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "c49704b1f65bc75fc448d03758d8bfb68c27608f",
+        "gitBlobSha256": "bd8ee825675eeb4535b4de0f3419d9c8f0f77be2ac1b4ea686128365afc45abd"
+      },
+      "fullHistoricalDeltaSha256": "9c9aaed5c64c1a16e66f14324b1a14e0589d88604095b6aea5ca5f3b251ed010",
+      "hunks": [
+        "@@ -16,6 +16,26 @@ export interface ConfirmedDelivery {",
+        "@@ -30,7 +50,7 @@ export class TelegramDeliveryTracker {",
+        "@@ -51,15 +71,15 @@ export class TelegramDeliveryTracker {",
+        "@@ -68,7 +88,7 @@ export class TelegramDeliveryTracker {",
+        "@@ -90,7 +110,8 @@ export class TelegramDeliveryTracker {",
+        "@@ -107,7 +128,9 @@ export class TelegramDeliveryTracker {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta retains async Promise.all mapper, rejection observation, update/publish ordering and timeout cleanup. New missing outcome guards reject only absent/empty destination outcome; normal success producer String(update.message?.id ?? update.old_message_id) is nonempty. Error String conversion changes only malformed nonstring diagnostics (e.g. Symbol); no valid TDLib message behavior claimed to change."
+    },
+    {
+      "path": "src/executor_origin.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "b38bc5c72b0de44914de99db97d96440a3fe7b14",
+        "gitBlobSha256": "5b2738f6e99d067c66f26efab2b7873de8c24a4e1f4a628f76b9e628f5a73ed1"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "5cd2706c471fe03368e44e463be90341737d6b3a",
+        "gitBlobSha256": "c5d8f9e250277a35e0de9e8d1899473d395264be33c2cd861dc7fcd6b97d091e"
+      },
+      "fullHistoricalDeltaSha256": "ab1ad0c0c0f48c9ba66336b37e73a1820e7826c62f3a4d2dfc3a7df334f696a9",
+      "hunks": [
+        "@@ -8,12 +8,22 @@ const INTERNAL_EXECUTOR_HOSTS = new Set(["
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta splits URL shape and credential checks while retaining allowed HTTP loopback/internal origin rules and TLS handling. All invalid branches still reject; no transport allowlist widening or provider call added."
+    },
+    {
+      "path": "src/filters.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "c43e9e80f793c95dad28819849f1f9866be795e2",
+        "gitBlobSha256": "f81b29600761e692eb5ffbc378527df65a7a9b67b4210bc51d3feefbb3406507"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "f009924e60adf2cbb0c912993132cc0a000fb64b",
+        "gitBlobSha256": "ee3f295e61fef83344e59c71cc2c748b904a9714efd7a05ff7a0b924b9eeea79"
+      },
+      "fullHistoricalDeltaSha256": "cbbe9ce1726dee893e646d02f42be05b3832e38544081c000ad13437a3096127",
+      "hunks": [
+        "@@ -1,8 +1,30 @@",
+        "@@ -14,8 +36,8 @@ export function safeRegexTest(regex: RegExp, text: string, timeoutMs = 100): boo",
+        "@@ -36,7 +58,7 @@ function closesNestedQuantifier(pattern: string, index: number, openGroups: Rege",
+        "@@ -45,25 +67,33 @@ class NestedQuantifierScanner {",
+        "@@ -104,14 +134,20 @@ export function parseRegex(patternStr: string): RegExp {",
+        "@@ -121,50 +157,58 @@ export function parseRegex(patternStr: string): RegExp {",
+        "@@ -173,15 +217,20 @@ export function getMessageTextAndType(message: any): MessageTextAndType {",
+        "@@ -196,9 +245,9 @@ function allowsKeyword(text: string, keywords: string[] | undefined): boolean {",
+        "@@ -208,14 +257,14 @@ function resolveRegexPatterns(",
+        "@@ -226,36 +275,41 @@ function matchesAllRegexPatterns("
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta reviewed: scanner class extraction retains escaped/character-class/group quantifier state; regex validation/cache helpers preserve compile and FIFO order. Filtering keeps type, blocked word, allowed word, regex then logging order. Message-type Map intentionally avoids prototype inherited keys; native cross-realm regex error guard preserves VM timeout identification while avoiding arbitrary error-object coercion."
+    },
+    {
+      "path": "src/forwarder.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "69ea27d08fe3fd571cd7d40a8c20eeb705efae58",
+        "gitBlobSha256": "e330b3657c1116af78e32de7f9a73909ac185869361424c89db8d1aa7063dec2"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "79247f59ebcfffef06437a2dabc534cc5752fb17",
+        "gitBlobSha256": "71537e7d74b2b9d9ea00176b16779e90cbceb79628676cf7008cf22bfa31c62c"
+      },
+      "fullHistoricalDeltaSha256": "f2c5e1a919421e968f02201f646296487db2884f911e08c329a23436e8d4ab52",
+      "hunks": [
+        "@@ -1,3 +1,10 @@",
+        "@@ -53,7 +60,7 @@ import {",
+        "@@ -121,8 +128,8 @@ import {",
+        "@@ -132,11 +139,11 @@ process.on('uncaughtException', (error: any) => {",
+        "@@ -158,7 +165,7 @@ async function checkCrashLoop() {",
+        "@@ -173,11 +180,19 @@ const forwardQueue = new ConcurrencyQueue(2, 60_000, OUTBOX_MAX_IN_MEMORY_TASKS)",
+        "@@ -194,17 +209,17 @@ function requireDeliveryTracker(): TelegramDeliveryTracker {",
+        "@@ -224,16 +239,16 @@ async function migrateLegacyPersistedTasks(config: any): Promise<void> {",
+        "@@ -252,7 +267,7 @@ async function executePersistedOutboxTask(task: OutboxTask, config: any, context",
+        "@@ -291,16 +306,16 @@ async function executeScheduledOutboxTask(",
+        "@@ -311,12 +326,12 @@ async function executeScheduledOutboxTask(",
+        "@@ -341,14 +356,14 @@ const outboxScheduler = new DurableOutboxScheduler({",
+        "@@ -359,7 +374,7 @@ async function enqueueTask(taskData: any, config: any): Promise<void> {",
+        "@@ -370,7 +385,7 @@ async function enqueueMediaGroup(gId, config, g) {",
+        "@@ -386,7 +401,7 @@ async function resumePersistedTasks(config: any): Promise<void> {",
+        "@@ -429,8 +444,8 @@ async function recordForwardedMessages(amount = 1) {",
+        "@@ -645,7 +660,7 @@ async function parseSignalNative(",
+        "@@ -655,39 +670,36 @@ async function parseSignalNative(",
+        "@@ -711,11 +723,6 @@ async function resolveConfiguredSources(config) {",
+        "@@ -728,7 +735,7 @@ async function tryManualCopyFallback(message, context: OutboxExecutionContext) {",
+        "@@ -754,16 +761,16 @@ async function forwardRawMessage(message, config, context: OutboxExecutionContex",
+        "@@ -790,7 +797,7 @@ async function checkDuplicateAndSave(",
+        "@@ -801,7 +808,7 @@ async function checkDuplicateAndSave(",
+        "@@ -817,10 +824,10 @@ async function recordCreatedIntents(intents: any[], sourceId: string, signalRece",
+        "@@ -856,10 +863,10 @@ async function parseWorkflowPlan(",
+        "@@ -913,7 +920,7 @@ async function processWorkflowSignal(",
+        "@@ -925,7 +932,7 @@ async function sendXmlMessage(xmlString, context: OutboxExecutionContext) {",
+        "@@ -937,10 +944,10 @@ function parserSchemaOverride(configuredSchema: any): any {",
+        "@@ -968,7 +975,7 @@ async function parseLegacyXmlSignal(",
+        "@@ -981,9 +988,9 @@ async function createLegacyIntentForSignal(",
+        "@@ -998,22 +1005,22 @@ async function createLegacyIntentForSignal(",
+        "@@ -1052,8 +1059,8 @@ async function processXmlSignal(message, text, contentType, xmlParsing, dupeBloc",
+        "@@ -1062,29 +1069,28 @@ async function processXmlSignal(message, text, contentType, xmlParsing, dupeBloc",
+        "@@ -1105,17 +1111,17 @@ async function migrateLegacyMediaGroupBuffer(): Promise<void> {",
+        "@@ -1144,17 +1150,17 @@ async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext",
+        "@@ -1164,7 +1170,7 @@ async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext",
+        "@@ -1176,7 +1182,7 @@ async function routeIncomingMessage(message: any, config: any): Promise<void> {",
+        "@@ -1203,8 +1209,8 @@ async function stopForwarding() {",
+        "@@ -1213,13 +1219,13 @@ async function stopForwarding() {",
+        "@@ -1228,7 +1234,7 @@ function routingCredentials(config: any): { apiId: number; apiHash: string } {",
+        "@@ -1247,18 +1253,18 @@ async function preloadTelegramChats(): Promise<void> {",
+        "@@ -1269,8 +1275,8 @@ async function writeRoutingActiveMarker(): Promise<void> {",
+        "@@ -1280,12 +1286,12 @@ async function removeOwnedRoutingMarker(): Promise<void> {",
+        "@@ -1342,16 +1348,16 @@ async function cleanupFailedRoutingStart(reason: string): Promise<boolean> {",
+        "@@ -1366,7 +1372,7 @@ async function startForwardingNonInteractive(config) {",
+        "@@ -1387,7 +1393,7 @@ async function startForwardingNonInteractive(config) {",
+        "@@ -1395,7 +1401,7 @@ async function startForwardingNonInteractive(config) {",
+        "@@ -1413,8 +1419,8 @@ async function stopScheduler(scheduler: { stop: () => Promise<void> } | null, la",
+        "@@ -1441,7 +1447,7 @@ async function stopSchedulerForMaintenance(",
+        "@@ -1477,8 +1483,8 @@ async function stopRuntimeServices(): Promise<void> {",
+        "@@ -1488,8 +1494,8 @@ async function closeDatabaseAfterDrain(drained: boolean): Promise<boolean> {",
+        "@@ -1499,8 +1505,8 @@ async function releaseProcessLock(label: string): Promise<void> {",
+        "@@ -1537,14 +1543,14 @@ process.on('SIGINT', () => { void shutdown(0).finally(() => process.exit(process",
+        "@@ -1572,7 +1578,7 @@ function requiredProcessOwner(): ProcessLock {",
+        "@@ -1587,34 +1593,36 @@ async function initializeCoreRuntime(",
+        "@@ -1979,13 +1987,13 @@ async function startDashboardRuntime(",
+        "@@ -2063,11 +2071,11 @@ async function runConfiguredMode(runtime: RuntimeConfiguration): Promise<boolean",
+        "@@ -2078,8 +2086,8 @@ async function enableConfiguredEntries(): Promise<void> {",
+        "@@ -2087,13 +2095,13 @@ async function startInfrastructureGates(runtime: RuntimeConfiguration, databaseP",
+        "@@ -2117,10 +2125,10 @@ async function run() {",
+        "@@ -2128,8 +2136,8 @@ async function run() {",
+        "@@ -2142,8 +2150,8 @@ async function run() {",
+        "@@ -2160,8 +2168,8 @@ async function run() {"
+      ],
+      "completeDeltaCoverage": false,
+      "classification": "gap",
+      "rationale": "Full delta inspected: helpers cover XML/raw forwarding, chat lookup fallback and legacy media migration plus typed/error boundaries. Remaining semantic proof: native TDLib emitted fatal/error values changed from arbitrary .message reading to Error/native error extraction. Need bind installed SDK emitter shapes and test both ordinary Error and supported cross-realm/plain emitted values, and confirm no recovery classification is lost. No concrete valid-message regression established; do not promote scoped forwarder error tests to whole-file chain."
+    },
+    {
+      "path": "src/incoming_work_repository.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "c781a4bfec4ef3ce5410f77eb75be6a89ab72708",
+        "gitBlobSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "fd2b09f7b79f23f074d3265d61b0806be27aa5af",
+        "gitBlobSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b"
+      },
+      "fullHistoricalDeltaSha256": "7d7974d47cf28a0dcdd4e4cd4fa706426f78ad59f95ddc8dc60cdf334ea67688",
+      "hunks": [
+        "@@ -1,3 +1,10 @@",
+        "@@ -5,7 +12,7 @@ import {",
+        "@@ -14,14 +21,22 @@ export interface IncomingWork {",
+        "@@ -32,10 +47,10 @@ export function pinnedWorkflowParserSelection(config: any, plan: any): Executabl",
+        "@@ -45,49 +60,70 @@ function workId(chatId: string, messageId: number): string {",
+        "@@ -96,15 +132,15 @@ export async function acceptIncomingMessage(message: any, config: any, now = Dat",
+        "@@ -119,7 +155,7 @@ async function addAlbumPart(row: any, message: any, config: any): Promise<void>",
+        "@@ -134,26 +170,39 @@ async function routeWorkflowPlans(row: any, config: any, text: string, contentTy",
+        "@@ -162,32 +211,32 @@ async function classifyIncomingRow(row: any): Promise<void> {",
+        "@@ -197,13 +246,13 @@ async function closeAlbum(group: any): Promise<void> {"
+      ],
+      "completeDeltaCoverage": false,
+      "classification": "gap",
+      "rationale": "Full delta inspected: parser pinning split retains schemas/prompts/contracts and workflow/legacy routes; accept remains transactional with snapshot then source inbox then durable row; classification order preserved. New readIngressMessage validation also applies to previously persisted rows/albums. Missing evidence: enumerate valid historic serialized TDLib message variants from existing ingress/album migration fixtures against new optional text/caption/content/media_group_id checks, including old rows resumed after restart."
+    },
+    {
+      "path": "src/ingress_contracts.ts",
+      "baseline": null,
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "95dd4e4c696ddfe8d21868798d5d9d336d592c34",
+        "gitBlobSha256": "b9b53a9beb2124f65cadbf41269302456386f5d9106e8994fcba002b9b75d8d1"
+      },
+      "fullHistoricalDeltaSha256": "2c777ce99f379fc353de28c66f85cadf084e854516d380b82374a5eadd334613",
+      "hunks": [
+        "@@ -0,0 +1,53 @@"
+      ],
+      "completeDeltaCoverage": false,
+      "classification": "gap",
+      "rationale": "Entire added file inspected, not merely hash-bound: asserts safe numeric chat/message identity and validates optional content/formatted text/outgoing/media-group fields, and validates persisted JSON on read. New boundary is reasonable but full backward compatibility requires incoming_work_repository historical persisted-message variant proof; scoped security guards alone do not close that gap."
+    },
+    {
+      "path": "src/mcp_control_bridge.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "843992715f4d493b5156ee462060e8b9266b659d",
+        "gitBlobSha256": "2e7f5540a7c69f6ce5dfc93c94ec1303fdbdc3f7e2558674b9db567acb1c4878"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "647a2c8352b2c994138bade01a07d9d84541cc7b",
+        "gitBlobSha256": "dd4fd8af769618b74c57d3eb1a33a86db34fbd6b9e12a8ef69aef27e60b58faf"
+      },
+      "fullHistoricalDeltaSha256": "23c350bf15fc4a59779ba2af257fcae7739949355b5cd0de82fa370399bf9700",
+      "hunks": [
+        "@@ -44,6 +44,11 @@ function proposalPermission(action: McpAgentProposal['action']): McpPermission {",
+        "@@ -79,11 +84,12 @@ export class McpControlBridge {",
+        "@@ -205,7 +211,7 @@ export class McpControlBridge {",
+        "@@ -322,21 +328,53 @@ export class McpControlBridge {",
+        "@@ -352,6 +390,8 @@ export class McpControlBridge {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full action helper extraction retains explicit contract/risk/trading action dispatch and known update/archive/delete routes. Unknown action remains rejected; start returns fulfilled Promise within same asynchronous API. No action authorization or provider boundary bypass introduced."
+    },
+    {
+      "path": "src/mcp_repository.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "49d1bddd59b9e4005e782a382df5565790292bd7",
+        "gitBlobSha256": "a093d7b52c81b8f881e6f163ddcdb1db79bf74f01e62599aa76a9ebf204d1552"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "f7c2e784a278c1f483c2ca4b7148bf9e4a855b68",
+        "gitBlobSha256": "d823b7625c620be2c6751d18c7969fabd85dd1ba81325fdbad3c8d85ba9b928d"
+      },
+      "fullHistoricalDeltaSha256": "0a860ceef2201250ad527cc28ded562807524b410378072acdfe74e2a9bf3423",
+      "hunks": [
+        "@@ -549,6 +549,14 @@ export async function updateMcpAgent(input: {",
+        "@@ -557,23 +565,29 @@ export async function updateMcpAgent(input: {",
+        "@@ -586,13 +600,9 @@ export async function rotateMcpAgentToken(idValue: unknown): Promise<{ agent: Mc",
+        "@@ -678,12 +688,10 @@ export async function connectMcpSession(input: {",
+        "@@ -693,13 +701,11 @@ export async function touchMcpSession(idValue: unknown, agentIdValue: unknown):",
+        "@@ -1029,7 +1035,7 @@ async function preflightContractVersion(",
+        "@@ -1088,7 +1094,7 @@ async function preflightStrategyAction(",
+        "@@ -1212,7 +1218,7 @@ async function preflightWorkflowAction(",
+        "@@ -1220,6 +1226,7 @@ async function preflightWorkflowAction(",
+        "@@ -1245,7 +1252,11 @@ export async function preflightMcpAction(",
+        "@@ -1381,7 +1392,9 @@ export async function approveMcpProposal(idValue: unknown, actorValue: unknown):",
+        "@@ -1402,7 +1415,9 @@ export async function rejectMcpProposal("
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta preserves agent update SQL/parameters, update existence check then disconnect then returned-row lookup. Token rotation disconnect helper preserves sequence. Explicit missing row guards fail closed. Preflight public diagnostic redaction changes only unexpected error text; domain blockers and persistence remain intact, while internal mode can retain diagnostic detail."
+    },
+    {
+      "path": "src/metrics.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "1f4e9af9a7b4e43ab4d7ccc27e040941d9c85581",
+        "gitBlobSha256": "e340e5305f86adf3db3ce54f3c359576e53252c1554641d93220313ea753c1df"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "c6bbed2d1113950b49edfdd3e2a1b2db7226c593",
+        "gitBlobSha256": "f4fc67a296b6e96a11c7c6430e86481bca19cc3ef9d62efb73a89ff6458d4fdb"
+      },
+      "fullHistoricalDeltaSha256": "be8411c3df2b8b73f555e1f437a729b9eb2887c421697b596f04abd9a0943dc8",
+      "hunks": [
+        "@@ -216,6 +216,76 @@ function prometheusMetrics(operational: OperationalMetrics, state: MetricsState)",
+        "@@ -224,53 +294,10 @@ export function startMetricsServer("
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full handler helper extraction inspected: method/path checks, readiness body, Prometheus path and operational metrics evaluation retained for declared OperationalMetrics callback contract. Top request error handling now destroys response rather than leaving uncaught callback exception; falsey malformed callback no longer crashes (not claimed equivalent outside contract). No metric source, authentication or internal HTTP risk disposition changed."
+    },
+    {
+      "path": "src/outbox_scheduler.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "3e2f35392b88edee08745a18de9cc873ce92b98d",
+        "gitBlobSha256": "e93eb0d996b91d1906eeff6931b6cef9a14171308590705b1168977b2c7fa5c5"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "b0de02e4b81472441dd0bd14a05f83362c7786b5",
+        "gitBlobSha256": "83587233662fdb4ca833cb65c7d2c1a482e3a7c000ddad71bb50767e8c0008a1"
+      },
+      "fullHistoricalDeltaSha256": "891d74ac8070671ac6371f6cab77f8d7fa53a8465304c13f95d38e3570b48889",
+      "hunks": [
+        "@@ -43,14 +43,14 @@ export class DurableOutboxScheduler {",
+        "@@ -67,30 +67,35 @@ export class DurableOutboxScheduler {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta: removing void does not detach attached catches; pump still async and returns same pumpPromise with cleanup in finally callback, clearing state before requested repump. Batch helper retains candidate order and counting, queue capacity/paused checks and zero-work exit. No provider scheduling inserted ahead of these checks."
+    },
+    {
+      "path": "src/process_lock.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "dcd3f200a75ad1fe3c3ca43ee02b3ebcecd96a64",
+        "gitBlobSha256": "475db1cede86b21ab1ec12d5617e99ceb7ddacd74a774c0f1143fb9000b30483"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "fed26b6694e937b223d5826662b38eccb7cd55e2",
+        "gitBlobSha256": "6ac5512f4bd22e95333a379180bf7335cb31762f775a85e6718bc8741161e2e8"
+      },
+      "fullHistoricalDeltaSha256": "3b1ce95044499e0917ad061ea76ecea6ba2bce9addd5ec958cdf52c1633354f7",
+      "hunks": [
+        "@@ -135,8 +135,8 @@ async function createProcessLock(lockPath: string, payload: LockPayload): Promis"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta adds explicit unavailable issued ownership guard in release: absent ownership exits without unlinking another process lock. Ordinary acquired ownership creation and matching release path unchanged; prevents dereference crash rather than widening lock authority."
+    },
+    {
+      "path": "src/runtime_settings.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "d03ebcacd9a29621f08554b72c38f080b2e91c28",
+        "gitBlobSha256": "31981e7951f6864d0f6d2a3d054bbe60208d74d64b2b7f691dd0aa99cf92a08b"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "16a91ac09133541196f128576e8631fdfc4bb9b6",
+        "gitBlobSha256": "909dc9f3c65963d694f4b4317497b8e701feacc767531202391bf81e7ccf883b"
+      },
+      "fullHistoricalDeltaSha256": "dcd537b228a43b90a4dd100990c04dbab26072c43c327489e4c88f7f179010af",
+      "hunks": [
+        "@@ -451,7 +451,7 @@ export class ManagedRuntimeSettingsStore {"
+      ],
+      "completeDeltaCoverage": false,
+      "classification": "corrected",
+      "rationale": "Published target full delta contained real strict-delete regression: unchecked Reflect.deleteProperty returned false on writable nonconfigurable injected property, then reported active settings although old environment value remained. Minimal authorized correction bf1a554 checks false and throws TypeError before active snapshot; targeted red/green regression confirmed. Prior mapped entries may already be mutated: not failure-atomic.",
+      "correction": {
+        "binding": {
+          "revision": "bf1a5548639c0332fcf4c4a37f7fa4d68a734b18",
+          "gitBlobOid": "2b4c0fa7a6722309f6300e4db282813497bcb435",
+          "gitBlobSha256": "76658832bfaee560614f3e5b1d20048344740e3098e1a30b130dd90968e50b34"
+        },
+        "completeDeltaCoverageAfterCorrection": true,
+        "report": "reports/security-services/fixer-runtime-settings-removal-fix.json"
+      }
+    },
+    {
+      "path": "src/signal_contract.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "a5b10604a5bcd80553a4d55b041a93b672d7d322",
+        "gitBlobSha256": "b3e4098fe1979d08e038ddf62b2e4c8f1ade38a1d7c530a0c78bfd3c77253f60"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "ab1451d0c13654694e4a0b7d32bc390a549adee4",
+        "gitBlobSha256": "3df10a6bcec099329a14d4cd47b2f605380b23903b58234e02b656578773e240"
+      },
+      "fullHistoricalDeltaSha256": "eb486806f99f4d18ad9b3d86137d7a2aebdd6f47b6c0643d5fe6a270592e59db",
+      "hunks": [
+        "@@ -85,13 +85,15 @@ function hasUnsupportedPatternConstruct(pattern: string): boolean {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Entire delta consists regex budget comment and void applied to new RegExp expression; constructor still executes and throws identically. No validation bypass."
+    },
+    {
+      "path": "src/signal_schema.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "a73fc9fdac88ccdfe2770ecfec22464274983c66",
+        "gitBlobSha256": "07bc54a0a1548d4af8a262b07ea37ab149ce7f1684beb9446a37779671298b17"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "fd3642040fda5afc57426a7bd72d80a94cea68c6",
+        "gitBlobSha256": "cc62363ef835b6cfc60dee0869095ebdecebc249b03744113c8a7241f3bec2e4"
+      },
+      "fullHistoricalDeltaSha256": "89a858c32fcff7d85493b78bb109b1809cb11c04aef4d4192de3c062f2191e34",
+      "hunks": [
+        "@@ -5,6 +5,7 @@ import type {",
+        "@@ -91,14 +92,16 @@ function appendTextToken(token: string, stack: XmlNode[]): void {",
+        "@@ -114,7 +117,7 @@ function assertAllowedIdAttributes(node: XmlNode, targetItemTag: string): void {",
+        "@@ -123,7 +126,8 @@ function consumeTagToken(token: string, stack: XmlNode[], root: XmlNode | null):",
+        "@@ -142,7 +146,9 @@ function parseXml(xml: string): XmlNode {",
+        "@@ -165,7 +171,9 @@ function children(node: XmlNode, name: string): XmlNode[] {",
+        "@@ -281,7 +289,9 @@ function assertTargetGeometry(",
+        "@@ -419,7 +429,8 @@ function validateLoma(root: XmlNode): Omit<ValidatedSignal, 'xml' | 'schema'> {",
+        "@@ -542,15 +553,23 @@ function contractDecimal(root: XmlNode, path: string, requiredValue: boolean): s",
+        "@@ -564,7 +583,7 @@ function validateAdditionalFieldType(field: SignalContractAdditionalField, value",
+        "@@ -573,10 +592,10 @@ function validateAdditionalDecimal(root: XmlNode, field: SignalContractAdditiona",
+        "@@ -587,7 +606,9 @@ function contractEntry(",
+        "@@ -612,8 +633,9 @@ function targetItemRange(item: XmlNode, definition: SignalContractDefinition): {",
+        "@@ -621,7 +643,8 @@ function targetItemRange(item: XmlNode, definition: SignalContractDefinition): {",
+        "@@ -636,6 +659,20 @@ function contractTargets(root: XmlNode, definition: SignalContractDefinition): A",
+        "@@ -643,8 +680,10 @@ function assertContractGeometry(",
+        "@@ -666,13 +705,7 @@ function assertContractGeometry(",
+        "@@ -756,13 +789,17 @@ function validateDynamicContract(",
+        "@@ -873,18 +910,24 @@ function groundingLabels(value: string): GroundingLabelMatch[] {",
+        "@@ -1049,7 +1092,7 @@ function assertNumbersGrounded(signal: ValidatedSignal, sourceText: string): voi"
+      ],
+      "completeDeltaCoverage": false,
+      "classification": "gap",
+      "rationale": "Full delta inspected: additional-field tag grammar now permits trailing digits ([a-z_][a-z0-9_]*) and additional-field regex validation uses shared 100ms safeRegexTest budget. Geometry/grounding helper extraction preserves ordered checks. Need explicitly bind intended schema tag-name validator to the digit grammar expansion and regression fixtures for total-budget exhaustion across multiple fields. No demonstrated invalid-order admission, but complete historical contract evidence is not yet closed."
+    },
+    {
+      "path": "src/telegram_viewer/clients.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "5ef10a2091ab0977598de1b981286c922d70627b",
+        "gitBlobSha256": "3f73f2da458b1c1878e0db885997da39bc096ed2d003c4017eab9689618fbdab"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "5aa98d9caaa3a38b337ec363356f98aaab501466",
+        "gitBlobSha256": "5d7420c22147747bb886a14c0b07041353f5945d224525ce0bd728c158908b9a"
+      },
+      "fullHistoricalDeltaSha256": "364244ba68147cf1ca642871771496587d81b3d5a0e352938a8a538ee6443bad",
+      "hunks": [
+        "@@ -1,3 +1,6 @@",
+        "@@ -11,9 +14,9 @@ async function tokenValue(provider: TokenProvider): Promise<string> {",
+        "@@ -28,7 +31,7 @@ export class TelegramViewerCoreApiClient implements TelegramViewerCoreClient {",
+        "@@ -36,14 +39,17 @@ export class TelegramViewerCoreApiClient implements TelegramViewerCoreClient {",
+        "@@ -59,7 +65,7 @@ export class TelegramBotApiClient implements TelegramViewerBotClient {",
+        "@@ -69,16 +75,16 @@ export class TelegramBotApiClient implements TelegramViewerBotClient {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta plus existing source-boundaries followup: record/config/update boundary validation replaces any; valid Core settings producer and Telegram numeric/string identity shapes already traced in followup. Resource/method allowlists, token acquisition, HTTP error gate and timeouts retained. Invalid update/response records now reject rather than silently become arbitrary data."
+    },
+    {
+      "path": "src/telegram_viewer/health_server.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "245724254b5c46c0af7a6bfd54ec2e976251dfe4",
+        "gitBlobSha256": "27ec75fb34b57794f8ca6d3da66db7b3d0203be79b2f0bddee97af04d4cf2f64"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "af70f3986809a750287c4f7a6e83d5fcec996bbd",
+        "gitBlobSha256": "3b15d6b702fcfad33d17606e2a49feefc88b1b0a4be3f2a68c759f0bbebb5177"
+      },
+      "fullHistoricalDeltaSha256": "f7e0ae5309aed122936142c749fe51b28cbf283c6074d6f46cc16fac5ee389be",
+      "hunks": [
+        "@@ -15,6 +15,37 @@ async function expectedToken(provider: TokenProvider): Promise<string> {",
+        "@@ -22,31 +53,24 @@ export function startTelegramViewerHealthServer(options: {",
+        "@@ -54,6 +78,6 @@ export function startTelegramViewerHealthServer(options: {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full handler helper delta retains method/path gate, status snapshot then token-await order, authorization and health/readiness responses. Listener default loopback is intentional local restriction; docker-compose.yml explicitly configures TELEGRAM_VIEWER_HEALTH_HOST=0.0.0.0 in container."
+    },
+    {
+      "path": "src/telegram_viewer/internal_transport.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "6848058ebea09825144179a568df78ae183b9895",
+        "gitBlobSha256": "1bc06ad0c878010ab8597e5b39ec1466dbd2dee4b87e8c09596c362881a21d35"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "d396fb15eec22530acd3385f691c71c2b8e7cdd9",
+        "gitBlobSha256": "f5af73b14ca63db86b3bf0b1449072552aa9fc388ca269b99a9aee0d7be6835c"
+      },
+      "fullHistoricalDeltaSha256": "056a8aaa88da5c3f8efdee9115843c41617e0eef502412989bf756560a38ec97",
+      "hunks": [
+        "@@ -1,31 +1,41 @@"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full validation helper split retains required URL parse, credentials rejection, HTTP internal origin allowlist and HTTPS behavior. No additional outbound origins or weakening of separate internal HTTP accepted risk."
+    },
+    {
+      "path": "src/telegram_viewer/runtime.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "6b126f43a6d6c8ab77fd1b0cb55bc5705d1f538c",
+        "gitBlobSha256": "826be874364709c560fe969f94720d26567cbf5245b30f727d30503a87509948"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "6546028f5ab1973a41a55bbc52d1bfa8780f912b",
+        "gitBlobSha256": "ca9a7ba2e7a1acd182aad501aed653b66ac4e83ac37edb7d8010e61e3fa5c7f7"
+      },
+      "fullHistoricalDeltaSha256": "44f2d8c3856c7246da787d6a253d2a81e54156d50ad1fe24162ada0d5fc14de9",
+      "hunks": [
+        "@@ -10,18 +10,32 @@ import { TelegramViewerStateRepository } from './state_repository.js';",
+        "@@ -66,6 +80,7 @@ export async function runTelegramViewer(): Promise<void> {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full secret file helper extraction retains resolved root, lstat directory/no symlink, bounded file size and trimmed token validation with same await/read order. Configurable health host defaults loopback and Compose explicitly binds container interface. No secret values included in review."
+    },
+    {
+      "path": "src/telegram_viewer/service.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "7f580c5fb89843bbf89e141cb0eebd889c2cbe5d",
+        "gitBlobSha256": "dfd4fddd0d001887f2a4f400a0e769b8213ebb412b4dac32727f96b861ec2fc6"
+      },
+      "reviewedTarget": {
+        "revision": "e3a5857cb4280e660d671024002a74698b14344a",
+        "gitBlobOid": "9f3aa095983d53958a05d2b3c2dac9cfdff91c30",
+        "gitBlobSha256": "d20fe15cf337f22f40dbb5962f2513dfa0590184009a074bbf1b62586c7bfdae"
+      },
+      "fullHistoricalDeltaSha256": "402dfcd67bdb7d3b9ea96445e1722aed0b8a8f9b257951dc9224744f293cafdb",
+      "hunks": [
+        "@@ -1,3 +1,4 @@",
+        "@@ -7,15 +8,15 @@ import {",
+        "@@ -72,45 +73,42 @@ export class TelegramViewerService {",
+        "@@ -124,20 +122,29 @@ export class TelegramViewerService {",
+        "@@ -147,15 +154,10 @@ export class TelegramViewerService {",
+        "@@ -163,52 +165,61 @@ export class TelegramViewerService {"
+      ],
+      "completeDeltaCoverage": true,
+      "classification": "complete",
+      "rationale": "Full delta and producer-bound contracts followup reviewed: private identity authorization preserved for valid numeric/string IDs; callback syntax checked before route parsing; per-update finally still records offset. Event validation completes before queuing/cursor advance; legitimate malformed-batch hardening. Delivery still awaits send then mark-delivered then test status; catch marks failure before failed test status. Producer-compatible contexts/pagination already independently tested; helper extraction does not bypass authorization or reorder delivery persistence."
+    }
+  ],
+  "contextBindings": [
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-source-boundaries-followup-2026-09-13.json",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobOid": "51ef4937f90891c99212fe4d141f5eca1540bdc3",
+      "gitBlobSha256": "f6bb71b45cef402a0d16971e132efe24349d4c74763e50f673ab2b5845d7dea7"
+    },
+    {
+      "path": "docs/testing/fixer-contract-restorations-2026-09-13.json",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobOid": "2c1b9acc9ed82fa8107b4c3206b078cdc9f7b168",
+      "gitBlobSha256": "50c01fe683c09725f8b487ec5acec2b36cbc2685e17bb7281a1ab9f42cbd4319"
+    },
+    {
+      "path": "docker-compose.yml",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobOid": "760538a07678efb86c015c3cfda21bef06ef1e3d",
+      "gitBlobSha256": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642"
+    },
+    {
+      "path": "docker-compose.monitoring.yml",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobOid": "eabcdf93c74ebafafd123a688245a4b06969e855",
+      "gitBlobSha256": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be"
+    },
+    {
+      "path": "src/trading_fx_repository.ts",
+      "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+      "gitBlobOid": "8f2aef5a505ddb3f941bc26b1daf24b6ac5f15d4",
+      "gitBlobSha256": "8c8391e2397ae0a9a83b516b40f8c76dad40f5e138cd2283444c77f68053e8fd"
+    }
+  ],
+  "execution": "No fresh broad execution for this 30-file wave; only runtime settings regression suite and focused ESLint executed. Earlier viewer producer/service tests are historical referenced evidence, not rerun here."
+}

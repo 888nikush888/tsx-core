@@ -92,7 +92,7 @@ export function uiModelParameters() {
   const strategy = parameterFields(workflowFamily('strategy', 'src/trading_strategy.ts:validateStrategyConfiguration', 'src/trading_engine.ts'), STRATEGY_PARAMETER_FIELDS, DEFAULT_STRATEGY_CONFIGURATION)
     .map(field => ({ ...field, editable: !['strategy.schemaVersion', 'strategy.exits.closeRemainderAtLastTarget', 'strategy.safety.requireProtectiveStop', 'strategy.safety.maxConcurrentPositions'].includes(field.path) }));
   const resources = Object.entries(RESOURCE_PARAMETER_FIELDS).flatMap(([kind, fields]) =>
-    parameterFields(workflowFamily('resource.' + kind, 'src/workflow_repository.ts:RESOURCE_VALIDATORS', 'src/workflow_repository.ts; src/trading_engine.ts'), fields))
+    parameterFields(workflowFamily(`resource.${kind}`, 'src/workflow_repository.ts:RESOURCE_VALIDATORS', 'src/workflow_repository.ts; src/trading_engine.ts'), fields))
     .map(field => ({ ...field, editable: field.path !== 'resource.parser.saveToFile' }));
   const contracts = ['schema.definition', 'contract.definition'].flatMap(prefix =>
     parameterFields(workflowFamily(prefix, 'src/signal_contract.ts:validateSignalContractDefinition', 'src/signal_contract.ts:composeSignalSchemaContract; src/signal_schema.ts'), CONTRACT_PARAMETER_FIELDS, BUILTIN_SIGNAL_CONTRACTS[0].definition))

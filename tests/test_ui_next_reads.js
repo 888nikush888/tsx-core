@@ -53,11 +53,11 @@ async function testIngressRelations(database) {
   const now = Date.now() - 1000; const workIds = ['work-1'];
   for (let index = 0; index < 105; index++) {
     const id = `album-${index}-${'long'.repeat(40)}`; workIds.push(id);
-    await database.run(`INSERT INTO incoming_work(id,chat_id,message_id,status,created_at,updated_at) VALUES (?,'ui-test',?,'routed',?,?)`, [id, 2000 + index, now, now]);
+    await database.run("INSERT INTO incoming_work(id,chat_id,message_id,status,created_at,updated_at) VALUES (?,'ui-test',?,'routed',?,?)", [id, 2000 + index, now, now]);
     await saveSignal(`album-signal-${index}`, 'ui-test', 2000 + index, 'original', 'original');
     await database.run('INSERT INTO signal_parser_attempts(id,signal_id,provenance_json,created_at) VALUES (?,?,?,?)', [`attempt-${index}`, `album-signal-${index}`, JSON.stringify({ model: 'original-model', promptTokens: 0, completionTokens: 1, rawResponse: 'PRIVATE_RAW_RESULT' }), now]);
   }
-  await database.run(`INSERT INTO incoming_album_groups(id,chat_id,media_group_id,work_ids_json,config_json,ready_at,status) VALUES ('album-ui','ui-test','telegram-album',?,'{}',?,'completed')`, [JSON.stringify(workIds), now]);
+  await database.run("INSERT INTO incoming_album_groups(id,chat_id,media_group_id,work_ids_json,config_json,ready_at,status) VALUES ('album-ui','ui-test','telegram-album',?,'{}',?,'completed')", [JSON.stringify(workIds), now]);
   for (const kind of ['members', 'signals', 'attempts']) {
     const first = await uiIngressRelations('work-1', kind, new URLSearchParams({ limit: '100' }));
     const next = await uiIngressRelations('work-1', kind, new URLSearchParams({ limit: '100', cursor: first.nextCursor }));
@@ -219,8 +219,8 @@ try {
 
   for (let index = 0; index < 105; index++) {
     const key = `relation-${String(index).padStart(3, '0')}`;
-    await database.run(`INSERT INTO trading_orders (id,intent_id,account_id,client_order_id,role,side,order_type,status,price,quantity,filled_quantity,reduce_only,request_json,created_at,updated_at) VALUES (?,?, 'paper-default',?,'entry','buy','limit','filled','60000.00000001','0.001','0.001',0,?,1000,1000)`, [key, intentId, key, JSON.stringify({ secret: 'PRIVATE_RELATION_PAYLOAD' })]);
-    await database.run(`INSERT INTO trading_fills (id,order_id,account_id,exchange_fill_id,price,quantity,fee,fee_asset,filled_at,raw_json) VALUES (?,?,'paper-default',?,'60000.00000001','0.001','0.0000000001','USDT',1000,?)`, [key, key, key, JSON.stringify({ secret: 'PRIVATE_RELATION_PAYLOAD' })]);
+    await database.run("INSERT INTO trading_orders (id,intent_id,account_id,client_order_id,role,side,order_type,status,price,quantity,filled_quantity,reduce_only,request_json,created_at,updated_at) VALUES (?,?, 'paper-default',?,'entry','buy','limit','filled','60000.00000001','0.001','0.001',0,?,1000,1000)", [key, intentId, key, JSON.stringify({ secret: 'PRIVATE_RELATION_PAYLOAD' })]);
+    await database.run("INSERT INTO trading_fills (id,order_id,account_id,exchange_fill_id,price,quantity,fee,fee_asset,filled_at,raw_json) VALUES (?,?,'paper-default',?,'60000.00000001','0.001','0.0000000001','USDT',1000,?)", [key, key, key, JSON.stringify({ secret: 'PRIVATE_RELATION_PAYLOAD' })]);
     await recordMoneyEvent({ accountId: 'paper-default', accountFingerprint: 'paper:paper-default', providerEventId: key, kind: 'funding', source: 'bounded-ui-fixture', basis: 'provider', occurredAt: 1000, amount: '0.0000000001', asset: 'USDT', intentId });
   }
   for (const kind of ['orders', 'fills', 'money']) {
@@ -243,8 +243,8 @@ try {
   await testOwnershipFailureBoundary(database, intentId);
 
   const now = Date.now();
-  await database.run(`INSERT INTO incoming_work (id, chat_id, message_id, status, reason, created_at, updated_at) VALUES ('work-1', 'ui-test', 1, 'needs_review', 'unproved', ?, ?)`, [now, now]);
-  await database.run(`INSERT INTO pending_tasks (id, type, chat_id, message_id, added_at, status, config_json, result_json) VALUES ('task-1', 'single', 'ui-test', 1, ?, 'unknown', ?, ?)`, [now, JSON.stringify({ durableIngress: { targetChatId: '-10001' }, secret: 'MUST_NOT_LEAVE_SERVER' }), JSON.stringify({ acknowledged: true, raw: 'PRIVATE_RESPONSE' })]);
+  await database.run("INSERT INTO incoming_work (id, chat_id, message_id, status, reason, created_at, updated_at) VALUES ('work-1', 'ui-test', 1, 'needs_review', 'unproved', ?, ?)", [now, now]);
+  await database.run("INSERT INTO pending_tasks (id, type, chat_id, message_id, added_at, status, config_json, result_json) VALUES ('task-1', 'single', 'ui-test', 1, ?, 'unknown', ?, ?)", [now, JSON.stringify({ durableIngress: { targetChatId: '-10001' }, secret: 'MUST_NOT_LEAVE_SERVER' }), JSON.stringify({ acknowledged: true, raw: 'PRIVATE_RESPONSE' })]);
   const outbox = await uiSignalPage('outbox', new URLSearchParams({ status: 'unknown' }));
   assert.equal((await uiSignalPage('processed', new URLSearchParams({ objectId: 'ui-signal-500' }))).entries.length, 1, 'An object link must scope the complete server list.');
   assert.equal((await uiSignalPage('processed', new URLSearchParams({ objectId: 'absent' }))).entries.length, 0);

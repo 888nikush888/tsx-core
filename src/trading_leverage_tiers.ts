@@ -54,11 +54,15 @@ export function solveTierQuantity(
   validateTierTable(evidence.tiers);
   decimal(evidence.contractSize, { positive: true });
   requireTier(Number.isSafeInteger(requested) && requested > 0, 'Invalid requested tier leverage.');
-  let leverage = Math.min(requested, 50, evidence.tiers[0]!.maxLeverage);
+  const first = evidence.tiers[0];
+  if (!first) throw new LeverageTierError('Complete consistent leverage tiers are required.');
+  let leverage = Math.min(requested, 50, first.maxLeverage);
   for (let iteration = 0; iteration <= evidence.tiers.length; iteration += 1) {
     const quantity = decimal(quantityForLeverage(leverage), { positive: true });
     const tierIndex = findTierForQuantity(evidence.tiers, quantity, evidence.markPrice);
-    const maximum = evidence.tiers[tierIndex < 0 ? evidence.tiers.length - 1 : tierIndex]!.maxLeverage;
+    const tier = evidence.tiers[tierIndex < 0 ? evidence.tiers.length - 1 : tierIndex];
+    if (!tier) throw new LeverageTierError('Complete consistent leverage tiers are required.');
+    const maximum = tier.maxLeverage;
     requireTier(tierIndex >= 0 || leverage > maximum, 'Quantized notional is outside the proven leverage tiers.');
     if (leverage <= maximum) return { leverage, quantity, tierIndex };
     leverage = maximum; // Never increase again after crossing into a smaller range.

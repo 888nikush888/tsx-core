@@ -35,7 +35,8 @@ function remoteConfirms(order: StoredSafetyOrder, state: ExchangeOpenState): boo
   const found = state.orders.filter(remote => remote.clientOrderId === order.clientOrderId
     && remote.exchangeOrderId === order.exchangeOrderId && remote.providerSymbol === order.providerSymbol);
   if (found.length !== 1) return false;
-  const remote = found[0]!;
+  const remote = found[0];
+  if (!remote) return false;
   return remote.symbol === order.symbol && remote.side === order.side && remote.reduceOnly === (Number(order.reduceOnly) === 1)
     && remote.status === order.status && remote.filledQuantity === order.filledQuantity && remote.quantity === order.quantity
     && remote.triggerPrice === order.triggerPrice;
@@ -52,6 +53,15 @@ async function safetyOrders(accountId: string, remote: ExchangeOpenState): Promi
   return rows.map(order => ({ ...order, reduceOnly: Number(order.reduceOnly) === 1, remoteConfirmed: remoteConfirms(order, remote) }));
 }
 
+function ownedExposureMatches(
+  single: ExchangeOpenState['positions'][number] | undefined,
+  need: SafetyPosition['need'],
+  ownership: NonNullable<SafetyPosition['ownership']>,
+): boolean {
+  if (single === undefined) return false;
+  return single.side === need.side && compareDecimal(single.quantity, ownership.netQuantity) === 0;
+}
+
 async function safetyPositions(accountId: string, remote: ExchangeOpenState): Promise<SafetyPosition[]> {
   const rows = await getDatabase().all<Array<SafetyPosition['need']>>(
     `SELECT account_id AS accountId, intent_id AS intentId, symbol, side, quantity, stop_price AS minimumTrigger
@@ -61,12 +71,13 @@ async function safetyPositions(accountId: string, remote: ExchangeOpenState): Pr
     let ownership = null;
     const matches = remote.positions.filter(position => position.symbol === need.symbol);
     try {
-      if (matches.length === 1) await assertOwnedPositionNamespace(need.intentId, matches[0]!);
+      const match = matches[0];
+      if (matches.length === 1 && match) await assertOwnedPositionNamespace(need.intentId, match);
       ownership = await loadOwnershipProof(need.intentId, need.side);
     } catch { /* Unproved is not zero. */ }
+    const single = matches[0];
     const remoteMatches = ownership !== null
-      && (matches.length === 0 ? ownership.netQuantity === '0' : matches.length === 1 && matches[0]!.side === need.side
-        && compareDecimal(matches[0]!.quantity, ownership.netQuantity) === 0);
+      && (matches.length === 0 ? ownership.netQuantity === '0' : matches.length === 1 && ownedExposureMatches(single, need, ownership));
     const projectionMatches = ownership !== null && compareDecimal(need.quantity, ownership.netQuantity) === 0;
     positions.push({ need, ownership, remoteMatches, projectionMatches });
   }

@@ -12,9 +12,19 @@ export function requireString(value: unknown, label: string): string {
 export function unknownErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (error === null) return 'null';
-  switch (typeof error) {
-    case 'string': return error;
-    case 'number': case 'boolean': case 'bigint': case 'symbol': case 'undefined': return String(error);
-    default: return 'A non-Error value was thrown; inspect the operation receipt for context.';
+  return primitiveErrorMessage(error)
+    ?? 'A non-Error value was thrown; inspect the operation receipt for context.';
+}
+
+function primitiveErrorMessage(error: unknown): string | null {
+  if (typeof error === 'number' || typeof error === 'bigint') return String(error);
+  return nonNumericPrimitiveErrorMessage(error);
+}
+
+function nonNumericPrimitiveErrorMessage(error: unknown): string | null {
+  if (error === undefined) return 'undefined';
+  if (typeof error === 'string' || typeof error === 'boolean' || typeof error === 'symbol') {
+    return String(error);
   }
+  return null;
 }

@@ -45,6 +45,25 @@ describe('recovery repair revision contracts', () => {
     expect(api.jsonRequest.mock.calls.every(([address]) => ['/api/recovery', '/api/config', '/api/runtime-settings', '/api/secrets'].includes(address))).toBe(true);
   });
 
+  it('keeps external and immutable managed secrets read-only while rendering unnamed recovery issues', async () => {
+    api.jsonRequest.mockImplementation((url: string) => {
+      if (url === '/api/secrets') return Promise.resolve({ secrets: {
+        telegramApiHash: { configured: true, source: 'external', editable: false },
+        backupEncryptionKey: { configured: true, source: 'managed', editable: false },
+      } });
+      if (url === '/api/recovery') return Promise.resolve({ active: true, session: { role: 'admin' },
+        availableRepairs: ['secrets'], issues: [{ component: 'configuration', reason: 'Configuration needs review.' }],
+      });
+      return Promise.resolve(repairResponse(url));
+    });
+    mount(<RecoveryPage />);
+    expect(await screen.findByText(/Configuration needs review\./u)).toBeVisible();
+    expect(await screen.findByLabelText(/telegramApiHash/u)).toBeDisabled();
+    expect(screen.getByLabelText(/backupEncryptionKey/u)).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Secrets speichern' })).toBeDisabled();
+    expect(writes()).toHaveLength(0);
+  });
+
   it('shows completed recovery without inferring trading approval and keeps unavailable repairs disabled', async () => {
     api.jsonRequest.mockImplementation(async (url: string) => url === '/api/recovery'
       ? { active: false, session: { role: 'viewer' }, availableRepairs: [] } : repairResponse(url));

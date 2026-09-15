@@ -31,9 +31,11 @@ class PinnedEntryDeadlineSdkTests(unittest.IsolatedAsyncioTestCase):
                 clock[0] += .2
             rest.throttle = AsyncMock(side_effect=delay)
             with patch('time.time', side_effect=lambda: clock[0]), patch.object(ccxt_async.bybit, 'fetch', new_callable=AsyncMock) as transport:
-                with entry_deadline_scope(EntryDeadline(request)):
-                    with self.assertRaisesRegex(EntryDeadlineError, 'ENTRY_INTENT_EXPIRED'):
-                        await rest.create_orders(orders)
+                with (
+                    entry_deadline_scope(EntryDeadline(request)),
+                    self.assertRaisesRegex(EntryDeadlineError, 'ENTRY_INTENT_EXPIRED'),
+                ):
+                    await rest.create_orders(orders)
                 rest.throttle.assert_awaited_once()
                 transport.assert_not_awaited()
 

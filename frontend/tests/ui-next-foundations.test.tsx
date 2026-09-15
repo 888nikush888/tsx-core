@@ -18,6 +18,8 @@ describe("UI Next correctness boundaries", () => {
     expect(portfolioTotal([row, { ...row, mode: 'live' }], 'equity')).toContain('USDT (paper) · 0,000000000000000001 USDT (live)');
     expect(portfolioTotal([row, { ...row, equity: null }], 'equity')).toContain('1 Kontobeleg(e) ungeklärt; keine Gesamtsumme');
     expect(portfolioTotal(undefined, 'equity')).toBe('nicht verfügbar');
+    expect(portfolioTotal([{ ...row, reportingCurrency: ['USDT'] }], 'equity')).toBe('nicht verfügbar · 1 Kontobeleg(e) ungeklärt; keine Gesamtsumme');
+    expect(portfolioTotal([{ ...row, observedAt: '1000' }, { ...row, equity: 1 }], 'equity')).toContain('2 Kontobeleg(e) ungeklärt');
   });
   it('rejects empty numeric runtime fields and unfamiliar parameter types', () => {
     const field: any = { path: 'shutdownGraceMs', type: 'number', editable: true, secret: false, range: [1000, 120000] };

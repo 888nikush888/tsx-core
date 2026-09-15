@@ -20,7 +20,7 @@ const filename = path.join(directory, 'accounting.db');
 const at = Date.now() - 2000;
 const providerSymbol = 'BTC/USDT:USDT';
 const read = { startedAt: at - 200, completedAt: at + 1000 };
-let strategyId;
+let strategyId = null;
 
 async function bybitAccount(id) {
   await getDatabase().run(`INSERT INTO trading_accounts(id,name,exchange,mode,status,enabled,credential_ref,

@@ -1,0 +1,1174 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-full-historical-noncore-file-review",
+  "generatedAt": "2026-09-15T08:05:39.869112+00:00",
+  "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+  "selection": {
+    "baseline": "5b025d9",
+    "target": "26127c6",
+    "paths": [
+      ".github/workflows/security-services.yml",
+      "docs/PRODUCTION_GUIDE.md",
+      "docs/deepsource-export.md",
+      "docs/risk-acceptances/RA-2026-09-08-internal-http.md",
+      "docs/testing/codacy-independent-python-test-review-2026-09-08.json",
+      "docs/testing/codacy-independent-web-test-review-2026-09-08.json",
+      "docs/testing/fixer-anonymous-callback-review-2026-09-13.md",
+      "docs/testing/fixer-contract-restorations-2026-09-13.json",
+      "frontend/src/app/workflow/workflow-builder.tsx",
+      "frontend/src/features/operations/system.tsx",
+      "frontend/src/features/risk-analytics/account-evidence.tsx",
+      "frontend/src/features/risk-analytics/adaptive-risk.tsx",
+      "frontend/src/features/risk-analytics/equity-chart.tsx",
+      "frontend/src/features/risk-analytics/risk-acknowledgment.tsx",
+      "frontend/src/features/signals/ingress-relations.tsx",
+      "frontend/src/features/signals/signal-original.tsx",
+      "frontend/src/features/signals/signals-page.tsx",
+      "frontend/src/features/signals/telegram-settings.tsx",
+      "frontend/src/features/telegram-viewer/telegram-viewer.tsx",
+      "frontend/src/features/trades/paper-lab.tsx",
+      "frontend/src/features/trades/trade-detail.tsx",
+      "frontend/src/features/workflows/model-library.tsx",
+      "frontend/src/features/workflows/test-lab.tsx",
+      "frontend/src/features/workflows/workflow-library.tsx",
+      "frontend/src/lib/api.ts",
+      "frontend/src/lib/navigation.tsx",
+      "frontend/src/main.tsx",
+      "frontend/src/shared/api/use-poll.ts",
+      "frontend/src/shared/components/evidence.tsx",
+      "frontend/src/shared/components/global-search.tsx",
+      "frontend/src/shared/components/issued-credential.tsx",
+      "frontend/src/utils/analytics.ts",
+      "monitoring/govulncheck/go.mod",
+      "package-lock.json",
+      "package.json",
+      "security/deepsource-js-test-review-2026-09-08.json",
+      "security/deepsource-python-review-2026-09-08.json",
+      "stryker.config.mjs"
+    ]
+  },
+  "selectionLimit": "Only38 matching non-test frontend/docs/config/security paths remain; excludes exchange_executor/tools/audit_derivatives_candidates.py and all ongoing test-wave paths. No unrelated paths invented to reach40.",
+  "counts": {
+    "selected": 38,
+    "completeHistoricalDeltaCoverage": 38,
+    "concreteRegressions": 0,
+    "remainingSelectedFileDeltaGaps": 0
+  },
+  "entries": [
+    {
+      "path": ".github/workflows/security-services.yml",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "exists": false
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "fc892c4cc80e807667eb5ad97df13f7287afb0e9",
+        "gitBlobSha256": "b7ae9fa89d38b73f712c8c0200520f11c9547e0b57982d37eb3a8624ef9607ee"
+      },
+      "fullHistoricalDeltaSha256": "1d7c3bf8d408550f88d0cd9a6763136a9c85717b6b448df4ad99ec7cbd6dcac3",
+      "hunks": [
+        "@@ -0,0 +1,141 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire new workflow examined. Push/PR/schedule/manual triggers, contents:read, same-repository PR restriction, checkout without persisted credential, action commit pins and scoped env credentials; no pull_request_target. Five explicit scopes include both npm dependency graphs/dev, runtime/development Python and Code. Hash-locked Python install; scanner fixed1.1307.1; SCA ignores disabled, Code includes ignored results. SARIF version/runs/results structural errors fail2; nonzero result count or scanner1 fails even if scanner policies suppress all results. Code may pass only through source-bound review checker; report is an exact historical pin and future stale hashes must fail, not a timeless exemption. Evidence uploaded always. No live CI or current Code scan success inferred.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "docs/PRODUCTION_GUIDE.md",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "fae1b90182a6944b05996fc5599cc79f108937c4",
+        "gitBlobSha256": "8f258f581bbfced1d458195ec077e96d1417753e7fbefc9ffb689c165ca357e6"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "7980fc82e14d1429f8877577f25fdf24c8ca6451",
+        "gitBlobSha256": "08bf60bab34a23a9458f0fab8909646427dba756c3a6732a068fcf4e97ef5363"
+      },
+      "fullHistoricalDeltaSha256": "35bd975546bfbedbb54b4a02c420afc9dd9f20af3edc7aca379902e13ebd63b1",
+      "hunks": [
+        "@@ -6,7 +6,7 @@ Dieses Dokument ist der Einstiegspunkt für Installation, Konfiguration, Betrieb"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Only anchor correction adds section14 prefix matching numbered Enterprise heading. Production-GO still requires external gates for exact same commit; no release approval changed.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "docs/deepsource-export.md",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "exists": false
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "88d0691494f6a3cc3545221c9bbd1f8f1c950404",
+        "gitBlobSha256": "5546efae17afe55e2f46870dd31bca2a0931d92818a9ba0bdbbaed4bc25d884c"
+      },
+      "fullHistoricalDeltaSha256": "e431ae2a167e9db63276b64b7a8d8a7b2f429185cdd4f15b494e0167cfec58ef",
+      "hunks": [
+        "@@ -0,0 +1,34 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire new exporter guide checked against exporter and fixture tests. Token file/env only, authenticated default-branch issueOccurrences collection, paginated ID/count/revision checks and repeat first page are documented. Explicitly excludes SCA/AI collections and atomic-snapshot guarantee; no clean-cloud assertion or credential content added.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "docs/risk-acceptances/RA-2026-09-08-internal-http.md",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "exists": false
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "9c752e425feafb6a85b886bea88212bad5666daf",
+        "gitBlobSha256": "7b5076bdd1d9e4dd40ddf44d5096310f0fd0ccb6466c32a602a48d68b76634ff"
+      },
+      "fullHistoricalDeltaSha256": "a35f0cddfb24a35da61f2d9238add2439209937b80a7fac2d866a94012a036ef",
+      "hunks": [
+        "@@ -0,0 +1,56 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire acceptance documents exactly user-selected four listener IDs and HttpToHttps rule, plaintext risks, network/authorization controls, no live deployment claim, expiry2026-10-08 and maximum30-day renewal. Source/flow/config changes require review; findings remain open, not FP. Matches user authorization and existing source-bound checker contract; no provider operations allowed.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "docs/testing/codacy-independent-python-test-review-2026-09-08.json",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "exists": false
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "be6cbf759770db0d96c650f2a4d804023dde9f82",
+        "gitBlobSha256": "6794d2b337e9f98c263d012ce3c7e13f13a53a4d4ac699e934f42d5610191e74"
+      },
+      "fullHistoricalDeltaSha256": "ea48f65ffe95589e52bef4453732fce54a30f548bf45e6e571cc510193e115b1",
+      "hunks": [
+        "@@ -0,0 +1,1857 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire new historical documentation artifact examined structurally across all 50 individual IDs/rules/path/rationale records, scope and limitations. Not loaded as executable source or current gate waiver (production/script import search found no consumers). Exact historical revisions and pending-rescan/expected-behavior distinctions remain; not a current re-review of every underlying source finding. Two-stage original/reviewed hashes and13 combined synthetic-excerpt amendments verified against original Git reports and independent redaction review; underlying identities/classifications unchanged.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "docs/testing/codacy-independent-web-test-review-2026-09-08.json",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "exists": false
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "c5863788d9139057ebd8805913a3f3bbdd409e04",
+        "gitBlobSha256": "11ba00123a01bfe11b97401905cae2c58e655eebd2a6a0820b9ef1fbfd204cb0"
+      },
+      "fullHistoricalDeltaSha256": "1c5356061241f887c2f19fa016c339a399dfbc866470ee260b982c122945f44b",
+      "hunks": [
+        "@@ -0,0 +1,2759 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire new historical documentation artifact examined structurally across all 50 individual IDs/rules/path/rationale records, scope and limitations. Not loaded as executable source or current gate waiver (production/script import search found no consumers). Exact historical revisions and pending-rescan/expected-behavior distinctions remain; not a current re-review of every underlying source finding. Two-stage original/reviewed hashes and13 combined synthetic-excerpt amendments verified against original Git reports and independent redaction review; underlying identities/classifications unchanged.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "docs/testing/fixer-anonymous-callback-review-2026-09-13.md",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "exists": false
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "cc90c2063d03ee76a0715ef2996a75e2c99a3ddf",
+        "gitBlobSha256": "92e70630c7435124face058b12f52970af51d263527a7c2e6ca0b74fb918bf53"
+      },
+      "fullHistoricalDeltaSha256": "3b513e82334a69f046bcd2f51fb65b8e3b708c439d741509eee979cb21c20540",
+      "hunks": [
+        "@@ -0,0 +1,44 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire historical callback review examined. Documents actual mixed pending-delivery rejection failure and subsequent limited delivery/dispatch fixes; distinguishes fixture async rejection loss from proven production bug and limits other inspected callbacks. Date/revisions explicitly historical. Current later restoration reports must supplement, not overwrite, this observation; not a current blanket async exemption.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "docs/testing/fixer-contract-restorations-2026-09-13.json",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "exists": false
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "2c1b9acc9ed82fa8107b4c3206b078cdc9f7b168",
+        "gitBlobSha256": "50c01fe683c09725f8b487ec5acec2b36cbc2685e17bb7281a1ab9f42cbd4319"
+      },
+      "fullHistoricalDeltaSha256": "d6af8542ae018cfdb832457b8c414a9e5e3aa06e3cec0ea8f862fc150cf78946",
+      "hunks": [
+        "@@ -0,0 +1,1078 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "New historical reconciliation ledger has121 named Promise boundaries,57 assertion operands,44 async fixtures. Every record structurally checked for file/line and section-specific keys; referenced historical paths resolve. Strings are historical descriptions, including intentionally incomplete assertion forms, not executable assertions. Scope explicitly rejects release/scanner closure; later sources and per-file reviews establish current contracts separately.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/app/workflow/workflow-builder.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "2e64e94f887f2491ebb812a60eafeb3e0e6fc0e5",
+        "gitBlobSha256": "6a0617f53d8ec326d47e77de8ffd2a8628b1b436231de25de23dea4c89d4eabc"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "f481e9c58e246fea415c311767204d789b411dfb",
+        "gitBlobSha256": "1875110f9f67628fafe1a405e00f4cbd5c1b8881ff9be049cc812505e1e50157"
+      },
+      "fullHistoricalDeltaSha256": "e7e1c38ea773325b6e63b047a3b44d2066cc3d2048c3701c5653bff9058efd56",
+      "hunks": [
+        "@@ -102,7 +102,7 @@ import { WorkflowEdge, type WorkflowEdgeData } from \"./workflow-edge\";",
+        "@@ -713,7 +713,7 @@ export function WorkspaceStatusbar({",
+        "@@ -743,7 +743,7 @@ export function WorkspaceStatusbar({",
+        "@@ -1232,7 +1232,7 @@ function AnalyticsStatusbar({ lastUpdated, refreshing, onFilters, onRefresh }: R",
+        "@@ -1273,6 +1273,35 @@ async function persistGraphDraft(graph: WorkflowGraph, meta: any) {",
+        "@@ -1313,7 +1342,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -1359,7 +1388,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -1395,7 +1424,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -1469,19 +1498,19 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -1490,7 +1519,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -1727,7 +1756,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -1873,7 +1902,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -1941,7 +1970,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -2179,7 +2208,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -2196,7 +2225,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -2273,25 +2302,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -2582,13 +2593,13 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -2603,7 +2614,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -2633,11 +2644,11 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -2845,7 +2856,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -2861,7 +2872,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -2906,9 +2917,9 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -2946,7 +2957,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -2956,20 +2967,20 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {",
+        "@@ -2994,7 +3005,6 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full historical diff: typed simulation evidence; bindSavedResourceToGraph helper keeps selected-node update versus new-node creation, positions, resource id and UUID count. Missing selected node now explicit error at same pre-activation point after publication; does not claim publication rollback. All void expression statements/arrow handlers changed to statement blocks still return undefined and preserve calls/catches/guards; no async body removed. Simulation autoFocus removed: DialogContent BaseUI Popup owns initial focus; input is first interactive child, touch intentionally focuses popup. Keyboard focus management stays library-owned; no broad browser-layout equivalence claim.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/features/operations/system.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "d859aee6b4c5ae3201e9233c2aefbaaaeb58b2c4",
+        "gitBlobSha256": "10ec802a24cf6cac8c5a9476e6b94aba5bcd353e3f762f81e15841ac7295b86f"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "d697303de5dc188234479aa70614592e91eaefc0",
+        "gitBlobSha256": "997104726dad853b4b2eaf6c7f3fe39dcafd452e196859792ec0fcd5f877a740"
+      },
+      "fullHistoricalDeltaSha256": "76d12a79fda2deba9b2380d0dfb08ecc0f3e991be727199df8ce7572012fcb42",
+      "hunks": [
+        "@@ -1,3 +1,4 @@",
+        "@@ -40,10 +41,10 @@ export function System({",
+        "@@ -75,7 +76,7 @@ export function System({",
+        "@@ -312,7 +313,7 @@ export function System({",
+        "@@ -323,7 +324,7 @@ export function System({",
+        "@@ -331,7 +332,7 @@ export function System({",
+        "@@ -364,7 +365,7 @@ export function System({",
+        "@@ -384,7 +385,7 @@ export function System({",
+        "@@ -392,7 +393,7 @@ export function System({",
+        "@@ -400,7 +401,7 @@ export function System({",
+        "@@ -411,10 +412,10 @@ export function System({",
+        "@@ -443,7 +444,7 @@ export function System({",
+        "@@ -453,25 +454,25 @@ export function System({",
+        "@@ -507,8 +508,8 @@ export function System({"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Types narrow API state only. Every handler void removal retains undefined return and same invocation, catches, busy/readOnly/conflict and destructive typed confirmation gates. Date.parse(optional??empty) yields NaN for absent/null as old Date.parse conversion did, so unavailable display remains. Import/backup/restart/audit credential operations retain command ordering.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/features/risk-analytics/account-evidence.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "10f606a09f6b105f1a96cc41331998757719da77",
+        "gitBlobSha256": "584d544ac7dbd83cb0b38df7d2c238fec19e2ba6335bfa1a73cbcec672338756"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "1465e888bc3c2b9e3511e14196499ea93a04bec7",
+        "gitBlobSha256": "a0d1d818cac87a0f96511cb976538594d3ead080f191d3c822eed468c0fd08e1"
+      },
+      "fullHistoricalDeltaSha256": "37e0fd3aa3e39df96ad00d1053fa66c05b784e754c0e0c495f7d848566937380",
+      "hunks": [
+        "@@ -16,7 +16,8 @@ function useEvidence(url: string) {",
+        "@@ -25,7 +26,8 @@ export function RiskAccounts() {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Both URLSearchParams has/get pairs replaced by captured get and !==null. Standard URLSearchParams distinguishes absent from empty string exactly as before; paging cursor remains encoded and account/observation filtering unchanged.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/features/risk-analytics/adaptive-risk.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "01a84e4b3e17e2db0d7c83acdfac1074e0388684",
+        "gitBlobSha256": "cbd0a54b26045b14bbcba3fa82f8224b7074b29835220b95d6454e750c38eaff"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "cc6f78fad1e5ccb4a96216028bd22a62958a4ce1",
+        "gitBlobSha256": "d616e466cd3230b5c304b1c4b67e5f5f05e224995f1a79d93a9a126cb34bfaa7"
+      },
+      "fullHistoricalDeltaSha256": "bd4da4c3a5468870b84bdb3e812f120fa5de0c104d9744d6a2e01e6297f37d33",
+      "hunks": [
+        "@@ -23,10 +23,10 @@ function SourceEvidence({ id, channelId }: Readonly<{ id: string; channelId?: st",
+        "@@ -71,7 +71,7 @@ function LegacyCard({ entry }: Readonly<{ entry: any }>) {",
+        "@@ -91,7 +91,7 @@ export function AdaptiveRiskPage() {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Redundant fragment removal preserves conditional tree. Copy handler remains undefined-return invocation. Missing legacy channel becomes undefined rather than null; SourceEvidence uses same truthy optional inclusion, so neither is sent; actual nonempty strings unchanged. No risk calculation or trading permission modified.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/features/risk-analytics/equity-chart.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "a63e0bff846a54d247a154a1bbb230a427551db8",
+        "gitBlobSha256": "adc9f8c2d4ffa48c6f75fb7950b20fefdd134913e467b1259654e2d35eeedcde"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "7476d08c7a8ca37e738c6fd674ef21a257ccdb55",
+        "gitBlobSha256": "af13c5f0b85d5acf42d10d6925e5494e95b41a9a1540cb8eb62ab896f88dcf93"
+      },
+      "fullHistoricalDeltaSha256": "2fb7c2bae62ee06565b6aaef7df7b46bdf4afbdd2e0e7f132e310ccdae4e6900",
+      "hunks": [
+        "@@ -14,81 +14,105 @@ export type EquityChartGroup = {",
+        "@@ -119,7 +143,28 @@ export function EquityChart({"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full historical extraction inspected beyond scoped Snyk edits. Valid observation timestamp/equity conversion and exact tooltip string preserved; currency/mode/accounting-source grouping, account name ordering, same-timestamp overwrite and chart keys unchanged. Unsupported nonstring account ids/names are excluded/fallback rather than String-coerced; backend accounts are string IDs/names. Empty names preserved. EquityGroup extraction retains chart markup/options, key moves to component boundary. Drawdown source mapping still same. Latest uncommitted account helper fix explicitly separate; current tests include it but26127c6 provenance does not.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": true
+    },
+    {
+      "path": "frontend/src/features/risk-analytics/risk-acknowledgment.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "255c45927eb6b1139e403b285d5e50e0cf0e9949",
+        "gitBlobSha256": "24226c79322ae2ec7667cd95dbab9d84e8dee69b0c3162b01fecca0281e2e654"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "dbe9cd7842818556dae102c20b63dd9fc27371ae",
+        "gitBlobSha256": "a82698d6b9e37b93a086452a0981db70d9b0fcd9f6e225d9fea8cbc6158c63d0"
+      },
+      "fullHistoricalDeltaSha256": "a4f6c9dea42885531a4ec42c0075767b53b7dd2250a07c99eac1ac073787c4d9",
+      "hunks": [
+        "@@ -14,5 +14,5 @@ export function RiskAcknowledgment({ id, acknowledgedAt }: Readonly<{ id: string"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Only arrow void expression becomes statement block, still undefined; acknowledge confirmation/readOnly/busy/accepted checks and request unchanged.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/features/signals/ingress-relations.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "9dc72e47b5e2ad13abf05b1c3b6f90c0eaf0b524",
+        "gitBlobSha256": "49b7af78d6d837b35ee9f31fcfa947a9f879e9c40b2a60ff55a22af863dec990"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "4dd9e5648a45f24c5b2b81ffce56bcf3627f2329",
+        "gitBlobSha256": "e2eded756350c7d299e8dbfdad09f9b9b3e4ef79cac88b8318401c53669814bc"
+      },
+      "fullHistoricalDeltaSha256": "d693541df550d968b84c169627e516cd618d42e85ac218a8f5613d98d02a7b77",
+      "hunks": [
+        "@@ -27,7 +27,8 @@ function ingressObjectLink(kind: string, id: string) {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Cursor has/get assertion becomes one captured string|null read. Empty cursor and absence handled identically; kind/id/query key/observation isolation untouched.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/features/signals/signal-original.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "b896db11ca1ef5e5b5907617ae1474284a0643c0",
+        "gitBlobSha256": "1eb067b07193bb0519df43cb0cf4a7552481867fbf022a709b1441ad324ea35c"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "6d74c249472c04ea7cde1882e28d0cc744c5f79c",
+        "gitBlobSha256": "5a457fab0915644d2cf065f61149d6c5e0aca3b8b66877bd96b803581fef964f"
+      },
+      "fullHistoricalDeltaSha256": "5a0781fa09c0a06c61a42dda6e0ef05ee6d064da482ca184b02ebec5c2542c7f",
+      "hunks": [
+        "@@ -23,18 +23,41 @@ export function DeleteStoredSignal({ id, kind, onDeleted }: Readonly<{ id: strin"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "New response interfaces/type parameter and optional cursor null union erase at runtime. Existing cursor truthiness and source query matching remain. Delete callback block preserves undefined return, confirmation and readOnly guard; no original payload silently admitted.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/features/signals/signals-page.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "7ca09164a585e37aa9ded69cb562b4241f93ac2f",
+        "gitBlobSha256": "1d649d066cdf55bcd0f074ae04b72417f0f76e846e5a351c24a29ac44fdfa480"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "3eb7fc3ab7fdf97e80e9dedaa33dde94ac39dd81",
+        "gitBlobSha256": "b57a42449929b943a38118e1736c24ebd8a563c55f8c73c30019c68ba18fcd2b"
+      },
+      "fullHistoricalDeltaSha256": "c790698b5edd2f025474a749bb8b1abf6cb9ffeefb764344a8f855c6b7846628",
+      "hunks": [
+        "@@ -76,7 +76,7 @@ export function SignalsPage({ kind, readOnly = true }: Readonly<{ kind: \"ingress"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Only retry/acknowledge click void wrappers become blocks. Existing failed/unknown states, confirmation, busy/readOnly guards and needs_review refusal remain; no automatic resend added.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/features/signals/telegram-settings.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "d18382f89bd1171b8b8d4c6ba8bb5b5437a0779a",
+        "gitBlobSha256": "28fd4dd227713182a533a09439648e93f0a667ee342734fa361d98c057fb99d1"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "ec387c949cf3dba6d5c555215940de302d549a54",
+        "gitBlobSha256": "77358afb36fb8a4d46a6a7c92607e58be55d8c379138a7fcd4613592ad27cb8e"
+      },
+      "fullHistoricalDeltaSha256": "bf55768434bd7ab0318e266469a273ab31e6702a6d006bad28ca476d295f03ce",
+      "hunks": [
+        "@@ -74,13 +74,13 @@ export function TelegramSettings() {",
+        "@@ -109,7 +109,7 @@ export function TelegramSettings() {",
+        "@@ -125,6 +125,6 @@ export function TelegramSettings() {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Four handler sites rewrite void into statement blocks. Login payload selection/clearing, start/stop action, versioned config save and nonblank secret field filtering preserved. Requests remain in existing command wrapper with same error handling.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/features/telegram-viewer/telegram-viewer.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "f0179481655960c476e1075e9e8131bc131b2b2b",
+        "gitBlobSha256": "de0be66238583917d4ee8b7f98d9e1c46e8963cc40117bbff03370a48442c586"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "cbbbb4086b3057a24b08bf5ad220f430a11cb8d8",
+        "gitBlobSha256": "d9c858d97de6624deddddcb6d942e276c7fd425caccf133a829644c278b21b4c"
+      },
+      "fullHistoricalDeltaSha256": "e638eeaef6e80a8aee122419ee521d0d0d482548e887bfce22cfe6de5f3ce99c",
+      "hunks": [
+        "@@ -136,7 +136,7 @@ export function TelegramViewer() {",
+        "@@ -193,7 +193,7 @@ export function TelegramViewer() {",
+        "@@ -216,11 +216,11 @@ export function TelegramViewer() {",
+        "@@ -235,9 +235,9 @@ export function TelegramViewer() {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Seven callback lines preserve load catch, save, token set/delete/rotate and explicit test event request. No return Promise introduced to React handlers; busy and configured guards remain unchanged. Not evidence of real Telegram send.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/features/trades/paper-lab.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "f80e6818f92ba5a779443fd2043135fa129cc758",
+        "gitBlobSha256": "8e991f3035af67735589fa44348c9b8ea06aa828dc7966c0be09e759694b070f"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "61f063be236207f96449a64f920279952b8c9236",
+        "gitBlobSha256": "b091a41a6b83b18f94d5a9d611c36ca14148d9538325e133addddaedc485f8bf"
+      },
+      "fullHistoricalDeltaSha256": "5fca9b00e1038762f5d0cc69bab6f8a3938da4226b736c6d7b9ff3a7dc89d74e",
+      "hunks": [
+        "@@ -45,7 +45,7 @@ function PaperEditor({ kind, account, record, readOnly, accepted, refresh, onSta"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Only save click void wrapper changes to undefined-return block; paper scope, conflict and edit fieldset unchanged.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/features/trades/trade-detail.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "e054c841f514daf975fc37fc9851efb7e167a1d6",
+        "gitBlobSha256": "5920be51be6212ed141635746111fc5ff1411748a20b28b15de0d1d555d03049"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "36099ffe296205b377a8380465f942ee486ffa8e",
+        "gitBlobSha256": "1f0f25b72ff92530a790da97dab1b19a74836b9fdba303f71202ab1be90292e7"
+      },
+      "fullHistoricalDeltaSha256": "c8770b8c345949f1fce0189483e01fc4045208c87bfbba37fdeadaef75b3d59e",
+      "hunks": [
+        "@@ -86,7 +86,7 @@ export function TradeDetail({ intentId, readOnly = true }: Readonly<{ intentId:"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Only review-save click wrapper changes to block; form version conflict/readOnly and existing review mutation remain distinct from order execution.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/features/workflows/model-library.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "5630aef82173ab8a69ec3694c10167b59be8dad5",
+        "gitBlobSha256": "821d4c63f0686f039c6d865fd80ee5142cebfcea56cffee111d5f4fe0320f842"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "6989b6522cace3790b1bd3ff3147cb585dac1f4b",
+        "gitBlobSha256": "c44078098d2d44064471f64bcd52a431d3661c40d52026de83f4c7fce83fe850"
+      },
+      "fullHistoricalDeltaSha256": "47570c2aa0a001f09fac802312ad2e690311418c7c62732623d85a9729ff1a0f",
+      "hunks": [
+        "@@ -50,11 +50,11 @@ export function ModelLibrary({ kind, id }: Readonly<{ kind: Kind; id?: string }>"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Five lifecycle click wrappers preserve exact action selection and disabled readOnly/busy/status/reference guards. No model publication/deletion authorization modified.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/features/workflows/test-lab.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "98008d6eed793f1aeacbf2b4e9360bd3011c17dd",
+        "gitBlobSha256": "d01e8349147b677eb99c215362c746c066b299b7890273030687ed8cfa773a04"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "ffd7811fc1ed8bb478cb009270e3459315110a96",
+        "gitBlobSha256": "72e2cf57d32765e17d774ec95b3762dcfd2a7099f9c45886d8eb44f772b9dd63"
+      },
+      "fullHistoricalDeltaSha256": "da98c61a6bf2506ca627ae291118fa1a06a83df8e3349b0dcc3ad7d69146d8f3",
+      "hunks": [
+        "@@ -67,7 +67,7 @@ export function TestLab() {",
+        "@@ -75,7 +75,7 @@ export function TestLab() {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "return(void action(testAction())) becomes final action expression statement in same handler, still undefined. run handler block preserves consent/readOnly/busy/policy/provider checks. No implicit live parser call added.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/features/workflows/workflow-library.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "e97e10e2e562a5bfd46555ea79efe3abf527c290",
+        "gitBlobSha256": "534e535cd33f21b0bb3e9e07844ddc9b653ac1218868fb2e609786c5e57cf1fa"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "3e429c0f7dfc4be2698cf263f244919397b6eb5c",
+        "gitBlobSha256": "2de8408c23921fcf51a2d8910024c6b4020dee2cc8f31a01b1f4f36f70018638"
+      },
+      "fullHistoricalDeltaSha256": "013a1a31aec67dc96450d60b3fbc9be8b8b492f123db6e6cc455c609c7441291",
+      "hunks": [
+        "@@ -160,13 +160,13 @@ export function WorkflowObject({ kind, id, resourceId }: Readonly<{ kind: Kind;",
+        "@@ -205,7 +205,7 @@ export function WorkflowObject({ kind, id, resourceId }: Readonly<{ kind: Kind;"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Comparison IIFE retains try/catch and same-family check; lifecycle/archive/delete/restore handlers retain undefined return and command arguments. Historical graph still restored as draft, not automatically activated.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/lib/api.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "68891a005b2bc3725753947230808b7355cb9996",
+        "gitBlobSha256": "b75e79e9854097e28d84ccd0910200317e6229361557302d160e3eaa84b94b04"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "f995564f73cd8eb096a2c53acae5575b1bc8037c",
+        "gitBlobSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf"
+      },
+      "fullHistoricalDeltaSha256": "2b756b2a1d054d79a34dc0643bc73e53058ddb181aa8f9f6f652b86495ecf510",
+      "hunks": [
+        "@@ -17,16 +17,25 @@ export async function apiFetch("
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire normalized Request boundary inspected. String URL resolves once against document.baseURI; normalized Request destination checked against dashboard origin and embedded credentials before token read. Same Request consumed by fetch, protecting mutable URL/shadowed public URL mismatch. Effective method/headers/body/options including signal preserved and request mutation header based on effective method. Redirect:error intentionally blocks redirect-based credential forwarding, including same-origin redirects; existing internal API routes return direct responses. Fresh tests cover Request inheritance/overrides, body, same-origin URL, external destinations, mutable conversion and stale-token401.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/lib/navigation.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "144b2e143ed8aa4db585dd1602166c0d64cec0bf",
+        "gitBlobSha256": "e06fa40d7cbd4b0d6dc3568525329c5712e751b56fabece914d36df03a9d4ede"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "9f6b4e3bd002f7c59d4466cd9734e9ccd054fae5",
+        "gitBlobSha256": "5773c8b7d605c9aa563cd036e162fc666995cb7d3084817d4639a46ce257a306"
+      },
+      "fullHistoricalDeltaSha256": "f3d3cd678a5679676dc71d47cf180b6ab8365c13fbd1fcdc508a1898bde48601",
+      "hunks": [
+        "@@ -1,4 +1,4 @@",
+        "@@ -19,7 +19,7 @@ interface NavigateOptions {",
+        "@@ -57,33 +57,39 @@ function splitTarget(to: string): NavigationLocation {",
+        "@@ -94,7 +100,7 @@ export function NavigationProvider({",
+        "@@ -110,7 +116,7 @@ export function NavigationProvider({",
+        "@@ -124,7 +130,7 @@ export function NavigationProvider({",
+        "@@ -143,11 +149,11 @@ export function useSearchParams(): [",
+        "@@ -160,15 +166,15 @@ export function useSearchParams(): ["
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Named React imports erase namespace indirection only. browserUrl uses URL pathname/search setters to keep protocol-relative-looking // paths on current origin. Basename normalization, splitTarget, query, popstate, replace/push and dirty-form confirmation preserve existing sequence. URL setters encode raw special path characters; generated app links already encode dynamic IDs. Callback void removal retains Promise handling. Fresh navigation regression tests pass.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/main.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "eb34957ec8f4bb51ad1a8f1282f40ca570f3a2d7",
+        "gitBlobSha256": "28034bf9d3e3afbf0ef0a019136fa9151b330794735b32c1c518e2df20be2e0c"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "82f292a642228c46b31228da3edb9ffba8f0e6a3",
+        "gitBlobSha256": "97614ee68e0c88bb632a6976bc0d29ec699b4d78fffcffde3bf8233ddfe4abb5"
+      },
+      "fullHistoricalDeltaSha256": "59f96579d74ee2e28c792ee22741c21b05f1dab34ca3db963c6eff3908bb84fc",
+      "hunks": [
+        "@@ -4,7 +4,9 @@ import \"@fontsource-variable/geist\";"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Explicit missing-root error replaces non-null assertion before createRoot. frontend/index.html supplies root; normal StrictMode/App tree unchanged, malformed shell still fails immediately.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/shared/api/use-poll.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "ed3988d11bdcb2e5aaeda8e2116e29c0d736d729",
+        "gitBlobSha256": "02a572e2274372ddafa98e237efe870e7d82a80188be5ee92209308e7a4344c7"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "b6062580dd09d70494395679627f94f43cd5ada2",
+        "gitBlobSha256": "f074cec89fffde11458790b3f9f422a27641b338041ad055d2bd4588810d8c20"
+      },
+      "fullHistoricalDeltaSha256": "0d4c24f74f7861acdd11f27213feeda0f44710692b44d45d3792c96ba63c3812",
+      "hunks": [
+        "@@ -43,10 +43,10 @@ export function usePoll<T>("
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Only statement-level void removed at initial and visibility-trigger poll calls. Abort/timeout/running-refresh state and async catches untouched; no effect callback returns a Promise.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/shared/components/evidence.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "1600f69232a470677495a7aadaba258e79a09bb3",
+        "gitBlobSha256": "3709a0bc7e0865fef7faa8dcd0ce12f70f9c1728d8c1a8a297303f5909383aa5"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "92c61ecfc2cc3485777c5fe0fe32b3136b4941fe",
+        "gitBlobSha256": "14f56733d051a7946db3b480f992aa70adc9758c275b9880fe1f462a4a33ce98"
+      },
+      "fullHistoricalDeltaSha256": "4a360bbbbbdc2e8105c7022a94feb80b5a1e72d3d626ab7bc0f21ee0aab94de1",
+      "hunks": [
+        "@@ -7,7 +7,7 @@ function evidenceFieldValue(value: ReactNode): ReactNode {",
+        "@@ -20,7 +20,7 @@ export function EvidenceFields({ fields }: Readonly<{ fields: Array<[string, Rea"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Only any→unknown type annotations. Runtime value rendering/null labels/ReactNode handling and tab-accessible table unchanged.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/shared/components/global-search.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "c6acc1d48b692da614729eebef661c8bfb8433ec",
+        "gitBlobSha256": "2b6d5432d30a2baf59168284be9ed3881dd77cf3167f1ed541fec15a1488efc6"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "114472f455d19a9ed667939646aaa895b255ab62",
+        "gitBlobSha256": "247c210b8af005e8ae605f9ccd43b5a1ce9b090928cafe43cea33222918c7733"
+      },
+      "fullHistoricalDeltaSha256": "599f9981b8f287c79e291cb2238d1084265d4f06edc699348824089ed2658355",
+      "hunks": [
+        "@@ -4,13 +4,34 @@ import { jsonRequest } from '@/lib/api';",
+        "@@ -22,15 +43,15 @@ export function GlobalSearch() {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Typed search observation/groups erase only, async loader retains query key/300ms debounce/AbortSignal/X-UI-Search header and cursor. Search text remains outside browser URL. autoFocus removed; Popup default focus selects first interactive input for keyboard and container for touch. Closing/reset and Link navigation unchanged; no current browser focus-gesture proof claimed beyond inspected library behavior.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/shared/components/issued-credential.tsx",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "75ceef660b26ae6f7f3b831250ddfc522f88ba11",
+        "gitBlobSha256": "72a349a46e79c8bb1f5aac118899689c998fbbe4f6ff250bab299f712b9f9867"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "e5b401dc7bf23e8687f5cf18a338e7cabf3bee62",
+        "gitBlobSha256": "56bf5a297c8e767de10d65f5dc88d55032d5ce17ee86f81cf36b4c93fd8c0e68"
+      },
+      "fullHistoricalDeltaSha256": "95996fbb22dd67dd11b13b99deccde634b1031d0cb58fd95c2b2ef1fa550156c",
+      "hunks": [
+        "@@ -15,7 +15,7 @@ export function IssuedCredentialNotice() {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Only clipboard callback void→block. Copies same displayed token and returns undefined; existing clipboard rejection behavior not changed. No persistence or logging introduced; dismiss queue remains unchanged.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "frontend/src/utils/analytics.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "6167815ae905f86edb79645e7d16a365dbc73f8d",
+        "gitBlobSha256": "efa71383252d16757787e72ed4856a15e2ed88c6d8b5a516c271c33b0b18c168"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "46c0d029377dad1562ba865200e31127c70973bc",
+        "gitBlobSha256": "b89681ea4b77667a555858ae3a58af8c7ea7b9b17a105552af89c1a5372332ed"
+      },
+      "fullHistoricalDeltaSha256": "ab5ee0ba855f12a281a4c71375616e5c01b7f0f8b58b4f4e97ed45947d9231a1",
+      "hunks": [
+        "@@ -17,30 +17,34 @@ const IS_PRODUCTION = import.meta.env.PROD;"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Whole GTM rewrite replaces executable interpolated inline script/HTML with DOM APIs and fixed-origin URL search param. Valid uppercase GTM identifiers initialize same dataLayer event before async script load; PROD guard remains. Invalid ids now fail closed. Existing optional analytics only; iframe noscript constructed as hidden titled element. Fresh tests cover valid event preservation and malicious/empty/nonproduction values. No new claim that dynamically created noscript executes with JavaScript disabled.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "monitoring/govulncheck/go.mod",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "babd0184ca05118c338cae00d2e7314194724695",
+        "gitBlobSha256": "8a7a374a045b72129511d6a2b093db6e68750a074456c416b2ec6416ed651a6c"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "adf5a8dc78111664d9cc4e79bffb239bcc4e3e77",
+        "gitBlobSha256": "b1dcf59b7f2d2ca4756580e56e10241bee96fb52e48665dd41d9dad41c6e15c6"
+      },
+      "fullHistoricalDeltaSha256": "aacfaa0167e0a7d92ca12b35f13fcec319094d727426074f7ae2819124e50278",
+      "hunks": [
+        "@@ -1,5 +1,5 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Only minimum Go toolchain patch1.26.0→1.26.6; x/vuln dependency unchanged. Scanner tool module isolated from Node/Python application runtime. Raises requirement, does not lower vulnerability policy; execution provenance remains separate from this manifest review.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "package-lock.json",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "a9950532face47ad7ff1c4a1bd4a7d018122091d",
+        "gitBlobSha256": "caa453eba502e405f0cca2bcb9dc633893ae1f7170d92b84dac1b408724945f4"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "6c4815a353e33f109364f7ff79d368a25e0c7da8",
+        "gitBlobSha256": "f0edb2d81137ffe06035691b8989b3f0687d6c7e59d55e8a87c62fbce42543d1"
+      },
+      "fullHistoricalDeltaSha256": "e29deb7c2b9fa4393722badcce84ce820a57ea7bfdb6b119b68232685a11b636",
+      "hunks": [
+        "@@ -21,7 +21,7 @@",
+        "@@ -1725,9 +1725,6 @@",
+        "@@ -1741,9 +1738,6 @@",
+        "@@ -1757,9 +1751,6 @@",
+        "@@ -1773,9 +1764,6 @@",
+        "@@ -2116,13 +2104,13 @@",
+        "@@ -3915,9 +3903,9 @@",
+        "@@ -4226,9 +4214,6 @@",
+        "@@ -4243,9 +4228,6 @@",
+        "@@ -4260,9 +4242,6 @@",
+        "@@ -5779,9 +5758,9 @@",
+        "@@ -5789,9 +5768,9 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire lock delta matched package overrides and Node type alignment: only hono,undici,@types/node,undici-types versions/integrities and seven optional native libc metadata removals. Exact remaining package data preserved; libc removals broaden eligible optional-platform installs but leave os/cpu/optional tags and binaries/integrities unchanged. No new lifecycle hook/registry or unlocked dependency introduced. Existing Node22 compiler/download evidence checked as scoped compatibility evidence, not upstream source audit.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "package.json",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "4b11b427a0ba7b7cd766844b612c68f556517943",
+        "gitBlobSha256": "c7e52078c0863031015c90d2f4c2f6dcbaebf57889a00abee25c630008aa888e"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "e9226baf5ab6025542d418229405eeac77bcd626",
+        "gitBlobSha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+      },
+      "fullHistoricalDeltaSha256": "df0fdc5b15d97287b827228b8a3c6a54ea6ed86ec7874a63a481b47962a4f946",
+      "hunks": [
+        "@@ -10,7 +10,7 @@",
+        "@@ -65,9 +65,9 @@",
+        "@@ -82,7 +82,7 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full four-field delta: build copies input .d.ts after tsc before frontend build; copier only recursive regular declaration files and no runtime code mutation. Security overrides hono4.13.5/undici6.28.1 remain exact. @types/node22.20.2 aligns declared >=22<23 runtime; no runtime dependency downgrade. Node type probe/compiler records support declaration compatibility; root test commands/thresholds unchanged.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "security/deepsource-js-test-review-2026-09-08.json",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "exists": false
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "61d836fdfc5ace0c626adce6f28724f3280619c3",
+        "gitBlobSha256": "7c8a202d32ed90ce7d551a4ffd432245d2e9551c4ba6e4ac54c05d34330280fc"
+      },
+      "fullHistoricalDeltaSha256": "5857fd5e0b2438ca73b9602ab7290d8562927d6eae182f1c161809e708a57185",
+      "hunks": [
+        "@@ -0,0 +1,6833 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire new historical documentation artifact examined structurally across all 685 individual IDs/rules/path/rationale records, scope and limitations. Not loaded as executable source or current gate waiver (production/script import search found no consumers). Exact historical revisions and pending-rescan/expected-behavior distinctions remain; not a current re-review of every underlying source finding. Record counts/statuses and no-remote-suppression declaration validated. Historical verification statements are attributed evidence, not newly executed tests or present scanner closure.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "security/deepsource-python-review-2026-09-08.json",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "exists": false
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "ac6e75d8788edada7a76641cbf3bc86b12c7d0d2",
+        "gitBlobSha256": "5b0c7ea06848feaee839e10e69096a24f848a1af1f7f596b281051e71c264ee6"
+      },
+      "fullHistoricalDeltaSha256": "1880bd0b22cdff1eed357c5517527703a788a6d2c800988d74ba39e3d9c0db62",
+      "hunks": [
+        "@@ -0,0 +1,2714 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire new historical documentation artifact examined structurally across all 241 individual IDs/rules/path/rationale records, scope and limitations. Not loaded as executable source or current gate waiver (production/script import search found no consumers). Exact historical revisions and pending-rescan/expected-behavior distinctions remain; not a current re-review of every underlying source finding. Record counts/statuses and no-remote-suppression declaration validated. Historical verification statements are attributed evidence, not newly executed tests or present scanner closure.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    },
+    {
+      "path": "stryker.config.mjs",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "be522fd2ddbc21002ec7d7eac877a600682986ed",
+        "gitBlobSha256": "078c14428fcd111afe376eeddd22de077245c646a85b0f09c94df6ce08464b43"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "972da26f5e1fd3a2605fa93bb10eec356ecdf27f",
+        "gitBlobSha256": "e1406a730df2680d279d6592c3266a737c1b752ed86b0ac30788392fa3507abc"
+      },
+      "fullHistoricalDeltaSha256": "4caca66edb87a6acab1b18285e1c82b1ff2a9bc97a973bf39dd9488b43492be0",
+      "hunks": [
+        "@@ -33,7 +33,9 @@ const config = {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Only schema shard concurrency increases1→2; other shards remain1. Mutation set, force/incremental behavior, command, timeout, exclusions,70break threshold and report remain. Command workers execute separate processes and existing signal parser/contract fixtures use unique temporary directories with process-local globals. Performance change may affect timing under load; no score or completed mutation run inferred.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null,
+      "workingTreeDiffersFromCommittedReview": false
+    }
+  ],
+  "documentationVerification": [
+    {
+      "path": "docs/testing/codacy-independent-python-test-review-2026-09-08.json",
+      "entryCount": 50,
+      "uniqueIds": 50,
+      "allEntriesHavePathRuleAndIndividualRationale": true,
+      "remoteDispositionNotClaimed": true,
+      "statuses": {
+        "reviewed-false-positive": 50
+      }
+    },
+    {
+      "path": "docs/testing/codacy-independent-web-test-review-2026-09-08.json",
+      "entryCount": 50,
+      "uniqueIds": 50,
+      "allEntriesHavePathRuleAndIndividualRationale": true,
+      "remoteDispositionNotClaimed": true,
+      "statuses": {
+        "reviewed-false-positive": 50
+      }
+    },
+    {
+      "path": "security/deepsource-js-test-review-2026-09-08.json",
+      "entryCount": 685,
+      "uniqueIds": 685,
+      "allEntriesHavePathRuleAndIndividualRationale": true,
+      "remoteDispositionNotClaimed": true,
+      "statuses": {
+        "source_change_pending_rescan": 428,
+        "reviewed_expected_behavior": 257
+      }
+    },
+    {
+      "path": "security/deepsource-python-review-2026-09-08.json",
+      "entryCount": 241,
+      "uniqueIds": 241,
+      "allEntriesHavePathRuleAndIndividualRationale": true,
+      "remoteDispositionNotClaimed": true,
+      "statuses": {
+        "source_change_pending_rescan": 222,
+        "reviewed_expected_behavior": 19
+      }
+    },
+    {
+      "redactionReportsExactCurrentBinding": true,
+      "originalReportsAndAll13FieldHashesAndLinesRecoverable": true,
+      "reviewPath": "reports/security-services/fixer-doc-fixture-redaction-review.json",
+      "reviewSha256": "c2c3bf40482567ffd270ee154df3e3c40069e03aaa1481b5fbd294cee7a582e0"
+    },
+    {
+      "restorationRecords": {
+        "namedPromiseBoundaries": 121,
+        "assertionOperands": 57,
+        "asyncFixtures": 44
+      },
+      "historicalReferencedFilesAllResolve": true
+    }
+  ],
+  "contextBindings": [
+    {
+      "path": "frontend/tests/api.test.ts",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "148d0739a418df9f8f0df5ccfdf92cdf5bcf4aaf",
+      "gitBlobSha256": "aeb9c18da94d4827ee721a16924fef9ada1491e67bc6f4404eea8f22e106902f"
+    },
+    {
+      "path": "frontend/tests/navigation.test.tsx",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "0184c5ac9ee1dc8b608279538f8cce153bb6b0aa",
+      "gitBlobSha256": "0a7c4079de17885b33af94c1e43231d84e45630ae9b708511e7b8f95945e202f"
+    },
+    {
+      "path": "frontend/tests/analytics.test.ts",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "626423a736df5b737e43ffa8092796d57cba91cc",
+      "gitBlobSha256": "f3d2c85bc372f312a6082e4b70a6f88dcbeb0570dd7bcc0c2051e934a77106f8"
+    },
+    {
+      "path": "frontend/tests/workflow-builder-resilience.test.tsx",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "2a749f8800628000675fb3ff690059d7675b56d0",
+      "gitBlobSha256": "01cffb6b590e6718dbf5e136ed117c914bafe74427bb73eaeb8425f3ae0598e2"
+    },
+    {
+      "path": "frontend/tests/workflow-builder-history.test.tsx",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "c42bb004c89e5db5681d982d7ac860713ab6072c",
+      "gitBlobSha256": "7ef2776ff1d1288e3a6240edc827cc3c72184db13461e28f3ddfb78900b5c0dc"
+    },
+    {
+      "path": "frontend/tests/operator-state-regressions.test.tsx",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "c7893061e36c870a273db23e2a3a6cf69ae3c0f8",
+      "gitBlobSha256": "b6fcf743bd74998d3d3b71e5eb995db1bede5aee37f83ce676f3b69350a471be"
+    },
+    {
+      "path": "frontend/tests/operator-directory-regressions.test.tsx",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "d7b6f2e73aec6353d207ceb902777c38516d7c66",
+      "gitBlobSha256": "9a7afcda69263ef24296d824aee2587f4e01b2daf7abe4672c84139d06a2ab1e"
+    },
+    {
+      "path": "frontend/tests/operations-panel-helpers.test.ts",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "750ce9458db54e6824fc1b46512e1978b64eb969",
+      "gitBlobSha256": "fa8976c52a0d186dbd37ce8a1b9ebbbbc17d643cfc3637928ac5a25d29ca25b6"
+    },
+    {
+      "path": "frontend/tests/operator-repair-regressions.test.tsx",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "dd848250d3b10df6e70c3eb36f254bc374ae6c46",
+      "gitBlobSha256": "472357004a049c5871b382277766957be3ea16490675f431d0d4bd5c2ebab54e"
+    },
+    {
+      "path": "frontend/tests/operator-maintenance-safety.test.tsx",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "96d6e708f94109635e8d62161f1bba62787dbb13",
+      "gitBlobSha256": "dc48c527a1fd1933391216d7f28c87f0c3d2e8240df0ea5febb7ebe19e6f9029"
+    },
+    {
+      "path": "frontend/src/components/ui/dialog.tsx",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "e7cd831213e7cc10717220ba65054cde468b899c",
+      "gitBlobSha256": "6e99c4591aeab61c8e82e5cc5bfc1cd5fc29fb731b484dc6769f0de1f86c6cca"
+    },
+    {
+      "path": "frontend/src/shared/components/operator-primitives.tsx",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "96284296c47590106a2278498e0685e7fde1b68b",
+      "gitBlobSha256": "8c35545b4994a153b56d93784346c8d0d9ee03ca92dde4259cd537e61d8b93c3"
+    },
+    {
+      "path": "frontend/src/app/workflow/types.ts",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "af02ad4aa8b1e7c56251c4115402c83765fd667f",
+      "gitBlobSha256": "c6609d2274dec2c3f81f36406ed76f6db898deeb94ebbcac0b4823b781cd6966"
+    },
+    {
+      "path": "src/trading_repository.ts",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "4f4e683e748c7a4437fbdc916c2993fdc2dd94c2",
+      "gitBlobSha256": "e6e66619c460a1500fc116fed381c820231c2dbcfd16837684a3364166045c93"
+    },
+    {
+      "path": "scripts/copy_declarations.js",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "4c528e40b52b9894886122e692a58de644ea2102",
+      "gitBlobSha256": "9662e8c0207968e476f770caf15352889f3571e353710684df7b6c996a4d9eea"
+    },
+    {
+      "path": "scripts/check_snyk_code_review.js",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "6dc62400b571b6a717b1ea8671adf2bcac40300f",
+      "gitBlobSha256": "9190f11dd8f3adda1d9245a17d9468d471aefb5beb922de60877fbbf15876233"
+    },
+    {
+      "path": "scripts/export_deepsource_findings.js",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "8d667dcc120ea99b4ec314b94c19f0ce1a034be2",
+      "gitBlobSha256": "92a30db61f7d67e77a03018fa8ce9a29688b3138f4d4b0a04f0a3941c31f3b73"
+    },
+    {
+      "path": "tests/test_signal_parser.js",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "147d285ea334434887c3243aece448485edb9f46",
+      "gitBlobSha256": "5e91c00dcb89ef2bcf98fe2794f5fc5dbe978eff2dde321b743695959d739425"
+    },
+    {
+      "path": "tests/test_signal_contract_validation.js",
+      "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+      "gitBlobOid": "5e70811a250bbbd3e770b6e8f758389b1817a45b",
+      "gitBlobSha256": "e7c65e92ec9ccbc9288c87a5f8ac17e851828e05b0d6b886ea458fd2cefe6e7e"
+    }
+  ],
+  "supportingReports": [
+    {
+      "path": "reports/security-services/fixer-node22-types-compatibility-review.json",
+      "sha256": "e0e34c526fc241392fb9b47342a156d1141b2edb787bd7cd8e8ff2f7a2ce1981"
+    },
+    {
+      "path": "reports/security-services/fixer-node22-types-alignment-implementation.json",
+      "sha256": "c6f542495199924a782f6f2d50584128e42fdfd863c97d38e4e141d667dfacf4"
+    },
+    {
+      "path": "reports/security-services/fixer-node22-types-active-compiler-proof.json",
+      "sha256": "a9ef77c58cc4de3d7351ec049a55f4e45144c36d3fe4d2a7b11ac0781e016630"
+    },
+    {
+      "path": "reports/security-services/fixer-doc-fixture-redaction-review.json",
+      "sha256": "c2c3bf40482567ffd270ee154df3e3c40069e03aaa1481b5fbd294cee7a582e0"
+    }
+  ],
+  "freshValidation": {
+    "frontendTestsPassed": 112,
+    "filesPassed": 10,
+    "logs": [
+      {
+        "path": "reports/security-services/fixer-noncore-wave-frontend-tests.log",
+        "sha256": "0ee1dc2ef337a97946607ceca3455cc1205200eb19b30f3d2aba79aaf005bc32",
+        "exitCode": 0
+      },
+      {
+        "path": "reports/security-services/fixer-noncore-wave-frontend-safety-tests.log",
+        "sha256": "16b7b2c139d995dd9194e488ca08c70f9121d9d64d79cc0cebdb5f7d548c776e",
+        "exitCode": 0
+      }
+    ],
+    "executionScope": "Actual frozen shared worktree; equity helper uncommitted delta present, committed26127c6 source review separate."
+  },
+  "sharedWorkingStatus": " M frontend/package-lock.json\n M frontend/package.json\n M package-lock.json\n M package.json\n",
+  "limits": [
+    "No source/receipt/pin/platform edits; no live provider, container or deployment action.",
+    "Documentation artifact complete-delta review does not promote its historical occurrence decisions into whole-source approval or current scanner FP disposition.",
+    "No claim of mutation score, toolchain execution or CI success from manifest review alone.",
+    "Package integration compatibility evidence does not constitute upstream dependency source audit.",
+    "Current root uncommitted equity/workflow/test edits need their own committed chain binding; not absorbed."
+  ]
+}

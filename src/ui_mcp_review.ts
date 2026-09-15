@@ -33,7 +33,7 @@ function affectedProposalPaths(action: string, payload: Record<string, any>, bef
   collect(payload); collect(before);
   return (active?.compiled.paths ?? []).filter(path => action === 'workflow.activate' || action === 'trading.release_kill_switch'
     || Object.values(path).some(value => typeof value === 'string' && identifiers.has(value))
-    || path.nodeIds.some(id => active!.graph.nodes.some(node => node.id === id && identifiers.has(node.resourceVersionId))));
+    || (active ? path.nodeIds.some(id => active.graph.nodes.some(node => node.id === id && identifiers.has(node.resourceVersionId))) : false));
 }
 
 // Requested fields are separate from server normalization and trade execution evidence.
@@ -56,11 +56,12 @@ export async function uiMcpProposalReview(id: string) {
   const affectedPaths = affectedProposalPaths(action, payload, before, active);
   const requested = requestedProjection(action, payload, before);
   const checkedAt = Date.now();
-  const freshPreflight = await preflightMcpAction(action, payload);
+  const freshPreflight = await preflightMcpAction(action, payload, 'public');
   return {
     contractVersion: 1, observedAt: checkedAt,
     reviewHash: reviewHash({ proposalId: proposal.id, action, payload, before, activeRevisionId: active?.id ?? null }),
-    proposal: redactReview(proposal), before: redactReview(before), requested: redactReview(requested), freshPreflight,
+    proposal: redactReview(proposal), before: redactReview(before), requested: redactReview(requested),
+    freshPreflight: redactReview(freshPreflight),
     scope: { globalEntryEffects: action === 'trading.release_kill_switch', activeRevisionId: active?.id ?? null,
       accountIds: [...new Set([...affectedPaths.map(path => path.accountId), ...(typeof payload.accountId === 'string' ? [payload.accountId] : [])])],
       paths: affectedPaths.map(path => ({ id: path.id, accountId: path.accountId, channelId: path.channelId })) },

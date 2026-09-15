@@ -1,0 +1,45 @@
+{
+  "baseRevision": "e29b6b5f9630893eef62e352ba9ee46956dd4568",
+  "scannerRevision": "c1bdf542e70ee54e04e2b45e5795317552107c31",
+  "issues": [
+    {
+      "id": "ac2dd591e0b09bc5dcde0aa69513efe",
+      "fix": "Fixed clock uses ISO8601 Date.parse instead of separator-form numeric literal. Runtime equality with1700000010000 explicitly verified; fake service time unchanged."
+    },
+    {
+      "id": "5bbceaf04ac5509625f58ad7fde2e954",
+      "fix": "Duplicate setup identifier test compares exact Error.message property including Setup bundle prefix and final period. This strengthens the assertion and removes unnecessary dynamic RegExp; all three model kinds remain tested."
+    }
+  ],
+  "bindings": [
+    {
+      "path": "tests/test_setup_bundle.js",
+      "lfSha256": "8f4b4a9c3c7883caa83a87d3a2e29c5f625f229a50546cf14f153f245ad82154"
+    },
+    {
+      "path": "tests/test_telegram_viewer_service.js",
+      "lfSha256": "f9cf58c5b7d24b799037f3126c0309688e785a230d159aeec7ff78a73f24ff74"
+    }
+  ],
+  "execution": {
+    "setupExit": 0,
+    "lintExit": 0,
+    "viewerExit": 0,
+    "finishedAt": "2026-09-15T10:35:40.9805687Z"
+  },
+  "logs": [
+    {
+      "path": "reports/security-services/fixer-codacy-c1-setup-test.log",
+      "lfSha256": "8e7214cb4294dd1493b881fbd525176d6c9ec78d86b19b5fcb70ea4adce45173"
+    },
+    {
+      "path": "reports/security-services/fixer-codacy-c1-viewer-test.log",
+      "lfSha256": "32aa0aed993d6605831105a6a1e809a1299c42780a1ee53701c82232c160542e"
+    },
+    {
+      "path": "reports/security-services/fixer-codacy-c1-test-lint.log",
+      "lfSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "limits": "Local tests passed; Codacy closure requires next analysis. No production code or scanner policy changed."
+}

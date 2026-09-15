@@ -1,0 +1,72 @@
+{
+  "scope": "Independent bounded diagnosis of suite 83098 operator backup polling failure; no source/test changes or timeout relaxation",
+  "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+  "bindings": [
+    {
+      "path": "tests/test_ui_operator_commands.js",
+      "gitBlobSha256": "ec105e7f5506c7a8e93ce56e033fb73c18d804853d0391b299cda9edd70b2d5c",
+      "workingRawSha256": "ec105e7f5506c7a8e93ce56e033fb73c18d804853d0391b299cda9edd70b2d5c",
+      "workingLfEqualsCommit": true
+    },
+    {
+      "path": "src/ui_operation_store.ts",
+      "gitBlobSha256": "6ca19330d59d052caa32494dbfbaff7c32098e5ac28a9efc9528dbbdc7cdbdd3",
+      "workingRawSha256": "6ca19330d59d052caa32494dbfbaff7c32098e5ac28a9efc9528dbbdc7cdbdd3",
+      "workingLfEqualsCommit": true
+    },
+    {
+      "path": "src/web_server.ts",
+      "gitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653",
+      "workingRawSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653",
+      "workingLfEqualsCommit": true
+    },
+    {
+      "path": "scripts/test_scheduler.js",
+      "gitBlobSha256": "1a6637a968bff1ae6b2b27e7e6e42af326deeeb3adfdb8d06d6cd41f61c361a8",
+      "workingRawSha256": "1a6637a968bff1ae6b2b27e7e6e42af326deeeb3adfdb8d06d6cd41f61c361a8",
+      "workingLfEqualsCommit": true
+    },
+    {
+      "path": "tests/run_all.js",
+      "gitBlobSha256": "b4a7484763bd151cb64abec3130d9e7467bbe17bce2b447c319620e1b70c928f",
+      "workingRawSha256": "e86efb9bc1668b5682eff2240da0aeb9ebc3034a5fecdb2540d9187dbd57dd76",
+      "workingLfEqualsCommit": true
+    }
+  ],
+  "observations": [
+    "Failed full suite log records successful HTTP202 backup acceptance followed by 200 polls without terminal state. No Backup job persistence failed entry or unhandled persistence exception appears before failure. HTTP202 proves acceptance, not execution/completion.",
+    "Preceding drill accepted at09:51:51; next drill deduplication and backup acceptance at09:51:54. This suggests unusually slow progress already preceded the failing job; timestamps are coarse and do not identify the delayed I/O stage.",
+    "waitJob polls in-memory store.get every10ms, max200 iterations. Each job requires durable running and succeeded writes (open/write/sync/close/rename/directory-sync) before the records map changes. A pending asynchronous I/O can exhaust the polling budget while timers continue. Source does not reveal a deterministic deadlock.",
+    "Fixture finally removes the private temporary directory even after assertion failure. No matching tsx-ui-commands-* directory survived inspection; exact failed-job persisted state and pending I/O stage cannot be reconstructed.",
+    "This test is NOT in MODULE_COVERAGE_PARALLEL_TESTS. Scheduler runs its entire leading eight-test sequence serially and waits for each child close. Internal four-worker race is not supported. External host/storage contention remains plausible but unproved.",
+    "Fixture backup callback returns a fixed already-resolved artifact promise, no real backup, subprocess or network request. runBackupHandler calls store.run once after durable accept and preserves the app receiver through backupJobArtifact."
+  ],
+  "validation": [
+    {
+      "command": "Node22 --import tsx tests/test_ui_operator_commands.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-operator-settle-targeted.log"
+    },
+    {
+      "command": "c8 modules config, separate reports/temp directories; prototype timing wrapper then imports unchanged original test",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-operator-settle-coverage.log",
+      "backupRunMilliseconds": 3.9239,
+      "largestObservedPersistMilliseconds": 27.29,
+      "states": "backup accepted -> running -> succeeded; expected recovery failures also persisted failed"
+    },
+    {
+      "command": "c8 modules config, separate reports/temp directories, tests/run_all.js first eight original test names in original order",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-operator-prelude-coverage.log",
+      "result": "ALL 8 TEST FILES PASSED!"
+    }
+  ],
+  "conclusion": "Non-reproduced timing failure; three bounded validations pass including identical serial coverage prelude. No demonstrated product regression or failed backup operation. Root cause of original delayed state remains unproven; do not relabel the failed full run PASS.",
+  "nextStep": "A fresh full suite is justified after bounded reproduction passed. If failure repeats, capture last in-memory state, fixture directory and pending persist duration before cleanup; retain existing timeout and assertions while diagnosing. Do not blindly extend timeout or retry away the suite failure.",
+  "limitations": [
+    "Separate targeted coverage output is diagnostic, not the full coverage gate result.",
+    "Previous full 53586 log reports226PASS, but no claim this substitutes for current full run.",
+    "Uncommitted changes elsewhere are outside source bindings and no container/receipt approval is granted."
+  ]
+}

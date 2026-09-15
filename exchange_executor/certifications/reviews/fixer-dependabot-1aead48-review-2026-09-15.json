@@ -1,0 +1,426 @@
+{
+  "schemaVersion": 1,
+  "kind": "read-only-dependabot-current-alert-lock-reconciliation",
+  "checkedAt": "2026-09-15T07:36:00.899391+00:00",
+  "reviewedRevision": "1aead48508ef2123a516dd774f0f62152039814b",
+  "liveDefaultBranch": {
+    "name": "main",
+    "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+    "source": "gh api repos/888nikush888/tsx-core/commits/main --jq .sha"
+  },
+  "alertExport": {
+    "path": "reports/security-services/dependabot-open-current.json",
+    "sha256": "176a99890d5d4dcc77f1bcb0fbf34ee42c39c45d4dddeb217b8bbaecc0d8e22e",
+    "request": "gh api repos/888nikush888/tsx-core/dependabot/alerts?state=open&per_page=100",
+    "pagination": "9returned, below100page-size; complete current open response"
+  },
+  "counts": {
+    "open": 9,
+    "high": 1,
+    "medium": 8,
+    "uniqueAdvisories": 5,
+    "affectedPackageNames": 4,
+    "fixedInReviewedRevision": 9,
+    "stillAffectedInReviewedRevision": 0,
+    "pythonAlertsInCurrentOpenResponse": 0
+  },
+  "entries": [
+    {
+      "alertNumber": 30,
+      "state": "open",
+      "severity": "high",
+      "package": "js-yaml",
+      "manifest": "frontend/package-lock.json",
+      "scope": "development",
+      "advisory": "GHSA-2883-xcg3-v3hh",
+      "advisoryUrl": "https://github.com/advisories/GHSA-2883-xcg3-v3hh",
+      "alertUrl": "https://github.com/888nikush888/tsx-core/security/dependabot/30",
+      "affectedRange": ">= 4.0.0, < 4.3.2",
+      "firstPatchedVersion": "4.3.2",
+      "defaultBranchOccurrences": [
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/js-yaml",
+          "version": "4.3.1",
+          "integrity": "sha512-CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ=="
+        }
+      ],
+      "reviewedBranchOccurrences": [
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/js-yaml",
+          "version": "4.3.2",
+          "integrity": "sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA=="
+        }
+      ],
+      "reviewedManifestPin": null,
+      "disposition": "fixed-in-reviewed-branch-still-vulnerable-on-main",
+      "rationale": "Every matching nested npm lock occurrence in both reviewed dependency trees is at the advisory fixed version; live main retains earlier vulnerable version. Open alert was not dismissed and default branch was not changed."
+    },
+    {
+      "alertNumber": 29,
+      "state": "open",
+      "severity": "medium",
+      "package": "vitest",
+      "manifest": "frontend/package-lock.json",
+      "scope": "development",
+      "advisory": "GHSA-82fw-gwwq-j7x9",
+      "advisoryUrl": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+      "alertUrl": "https://github.com/888nikush888/tsx-core/security/dependabot/29",
+      "affectedRange": ">= 2.1.0, < 4.1.11",
+      "firstPatchedVersion": "4.1.11",
+      "defaultBranchOccurrences": [
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/vitest",
+          "version": "4.1.10",
+          "integrity": "sha512-R9jUTe5S4Qb0HCd4TNqpC7oGcrMssMRGXLW80ubjWsW9VH5GF8y1Y0SFLY9AbqSk6nt0PnOx4H4WNJYZ13GUPw=="
+        }
+      ],
+      "reviewedBranchOccurrences": [
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/vitest",
+          "version": "4.1.11",
+          "integrity": "sha512-fhACrNXUidIbGSBr5FlbuBkO7VWC1ZyLl0DO4CU2DrQoAPxX84Ysxs+HeGQpii5lZWV1Q4gBZTTu49mF+A6Edw=="
+        }
+      ],
+      "reviewedManifestPin": null,
+      "disposition": "fixed-in-reviewed-branch-still-vulnerable-on-main",
+      "rationale": "Every matching nested npm lock occurrence in both reviewed dependency trees is at the advisory fixed version; live main retains earlier vulnerable version. Open alert was not dismissed and default branch was not changed."
+    },
+    {
+      "alertNumber": 28,
+      "state": "open",
+      "severity": "medium",
+      "package": "vitest",
+      "manifest": "frontend/package.json",
+      "scope": "development",
+      "advisory": "GHSA-82fw-gwwq-j7x9",
+      "advisoryUrl": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+      "alertUrl": "https://github.com/888nikush888/tsx-core/security/dependabot/28",
+      "affectedRange": ">= 2.1.0, < 4.1.11",
+      "firstPatchedVersion": "4.1.11",
+      "defaultBranchOccurrences": [
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/vitest",
+          "version": "4.1.10",
+          "integrity": "sha512-R9jUTe5S4Qb0HCd4TNqpC7oGcrMssMRGXLW80ubjWsW9VH5GF8y1Y0SFLY9AbqSk6nt0PnOx4H4WNJYZ13GUPw=="
+        }
+      ],
+      "reviewedBranchOccurrences": [
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/vitest",
+          "version": "4.1.11",
+          "integrity": "sha512-fhACrNXUidIbGSBr5FlbuBkO7VWC1ZyLl0DO4CU2DrQoAPxX84Ysxs+HeGQpii5lZWV1Q4gBZTTu49mF+A6Edw=="
+        }
+      ],
+      "reviewedManifestPin": "4.1.11",
+      "disposition": "fixed-in-reviewed-branch-still-vulnerable-on-main",
+      "rationale": "Every matching nested npm lock occurrence in both reviewed dependency trees is at the advisory fixed version; live main retains earlier vulnerable version. Open alert was not dismissed and default branch was not changed."
+    },
+    {
+      "alertNumber": 27,
+      "state": "open",
+      "severity": "medium",
+      "package": "@vitest/mocker",
+      "manifest": "frontend/package-lock.json",
+      "scope": "development",
+      "advisory": "GHSA-82fw-gwwq-j7x9",
+      "advisoryUrl": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+      "alertUrl": "https://github.com/888nikush888/tsx-core/security/dependabot/27",
+      "affectedRange": ">= 2.1.0, < 4.1.11",
+      "firstPatchedVersion": "4.1.11",
+      "defaultBranchOccurrences": [
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/@vitest/mocker",
+          "version": "4.1.10",
+          "integrity": "sha512-v0xaezt+DKEmKfaxg133ldzADrwLGd7Ze1MfQQTYfvs8OqZIwbxyxaYURivwV7sWy5fqn3rH5uOrSp07bp44Ow=="
+        }
+      ],
+      "reviewedBranchOccurrences": [
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/@vitest/mocker",
+          "version": "4.1.11",
+          "integrity": "sha512-2XJVD55d1o5AZous5CCGKS74g/riOj9odEt2bQpCVZeblHyHdnMeFl4jl0XjU21stf4mbjUkew2eXQZt65g5CQ=="
+        }
+      ],
+      "reviewedManifestPin": null,
+      "disposition": "fixed-in-reviewed-branch-still-vulnerable-on-main",
+      "rationale": "Every matching nested npm lock occurrence in both reviewed dependency trees is at the advisory fixed version; live main retains earlier vulnerable version. Open alert was not dismissed and default branch was not changed."
+    },
+    {
+      "alertNumber": 26,
+      "state": "open",
+      "severity": "medium",
+      "package": "hono",
+      "manifest": "frontend/package-lock.json",
+      "scope": "development",
+      "advisory": "GHSA-gqvv-2mrq-wpjv",
+      "advisoryUrl": "https://github.com/advisories/GHSA-gqvv-2mrq-wpjv",
+      "alertUrl": "https://github.com/888nikush888/tsx-core/security/dependabot/26",
+      "affectedRange": "< 4.13.5",
+      "firstPatchedVersion": "4.13.5",
+      "defaultBranchOccurrences": [
+        {
+          "manifest": "package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.12.34",
+          "integrity": "sha512-GqXJqY/xJkJmuloTrnV1ZEXG3fqte+VjkUqoRNZXcrUidiUOP4fMSIHHY4tsqZBK++kVyWmt/AAfSUuy57/eSA=="
+        },
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.4",
+          "integrity": "sha512-AGEwKIyRMHRv1t8Wjwa3LHxQ61X5CqrdFT+4BRNTpqS5aJNnpl5WLjADb7vFlJzI/8uK7T5QLVApCMQKNa3LgQ=="
+        }
+      ],
+      "reviewedBranchOccurrences": [
+        {
+          "manifest": "package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.5",
+          "integrity": "sha512-O6+/eCYRkzzzy0rPWwKLiGBR1nFuUPZynnwjxN1MBA62NNqbT0wQEzQyK2gSO5yDIDB336sXQleAhOHrzlYyKw=="
+        },
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.5",
+          "integrity": "sha512-O6+/eCYRkzzzy0rPWwKLiGBR1nFuUPZynnwjxN1MBA62NNqbT0wQEzQyK2gSO5yDIDB336sXQleAhOHrzlYyKw=="
+        }
+      ],
+      "reviewedManifestPin": null,
+      "disposition": "fixed-in-reviewed-branch-still-vulnerable-on-main",
+      "rationale": "Every matching nested npm lock occurrence in both reviewed dependency trees is at the advisory fixed version; live main retains earlier vulnerable version. Open alert was not dismissed and default branch was not changed."
+    },
+    {
+      "alertNumber": 24,
+      "state": "open",
+      "severity": "medium",
+      "package": "hono",
+      "manifest": "frontend/package-lock.json",
+      "scope": "development",
+      "advisory": "GHSA-crvj-82cr-hjcx",
+      "advisoryUrl": "https://github.com/advisories/GHSA-crvj-82cr-hjcx",
+      "alertUrl": "https://github.com/888nikush888/tsx-core/security/dependabot/24",
+      "affectedRange": "< 4.13.5",
+      "firstPatchedVersion": "4.13.5",
+      "defaultBranchOccurrences": [
+        {
+          "manifest": "package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.12.34",
+          "integrity": "sha512-GqXJqY/xJkJmuloTrnV1ZEXG3fqte+VjkUqoRNZXcrUidiUOP4fMSIHHY4tsqZBK++kVyWmt/AAfSUuy57/eSA=="
+        },
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.4",
+          "integrity": "sha512-AGEwKIyRMHRv1t8Wjwa3LHxQ61X5CqrdFT+4BRNTpqS5aJNnpl5WLjADb7vFlJzI/8uK7T5QLVApCMQKNa3LgQ=="
+        }
+      ],
+      "reviewedBranchOccurrences": [
+        {
+          "manifest": "package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.5",
+          "integrity": "sha512-O6+/eCYRkzzzy0rPWwKLiGBR1nFuUPZynnwjxN1MBA62NNqbT0wQEzQyK2gSO5yDIDB336sXQleAhOHrzlYyKw=="
+        },
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.5",
+          "integrity": "sha512-O6+/eCYRkzzzy0rPWwKLiGBR1nFuUPZynnwjxN1MBA62NNqbT0wQEzQyK2gSO5yDIDB336sXQleAhOHrzlYyKw=="
+        }
+      ],
+      "reviewedManifestPin": null,
+      "disposition": "fixed-in-reviewed-branch-still-vulnerable-on-main",
+      "rationale": "Every matching nested npm lock occurrence in both reviewed dependency trees is at the advisory fixed version; live main retains earlier vulnerable version. Open alert was not dismissed and default branch was not changed."
+    },
+    {
+      "alertNumber": 23,
+      "state": "open",
+      "severity": "medium",
+      "package": "hono",
+      "manifest": "package-lock.json",
+      "scope": "runtime",
+      "advisory": "GHSA-g6gw-c38x-mqfc",
+      "advisoryUrl": "https://github.com/advisories/GHSA-g6gw-c38x-mqfc",
+      "alertUrl": "https://github.com/888nikush888/tsx-core/security/dependabot/23",
+      "affectedRange": "< 4.13.5",
+      "firstPatchedVersion": "4.13.5",
+      "defaultBranchOccurrences": [
+        {
+          "manifest": "package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.12.34",
+          "integrity": "sha512-GqXJqY/xJkJmuloTrnV1ZEXG3fqte+VjkUqoRNZXcrUidiUOP4fMSIHHY4tsqZBK++kVyWmt/AAfSUuy57/eSA=="
+        },
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.4",
+          "integrity": "sha512-AGEwKIyRMHRv1t8Wjwa3LHxQ61X5CqrdFT+4BRNTpqS5aJNnpl5WLjADb7vFlJzI/8uK7T5QLVApCMQKNa3LgQ=="
+        }
+      ],
+      "reviewedBranchOccurrences": [
+        {
+          "manifest": "package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.5",
+          "integrity": "sha512-O6+/eCYRkzzzy0rPWwKLiGBR1nFuUPZynnwjxN1MBA62NNqbT0wQEzQyK2gSO5yDIDB336sXQleAhOHrzlYyKw=="
+        },
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.5",
+          "integrity": "sha512-O6+/eCYRkzzzy0rPWwKLiGBR1nFuUPZynnwjxN1MBA62NNqbT0wQEzQyK2gSO5yDIDB336sXQleAhOHrzlYyKw=="
+        }
+      ],
+      "reviewedManifestPin": null,
+      "disposition": "fixed-in-reviewed-branch-still-vulnerable-on-main",
+      "rationale": "Every matching nested npm lock occurrence in both reviewed dependency trees is at the advisory fixed version; live main retains earlier vulnerable version. Open alert was not dismissed and default branch was not changed."
+    },
+    {
+      "alertNumber": 22,
+      "state": "open",
+      "severity": "medium",
+      "package": "hono",
+      "manifest": "package-lock.json",
+      "scope": "runtime",
+      "advisory": "GHSA-crvj-82cr-hjcx",
+      "advisoryUrl": "https://github.com/advisories/GHSA-crvj-82cr-hjcx",
+      "alertUrl": "https://github.com/888nikush888/tsx-core/security/dependabot/22",
+      "affectedRange": "< 4.13.5",
+      "firstPatchedVersion": "4.13.5",
+      "defaultBranchOccurrences": [
+        {
+          "manifest": "package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.12.34",
+          "integrity": "sha512-GqXJqY/xJkJmuloTrnV1ZEXG3fqte+VjkUqoRNZXcrUidiUOP4fMSIHHY4tsqZBK++kVyWmt/AAfSUuy57/eSA=="
+        },
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.4",
+          "integrity": "sha512-AGEwKIyRMHRv1t8Wjwa3LHxQ61X5CqrdFT+4BRNTpqS5aJNnpl5WLjADb7vFlJzI/8uK7T5QLVApCMQKNa3LgQ=="
+        }
+      ],
+      "reviewedBranchOccurrences": [
+        {
+          "manifest": "package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.5",
+          "integrity": "sha512-O6+/eCYRkzzzy0rPWwKLiGBR1nFuUPZynnwjxN1MBA62NNqbT0wQEzQyK2gSO5yDIDB336sXQleAhOHrzlYyKw=="
+        },
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.5",
+          "integrity": "sha512-O6+/eCYRkzzzy0rPWwKLiGBR1nFuUPZynnwjxN1MBA62NNqbT0wQEzQyK2gSO5yDIDB336sXQleAhOHrzlYyKw=="
+        }
+      ],
+      "reviewedManifestPin": null,
+      "disposition": "fixed-in-reviewed-branch-still-vulnerable-on-main",
+      "rationale": "Every matching nested npm lock occurrence in both reviewed dependency trees is at the advisory fixed version; live main retains earlier vulnerable version. Open alert was not dismissed and default branch was not changed."
+    },
+    {
+      "alertNumber": 21,
+      "state": "open",
+      "severity": "medium",
+      "package": "hono",
+      "manifest": "package-lock.json",
+      "scope": "runtime",
+      "advisory": "GHSA-gqvv-2mrq-wpjv",
+      "advisoryUrl": "https://github.com/advisories/GHSA-gqvv-2mrq-wpjv",
+      "alertUrl": "https://github.com/888nikush888/tsx-core/security/dependabot/21",
+      "affectedRange": "< 4.13.5",
+      "firstPatchedVersion": "4.13.5",
+      "defaultBranchOccurrences": [
+        {
+          "manifest": "package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.12.34",
+          "integrity": "sha512-GqXJqY/xJkJmuloTrnV1ZEXG3fqte+VjkUqoRNZXcrUidiUOP4fMSIHHY4tsqZBK++kVyWmt/AAfSUuy57/eSA=="
+        },
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.4",
+          "integrity": "sha512-AGEwKIyRMHRv1t8Wjwa3LHxQ61X5CqrdFT+4BRNTpqS5aJNnpl5WLjADb7vFlJzI/8uK7T5QLVApCMQKNa3LgQ=="
+        }
+      ],
+      "reviewedBranchOccurrences": [
+        {
+          "manifest": "package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.5",
+          "integrity": "sha512-O6+/eCYRkzzzy0rPWwKLiGBR1nFuUPZynnwjxN1MBA62NNqbT0wQEzQyK2gSO5yDIDB336sXQleAhOHrzlYyKw=="
+        },
+        {
+          "manifest": "frontend/package-lock.json",
+          "packagePath": "node_modules/hono",
+          "version": "4.13.5",
+          "integrity": "sha512-O6+/eCYRkzzzy0rPWwKLiGBR1nFuUPZynnwjxN1MBA62NNqbT0wQEzQyK2gSO5yDIDB336sXQleAhOHrzlYyKw=="
+        }
+      ],
+      "reviewedManifestPin": null,
+      "disposition": "fixed-in-reviewed-branch-still-vulnerable-on-main",
+      "rationale": "Every matching nested npm lock occurrence in both reviewed dependency trees is at the advisory fixed version; live main retains earlier vulnerable version. Open alert was not dismissed and default branch was not changed."
+    }
+  ],
+  "sourceBindings": [
+    {
+      "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+      "path": "package.json",
+      "gitBlobSha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00"
+    },
+    {
+      "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+      "path": "package-lock.json",
+      "gitBlobSha256": "86f4c2706a029c7672cda1849370b4ea5f70060fd66eac74c4bec5b6313724fa"
+    },
+    {
+      "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+      "path": "frontend/package.json",
+      "gitBlobSha256": "fb5adc39a0253c85ae5d2dc484095e5309e96138991928e01e3a670300e453af"
+    },
+    {
+      "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+      "path": "frontend/package-lock.json",
+      "gitBlobSha256": "216225670c129422c30657b73963a7fc69a9a9dbd7035b2241c9122d64b189bb"
+    },
+    {
+      "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+      "path": "exchange_executor/requirements.in",
+      "gitBlobSha256": "9288271d7c8b4e70168c625b2ac2080993de9ee26f78ccce6f53e25b4d7203d1"
+    },
+    {
+      "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+      "path": "exchange_executor/requirements.lock",
+      "gitBlobSha256": "f69dc9c31fc885b0fb4fd7b44ee0dd92ba8c5f0fdd086299097cf7d81b0ce2c1"
+    },
+    {
+      "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+      "path": "exchange_executor/requirements-dev.lock",
+      "gitBlobSha256": "682e51233fd39581be82c0a4e892ed539ad7d7f171e623cae2023e45c3b49a72"
+    }
+  ],
+  "pythonScope": "Runtime/development Python locks bound and inspected as separate inputs. All9open alerts explicitly have npm ecosystem and no Python manifest. No inference of globally vulnerability-free Python dependencies.",
+  "nextSafeRemediation": [
+    "Do not upgrade these already-patched dependencies again or dismiss the9alerts as false positives.",
+    "Complete existing branch integration/gates and merge the reviewed corrected manifests/locks to main under root workflow; no merge performed by this review.",
+    "After main points to reviewed dependency fixes, allow Dependabot dependency graph refresh and read back all9alert IDs until fixed. Distinguish delayed provider closure from an absent lock fix.",
+    "If stable integration remains blocked for long, a separate narrowly scoped dependency-only PR using the existing verified version changes is a fallback requiring its own CI; no broad runtime upgrade needed."
+  ],
+  "limits": [
+    "No package install, lock edit, alert disposition or platform mutation.",
+    "This is reconciliation of exactly the9currentlyopen alerts, not a fresh full ecosystem vulnerability scan or deployment attestation.",
+    "Official GitHub advisory pages checked for the5GHSA IDs; patches match live API security_vulnerability records."
+  ]
+}

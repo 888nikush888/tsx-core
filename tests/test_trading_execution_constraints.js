@@ -26,7 +26,7 @@ for (const change of [
 await assert.rejects(readEntryModeEvidence({ exchange: 'bybit' }, account, 'BTCUSDT'), /mode|readback/i);
 assert.equal(await readEntryModeEvidence({ exchange: 'paper' }, { exchange: 'paper' }, 'BTCUSDT'), null);
 let reads = 0;
-const adapter = { exchange: 'bybit', entryConstraints: async () => evidence(++reads === 1 ? {} : { marginMode: 'isolated' }) };
+const adapter = { exchange: 'bybit', entryConstraints: () => Promise.resolve(evidence(++reads === 1 ? {} : { marginMode: 'isolated' })) };
 const first = await readEntryModeEvidence(adapter, account, 'BTCUSDT');
 assert.equal(first.entryAllowed, true);
 await assert.rejects(readEntryModeEvidence(adapter, account, 'BTCUSDT'), /mode/i);

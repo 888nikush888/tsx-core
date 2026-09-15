@@ -58,7 +58,8 @@ class CurrentProfileTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await rest.close()
 
-    def kraken(self):
+    @staticmethod
+    def kraken():
         rest = krakenfutures()
         rest.fetch = network_forbidden
         detail = {**market(0, "USD"), "id": "pf_coin0usd"}
@@ -98,7 +99,7 @@ class CurrentProfileTests(unittest.IsolatedAsyncioTestCase):
             for missing in ("collection", "time", "result"):
                 rest, _ = self.kraken()
 
-                async def response(kind):
+                async def response(kind, *, missing=missing, rest=rest, source=source):
                     result = {"result": "success", "serverTime": rest.iso8601(int(time.time() * 1000)),
                               "openOrders" if kind == "orders" else "openPositions": []}
                     if source == kind:
@@ -106,10 +107,10 @@ class CurrentProfileTests(unittest.IsolatedAsyncioTestCase):
                         result.pop(key)
                     return result
 
-                async def orders(_params):
+                async def orders(_params, *, response=response):
                     return await response("orders")
 
-                async def positions(_params):
+                async def positions(_params, *, response=response):
                     return await response("positions")
 
                 rest.privateGetOpenorders = orders

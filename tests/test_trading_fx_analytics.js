@@ -134,7 +134,7 @@ async function fxRankAndOutcomes(filename) {
   assert.equal(uncertain.uncertainOutcomeCount, 1); assert.equal(uncertain.breakeven, 0);
   assert.equal(uncertain.payoffRatio, null); assert.equal(uncertain.payoffRatioValue, null); assert.equal(uncertain.winRatePercent, null);
   assert.equal(uncertain.accountingStatus, 'complete', 'Closed outcome precision cannot rewrite complete event-time cashflow coverage.');
-  const huge = moneyValueFromDecimal('1' + '0'.repeat(35));
+  const huge = moneyValueFromDecimal(`1${'0'.repeat(35)}`);
   const tiny = moneyValueFromRational({ numerator: '-1', denominator: '9'.repeat(100) });
   for (const [id, value] of [['win', huge], ['loss', tiny]]) {
     await getDatabase().run('UPDATE trading_positions SET ledger_realized_pnl=?,ledger_realized_value_json=? WHERE id=?',

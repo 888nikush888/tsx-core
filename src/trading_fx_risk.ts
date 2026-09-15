@@ -50,6 +50,34 @@ export function assertRiskFxFresh(values: StoredFxConversion[], now = Date.now()
   for (const value of values) assertFxConversionFresh(value.conversion, now);
 }
 
+function assertSizingConversionPresent(
+  context: TradingFxSizingContext, fx: StoredFxConversion | null,
+): asserts fx is StoredFxConversion {
+  if (!fx || context.version !== 1 || context.conversionId !== fx.id
+    || !isDeepStrictEqual(context.conversion, fx.conversion)) {
+    throw new Error('Original risk sizing conversion is missing or changed.');
+  }
+}
+
+function assertSizingReportingParties(
+  context: TradingFxSizingContext, reporting: string, settlement: string,
+): void {
+  if (settlement === reporting || context.reportingCurrency !== reporting
+    || context.notionalCurrency !== settlement) {
+    throw new Error('Original risk sizing reporting/settlement units changed.');
+  }
+}
+
+function assertSizingConversionAssets(
+  context: TradingFxSizingContext, fx: StoredFxConversion, reporting: string, settlement: string,
+): void {
+  if (context.strategyMaximumNotionalCurrency !== settlement
+    || ![reporting, settlement].includes(context.riskAmountCurrency)
+    || fx.conversion.baseAsset !== settlement || fx.conversion.quoteAsset !== reporting) {
+    throw new Error('Original risk sizing reporting/settlement units changed.');
+  }
+}
+
 /** Every original sizing dependency must be in the same final original-source/time fence. */
 export function assertRiskSizingBinding(context: TradingFxSizingContext | undefined, fx: StoredFxConversion | null,
   reporting: string, settlement: string | undefined): void {
@@ -57,12 +85,7 @@ export function assertRiskSizingBinding(context: TradingFxSizingContext | undefi
     if (fx) throw new Error('Unexpected risk sizing conversion without an original plan context.');
     return;
   }
-  if (!fx || context.version !== 1 || context.conversionId !== fx.id || !isDeepStrictEqual(context.conversion, fx.conversion)) {
-    throw new Error('Original risk sizing conversion is missing or changed.');
-  }
-  if (settlement === reporting || context.reportingCurrency !== reporting || context.notionalCurrency !== settlement
-    || context.strategyMaximumNotionalCurrency !== settlement || ![reporting, settlement].includes(context.riskAmountCurrency)
-    || fx.conversion.baseAsset !== settlement || fx.conversion.quoteAsset !== reporting) {
-    throw new Error('Original risk sizing reporting/settlement units changed.');
-  }
+  assertSizingConversionPresent(context, fx);
+  assertSizingReportingParties(context, reporting, settlement);
+  assertSizingConversionAssets(context, fx, reporting, settlement);
 }

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { createContext } from "react";
 
 export type Theme = "dark" | "light" | "system";
 export type ResolvedTheme = "dark" | "light";
@@ -16,4 +16,4 @@ const initialState: ThemeProviderState = {
 };
 
 export const ThemeProviderContext =
-  React.createContext<ThemeProviderState>(initialState);
+  createContext<ThemeProviderState>(initialState);

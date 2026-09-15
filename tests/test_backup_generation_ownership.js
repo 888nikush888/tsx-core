@@ -7,13 +7,12 @@ import { acquireProcessLock } from '../src/process_lock.js';
 import { initializeConfigurationGeneration, withPinnedConfigurationGeneration } from '../src/backup_generation.js';
 
 function deferred() {
-  let resolve;
-  const promise = new Promise(done => { resolve = done; });
+  const { promise, resolve } = Promise.withResolvers();
   return { promise, resolve };
 }
 
 async function bounded(promise, label, milliseconds = 10_000) {
-  let timer;
+  let timer = null;
   try {
     return await Promise.race([promise, new Promise((_, reject) => {
       timer = setTimeout(() => reject(new Error(`${label} timed out.`)), milliseconds);
@@ -27,9 +26,9 @@ const sources = { databasePath: path.join(root, 'forwarder.db'), configurationPa
 const reached = deferred();
 const continueRead = deferred();
 const originalRead = fs.promises.readFile;
-let owner;
-let enrollment;
-let release;
+let owner = null;
+let enrollment = null;
+let release = null;
 try {
   await mkdir(sources.templatesDirectory);
   await writeFile(path.join(sources.templatesDirectory, 'default.xml'), '<signal>owner-race-fixture</signal>');

@@ -1,0 +1,487 @@
+{
+  "schemaVersion": 1,
+  "reviewKind": "independent-complete-test-quality-origin-delta-wave4",
+  "originRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+  "selectionReport": "reports/security-services/fixer-implementation-tests-quality-wave4-selection.json",
+  "reviewedCount": 40,
+  "entries": [
+    {
+      "path": "tests/test_sonar_branch.js",
+      "originSha256": "e14d0ac8c56ade780eb1a20c5636d11e473f88092b4ec21067a980deb978c864",
+      "currentSha256": "23ee4aca8b2d178d0e716e3c84611196b186856a7bbd11b4f2f4207c41910ae1",
+      "currentGitBlob": "c37e555fa322b81ae3c17ca1caab7b34264cb7c5",
+      "deltaSha256": "b72c6befa0b85178f8c27f54154ef0a54677967ee800968d5262e9992d14b123",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Adds actual scanner argument subprocess output test with hostile-looking refs; fixed placeholders and exact branch identity asserted. Existing rejected interpolation/whitespace cases retained."
+    },
+    {
+      "path": "tests/test_sonar_review_decisions.js",
+      "originSha256": "17f7063a003d6420dc2a27d613f43b62cf9766946eaca99ffa834f7d539340af",
+      "currentSha256": "fc949545baba2c355011180516d4ef014dc30e1d27126c645d0e5a2e385955b4",
+      "currentGitBlob": "a7dee992b7347ab6ce5ab65c2c33d2ef69fdfafd",
+      "deltaSha256": "cc6f5721e23b8f9031b94c1bf0d6666d4092358048de03481a9de061102f9446",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Historical PR29 transport fixture now loads exact be8cf5 Git bytes and checks SHA256 against immutable review manifest before use. Current files no longer implicitly redefine historical approval. Source/test mutation and revision history cases remain, using bound originals. No production authorization gate removed."
+    },
+    {
+      "path": "tests/test_sonarcloud_export.js",
+      "originSha256": "d5c065cef6f15e6d34d95473f3704f79b947b7f5204a11cb488ee86aeccc95fd",
+      "currentSha256": "4f07e306fc0e792e718eff2e44700452c9a05a0ab9fdd42ff76c39dd30dd84d1",
+      "currentGitBlob": "86af2308a71439f55db82dc9dceb33965065ed8c",
+      "deltaSha256": "bd8a3f25be21118b066c7e90e523bbec4af08a7a99bf67a664eb964d563cdef1",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Clock/fetch fixture empty async wrappers replaced by Promise.resolve of same local values; retry counts/delay limits and401hard failure assertions unchanged. No failure callback removed."
+    },
+    {
+      "path": "tests/test_startup_authority.js",
+      "originSha256": "682aa2b3d44749a0e02102ed22f38402fbac03789a0f732a969817c1c274b00e",
+      "currentSha256": "71262678f9ab644a63a48404e42e8fbeb4fe5cfb2521f5d635292a398172dc39",
+      "currentGitBlob": "4b2908f45da69f270cf39f0991fd82e1e5b0b1ea",
+      "deltaSha256": "612bccd6dec3c3740b9cf3d00323606936839b5c4bc31724ec6c246d0ac89b9e",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Successful empty gate/audit fixtures resolve undefined as before; bridge initialized null. Blocked-startup/recovery mutation zero assertions and EADDRINUSE rejection retained."
+    },
+    {
+      "path": "tests/test_startup_trading.js",
+      "originSha256": "d485db82dae280f76fa7adc8f76522c9ccc6e7f9430016c6773415350ccebcf3",
+      "currentSha256": "cfc815a4b158c78fa289f1227712254af9640a07b52e4afa24dd783525226d42",
+      "currentGitBlob": "4727a3dc67f4e8c317c6a8cfb63dedc6dba5280a",
+      "deltaSha256": "ea618cef0deca02f1c90717fb81fcde18b71dbf22eb76e6d8a84efc8e3fd6468",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Empty engine/runtime logger bodies become explicit undefined; startup entry authority tests unchanged."
+    },
+    {
+      "path": "tests/test_startup_web.js",
+      "originSha256": "feb876c052b70ce7a267ad4b34baa0116425e227c1df57bb791d62e97d2ebe54",
+      "currentSha256": "024c0189eb6661e86671bb64536bb59772ce611de1a5c995f4fb2f3b02f56240",
+      "currentGitBlob": "2ca3f39a86be9bd1e2e3c943e65467ead96abd7f",
+      "deltaSha256": "1ef6e1bd892d99f334a15eec9c573907de7197d7b2ecf594fed35883f8d2c080",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Infallible state/auth/settings fixture callbacks return resolved values; audit revocation callback retained async and unchanged; writes counter and all gated route assertions retained."
+    },
+    {
+      "path": "tests/test_supply_chain.js",
+      "originSha256": "0cb687fe6ea169cb89d5c90a052334a4bef6bdb2b70c020c9560e284761db414",
+      "currentSha256": "e56649f8669d91c809296626d5c7c67b60aa151e730f3467df426674f777f83d",
+      "currentGitBlob": "f3a7cb730315f7136762765851a2aea6e13e862c",
+      "deltaSha256": "0a8e2598fba322ea654ccb527d47b01e63e73af0b267b1e9a488f3b82fe222dc",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Replaces four regex-on-source checks with actual isolated config import per shard plus mocked runner invocation. Preserves cleanTempDir and adds incrementalfalse,timeout10000 and exact70break thresholds; schema concurrency2/40min intentionally differs from old universal1/20min while other shards remain1/20. No mutation runner executed against providers. Existing CI shard list/scheduling assertions retained."
+    },
+    {
+      "path": "tests/test_take_profit_contract_guards.js",
+      "originSha256": null,
+      "currentSha256": "0933a714c03e678061a8d96a6b1455815f24249a9f10c7e45679a61261127f04",
+      "currentGitBlob": "956bfd150018f72a49455c5236dab6c48f19ed08",
+      "deltaSha256": "2dddfe0b16c3614220fc555f4e1cb2cbac98c78a9292ad43f5c4d38f251699ab",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "New sparse/missing TP quantity/completion and regressed-fill rejection tests, valid rounding remainder, consumed-target and exhausted-with-exposure checks. No former assertion removed."
+    },
+    {
+      "path": "tests/test_tdlib_retry.js",
+      "originSha256": "ee267b1c0cd1020b3fbfb8f515e6dc65494597df65b8a31ae8c61eb84fafce30",
+      "currentSha256": "c9fc90e385c8bfe2d9db11cf5beb55427795a0fdeea5b91c008b32b2fd74fca8",
+      "currentGitBlob": "e8146310438911a9aaa2461d9b565dc9fc111bc5",
+      "deltaSha256": "3f67d7c3cf1b9721bdbfa2e9d1728117de218ec613c3606d5aa50f9bdafa3743",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Only two infallible true-returning async mocks converted to Promise.resolve(true); invalid maxAttempts and flood-wait limit rejection assertions unchanged."
+    },
+    {
+      "path": "tests/test_telegram_viewer_api.js",
+      "originSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+      "currentSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+      "currentGitBlob": "42eacd86c4d32667062923a6bd8ca0240662d3a0",
+      "deltaSha256": "f761c46fb0b9860cf84836b1783375d96873c6a3f900e5cc7918ce43832bb0fe",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Auth roles/null and no-op API fixture callbacks retain resolved fulfillment, audit event push order and status object; all HTTP authorization/mutation assertions unchanged."
+    },
+    {
+      "path": "tests/test_telegram_viewer_contracts.js",
+      "originSha256": null,
+      "currentSha256": "13cc1cb7dff87788d648935bb7fb5434d188d50fe17acdbf212db9e9cde2901c",
+      "currentGitBlob": "2bbc152da8f3935942c5866fd9b5fd044da0de77",
+      "deltaSha256": "74da32f8d1080ae3f08cdd2d7ea49a0d8b1bedf60ebe320772d717b670cb2f43",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "New malformed API config/update ID and event cursor tests; exact real default settings accepted; invalid object user ID must trigger no coercion or sends; invalid event responses must create neither queue writes nor cursor advancement. Fetch restored in finally."
+    },
+    {
+      "path": "tests/test_telegram_viewer_runtime.js",
+      "originSha256": "42f18bf7eab40fa79e789c63e5997a40e34b9b327d492fb953ac84b5dfdbaa38",
+      "currentSha256": "d3a836a8d7259d247b960e86e5590fa495dfaa203e4b4088e53391a74e3e5c1a",
+      "currentGitBlob": "ee00a2b979a2f8d2d76e071b7e1ce5e96da6410c",
+      "deltaSha256": "5f390336b8cb4b017d2c07dbce04ce82d3c90747a98fb5fae7cc7926baa225e7",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-regression-requires-followup",
+      "rationale": "Found historical non-Error rejection accidentally replaced with Error, weakening this edge despite message assertion. Rest of complete delta adds full settings fixture, loopback default,401challenge,503probe bodies,404and500token-provider failures. Root restored actual raw-string rejection and exact raw recordFailure assertion in separately bound followup."
+    },
+    {
+      "path": "tests/test_telegram_viewer_service.js",
+      "originSha256": "80afd66087dcbbee744e64752aea5259533594df78cda5b11967df8610989372",
+      "currentSha256": "bce7d8926a048286d5ad64fcee43c16f95e4329a4eee6e8995b3eb46a6bfda9c",
+      "currentGitBlob": "efd5f4af9fe61e2926a5af60adeb2f039b19bc2f",
+      "deltaSha256": "4a899d0cc749ccc38b9f98629f27f56cc63abc113885517ef4ebb78641cdf0cd",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Infallible mock config/update/callback replies changed to resolved promises; sendMessage failure branch retained async. Extracted assertTestDelivery retains no-inline-menu assertion and additionally exact Unicode text. Disabled/muted notification assertions retained."
+    },
+    {
+      "path": "tests/test_test_scheduler.js",
+      "originSha256": "22cb1afe86ec7ee4510f6d4aa879002695ffeb68eed9b8f25ba76b54c17be98f",
+      "currentSha256": "471b6be735bb90f9d1dc9226c0e3629ca800d1d872ebc4ae0b71091245db68f8",
+      "currentGitBlob": "7e31a40b71df137265ea0cf7cd854202228741be",
+      "deltaSha256": "374c99a9f8369d2668a773de591ac2a095e33e3fae7273182d8578172513ecda",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Deferred helper uses native withResolvers; fixture helper positional options becomes named object with all callsites migrated. Success summary regex anchored more strictly. Queue-failure barrier/actual subprocess kill/rejection/preflight and concurrency assertions retained; no skip threshold added."
+    },
+    {
+      "path": "tests/test_trading_account_baseline.js",
+      "originSha256": "b5a456d133d7744ad84b5ffd688821f2d5a739f1f09be3474478ce36b25f102a",
+      "currentSha256": "41c0f0b32557b58ff8cc241cd0e368e663a30ce77e63bb32cd81cb0136fee26b",
+      "currentGitBlob": "8541f2dea6cd02a969626d8cbd09236829d87d63",
+      "deltaSha256": "8711ba5b39f46b8b249334b4041c2d8c32e470438aed481dcad8ee1e05bcdb86",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Only openState infallible fixture now Promise.resolve(state); dangerous submit/cancel callbacks still throw and baseline mutation guards retained."
+    },
+    {
+      "path": "tests/test_trading_account_log_audit.js",
+      "originSha256": "1304108bdf976e2e47790c9044fe7c40ac20fb4917ff1910f4bf370281517f52",
+      "currentSha256": "6ae6408c776411de4db4715c499c68e1c5ebebcde05c9207be45bde9a54288b4",
+      "currentGitBlob": "420cddbc5de840053bbb8648258b95d160e0ff8e",
+      "deltaSha256": "c4f3b2c0ae03dc90ffb43a99c11a953f5f9dc5d9ca9d7085e12e20a9e1ef5c94",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Only fixed hex hash fixture concatenation changed to equivalent template literal; account-log audit assertions retained."
+    },
+    {
+      "path": "tests/test_trading_cancel_budget.js",
+      "originSha256": "abaff6507795ff637ac46eeb2a8219e9b61c837c6a06da54846d1bfeeb39f939",
+      "currentSha256": "c856a264e81a4b293baa436a6d7596e580b08042e4c83cf7918bce0b49163f67",
+      "currentGitBlob": "cd92bfeee41c0e2e5c68eb74648df5e1c026d905",
+      "deltaSha256": "2248b4f0dc50cc403827a2ef5ef183334af485a771735314ae724543d535e37a",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Expired permit local initialized null then assigned during awaited coordinator operation; permit rejection assertions retained."
+    },
+    {
+      "path": "tests/test_trading_control_error_types.js",
+      "originSha256": null,
+      "currentSha256": "9c06a723e05b7a10b1b71e8cde66a8b20eae3ae3f4a4e5891c1f50a610bb9f4b",
+      "currentGitBlob": "554e3f183cc4c71a9a24d9ce1b32ad6da0859df6",
+      "deltaSha256": "1639da9914e991b418a31039930b6c8e843260366d530709052a0f754dd3bb87",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "New portfolio/account verification error boundary tests retain real Error messages and reject same original thrown foreign object, disable account, avoid private marker/coercion and preserve stored diagnostics. Local paper/mock adapters only."
+    },
+    {
+      "path": "tests/test_trading_control_races.js",
+      "originSha256": "e2118659e2d0255bf380971cc1a6a5684d8b7ccf5c0d5675cd71113783bd3bad",
+      "currentSha256": "6a5e95e866bc4a8825191c06cc54d7198209108282ae1b5df6daffe6a66532ae",
+      "currentGitBlob": "f6071419f24469d36b9dc404fdc200684c64771e",
+      "deltaSha256": "22dcdfa4d71ba05b4f34eca232b2d2a9aeeec5d586a2ae7752781c2b9f887cf7",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Deferred helper replaced by withResolvers; promise/resolver available before return and race assertions unchanged."
+    },
+    {
+      "path": "tests/test_trading_core.js",
+      "originSha256": "23ea70f5c7e4f0a4c5d085827856ed86f0e84b8324cb41210be1b19bf8cd8493",
+      "currentSha256": "2afc82d717bf921396a7e1c8c89dbfa8af38ce80f0cdd05c92c9457938bd78ec",
+      "currentGitBlob": "63b5e437274cd91eb1650c14cc087b6ba0ca9af1",
+      "deltaSha256": "24e2ad8adbc08312667cbce70125c62ce2f843a90cc991a4aa9ad43dcef206cc",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Only SQL quoting normalization plus new readback fault-injection tests. Missing create readback rolls back contract, update/publish/archive reject missing rows; archive rollback checked and fixtures cleaned. Original methods restored in finally. No existing core assertion removed."
+    },
+    {
+      "path": "tests/test_trading_dispatch_fence.js",
+      "originSha256": "c28309c7b0a2f8165c55e43104dc578ac63c7fbbb4dd30c3e4bb11c0872afbaf",
+      "currentSha256": "72a16741d01c9708d16479bca01f60b0bfd192c554227f66629d6a33dc07eec9",
+      "currentGitBlob": "d7a71550aa92b9efc003da99d561ea80895ff51c",
+      "deltaSha256": "b4cf6e58ed0adf27a6f9e3e1bf98fea992d6c0a2623672ebf54e552b9a902d95",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Fixture no-op callbacks retain resolved values; deferred network helper withResolvers and null initializations preserve fences. Failure callbacks/commit injection unchanged; ownership/readback and no dispatch effects assertions retained."
+    },
+    {
+      "path": "tests/test_trading_emergency.js",
+      "originSha256": "baea63b9c86dbda7cc66b70b1ae086d52eab9e184e26fe16e6bb604fea20bc9e",
+      "currentSha256": "4dae1e532ec7d9ffbe12436f8edb789d779638384934bcb670cbd36eea90d902",
+      "currentGitBlob": "7e60de6adc5b9190e56699e59aecfa205d9fde67",
+      "deltaSha256": "28ee8fd01d855285038e4ce212a0eb09109d027611c14490b40bf4529d39d1fe",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Four infallible ingestOwnedState mocks converted to resolved same positions; position-specific, budget-exhaustion and global error callbacks remain async throwing; isolation checks unchanged."
+    },
+    {
+      "path": "tests/test_trading_engine_type_guards.js",
+      "originSha256": null,
+      "currentSha256": "5c47f532aa7e2279219bc3239d0493026e931ee283cfef853f74ee34a525aae5",
+      "currentGitBlob": "4e42a4526a7e7db84043e2bf0e6ee3419c64237c",
+      "deltaSha256": "cd448b137c915b3d7a0ab7ff1fafa0fb5fa3823e2767910b2bcb91f57606b765",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "New persisted malformed plan tests require blocked status and zero provider/order/operation effects; invalid TP target contracts reject before DB recovery or cancel/submit. Traps restored in finally and fixture intent existence asserted."
+    },
+    {
+      "path": "tests/test_trading_entry_commitment.js",
+      "originSha256": "96cc4baea6916b0afc912829aea1b7a8deaf0cf7d161277981d1dd7d9642cd19",
+      "currentSha256": "4e7c17a27f33e9e6e0bb387ecc64425dcf5b837fcf5ab18d66ccc074fb28aa4e",
+      "currentGitBlob": "60db8cc5903611fe650c0fd3546d8219e449658f",
+      "deltaSha256": "419271cef071c1688485f725076aa871a43539f65dc0cd12275380426a75d78d",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Infallible cancel/openState fixtures become resolved results with sends counter/order unchanged. Existing stale evidence,exact bounded retry,zero-position drain,fair5limit and unresolved sibling assertions retained."
+    },
+    {
+      "path": "tests/test_trading_entry_price_engine.js",
+      "originSha256": "3ac2dcb76552b731139ddb8ed61af7b31f589d28170f298a1a8f3c9f7a0732e1",
+      "currentSha256": "0a43252b8fcb91001d37a47c538cf7be79d4d10f74ad07d3e4661ff17ae92690",
+      "currentGitBlob": "9b5ddce28f544b19b0408d262e0c564cfaaa67b4",
+      "deltaSha256": "fd75d6246d34c4f2ef6e3408a4ea35f548bffece6f1a1f2ea4a34f43a74ec091",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Prepared fixture variable initialized null; awaited real prepare still assigns before use, boundary assertions retained."
+    },
+    {
+      "path": "tests/test_trading_execution_constraints.js",
+      "originSha256": "576e10834ab210140661d0f3d9091e10e19d1f38fc6c356913018b041df74a44",
+      "currentSha256": "92bd8277c39808c9a1cbc65e02b877300274ae33d834bb9aca5dbe9ecb3c3573",
+      "currentGitBlob": "9dbfcc19287ed851986de9eea33d50e46d89d996",
+      "deltaSha256": "d8abb177ba7f744f02d39c2aa7dfa33e69ceff06133cc98d86ddb4c10bc2d0a6",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Infallible entryConstraints fixture now Promise.resolve(same evidence(++reads)); second unsupported mode read still rejected."
+    },
+    {
+      "path": "tests/test_trading_execution_mode_fence.js",
+      "originSha256": "2bf6ac0987901ae74b3d0f60d84239bc04d68fe070facfd3b1fb2b274ec8439a",
+      "currentSha256": "ba7b49572dab18f280744f7ddb23cbc92592b389ce9b6ea000d8d7e9c300d9d8",
+      "currentGitBlob": "5c81e39bcc9917f7aa65d6aaa3b7bbb69c475ece",
+      "deltaSha256": "8bc906581e5f58291c2a0c0de4f238ea60a578347bf6ddc0fb2bafe669e80b2c",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Fixture read counter/evidence assignment and hedge-mode mutation order unchanged, now explicit resolved return. Dispatch fence assertions retained."
+    },
+    {
+      "path": "tests/test_trading_failures.js",
+      "originSha256": "fded0a5b55f84d4707f74b83bd604052a87ce18d74866b905b23748c89ea18eb",
+      "currentSha256": "8d57ee7da354b8db9acacf2e7f83d6f8c29e0af7b5d547d3105ebc495bb3c7bb",
+      "currentGitBlob": "f1624fa164da7d0b275bd6892087ca3e8755f6a3",
+      "deltaSha256": "84dfa2f07d8d1fc8961423a1a976ed0e47dba01e898341ce7d43341f2f9b7470",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Complete broad delta retains every failure assertion. SQL quoting, null locals, resolved fixture results; recordSlippageRemoteOutcome extracts same remote order/fill/position mutations in order. Changed submit callbacks may return direct value, but wrappedAdapter protected entry awaits submit; cancellation assertions preserved in Promise.resolve().then callback, keeping rejected assertion behavior with one added microtask. All injected throwing outage/foreign-exposure callbacks remain."
+    },
+    {
+      "path": "tests/test_trading_fill_accounting.js",
+      "originSha256": "6e2d911fe16af273ce1a3cd77930305319afd9a2a5d2a17c23bd28958d30520e",
+      "currentSha256": "42fe10e4cc1c35302bcf8b7330a66a9eb91e02cf06fabedcd02a7e986b30ceaa",
+      "currentGitBlob": "80afdce7e99c1fb5e094815daa34c3e0a78cbe7f",
+      "deltaSha256": "e9097d74c4b3fd311647fb761fd77396e08e17cd1d763cc59d6946259327615d",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Unreassigned result local becomes const; exact PnL/fee assertions unchanged."
+    },
+    {
+      "path": "tests/test_trading_fill_identity_migration.js",
+      "originSha256": "8b3e874d70ecb880244cbf40fff3db5ed4614ef5bcd81e24855bc5b387069c2d",
+      "currentSha256": "482007564f114a6a8b3ce1a0a8dcabc61791e28fed1a63f0de75c9e977c699ba",
+      "currentGitBlob": "7d7e12404efc66740ed2452f5ed3c1b842a9554f",
+      "deltaSha256": "13c55365d3701c87cab5e77e0b268a4001e13e40ecaa53aa4f21415ff25b3984",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Only INSERT query delimiter changes; same placeholder string and duplicate-fill migration evidence."
+    },
+    {
+      "path": "tests/test_trading_fx_analytics.js",
+      "originSha256": "38deb6cf557b694a16477cc143ff6e8e6e0b8956a86056e4662882ac5f1df6a5",
+      "currentSha256": "d75e78cad674289f69189b8d8efbd1fb911b9948a8286ac88d8f60a06c8bce9a",
+      "currentGitBlob": "a15402902abab99ec81d109d0f94a216d096c97e",
+      "deltaSha256": "26fdab0ed98b23a2c32d95bdb8414278cac8ae47ba61ef1acb0ae542dc12b4be",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Only huge decimal construction switches to template literal yielding identical digits; precision boundary assertions unchanged."
+    },
+    {
+      "path": "tests/test_trading_fx_channel_risk.js",
+      "originSha256": "cfc86fabac997b8ea28ffa6e050d8f1d3bdd08a627dabc6751ee9ebf81e4fb5a",
+      "currentSha256": "fe51f810039e5a08e9161d4d704928dfc6652ed2925f9164a7137688b2368560",
+      "currentGitBlob": "dbddcd3c6e962b3737537d37bb916eb97f1c19ee",
+      "deltaSha256": "b39cd64a830632aef35997fc2d4b1b49c7f3bae74a83e5738646353b375f45d2",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "StrategyID local initialized null then assigned by fixture; all FX channel-risk checks unchanged."
+    },
+    {
+      "path": "tests/test_trading_fx_fill_accounting.js",
+      "originSha256": "396e8bac7681fbeb60b081a15aeaa61a95bfb215a80a8eaef0e61a1e2c982d10",
+      "currentSha256": "c1d2875af2c60c87c87cdad13b35b9215d92422466661fad09972d39c043a592",
+      "currentGitBlob": "b6c5f85cc47dbafb9f64ca51a3022cc037e8bb24",
+      "deltaSha256": "8316f4e78037b24c087af616ccc541e094d773573f786178d4241a8932f99e99",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "StrategyID local initialized null then assigned by fixture; FX fill accounting assertions unchanged."
+    },
+    {
+      "path": "tests/test_trading_fx_journal_viewer.js",
+      "originSha256": "c8743f27b8720a67699db387d53dae57bc4050fc47a38ad7674b93808adc5630",
+      "currentSha256": "5b2d03362316e8dbbca4af043bdd5d758619dbee3464dacee4de43073d68dad0",
+      "currentGitBlob": "88b7e1cdbcae8b6f9cd6a7128d840731d9411d6d",
+      "deltaSha256": "e4be5c236a8f0e07202113ccb1e39ca9455b996991c8404ff05fcfca8bef9f09",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "StrategyID local initialized null then assigned by fixture; journal/viewer evidence assertions unchanged."
+    },
+    {
+      "path": "tests/test_trading_fx_money_reporting.js",
+      "originSha256": "36980a9448c4cfa87dc28efe11becf2f2717afaec42a883d31165eae5b02a361",
+      "currentSha256": "a30ec16e92f1ca39aa767be67a75723c3482eb55152b0942efa172d363a802b0",
+      "currentGitBlob": "80dc76fe3c713ef377aa368c7ef6dafaca47610f",
+      "deltaSha256": "5a62ec46354f481fb9af1a5c2747ac835b4bca34ab643b8c674275cd15de43c0",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Namespace import replaced with named imports and all references updated to same functions. Exact rational/currency separation,precision uncertainty,range/restart persistence and scalar rejection expectations unchanged."
+    },
+    {
+      "path": "tests/test_trading_fx_repository.js",
+      "originSha256": "b2444cabe34767dcfef7508464cfbb87969aeb93954a6ae3b6e0c041e31f7ce7",
+      "currentSha256": "3342ea5345edb8f933386c46a5669bbab06506e45b581f508a8f430fca53b904",
+      "currentGitBlob": "5f439d331369ec845f9cc0c6c843aa534b4701ac",
+      "deltaSha256": "211a2278b99e1302b0099fcf7732e5ab51f37300029121b018058b900528be7e",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Invalid payload concatenation equivalent; forged conversion now spreads plain receipt then deletes configurable own evidenceHash instead of object-rest omission. Fake rate/hash recomputation and real retained-original rejection unchanged."
+    },
+    {
+      "path": "tests/test_trading_fx_risk_reservations.js",
+      "originSha256": "ba17ac5b32de1773497f85eade7a7484d6203c93a790935389131ee3a2342e34",
+      "currentSha256": "41b66b6beffeb0301d55246c84116ebc1045cf96d82dd99e194a5bc740bac575",
+      "currentGitBlob": "923c29fc179cb3c957d9addb8288a4bacebe0d63",
+      "deltaSha256": "0f9672364004390ce74e3c45ed81d5c3502a5c9d478e17748a651f7dd849869b",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Null strategyID initialization and infallible balance/budget mocks resolved explicitly; exact budget decimal strings,late-fee,precision/FXconflict and no-drain evidence unchanged."
+    },
+    {
+      "path": "tests/test_trading_fx_sizing_admission.js",
+      "originSha256": "caeae1144a1c4b34cb196f83218e52aa0b4a117fb42a141cc5c02e95653ab45b",
+      "currentSha256": "53adb5c475c00deba3f0e87a7e1d3ea3a90e274c31af094eb3b1905c3ee49b52",
+      "currentGitBlob": "61078ac0084e2a07745dff50c065798265f47166",
+      "deltaSha256": "1743225f09cf0be7a6cc15df326a273c17d222b578ed6047df102581bfb4be3f",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "No-op beforeDispatch and local send/persist return resolved values; expiry injected after database proof still requires checks1 sends0 and abandoned phase."
+    },
+    {
+      "path": "tests/test_trading_fx_sizing_python.js",
+      "originSha256": "723fae117a94a791117bdaf20997b78f56244a7246faab04d895181583c36129",
+      "currentSha256": "2e432a310473d8e8748d6c1b52faee89020469a78c212f3efc1e690f9ca6a5a0",
+      "currentGitBlob": "073c4a91628ab3577edf0681907913abf05e24fe",
+      "deltaSha256": "6940c88d6418d13f72bdf5b90c5d29fee04caa1167fc4652620d60c6928fc3dc",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Default change callback gains unused parameter names and explicit undefined; generated request matrix and Python comparison expectations unchanged."
+    },
+    {
+      "path": "tests/test_trading_global_release.js",
+      "originSha256": "ccada51b50f4a806fdb42598df333ff91027479229442805e3149edd68c9c09a",
+      "currentSha256": "024699077d618707b5aac62e8091cc8fd2d80106759acf6b2a192d429b868b5b",
+      "currentGitBlob": "ee147d1144a254695d2673df5911bc099e89a92e",
+      "deltaSha256": "8dbd9cb8bdfbcd05b33f787ad5df31a16225715f7a5996dbd28223bd832ef9cc",
+      "completeDeltaReviewed": true,
+      "disposition": "reviewed-no-regression-identified",
+      "rationale": "Deferred helper uses withResolvers; same pending promise and resolver, release race assertions retained."
+    }
+  ],
+  "regressions": [
+    {
+      "path": "tests/test_telegram_viewer_runtime.js",
+      "finding": "Non-Error rejection branch removed by Error-wrapping fixture change",
+      "ce4Disposition": "open-at-reviewed-revision",
+      "workingFollowup": {
+        "path": "tests/test_telegram_viewer_runtime.js",
+        "baseRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+        "baseSha256": "d3a836a8d7259d247b960e86e5590fa495dfaa203e4b4088e53391a74e3e5c1a",
+        "workingRawSha256": "d7ba0de74466c0a6e6d5b0ec6c7c87be3b08601b4b56f4d7b6da61996f263f78",
+        "workingLfSha256": "d7ba0de74466c0a6e6d5b0ec6c7c87be3b08601b4b56f4d7b6da61996f263f78",
+        "deltaSha256": "2b35fc4feb74ff6bd98acf3c79e7230cc3643209af58af147b6306452d03576b",
+        "fullHistoricalTestSha256": "42f18bf7eab40fa79e789c63e5997a40e34b9b327d492fb953ac84b5dfdbaa38",
+        "runtimeGitSha256": "ca9a7ba2e7a1acd182aad501aed653b66ac4e83ac37edb7d8010e61e3fa5c7f7",
+        "rationale": "Two-line root correction restores Promise rejection with primitive string and asserts recordFailure receives that string itself. Actual runtime catch passes error unchanged; no normalization to Error is claimed. Original Error-case message and healthy/failurecounts remain. This specifically restores lost historical branch while retaining newly added health tests.",
+        "validation": "Root targeted viewer log read: TELEGRAM VIEWER RUNTIME TESTS PASSED; reviewer did not run heavy tests.",
+        "log": "reports/security-services/fixer-viewer-nonerror-restored-after.log",
+        "logSha256": "8df7e3761a0d6bd91a97fdc1703f7809cd7f2f561bd35068d95fed60faff631d",
+        "disposition": "independently-reviewed-followup-corrects-identified-test-gap"
+      }
+    }
+  ],
+  "followupSegments": [
+    {
+      "path": "tests/test_telegram_viewer_runtime.js",
+      "baseRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "baseSha256": "d3a836a8d7259d247b960e86e5590fa495dfaa203e4b4088e53391a74e3e5c1a",
+      "workingRawSha256": "d7ba0de74466c0a6e6d5b0ec6c7c87be3b08601b4b56f4d7b6da61996f263f78",
+      "workingLfSha256": "d7ba0de74466c0a6e6d5b0ec6c7c87be3b08601b4b56f4d7b6da61996f263f78",
+      "deltaSha256": "2b35fc4feb74ff6bd98acf3c79e7230cc3643209af58af147b6306452d03576b",
+      "fullHistoricalTestSha256": "42f18bf7eab40fa79e789c63e5997a40e34b9b327d492fb953ac84b5dfdbaa38",
+      "runtimeGitSha256": "ca9a7ba2e7a1acd182aad501aed653b66ac4e83ac37edb7d8010e61e3fa5c7f7",
+      "rationale": "Two-line root correction restores Promise rejection with primitive string and asserts recordFailure receives that string itself. Actual runtime catch passes error unchanged; no normalization to Error is claimed. Original Error-case message and healthy/failurecounts remain. This specifically restores lost historical branch while retaining newly added health tests.",
+      "validation": "Root targeted viewer log read: TELEGRAM VIEWER RUNTIME TESTS PASSED; reviewer did not run heavy tests.",
+      "log": "reports/security-services/fixer-viewer-nonerror-restored-after.log",
+      "logSha256": "8df7e3761a0d6bd91a97fdc1703f7809cd7f2f561bd35068d95fed60faff631d",
+      "disposition": "independently-reviewed-followup-corrects-identified-test-gap"
+    }
+  ],
+  "remainingAfterWave3AndWave4SelectionCount": 27,
+  "remainingAfterWave3AndWave4SelectionPaths": [
+    "tests/test_trading_history.js",
+    "tests/test_trading_kraken_cashleg_failures.js",
+    "tests/test_trading_lifecycle_safety.js",
+    "tests/test_trading_money_ledger.js",
+    "tests/test_trading_money_risk.js",
+    "tests/test_trading_money_value.js",
+    "tests/test_trading_mutation_coordinator.js",
+    "tests/test_trading_pending_fairness.js",
+    "tests/test_trading_protection_receipt.js",
+    "tests/test_trading_rational.js",
+    "tests/test_trading_recovery.js",
+    "tests/test_trading_risk_repository.js",
+    "tests/test_trading_safety_proof.js",
+    "tests/test_trading_tier_fence.js",
+    "tests/test_trading_web_control.js",
+    "tests/test_ui_adaptive_risk.js",
+    "tests/test_ui_change_reviews.js",
+    "tests/test_ui_next_reads.js",
+    "tests/test_ui_operation_store.js",
+    "tests/test_ui_operator_commands.js",
+    "tests/test_ui_register.js",
+    "tests/test_ui_restart_process.js",
+    "tests/test_ui_restart_recovery.js",
+    "tests/test_web_server.js",
+    "tests/test_workflow_fallback.js",
+    "tests/test_workflow_input_types.js",
+    "tests/test_workflow_migration.js"
+  ],
+  "limits": [
+    "No index mutated or completeness credit applied by reviewer.",
+    "Exactly ce4 Git historical deltas reviewed; current working viewer-state/service changes outside scope.",
+    "No tests executed for this wave; root targeted nonError correction log read explicitly.",
+    "withResolvers assumes supported Node22 runtime.",
+    "Supply-chain schema shard concurrency/time budget is intentional test expectation change, not general unchanged budgets claim.",
+    "Runtime fixture regression is not silently marked clean atce4; separate followup bytes required to close it."
+  ]
+}

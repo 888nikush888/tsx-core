@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "reviewedRevision": "31e631360be3a56cd8538d3b29f742c94c57dee5",
+  "entries": [
+    {
+      "path": "exchange_executor/tests/test_acceptance_journal.py",
+      "sourceSha256": "fe9701c1ad7ccf5f89514c4f1bde27daa55872e35127b931f99f0afc1de29958",
+      "reviewedRevision": "31e631360be3a56cd8538d3b29f742c94c57dee5",
+      "reviewer": "Root, independent of the agent implementing the junction change",
+      "scope": "Only the three current Codacy occurrences in this file, rebound after complete review of the isolated Windows fixture diff and its caller. Existing 28-test Windows execution is retained; no claim of a fresh remote scan.",
+      "issueId": "e86951acdb98919a71b791ef7906baf2",
+      "rule": "Bandit_B607",
+      "originalLine": 322,
+      "currentLine": 340,
+      "disposition": "source-fixed-pending-rescan",
+      "rationale": "The sole subprocess call now resolves cmd.exe through GetSystemDirectoryW, validates an absolute existing file and does not search PATH or trust ComSpec/SystemRoot. The known system library provides the directory, and /d disables command AutoRun. The actual Windows junction test and environment-spoofing check passed."
+    },
+    {
+      "path": "exchange_executor/tests/test_acceptance_journal.py",
+      "sourceSha256": "fe9701c1ad7ccf5f89514c4f1bde27daa55872e35127b931f99f0afc1de29958",
+      "reviewedRevision": "31e631360be3a56cd8538d3b29f742c94c57dee5",
+      "reviewer": "Root, independent of the agent implementing the junction change",
+      "scope": "Only the three current Codacy occurrences in this file, rebound after complete review of the isolated Windows fixture diff and its caller. Existing 28-test Windows execution is retained; no claim of a fresh remote scan.",
+      "issueId": "6945afb1da9f95de70eecace91b1e246",
+      "rule": "Bandit_B603",
+      "originalLine": 322,
+      "currentLine": 340,
+      "disposition": "independently-reviewed-false-positive",
+      "rationale": "This sole call creates a junction for a local refusal test. Executable is the validated OS command processor. mklink, /J and switches are fixed; paths derive from the test-owned TemporaryDirectory plus fixed leaf names, and both resolved parents must match the fixture root. check=True, capture_output, ten-second timeout and CREATE_NO_WINDOW remain. No application/provider/request payload reaches the arguments. This narrow classification assumes a trusted local test environment and does not assert safety against a compromised same-user process or OS."
+    },
+    {
+      "path": "exchange_executor/tests/test_acceptance_journal.py",
+      "sourceSha256": "fe9701c1ad7ccf5f89514c4f1bde27daa55872e35127b931f99f0afc1de29958",
+      "reviewedRevision": "31e631360be3a56cd8538d3b29f742c94c57dee5",
+      "reviewer": "Root, independent of the agent implementing the junction change",
+      "scope": "Only the three current Codacy occurrences in this file, rebound after complete review of the isolated Windows fixture diff and its caller. Existing 28-test Windows execution is retained; no claim of a fresh remote scan.",
+      "issueId": "1c7fa10f3596deb97a9679c3f91b506e",
+      "rule": "Bandit_B404",
+      "originalLine": 6,
+      "currentLine": 7,
+      "disposition": "independently-reviewed-false-positive",
+      "rationale": "Importing subprocess does not execute a command. Its only use in this file is the bounded Windows junction refusal fixture reviewed above; the Unix branch creates a symlink directly. No eval, shell=True, provider action or arbitrary command source was introduced."
+    }
+  ],
+  "verificationReport": "exchange_executor/certifications/reviews/fixer-codacy-junction-hardening-2026-09-13.json",
+  "platformMutations": false
+}

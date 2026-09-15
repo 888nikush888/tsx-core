@@ -17,7 +17,7 @@ from kucoin_provider_common import (
 def _permissions(value: Any) -> list[str]:
     raw = token(value, "API permissions")
     values = raw.split(",")
-    require(values and len(values) <= 16 and len(values) == len(set(values)),
+    require(bool(values) and len(values) <= 16 and len(values) == len(set(values)),
             "KuCoin API permissions are duplicated or unbounded.")
     normalized = sorted(token(value, "API permission",) for value in values)
     require({"General", "Futures"}.issubset(normalized),

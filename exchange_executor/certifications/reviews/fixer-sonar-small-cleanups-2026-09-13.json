@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-sonar-small-cleanups",
+  "reviewedRevision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+  "entries": [
+    {
+      "binding": {
+        "path": "src/trading_money_reporting.ts",
+        "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+        "gitBlobSha256": "97cd651896b5a0c548a77b94e99f1342e4b341734fcd27fcfcde84400c71a478",
+        "workingRawSha256": "ac099971089ed8af7e5a5dd072146a6f3dfd815b0b531db4b6914e84bb52cd6e",
+        "workingLfSha256": "ac099971089ed8af7e5a5dd072146a6f3dfd815b0b531db4b6914e84bb52cd6e",
+        "workingEqualsRevisionLf": false
+      },
+      "disposition": "behavior-preserving-diff-reviewed",
+      "rationale": "Known predicate is computed once as before. Unknown groups initialize value null and never call zero or Map.get. Known empty groups call zero; known first key selects Map.get or nullish zero fallback. Evaluation count/order and returned MoneySummary fields remain identical; only ternary outer selection becomes guarded assignment."
+    },
+    {
+      "binding": {
+        "path": "src/workflow_repository.ts",
+        "revision": "13cfc7cbc4f7a15ad1ca16fe4213c0ee5ea2907f",
+        "gitBlobSha256": "e6eeef2d84fb503aa5b34eb99ac6346e1c16f04a58b2b8b878aa8e770f057f61",
+        "workingRawSha256": "6e0ba9a081c37b9b7a50b2ae5590201c20e065bd64d698338bb6d239adb16080",
+        "workingLfSha256": "6e0ba9a081c37b9b7a50b2ae5590201c20e065bd64d698338bb6d239adb16080",
+        "workingEqualsRevisionLf": false
+      },
+      "disposition": "erased-type-only-diff-reviewed",
+      "rationale": "ChannelRiskMode and WeakChannelAction move from a separate import type declaration into the existing import type list for the identical ./trading_types.js module. Neither creates runtime imports; no names, aliases or consumer types change."
+    }
+  ],
+  "validationAttribution": "Root reports FX money reporting, workflow_input_types and backend tsc PASS, plus emitted JavaScript equality for the merged erased import. This independent review inspects the complete two-file delta; does not claim those tests were rerun by this reviewer.",
+  "findings": []
+}

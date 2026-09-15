@@ -33,7 +33,9 @@ const config = {
   // A forced gate must contain only the freshly instrumented current source.
   incremental: !process.argv.includes('--force'),
   incrementalFile: `reports/stryker-${shardName}${shardName === 'trading-risk' ? '-sizing-v1' : ''}-incremental.json`,
-  concurrency: 1,
+  // Schema has 1,814 mutants and two complete command suites per mutant.
+  // Separate worker processes keep their test globals and temporary fixtures isolated.
+  concurrency: shardName === 'schema' ? 2 : 1,
   timeoutMS: 10_000,
   cleanTempDir: 'always',
   tempDirName: `.stryker-tmp-${shardName}`,

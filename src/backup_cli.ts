@@ -37,37 +37,41 @@ async function restoreOfflineBackup(artifactPath: string, databasePath: string):
   }
 }
 
-async function run(): Promise<void> {
-  const [command, argument] = process.argv.slice(2);
-  if (command === 'verify' || command === 'drill') {
-    if (!argument) usage();
-    const evidence = await inspectBackupArtifact(path.resolve(argument));
-    if (command === 'drill') evidence.restoreDrill = await runIsolatedBackupRestoreDrill(path.resolve(argument));
-    console.log(JSON.stringify(evidence, null, 2));
-    return;
+async function verifyDrillBackup(command: 'verify' | 'drill', argument: string | undefined): Promise<void> {
+  if (!argument) usage();
+  const evidence = await inspectBackupArtifact(path.resolve(argument));
+  if (command === 'drill') evidence.restoreDrill = await runIsolatedBackupRestoreDrill(path.resolve(argument));
+  console.log(JSON.stringify(evidence, null, 2));
+}
+
+function databaseExistsAt(databasePath: string): Promise<boolean> {
+  return stat(databasePath).then(entry => entry.isFile()).catch((error: unknown) => {
+    if (typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'ENOENT') return false;
+    throw error;
+  });
+}
+
+async function createBackup(databasePath: string, argument: string | undefined): Promise<void> {
+  const backupDirectory = path.resolve(argument || process.env.BACKUP_DIR || path.join(process.cwd(), 'backups'));
+  if (!await databaseExistsAt(databasePath)) throw new Error(`Source database does not exist: ${databasePath}`);
+  const owner = await acquireProcessLock(path.join(path.dirname(databasePath), '.process_active'));
+  try {
+    const config = readConfigSync();
+    writeConfigSync(config);
+    await initializeConfigurationGeneration(backupConfigurationSources(databasePath), owner);
+    await initDb(databasePath);
+    const artifact = await createBackupArtifact(backupDirectory, config);
+    console.log(`Verified backup created: ${artifact}`);
+    console.log(JSON.stringify(await inspectBackupArtifact(artifact), null, 2));
+  } finally {
+    await closeDb();
+    await owner.release();
   }
-  loadEnv();
-  const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
+}
+
+async function runDatabaseCommand(command: string | undefined, argument: string | undefined, databasePath: string): Promise<void> {
   if (command === 'create') {
-    const backupDirectory = path.resolve(argument || process.env.BACKUP_DIR || path.join(process.cwd(), 'backups'));
-    const databaseExists = await stat(databasePath).then(entry => entry.isFile()).catch((error: any) => {
-      if (error.code === 'ENOENT') return false;
-      throw error;
-    });
-    if (!databaseExists) throw new Error(`Source database does not exist: ${databasePath}`);
-    const owner = await acquireProcessLock(path.join(path.dirname(databasePath), '.process_active'));
-    try {
-      const config = readConfigSync();
-      writeConfigSync(config);
-      await initializeConfigurationGeneration(backupConfigurationSources(databasePath), owner);
-      await initDb(databasePath);
-      const artifact = await createBackupArtifact(backupDirectory, config);
-      console.log(`Verified backup created: ${artifact}`);
-      console.log(JSON.stringify(await inspectBackupArtifact(artifact), null, 2));
-    } finally {
-      await closeDb();
-      await owner.release();
-    }
+    await createBackup(databasePath, argument);
     return;
   }
   if (command === 'restore') {
@@ -78,9 +82,20 @@ async function run(): Promise<void> {
   usage();
 }
 
+async function run(): Promise<void> {
+  const [command, argument] = process.argv.slice(2);
+  if (command === 'verify' || command === 'drill') {
+    await verifyDrillBackup(command, argument);
+    return;
+  }
+  loadEnv();
+  const databasePath = path.resolve(process.env.FORWARDER_DB_PATH || path.join(process.cwd(), 'session_data', 'forwarder.db'));
+  await runDatabaseCommand(command, argument, databasePath);
+}
+
 try {
   await run();
-} catch (error: any) {
-  console.error(`Backup command failed: ${error.message}`);
+} catch (error) {
+  console.error(`Backup command failed: ${error instanceof Error ? error.message : error}`);
   process.exitCode = 1;
 }

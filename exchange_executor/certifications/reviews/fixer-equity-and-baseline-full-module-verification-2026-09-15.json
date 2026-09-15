@@ -1,0 +1,22 @@
+{
+  "log": {
+    "path": "reports/security-services/fixer-equity-and-baseline-module.log",
+    "sha256": "da05e2fed82e715433e4c92d50ecf2a86fe1e26e6a25d64b9fb13a06b2e40349"
+  },
+  "scope": "Windows Node22 full registered module suite with existing locked dependencies; clean Linux CI verification follows publication. Published cross-platform minimum retained until matching new Linux evidence.",
+  "baseRevision": "ad11761b6bc6b6ef622a46855e8e64cebbe87257",
+  "testFiles": 226,
+  "kind": "full-module-verification-after-equity-build-and-baseline-test-corrections",
+  "moduleCoverage": {
+    "statements": 96.5,
+    "branches": 86.45,
+    "lines": 96.5,
+    "functions": 99.2
+  },
+  "actualExit": 0,
+  "changedSources": [
+    "frontend/src/features/risk-analytics/equity-chart.tsx",
+    "tests/test_module_coverage.js"
+  ],
+  "verifiedAt": "2026-09-15T07:33:15.3736391Z"
+}

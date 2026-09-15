@@ -49,50 +49,91 @@ function packageName(lockPath) {
   return lockPath.slice(lockPath.lastIndexOf('node_modules/') + 'node_modules/'.length);
 }
 
+function isNpmPackageMap(packages) {
+  return packages !== null && typeof packages === 'object' && !Array.isArray(packages);
+}
+
 export function evaluateNpmLicenses(name, lock) {
   const violations = [];
   const inventory = [];
-  if (lock.lockfileVersion !== 3 || !lock.packages) {
+  if (lock?.lockfileVersion !== 3 || !isNpmPackageMap(lock.packages)) {
     return { violations: [`${name} requires an npm lockfileVersion 3 package map`], inventory };
   }
   for (const [lockPath, metadata] of Object.entries(lock.packages)) {
-    if (!lockPath.includes('node_modules/') || metadata.link) continue;
-    const scope = metadata.dev ? 'build' : 'production';
-    const artifact = `${packageName(lockPath)}@${metadata.version || 'unknown'}`;
-    inventory.push({ ecosystem: 'npm', application: name, artifact, scope, license: metadata.license || null });
-    if (!metadata.license) violations.push(`${name}: ${artifact} has no declared license`);
-    else if (!(scope === 'production' ? productionLicenses : buildOnlyLicenses).has(metadata.license)) {
-      violations.push(`${name}: ${artifact} uses disallowed ${scope} license ${metadata.license}`);
-    }
+    const result = npmArtifactLicense(name, lockPath, metadata);
+    inventory.push(...result.inventory);
+    violations.push(...result.violations);
   }
   return { violations, inventory };
 }
 
-export function evaluatePythonLockedRequirements(directContent, lockedContent) {
-  const directRequirements = directContent.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#'));
-  const requirements = lockedContent.split(/\r?\n/)
+function licenseViolations(name, artifact, scope, license) {
+  if (!license) return [`${name}: ${artifact} has no declared license`];
+  const allowed = scope === 'production' ? productionLicenses : buildOnlyLicenses;
+  if (!allowed.has(license)) return [`${name}: ${artifact} uses disallowed ${scope} license ${license}`];
+  return [];
+}
+
+function npmArtifactLicense(name, lockPath, metadata) {
+  if (!lockPath.includes('node_modules/')) return { violations: [], inventory: [] };
+  if (!metadata || typeof metadata !== 'object') {
+    return { violations: [`${name}: ${lockPath} has invalid artifact metadata`], inventory: [] };
+  }
+  if (metadata.link) return { violations: [], inventory: [] };
+  return npmLicenseEntry(name, lockPath, metadata);
+}
+
+function npmLicenseEntry(name, lockPath, metadata) {
+  const scope = metadata.dev ? 'build' : 'production';
+  const artifact = `${packageName(lockPath)}@${metadata.version || 'unknown'}`;
+  return {
+    inventory: [{ ecosystem: 'npm', application: name, artifact, scope, license: metadata.license || null }],
+    violations: licenseViolations(name, artifact, scope, metadata.license),
+  };
+}
+
+function lockedPythonRequirements(lockedContent) {
+  return lockedContent.split(/\r?\n/)
     .map(line => line.trim())
     .filter(line => /^[A-Za-z0-9_.-]+==/.test(line) && line.endsWith('\\'))
     .map(line => line.slice(0, -1).trimEnd())
     .map(line => line.includes(';') ? line.slice(0, line.indexOf(';')).trimEnd() : line)
     .filter(line => /^[A-Za-z0-9_.-]+==[^\s;]+$/.test(line));
+}
+
+function pythonDirectLicenseViolations(direct, lockedArtifacts) {
+  if (!/^[A-Za-z0-9_.-]+==[A-Za-z0-9_.+-]+$/.test(direct)) {
+    return [`python: direct requirement is not exactly pinned: ${direct}`];
+  }
+  if (!lockedArtifacts.has(direct.replace('==', '@'))) {
+    return [`python: direct requirement is absent from the reviewed lock: ${direct}`];
+  }
+  return [];
+}
+
+function pythonLicenseEntry(requirement) {
+  const match = /^([A-Za-z0-9_.-]+)==([A-Za-z0-9_.+-]+)$/.exec(requirement);
+  if (!match) return { violations: [`python: locked requirement is not exactly pinned: ${requirement}`], inventory: [] };
+  const artifact = `${match[1]}@${match[2]}`;
+  const license = pythonPolicy.get(artifact);
+  const inventory = [{ ecosystem: 'pypi', application: 'exchange-executor', artifact, scope: 'production', license: license || null }];
+  if (!license) return { violations: [`python: ${artifact} has no reviewed license policy entry`], inventory };
+  return { violations: licenseViolations('python', artifact, 'production', license), inventory };
+}
+
+export function evaluatePythonLockedRequirements(directContent, lockedContent) {
+  const directRequirements = directContent.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#'));
+  const requirements = lockedPythonRequirements(lockedContent);
   const violations = [];
   const inventory = [];
   const lockedArtifacts = new Set(requirements.map(requirement => requirement.replace('==', '@')));
   for (const direct of directRequirements) {
-    if (!/^[A-Za-z0-9_.-]+==[A-Za-z0-9_.+-]+$/.test(direct)) {
-      violations.push(`python: direct requirement is not exactly pinned: ${direct}`);
-    } else if (!lockedArtifacts.has(direct.replace('==', '@'))) {
-      violations.push(`python: direct requirement is absent from the reviewed lock: ${direct}`);
-    }
+    violations.push(...pythonDirectLicenseViolations(direct, lockedArtifacts));
   }
   for (const requirement of requirements) {
-    const match = /^([A-Za-z0-9_.-]+)==([A-Za-z0-9_.+-]+)$/.exec(requirement);
-    const artifact = `${match[1]}@${match[2]}`;
-    const license = pythonPolicy.get(artifact);
-    inventory.push({ ecosystem: 'pypi', application: 'exchange-executor', artifact, scope: 'production', license: license || null });
-    if (!license) violations.push(`python: ${artifact} has no reviewed license policy entry`);
-    else if (!productionLicenses.has(license)) violations.push(`python: ${artifact} uses disallowed production license ${license}`);
+    const result = pythonLicenseEntry(requirement);
+    inventory.push(...result.inventory);
+    violations.push(...result.violations);
   }
   for (const artifact of pythonPolicy.keys()) {
     if (!inventory.some(item => item.artifact === artifact)) violations.push(`python: reviewed policy entry is unused: ${artifact}`);

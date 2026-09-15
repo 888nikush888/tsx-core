@@ -64,7 +64,7 @@ class ExecutionConstraintTests(unittest.IsolatedAsyncioTestCase):
             fixture = client.rest
             rest = getattr(ccxt_async, exchange)()
             rest.walletAddress = fixture.walletAddress
-            async def response(path, _scope, _method, params, **_kwargs):
+            async def response(path, _scope, _method, params, fixture=fixture, **_kwargs):
                 if path == 'info':
                     if params['type'] == 'userAbstraction':
                         return fixture.abstraction

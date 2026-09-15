@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-individual-codacy-function-constructor-review",
+  "reviewedAt": "2026-09-15T08:15:22.723Z",
+  "reviewedRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+  "snapshot": {
+    "path": "reports/security-services/codacy-ce4d23a-current.json",
+    "sha256": "8ae3e3eb8f6bc18432ff03b2a3ecbca4739592c16a5f0a4a163dbd4116d9452c",
+    "readAt": "2026-09-15T08:10:06.236Z"
+  },
+  "finding": {
+    "issueId": "8154c19466937062e73e833fd1c1e83f",
+    "resultDataId": 131539022923,
+    "filePath": "tests/test_workflow_input_types.js",
+    "fileId": 231359080907,
+    "patternInfo": {
+      "id": "Semgrep_javascript_eval_rule-eval-with-expression",
+      "category": "Security",
+      "level": "Error",
+      "severityLevel": "Error",
+      "subCategory": "CommandInjection"
+    },
+    "toolInfo": {
+      "uuid": "6792c561-236d-41b7-ba5e-9d6bee0d548b",
+      "name": "Opengrep"
+    },
+    "lineNumber": 67,
+    "message": "The application was found calling the `eval` function OR Function()   constructor OR setTimeout() OR setInterval() methods.",
+    "language": "Javascript",
+    "lineText": "  const consume = new Function('createHash', 'requireString', `${executable}\\nreturn signalPlanForPath;`)(createHash, requireString);",
+    "falsePositiveThreshold": 80,
+    "commitInfo": {
+      "sha": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "commiter": "89394004+888nikush888@users.noreply.github.com",
+      "commiterName": "888nikush888",
+      "timestamp": "2026-09-15T08:06:42Z"
+    }
+  },
+  "decision": {
+    "classification": "false_positive",
+    "readyForIndividualDisposition": true,
+    "reason": "No untrusted input reaches executable source in this exact occurrence. The Function body is a TypeScript transpilation of four fixed top-level functions from the already trusted, already imported repository workflow module plus a constant return statement. SQLite fixture values are passed later as data arguments, never interpolated into the generated program.",
+    "platformMutationApplied": false
+  },
+  "sourceBindings": [
+    {
+      "path": "tests/test_workflow_input_types.js",
+      "revision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "gitBlobOid": "12d58447dc89d833eb5aab1a506ea47d84e49182",
+      "gitBlobSha256": "1d0195356dde588346148bb41bf5502a53bdfe917213afcbf48f137cc60755e6",
+      "workingRawSha256": "1a71c8b20131a2317dbefc8b711007354a97d5123811f518fefef01faf995018",
+      "workingLfMatchesGit": true
+    },
+    {
+      "path": "src/workflow_repository.ts",
+      "revision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "gitBlobOid": "5706db704565e110aaccc0275ed534e309ee4408",
+      "gitBlobSha256": "8382e600d42f058c5352d8778121c9c45a43e10e760e84dc9c963f248f9c4c04",
+      "workingRawSha256": "8382e600d42f058c5352d8778121c9c45a43e10e760e84dc9c963f248f9c4c04",
+      "workingLfMatchesGit": true
+    },
+    {
+      "path": "src/contract_values.ts",
+      "revision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "gitBlobOid": "4919a74bb0f5cfa8d3dfa05a0ac52ba34bf9610a",
+      "gitBlobSha256": "81a3497fe7474e808ae1515d088cf9b0faa188d50e2372cab46d4c82b5336374",
+      "workingRawSha256": "81a3497fe7474e808ae1515d088cf9b0faa188d50e2372cab46d4c82b5336374",
+      "workingLfMatchesGit": true
+    },
+    {
+      "path": "tests/fixtures/ingress_workflow_fixture.js",
+      "revision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "gitBlobOid": "42548ab1d07b3939d543279c513a9bcef569cbfe",
+      "gitBlobSha256": "28c58154a994b55c5e21887a64d601ab1d7e2148140c608b413e3e1dfb512359",
+      "workingRawSha256": "28c58154a994b55c5e21887a64d601ab1d7e2148140c608b413e3e1dfb512359",
+      "workingLfMatchesGit": true
+    },
+    {
+      "path": "tests/trading_fixtures.js",
+      "revision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "gitBlobOid": "3d31a569f025423c30def9c5882ab08ec68c270e",
+      "gitBlobSha256": "511c67229ecfab1f02fb2df9243ed31be4e92187b893286833c4a6b12cc41e86",
+      "workingRawSha256": "511c67229ecfab1f02fb2df9243ed31be4e92187b893286833c4a6b12cc41e86",
+      "workingLfMatchesGit": true
+    },
+    {
+      "path": "src/db.ts",
+      "revision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "gitBlobOid": "64ac91b806dac2cc1934deb2ae812fdfa3db3562",
+      "gitBlobSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8",
+      "workingRawSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8",
+      "workingLfMatchesGit": true
+    },
+    {
+      "path": "tests/run_all.js",
+      "revision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "gitBlobOid": "531b93615fc7e7aa34d93aa43eadf0270167d976",
+      "gitBlobSha256": "b4a7484763bd151cb64abec3130d9e7467bbe17bce2b447c319620e1b70c928f",
+      "workingRawSha256": "e86efb9bc1668b5682eff2240da0aeb9ebc3034a5fecdb2540d9187dbd57dd76",
+      "workingLfMatchesGit": true
+    },
+    {
+      "path": "package-lock.json",
+      "revision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "gitBlobOid": "6c4815a353e33f109364f7ff79d368a25e0c7da8",
+      "gitBlobSha256": "f0edb2d81137ffe06035691b8989b3f0687d6c7e59d55e8a87c62fbce42543d1",
+      "workingRawSha256": "f0edb2d81137ffe06035691b8989b3f0687d6c7e59d55e8a87c62fbce42543d1",
+      "workingLfMatchesGit": true
+    }
+  ],
+  "selectedFunctions": [
+    {
+      "name": "object",
+      "line": 71,
+      "endLine": 74,
+      "sourceSha256": "9cc35a5b40a8d3cd51d58e277fdd76516d63404b2a71b2e22b10dd92152aae79"
+    },
+    {
+      "name": "normalizedJson",
+      "line": 76,
+      "endLine": 85,
+      "sourceSha256": "651c2ee6fc45a110a7cf991799357247c572e3410827ca32bb2ce44edc90eb0d"
+    },
+    {
+      "name": "sha256",
+      "line": 87,
+      "endLine": 89,
+      "sourceSha256": "22074988d7e9730c4039847ede26ca4a461fc8719cd42def9c7c18761e34a0a3"
+    },
+    {
+      "name": "signalPlanForPath",
+      "line": 1857,
+      "endLine": 1894,
+      "sourceSha256": "9fccdba80de901d74e11d006520a9c7a42bc789d9d3577b0ff12141386efc3a6"
+    }
+  ],
+  "generatedProgram": {
+    "typescriptVersion": "6.0.3",
+    "sha256": "4d4a776b8d94c15813c8852320722247bf9135d3693dd97015c410f382e93d80",
+    "parameterNames": [
+      "createHash",
+      "requireString"
+    ],
+    "reviewerExecutedGeneratedFunction": false
+  },
+  "dataFlow": [
+    "Code origin: readFile(new URL(../src/workflow_repository.ts, import.meta.url)) is a fixed repository-relative file; path does not depend on HTTP requests, DB rows, CLI arguments, environment, test values or remote responses.",
+    "Selection: current AST contains exactly four named top-level FunctionDeclarations. Their source consists of object shape checks, recursive canonical JSON/hash, and a pure compiled-plan projection using requireString. No nested eval/Function, dynamic import, shell or network call exists in these bodies.",
+    "Construction: getText(parsed) plus newline joins feeds transpileModule. The sole interpolation into Function body is this trusted source string; final return signalPlanForPath is constant. Dependency parameters are the imported node:crypto createHash and fixed repository requireString, not user-controlled constructors.",
+    "Data: after constructing consume, publishedPath comes from the local paper workflow fixture and JSON roundtrip. Object/array/17 malformed variants, five falsy optional variants and whitespace prompt are passed into consume(changed, first.id). Their values never enter executable or Function constructor input.",
+    "Fixture: initDb uses private mkdtemp path; workflowFixture seeds deterministic standard contracts/strategies and two paper accounts, then publishes a local graph. No operational DB or live provider is used. DB immutability/integrity is not disabled for this probe. The later missing-run database.get override is restored in finally and cannot alter source construction.",
+    "Caller: tests/run_all.js lists this standalone test; module executes only in test process. Production workflow_repository is already statically imported at test line10. An attacker allowed to replace that repository file already controls imported test executable code; Function is not an additional data-to-code boundary. This is an explicit trust assumption, not a claim the constructor is sandboxed."
+  ],
+  "limitations": [
+    "Individual occurrence only; no rule/file-wide exemption or blanket approval of dynamic execution.",
+    "Source review and AST/hash verification only; no fresh CPU-heavy suite run or live platform disposition.",
+    "Any later change to source origin, selected functions, template interpolation or injected dependencies requires new review.",
+    "Historical test execution evidence remains separate; this report does not renew implementation receipt or provider acceptance."
+  ],
+  "findings": []
+}

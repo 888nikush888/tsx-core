@@ -272,7 +272,7 @@ jobs:
   mutation:
     name: Critical mutation gate (${{ matrix.shard }})
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: ${{ matrix.shard == 'schema' && 50 || 30 }}
     strategy:
       fail-fast: false
       matrix:

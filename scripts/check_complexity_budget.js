@@ -5,33 +5,22 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
+function budgetDifference(label, actual, expected) {
+  if (actual === expected) return [];
+  const direction = actual > expected ? 'regressed' : 'improved';
+  return [`${label} ${direction}: measured ${actual}, baseline ${expected}; update code or lower the baseline`];
+}
+
 export function evaluateComplexityBudget(measurement, baseline) {
   const violations = [];
   if (measurement.errors > 0) violations.push(`ESLint reported ${measurement.errors} error(s)`);
-  if (measurement.warnings !== baseline.eslintWarnings) {
-    const direction = measurement.warnings > baseline.eslintWarnings ? 'regressed' : 'improved';
-    violations.push(
-      `warning budget ${direction}: measured ${measurement.warnings}, baseline ${baseline.eslintWarnings}; update code or lower the baseline`
-    );
-  }
+  violations.push(...budgetDifference('warning budget', measurement.warnings, baseline.eslintWarnings));
   for (const [rule, expected] of Object.entries(baseline.rules)) {
-    const actual = measurement.rules[rule] ?? 0;
-    if (actual !== expected) {
-      const direction = actual > expected ? 'regressed' : 'improved';
-      violations.push(
-        `${rule} budget ${direction}: measured ${actual}, baseline ${expected}; update code or lower the baseline`
-      );
-    }
+    violations.push(...budgetDifference(`${rule} budget`, measurement.rules[rule] ?? 0, expected));
   }
-  if (measurement.worstCyclomaticComplexity !== baseline.worstCyclomaticComplexity) {
-    const direction =
-      measurement.worstCyclomaticComplexity > baseline.worstCyclomaticComplexity
-        ? 'regressed'
-        : 'improved';
-    violations.push(
-      `worst complexity ${direction}: measured ${measurement.worstCyclomaticComplexity}, baseline ${baseline.worstCyclomaticComplexity}; update code or lower the baseline`
-    );
-  }
+  violations.push(...budgetDifference(
+    'worst complexity', measurement.worstCyclomaticComplexity, baseline.worstCyclomaticComplexity,
+  ));
   return violations;
 }
 

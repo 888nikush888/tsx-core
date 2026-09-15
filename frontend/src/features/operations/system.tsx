@@ -1,3 +1,4 @@
+import type { AccessObservation, ManagedSecretStatuses, OperationsObservation, RecoveryObservation } from "./operation-status-types";
 import { TelegramSettings } from "@/features/signals/telegram-settings";
 import { SetupReviewTree } from './setup-review-tree';
 import { Metric, time } from "@/shared/components/operator-primitives";
@@ -40,10 +41,10 @@ export function System({
   const [runtimePayload, setRuntimePayload] = useState<any>(null);
   const runtimeForm = useVersionedDraft<any>('runtime', runtimePayload?.settings ?? null, runtimePayload?.revision ?? null, {});
   const { draft: runtime, setDraft: setRuntime } = runtimeForm;
-  const [secrets, setSecrets] = useState<any>(null);
-  const [recovery, setRecovery] = useState<any>(null);
-  const [operations, setOperations] = useState<any>(null);
-  const [access, setAccess] = useState<any>(null);
+  const [secrets, setSecrets] = useState<ManagedSecretStatuses | null>(null);
+  const [recovery, setRecovery] = useState<RecoveryObservation | null>(null);
+  const [operations, setOperations] = useState<OperationsObservation | null>(null);
+  const [access, setAccess] = useState<AccessObservation | null>(null);
   const [setupPreview, setSetupPreview] = useState<any>(null);
   const [setupMappings, setSetupMappings] = useState<Record<string, string>>({});
   const [setupConfirmation, setSetupConfirmation] = useState("");
@@ -75,7 +76,7 @@ export function System({
     if (Object.keys(failures).length) throw new Error(Object.entries(failures).map(([name, error]) => `${name}: ${error}`).join(' · '));
   }, []);
   useEffect(() => {
-    void load().catch((reason) => setMessage(reason.message));
+    load().catch((reason) => setMessage(reason.message));
   }, [load]);
   const observeRestart = useCallback(async (signal: AbortSignal) => restartInstance ? jsonRequest('/api/recovery', { signal }) : null, [restartInstance]);
   usePoll(observeRestart, (value) => {
@@ -312,7 +313,7 @@ export function System({
         <div className="builder-error">
           <AlertTriangle size={15} />
           Recovery-Modus:{" "}
-          {(recovery.issues || []).map((item: any) => item.reason).join(" · ")}
+          {(recovery.issues || []).map(item => item.reason).join(" · ")}
         </div>
       )}
       <TelegramSettings />
@@ -323,7 +324,7 @@ export function System({
           type="button"
           className="primary-button"
           disabled={Boolean(busy) || runtimeForm.conflict}
-          onClick={() => void saveRuntime()}
+          onClick={() => { saveRuntime(); }}
         >
           Runtime speichern
         </button>
@@ -331,7 +332,7 @@ export function System({
           type="button"
           className="secondary-button"
           disabled={Boolean(busy)}
-          onClick={() => void restart()}
+          onClick={() => { restart(); }}
         >
           Kontrolliert neu starten
         </button>
@@ -364,7 +365,7 @@ export function System({
           type="button"
           className="primary-button"
           disabled={Boolean(busy)}
-          onClick={() => void saveSecrets()}
+          onClick={() => { saveSecrets(); }}
         >
           Secrets sicher speichern
         </button>
@@ -384,7 +385,7 @@ export function System({
             type="button"
             className="secondary-button"
             disabled={Boolean(busy)}
-            onClick={() => void rotateToken("admin")}
+            onClick={() => { rotateToken("admin"); }}
           >
             Admin-Key rotieren
           </button>
@@ -392,7 +393,7 @@ export function System({
             type="button"
             className="secondary-button"
             disabled={Boolean(busy)}
-            onClick={() => void rotateToken("viewer")}
+            onClick={() => { rotateToken("viewer"); }}
           >
             Viewer-Key erzeugen/rotieren
           </button>
@@ -400,7 +401,7 @@ export function System({
             type="button"
             className="danger-button"
             disabled={Boolean(busy)}
-            onClick={() => void revokeViewer()}
+            onClick={() => { revokeViewer(); }}
           >
             Viewer-Key widerrufen
           </button>
@@ -411,10 +412,10 @@ export function System({
         <h3>Portables Setup-Bundle</h3>
         <p className="operations-help">Exportiert Builder, Parser, Verträge, Strategien und nicht-geheime Einstellungen. Zugangsdaten, Tokens, Tailscale-Identitäten, Nachrichten, Logs, Journal und Backups bleiben ausgeschlossen.</p>
         <div className="system-actions">
-          <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => void exportSetup()}>Setup exportieren</Button>
+          <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => { exportSetup(); }}>Setup exportieren</Button>
           <label className="secondary-button setup-file-button">
             {busy === "setup-preview" ? "Prüfe Bundle…" : "Bundle auswählen"}
-            <input type="file" accept="application/json,.json" disabled={Boolean(busy)} onChange={(event) => { void previewSetup(event.target.files?.[0] || null); event.currentTarget.value = ""; }} />
+            <input type="file" accept="application/json,.json" disabled={Boolean(busy)} onChange={(event) => { previewSetup(event.target.files?.[0] || null); event.currentTarget.value = ""; }} />
           </label>
         </div>
         {setupPreview && (
@@ -443,7 +444,7 @@ export function System({
               <span>Zum Ersetzen exakt „{setupPreview.confirmation}“ eingeben</span>
               <Input autoComplete="off" value={setupConfirmation} onChange={(event) => setSetupConfirmation(event.target.value)} />
             </label>
-            <Button type="button" variant="destructive" disabled={Boolean(busy) || !setupPreview.contentReview || setupConfirmation !== setupPreview.confirmation || (setupPreview.accountReferences || []).some((reference: any) => !setupMappings[reference.sourceAccountId])} onClick={() => void applySetup()}>
+            <Button type="button" variant="destructive" disabled={Boolean(busy) || !setupPreview.contentReview || setupConfirmation !== setupPreview.confirmation || (setupPreview.accountReferences || []).some((reference: any) => !setupMappings[reference.sourceAccountId])} onClick={() => { applySetup(); }}>
               {busy === "setup-apply" ? "Sichere und ersetze…" : "Bestehendes Setup sicher ersetzen"}
             </Button>
           </div>
@@ -453,25 +454,25 @@ export function System({
         <h3>Audit und Diagnose</h3>
         <div className="system-line"><span>Audit-Zustand</span><strong>{auditStatus()}</strong></div>
         <div className="system-line"><span>Letzte Integritätsprüfung</span><strong>{time(operations?.backup?.integrityVerified?.verifiedAt)}</strong></div>
-        <div className="system-line"><span>Geprüfter Datenstand erstellt</span><strong>{time(Date.parse(operations?.backup?.integrityVerified?.artifactCreatedAt))}</strong></div>
+        <div className="system-line"><span>Geprüfter Datenstand erstellt</span><strong>{time(Date.parse(operations?.backup?.integrityVerified?.artifactCreatedAt ?? ""))}</strong></div>
         <div className="system-line"><span>Gemeinsame Konfiguration geprüft</span><strong>{time(operations?.backup?.configurationCoherent?.verifiedAt)}</strong></div>
         <div className="system-line"><span>Offsite zurückgelesen und geprüft</span><strong>{time(operations?.backup?.offsiteVerified?.verifiedAt)}</strong></div>
         <div className="system-line"><span>Letzte artefaktlokale Restore-Prüfung</span><strong>{operations?.backup?.restoreEligibility?.status || "unknown"} · {time(operations?.backup?.restoreEligibility?.checkedAt)}</strong></div>
         <div className="system-line"><span>Letzter tatsächlich durchgeführter Probelauf</span><strong>{time(operations?.backup?.restoreDrill?.performedAt)}</strong></div>
         <p>Die Restore-Prüfung betrifft nur das Artefakt. Sie belegt weder heutige Börsenflatheit noch eine spätere Handelsfreigabe.</p>
         <div className="system-actions">
-          <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => void replayAudit()}>Audit erneut übertragen</Button>
+          <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => { replayAudit(); }}>Audit erneut übertragen</Button>
           <Button
             type="button"
             variant="outline"
-            onClick={() => void (async () => {
+            onClick={() => { (async () => {
               try {
                 const response = await apiFetch('/api/status');
                 if (!response.ok) throw new Error(`Diagnose nicht verfügbar (${response.status}).`);
                 const url = URL.createObjectURL(await response.blob());
                 const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'tsx-core-diagnose.json'; anchor.click(); URL.revokeObjectURL(url);
               } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
-            })()}
+            })(); }}
           >
             Diagnosestatus öffnen
           </Button>
@@ -507,8 +508,8 @@ export function System({
         <div className="system-line"><span>Sicherung</span><strong>{operations?.backup?.healthy && operations?.backup?.restoreEligibility?.status === "eligible" ? `lokal wiederherstellbar · ${time(operations.backup.integrityVerified?.verifiedAt)}` : "nicht aktuell oder nicht wiederherstellbar – Aktion gesperrt"}</strong></div>
         <label><span>Bestätigung</span><Input autoComplete="off" value={dangerConfirmation} onChange={(event) => setDangerConfirmation(event.target.value)} placeholder="DATENBANK LEEREN oder FACTORY RESET" /></label>
         <div className="system-actions">
-          <Button type="button" variant="destructive" disabled={Boolean(busy) || !operations?.backup?.healthy || operations?.backup?.restoreEligibility?.status !== "eligible" || dangerConfirmation !== "DATENBANK LEEREN"} onClick={() => void dangerAction("clear")}>Datenbank leeren</Button>
-          <Button type="button" variant="destructive" disabled={Boolean(busy) || !operations?.backup?.healthy || operations?.backup?.restoreEligibility?.status !== "eligible" || dangerConfirmation !== "FACTORY RESET"} onClick={() => void dangerAction("factory")}>Factory Reset</Button>
+          <Button type="button" variant="destructive" disabled={Boolean(busy) || !operations?.backup?.healthy || operations?.backup?.restoreEligibility?.status !== "eligible" || dangerConfirmation !== "DATENBANK LEEREN"} onClick={() => { dangerAction("clear"); }}>Datenbank leeren</Button>
+          <Button type="button" variant="destructive" disabled={Boolean(busy) || !operations?.backup?.healthy || operations?.backup?.restoreEligibility?.status !== "eligible" || dangerConfirmation !== "FACTORY RESET"} onClick={() => { dangerAction("factory"); }}>Factory Reset</Button>
         </div>
       </section>
     </div>

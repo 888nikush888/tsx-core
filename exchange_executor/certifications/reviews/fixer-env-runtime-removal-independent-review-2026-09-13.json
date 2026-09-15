@@ -1,0 +1,68 @@
+{
+  "baseRevision": "e3a5857",
+  "historicalStrictDeleteRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "workingTreeReview": true,
+  "bindings": [
+    {
+      "path": "src/env.ts",
+      "sha256": "428af0810fc4b713e4c3cc013e33e3ae221fb04fe4a2c77a0d7a226009f3aa30"
+    },
+    {
+      "path": "tests/test_env.js",
+      "sha256": "bf0f720511fa200122ddbcc59ef7a28af30600fcdbdb615139b37a961becec48"
+    },
+    {
+      "path": "src/runtime_settings.ts",
+      "sha256": "76658832bfaee560614f3e5b1d20048344740e3098e1a30b130dd90968e50b34"
+    },
+    {
+      "path": "tests/test_runtime_settings.js",
+      "sha256": "daefe6d4f37151d61f7859b3eac880ba7ca81b1091b4405c04cbb42d0fee2ede"
+    }
+  ],
+  "completeDiff": "diff --git a/src/env.ts b/src/env.ts\nindex 5d721ff..adac774 100644\n--- a/src/env.ts\n+++ b/src/env.ts\n@@ -73,7 +73,9 @@ function resolveSecretFile(env: NodeJS.ProcessEnv, secretName: string): void {\n   const secretPath = path.resolve(fileReference);\n   assertSecretFileSize(secretPath, fileVariable);\n   env[secretName] = readSecretLine(secretPath, fileVariable);\n-  Reflect.deleteProperty(env, fileVariable);\n+  if (!Reflect.deleteProperty(env, fileVariable)) {\n+    throw new TypeError(`${fileVariable} could not be removed from the environment.`);\n+  }\n }\n \n export function resolveSecretFiles(env: NodeJS.ProcessEnv = process.env): void {\ndiff --git a/src/runtime_settings.ts b/src/runtime_settings.ts\nindex 16a91ac..2b4c0fa 100644\n--- a/src/runtime_settings.ts\n+++ b/src/runtime_settings.ts\n@@ -451,8 +451,11 @@ export class ManagedRuntimeSettingsStore {\n   applyToEnvironment(): void {\n     for (const [key, environmentName] of Object.entries(ENVIRONMENT_MAPPING) as Array<[keyof RuntimeSettings, string]>) {\n       const value = this.settings[key];\n-      if (value === '') Reflect.deleteProperty(this.env, environmentName);\n-      else this.env[environmentName] = String(value);\n+      if (value === '') {\n+        if (!Reflect.deleteProperty(this.env, environmentName)) {\n+          throw new TypeError(`${environmentName} could not be removed from the environment.`);\n+        }\n+      } else this.env[environmentName] = String(value);\n     }\n     this.active = this.snapshot();\n   }\ndiff --git a/tests/test_env.js b/tests/test_env.js\nindex 6e41842..179f829 100644\n--- a/tests/test_env.js\n+++ b/tests/test_env.js\n@@ -19,6 +19,16 @@ try {\n   assert.equal(secretEnv.DASHBOARD_ADMIN_TOKEN, 'a'.repeat(64));\n   assert.equal(secretEnv.DASHBOARD_ADMIN_TOKEN_FILE, undefined, 'Secret file reference must be consumed');\n \n+  const retainedReferenceEnv = {};\n+  Object.defineProperty(retainedReferenceEnv, 'DASHBOARD_ADMIN_TOKEN_FILE', {\n+    value: secretPath, writable: true, enumerable: true, configurable: false,\n+  });\n+  assert.throws(() => resolveSecretFiles(retainedReferenceEnv), TypeError,\n+    'A file reference that cannot be consumed must not report successful resolution');\n+  assert.equal(retainedReferenceEnv.DASHBOARD_ADMIN_TOKEN_FILE, secretPath);\n+  assert.equal(retainedReferenceEnv.DASHBOARD_ADMIN_TOKEN, 'a'.repeat(64),\n+    'Preserve the existing order: the secret is assigned before reference removal is attempted');\n+\n   assert.throws(\n     () => resolveSecretFiles({ OPENROUTER_API_KEY: 'direct', OPENROUTER_API_KEY_FILE: secretPath }),\n     /cannot both be configured/\ndiff --git a/tests/test_runtime_settings.js b/tests/test_runtime_settings.js\nindex e79661d..6beb49b 100644\n--- a/tests/test_runtime_settings.js\n+++ b/tests/test_runtime_settings.js\n@@ -23,6 +23,17 @@ try {\n   assert.equal(env.DASHBOARD_ALLOWED_ORIGIN, undefined);\n   assert.equal(env.TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES, 'false');\n \n+  const fixedPropertyEnv = {};\n+  Object.defineProperty(fixedPropertyEnv, 'DASHBOARD_ALLOWED_ORIGIN', {\n+    value: 'https://retained.example.invalid', writable: true, configurable: false, enumerable: true,\n+  });\n+  const fixedPropertyStore = new ManagedRuntimeSettingsStore(path.join(directory, 'fixed-property.json'), fixedPropertyEnv);\n+  await fixedPropertyStore.initialize();\n+  assert.throws(() => fixedPropertyStore.applyToEnvironment(), TypeError);\n+  assert.equal(fixedPropertyEnv.DASHBOARD_ALLOWED_ORIGIN, 'https://retained.example.invalid');\n+  assert.equal(fixedPropertyStore.describe().active, null,\n+    'A failed environment update must not report unapplied runtime settings as active.');\n+\n   const standalone = { ...store.snapshot(), shutdownGraceMs: 45_000, backupIntervalMs: 60_000 };\n   await store.set(standalone);\n   assert.equal(JSON.parse(await readFile(filePath, 'utf8')).shutdownGraceMs, 45_000);\n",
+  "envReview": "Historical strict delete followed env secret assignment. Current check throws TypeError on false Reflect.deleteProperty at the same point, retaining assigned secret and undeletable reference. Existing constructor/getter errors still propagate without replacement. Added fixture explicitly asserts both retained reference and already assigned secret. No rollback or atomicity is claimed.",
+  "runtimeReview": "Historical strict delete occurred inside ordered mapping loop, followed by active snapshot assignment only after successful completion. Current false-result check throws TypeError inside same empty-value branch; later fields and active snapshot remain unexecuted. Prior writes in the loop can remain, as historically. New fixture confirms retained origin and active null. Nonempty string assignment branch unchanged.",
+  "tests": [
+    {
+      "path": "tests/test_env.js",
+      "exitCode": 0
+    },
+    {
+      "path": "tests/test_runtime_settings.js",
+      "exitCode": 0
+    }
+  ],
+  "logEvidence": [
+    {
+      "path": "reports/security-services/fixer-env-reference-removal-before.log",
+      "sha256": "af8da87c7ed0fe8f8012279540a96f9e03a8776cf5691ccaa0db5065f65980ad"
+    },
+    {
+      "path": "reports/security-services/fixer-env-reference-removal-after.log",
+      "sha256": "98edfd5ade0f204a88e4e7b06e2ceb1d0c9d564cee7ebb3d2f6b5f7eb65a4b5b"
+    },
+    {
+      "path": "reports/security-services/fixer-runtime-env-removal-before.log",
+      "sha256": "7db38f7d527d807d36378bb35d2c94f9d0b9bfd1c4cbb195e3c473d74906fe23"
+    },
+    {
+      "path": "reports/security-services/fixer-runtime-env-removal-after.log",
+      "sha256": "6c9fd4e5df703bdba7096024d282c02b602ace07680c06d1838a55a8fa40a4be"
+    },
+    {
+      "path": "reports/security-services/fixer-env-removal-independent.log",
+      "sha256": "98edfd5ade0f204a88e4e7b06e2ceb1d0c9d564cee7ebb3d2f6b5f7eb65a4b5b"
+    },
+    {
+      "path": "reports/security-services/fixer-runtime_settings-removal-independent.log",
+      "sha256": "6c9fd4e5df703bdba7096024d282c02b602ace07680c06d1838a55a8fa40a4be"
+    }
+  ],
+  "conclusion": "Both changes restore strict-delete failure behavior at historical operation order; no remaining concrete regression in complete small diffs.",
+  "limits": [
+    "New error wording is explicit and does not expose secret contents; exact engine-specific historical wording is not reproduced.",
+    "No transaction atomicity or rollback claim.",
+    "No source edits or commit by reviewer. Final Snyk evidence remains pending frozen revision."
+  ]
+}

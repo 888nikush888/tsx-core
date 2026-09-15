@@ -32,13 +32,13 @@ async function fixture(file) {
   const paper = new PaperExchangeAdapter();
   await paper.setMarket(account.id, market);
   const authority = new StartupAuthority();
-  const engine = new TradingEngine([paper], () => {}, undefined, { entryAuthority: () => authority.canEnter() });
+  const engine = new TradingEngine([paper], () => undefined, undefined, { entryAuthority: () => authority.canEnter() });
   return { account, paper, authority, engine };
 }
 
 async function runtimeProtection(file) {
   const { account, paper, authority, engine } = await fixture(file);
-  const runtime = new TradingRuntime(engine, 60_000, () => {}, undefined, authority);
+  const runtime = new TradingRuntime(engine, 60_000, () => undefined, undefined, authority);
   try {
     const intent = await createIntent('initial');
     await engine.processIntent(intent.id);

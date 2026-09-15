@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "kind": "single-common-regex-budget-implementation-verification",
+  "baseRevision": "9d699b51c778a483cd5f6e75f1679bdf0cb8b58c",
+  "sourceBindings": [
+    {
+      "path": "src/signal_schema.ts",
+      "baseGitSha256": "cc62363ef835b6cfc60dee0869095ebdecebc249b03744113c8a7241f3bec2e4",
+      "workingRawSha256": "b4e339d5dc00ec07993bb5a73133371b2f0d39ad9ad616802354e2e1ca892cad",
+      "workingLfSha256": "69be3d8a092d59135813b71c77f862fb8527dc655100c8e5a07b116dc3010df2",
+      "deltaSha256": "da16cfa227b2f43a3af57f3f8d8da11f87093f9d60c78204cef0bccf51dfbd50"
+    },
+    {
+      "path": "tests/test_signal_contract_validation.js",
+      "baseGitSha256": "e7c65e92ec9ccbc9288c87a5f8ac17e851828e05b0d6b886ea458fd2cefe6e7e",
+      "workingRawSha256": "d236d034e5522fe21a5a98be8a6723ea8cef702598e6ef84c910b678315887c6",
+      "workingLfSha256": "09c433d6a74db11089a7bd5528b11af9de8335e46ce7313c76e96fac6c745225",
+      "deltaSha256": "57b8f0c168ee1066e51b471a029590f02f90c6f7c591baeffe130e1efd7c7710"
+    },
+    {
+      "path": "tests/fixtures/signal_contract_regex_child.js",
+      "baseGitSha256": "366e8466744bb3ad2d20fba550d91847f1c708808948d465fd45899979bebbc8",
+      "workingRawSha256": "e4268ceb7ab2504efe2468f61773441411ddfab24274eea4ea99c6a8bcef1e2c",
+      "workingLfSha256": "9f49f8d4d79ed843031ed7f81adf9a981e6e970d6c94f0b50215bd8998109736",
+      "deltaSha256": "0f8b6c02cce09c4ed2ad39350fa72712bce4d5590e1e94f2d03a541ad918688c"
+    }
+  ],
+  "problem": "CIce4 30ordinarypatterns failed atnote25. Generic catch discarded cause, so exactremainingMs exhaustion vs innerVMinterrupt cannot be separated. Thirtycontext/startup boundaries count against shared wallclockdeadline; VMoverhead/descheduling can exhaust budget despite cheapmatches.",
+  "implementation": [
+    "Onecontext created before100msdeadline and one real vm.runInContext boundary around original orderedadditionalfieldloop.",
+    "Direct RegExp.test private and only reachable inside commonVMexecution; filters.safeRegexTest unchanged.",
+    "Perfieldremaining wallclockguard retained, preserving existingmockclocksharedbudgettest.",
+    "Crossrealm timeout recognized via types.isNativeError+owncode, wrapped with original fielddiagnostic andcause; othervalidationerrors rethrown unchanged.",
+    "SignalValidationErroroptional ErrorOptions retains cause without changingexistingmessages.",
+    "Emptyfieldlist returns immediately, matching historicalemptyloop/noevaluation; nonemptyvalidations retain order."
+  ],
+  "validation": {
+    "redBeforeSourceFix": {
+      "exitCode": 1,
+      "log": "fixer-single-regex-boundary-before.log",
+      "reason": "New actualVMcauseassertion failed because oldsource discardedcause."
+    },
+    "targetedAfter": {
+      "exitCode": 0,
+      "log": "fixer-single-regex-boundary-after.log",
+      "cases": "30validfields; exactlyone100msVMboundary; existingfakeclockshareddeadline;3pathologicalpatterns eachfirst/after29validfields; nativeERR_SCRIPT_EXECUTION_TIMEOUTcause andfieldnote; existinginvalid/syntax/geometrycases."
+    },
+    "backendTypecheck": {
+      "exitCode": 0,
+      "log": "fixer-single-regex-boundary-typecheck.log"
+    },
+    "lint": {
+      "exitCode": 0,
+      "maxWarnings": 0,
+      "log": "fixer-single-regex-boundary-lint.log"
+    },
+    "rootContentionProbe": "Root reported8/8PASS fourworkers x2 on prior version before finalemptyguard; lastguard onlyavoidsVMforzero fields. Not independently rerun by implementingagent."
+  },
+  "logHashes": {
+    "fixer-single-regex-boundary-before.log": "ea25417bf853918c3bc2765770c254f78ac09820e64ba827480e3d6c0562c950",
+    "fixer-single-regex-boundary-after.log": "26bb59dfb1c558a25994fcf8b0d809bc964e22b12dd58e6c8af24881782a7574",
+    "fixer-single-regex-boundary-typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "fixer-single-regex-boundary-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "limits": [
+    "No timeoutincrease,schedulerexclusion or weakenedassertions.",
+    "100mselapsedexecutionbound cannotguarantee30fieldsunderarbitraryhoststarvation; singleVM removes repeatedsetup.",
+    "VM timeout mechanism does not provide sandboxisolation; fixedtrustedcallback only.",
+    "Freshscanner/sourcebindingreview required because executionboundary moved; no scannerpassclaim.",
+    "No commit/push/workflowchange."
+  ]
+}

@@ -1,0 +1,1205 @@
+{
+  "schemaVersion": 1,
+  "repository": "888nikush888/tsx-core",
+  "reviewDate": "2026-09-13",
+  "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+  "selection": "First40 alphabetically sorted frontend paths with changedSinceReceiptOrigin=true and no exactBindings in fixer-implementation-review-coverage.json. Unchanged files excluded after correcting initial selection.",
+  "scope": {
+    "changedPathsReviewed": 40,
+    "noRegressionFoundInScopedDelta": 36,
+    "typeContractDefects": 1,
+    "focusVerificationGaps": 1,
+    "dependencyExecutionLinkageObligations": 2
+  },
+  "method": [
+    "Read complete5b025d9\u2192e97d0cf diff of each selected path; inspected producer/consumer context for guards and extractions rather than recycling source hashes.",
+    "Inspected existing test assertions for arithmetic, grouping, runtime validation, maintenance evidence, directories and theme transitions; no test execution claimed.",
+    "Historical frontend DeepSource inventory contains pending entries and per-finding source bindings, not blanket independent semantic approval; it was not treated as such."
+  ],
+  "historicalEvidence": {
+    "path": "docs/testing/deepsource-frontend-inventory-2026-09-08.json",
+    "sha256": "692ef366f07e0ad5afe7f5b9055a4a5f8c4d98618a4ade10c816b987c0c2383c",
+    "dispositions": {
+      "pending-review": 578,
+      "fixed-pending-rescan": 259,
+      "proposed-false-positive": 10
+    },
+    "interpretation": "Per-finding historical inventory only; no complete-delta approval inferred."
+  },
+  "executionLogReferences": [
+    {
+      "path": "reports/security-services/fixer-quality-frontend-final.log",
+      "sha256": "e9c42dd7c951730e8ba3347a8a46d40df808b2ab0af5e4a187b95e3736b9cfcd",
+      "limitation": "Read supporting historical output; executed revision/install inputs not proven solely by this log."
+    },
+    {
+      "path": "reports/security-services/patched-frontend-tests.log",
+      "sha256": "367d0351f3a50814ecf4250546d91093111fb551582f0f72cc320a3f00d32362",
+      "limitation": "Read supporting historical output; executed revision/install inputs not proven solely by this log."
+    },
+    {
+      "path": "reports/security-services/patched-frontend-audit.log",
+      "sha256": "4b02d4a3c23d969c46bd2041360f80bfcb1fe760d9db864009acdd710f9de601",
+      "limitation": "Read supporting historical output; executed revision/install inputs not proven solely by this log."
+    }
+  ],
+  "entries": [
+    {
+      "path": "frontend/e2e/dashboard.spec.ts",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "c5c55ae89856755458379da77a278ffab2ea64336e1cbc9fa0c9379a83f92255",
+      "reviewedSha256": "c94cc506813b9ccacf5307fbd13ba4f81f085aad89910748b003989f49337499",
+      "completeDiffSha256": "14ebf53a066bf4e68203129fc8d50efc2ca0bc011b1f22574c7c6bbbe4f808c9",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "All six hunks read. Published resource ID is captured after the existing null/status check with no intervening await; lookup remains synchronous. Viewport queries now explicitly require the configured non-null viewport, preserve box intersections and polling. Literal German label regexes gain u without changing their matches. Existing assertions remain.",
+      "contextBindings": [
+        {
+          "path": "frontend/e2e/dashboard.spec.ts",
+          "sha256": "c94cc506813b9ccacf5307fbd13ba4f81f085aad89910748b003989f49337499"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/e2e/ui-next.spec.ts",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "aaa73f385bcecee0ef5418ff89fa90564d921e056578cb557fe3159440521809",
+      "reviewedSha256": "fc874257ef583e75d3711cd3d643a8e1541d44ea006dbfcc84fadacb5cbdf697",
+      "completeDiffSha256": "1df07d256be98ea45b008ad5124ae1e6eee1100fa8ed09c8e97e9f6dba372eb5",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Both hunks read. Request.postData is captured once before JSON.parse; same null/empty branch and body recorded. Missing recorded config POST now throws an explicit failure before the unchanged preservation assertions, rather than dereferencing an asserted undefined value. No mock/count weakening.",
+      "contextBindings": [
+        {
+          "path": "frontend/e2e/ui-next.spec.ts",
+          "sha256": "fc874257ef583e75d3711cd3d643a8e1541d44ea006dbfcc84fadacb5cbdf697"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/package-lock.json",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "d06b4ff00c8dc2c83337e2d72efa7e155a1e52f2497d47f06baf15f5d46321d1",
+      "reviewedSha256": "216225670c129422c30657b73963a7fc69a9a9dbd7035b2241c9122d64b189bb",
+      "completeDiffSha256": "9ad1c17c05632afb3c6a272400801da9029bb5120fa412ae3a42485f46d585ee",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "dependency-delta-reviewed-execution-linkage-needed",
+      "rationale": "Complete lockfile diff read. Vitest and all internal peers move together4.1.10 to4.1.11; fast-uri/hono/js-yaml/undici match explicit override versions. es-module-lexer, tinyexec and tinyrainbow transitive updates are also present, all dev-only records. Registry URLs and integrity records change correspondingly; no application runtime dependency replacement. Package graph consistency is reviewable here; actual installed artifact/source provenance and precise test-run inputs require separate execution linkage.",
+      "contextBindings": [
+        {
+          "path": "frontend/package-lock.json",
+          "sha256": "216225670c129422c30657b73963a7fc69a9a9dbd7035b2241c9122d64b189bb"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": "Closed by independently verified execution/CI-binding addendum; retain original historical review scope.",
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/package.json",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "416f5f28b58a6363a182b8356dc9346910ff170739b7da7f25d7a65123b42931",
+      "reviewedSha256": "fb5adc39a0253c85ae5d2dc484095e5309e96138991928e01e3a670300e453af",
+      "completeDiffSha256": "437953c02039687606edebb4c5fb38659e428df291bd0c5ad161f5715b240b42",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "dependency-delta-reviewed-execution-linkage-needed",
+      "rationale": "Complete manifest diff read. Only four overrides and paired Vitest/coverage patch pins change; scripts, production dependencies and engine range remain unchanged. Lockfile peer versions agree. Existing audit/test logs are supporting history, not independently bound current install proof.",
+      "contextBindings": [
+        {
+          "path": "frontend/package.json",
+          "sha256": "fb5adc39a0253c85ae5d2dc484095e5309e96138991928e01e3a670300e453af"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": "Closed by independently verified execution/CI-binding addendum; retain original historical review scope.",
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/app/workflow/money-display.ts",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "65f421acde4837f6207545f466eddc7fabdc363926c69378f4f953e377b9e5fd",
+      "reviewedSha256": "44fa27ef5c33738995021721531b3cf80090d91017d0dd3765fd30deb4d6e15c",
+      "completeDiffSha256": "ae6e17e4b904c331f2d18b6f78ae77656eb2e15f1c8e42756a1e4269db0d63b2",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Complete diff plus displayValue/exactDisplayValue read. Bounded values return before exact rendering; every other admitted value necessarily has a validated exact fraction, so new exact guard and narrower approximation argument preserve labels/errors. Chart helpers preserve currency/status checks, exact-only selection, finite and underflow rejection, row copy, stable point order and sorted currency groups. Existing money tests inspect malformed fractions, negative/tiny/rational values and uncertain/chart grouping.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/app/workflow/money-display.ts",
+          "sha256": "44fa27ef5c33738995021721531b3cf80090d91017d0dd3765fd30deb4d6e15c"
+        },
+        {
+          "path": "frontend/src/app/workflow/money-amount.tsx",
+          "sha256": "100009124ad89955c9229db1adbf74df5d72f5944133cc1c89c2090d0de93604"
+        },
+        {
+          "path": "frontend/tests/money-display.test.tsx",
+          "sha256": "3dabbd5186a7dd30149b29d05d8772a74504c8776e763766a4500736e573fe32"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [
+          "frontend/tests/money-display.test.tsx"
+        ],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/app/workflow/resource-editor.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "f2e948f6b6258667b7a47679fa86ca7166a0d228d0fc364c84f482a4d56a9bb6",
+      "reviewedSha256": "ba475b741bde610188c4ba4934997b8903b85ceffa59a6ff13e7940743285a0d",
+      "completeDiffSha256": "27270a15cb3655796ae9955ab36698e0e5e3ea46735b2db03c8af22c159b729f",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Complete four-hunk delta and publish helper/error handlers read. source comes from parent?.versions so explicit parent guard is redundant on source-draft branch; same checksum, endpoint, updates and callback order remain. Unkeyed fragment removal preserves children. Both event wrappers still return undefined and invoke one async handler; archive/delete catch errors and finally reset saving/confirmation as before.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/app/workflow/resource-editor.tsx",
+          "sha256": "ba475b741bde610188c4ba4934997b8903b85ceffa59a6ff13e7940743285a0d"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/app/workflow/workflow-edge.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "91ac524e67ac87808ce9542f37ab05813704403c39536e1cf1def9be26ce1c3e",
+      "reviewedSha256": "016483ca83c02387a246632e26a72d0a8e1d13185e145671212e6109a7cfe0f9",
+      "completeDiffSha256": "f67e220f3a9c76f9a74b628fcc9d29e06223fcf18b95db706fac9d2aa103ad68",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Entire delta read. For every character produced by string iteration, character[0] is its first UTF-16 code unit; codePointAt on that one-unit string equals charCodeAt(0), including a high surrogate from an astral character and isolated surrogates. Empty ID executes no reduce step. Existing tests cover empty, ASCII, astral and isolated-low-surrogate IDs and expected curves.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/app/workflow/workflow-edge.tsx",
+          "sha256": "016483ca83c02387a246632e26a72d0a8e1d13185e145671212e6109a7cfe0f9"
+        },
+        {
+          "path": "frontend/tests/workflow-edge.test.ts",
+          "sha256": "14fa8e32f1e70d80753347d7998ca4fae0dab10d9e498d32d00c0431b238a9fd"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [
+          "frontend/tests/workflow-edge.test.ts"
+        ],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/app/workflow/workflow-simulation-result.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "0f6acb8a0f6df562b9a9cfa0aec8db0f8f3dd6a13267d564ccd63f4bbcf54d1c",
+      "reviewedSha256": "6569329e0108d810db6ab69b55c992b635321f3385d16f06644d091b05bcd0d7",
+      "completeDiffSha256": "e0f1911aec2f067f27db8cc53ddc22281e472f5a1f913cf35e5bcf359844fd29",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "All extraction hunks and existing component tests read. Map insertion/group membership and stable fallback rank sorting preserved. Retained Map key equals each original group member routeGroupKey||id, hence old first-sorted-member key. Extracted components render the same tags, labels, transition policies, PASS/BLOCK and reason precedence. Error/no-route branches stay first; no side effects added.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/app/workflow/workflow-simulation-result.tsx",
+          "sha256": "6569329e0108d810db6ab69b55c992b635321f3385d16f06644d091b05bcd0d7"
+        },
+        {
+          "path": "frontend/tests/workflow-simulation-result.test.tsx",
+          "sha256": "7d857729d7279844b92eb757e2ea476adfb514e6f74070478d6fb73035aa7ab6"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [
+          "frontend/tests/workflow-simulation-result.test.tsx"
+        ],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/components/confirmation-dialog.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "e1877b56264d4110dbf7738031bc003647d7da1106970d253521f1d3a9b97fd2",
+      "reviewedSha256": "ec673665b2827ab1e0cc752c86d8f6829b462ce94e50887fb37a0cfddaeb1d62",
+      "completeDiffSha256": "4030470fb387302c189bd572c9a646c46754121516f47a8a18bde9ba54d71f48",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "delta-reviewed-focus-verification-gap",
+      "rationale": "Only Input autoFocus is removed. Typed confirmation validation, disabled submit, cancellation and promise resolution are unchanged. DialogContent delegates focus management to Base UI Popup and puts input first in children. Existing confirmation test verifies exact phrase protection but does not assert initial focus, tab order or focus restoration. Keyboard-focus behavior has a specific verification gap; this is not a confirmed destructive-command regression.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/components/confirmation-dialog.tsx",
+          "sha256": "ec673665b2827ab1e0cc752c86d8f6829b462ce94e50887fb37a0cfddaeb1d62"
+        },
+        {
+          "path": "frontend/src/components/ui/dialog.tsx",
+          "sha256": "6e99c4591aeab61c8e82e5cc5bfc1cd5fc29fb731b484dc6769f0de1f86c6cca"
+        },
+        {
+          "path": "frontend/tests/confirmation-dialog.test.tsx",
+          "sha256": "1b82f4501f3d0f99a278dcf2435ec842383a6d92bfe4796b2d50ededfa4cf757"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [
+          "frontend/tests/confirmation-dialog.test.tsx"
+        ],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": "Closed by independently verified execution/CI-binding addendum; retain original historical review scope.",
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/components/dashboard-auth-gate.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "9502f31e14779915cd449cd03455df309d95200bd693771a93381c6a81d12b2d",
+      "reviewedSha256": "a1af7873ec2c7100f1303fd45dba7139e91ae4d2a07aeb9a1a4629b0b58856a9",
+      "completeDiffSha256": "ddbf5ee6e1ee6eab5a967e29d49d0edc426a9bbaaa8caa341dd5ab87599379ed",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Both hunks read with validateStoredToken try/catch. JSX apostrophe entity renders the same text. Removing void within an already braced handler changes neither invocation nor handler return; rejection is caught and locks the gate. Recovery-token clearing order retained.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/components/dashboard-auth-gate.tsx",
+          "sha256": "a1af7873ec2c7100f1303fd45dba7139e91ae4d2a07aeb9a1a4629b0b58856a9"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/components/logo.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "3bd3021e7bb31a5aea263d8e78e8fc428ab36561182661c5dd619158066f957c",
+      "reviewedSha256": "f56a5cc2ef2ab8d4bea2bf9bd48db1dd07481df3044cd6e885de9617aeec0d8f",
+      "completeDiffSha256": "2d152db0798d62fe74ed2ff3a27fdd311a096085c9c170c93708d10402bcf4ef",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Complete two-hunk import/type delta read. HTMLAttributes is now a named type-only import; all rendered spans/image props, paths and fallback behavior are unchanged. Automatic react-jsx compiler mode means no React namespace is required at runtime.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/components/logo.tsx",
+          "sha256": "f56a5cc2ef2ab8d4bea2bf9bd48db1dd07481df3044cd6e885de9617aeec0d8f"
+        },
+        {
+          "path": "frontend/tsconfig.app.json",
+          "sha256": "cc79b6f8574bdc7a619263e882f6e6d448aabdff6322c2279c4a9c9e4622b41d"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/components/theme-provider.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "f238835213e11f35035033fcb87c1471cc2484412b55d85f912d74d791a71f1c",
+      "reviewedSha256": "57b6bcaeaccc589df4a9fb585394d67b72d00525096fc1c149d8f1e7657703fc",
+      "completeDiffSha256": "6b06eb62112a2072c4b21243a8700536e34cddc76c3956dea4f218955402379b",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Every hook call now uses a named React import; initializer, media listener registration/cleanup, root class/style effects, storage setter and memo dependency arrays are unchanged. Theme toggle test checks persistent light/dark transitions. No hook order change.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/components/theme-provider.tsx",
+          "sha256": "57b6bcaeaccc589df4a9fb585394d67b72d00525096fc1c149d8f1e7657703fc"
+        },
+        {
+          "path": "frontend/tests/theme-toggle.test.tsx",
+          "sha256": "28d0b2af5e6d879d0e17aeff7cdbade3b90ce271be2d0a6b2e02932126603e61"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [
+          "frontend/tests/theme-toggle.test.tsx"
+        ],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/components/theme-toggle.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "798da98274161269f242834e2a2d03dcbedc3e3aa50f4fa65561b3aa468498f5",
+      "reviewedSha256": "c561161389c8b0f13461a3c4e57c055f82896b14db66325fb62bd97f837f23ec",
+      "completeDiffSha256": "2f8144bc858211e78a0554753f564146db70a34015396307e8bf46ee7670a933",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Namespace useContext becomes same named export; context, resolved theme, labels and click action unchanged. Coupled theme tests retain storage/root-class assertions.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/components/theme-toggle.tsx",
+          "sha256": "c561161389c8b0f13461a3c4e57c055f82896b14db66325fb62bd97f837f23ec"
+        },
+        {
+          "path": "frontend/tests/theme-toggle.test.tsx",
+          "sha256": "28d0b2af5e6d879d0e17aeff7cdbade3b90ce271be2d0a6b2e02932126603e61"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [
+          "frontend/tests/theme-toggle.test.tsx"
+        ],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/components/ui/alert.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "a0e0956832a7e35f7191d6051f166adfe93046b6ee4ee4aa094f59f1ec7ddebd",
+      "reviewedSha256": "075a16e2e17f0f7850e6a6dc39d35766cb0346e7403b19231573d9154f11a5c9",
+      "completeDiffSha256": "bfa8b17c61bd29ce8802606815c13e8e553bd94bcfffc02fce13710a22e6eb9e",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "All occurrences are type-only ComponentProps import/use replacement; alert variants, accessibility role, slots, classes, spreads and children are untouched under automatic JSX runtime.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/components/ui/alert.tsx",
+          "sha256": "075a16e2e17f0f7850e6a6dc39d35766cb0346e7403b19231573d9154f11a5c9"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/components/ui/card.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "397f0479d14380055c8c4e14373d92802b3b46c8e9c102e48007184ba80c18ec",
+      "reviewedSha256": "96716717e2ad04fd64310234e4dd104b9cf81ce326313e5b6c8fb4fb6f62d830",
+      "completeDiffSha256": "dd0796698eca590002a2f96a412851a82e1e961240e2502863f71d70c0a586dd",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "All eight type/namespace hunks read. Card defaults, slots, class construction and prop spreads unchanged; ComponentProps now erased named import.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/components/ui/card.tsx",
+          "sha256": "96716717e2ad04fd64310234e4dd104b9cf81ce326313e5b6c8fb4fb6f62d830"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/components/ui/dialog.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "120fdb64ea911798974f604b8c19891ab47a6913e9698008dea2eaa7c2b4eb93",
+      "reviewedSha256": "6e99c4591aeab61c8e82e5cc5bfc1cd5fc29fb731b484dc6769f0de1f86c6cca",
+      "completeDiffSha256": "3c3a2de28d610f03e723db0256b2abe182ff0d4e8c0620d6a24612f14534dc4a",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Only React namespace import and two type annotations change; Dialog primitive wrapping, portal, close button and focus configuration are untouched in this file.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/components/ui/dialog.tsx",
+          "sha256": "6e99c4591aeab61c8e82e5cc5bfc1cd5fc29fb731b484dc6769f0de1f86c6cca"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/components/ui/input.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "d9956c80a34dabdd4c1922476ca320f3268257c953dfedfc6cab6a81e936ffe8",
+      "reviewedSha256": "94df46359730f6c9d9e366cd7eac5918de4853ba1bebdd85656cc1e09b8831c7",
+      "completeDiffSha256": "9199207ae3c71b6296c5d4adf91105c64df2ab3bf6d2371f3658690cc78c43db",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Only type import and input annotation change. Base UI Input forwarding, type, classes and remaining props unchanged.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/components/ui/input.tsx",
+          "sha256": "94df46359730f6c9d9e366cd7eac5918de4853ba1bebdd85656cc1e09b8831c7"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/components/ui/label.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "ea25dc27c48f7c1c7e2a696a7c66815d7d308c3e3b417a3a209ce0bfd1cff205",
+      "reviewedSha256": "5c35b1fc946416ee05c159d7effbd28a47683b8d5a984caffd4104dedd10f0e0",
+      "completeDiffSha256": "5a728680e47f3f3cb133e700d1d5e5d51860392fcb7b989072fa3ac3ef70cf35",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Only type import and readonly annotation change; actual label, htmlFor, children and props remain identical.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/components/ui/label.tsx",
+          "sha256": "5c35b1fc946416ee05c159d7effbd28a47683b8d5a984caffd4104dedd10f0e0"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/components/ui/native-select.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "b219ecfb4b0fba32db0e6d90d9cff92f2301c9f82d15c6ac3831e5e8129e31ac",
+      "reviewedSha256": "9f26639f4de0ea722b8513489a0ff55b1867cc51b3a1148f924acb3f2a21fb62",
+      "completeDiffSha256": "cb96a6b9c0f7b1e49f594178adec241ef7e5d7a7e76e65b999cf5687af09f694",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "All three type annotations change to named erased ComponentProps; native select size default, options/optgroup rendering, arrow and passed props unchanged.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/components/ui/native-select.tsx",
+          "sha256": "9f26639f4de0ea722b8513489a0ff55b1867cc51b3a1148f924acb3f2a21fb62"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/components/ui/textarea.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "4c29ce0955b38930d5bdad9214ae82fb55f15cb640e31288534de6ac9415287c",
+      "reviewedSha256": "c0b49d5785cedbec68a64c67dd28f420faf01fcc493d6b59b0fa4853f84c9080",
+      "completeDiffSha256": "74970a6c227c1da3d5bd845e1391fcab309d151845148bce35ea8017fe0dc5fc",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Only type import/use changes; native textarea props/classes unchanged.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/components/ui/textarea.tsx",
+          "sha256": "c0b49d5785cedbec68a64c67dd28f420faf01fcc493d6b59b0fa4853f84c9080"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/contexts/theme-context.ts",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "55329a3b65dd9b93e791f02ce4df566a2d4d342bab50afe5095eae124cc700b6",
+      "reviewedSha256": "b9c520130bb5f1e092ae8b5ca224ac82269686e816e79853098f69cc5d30fb7a",
+      "completeDiffSha256": "984a7dbd4941affe17bcaac170d2fc7320bae1ded607163ec6ac4b4913c8ff8b",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "createContext imported directly and invoked with the same initial state/type; same exported context identity per module instance, no initialization change.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/contexts/theme-context.ts",
+          "sha256": "b9c520130bb5f1e092ae8b5ca224ac82269686e816e79853098f69cc5d30fb7a"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/accounts/account-detail.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "1724572ccd3223e5cf6144f60a367a50b78c837e1a0b8624061fcb56c735c797",
+      "reviewedSha256": "3feacb6e86838d54c21d3661f1c62b9357784940122848f7f98fca56c959e970",
+      "completeDiffSha256": "3a9aaef4d1433f60513261e9a2ca88329ae700c4f311af5b16ff6baa90790eb1",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "concrete-type-contract-defect",
+      "rationale": "Complete diff and uiAccountDetail producer inspected. Null guard prevents a command before account evidence exists; async event wrappers preserve one call/undefined return and catch behavior. However new AccountIdentity.credentialGeneration:number contradicts the actual opaque string|null domain and unconverted SQL projection. Current rendering only displays it, so no observed runtime break, but this newly introduced type contract is wrong.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/accounts/account-detail.tsx",
+          "sha256": "3feacb6e86838d54c21d3661f1c62b9357784940122848f7f98fca56c959e970"
+        },
+        {
+          "path": "src/ui_trading_reads.ts",
+          "sha256": "0c487374e052abdff5edd0b83a0103b2bba2d0a018dbdf1dd73e0d5f4ef8b4ee"
+        },
+        {
+          "path": "src/trading_types.ts",
+          "sha256": "25669cf51079b5845e0d1167d277d77c635468b45b22cbcf060318bcb3c3bfde"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": "Resolved by independently inspected working-tree addendum; e97d0cf historical entry remains accurate.",
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/accounts/account-filter.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "72601dca6e3fc1b3175d02da03173ea7fec6899c5ad0280b1f8cd10907fe1cd1",
+      "reviewedSha256": "8ca65764896d447a9aab2b568cd9306fd73596e7d520e63cbb43106d64696a70",
+      "completeDiffSha256": "6f1cfd4239bae7e9ce910f0da16415260feafb6766f4a261b7f4d35264507339",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Typed observation preserves query cursor binding and selected-original fallback option. Next-page handler now changes cursor only when page.nextCursor is nonempty; valid server pages behave identically, absent cursor no longer installs null state. No write added; local selection remains independent of current metadata page.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/accounts/account-filter.tsx",
+          "sha256": "8ca65764896d447a9aab2b568cd9306fd73596e7d520e63cbb43106d64696a70"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/accounts/account-position-limit.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "455da71646d4329b34060d4b81f66d5a45742c071ab42aca839002dd4503a178",
+      "reviewedSha256": "e53301a5b54e1499b5dee2a94eb238f44a58bf9c70fcf9cc61fe6276b4bce5b9",
+      "completeDiffSha256": "9e7e0d6252d116e9ce4668576f9395d7289231eb02767ecd1521b1ede9dbfdd6",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Sole delta replaces void save expression with braced call. Both invoke save once, return undefined and leave its promise unreturned; disabled rules, draft conflict and range guard unchanged. No microtask/rejection contract change.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/accounts/account-position-limit.tsx",
+          "sha256": "e53301a5b54e1499b5dee2a94eb238f44a58bf9c70fcf9cc61fe6276b4bce5b9"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/accounts/accounts-page.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "55beb30a6aa732a5de8fba7383dc979c78aecfaa3564a6f17d051a6dbd46f735",
+      "reviewedSha256": "6dae64c3ae0d40730ce72b872c33228a80115cc980c8963a2630c40ef5e6a89f",
+      "completeDiffSha256": "9a3a0c793f031521c073030afe3bc9ef4ecfd79e99f10392b00dc603098aa618",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Types constrain existing state and management snapshot only. Query matching, read-only fieldset, reload and incident/account scoping unchanged. Optional chaining on page nextCursor and nullable go type preserve valid pages; malformed absent page now follows existing first-page go behavior instead of throwing.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/accounts/accounts-page.tsx",
+          "sha256": "6dae64c3ae0d40730ce72b872c33228a80115cc980c8963a2630c40ef5e6a89f"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/accounts/accounts.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "88732c76eb59fc6d92caad48463d5079e1f9b7c8b0dc194c9f8d018790410c29",
+      "reviewedSha256": "19c3ba62f22a0635a7ec38dfdee1f2fe12d08f2a4f77031c66f862dcd145a583",
+      "completeDiffSha256": "e550d34f01a1ea3f8debe1fbdac6ee4c78bc763fa795ab43ee895eb88948ab83",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Complete delta read. Creation draft values and permissions unchanged. releaseKillSwitch only performs two local setters; only event caller ignores result, so removal of async introduces no awaited contract change. All other event wrappers preserve side effects/undefined return. Narrow management snapshot still contains every consumed accounts/incidents field.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/accounts/accounts.tsx",
+          "sha256": "19c3ba62f22a0635a7ec38dfdee1f2fe12d08f2a4f77031c66f862dcd145a583"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/accounts/portfolio-total.ts",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "5afd21f002690a6dd317fa139da85df24c8683576319eb9f887f3e37f40d0ca0",
+      "reviewedSha256": "80de2b29c70809d44e4bc8b679268eadd037c84238cf87ad93d8b5668a48b8c2",
+      "completeDiffSha256": "8202a4a27eaa8853574f180ef5d43c0f753b4603f86452537fca249c4ea71cc4",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Complete helper extraction read. Valid observations preserve positive safe-integer timestamp, allowed mode, exact signed-decimal addition, insertion order and unknown counts. New currency typeof guard deliberately stops regex coercion of arrays/numbers into currency names; no valid JSON string currency changes. Existing unit assertions explicitly test array currency and string timestamp rejection, exact tiny decimals and separated live/paper groups.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/accounts/portfolio-total.ts",
+          "sha256": "80de2b29c70809d44e4bc8b679268eadd037c84238cf87ad93d8b5668a48b8c2"
+        },
+        {
+          "path": "frontend/tests/ui-next-foundations.test.tsx",
+          "sha256": "e9dc361ee666e7be080ec2071567bff467ef2579484715cebb399544b1fcac97"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [
+          "frontend/tests/ui-next-foundations.test.tsx"
+        ],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/cockpit/overview.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "c26fd1f614a0c3648a53fdb97c36351c55510b27da9e6ee66d945984a4a88da2",
+      "reviewedSha256": "5e5dd3201ced67ebad8bb24fd72508bf9ce9711a5494b4074c0a8e4880c4441a",
+      "completeDiffSha256": "884dc22aebcd8977a39988f064850d638ac08b7ae15a73a0d94c29910cc325cb",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "All hunks and readDashboard producer inspected. Producer returns non-null Date.now on success, null only on failure; additional null check prevents a thrown empty-message Error from processing null result, without suppressing valid data. Action wrappers preserve undefined return and command arguments. No trade-state default changed.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/cockpit/overview.tsx",
+          "sha256": "5e5dd3201ced67ebad8bb24fd72508bf9ce9711a5494b4074c0a8e4880c4441a"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/journal/journal-page.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "f1ad16edfd39ace725275e65f261a44ad3d9f0ce0dd9824e15de4ddc7eca51e0",
+      "reviewedSha256": "b112362ab6e6706e9360c53cf47c8e94cd6af895d5b21f1ecc19b9ac1ae57cd0",
+      "completeDiffSha256": "570d72b278bbb20b5bf6d1a94bfa36d255b649c46469165ee64960ab040865df",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Both hunks solely convert discarded async call expressions to braced calls. CSV/JSON arguments, risk-event ID, viewer guard and disabled conditions unchanged; handler return remains undefined and rejection handling behavior unchanged.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/journal/journal-page.tsx",
+          "sha256": "b112362ab6e6706e9360c53cf47c8e94cd6af895d5b21f1ecc19b9ac1ae57cd0"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/mcp/mcp-agents.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "af1631698f7f7300442d8f6d63fab88e92827e6631ac363c79300f12042644ac",
+      "reviewedSha256": "1fbeca56b6c55e5e256995f5b4541053670ca9a955cb67954104c222b5dc63e5",
+      "completeDiffSha256": "f29b4e50c72b1e81f118b8b6d37547b185aafa8c2fed64e76ab19240e9bba147",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "All five event hunks are equivalent discarded async calls for runtime mode, deletion, rotation, save and rejection. Busy/role/confirmation policies and async implementations untouched.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/mcp/mcp-agents.tsx",
+          "sha256": "1fbeca56b6c55e5e256995f5b4541053670ca9a955cb67954104c222b5dc63e5"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/mcp/proposal-detail.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "90ad765777776ead322faaf6f7e5f82fa5700e0076603342b2ceb808133dd42b",
+      "reviewedSha256": "77ea27598e4e22e218d6a32d5c09b6000522f9ab47e8bd180ccb977b1eba89d7",
+      "completeDiffSha256": "cb2907540ceac3825ea716ce32a45c733311cb88065a3e5a3bebaf1504c5d92c",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Two event wrappers preserve decide(true/false), busy/role/hash/preflight and rejection-reason gates; no approval policy relaxed.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/mcp/proposal-detail.tsx",
+          "sha256": "77ea27598e4e22e218d6a32d5c09b6000522f9ab47e8bd180ccb977b1eba89d7"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/operations/backups-page.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "bfbc6ee7eb4ec7ba80a16b11b6395f30731bb7de3e4cb4aa7c11e649084a250e",
+      "reviewedSha256": "2c05471bcccabe261d6cfebf015fbc0edc4a3bb60fe1dd84a3482ae4e32e28c5",
+      "completeDiffSha256": "824a709199bf39bb2a305d1ca40cd243991783b22468b36383a99b42179308d4",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Type-only evidence response addition and four equivalent event wrappers. Backup action kind, immutable command table, confirmation requirements, eligible restore guard, read-only rules and job receipt semantics unchanged. Existing maintenance tests cover cancellation, missing phrase, lost response and pending receipt states.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/operations/backups-page.tsx",
+          "sha256": "2c05471bcccabe261d6cfebf015fbc0edc4a3bb60fe1dd84a3482ae4e32e28c5"
+        },
+        {
+          "path": "frontend/tests/operator-maintenance-safety.test.tsx",
+          "sha256": "dc48c527a1fd1933391216d7f28c87f0c3d2e8240df0ea5febb7ebe19e6f9029"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [
+          "frontend/tests/operator-maintenance-safety.test.tsx"
+        ],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/operations/capabilities.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "88916eac1372305ad8135f21d30198922bd04779a87013809ef52dc89330de64",
+      "reviewedSha256": "4a8d6883136c1fba6f2ef05328f7fa32fd73a5ce24ff29b79df40d616064ff84",
+      "completeDiffSha256": "1f96091207fe4e3d5c691e6435a5eb0fc206d326119ad374c78b5a9edab5589d",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Complete extraction and usePoll context read. Observed value now carries address plus discriminant captured by its read closure; address gate still prevents cross-view display. ParameterCard/CapabilityCard preserve key, links, blocker/default/secret interpretation and contract details. usePoll aborts old reads before dispatch; no stale response is retyped as another view. Existing directory tests cover parameter variants and page/filter transition with zero writes.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/operations/capabilities.tsx",
+          "sha256": "4a8d6883136c1fba6f2ef05328f7fa32fd73a5ce24ff29b79df40d616064ff84"
+        },
+        {
+          "path": "frontend/src/shared/api/use-poll.ts",
+          "sha256": "f074cec89fffde11458790b3f9f422a27641b338041ad055d2bd4588810d8c20"
+        },
+        {
+          "path": "frontend/tests/operator-directory-regressions.test.tsx",
+          "sha256": "9a7afcda69263ef24296d824aee2587f4e01b2daf7abe4672c84139d06a2ab1e"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [
+          "frontend/tests/operator-directory-regressions.test.tsx"
+        ],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/operations/deployment.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "632992dc480131becf1401da6291a3e8f2def4fecd7a22771183a0c524a86665",
+      "reviewedSha256": "3cf426f057edb98c13764291026995fc6c18c5636c1f6c7ca7466c8a7a04d352",
+      "completeDiffSha256": "3ac3e53bd097ff525957ed1d5369f9ab5100f117d0b9b9f0c14674c7dc9a3839",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Full extraction inspected: only existing server evidence JSX moved behind same truthy-data conditional and typed parameter. Nullish listener/limits, exact strings for large memory numbers, interpretation and unknown-boundary text preserved. Existing tests assert absent evidence, large integer strings and zero port.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/operations/deployment.tsx",
+          "sha256": "3cf426f057edb98c13764291026995fc6c18c5636c1f6c7ca7466c8a7a04d352"
+        },
+        {
+          "path": "frontend/tests/deployment-evidence.test.tsx",
+          "sha256": "29f66ff23e2a3a1877b5a8dc87da83802748e74e7c1f012c5d53b8f5fe4621aa"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [
+          "frontend/tests/deployment-evidence.test.tsx"
+        ],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/operations/jobs-page.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "7d65d0b97c6b785161a993ca2cf62d15e6107eebf179070c6c78b444cf1cf170",
+      "reviewedSha256": "559f8ff150b5da24b526d82934186ed8a8e7d59969b16067018249e794a5689e",
+      "completeDiffSha256": "093d516954be80bf67a64c3f16b1eb671796b858d5ab9b130827aa6eb9d0b793",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Complete typed-union delta read. Same context capture and gate; explicit job/jobs discriminants suppress mismatched payload instead of accessing absent fields. Valid single/list payloads, previous restore evidence and pagination remain unchanged. Nonempty nextCursor guard does not synthesize a command. Existing tests cover obsolete response navigation, stale warning, original restore result and read-only page cursor.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/operations/jobs-page.tsx",
+          "sha256": "559f8ff150b5da24b526d82934186ed8a8e7d59969b16067018249e794a5689e"
+        },
+        {
+          "path": "frontend/tests/operator-maintenance-safety.test.tsx",
+          "sha256": "dc48c527a1fd1933391216d7f28c87f0c3d2e8240df0ea5febb7ebe19e6f9029"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [
+          "frontend/tests/operator-maintenance-safety.test.tsx"
+        ],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/operations/logs.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "8ad5f0d6546113a9fed9e420dc2ff4581e55d23cf13111b9de4148d0f4571f21",
+      "reviewedSha256": "e70c15a414d5cc7339fa851ccbdedd45eea3e7a9ec7a467c196ea91ebd9c74ce",
+      "completeDiffSha256": "494e04c99fa8d6af959d0eb5b34defd31d33042614916ac5469df4b1ea1b0796",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Two clipboard event wrappers preserve selected/all-match collections and user labels. Both discard same Promise with unchanged undefined event return and clipboard-error behavior.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/operations/logs.tsx",
+          "sha256": "e70c15a414d5cc7339fa851ccbdedd45eea3e7a9ec7a467c196ea91ebd9c74ce"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/operations/operation-status-types.ts",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": null,
+      "reviewedSha256": "2dd4354f567eb016cb26507f2ff923cfa4a692663376026815caca3537410bbb",
+      "completeDiffSha256": "645a238262320b584565897d59147c0fda04b22ef51b53ab70fe29a9a13d3acb",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "New module contains only exported types and a type-only import. It emits no operational code; nullable backup proofs and admin/viewer/session metadata model the consumer fields without altering recovery or operations policies. This is no runtime authorization validation.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/operations/operation-status-types.ts",
+          "sha256": "2dd4354f567eb016cb26507f2ff923cfa4a692663376026815caca3537410bbb"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/operations/recovery-page.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "ccbeb47d97cd97ff3fa48e75468db4d995043e5eaa2699cf0fe3733255709a6c",
+      "reviewedSha256": "b5eb9ed6c72d05c0a0ecbe196612b94b14a6ffc3d80537ffe80e6a9652cdae86",
+      "completeDiffSha256": "4eb43c9e245a8c25e41abd73771c64ab87632f510d256fb7a63a0d8e2d753f98",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Type-only response substitutions and four equivalent event wrappers. Issues still use the same key function; secret values remain in separate input state, dashboard keys excluded, managed/external editability and readOnly repair gates untouched. Existing repair assertions cover immutable/external secrets, missing issue names and completed recovery without trading approval.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/operations/recovery-page.tsx",
+          "sha256": "b5eb9ed6c72d05c0a0ecbe196612b94b14a6ffc3d80537ffe80e6a9652cdae86"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/operations/runtime-parameters.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "2fb541dc0cfca35f810c9f6595a11d0eb39a66d8bb72f1e1f35eaca164b6e6f9",
+      "reviewedSha256": "bb4c0325606f8295bb9a92e95a4339d13082063ccaeb4b615f2abe616004998c",
+      "completeDiffSha256": "68b96248c3f65bd5b459cca07d418468a13f3dc2e38c4dce074b18b3e587ff16",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "All helper extraction hunks read with current tests. Iteration still returns first editable non-secret error: declared supported type/actual typeof first, then numeric safe-integer/range, then string maxLength/enumeration. False/zero/null/absent/empty display cases retained exactly, parse controls unchanged. Runtime evidence and foundations tests assert numeric limits, empty NaN, unsupported types, unknown-field retention and secret/read-only controls.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/operations/runtime-parameters.tsx",
+          "sha256": "bb4c0325606f8295bb9a92e95a4339d13082063ccaeb4b615f2abe616004998c"
+        },
+        {
+          "path": "frontend/tests/runtime-evidence-regressions.test.tsx",
+          "sha256": "f12a7cba350cd060f4fe8e2c29d71cd1a1975311b86dbca2f2f429ccc3575d5a"
+        },
+        {
+          "path": "frontend/tests/ui-next-foundations.test.tsx",
+          "sha256": "e9dc361ee666e7be080ec2071567bff467ef2579484715cebb399544b1fcac97"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [
+          "frontend/tests/runtime-evidence-regressions.test.tsx",
+          "frontend/tests/ui-next-foundations.test.tsx"
+        ],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    },
+    {
+      "path": "frontend/src/features/operations/setup-review-tree.tsx",
+      "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "historicalSha256": "6f96e06e0c5167eac4704b35a56c24613b649bb054981e12c1a7592085135e19",
+      "reviewedSha256": "bdab196e83eca8418529c2d4ff12ba785cb426487b8a1f2f137b2d04b759743d",
+      "completeDiffSha256": "f0431bfb1f453500bda372cfc9ee8f076e2fad0d89d6c27568bc3db0dc55a825",
+      "fullHistoricalDiffInspected": true,
+      "assessment": "scoped-delta-reviewed-no-regression-found",
+      "rationale": "Typed observation preserves query identity, side/path resets and null display. Guards avoid undefined navigation paths/cursors. Server ui_review_tree nodeEntry always provides path for expandable entries and pagination always emits nextCursor with hasMore, so valid current producer behavior is unchanged. An inconsistent external payload could now be labelled fully displayed; malformed-contract handling remains outside this valid-producer delta conclusion.",
+      "contextBindings": [
+        {
+          "path": "frontend/src/features/operations/setup-review-tree.tsx",
+          "sha256": "bdab196e83eca8418529c2d4ff12ba785cb426487b8a1f2f137b2d04b759743d"
+        },
+        {
+          "path": "src/ui_review_tree.ts",
+          "sha256": "d9ca26a03ef71ad95f888e1865e7cfdd6beb7167b7b3aa1b9fdfa9256126ae67"
+        }
+      ],
+      "testEvidence": {
+        "inspectedTestPaths": [],
+        "testsRunByReviewer": false
+      },
+      "remainingObligation": null,
+      "limits": [
+        "This binds the complete stated delta, not unrelated original implementation or current scanner closure."
+      ]
+    }
+  ],
+  "sourceChangesApplied": false,
+  "platformChangesApplied": false,
+  "existingImplementationCertificatesApproved": false,
+  "limitations": [
+    "No full provider implementation receipt or root-build approval is granted.",
+    "Additional frontend paths beyond first40 and other changed inputs remain outside this report.",
+    "No full-current-HEAD or all-scanner-zero claim."
+  ],
+  "postReviewAddenda": [
+    {
+      "path": "frontend/src/features/accounts/account-detail.tsx",
+      "status": "identified-type-contract-defect-fixed-in-working-tree",
+      "baseReviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "baseSha256": "3feacb6e86838d54c21d3661f1c62b9357784940122848f7f98fca56c959e970",
+      "workingTreeRawSha256": "0f4a5f5ed4d7c4bee8d167796a202f4fd760947f95bccb5970bd02d2b64b0fcf",
+      "workingTreeLfNormalizedSha256": "0f4a5f5ed4d7c4bee8d167796a202f4fd760947f95bccb5970bd02d2b64b0fcf",
+      "independentVerification": "Read exact one-line diff; replacement is limited to the credentialGeneration type. Confirmed uiAccountDetail selects opaque credential_generation unchanged and spreads it into account; authoritative TradingAccount is string|null. No executable expression, guard, rendered field or command changed.",
+      "producerBindings": [
+        {
+          "path": "src/ui_trading_reads.ts",
+          "sha256": "0c487374e052abdff5edd0b83a0103b2bba2d0a018dbdf1dd73e0d5f4ef8b4ee"
+        },
+        {
+          "path": "src/trading_types.ts",
+          "sha256": "25669cf51079b5845e0d1167d277d77c635468b45b22cbcf060318bcb3c3bfde"
+        }
+      ],
+      "rootReportedValidation": [
+        "Frontend compiler tsc-b passed",
+        "operator-page-routes54 tests passed",
+        "TypeScript before/after emitted JS byte-identical"
+      ],
+      "validationLimit": "Validation results were reported by root; this agent independently inspected the source delta and producer contract, did not rerun them.",
+      "remainingObligation": null
+    },
+    {
+      "kind": "focus-gap-closed-by-real-browser-execution",
+      "evidencePath": "reports/security-services/fixer-confirmation-browser-focus-evidence.json",
+      "sha256": "5ebcfa6a5b2de5fb6c7229429f740e26700efa1fa16ae1124ea3e2a42ae30874",
+      "outcome": "Chromium, Firefox and WebKit passed initial keyboard focus, six forward/reverse tab containment steps and return-to-trigger after Escape and valid confirmation. No product changes.",
+      "remainingObligation": null
+    },
+    {
+      "kind": "dependency-install-execution-linkage-established",
+      "evidencePath": "reports/security-services/fixer-frontend-dependency-ci-binding.json",
+      "sha256": "190120f148a40164736da15ee9936ad6408cbf2df965ba4a8f462b32af79f173",
+      "outcome": "Exact package/lock equality c684/CI merge108a9f4/e97; CI clean install and frontend integration/build outputs read. No claimed full e97 CI completion.",
+      "remainingObligation": null
+    }
+  ],
+  "currentBoundedReviewRemainingObligations": []
+}

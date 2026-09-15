@@ -1,3 +1,4 @@
+import { fixtureValue } from "./fixture-value";
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -55,7 +56,7 @@ describe('adaptive risk original evidence', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Eine frühere Empfehlung ist keine aktuelle Freigabe.');
     fireEvent.click(screen.getByRole('button', { name: 'Originale Datenbasis öffnen' }));
     expect(await screen.findByText('Original source no longer available')).toBeVisible();
-    const read = api.jsonRequest.mock.calls.find(([url]) => url.includes('kind=sources'))![0];
+    const read = fixtureValue(api.jsonRequest.mock.calls.find(([url]) => url.includes('kind=sources')), 'sources read request')[0];
     expect(read).toContain('id=evaluation%2F1');
     expect(read.includes('channelId=source')).toBe(kind === 'legacy-evaluations');
     fireEvent.click(screen.getByRole('button', { name: 'Originale Datenbasis schließen' }));

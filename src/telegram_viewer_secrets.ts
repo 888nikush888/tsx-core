@@ -169,4 +169,3 @@ export function telegramViewerSecretStoreFromEnvironment(
     env.TELEGRAM_VIEWER_SECRET_DIR || path.join(process.cwd(), 'telegram_viewer_secrets'),
   );
 }
-

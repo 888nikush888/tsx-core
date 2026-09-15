@@ -9,13 +9,13 @@ function Harness() {
   const { confirm, confirmationDialog } = useConfirmationDialog();
   return (
     <>
-      <button type="button" onClick={() => void confirm({
+      <button type="button" onClick={() => { confirm({
         title: "Konto entfernen",
         description: "Historie bleibt erhalten.",
         confirmationText: "KONTO ENTFERNEN",
         confirmLabel: "Entfernen",
         destructive: true,
-      }).then((value) => setResult(value || "cancelled"))}>Öffnen</button>
+      }).then((value) => setResult(value || "cancelled")); }}>Öffnen</button>
       <output>{result}</output>
       {confirmationDialog}
     </>

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { type HTMLAttributes } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -7,7 +7,7 @@ const BRAND_ASSET = "/brand/tsx-core-logo.png";
 type LogoVariant = "full" | "mark";
 
 interface LogoProps extends Omit<
-  React.HTMLAttributes<HTMLSpanElement>,
+  HTMLAttributes<HTMLSpanElement>,
   "children"
 > {
   readonly size?: number;

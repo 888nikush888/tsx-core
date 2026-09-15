@@ -1,0 +1,16 @@
+{
+  "testFiles": 226,
+  "baseRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+  "subsequentTestOnlyChange": "Viewer nonError fixture restored to raw string rejection; assertion raw value. Existing historical runtime forwarding unchanged. Separate targettest passed after completed fullmodule; fullmodule did not yet include restored fixture.",
+  "status": "Source changes fullmodule verified; local followup tests separately verified; freshCIpending.",
+  "logSha256": "98669343a51f425d676adb3fd0240b11f14f78f35c87be8ee389a9ccd0bbcec0",
+  "metrics": [
+    96.51,
+    86.52,
+    99.2,
+    96.51
+  ],
+  "kind": "delivery-viewer-module-verification",
+  "log": "reports/security-services/fixer-delivery-viewer-module.log",
+  "actualExit": 0
+}

@@ -56,6 +56,37 @@ try {
     await assert.rejects(prepareProtectedOrderIdentityRequests(account, 'fresh', fresh.entry, fresh.protectiveStop), /ORDER_IDENTITY_UNPROVEN/);
     await getDatabase().run(`UPDATE trading_operations SET ${column}=? WHERE id=?`, [saved[column], operationId]);
   }
+  const originalOrders = await getDatabase().all('SELECT * FROM trading_orders ORDER BY id');
+  for (let unit = 0; unit <= 32; unit += 1) {
+    const invalidId = `a${String.fromCodePoint(unit)}b`;
+    const invalidEntry = { ...fresh.entry, clientOrderId: invalidId };
+    await assert.rejects(prepareProtectedOrderIdentityRequests(account, 'fresh', invalidEntry, fresh.protectiveStop), {
+      name: 'OrderIdentityBindingError', code: 'ORDER_IDENTITY_UNPROVEN',
+      message: 'ORDER_IDENTITY_UNPROVEN: Protected request lacks distinct exact client identifiers.',
+    });
+    const expected = JSON.parse(saved.expected_orders_json);
+    expected[0].client_order_id = invalidId;
+    await getDatabase().run('UPDATE trading_operations SET expected_orders_json=? WHERE id=?', [JSON.stringify(expected), operationId]);
+    const injected = await getDatabase().get('SELECT * FROM trading_operations WHERE id=?', [operationId]);
+    try {
+      await assert.rejects(prepareProtectedOrderIdentityRequests(account, 'fresh', fresh.entry, fresh.protectiveStop), {
+        name: 'OrderIdentityBindingError', code: 'ORDER_IDENTITY_UNPROVEN',
+        message: 'ORDER_IDENTITY_UNPROVEN: Original journal contains an invalid client identifier.',
+      });
+      assert.deepEqual(await getDatabase().get('SELECT * FROM trading_operations WHERE id=?', [operationId]), injected);
+      assert.deepEqual(await getDatabase().all('SELECT * FROM trading_orders ORDER BY id'), originalOrders);
+    } finally {
+      await getDatabase().run('UPDATE trading_operations SET expected_orders_json=? WHERE id=?', [saved.expected_orders_json, operationId]);
+    }
+  }
+  for (const suffix of ['!', '\u007f', '\u0085', '\u00a0', '😀']) {
+    const id = `accepted-${suffix}`;
+    const accepted = await fixture(id);
+    const prepared = await prepareProtectedOrderIdentityRequests(account, id, accepted.entry, accepted.protectiveStop);
+    assert.equal(prepared.entry.clientOrderId, accepted.entry.clientOrderId, 'Non-C0/space bytes remain exact.');
+    await journal(id, prepared);
+    assert.deepEqual(await prepareProtectedOrderIdentityRequests(account, id, accepted.entry, accepted.protectiveStop), prepared);
+  }
   const altered = { ...tagged, entry: { ...tagged.entry, providerBatchTag: { version: 1, tag: 'foreign' } } };
   const alteredJson = JSON.stringify(altered);
   await getDatabase().run('UPDATE trading_operations SET request_json=?,request_hash=? WHERE id=?', [alteredJson, digest(alteredJson), operationId]);

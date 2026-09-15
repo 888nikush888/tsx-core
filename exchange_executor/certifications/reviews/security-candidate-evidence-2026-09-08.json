@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "reviewed_candidate_evidence_refresh",
+  "reviewedBy": "root, independently of the Python implementation agent",
+  "baseRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "sourceChanges": [
+    "exchange_executor/tools/audit_derivatives_candidates.py"
+  ],
+  "evidenceChanges": {
+    "exchange_executor/tests/test_history_coverage.py": {
+      "beforeSha256": "cad5b1ac78ea0a06ec8313154dd48caedbc812e80921bb63a63edccec2508c66",
+      "afterSha256": "03f0a27217751ab0f180e2659cedcc04898290788f753c3655581d92d7b98ad8"
+    },
+    "exchange_executor/tests/test_mutation_identity.py": {
+      "beforeSha256": "1a797ef8bfdfc857696ce8a521ac6a4be143fe6c597e09668f6e4ac65691bc70",
+      "afterSha256": "4603e8f835f705e621b6e71c1cfbc775dfb37be60593010f19d8567fa127adc0"
+    },
+    "exchange_executor/tests/test_kucoin_provider_data.py": {
+      "beforeSha256": "c2cf1d9573cfbd5e572a7911d5966495a416292bcce050d3c494f99692cd24d3",
+      "afterSha256": "f48ddb0f2e4b4495ca8d1f371eb70de505ad8d5e5fad1571184dafa94d5a1d74"
+    }
+  },
+  "independentReview": "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+  "providerDeclarationsUnchanged": true,
+  "decisionsAndReasonsUnchanged": true,
+  "assessmentCount": 103,
+  "oldInventoryHash": "83b7705b10eb6aded730f0f2b4e62f9c852480b33ffa950d1a3f2a771239160d",
+  "newInventoryHash": "5a76c0381e97811ce155f2eaa523570cabdd0bc0d8e81b72c8950f0d8f0dd69f",
+  "oldAssessmentsHash": "6c9f16979ecabc29bdb518e8af758eba20f1efc595e09d9a8472c85aed49cd55",
+  "newAssessmentsHash": "251bf1783593245fe1f0eb3ca2b58ed4158e66e79ad8f33177691fff10f59395",
+  "review": "Complete four-file diff reviewed. Static fixture methods preserve arguments; closure defaults bind the intended iteration; unittest-managed NOW patch restores state; nested contexts preserve order. Inventory helper extraction retains typed verdict, inventory/row identity, decision and implementation checks. All 103 assessment decisions, reasons and provider declarations compare unchanged; only reviewed file hashes and byte count are renewed.",
+  "providerAcceptanceVerified": false,
+  "implementationReceiptsRenewed": false,
+  "liveProviderActionsPerformed": false,
+  "validation": {
+    "python": "3.12.14",
+    "dependencies": "Hash-verified runtime and development locks",
+    "tests": 546,
+    "passed": 546,
+    "failed": 0,
+    "seconds": 108.29,
+    "logSha256": "508d982c7ace9e72e7e442bc1bd57b68af749442f8143e559d0023b9d050698a",
+    "command": "python -m unittest discover -s exchange_executor/tests -v"
+  }
+}

@@ -32,13 +32,18 @@ function testCanonicalReviewOrder() {
   assert.notEqual(reviewHash({ ...value, a: [{ z: 0, A: false }, null] }), expected);
 }
 function testReviewCredentialRedaction() {
-  for (const userinfo of ['user:pass', 'u:p:a', ':u:p', 'u:p:', ':::']) {
-    assert.equal(redactReview(`HTTPS://${userinfo}@example.invalid/x`, 0, false), 'HTTPS://[redigiert]@example.invalid/x');
+  // Empty usernames/passwords are still credentials and must never reach reviews.
+  for (const userinfo of ['user:pass', 'u:p:a', ':u:p', 'u:p:', ':::', ':pass', 'user:', '::', ':']) {
+    for (const personalData of [true, false]) {
+      assert.equal(redactReview(`HTTPS://${userinfo}@example.invalid/x`, 0, personalData), 'HTTPS://[redigiert]@example.invalid/x');
+    }
   }
-  for (const userinfo of ['user', ':pass', 'user:', '::']) {
+  for (const userinfo of ['user', 'user%3Aname']) {
     const source = `https://${userinfo}@example.invalid/x`;
     assert.equal(redactReview(source, 0, false), source);
   }
+  assert.deepEqual(redactReview({ links: ['http://:pass@example.invalid', 'https://user:@example.invalid'] }),
+    { links: ['http://[redigiert]@example.invalid', 'https://[redigiert]@example.invalid'] });
   for (const suffix of ['@example.invalid', '']) {
     const source = 'https://' + ':'.repeat(100000) + suffix;
     const expected = suffix ? 'https://[redigiert]@example.invalid' : source;
@@ -109,6 +114,24 @@ try {
   const resource = await createWorkflowResourceDraft({ kind: 'channel', name: 'Initial', configuration: { channelId: 'review-channel' } });
   const proposal = await createMcpProposal({ agentId: agent.id, action: 'workflow.resource_update', payload: { id: resource.id, name: 'Requested', configuration: resource.configuration } });
   const initial = await uiMcpProposalReview(proposal.id);
+  const database = getDatabase();
+  const originalAll = database.all;
+  let resourceReads = 0;
+  try {
+    database.all = function (sql, ...parameters) {
+      if (String(sql).includes('SELECT * FROM workflow_resource_versions') && ++resourceReads === 2) {
+        throw new Error('Preflight connection failed: Bearer SYNTHETIC_REVIEW_TOKEN https://user:SYNTHETIC_PASSWORD@example.invalid /srv/internal/config PRIVATE_DIAGNOSTIC_VALUE');
+      }
+      return originalAll.call(this, sql, ...parameters);
+    };
+    const failedReview = await uiMcpProposalReview(proposal.id);
+    assert.equal(failedReview.freshPreflight.allowed, false);
+    assert.equal(failedReview.freshPreflight.blockers[0], 'Proposal validation could not complete. Check the proposal fields and retry.');
+    assert.doesNotMatch(JSON.stringify(failedReview), /SYNTHETIC_REVIEW_TOKEN|SYNTHETIC_PASSWORD|\/srv\/internal|PRIVATE_DIAGNOSTIC_VALUE/);
+    assert.equal(failedReview.reviewHash, initial.reviewHash, 'Display redaction must preserve approval identity.');
+  } finally {
+    database.all = originalAll;
+  }
   assert.equal(initial.before.name, 'Initial'); assert.equal(initial.requested.name, 'Requested');
   assert.equal(initial.reviewHash, (await uiMcpProposalReview(proposal.id)).reviewHash, 'Read clocks must not invalidate unchanged content.');
   await updateWorkflowResourceDraft(resource.id, { name: 'Concurrent', configuration: resource.configuration, baseEditRevision: 0 });

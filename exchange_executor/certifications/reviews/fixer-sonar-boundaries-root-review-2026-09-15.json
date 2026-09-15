@@ -1,0 +1,25 @@
+{
+  "kind": "root-independent-viewer-and-legacy-migration-review",
+  "baseRevision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+  "assessment": [
+    "Viewer message guard retains nullish fallback, exact valid string contents and4096character truncation. Invalid JSON message values fail before bot invocation and retain existing bounded retry persistence.",
+    "Viewer regressions use real isolated SQLite state, verify retry count/backoff and real bot failure recovery; no production database or network credentials used.",
+    "Legacy migration preserves historical numeric/string IDs without object coercion. Safeinteger numbers retain decimal String form, strings remain exact including empty/whitespace; unsupported values fail before their save.",
+    "Legacy migration still writes sequentially and may retain earlier writes when later group fails. Test explicitly verifies partial progress and retention of legacy file, plus propagated save errors and missing-file behavior.",
+    "Forwarder AST fixture compiles fixed repository functions and supplies data separately; fixture is not an arbitrary-code sandbox."
+  ],
+  "targetValidation": {
+    "fiveBackendSuitesExit": 0,
+    "frontendSixTestsExit": 0,
+    "backendTypecheckExit": 0,
+    "backendAndFrontendLintExit": 0,
+    "frontendBuildExit": 0
+  },
+  "sourceRawHashes": {
+    "src/forwarder.ts": "0a6ed01d53a0968ae0202259a32e65461e144b8812b750b34f615930c3cc2a59",
+    "src/telegram_viewer/service.ts": "34a727cb4b41de698e4315db435492b0d9e9792a21ef8b79cba5f3b182a1dd16",
+    "tests/test_forwarder_error_types.js": "ce6e2d6041a547238d40c2438ad25c9458c19bd6f8b41a0c32b507caa52acfc3",
+    "tests/test_telegram_viewer_service.js": "016bbfeff90d78a16df42235dba07faa9a903d20eaa8859bdc51b2337804b877"
+  },
+  "remaining": "Fullmodule35365running and fresh scanner verification pending."
+}

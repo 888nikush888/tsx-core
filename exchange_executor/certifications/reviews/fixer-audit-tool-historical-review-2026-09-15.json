@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-complete-historical-audit-tool-review",
+  "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+  "entries": [
+    {
+      "path": "exchange_executor/tools/audit_derivatives_candidates.py",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "c5fe945be45e30daf115bb3b632e048fbc098526",
+        "gitBlobSha256": "686356eef69e9bb428f7b8f48627642652ed405886bfa6e536cfac107bc444cf"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "c937fbc46b1d2068ede71b8a37f243d6e2e78386",
+        "gitBlobSha256": "34ee65bf13f4820d831e16f815c97151bec2e8f1b4af0e0f838075322d4e03a1"
+      },
+      "fullHistoricalDeltaSha256": "c6d02823f671e245455846d615f8e4094771ee8895609caa9be2d5397e18c54c",
+      "completeHistoricalDeltaCoverage": true,
+      "assessment": [
+        "Shared contracts now accessed through imported module attributes immediately at the same call point; tuple ordering and imported modules unchanged.",
+        "Local result variable annotation does not alter runtime.",
+        "Completion verdict extraction preserves typed-verdict check before attribute access, inventory/exchange/decision checks, and existing/eligible profile plus implementation evidence short-circuit logic. No trusted-verifier requirement removed.",
+        "UnicodeDecodeError is a ValueError subclass; InventoryError directly derives from ValueError. Removed duplicate catch classes remain caught by the retained ValueError with same wrapper/cause or CLI failure response."
+      ],
+      "limits": [
+        "Module attribute access under malicious monkeypatch/dynamic module mutation not claimed identical; actual ordinary shared modules inspected.",
+        "No provider or receipt approval."
+      ]
+    }
+  ],
+  "validation": {
+    "command": "locked Python unittest discover test_candidate_review_policy.py",
+    "exit": 0,
+    "log": "reports/security-services/fixer-audit-tool-review-tests.log",
+    "sha256": "a51f2d6925bba997f15f0e8bd268f5c4acf83772bcab1129a8fccd388f0b35fa"
+  }
+}

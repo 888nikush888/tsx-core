@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-four-open-source-delta-followup",
+  "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+  "previousDeltaRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+  "generatedAt": "2026-09-13T08:40:14.400Z",
+  "entries": [
+    {
+      "path": "src/exchange_entry_deadline.ts",
+      "classification": "invalid-input-diagnostic-and-transport-boundary-change-no-valid-order-regression",
+      "completeDeltaFollowup": true,
+      "rationale": "Primitive truthy request now yields no captured deadline; historical helper threw ENTRY_DEADLINE_UNPROVEN. Actual submitOrder/submitProtectedEntry entry points accept statically structured ExchangeOrderRequest; valid objects retain original deadline capture before credential await and changed/expired guards after it. Executor Application._submit_order/_submit_protected_entry explicitly reject nondict request/entry before invoking adapter. Direct real-method offline probe without credentials, registry, adapter or application initialization confirms ten malformed cases rejected before provider code. This is a bounded invalid-input behavior difference (may contact internal executor/read token), not permission to submit invalid orders or proof of a valid trading regression. No source fix recommended on current evidence.",
+      "contexts": [
+        {
+          "path": "src/ccxt_exchange.ts",
+          "workingFileSha256": "adc917238be037b2de1a52b7297eb312fbff80cec3887d0a0fc656c612400cdb",
+          "gitBlobSha256": "adc917238be037b2de1a52b7297eb312fbff80cec3887d0a0fc656c612400cdb"
+        },
+        {
+          "path": "src/trading_order_request.ts",
+          "workingFileSha256": "19f0a6c7fe6158221c41174e97d9ff9d68ea31fa0cb172e889b394acfcc5d12d",
+          "gitBlobSha256": "19f0a6c7fe6158221c41174e97d9ff9d68ea31fa0cb172e889b394acfcc5d12d"
+        },
+        {
+          "path": "exchange_executor/server.py",
+          "workingFileSha256": "90442c0b962745834e34b6d2fb1a833561040c5b756acd2f1557e5e05a17f5a7",
+          "gitBlobSha256": "90442c0b962745834e34b6d2fb1a833561040c5b756acd2f1557e5e05a17f5a7"
+        },
+        {
+          "path": "tests/test_entry_deadline_transport.js",
+          "workingFileSha256": "f1084e8f318c32833e52c9bc346008590e7cea3d75d39256cdb283a37b05da8e",
+          "gitBlobSha256": "f1084e8f318c32833e52c9bc346008590e7cea3d75d39256cdb283a37b05da8e"
+        }
+      ],
+      "residual": "No assertion of byte-for-byte error identity for invalid runtime values. If local rejection-before-token is intended for all malformed nonobject inputs, that additional API requirement must be specified separately.",
+      "workingFileSha256": "dcaa0c801730ff2f65cc7c96943702551d39e7c7e547451255b8b14122538d7b",
+      "gitBlobSha256": "dcaa0c801730ff2f65cc7c96943702551d39e7c7e547451255b8b14122538d7b"
+    },
+    {
+      "path": "src/secret_store.ts",
+      "classification": "confirmed-bounded-public-api-regression",
+      "completeDeltaFollowup": true,
+      "rationale": "Public constructor supports an injected NodeJS.ProcessEnv. With initially empty writable but nonconfigurable DASHBOARD_VIEWER_TOKEN, initialize and rotateDashboardToken(viewer) succeed. removeDashboardViewerToken now resolves, marks source missing/configured false and removes managed file, but nonconfigurable env retains the token. Historical strict delete throws TypeError for exactly this property. Offline real class reproduction confirms the false successful removal. Normal process.env and ordinary {} injection remain unaffected; no production exploit or existing account exposure asserted.",
+      "contexts": [
+        {
+          "path": "tests/test_secret_store.js",
+          "workingFileSha256": "7bfde471127c29506e21db9624547216d7fc4973e8b2fad97ec0f34717e70aaf",
+          "gitBlobSha256": "b2392c99e4a9aa267a638fa4883555b525966715cd288746f5f93741dcbd504f"
+        }
+      ],
+      "fixProposal": "Check Reflect.deleteProperty return; if false throw a TypeError before this.sources.set(name, missing). Preserve current unlink order for minimum historic-behavior restoration. Add a focused public-API regression using a temporary store and writable/nonconfigurable initially empty injected property, asserting rejection and no falsely missing status. Do not print token values.",
+      "residual": "A rejected removal historically could already unlink the managed file before environment deletion fails; changing atomicity is separate scope and not required for minimum regression restoration.",
+      "workingFileSha256": "76f05fe70032daaf176857a7c27406190111cf665d8858da3e6850a1b2de9d9e",
+      "gitBlobSha256": "ba7d7565a766701aa664093ead81c1badb5dede465f58d0ceadae4542f99f71e"
+    },
+    {
+      "path": "src/telegram_viewer/contracts.ts",
+      "classification": "legitimate-input-validation-hardening-current-producer-compatible",
+      "completeDeltaFollowup": true,
+      "rationale": "Compared full historic service/client diff, current consumers, formatter callback gate and source producers. Core viewer_repository emits all notification context fields as string/null, allowlisted eventType/mode, numeric seq/times, object details and nondecreasing numeric nextSeq. viewer_projection emits positive numeric page limits, nonnegative offsets and boolean hasMore. Thus new nullableContext and metadata checks accept normal persisted Core records; absent optional contexts are materialized null by producer. Command/route parsing retained and callback syntax is checked before route helper. Numeric/string private Telegram IDs remain accepted while object-coercion identities, malformed update IDs, cursors and records now reject before queuing/advancing cursor. Existing real-service and contract suites pass including delivery retries and adverse inputs.",
+      "contexts": [
+        {
+          "path": "src/telegram_viewer/service.ts",
+          "workingFileSha256": "d20fe15cf337f22f40dbb5962f2513dfa0590184009a074bbf1b62586c7bfdae",
+          "gitBlobSha256": "d20fe15cf337f22f40dbb5962f2513dfa0590184009a074bbf1b62586c7bfdae"
+        },
+        {
+          "path": "src/telegram_viewer/clients.ts",
+          "workingFileSha256": "5d7420c22147747bb886a14c0b07041353f5945d224525ce0bd728c158908b9a",
+          "gitBlobSha256": "5d7420c22147747bb886a14c0b07041353f5945d224525ce0bd728c158908b9a"
+        },
+        {
+          "path": "src/telegram_viewer/formatters.ts",
+          "workingFileSha256": "2025f0799045188b0981ff67a30890a55e2234c022a88642cdfa18dd0735fe59",
+          "gitBlobSha256": "2025f0799045188b0981ff67a30890a55e2234c022a88642cdfa18dd0735fe59"
+        },
+        {
+          "path": "src/viewer_repository.ts",
+          "workingFileSha256": "e209d53691318c396d3615a2896ab24dd340515e4437ac2a552ef7f109651d4f",
+          "gitBlobSha256": "e209d53691318c396d3615a2896ab24dd340515e4437ac2a552ef7f109651d4f"
+        },
+        {
+          "path": "src/viewer_projection.ts",
+          "workingFileSha256": "b907ea161dba31172cb2646bacb1dbf5fd7b0cd750800d0fc8a6f12b51c46740",
+          "gitBlobSha256": "b907ea161dba31172cb2646bacb1dbf5fd7b0cd750800d0fc8a6f12b51c46740"
+        },
+        {
+          "path": "src/viewer_types.ts",
+          "workingFileSha256": "d164aef9a37437b3ef7cf0ea3efb11c8e68b324c6550c30fc53b03607d5792bf",
+          "gitBlobSha256": "d164aef9a37437b3ef7cf0ea3efb11c8e68b324c6550c30fc53b03607d5792bf"
+        },
+        {
+          "path": "tests/test_telegram_viewer_contracts.js",
+          "workingFileSha256": "13cc1cb7dff87788d648935bb7fb5434d188d50fe17acdbf212db9e9cde2901c",
+          "gitBlobSha256": "13cc1cb7dff87788d648935bb7fb5434d188d50fe17acdbf212db9e9cde2901c"
+        },
+        {
+          "path": "tests/test_telegram_viewer_service.js",
+          "workingFileSha256": "bce7d8926a048286d5ad64fcee43c16f95e4329a4eee6e8995b3eb46a6bfda9c",
+          "gitBlobSha256": "bce7d8926a048286d5ad64fcee43c16f95e4329a4eee6e8995b3eb46a6bfda9c"
+        }
+      ],
+      "residual": "Corrupt or externally handcrafted persisted delivery payloads may now retry instead of formatting partial data; this is explicit fail-closed behavior, not established normal historical compatibility loss. No live Telegram access used.",
+      "workingFileSha256": "d980b57e4cd5b002ade43ddc7abc125fb5f292a544d4572d4fc0f8752cfaf329",
+      "gitBlobSha256": "d980b57e4cd5b002ade43ddc7abc125fb5f292a544d4572d4fc0f8752cfaf329"
+    },
+    {
+      "path": "src/trading_channel_risk.ts",
+      "classification": "legitimate-atomicity-and-coercion-hardening-execution-gap-closed-for-reviewed-delta",
+      "completeDeltaFollowup": true,
+      "rationale": "New transaction wraps only loadWorkflowRiskState select/insert-or-update/readback. withDatabaseTransaction serializes otherwise and reuses current owner when nested. This prevents failed readback from publishing partial policy state; existing guard test checks both create and update rollback. Tier decimalInput still accepts string and native number and rejects object coercion intentionally; existing test explicitly proves no toString invocation and numeric/string compatibility. Additional offline actual database probe concurrently initializes same fixed policy 12 times (one row), concurrently applies manual block 12 times and invokes nested transaction successfully. FX risk suite checks source-bound money and replay/invalidation decisions. No new provider operation exists inside load; decision evaluation remains its own original transaction.",
+      "contexts": [
+        {
+          "path": "src/db.ts",
+          "workingFileSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8",
+          "gitBlobSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8"
+        },
+        {
+          "path": "tests/test_channel_risk_type_guards.js",
+          "workingFileSha256": "c70283b5ab736f3ad1fbc61c19d8ac82128ef3ad0eaeca4a7074c985615e5425",
+          "gitBlobSha256": "c70283b5ab736f3ad1fbc61c19d8ac82128ef3ad0eaeca4a7074c985615e5425"
+        },
+        {
+          "path": "tests/test_trading_fx_channel_risk.js",
+          "workingFileSha256": "fe51f810039e5a08e9161d4d704928dfc6652ed2925f9164a7137688b2368560",
+          "gitBlobSha256": "fe51f810039e5a08e9161d4d704928dfc6652ed2925f9164a7137688b2368560"
+        }
+      ],
+      "residual": "Finite concurrency probe is not exhaustive scheduling proof. Conflicting simultaneous policies remain serialized in request order; no assertion that one policy is globally preferred. Complete file delta review relies on previous wave plus this explicit atomicity/coercion follow-up.",
+      "workingFileSha256": "05919b49763163a142f9288f60ee3a393fa62b994a29c6e80ca2aab38953ad73",
+      "gitBlobSha256": "05919b49763163a142f9288f60ee3a393fa62b994a29c6e80ca2aab38953ad73"
+    }
+  ],
+  "execution": {
+    "existingTestFilesPassed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "node": "22.23.2",
+    "python": "locked 3.12.14",
+    "additionalProbes": "actual managed-secret public API; 12 concurrent creates + 12 policy updates + nested transaction; 10 actual Python server-method malformed requests without initializing application",
+    "artifacts": [
+      {
+        "path": "reports/security-services/fixer-implementation-src-wave1-followup-tests.log",
+        "sha256": "4d84b331f612079acd4e9bb0683c6332adcaa6f5ee86e7f94de6c36e576456d3"
+      },
+      {
+        "path": "reports/security-services/fixer-implementation-src-wave1-open-probe.json",
+        "sha256": "1b42789bbe74e4559a67e382792aa77e6122337e53ceaedde1087411004b2b58"
+      },
+      {
+        "path": "reports/security-services/fixer-implementation-src-wave1-open-probe.log",
+        "sha256": "125ba838dcee949e617accf6a614cd7b92ef7ce25d75fa17636b27b15389c5eb"
+      },
+      {
+        "path": "reports/security-services/probe-src-wave1-open.mjs",
+        "sha256": "4c6eb3d63f89d4628cdbd5d3155c14bf62510aa80912907ea53b2beefe7b4139"
+      },
+      {
+        "path": "reports/security-services/fixer-implementation-src-wave1-entry-probe.json",
+        "sha256": "2385572be222ac1e880262bfdbc5b30ae7a724942e840744de716df92d802357"
+      }
+    ]
+  },
+  "limits": "No source edits, no credential exposure, no container or provider actions. Only ignored reports/probes written. One bounded injected-environment regression established; other three gaps closed with stated limits, not whole-program or receipt approval.",
+  "bindingNote": "Original six-test and reproduction conclusions bind HEAD Git blobs. The working-file hashes were captured while root applied a correction; for secret_store and its test they describe the subsequently independently reviewed correction below, not original failing execution.",
+  "secretRemovalCorrectionReview": {
+    "status": "independently-verified-root-correction",
+    "scope": "Exact uncommitted diff of src/secret_store.ts and tests/test_secret_store.js against HEAD, compared with historical strict delete behavior.",
+    "rationale": "Root checks false returned by Reflect.deleteProperty and throws TypeError before sources becomes missing. A throwing proxy would still propagate as historical delete did; ordinary configurable success still proceeds. The unlink-before-environment-delete order is unchanged from original. Error wording differs from engine TypeError, but exception type and unsuccessful removal boundary are restored. New test starts with writable/nonconfigurable empty env, initializes, rotates a real fixture viewer token, and asserts rejected removal, retained token identity and managed/configured status. Temporary directory is nested in existing bounded fixture root. No test prints its token.",
+    "sourceBindings": [
+      {
+        "path": "src/secret_store.ts",
+        "workingFileSha256": "76f05fe70032daaf176857a7c27406190111cf665d8858da3e6850a1b2de9d9e",
+        "gitBlobSha256": "ba7d7565a766701aa664093ead81c1badb5dede465f58d0ceadae4542f99f71e"
+      },
+      {
+        "path": "tests/test_secret_store.js",
+        "workingFileSha256": "7bfde471127c29506e21db9624547216d7fc4973e8b2fad97ec0f34717e70aaf",
+        "gitBlobSha256": "b2392c99e4a9aa267a638fa4883555b525966715cd288746f5f93741dcbd504f"
+      }
+    ],
+    "diffSha256": "c3cf97de0a90529824763c03f5c973bb7676a6c4f1d6299d83c04e89e1828cab",
+    "logs": [
+      {
+        "path": "reports/security-services/fixer-secret-removal-before.log",
+        "sha256": "944b28959b80fc62e1ee33dcc4f5ca63d5d0cbb23e68df99284d2f91c652f8aa"
+      },
+      {
+        "path": "reports/security-services/fixer-secret-removal-after.log",
+        "sha256": "0c0c838ab9d7364292288231dc8772bbfd35c4a0239e60e0a9bee3c4bdf379b9"
+      },
+      {
+        "path": "reports/security-services/fixer-secret-removal-independent-after.log",
+        "sha256": "0c0c838ab9d7364292288231dc8772bbfd35c4a0239e60e0a9bee3c4bdf379b9"
+      }
+    ],
+    "validation": "Root red log inspected: expected TypeError rejection missing before correction. Root green inspected. Independent node22 --import tsx tests/test_secret_store.js executed after correction: PASS.",
+    "limitations": "No atomic-removal redesign and no receipt approval. Existing filesystem unlink preceding env failure remains historic behavior."
+  }
+}

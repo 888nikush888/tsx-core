@@ -1,0 +1,46 @@
+version = 1
+
+# Preserve the existing cloud exclusions for generated artifacts only.
+exclude_patterns = [
+  "**/node_modules/**", "**/dist/**", "**/build/**", "**/coverage/**",
+  "**/__pycache__/**", "**/.pytest_cache/**", "**/*.egg-info/**"
+]
+
+# Test classification does not exclude these files from analysis.
+test_patterns = [
+  "tests/**", "exchange_executor/tests/**", "frontend/tests/**", "frontend/e2e/**",
+  "**/tests/**/*.py", "**/tests/**/*.ts", "**/tests/**/*.tsx",
+  "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts"
+]
+
+[[analyzers]]
+name = "docker"
+enabled = true
+
+[[analyzers]]
+name = "javascript"
+enabled = true
+
+  [analyzers.meta]
+  # Both package.json files declare type=module; backend Node 22, frontend React.
+  module_system = "es-modules"
+  dialect = "typescript"
+  environment = ["nodejs", "browser", "vitest"]
+  plugins = ["react"]
+  style_guide = "airbnb"
+  cyclomatic_complexity_threshold = "low"
+
+[[analyzers]]
+name = "python"
+enabled = true
+
+  [analyzers.meta]
+  # Documented Python 3 selector; actual supported project runtime is .python-version (3.12).
+  runtime_version = "3.x.x"
+  type_checker = "mypy"
+  max_line_length = 100
+  cyclomatic_complexity_threshold = "medium"
+
+[[analyzers]]
+name = "secrets"
+enabled = true

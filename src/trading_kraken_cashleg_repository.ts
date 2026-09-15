@@ -34,7 +34,7 @@ export async function readKrakenOccurrence(ref: CashlegOccurrenceRef): Promise<K
 /** The indexes bound lookup by execution/booking identity. Duplicate audit receipts do not exhaust the distinct-original budget. */
 export async function relatedKrakenOccurrences(accountId: string, fingerprint: string, records: AccountLogRecord[]): Promise<KrakenCashlegOccurrence[]> {
   const keys = records.flatMap(row => [['execution_uid', row.execution], ['booking_uid', row.booking_uid], ['log_id', row.id]])
-    .filter((entry): entry is [string, string] => typeof entry[1] === 'string' && !!entry[1]);
+    .filter((entry): entry is [string, string] => typeof entry[1] === 'string' && Boolean(entry[1]));
   if (!keys.length || keys.length > 6) throw new KrakenCashlegError('invalid_lookup_identity');
   const unions = keys.map(([column]) => `SELECT receipt_id,ordinal FROM trading_kraken_log_occurrences
     WHERE account_id=? AND account_fingerprint=? AND ${column}=?`).join(' UNION ');
@@ -71,9 +71,10 @@ async function originalAccount(event: CashlegMoneyOriginal): Promise<TradingAcco
 async function expectedEconomics(event: CashlegMoneyOriginal, binding: CashlegReportingBinding): Promise<KrakenCashlegEconomics> {
   const fill = await originalFill(event), account = await originalAccount(event);
   const raw = JSON.parse(fill.raw_json);
+  if (!fill.identity_json || !fill.accounting_json) throw new KrakenCashlegError('own_fill_not_proven');
   const source: ExchangeFill = { exchangeFillId: fill.exchange_fill_id, exchangeOrderId: fill.exchange_order_id,
     clientOrderId: fill.client_order_id, providerSymbol: fill.provider_symbol, price: fill.price, quantity: fill.quantity,
-    fee: fill.fee, feeAsset: fill.fee_asset, filledAt: fill.filled_at, identity: JSON.parse(fill.identity_json!), raw };
+    fee: fill.fee, feeAsset: fill.fee_asset, filledAt: fill.filled_at, identity: JSON.parse(fill.identity_json), raw };
   const identity = provenFillIdentity(account, source);
   if (!identity) throw new KrakenCashlegError('native_execution_original_mismatch', true);
   if (identity.key !== fill.remote_fill_key || !nativeEconomicsMatch(raw, fill)) {
@@ -84,7 +85,7 @@ async function expectedEconomics(event: CashlegMoneyOriginal, binding: CashlegRe
   if (typeof raw.amount !== 'string' || signedDecimal(raw.amount) !== signedDecimal(fill.quantity)) {
     throw new KrakenCashlegError('contract_quantity_unit_unproven');
   }
-  const market = validateFillAccounting(JSON.parse(fill.accounting_json!), fill.provider_symbol);
+  const market = validateFillAccounting(JSON.parse(fill.accounting_json), fill.provider_symbol);
   if (market.source !== 'ccxt-market-v1') throw new KrakenCashlegError('settlement_source_unproven');
   const pricePnl = await originalPricePnl(event, fill);
   return { accountId: account.id, fingerprint: event.accountFingerprint,
@@ -103,9 +104,10 @@ async function originalPricePnl(event: CashlegMoneyOriginal, fill: CashlegFill):
     EXISTS(SELECT 1 FROM trading_money_conflicts WHERE event_id=event.id) AS conflict FROM trading_money_events event
     WHERE event.account_id=? AND event.account_fingerprint=? AND event.fill_id=? AND event.kind='realized_price_pnl' AND event.basis='fill'`,
   [event.accountId, event.accountFingerprint, fill.id]);
-  const market = validateFillAccounting(JSON.parse(fill.accounting_json!), fill.provider_symbol);
-  if (rows.length !== 1 || rows[0]!.conflict || rows[0]!.asset !== market.settlementAsset) throw new KrakenCashlegError('price_pnl_original_unproven');
-  return signedDecimal(rows[0]!.amount);
+  const market = validateFillAccounting(JSON.parse(fill.accounting_json), fill.provider_symbol);
+  const priceRow = rows[0];
+  if (rows.length !== 1 || !priceRow || priceRow.conflict || priceRow.asset !== market.settlementAsset) throw new KrakenCashlegError('price_pnl_original_unproven');
+  return signedDecimal(priceRow.amount);
 }
 function assertUniquePair(related: KrakenCashlegOccurrence[], cash: KrakenCashlegOccurrence, position: KrakenCashlegOccurrence): void {
   const expected = new Set([cashlegRecordHash(cash.record), cashlegRecordHash(position.record)]);
@@ -121,7 +123,8 @@ export async function readKrakenCashlegProof(request: KrakenCashlegRequest, even
   const result = validateKrakenCashlegPair(cash, position, expected);
   const related = await relatedKrakenOccurrences(event.accountId, event.accountFingerprint, [cash.record, position.record]);
   assertUniquePair(related, cash, position);
-  const economics = { version: 1 as const, source: 'kraken-native-cashleg-v1', eventId: event.id, fillId: event.fillId!,
+  if (!event.fillId) throw new KrakenCashlegError('not_an_owned_fill_fee');
+  const economics = { version: 1 as const, source: 'kraken-native-cashleg-v1', eventId: event.id, fillId: event.fillId,
     ...expected, ...result, occurredAt: event.occurredAt, cashHash: cashlegRecordHash(cash.record), positionHash: cashlegRecordHash(position.record) };
   return { id: accountLogDigest(economics), ...economics, cashOccurrence: { receiptId: cash.receiptId, ordinal: cash.ordinal },
     positionOccurrence: { receiptId: position.receiptId, ordinal: position.ordinal },

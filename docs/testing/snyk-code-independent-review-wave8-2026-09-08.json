@@ -1,0 +1,4241 @@
+{
+  "schemaVersion": 1,
+  "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+  "scannerVersion": "1.1307.1",
+  "sarifSha256": "09e21a0a7e332fd9cf9ef0fd8463fc96af2f6ebe464174649ad40ab00161eb70",
+  "reviewKind": "independent-second-source-review-wave8",
+  "reviewedCount": 85,
+  "counts": {
+    "false-positive": 81,
+    "open": 4
+  },
+  "priorReviewRevision": "032dff339607b6138eb5a6db134dc91c1be5cb82",
+  "scopeNote": "Exactly 85 wave8 findings. 76 unchanged fingerprint/flow/source/context bindings revalidated; 9 changed findings individually re-reviewed. Four internal HTTP findings remain open, handled only by the separately owner-authorized scoped risk acceptance. No platform statuses or source files changed.",
+  "entries": [
+    {
+      "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
+      "ruleId": "javascript/DOMXSS",
+      "path": "frontend/src/lib/navigation.tsx",
+      "line": 193,
+      "reviewedSourceSha256": "5773c8b7d605c9aa563cd036e162fc666995cb7d3084817d4639a46ce257a306",
+      "disposition": "false-positive",
+      "rationale": "Current flow reaches an anchor href through splitTarget and browserUrl. splitTarget rejects foreign origins; browserUrl starts from the fixed dashboard origin and assigns pathname/search through URL setters. Leading // pathnames emit an absolute same-origin href, eliminating the earlier protocol-relative reconstruction bug. Other paths remain slash-prefixed and the bound HTML has no foreign base element. React sets an href attribute, with no HTML/eval fallback, and the explicit href follows props spread. Navigation regression tests cover double/triple slashes and normal clicks. The remaining DOMXSS trace omits these URL construction constraints; false-positive only for these exact current bytes.",
+      "contextPaths": [
+        {
+          "path": "frontend/tests/navigation.test.tsx",
+          "sha256": "0a7c4079de17885b33af94c1e43231d84e45630ae9b708511e7b8f95945e202f"
+        },
+        {
+          "path": "frontend/index.html",
+          "sha256": "73eddcc6ba037eb19451c5d63173d20b4ce2fe02a36646f884c74f3315f59e53"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "frontend/src/lib/navigation.tsx",
+          "line": 59
+        },
+        {
+          "path": "frontend/src/lib/navigation.tsx",
+          "line": 59
+        },
+        {
+          "path": "frontend/src/lib/navigation.tsx",
+          "line": 59
+        },
+        {
+          "path": "frontend/src/lib/navigation.tsx",
+          "line": 61
+        },
+        {
+          "path": "frontend/src/lib/navigation.tsx",
+          "line": 61
+        },
+        {
+          "path": "frontend/src/lib/navigation.tsx",
+          "line": 61
+        },
+        {
+          "path": "frontend/src/lib/navigation.tsx",
+          "line": 61
+        },
+        {
+          "path": "frontend/src/lib/navigation.tsx",
+          "line": 61
+        },
+        {
+          "path": "frontend/src/lib/navigation.tsx",
+          "line": 65
+        },
+        {
+          "path": "frontend/src/lib/navigation.tsx",
+          "line": 65
+        },
+        {
+          "path": "frontend/src/lib/navigation.tsx",
+          "line": 175
+        },
+        {
+          "path": "frontend/src/lib/navigation.tsx",
+          "line": 193
+        },
+        {
+          "path": "frontend/src/lib/navigation.tsx",
+          "line": 193
+        }
+      ],
+      "fingerprints": {
+        "0": "d77f056b9be77bf7ae1f75bc8def69d1ea3729aa7ba29cf8378d6f4f3048efcf",
+        "1": "e7bd117b.976997dc.d80e4376.863d43ab.32887ad7.e930b2ad.df7e59ba.c33fa564.49452a0f.b6e32c83.479fe21e.01c4284e.85cd08c6.5fce695c.f50e577b.070be06a",
+        "identity": "2450255f-e697-4aae-ae63-736ad651be82",
+        "snyk/asset/finding/v1": "2450255f-e697-4aae-ae63-736ad651be82"
+      },
+      "evidenceSha256": "7d4f7d98653b6cbb5e822f6c9b3ed174fa1884770f14f53d5a2041016c496a47"
+    },
+    {
+      "findingId": "98bcc36f-5e43-4d4b-9dc9-2b23b5bb5b77",
+      "ruleId": "javascript/HardcodedNonCryptoSecret",
+      "path": "frontend/src/lib/api.ts",
+      "line": 1,
+      "reviewedSourceSha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf",
+      "disposition": "false-positive",
+      "rationale": "TOKEN_KEY is the public sessionStorage lookup name, not credential bytes. Actual credentials come from setDashboardToken/getDashboardToken. The current API normalizes input and init exactly once into a new Request, checks that normalized destination against window.location.origin and disallows embedded credentials before attaching the stored bearer, then fetches that same Request with redirect:error. Bound API tests cover mutable URL conversion, shadowed Request.url, foreign document base, Request body/header/method overrides and abort propagation. No literal authentication secret is embedded here.",
+      "contextPaths": [
+        {
+          "path": "frontend/tests/api.test.ts",
+          "sha256": "aeb9c18da94d4827ee721a16924fef9ada1491e67bc6f4404eea8f22e106902f"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "frontend/src/lib/api.ts",
+          "line": 1
+        },
+        {
+          "path": "frontend/src/lib/api.ts",
+          "line": 1
+        }
+      ],
+      "fingerprints": {
+        "0": "4a48726db530550ca707e78d01ba3a7c3d7dca5358e035fd4d7c8d3774565e45",
+        "1": "b800e676.4773f344.8b18f948.d7919eeb.409b735f.5fce695c.53e1cb20.89d75565.b800e676.4773f344.8b18f948.d7919eeb.409b735f.5fce695c.53e1cb20.89d75565",
+        "snyk/asset/finding/v1": "98bcc36f-5e43-4d4b-9dc9-2b23b5bb5b77",
+        "identity": "98bcc36f-5e43-4d4b-9dc9-2b23b5bb5b77"
+      },
+      "evidenceSha256": "24cff324a645398c7ef7e24d57a74369d52130b4829e283c04f393337c62f5a1"
+    },
+    {
+      "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+      "ruleId": "javascript/PT",
+      "path": "scripts/verify_exchange_implementation.js",
+      "line": 93,
+      "reviewedSourceSha256": "2ca7a0a4ee9cc299dcfcfebf51649adc4ba8b6355335cd551cd41708f5e10907",
+      "disposition": "false-positive",
+      "rationale": "Re-reviewed full local --python -> fixed bridge -> receipt exchange -> stableBytes/readSync flow. Only source change adds Unicode mode to the forbidden separator/control-character regex; slash, backslash, colon, dot segments and canonical directory/file restrictions remain enforced. The production bridge derives exchanges solely from pinned local PROFILES and validates approved receipt hashes before emitting them; receipts never choose arbitrary source paths. stableBytes checks ordinary single-link files, size and identity around reads. The explicitly selected interpreter is trusted local operator code, not a remotely supplied executable. Package context only adds a declaration-copy build step.",
+      "contextPaths": [
+        {
+          "path": "exchange_executor/ccxt_certification.py",
+          "sha256": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2"
+        },
+        {
+          "path": "exchange_executor/ccxt_certification_evidence.py",
+          "sha256": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8"
+        },
+        {
+          "path": "exchange_executor/ccxt_implementation_reviews.py",
+          "sha256": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289"
+        },
+        {
+          "path": "exchange_executor/ccxt_profiles.py",
+          "sha256": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd"
+        },
+        {
+          "path": "package.json",
+          "sha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 310
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 285
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 298
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 298
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 321
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 321
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 81
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 93
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 93
+        }
+      ],
+      "fingerprints": {
+        "0": "9c63133ec86a0b7dccd7902fd601b73f3781845fe63b366f34b16eec1729ecd5",
+        "1": "f3d714f2.4773f344.eec2c252.d7919eeb.4a62e1e5.292a53dc.c08dd55c.eb397db7.214d3e14.b6e32c83.96e35b6b.c8688b2b.6c287ca9.5fce695c.f0256597.62f49dc2",
+        "identity": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "snyk/asset/finding/v1": "ca8d4075-1f15-40f9-9432-667e0a033660"
+      },
+      "evidenceSha256": "d70371c49aeb96057c8ea6367095a4d8038226599f2efa6a5d9f69b0cd1bb653"
+    },
+    {
+      "findingId": "88fce105-6148-4b77-904c-f82f35a3d8d9",
+      "ruleId": "javascript/PT",
+      "path": "src/backup_cli.ts",
+      "line": 29,
+      "reviewedSourceSha256": "55eb30b268c4b02561dd7813ae10461b9e08b3503474474936989ca802f8ec69",
+      "disposition": "false-positive",
+      "rationale": "Line 29: The local offline CLI intentionally accepts an operator-selected artifact path. Target database/configuration paths come from operational configuration, not archive member names. Restore verifies manifest filenames and containment before staging/install, under genuine process ownership and maintenance lease. This is not a remote path selector.",
+      "contextPaths": [
+        {
+          "path": "src/backup.ts",
+          "sha256": "ea43fe5a534f17e3f7c40af5b8cb5f4bfd407d671d8a315988a4929d813cddd3"
+        },
+        {
+          "path": "src/config.ts",
+          "sha256": "2169171d995a81f527b86a1be937cea35cd5055e2bda4beb55d65604f96a40e7"
+        },
+        {
+          "path": "src/db.ts",
+          "sha256": "6b961e02941d6e529432767ac97051603171d1a062a67de19eabfebaee18e3d4"
+        },
+        {
+          "path": "src/env.ts",
+          "sha256": "6341c145dff448320dd71a51e2a5f66ce9bcd8f6ce7f11778fdd9a3e5ad7b31a"
+        },
+        {
+          "path": "src/mcp_maintenance.ts",
+          "sha256": "a5006fde7855214bd22049ee45131294c65f07d2d0afc94c22f491a6798c9ef6"
+        },
+        {
+          "path": "src/process_lock.ts",
+          "sha256": "475db1cede86b21ab1ec12d5617e99ceb7ddacd74a774c0f1143fb9000b30483"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/backup_cli.ts",
+          "line": 41
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 41
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 41
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 41
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 75
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 75
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 22
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "line": 29
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 836
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 843
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 843
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 843
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 844
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 398
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 845
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 629
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 635
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 635
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 635
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 660
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 172
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 668
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 181
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 183
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 183
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 183
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 668
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 668
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 667
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 666
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 666
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 646
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 846
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 761
+        },
+        {
+          "path": "src/backup.ts",
+          "line": 761
+        }
+      ],
+      "fingerprints": {
+        "0": "1090fda6bdb19a96f7c986fa79f7d3ea71f331bcd97b5c0da72bc061c67a0081",
+        "1": "227ff053.4773f344.c9330245.64cd0520.ef9f7d82.8020cfdf.83265159.0b329124.6bb676bb.b6e32c83.c9330245.64cd0520.3f452f8c.5fce695c.9852386e.83183368",
+        "identity": "88fce105-6148-4b77-904c-f82f35a3d8d9",
+        "snyk/asset/finding/v1": "88fce105-6148-4b77-904c-f82f35a3d8d9"
+      },
+      "evidenceSha256": "9e6ad3766c297ec7bc043391dfee1d1dd1764c82997d98d6996ceae5b12cdced"
+    },
+    {
+      "findingId": "d63b1e99-99c4-443a-9241-dc2087e2d00c",
+      "ruleId": "javascript/PT",
+      "path": "src/backup_restore_drill_worker.ts",
+      "line": 39,
+      "reviewedSourceSha256": "d2d604b255ac626550109b929019a4cc83752b22ad25af67bba529b2a143004a",
+      "disposition": "false-positive",
+      "rationale": "The only changed prior context moves backup DTO interfaces and the unchanged restore-scope literal to pure ui_contracts.ts, now also bound. Manifest member validation and filesystem boundaries are unchanged: verifyBackupArtifact permits fixed core members or validated template segments, rejects traversal/separators, and checks resolved containment and symlink parents. The worker reads only these verified members inside its own canonical restored directory; argv does not bypass manifest validation.",
+      "contextPaths": [
+        {
+          "path": "src/backup.ts",
+          "sha256": "ea43fe5a534f17e3f7c40af5b8cb5f4bfd407d671d8a315988a4929d813cddd3"
+        },
+        {
+          "path": "src/backup_evidence.ts",
+          "sha256": "42340d768780c7f4f0a3f8abc18fda2ac3fe0bc6db44083389b55bcdbace3a7c"
+        },
+        {
+          "path": "src/backup_restore_drill.ts",
+          "sha256": "3328f13c22feb72af4b9307e1e241c56dfb31ef7d706f7410af577583b539bcf"
+        },
+        {
+          "path": "src/ui_contracts.ts",
+          "sha256": "5ce33185d9c79c90802207e3efc752d1213fedfe0ecd02bc252ac9f735e9aa9d"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 48
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 48
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 48
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 48
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 76
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 76
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 76
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 76
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 77
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 77
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 36
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 37
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 37
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 37
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 39
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 39
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 39
+        },
+        {
+          "path": "src/backup_restore_drill_worker.ts",
+          "line": 39
+        }
+      ],
+      "fingerprints": {
+        "0": "3928b915d8983f3286629760c2dfd3fc5274c7bfdb0eca39fa03d88ffe219bf9",
+        "1": "c3f8dfad.4773f344.c9330245.d7919eeb.c405a950.72a8d180.83265159.d087f7d7.c3f8dfad.b6e32c83.c9330245.99f4e1a5.3f452f8c.8431f2ca.550931eb.83183368",
+        "snyk/asset/finding/v1": "d63b1e99-99c4-443a-9241-dc2087e2d00c",
+        "identity": "d63b1e99-99c4-443a-9241-dc2087e2d00c"
+      },
+      "evidenceSha256": "161f6f6ed99670d83cfd0187ff95270105427dc6fd5a78d045d5ca61d108fcd9"
+    },
+    {
+      "findingId": "164aa45d-3766-4932-9dd7-4f2729603758",
+      "ruleId": "javascript/PT",
+      "path": "src/signal_parser.ts",
+      "line": 582,
+      "reviewedSourceSha256": "94dd82c89599810023bf352ef498e3f1c1dfc5d109bf245342f4bb2af7e1290f",
+      "disposition": "false-positive",
+      "rationale": "The complete source flow remains byte-identical: only isMain CLI argument parsing assigns --file and runCli reads that selected local file. No remote signal or dashboard input sets it. The changed package context only adds the post-tsc declaration copy; it neither invokes the parser nor expands the intended operator file-selection authority.",
+      "contextPaths": [
+        {
+          "path": "package.json",
+          "sha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/signal_parser.ts",
+          "line": 566
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 566
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 566
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 566
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 566
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 575
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 575
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 575
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 575
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 582
+        },
+        {
+          "path": "src/signal_parser.ts",
+          "line": 582
+        }
+      ],
+      "fingerprints": {
+        "0": "ea1d192be03ff46c402521dbd275c6e30d59433386eed718793763c7fc3153fd",
+        "1": "c3f8dfad.4773f344.c9330245.d7919eeb.ef9f7d82.8020cfdf.e2ef5c06.ae94f388.c3f8dfad.b6e32c83.c9330245.cdaeacef.3f452f8c.8f47a30e.5c2e6593.83183368",
+        "snyk/asset/finding/v1": "164aa45d-3766-4932-9dd7-4f2729603758",
+        "identity": "164aa45d-3766-4932-9dd7-4f2729603758"
+      },
+      "evidenceSha256": "267a262da094e1e9d538caf4e1264d8f198d3a408d669dda2d1d40acae094a27"
+    },
+    {
+      "findingId": "142dd478-3551-4536-9562-b365bf50d287",
+      "ruleId": "javascript/PT/test",
+      "path": "tests/fixtures/backup_generation_crash_child.js",
+      "line": 24,
+      "reviewedSourceSha256": "abdc2a5a85bbb14af6685d9ddc974527f2885762f6747e74c1b686f435247e20",
+      "disposition": "false-positive",
+      "rationale": "Line 24: Child-process fixture receives the temporary scope created and passed by its paired test harness (context-bound). The reported operation intentionally exercises that owned lock/configuration/database/restart file. No application request supplies the child argv; production helper checks remain in the bound code flow.",
+      "contextPaths": [
+        {
+          "path": "src/process_lock.ts",
+          "sha256": "475db1cede86b21ab1ec12d5617e99ceb7ddacd74a774c0f1143fb9000b30483"
+        },
+        {
+          "path": "tests/test_backup_generation_crash.js",
+          "sha256": "fa12c2742096815b5bc92823618d3a0be17f783fe50fed31d680d8ac2a31f0f1"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 10
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 10
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 10
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 10
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 11
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 11
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 11
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 24
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 24
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 24
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 162
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 164
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 164
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 164
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 164
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 164
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 168
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 128
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 129
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 129
+        }
+      ],
+      "fingerprints": {
+        "0": "755ec9dae1e87254c6a90ed9592cbf35c4a729d323a52a74f0bec8aeb659ee27",
+        "1": "40c5fd92.4773f344.126beb45.ed202363.c405a950.34a4d81a.d3fe104c.d66579bf.bbc827ce.b6e32c83.c9330245.01c4284e.79a7d027.5fce695c.5745f806.62f49dc2",
+        "snyk/asset/finding/v1": "142dd478-3551-4536-9562-b365bf50d287",
+        "identity": "142dd478-3551-4536-9562-b365bf50d287"
+      },
+      "evidenceSha256": "51a0cc533d3530d41755188218d78a289808c018148f7f2f697ec384756ed35a"
+    },
+    {
+      "findingId": "9c50b436-5043-4541-a5c5-14a432cae733",
+      "ruleId": "javascript/PT/test",
+      "path": "tests/fixtures/crash_guard_owner_child.js",
+      "line": 12,
+      "reviewedSourceSha256": "29ee34d2f58fe80880f062ea0ae5aae14f84be095ef4fe16d612e929c47fabc1",
+      "disposition": "false-positive",
+      "rationale": "Line 12: Child-process fixture receives the temporary scope created and passed by its paired test harness (context-bound). The reported operation intentionally exercises that owned lock/configuration/database/restart file. No application request supplies the child argv; production helper checks remain in the bound code flow.",
+      "contextPaths": [
+        {
+          "path": "src/process_lock.ts",
+          "sha256": "475db1cede86b21ab1ec12d5617e99ceb7ddacd74a774c0f1143fb9000b30483"
+        },
+        {
+          "path": "tests/test_crash_guard.js",
+          "sha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 6
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 6
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 6
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 6
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 6
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 6
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 12
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 12
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 12
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 162
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 164
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 164
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 164
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 164
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 164
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 168
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 128
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 129
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 129
+        }
+      ],
+      "fingerprints": {
+        "0": "7b967903b6d161a5dd26b80a111bdd34ac21f9524b0248086014d953f15d72d8",
+        "1": "bbc827ce.4773f344.c9330245.d7919eeb.ef9f7d82.8020cfdf.d3fe104c.d087f7d7.bbc827ce.b6e32c83.c9330245.cdaeacef.ac82cb7b.5fce695c.d3fe104c.83183368",
+        "snyk/asset/finding/v1": "9c50b436-5043-4541-a5c5-14a432cae733",
+        "identity": "9c50b436-5043-4541-a5c5-14a432cae733"
+      },
+      "evidenceSha256": "09125ed4e4b24f55335f9c4f23ffd05ba96acafd5848011de9edfe4349dfc8e8"
+    },
+    {
+      "findingId": "6914aa0e-59d7-4481-9e11-2f13f86d60f4",
+      "ruleId": "javascript/PT/test",
+      "path": "tests/fixtures/backup_generation_crash_child.js",
+      "line": 25,
+      "reviewedSourceSha256": "abdc2a5a85bbb14af6685d9ddc974527f2885762f6747e74c1b686f435247e20",
+      "disposition": "false-positive",
+      "rationale": "Line 25: Child-process fixture receives the temporary scope created and passed by its paired test harness (context-bound). The reported operation intentionally exercises that owned lock/configuration/database/restart file. No application request supplies the child argv; production helper checks remain in the bound code flow.",
+      "contextPaths": [
+        {
+          "path": "src/backup_generation.ts",
+          "sha256": "315854c58ee6e3aa1db0b35d138dd60990556b0d71f67743e87af14aa53f6159"
+        },
+        {
+          "path": "tests/test_backup_generation_crash.js",
+          "sha256": "fa12c2742096815b5bc92823618d3a0be17f783fe50fed31d680d8ac2a31f0f1"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 10
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 10
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 10
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 10
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 11
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 11
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 11
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 14
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 14
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 14
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 14
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 14
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 14
+        },
+        {
+          "path": "tests/fixtures/backup_generation_crash_child.js",
+          "line": 25
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 292
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 293
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 293
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 293
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 293
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 293
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 293
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 293
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 295
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 295
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 133
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 134
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 114
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 115
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 115
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 115
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 116
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 116
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 116
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 116
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 116
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 134
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 300
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 266
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 273
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 155
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 287
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 119
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 121
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "line": 121
+        }
+      ],
+      "fingerprints": {
+        "0": "e844841c618d03cfb36cbabf28ce4620ccfac7cb08586f179525b429fdf38b6a",
+        "1": "40c5fd92.4773f344.c9330245.27a6e0f7.ef9f7d82.8020cfdf.df7e59ba.e91df889.eb77718c.b6e32c83.c9330245.d7919eeb.79a7d027.5fce695c.83265159.e91df889",
+        "snyk/asset/finding/v1": "6914aa0e-59d7-4481-9e11-2f13f86d60f4",
+        "identity": "6914aa0e-59d7-4481-9e11-2f13f86d60f4"
+      },
+      "evidenceSha256": "5ede73e68e37bedd25f8a9c3816befa24f2755d2ce784723d9871d50af6d93d6"
+    },
+    {
+      "findingId": "497d44e9-fe5f-4767-a66f-325c51e5dc95",
+      "ruleId": "javascript/PT/test",
+      "path": "tests/fixtures/crash_guard_owner_child.js",
+      "line": 37,
+      "reviewedSourceSha256": "29ee34d2f58fe80880f062ea0ae5aae14f84be095ef4fe16d612e929c47fabc1",
+      "disposition": "false-positive",
+      "rationale": "Line 37: Child-process fixture receives the temporary scope created and passed by its paired test harness (context-bound). The reported operation intentionally exercises that owned lock/configuration/database/restart file. No application request supplies the child argv; production helper checks remain in the bound code flow.",
+      "contextPaths": [
+        {
+          "path": "src/crash_guard.ts",
+          "sha256": "f1c76ee24c4099691b076716694ccfdf75335b1821272d5de9b2a83d917c2394"
+        },
+        {
+          "path": "src/process_lock.ts",
+          "sha256": "475db1cede86b21ab1ec12d5617e99ceb7ddacd74a774c0f1143fb9000b30483"
+        },
+        {
+          "path": "tests/test_crash_guard.js",
+          "sha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 6
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 6
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 6
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 6
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 6
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 6
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 12
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 12
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 12
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 12
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 12
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 12
+        },
+        {
+          "path": "tests/fixtures/crash_guard_owner_child.js",
+          "line": 37
+        },
+        {
+          "path": "src/crash_guard.ts",
+          "line": 116
+        },
+        {
+          "path": "src/crash_guard.ts",
+          "line": 122
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 59
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 62
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 34
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 66
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 35
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 26
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 27
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 27
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 27
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 30
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 35
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 38
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 38
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 44
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 94
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 96
+        },
+        {
+          "path": "src/process_lock.ts",
+          "line": 96
+        }
+      ],
+      "fingerprints": {
+        "0": "6c0f0dcdb86a0d56d1a9e8bbf429d78841282905497f9e24099ee9c75a9ab2af",
+        "1": "bbc827ce.4773f344.c9330245.d7919eeb.740ca865.f7edcf51.ea4b1c47.545e9171.bbc827ce.b6e32c83.c9330245.d7919eeb.3fe0efa9.8431f2ca.cd61fc56.545e9171",
+        "snyk/asset/finding/v1": "497d44e9-fe5f-4767-a66f-325c51e5dc95",
+        "identity": "497d44e9-fe5f-4767-a66f-325c51e5dc95"
+      },
+      "evidenceSha256": "765d415bcec89a82bb2bae8733dc58a82bd09adf9aee014e44231991f8ba94af"
+    },
+    {
+      "findingId": "9886fba1-1186-4e41-b1fa-6a6877440237",
+      "ruleId": "javascript/PT/test",
+      "path": "tests/fixtures/maintenance_participant_child.js",
+      "line": 6,
+      "reviewedSourceSha256": "5e69f00fdb09992d9d392566d4e5e071e003636ddcc7f2ca7047f3111be87672",
+      "disposition": "false-positive",
+      "rationale": "Rechecked child argv through test_mcp_maintenance: the harness owns the temporary database scope and passes it directly to the isolated participant child. The only changed context replaces an intentionally fake async no-op lease method with Promise.resolve in a rejection assertion. Database canonicalization, private participant directory and exclusive file creation are unchanged; no application request chooses this test argv.",
+      "contextPaths": [
+        {
+          "path": "src/db.ts",
+          "sha256": "6b961e02941d6e529432767ac97051603171d1a062a67de19eabfebaee18e3d4"
+        },
+        {
+          "path": "src/mcp_maintenance.ts",
+          "sha256": "a5006fde7855214bd22049ee45131294c65f07d2d0afc94c22f491a6798c9ef6"
+        },
+        {
+          "path": "tests/test_mcp_maintenance.js",
+          "sha256": "45c4255d3941f07ddff3d56c67937020b939ddb05e03fc722732bbb564b609e3"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "tests/fixtures/maintenance_participant_child.js",
+          "line": 5
+        },
+        {
+          "path": "tests/fixtures/maintenance_participant_child.js",
+          "line": 5
+        },
+        {
+          "path": "tests/fixtures/maintenance_participant_child.js",
+          "line": 5
+        },
+        {
+          "path": "tests/fixtures/maintenance_participant_child.js",
+          "line": 5
+        },
+        {
+          "path": "tests/fixtures/maintenance_participant_child.js",
+          "line": 5
+        },
+        {
+          "path": "tests/fixtures/maintenance_participant_child.js",
+          "line": 6
+        },
+        {
+          "path": "src/db.ts",
+          "line": 205
+        },
+        {
+          "path": "src/db.ts",
+          "line": 207
+        },
+        {
+          "path": "src/db.ts",
+          "line": 70
+        },
+        {
+          "path": "src/db.ts",
+          "line": 71
+        },
+        {
+          "path": "src/db.ts",
+          "line": 71
+        },
+        {
+          "path": "src/db.ts",
+          "line": 71
+        },
+        {
+          "path": "src/db.ts",
+          "line": 72
+        },
+        {
+          "path": "src/db.ts",
+          "line": 72
+        },
+        {
+          "path": "src/db.ts",
+          "line": 72
+        },
+        {
+          "path": "src/db.ts",
+          "line": 72
+        },
+        {
+          "path": "src/db.ts",
+          "line": 72
+        },
+        {
+          "path": "src/db.ts",
+          "line": 70
+        },
+        {
+          "path": "src/db.ts",
+          "line": 207
+        },
+        {
+          "path": "src/db.ts",
+          "line": 207
+        },
+        {
+          "path": "src/db.ts",
+          "line": 207
+        },
+        {
+          "path": "src/db.ts",
+          "line": 212
+        },
+        {
+          "path": "src/db.ts",
+          "line": 211
+        },
+        {
+          "path": "src/db.ts",
+          "line": 211
+        },
+        {
+          "path": "src/db.ts",
+          "line": 214
+        },
+        {
+          "path": "src/db.ts",
+          "line": 113
+        },
+        {
+          "path": "src/db.ts",
+          "line": 115
+        },
+        {
+          "path": "src/db.ts",
+          "line": 115
+        },
+        {
+          "path": "src/db.ts",
+          "line": 115
+        },
+        {
+          "path": "src/db.ts",
+          "line": 115
+        }
+      ],
+      "fingerprints": {
+        "0": "b899edefa3b0a0433c55007c1833b51909fb127fad920f8c7fd9eb343ea67315",
+        "1": "e0fda459.4773f344.c9330245.d7919eeb.79a7d027.8020cfdf.ea4b1c47.e8752bfb.6e283998.b6e32c83.c9330245.99f4e1a5.79a7d027.5fce695c.ea4b1c47.83183368",
+        "identity": "9886fba1-1186-4e41-b1fa-6a6877440237",
+        "snyk/asset/finding/v1": "9886fba1-1186-4e41-b1fa-6a6877440237"
+      },
+      "evidenceSha256": "0039f05fe0598255ae7c65f1c3cd460ce7d58af3c3a6ddb523647bc95948cccb"
+    },
+    {
+      "findingId": "bc179edb-989f-4eee-b6f0-4e0403e76fa0",
+      "ruleId": "javascript/PT/test",
+      "path": "tests/fixtures/ui_restart_child.js",
+      "line": 14,
+      "reviewedSourceSha256": "19d9ba7636bd49a7cb3a4bb42efbea82f0a730accd0e4a4361d0f2e88795c966",
+      "disposition": "false-positive",
+      "rationale": "Rechecked ui_restart_child directory argv and paired harness: mkdtemp/mkdir create the owned scope before child launch; state.txt is a fixed member of that scope. Harness changes are equivalent string interpolation and an explicit undefined error listener, preserving launch paths and local-only fake transport. No production request controls the child directory.",
+      "contextPaths": [
+        {
+          "path": "tests/fixtures/ui_restart_fixture.js",
+          "sha256": "1931863eb58ae1286b74db0e799f1b2959ac8977b44ba7ce58c73970b4a01832"
+        },
+        {
+          "path": "tests/test_ui_restart_process.js",
+          "sha256": "71be392af8f388b22e5591a22b72f4169cc538e0494c2e574a9ae6a8af10c90d"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 7
+        },
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 7
+        },
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 7
+        },
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 7
+        },
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 14
+        },
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 14
+        },
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 14
+        },
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 14
+        }
+      ],
+      "fingerprints": {
+        "0": "eeff01727362c3468b1feaac9695f015e4a74709fa9b969bdec2287a1fc5a531",
+        "1": "bbc827ce.4773f344.c9330245.ed202363.ef9f7d82.8020cfdf.df7e59ba.d087f7d7.bbc827ce.b6e32c83.c9330245.99f4e1a5.ac82cb7b.5fce695c.d17b2723.83183368",
+        "snyk/asset/finding/v1": "bc179edb-989f-4eee-b6f0-4e0403e76fa0",
+        "identity": "bc179edb-989f-4eee-b6f0-4e0403e76fa0"
+      },
+      "evidenceSha256": "c272e59c624d3e4f44b2bb8597839d1ef0a2ef5822b562c63ec10fd8612d16af"
+    },
+    {
+      "findingId": "436da650-a34e-44b8-a133-bdad1b5788d7",
+      "ruleId": "javascript/PT/test",
+      "path": "tests/fixtures/ui_restart_child.js",
+      "line": 57,
+      "reviewedSourceSha256": "19d9ba7636bd49a7cb3a4bb42efbea82f0a730accd0e4a4361d0f2e88795c966",
+      "disposition": "false-positive",
+      "rationale": "Rechecked the separate shutdown.log append flow: directory comes from the paired harness temporary scope, and shutdown.log is fixed. Harness interpolation/no-op changes leave child argv and shutdown ownership unchanged; this log intentionally proves one shutdown coordinator execution and has no application-supplied path.",
+      "contextPaths": [
+        {
+          "path": "tests/fixtures/ui_restart_fixture.js",
+          "sha256": "1931863eb58ae1286b74db0e799f1b2959ac8977b44ba7ce58c73970b4a01832"
+        },
+        {
+          "path": "tests/test_ui_restart_process.js",
+          "sha256": "71be392af8f388b22e5591a22b72f4169cc538e0494c2e574a9ae6a8af10c90d"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 7
+        },
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 7
+        },
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 7
+        },
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 7
+        },
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 57
+        },
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 57
+        },
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 57
+        },
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "line": 57
+        }
+      ],
+      "fingerprints": {
+        "0": "61132a55fd2c2a8f827a79b9b266828e3e893a4321272938bd409116a8ba5de9",
+        "1": "bbc827ce.7f775b58.c9330245.ed202363.4414f8fb.8020cfdf.d17b2723.d087f7d7.c3f8dfad.b6e32c83.c9330245.17c49037.ac82cb7b.5fce695c.d17b2723.e8752bfb",
+        "identity": "436da650-a34e-44b8-a133-bdad1b5788d7",
+        "snyk/asset/finding/v1": "436da650-a34e-44b8-a133-bdad1b5788d7"
+      },
+      "evidenceSha256": "eb3e76677f1b848c2f098145805ddbb1e6871fe8e8ac89f370a6577e44bffb80"
+    },
+    {
+      "findingId": "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+      "ruleId": "javascript/Sqli/test",
+      "path": "tests/test_trading_adaptive_money_migration.js",
+      "line": 45,
+      "reviewedSourceSha256": "4b6928acfb9563c755d3b0ec5f170734918273e5d88b887c03917d60121e0c54",
+      "disposition": "false-positive",
+      "rationale": "Line 45: PRAGMA identifiers are obtained from sqlite_master/index_list of the isolated mkdtemp database created by this migration fixture and fixed schema, never an external database or request. This metadata query checks migration preservation; the two fixed table names and test-created indexes control the identifier source.",
+      "contextPaths": [
+        {
+          "path": "src/db.ts",
+          "sha256": "6b961e02941d6e529432767ac97051603171d1a062a67de19eabfebaee18e3d4"
+        },
+        {
+          "path": "tests/fixtures/fx_schema.js",
+          "sha256": "1fcb37255046e3119f97b5021ad493e309572c956b9c63569fbac8aef27eaf8c"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 41
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 41
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 41
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 41
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 41
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 44
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 44
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 45
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 45
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 45
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 45
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 45
+        }
+      ],
+      "fingerprints": {
+        "0": "adf669db1360ff57723322c3cfb807d8cd1241d3f743392b46e916216e2b7786",
+        "1": "688dedc0.4773f344.c9330245.c7263690.ef9f7d82.6d46fa17.0b4f0b50.f98102cd.6bb676bb.4773f344.c9330245.c559ebce.bd9ce4c6.6d46fa17.55818220.0449ed07",
+        "snyk/asset/finding/v1": "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+        "identity": "f2f8ea59-c823-49ff-8d81-50ae176c845a"
+      },
+      "evidenceSha256": "7ac604ae3aa38086cf2866df1f4072476053bf1c2d40436ae4b16f80ddbea627"
+    },
+    {
+      "findingId": "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+      "ruleId": "javascript/Sqli/test",
+      "path": "tests/test_trading_adaptive_money_migration.js",
+      "line": 51,
+      "reviewedSourceSha256": "4b6928acfb9563c755d3b0ec5f170734918273e5d88b887c03917d60121e0c54",
+      "disposition": "false-positive",
+      "rationale": "Line 51: PRAGMA identifiers are obtained from sqlite_master/index_list of the isolated mkdtemp database created by this migration fixture and fixed schema, never an external database or request. This metadata query checks migration preservation; the two fixed table names and test-created indexes control the identifier source.",
+      "contextPaths": [
+        {
+          "path": "src/db.ts",
+          "sha256": "6b961e02941d6e529432767ac97051603171d1a062a67de19eabfebaee18e3d4"
+        },
+        {
+          "path": "tests/fixtures/fx_schema.js",
+          "sha256": "1fcb37255046e3119f97b5021ad493e309572c956b9c63569fbac8aef27eaf8c"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 51
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 51
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 51
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 51
+        },
+        {
+          "path": "tests/test_trading_adaptive_money_migration.js",
+          "line": 51
+        }
+      ],
+      "fingerprints": {
+        "0": "3cc1d4d3a86e95f7d033c4ab84e6b7208b78c492db3a6492a6d697c7298a7a45",
+        "1": "688dedc0.4773f344.c9330245.d7919eeb.ef9f7d82.8020cfdf.0b4f0b50.d087f7d7.988d3c10.4773f344.c9330245.c559ebce.c5cf438d.5fce695c.55818220.6723ddeb",
+        "snyk/asset/finding/v1": "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+        "identity": "db0f006d-1b47-43d9-8b35-86ae5ee08f58"
+      },
+      "evidenceSha256": "b74ddf19b2df8234c9b4f5c73306449846e9fa7f798f6b7f3b3520413a9f3e13"
+    },
+    {
+      "findingId": "4763ab6d-7279-4288-a467-5dbccf673f01",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "frontend/tests/operator-state-regressions.test.tsx",
+      "line": 104,
+      "reviewedSourceSha256": "b6fcf743bd74998d3d3b71e5eb995db1bede5aee37f83ce676f3b69350a471be",
+      "disposition": "false-positive",
+      "rationale": "The fixture-only apiSecret is asserted from the hoisted jsonRequest mock call list; vi.mock replaces the real API transport. Current edits only replace resolved async refresh callbacks with Promise.resolve. The bound real API now additionally normalizes and confines credential transport, but this synthetic replacement token never reaches it.",
+      "contextPaths": [
+        {
+          "path": "frontend/src/lib/api.ts",
+          "sha256": "4974c6df70f6471cca082f8a7a205804ce9c603dd8dc6d8268bcc898ef33f4cf"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "frontend/tests/operator-state-regressions.test.tsx",
+          "line": 104
+        },
+        {
+          "path": "frontend/tests/operator-state-regressions.test.tsx",
+          "line": 104
+        }
+      ],
+      "fingerprints": {
+        "0": "58b57e81b08202bf1798a64789e03fb0f764421c20deed17ea02685368efe501",
+        "1": "e18ecef6.59da5bcb.d5ebef4e.e052b9a9.79a7d027.fcf3002d.ce4a9d89.4bea0b18.e18ecef6.59da5bcb.607187b5.e052b9a9.79a7d027.fcf3002d.ce4a9d89.4bea0b18",
+        "identity": "4763ab6d-7279-4288-a467-5dbccf673f01",
+        "snyk/asset/finding/v1": "4763ab6d-7279-4288-a467-5dbccf673f01"
+      },
+      "evidenceSha256": "14c5bb0e0301c661484924b7049aecbac0bfdddb8e2067022940e699cf787cc0"
+    },
+    {
+      "findingId": "8c0f552c-7615-4368-8f6a-6689679b611c",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_config.js",
+      "line": 104,
+      "reviewedSourceSha256": "318e9f74830b8b04d4523173cbec9835be3cc25aab83e577125930f0ca701827",
+      "disposition": "false-positive",
+      "rationale": "Line 104: Unknown-field rejection input: validateConfig is expected to throw before this synthetic secret field can persist.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_config.js",
+          "line": 104
+        },
+        {
+          "path": "tests/test_config.js",
+          "line": 104
+        }
+      ],
+      "fingerprints": {
+        "0": "b7d1be61377d4b22892b28e1fb0aa353e26e2d4c84ba1fb0653aa224935eb2a9",
+        "1": "12567ef6.4773f344.607187b5.0755de8f.601e4ccc.fcf3002d.ce4a9d89.0c057e67.fa9bfeb6.4773f344.607187b5.c559ebce.601e4ccc.340a7504.ce4a9d89.ea55a745",
+        "identity": "8c0f552c-7615-4368-8f6a-6689679b611c",
+        "snyk/asset/finding/v1": "8c0f552c-7615-4368-8f6a-6689679b611c"
+      },
+      "evidenceSha256": "3d41ab2d742911fa7f3d244dbc538c6dee7bab7d8e258abb7192ace80fcbc84b"
+    },
+    {
+      "findingId": "32304334-8c66-4f4a-b4fa-26033d0ab225",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "line": 491,
+      "reviewedSourceSha256": "bed7e38613068438e390b97ffdd73be242384d4df4a278e761fe038647a8d1bf",
+      "disposition": "false-positive",
+      "rationale": "Individually rechecked the synthetic gateio-key/secret at line491: createAccount uses the test-owned temporary secret store and injected gateioAdapter, whose verifyAccount returns fixed evidence. Updated callbacks use Promise.resolve in fake catalog and adapter methods; no real Gate transport is constructed. The literal remains fixture data, not a deployable credential.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_dynamic_exchange_registry.js",
+          "line": 491
+        },
+        {
+          "path": "tests/test_dynamic_exchange_registry.js",
+          "line": 491
+        }
+      ],
+      "fingerprints": {
+        "0": "18f193b8522a302e83a072d6e830427d00d8cf9fa4766686fd723fe129e0cea8",
+        "1": "8ae0f584.3f481afb.a1c822f2.e052b9a9.79a7d027.fcf3002d.80eb7e1f.4bea0b18.fc3065be.4773f344.548058c2.e052b9a9.79a7d027.39edca54.6fd57df8.4bea0b18",
+        "snyk/asset/finding/v1": "32304334-8c66-4f4a-b4fa-26033d0ab225",
+        "identity": "32304334-8c66-4f4a-b4fa-26033d0ab225"
+      },
+      "evidenceSha256": "8dc4d4f978727f36448f4722e8ffba6c7ea65993c28a18444d27c34f6babeb9d"
+    },
+    {
+      "findingId": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_exchange_acceptance.js",
+      "line": 89,
+      "reviewedSourceSha256": "d5d66b8327f0134ed4cf98b44e25c078c126e758537a3bda277722679cb6af2a",
+      "disposition": "false-positive",
+      "rationale": "Line 89: Synthetic invalid acceptance document is written to a temporary file solely to assert the CLI redacts its sentinel from stderr.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_exchange_acceptance.js",
+          "line": 89
+        },
+        {
+          "path": "tests/test_exchange_acceptance.js",
+          "line": 89
+        }
+      ],
+      "fingerprints": {
+        "0": "18a85bb5fef3b1bcebc9e7be7b29678b404a58f327123d230a14e149c7a8739f",
+        "1": "e7fd436d.4773f344.607187b5.e052b9a9.79a7d027.fcf3002d.80eb7e1f.e0f43150.e7fd436d.4773f344.c9330245.e052b9a9.79a7d027.8020cfdf.7a8c7288.e6930396",
+        "snyk/asset/finding/v1": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44",
+        "identity": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44"
+      },
+      "evidenceSha256": "0781a8ff3c3bc27f2f90d26c7f59bc584d837325de57f54d16e0a92469303342"
+    },
+    {
+      "findingId": "6747340c-e7a2-460b-87c7-e2e6c3802226",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_exchange_contract_validation.js",
+      "line": 31,
+      "reviewedSourceSha256": "a76d3c7fb41e757069600bce5f4eabb73fcc4f069b3e96404ffe262ea3df1fde",
+      "disposition": "false-positive",
+      "rationale": "Line 31: Acquisition-evidence redaction sentinel is deliberately present in untrusted input; the following assertion forbids it in validated output.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_exchange_contract_validation.js",
+          "line": 31
+        },
+        {
+          "path": "tests/test_exchange_contract_validation.js",
+          "line": 31
+        }
+      ],
+      "fingerprints": {
+        "0": "d9e44b7776e2850bd49192ad60b8c6b6096d57d5edd9434af14d697e0e8c338a",
+        "1": "fc3065be.3f481afb.1b459778.e052b9a9.79a7d027.fcf3002d.fdccee38.f562c5fc.fc3065be.94f191c0.3d62749e.e052b9a9.3b4d01cf.becd9ff1.71100302.c425cb87",
+        "snyk/asset/finding/v1": "6747340c-e7a2-460b-87c7-e2e6c3802226",
+        "identity": "6747340c-e7a2-460b-87c7-e2e6c3802226"
+      },
+      "evidenceSha256": "61f6d603c0d51a46171aaca3db30fb316f51f89fa07c13af31f0f680e9171029"
+    },
+    {
+      "findingId": "a3737d56-de9a-41e7-b30b-fb374b214f91",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_exchange_contract_validation.js",
+      "line": 31,
+      "reviewedSourceSha256": "a76d3c7fb41e757069600bce5f4eabb73fcc4f069b3e96404ffe262ea3df1fde",
+      "disposition": "false-positive",
+      "rationale": "Line 31: Acquisition-evidence redaction sentinel is deliberately present in untrusted input; the following assertion forbids it in validated output.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_exchange_contract_validation.js",
+          "line": 31
+        },
+        {
+          "path": "tests/test_exchange_contract_validation.js",
+          "line": 31
+        }
+      ],
+      "fingerprints": {
+        "0": "d9e44b7776e2850bd49192ad60b8c6b6096d57d5edd9434af14d697e0e8c338a",
+        "1": "e7fd436d.3f481afb.5ef5a079.d7919eeb.79a7d027.f7edcf51.11c09b46.e0f43150.eda9ef34.4773f344.9f5fea6f.d7919eeb.3f452f8c.5fce695c.11c09b46.695b0397",
+        "identity": "a3737d56-de9a-41e7-b30b-fb374b214f91",
+        "snyk/asset/finding/v1": "a3737d56-de9a-41e7-b30b-fb374b214f91"
+      },
+      "evidenceSha256": "5c870d2cafd5437d5cd659756d9b98e7308acdc7a2dcbf468aec9a72ab320e4d"
+    },
+    {
+      "findingId": "a1ed4a9a-f08f-4f3b-b73b-87630d94a0c9",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_hyperliquid_retention.js",
+      "line": 18,
+      "reviewedSourceSha256": "0675de5c304af8d3da9bff59524cbe9484840ca31ba8f35d0c820fe5575a063b",
+      "disposition": "false-positive",
+      "rationale": "Line 18: Non-allowlisted retention field is adversarial input expected to raise; this is not a credential used for authentication.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_hyperliquid_retention.js",
+          "line": 18
+        },
+        {
+          "path": "tests/test_hyperliquid_retention.js",
+          "line": 18
+        }
+      ],
+      "fingerprints": {
+        "0": "1bf157f525d7d6750e1c6892ffa063306a5a222af167526a177aaac80cda7d63",
+        "1": "fc3065be.3f481afb.1b459778.e052b9a9.79a7d027.fcf3002d.a56a8b5b.412aaddb.fc3065be.3f481afb.8b18f948.e052b9a9.79a7d027.5fce695c.ea4b1c47.89d75565",
+        "snyk/asset/finding/v1": "a1ed4a9a-f08f-4f3b-b73b-87630d94a0c9",
+        "identity": "a1ed4a9a-f08f-4f3b-b73b-87630d94a0c9"
+      },
+      "evidenceSha256": "56bb5d8240b10ca4c2ec2e86f0fd5fce9ba7a6b8f649f9952e38c27a8307ed99"
+    },
+    {
+      "findingId": "9b50cbda-ded3-4582-a09b-87e659bcbca8",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_integration.js",
+      "line": 52,
+      "reviewedSourceSha256": "49690820167065e79d4ee9456b4730befaae4e3ad0da6999e3b99c705f84bb90",
+      "disposition": "false-positive",
+      "rationale": "Line 52: Dummy environment value is supplied to tests/mock_parser.js, a local subprocess fixture; it is not a production API key.",
+      "contextPaths": [
+        {
+          "path": "tests/mock_parser.js",
+          "sha256": "026ab31a3eb6ac6593a724413a8b435ed15af91bfe9a54307a94a84e63087675"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_integration.js",
+          "line": 52
+        },
+        {
+          "path": "tests/test_integration.js",
+          "line": 52
+        }
+      ],
+      "fingerprints": {
+        "0": "03b4379fad97fdad85d7980b6c516e44a9c1c79b9e9672c18b16af2b0fcf7bd9",
+        "1": "ce9f866e.7d8d7fe0.e2f4257e.0755de8f.601e4ccc.fcf3002d.35d817ee.ac9d0bd9.ce9f866e.4773f344.a5cb6912.0755de8f.601e4ccc.8020cfdf.35d817ee.83183368",
+        "snyk/asset/finding/v1": "9b50cbda-ded3-4582-a09b-87e659bcbca8",
+        "identity": "9b50cbda-ded3-4582-a09b-87e659bcbca8"
+      },
+      "evidenceSha256": "7b74a097531b3858be8d25874078ebc64682da27f3ce9c21ea1cd68a431c88b1"
+    },
+    {
+      "findingId": "efe2fbab-8939-42b3-acf3-d6f219f541f4",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_secret_store.js",
+      "line": 23,
+      "reviewedSourceSha256": "b2392c99e4a9aa267a638fa4883555b525966715cd288746f5f93741dcbd504f",
+      "disposition": "false-positive",
+      "rationale": "Line 23: Temporary-directory ManagedSecretStore fixture with isolated environment object tests create/update/journal recovery/repair using clearly synthetic strings; no provider authentication occurs.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_secret_store.js",
+          "line": 23
+        },
+        {
+          "path": "tests/test_secret_store.js",
+          "line": 23
+        }
+      ],
+      "fingerprints": {
+        "0": "d93faf8261d02165bd006facc105f6c41d307ac0e58018e5946cb67b88239b4c",
+        "1": "70641390.4773f344.5111edd4.e052b9a9.79a7d027.16814402.047f4cc3.3cee0341.70641390.4773f344.f815c231.c725d013.79a7d027.16814402.aae58e7b.d087f7d7",
+        "identity": "efe2fbab-8939-42b3-acf3-d6f219f541f4",
+        "snyk/asset/finding/v1": "efe2fbab-8939-42b3-acf3-d6f219f541f4"
+      },
+      "evidenceSha256": "31b785aa5a8122ed02e904314a8fb5d62cfa6c09e6c1c958ed24ccb6f96fb720"
+    },
+    {
+      "findingId": "3fd501f8-60d2-4533-84c1-0f8135a93b85",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_secret_store.js",
+      "line": 28,
+      "reviewedSourceSha256": "b2392c99e4a9aa267a638fa4883555b525966715cd288746f5f93741dcbd504f",
+      "disposition": "false-positive",
+      "rationale": "Line 28: Temporary-directory ManagedSecretStore fixture with isolated environment object tests create/update/journal recovery/repair using clearly synthetic strings; no provider authentication occurs.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_secret_store.js",
+          "line": 28
+        },
+        {
+          "path": "tests/test_secret_store.js",
+          "line": 28
+        }
+      ],
+      "fingerprints": {
+        "0": "05e60ed1923fbda026f588b3eca8db5486f3216d4825668d05dc7e16df23b997",
+        "1": "70641390.4773f344.5111edd4.e052b9a9.79a7d027.abf5431f.ce4a9d89.3cee0341.70641390.4773f344.f815c231.e052b9a9.79a7d027.abf5431f.aae58e7b.d087f7d7",
+        "identity": "3fd501f8-60d2-4533-84c1-0f8135a93b85",
+        "snyk/asset/finding/v1": "3fd501f8-60d2-4533-84c1-0f8135a93b85"
+      },
+      "evidenceSha256": "72a1c4766743b77e0b26612948e606e02cb672d9e3cdf4e3e2e9077ceb9d779c"
+    },
+    {
+      "findingId": "aee14560-3ac3-41fd-9b53-37a838268421",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_secret_store.js",
+      "line": 102,
+      "reviewedSourceSha256": "b2392c99e4a9aa267a638fa4883555b525966715cd288746f5f93741dcbd504f",
+      "disposition": "false-positive",
+      "rationale": "Line 102: Temporary-directory ManagedSecretStore fixture with isolated environment object tests create/update/journal recovery/repair using clearly synthetic strings; no provider authentication occurs.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_secret_store.js",
+          "line": 102
+        },
+        {
+          "path": "tests/test_secret_store.js",
+          "line": 102
+        }
+      ],
+      "fingerprints": {
+        "0": "bd960d6835fc8f88135c8fb3e67877dd9e692068db5111625cde113dccf5f18a",
+        "1": "70641390.3f481afb.5111edd4.e052b9a9.79a7d027.16814402.4a5b8cb9.53b7f170.70641390.4773f344.5111edd4.c725d013.79a7d027.16814402.4a5b8cb9.3cee0341",
+        "identity": "aee14560-3ac3-41fd-9b53-37a838268421",
+        "snyk/asset/finding/v1": "aee14560-3ac3-41fd-9b53-37a838268421"
+      },
+      "evidenceSha256": "42705bea7a6ca18e2b2bdcffe55063046579b53d362dc8cb2b46f46163e3a1b5"
+    },
+    {
+      "findingId": "55b8a65d-ce8d-4e3d-9039-678277b8ee68",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_secret_store.js",
+      "line": 122,
+      "reviewedSourceSha256": "b2392c99e4a9aa267a638fa4883555b525966715cd288746f5f93741dcbd504f",
+      "disposition": "false-positive",
+      "rationale": "Line 122: Temporary-directory ManagedSecretStore fixture with isolated environment object tests create/update/journal recovery/repair using clearly synthetic strings; no provider authentication occurs.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_secret_store.js",
+          "line": 122
+        },
+        {
+          "path": "tests/test_secret_store.js",
+          "line": 122
+        }
+      ],
+      "fingerprints": {
+        "0": "f6b143346e72fc3290df7557dcb91be3462614954b01092f44e8cc820fe4b731",
+        "1": "70641390.4773f344.5111edd4.e052b9a9.79a7d027.16814402.bd10209a.d3904364.70641390.4773f344.f815c231.e052b9a9.79a7d027.16814402.aae58e7b.d087f7d7",
+        "snyk/asset/finding/v1": "55b8a65d-ce8d-4e3d-9039-678277b8ee68",
+        "identity": "55b8a65d-ce8d-4e3d-9039-678277b8ee68"
+      },
+      "evidenceSha256": "a3c0a0300a5a44798cbc21ed03d37f007b96258aad6a69ca0d8eef8681676cfe"
+    },
+    {
+      "findingId": "06e9dbdb-8290-450a-95cc-25b789bcdde2",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_secret_store.js",
+      "line": 129,
+      "reviewedSourceSha256": "b2392c99e4a9aa267a638fa4883555b525966715cd288746f5f93741dcbd504f",
+      "disposition": "false-positive",
+      "rationale": "Line 129: Temporary-directory ManagedSecretStore fixture with isolated environment object tests create/update/journal recovery/repair using clearly synthetic strings; no provider authentication occurs.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_secret_store.js",
+          "line": 129
+        },
+        {
+          "path": "tests/test_secret_store.js",
+          "line": 129
+        }
+      ],
+      "fingerprints": {
+        "0": "4972b7fb8a9532ccdce730196d2b6ba7ed2c284762b2fada45879fb082df06cc",
+        "1": "fbb35586.4773f344.5111edd4.e052b9a9.79a7d027.16814402.ce4a9d89.3cee0341.fbb35586.4773f344.c9330245.e052b9a9.79a7d027.16814402.70f01de0.d087f7d7",
+        "identity": "06e9dbdb-8290-450a-95cc-25b789bcdde2",
+        "snyk/asset/finding/v1": "06e9dbdb-8290-450a-95cc-25b789bcdde2"
+      },
+      "evidenceSha256": "e6025298aaf3a13a3150b0661df747ba100305d76cd9c517ec250384bd9f4509"
+    },
+    {
+      "findingId": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_sonar_review_decisions.js",
+      "line": 13,
+      "reviewedSourceSha256": "fc949545baba2c355011180516d4ef014dc30e1d27126c645d0e5a2e385955b4",
+      "disposition": "false-positive",
+      "rationale": "The explicit FAKE-TOKEN-NEVER-PRINT value remains an injected transport/redaction fixture. New code reads immutable be8cf5a git blobs and checks each historical manifest SHA for PR29 transport fixtures; it does not obtain real credentials or send the synthetic token via real platform transport. Rechecked the moved finding and complete updated location evidence.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_sonar_review_decisions.js",
+          "line": 13
+        },
+        {
+          "path": "tests/test_sonar_review_decisions.js",
+          "line": 13
+        }
+      ],
+      "fingerprints": {
+        "0": "df8fac6c780069fd8014d4732d53494321c16437032b39cd9f6275a88929dfe0",
+        "1": "fc3065be.3f481afb.95758592.d7919eeb.79a7d027.5fce695c.ea4b1c47.89d75565.fc3065be.3f481afb.95758592.d7919eeb.79a7d027.5fce695c.ea4b1c47.89d75565",
+        "snyk/asset/finding/v1": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4",
+        "identity": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4"
+      },
+      "evidenceSha256": "f859a75a68c550377b029452216aa695129a7316e6dc96964e334e870d96a0e4"
+    },
+    {
+      "findingId": "e6282f6d-4f71-47ff-befa-7369873e4557",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_telegram_viewer_core.js",
+      "line": 136,
+      "reviewedSourceSha256": "fb1f0ebae3e523a79d6275f11b3a151225260d429f50a3b12d9b6d38e3b183f8",
+      "disposition": "false-positive",
+      "rationale": "Line 136: Secret-field sentinel is fed to recordTradingNotificationEvent inside assert.rejects; the test proves forbidden details are refused.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_telegram_viewer_core.js",
+          "line": 136
+        },
+        {
+          "path": "tests/test_telegram_viewer_core.js",
+          "line": 136
+        }
+      ],
+      "fingerprints": {
+        "0": "21692002cd87194d32e4826e5ddaaed39b8a55d2c2bc487e97496605844352e1",
+        "1": "a8ab77c2.3f481afb.c795088f.e052b9a9.79a7d027.e2358c82.378f23e6.e0f43150.a8ab77c2.4773f344.c795088f.e052b9a9.79a7d027.e2358c82.378f23e6.e0f43150",
+        "snyk/asset/finding/v1": "e6282f6d-4f71-47ff-befa-7369873e4557",
+        "identity": "e6282f6d-4f71-47ff-befa-7369873e4557"
+      },
+      "evidenceSha256": "54f9571b97b81153e468b47b500c5ef450112abb601e06371f4bbfbb8a6af9a7"
+    },
+    {
+      "findingId": "1498a7a1-5346-49c7-b0b0-52ec594b5b0c",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "line": 35,
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "disposition": "false-positive",
+      "rationale": "Line 35: Temporary TradingCredentialStore exercises validation, legacy migration and candidate staging/promotion/discard with fabricated account UUIDs and key/secret strings; no exchange request uses these credentials.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 35
+        },
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 35
+        }
+      ],
+      "fingerprints": {
+        "0": "5b8178c7126da159d65103688b7ab7f13b05f499d493ae886ac76edca277467c",
+        "1": "e7fd436d.4773f344.607187b5.e052b9a9.79a7d027.fcf3002d.33585f60.e0f43150.03917ba0.428246c9.f815c231.4ff1aa48.79a7d027.8020cfdf.aae58e7b.e0f43150",
+        "snyk/asset/finding/v1": "1498a7a1-5346-49c7-b0b0-52ec594b5b0c",
+        "identity": "1498a7a1-5346-49c7-b0b0-52ec594b5b0c"
+      },
+      "evidenceSha256": "d44411a54211828094df33fb527816bfd842416e7a6e530bed324d274fba2665"
+    },
+    {
+      "findingId": "e0d3690e-5911-4fa5-96ab-c0893d808e7f",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "line": 38,
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "disposition": "false-positive",
+      "rationale": "Line 38: Temporary TradingCredentialStore exercises validation, legacy migration and candidate staging/promotion/discard with fabricated account UUIDs and key/secret strings; no exchange request uses these credentials.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 38
+        },
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 38
+        }
+      ],
+      "fingerprints": {
+        "0": "ad2b33c013ca88b3c3af159836be225ee19b49718d0583e318b420423d9284de",
+        "1": "c38ef152.4773f344.607187b5.e052b9a9.79a7d027.bc3a06e6.80eb7e1f.e0f43150.31647f41.59da5bcb.f815c231.aad5b9ba.79a7d027.bc3a06e6.aae58e7b.e0f43150",
+        "snyk/asset/finding/v1": "e0d3690e-5911-4fa5-96ab-c0893d808e7f",
+        "identity": "e0d3690e-5911-4fa5-96ab-c0893d808e7f"
+      },
+      "evidenceSha256": "aed742a17d8297b0c92b09c33fbb0da058fc170fab4043138b3a895780187253"
+    },
+    {
+      "findingId": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "line": 60,
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "disposition": "false-positive",
+      "rationale": "Line 60: Temporary TradingCredentialStore exercises validation, legacy migration and candidate staging/promotion/discard with fabricated account UUIDs and key/secret strings; no exchange request uses these credentials.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 60
+        },
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 60
+        }
+      ],
+      "fingerprints": {
+        "0": "cbf9bd0b157e9190fbb1ca41f976837236b9bf462c86ffcaf95ab17d4494207c",
+        "1": "c38ef152.3f481afb.a1c822f2.e052b9a9.79a7d027.bc3a06e6.80eb7e1f.4bea0b18.fc3065be.4773f344.607187b5.aad5b9ba.79a7d027.bc3a06e6.a56a8b5b.4bea0b18",
+        "identity": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e",
+        "snyk/asset/finding/v1": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e"
+      },
+      "evidenceSha256": "ebb4047c02ab9ef41ef04a1129a32c94084146df8b67b4cf025e432d23d307d2"
+    },
+    {
+      "findingId": "95e532db-4651-47f3-b9da-40e0da5e0fcc",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "line": 73,
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "disposition": "false-positive",
+      "rationale": "Line 73: Temporary TradingCredentialStore exercises validation, legacy migration and candidate staging/promotion/discard with fabricated account UUIDs and key/secret strings; no exchange request uses these credentials.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 73
+        },
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 73
+        }
+      ],
+      "fingerprints": {
+        "0": "1344b0c601daf7be4887171a694af63bb295bd818e2b448b6def643dd744cf2f",
+        "1": "e7fd436d.3f481afb.4d0c4123.e052b9a9.79a7d027.fcf3002d.dddd9f4c.e0f43150.b44e9232.59da5bcb.cf0dc3a8.cb018436.3f452f8c.9b2f3091.6bdd8e71.e0f43150",
+        "snyk/asset/finding/v1": "95e532db-4651-47f3-b9da-40e0da5e0fcc",
+        "identity": "95e532db-4651-47f3-b9da-40e0da5e0fcc"
+      },
+      "evidenceSha256": "51fb0bdd7394c36f17f89c6c4cc7b503ffbcfdf4ad7bf53ff4f82ab4dc6a816f"
+    },
+    {
+      "findingId": "4d819ebc-b7ba-4de3-a71e-5daea6c942e7",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "line": 74,
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "disposition": "false-positive",
+      "rationale": "Line 74: Temporary TradingCredentialStore exercises validation, legacy migration and candidate staging/promotion/discard with fabricated account UUIDs and key/secret strings; no exchange request uses these credentials.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 74
+        },
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 74
+        }
+      ],
+      "fingerprints": {
+        "0": "dbe1e9aa58d2e149137f8aebd53156ce728c2aee4f0fc709af812c2a7a7e6cc1",
+        "1": "e7fd436d.ca37a272.f8f1d984.e052b9a9.79a7d027.fcf3002d.dddd9f4c.e0f43150.fc3065be.ca37a272.1b459778.e052b9a9.79a7d027.fcf3002d.da8a9d31.e0f43150",
+        "snyk/asset/finding/v1": "4d819ebc-b7ba-4de3-a71e-5daea6c942e7",
+        "identity": "4d819ebc-b7ba-4de3-a71e-5daea6c942e7"
+      },
+      "evidenceSha256": "1358e35d10a9acc9c066ab16b1d9b1b8b2ce0ad17cd4118f8197067816b78f61"
+    },
+    {
+      "findingId": "82e95abb-7def-48e9-9e03-f12ddb87396e",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "line": 78,
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "disposition": "false-positive",
+      "rationale": "Line 78: Temporary TradingCredentialStore exercises validation, legacy migration and candidate staging/promotion/discard with fabricated account UUIDs and key/secret strings; no exchange request uses these credentials.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 78
+        },
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 78
+        }
+      ],
+      "fingerprints": {
+        "0": "f0a9997e30401b11a21ca8c2f0a8996aa813c94e91b6d9063f29e73a35e2a086",
+        "1": "e7fd436d.3f481afb.4d0c4123.e052b9a9.79a7d027.fcf3002d.80eb7e1f.e0f43150.40c5fd92.59da5bcb.cf0dc3a8.e052b9a9.3f452f8c.9b2f3091.6bdd8e71.e0f43150",
+        "identity": "82e95abb-7def-48e9-9e03-f12ddb87396e",
+        "snyk/asset/finding/v1": "82e95abb-7def-48e9-9e03-f12ddb87396e"
+      },
+      "evidenceSha256": "71abc14f56fadb0bc4ecf55d7d2692d158f37d38985a4ff96d9acee4b456ed99"
+    },
+    {
+      "findingId": "68016b09-7ac9-40c1-8640-8412bc77d91e",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "line": 79,
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "disposition": "false-positive",
+      "rationale": "Line 79: Temporary TradingCredentialStore exercises validation, legacy migration and candidate staging/promotion/discard with fabricated account UUIDs and key/secret strings; no exchange request uses these credentials.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 79
+        },
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 79
+        }
+      ],
+      "fingerprints": {
+        "0": "6c747f7d9eb2459130040a789d125f777600c0407c55a3a494b741b31c910006",
+        "1": "e7fd436d.ca37a272.f8f1d984.e052b9a9.79a7d027.fcf3002d.80eb7e1f.e0f43150.fc3065be.ca37a272.1b459778.e052b9a9.79a7d027.fcf3002d.a56a8b5b.e0f43150",
+        "identity": "68016b09-7ac9-40c1-8640-8412bc77d91e",
+        "snyk/asset/finding/v1": "68016b09-7ac9-40c1-8640-8412bc77d91e"
+      },
+      "evidenceSha256": "f193bd4d79887e88abc778f892001da8292e17ec3e11e5121938f2a84801c56d"
+    },
+    {
+      "findingId": "f1107dfb-8004-470e-ae80-5b3230735eea",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "line": 108,
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "disposition": "false-positive",
+      "rationale": "Line 108: Temporary TradingCredentialStore exercises validation, legacy migration and candidate staging/promotion/discard with fabricated account UUIDs and key/secret strings; no exchange request uses these credentials.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 108
+        },
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 108
+        }
+      ],
+      "fingerprints": {
+        "0": "77f6edc96e153a69520fb016657c06f908b4f27a6020210e8f639bbd7d3d416a",
+        "1": "e7fd436d.4773f344.607187b5.e052b9a9.79a7d027.fcf3002d.344645e1.e0f43150.59adff2f.59da5bcb.f815c231.d7919eeb.79a7d027.8020cfdf.aae58e7b.1d16e44c",
+        "identity": "f1107dfb-8004-470e-ae80-5b3230735eea",
+        "snyk/asset/finding/v1": "f1107dfb-8004-470e-ae80-5b3230735eea"
+      },
+      "evidenceSha256": "f3ff0cff2e4df7aa05cf1fb333b1566386f8a96dc92a7b19d0c2717e03adfee4"
+    },
+    {
+      "findingId": "67212bb4-5c74-4ec1-a6f6-6404626cdc02",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "line": 115,
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "disposition": "false-positive",
+      "rationale": "Line 115: Temporary TradingCredentialStore exercises validation, legacy migration and candidate staging/promotion/discard with fabricated account UUIDs and key/secret strings; no exchange request uses these credentials.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 115
+        },
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 115
+        }
+      ],
+      "fingerprints": {
+        "0": "2de3c484b7c44f9fe51a7531f652f966616ec4a8064efa5846adb402c5b86d12",
+        "1": "e7fd436d.4773f344.607187b5.e052b9a9.79a7d027.1bad3d9d.80eb7e1f.e0f43150.59adff2f.59da5bcb.f815c231.d7919eeb.79a7d027.1bad3d9d.aae58e7b.e0f43150",
+        "snyk/asset/finding/v1": "67212bb4-5c74-4ec1-a6f6-6404626cdc02",
+        "identity": "67212bb4-5c74-4ec1-a6f6-6404626cdc02"
+      },
+      "evidenceSha256": "aeb8fcc17e629d71e25b3072c1a86e27b20b9c4d17b897dbe66282b86dcf9b02"
+    },
+    {
+      "findingId": "68a1f53d-6f82-4221-baf2-f9f213aab9f2",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "line": 121,
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "disposition": "false-positive",
+      "rationale": "Line 121: Temporary TradingCredentialStore exercises validation, legacy migration and candidate staging/promotion/discard with fabricated account UUIDs and key/secret strings; no exchange request uses these credentials.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 121
+        },
+        {
+          "path": "tests/test_trading_credentials.js",
+          "line": 121
+        }
+      ],
+      "fingerprints": {
+        "0": "68d0344b37f0203242daa61e860cb3f50751ee5cd4d352da60f3ff2a8fd955f8",
+        "1": "e7fd436d.4773f344.607187b5.e052b9a9.79a7d027.c94f2c31.80eb7e1f.e0f43150.4a429d10.59da5bcb.f815c231.d7919eeb.79a7d027.c94f2c31.aae58e7b.e0f43150",
+        "snyk/asset/finding/v1": "68a1f53d-6f82-4221-baf2-f9f213aab9f2",
+        "identity": "68a1f53d-6f82-4221-baf2-f9f213aab9f2"
+      },
+      "evidenceSha256": "208225e92ba04293bdf3b172e4aacad61cfca4364e2060d028fb92283fda75b5"
+    },
+    {
+      "findingId": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_evidence_repository.js",
+      "line": 45,
+      "reviewedSourceSha256": "8e5c78f76dd36d0edaf5c6b53af64ecf564e443a7bbdb0ebc73760f6acbf0562",
+      "disposition": "false-positive",
+      "rationale": "Line 45: Synthetic remote-fill evidence includes a redaction marker before persistence into the temporary database; it is not an authentication input.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_evidence_repository.js",
+          "line": 45
+        },
+        {
+          "path": "tests/test_trading_evidence_repository.js",
+          "line": 45
+        }
+      ],
+      "fingerprints": {
+        "0": "41185e34df97402d06d8df37c91ecbcb5c5fcec1380fd66b9e7022039f0331ee",
+        "1": "9685ad90.7860c269.296cb380.e052b9a9.79a7d027.0bef13c7.80eb7e1f.e0f43150.5d47fc0c.99355a7d.43f75789.d7919eeb.79a7d027.0bef13c7.faf26d9f.6e96b1ed",
+        "identity": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737",
+        "snyk/asset/finding/v1": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737"
+      },
+      "evidenceSha256": "3f852e2c5048792303688f3f927361215645a02fc98e88af6b7271ce424d3567"
+    },
+    {
+      "findingId": "9481f398-aa6b-4990-a250-a4ef4297442e",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_failures.js",
+      "line": 187,
+      "reviewedSourceSha256": "931dfab7a04592d2271857a1bfe0f340102a74e09dc5cc7f9288d630996c0b7e",
+      "disposition": "false-positive",
+      "rationale": "Individually rechecked line187 synthetic MUST_NOT_BE_SAVED fill marker. The wrapped Paper adapter supplies this raw fixture to reconciliation; assertions require redacted durable evidence and blocked unresolved fills. Source changes replace fake async returns with Promise.resolve, preserving test ownership and no real credential use. The marker is intentionally forbidden test data, not an authentication secret.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 187
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 187
+        }
+      ],
+      "fingerprints": {
+        "0": "ec31a742cc50237a87ae7a5ca8a9e39e21ce2d3de74ed76375a8473abff5c862",
+        "1": "e7fd436d.4bc8f081.8cdc5866.e052b9a9.79a7d027.fcf3002d.62c87e89.e0f43150.e7fd436d.4bc8f081.8cdc5866.d7919eeb.79a7d027.f7edcf51.62c87e89.e0f43150",
+        "identity": "9481f398-aa6b-4990-a250-a4ef4297442e",
+        "snyk/asset/finding/v1": "9481f398-aa6b-4990-a250-a4ef4297442e"
+      },
+      "evidenceSha256": "3755a94f8a566525e9db83ff306bd57806d17ea94c4ce38a99dfd28fd18592d6"
+    },
+    {
+      "findingId": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_ui_change_reviews.js",
+      "line": 82,
+      "reviewedSourceSha256": "ebec2a19f62ce75c5204fdb0e6e7e1a4276b784522185f8dc6de9dcf4cde6aa6",
+      "disposition": "false-positive",
+      "rationale": "Line 82: Fabricated private-value markers exercise bounded review-tree and MCP request/result redaction against temporary fixture data; no real password or secret is embedded.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_ui_change_reviews.js",
+          "line": 82
+        },
+        {
+          "path": "tests/test_ui_change_reviews.js",
+          "line": 82
+        }
+      ],
+      "fingerprints": {
+        "0": "0da2b9cfb111025a8af3378e43b1aa78a403499a4de2c7f6a6cdd36aa84b0aa1",
+        "1": "fc3065be.3f481afb.0249c237.e052b9a9.79a7d027.5f3dccdf.7603ada4.a60c1927.fc3065be.4773f344.607187b5.e052b9a9.79a7d027.5f3dccdf.7603ada4.3cee0341",
+        "snyk/asset/finding/v1": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0",
+        "identity": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0"
+      },
+      "evidenceSha256": "4c869da8c60b45420322e383e8f3d4aba26b8b1c866b430a44cdefffa4923249"
+    },
+    {
+      "findingId": "75e4084d-676d-47b5-a497-7b0b5d3a6d2c",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_ui_change_reviews.js",
+      "line": 82,
+      "reviewedSourceSha256": "ebec2a19f62ce75c5204fdb0e6e7e1a4276b784522185f8dc6de9dcf4cde6aa6",
+      "disposition": "false-positive",
+      "rationale": "Line 82: Fabricated private-value markers exercise bounded review-tree and MCP request/result redaction against temporary fixture data; no real password or secret is embedded.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_ui_change_reviews.js",
+          "line": 82
+        },
+        {
+          "path": "tests/test_ui_change_reviews.js",
+          "line": 82
+        }
+      ],
+      "fingerprints": {
+        "0": "0da2b9cfb111025a8af3378e43b1aa78a403499a4de2c7f6a6cdd36aa84b0aa1",
+        "1": "fc3065be.3f481afb.0249c237.e052b9a9.79a7d027.fcf3002d.a56a8b5b.6767a0fb.fc3065be.4773f344.a61279c6.6d2be069.79a7d027.8020cfdf.79dc7538.6767a0fb",
+        "identity": "75e4084d-676d-47b5-a497-7b0b5d3a6d2c",
+        "snyk/asset/finding/v1": "75e4084d-676d-47b5-a497-7b0b5d3a6d2c"
+      },
+      "evidenceSha256": "a07986e2d66a0f675dd34f3a123f44f9de711ea82189ec3439daad44ba372b14"
+    },
+    {
+      "findingId": "86777f7f-c030-435e-9086-f29fcbffcb58",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_ui_next_reads.js",
+      "line": 115,
+      "reviewedSourceSha256": "ee4a0e77d50ad846b473600991c7079de71cb1e16be1675033ccf72ff2f8dc93",
+      "disposition": "false-positive",
+      "rationale": "Line 115: Temporary SQLite rows are deliberately seeded with private markers to prove UI projections omit original secret-bearing payloads; placeholders grant no authority.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_ui_next_reads.js",
+          "line": 115
+        },
+        {
+          "path": "tests/test_ui_next_reads.js",
+          "line": 115
+        }
+      ],
+      "fingerprints": {
+        "0": "2f9118d9bb7e74229f0d88176b9cfbf4ae5840007e8088724f2458ca62aaaf97",
+        "1": "fc3065be.4773f344.607187b5.e052b9a9.79a7d027.fcf3002d.a56a8b5b.230dd7fb.fc3065be.4773f344.1b459778.e052b9a9.79a7d027.9aaae99c.a56a8b5b.e6930396",
+        "snyk/asset/finding/v1": "86777f7f-c030-435e-9086-f29fcbffcb58",
+        "identity": "86777f7f-c030-435e-9086-f29fcbffcb58"
+      },
+      "evidenceSha256": "7efc10c1a101db816fa264ae6d4ad3f0b2e00d214c3ea2add1c19d869d6f2962"
+    },
+    {
+      "findingId": "35c81c03-fadd-4a16-a0e3-8e81108e18c4",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_ui_next_reads.js",
+      "line": 222,
+      "reviewedSourceSha256": "ee4a0e77d50ad846b473600991c7079de71cb1e16be1675033ccf72ff2f8dc93",
+      "disposition": "false-positive",
+      "rationale": "Line 222: Temporary SQLite rows are deliberately seeded with private markers to prove UI projections omit original secret-bearing payloads; placeholders grant no authority.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_ui_next_reads.js",
+          "line": 222
+        },
+        {
+          "path": "tests/test_ui_next_reads.js",
+          "line": 222
+        }
+      ],
+      "fingerprints": {
+        "0": "c0ce7c7bbe590d5e635e8bb445781716e886f36c8027356b9db54d4db93211a7",
+        "1": "fc3065be.4773f344.16660365.e0151feb.79a7d027.fcf3002d.a56a8b5b.3cee0341.fc3065be.4773f344.16660365.e0151feb.79a7d027.0c17bcdd.a56a8b5b.e6930396",
+        "identity": "35c81c03-fadd-4a16-a0e3-8e81108e18c4",
+        "snyk/asset/finding/v1": "35c81c03-fadd-4a16-a0e3-8e81108e18c4"
+      },
+      "evidenceSha256": "9012593c8a50cb282fc028b50bc8b77eb5248d2742ad74ebf2292b76c0d76a96"
+    },
+    {
+      "findingId": "d2853e9a-03af-4436-8200-1c45936744c5",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_ui_next_reads.js",
+      "line": 223,
+      "reviewedSourceSha256": "ee4a0e77d50ad846b473600991c7079de71cb1e16be1675033ccf72ff2f8dc93",
+      "disposition": "false-positive",
+      "rationale": "Line 223: Temporary SQLite rows are deliberately seeded with private markers to prove UI projections omit original secret-bearing payloads; placeholders grant no authority.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_ui_next_reads.js",
+          "line": 223
+        },
+        {
+          "path": "tests/test_ui_next_reads.js",
+          "line": 223
+        }
+      ],
+      "fingerprints": {
+        "0": "4a8fad57c4fbcfdad7defbea56265789ef16b45d9be4ce51f9cb0fd75e08cc51",
+        "1": "fc3065be.4773f344.16660365.e0151feb.79a7d027.fcf3002d.a56a8b5b.3cee0341.fc3065be.4773f344.16660365.e0151feb.79a7d027.0c17bcdd.a56a8b5b.e6930396",
+        "identity": "d2853e9a-03af-4436-8200-1c45936744c5",
+        "snyk/asset/finding/v1": "d2853e9a-03af-4436-8200-1c45936744c5"
+      },
+      "evidenceSha256": "c417c19384be4fac6b91fa00ab385d075751341fd621e06ac9e61e7daeb001ba"
+    },
+    {
+      "findingId": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_ui_next_reads.js",
+      "line": 247,
+      "reviewedSourceSha256": "ee4a0e77d50ad846b473600991c7079de71cb1e16be1675033ccf72ff2f8dc93",
+      "disposition": "false-positive",
+      "rationale": "Line 247: Temporary SQLite rows are deliberately seeded with private markers to prove UI projections omit original secret-bearing payloads; placeholders grant no authority.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_ui_next_reads.js",
+          "line": 247
+        },
+        {
+          "path": "tests/test_ui_next_reads.js",
+          "line": 247
+        }
+      ],
+      "fingerprints": {
+        "0": "8b640a4943a0d6b01296b3f15a2d359aacda5be6faa3169144f7f6598b59acc2",
+        "1": "fc3065be.4773f344.607187b5.e052b9a9.79a7d027.fcf3002d.a56a8b5b.3cee0341.fc3065be.8d6036c5.1b459778.e052b9a9.79a7d027.8020cfdf.a56a8b5b.07051301",
+        "snyk/asset/finding/v1": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee",
+        "identity": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee"
+      },
+      "evidenceSha256": "9b64a5f175c7ca8b1f94426f49fa550068961a5904129c3d4fcde3d8237981a6"
+    },
+    {
+      "findingId": "d1163842-b198-4156-ab79-efd0cd8da57d",
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_web_server.js",
+      "line": 1270,
+      "reviewedSourceSha256": "244af8c9d84106db159d019c511723954a2d0fd47f227543dd12518d5aa6f5e9",
+      "disposition": "false-positive",
+      "rationale": "Individually rechecked the synthetic dashboard-managed-key payload at line1270 and the complete test harness. It is sent only to the ephemeral 127.0.0.1 dashboard with temporary ManagedSecretStore and asserted absent from the response. Changed fake control/backup callbacks only return explicit resolved Promises; listener, fabricated value and redaction assertions remain unchanged. No valid external provider credential is present.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_web_server.js",
+          "line": 1270
+        },
+        {
+          "path": "tests/test_web_server.js",
+          "line": 1270
+        }
+      ],
+      "fingerprints": {
+        "0": "a8d85e1796f078b66ae6836dfc0a60b7a812a544ced11e2e8dad333a76c69130",
+        "1": "70641390.4773f344.5111edd4.e052b9a9.79a7d027.16814402.ac4cca8a.636f6787.70641390.4773f344.5111edd4.e052b9a9.79a7d027.16814402.ac4cca8a.636f6787",
+        "identity": "d1163842-b198-4156-ab79-efd0cd8da57d",
+        "snyk/asset/finding/v1": "d1163842-b198-4156-ab79-efd0cd8da57d"
+      },
+      "evidenceSha256": "773e7cdd5269cc56e98f1cb5bde2693a87f766012a61acb92bd1ccb73a876660"
+    },
+    {
+      "findingId": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8",
+      "ruleId": "javascript/XSS/test",
+      "path": "tests/test_backup_replication.js",
+      "line": 55,
+      "reviewedSourceSha256": "9588fd81215a55fc225fabf4e4ac8ddbc892742f98ebd5bbfea55eb0da58e6d7",
+      "disposition": "false-positive",
+      "rationale": "The response ends with encrypted binary artifact bytes copied from the test-owned objects Map; its client is the loopback BackupReplicator, not an HTML renderer. Only the default download hook changed from async no-op to Promise.resolve. Stored bytes, transport fixture and integrity assertions remain unchanged; no browser XSS sink is exercised.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_backup_replication.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_backup_replication.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_backup_replication.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_backup_replication.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_backup_replication.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_backup_replication.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_backup_replication.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_backup_replication.js",
+          "line": 55
+        },
+        {
+          "path": "tests/test_backup_replication.js",
+          "line": 55
+        }
+      ],
+      "fingerprints": {
+        "0": "fac6466c4e4e0c184ab9ca20ae9b37e4196c2ff372ca8d198574533a0ac46da2",
+        "1": "bc441d81.4773f344.607187b5.7f82e2f6.ef9f7d82.756a1932.cd61fc56.8be9f57d.bc441d81.7d4b7307.f0575b1e.62086a14.79a7d027.98c7c24d.83265159.e8752bfb",
+        "snyk/asset/finding/v1": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8",
+        "identity": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8"
+      },
+      "evidenceSha256": "24963220d0d3528f17befc0a2f210ffd12c2c0733704419f8f9af3c85bffae87"
+    },
+    {
+      "findingId": "0b078f4b-85ab-487e-8951-7a4f6ec03335",
+      "ruleId": "javascript/reDOS",
+      "path": "scripts/calculate_pr_risk.js",
+      "line": 160,
+      "reviewedSourceSha256": "fad861630941f51339b205a1ec9d77e10abe3f37bee7f35b60360f011b7788e6",
+      "disposition": "false-positive",
+      "rationale": "Rechecked current git-diff filename -> normalization -> FACTORS predicates flow. The script is byte-identical: patterns consist of finite literal alternatives and anchored path classifiers, with no attacker-supplied regex and no nested ambiguous repetition. Input filenames do not cause catastrophic backtracking. The only changed workflow context extends the separate schema mutation job timeout; it does not change PR-risk input, pattern selection or execution.",
+      "contextPaths": [
+        {
+          "path": ".github/workflows/quality.yml",
+          "sha256": "18432af0370bbb5c960d0a243932f73617d7b8600c19a1ca95da6a38f67520fd"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 222
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 222
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 222
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 222
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 224
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 201
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 202
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 202
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 202
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 207
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 207
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 205
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 205
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 215
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 215
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 215
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 217
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 217
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 217
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 217
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 217
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 217
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 215
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 215
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 215
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 224
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 225
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 152
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 153
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 155
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 155
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 155
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 155
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 155
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 153
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 153
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 153
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 153
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 160
+        },
+        {
+          "path": "scripts/calculate_pr_risk.js",
+          "line": 160
+        }
+      ],
+      "fingerprints": {
+        "0": "08652c50eba851b3bcf33ecfb9636592e08a44cbcb114caa30e003b36158599c",
+        "1": "556a3f69.4773f344.8b18f948.c559ebce.efe6faf0.8020cfdf.0c2d63db.6e19746a.556a3f69.b6e32c83.304e28be.ccdf159c.3f452f8c.67e8bccf.83265159.ef6bffc1",
+        "identity": "0b078f4b-85ab-487e-8951-7a4f6ec03335",
+        "snyk/asset/finding/v1": "0b078f4b-85ab-487e-8951-7a4f6ec03335"
+      },
+      "evidenceSha256": "02f22c2616a751f9652f6e95450e92a3d4e55746d2fca5c4770c44395c8da37a"
+    },
+    {
+      "findingId": "d3f09f66-f994-4652-86bf-651b0262e797",
+      "ruleId": "javascript/reDOS",
+      "path": "src/incoming_work_repository.ts",
+      "line": 179,
+      "reviewedSourceSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b",
+      "disposition": "false-positive",
+      "rationale": "Re-reviewed pending database row -> readIngressMessage -> acceptsLegacySource -> shouldForward -> matchesAllRegexPatterns -> parseRegex -> safeRegexTest flow at current bytes. New ingress guards require valid numeric Telegram identity and string-valued text/caption before classification; invalid rows become needs_review. Filter refactoring still slices text to8000, rejects nested quantifiers and patterns over150, strips stateful g/y flags, and executes regex.test inside vm.runInContext with100ms CPU timeout. Exceptions reject the filter. Native cross-realm timeout messages retain their original diagnosis via a data descriptor; no unknown-object coercion is introduced. Independent current filter and ingress contract tests pass, including actual timeout behavior. The reported flow omits the bounded execution boundary.",
+      "contextPaths": [
+        {
+          "path": "src/config.ts",
+          "sha256": "2169171d995a81f527b86a1be937cea35cd5055e2bda4beb55d65604f96a40e7"
+        },
+        {
+          "path": "src/filters.ts",
+          "sha256": "f5edfd4deb01e971a8e061e627e2bc1292bff101bb11dc1abd9c579db2b89832"
+        },
+        {
+          "path": "src/ingress_contracts.ts",
+          "sha256": "b9b53a9beb2124f65cadbf41269302456386f5d9106e8994fcba002b9b75d8d1"
+        },
+        {
+          "path": "src/contract_values.ts",
+          "sha256": "17a8f1ded288270f63ac12778110fd76d60a8a62a88494909c41687d4c31063b"
+        },
+        {
+          "path": "tests/test_filters.js",
+          "sha256": "c3f22af06ca67d1bc3acdc8b9531c2073e14296b5800e7e3df468fd02655d9a9"
+        },
+        {
+          "path": "tests/test_ingress_contract_guards.js",
+          "sha256": "dfce0b1ad0674268cd66b32c3e97b001bb541ff64276e1dd0de24f68d78c4a90"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 221
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 194
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 202
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 173
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 179
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 179
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 179
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 279
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 285
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 299
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 302
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 292
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 304
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 248
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 254
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 254
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 254
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 304
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 305
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 259
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 263
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 265
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 125
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 126
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 126
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 126
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 132
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 132
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 144
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 150
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 145
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 162
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 164
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 164
+        }
+      ],
+      "fingerprints": {
+        "0": "b43f9879c4c47a37f1a7a3c288adc5e49058518e2bed49b3a37e9d49d7ca218e",
+        "1": "2d06e3d6.93dc32e3.607187b5.b62a4246.ef9f7d82.8020cfdf.29e74e17.3357ef26.6bb676bb.b6e32c83.df10db2d.3fe041cc.8695fa9e.5fce695c.55818220.e6930396",
+        "snyk/asset/finding/v1": "d3f09f66-f994-4652-86bf-651b0262e797",
+        "identity": "d3f09f66-f994-4652-86bf-651b0262e797"
+      },
+      "evidenceSha256": "b9bac6cbdc1e05280b42328348fd7f953d55f6af9ff36541f6121a5781274d66"
+    },
+    {
+      "findingId": "f62614bc-117e-48c1-8267-e866c507367a",
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_additional_exchange_profiles.py",
+      "line": 166,
+      "reviewedSourceSha256": "220c7e82ce5d0aa9ee2a94c7a20252d69d7220bf29132f9af20438e0ffe92997",
+      "disposition": "false-positive",
+      "rationale": "Line 166: Adversarial assessment-document mutation inserts forbidden secret field; validator rejection is the expected result.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_additional_exchange_profiles.py",
+          "line": 166
+        },
+        {
+          "path": "exchange_executor/tests/test_additional_exchange_profiles.py",
+          "line": 166
+        }
+      ],
+      "fingerprints": {
+        "0": "292703202186868bcaf23be59e718df6dfca7e84187752ac9a06df9af0c2a5cc",
+        "1": "6d41d7cd.41092c78.d29bd077.139c59a8.791ac95a.65be8dbb.b7c322fa.0990edd8.6d41d7cd.41092c78.d29bd077.139c59a8.791ac95a.65be8dbb.b7c322fa.0990edd8",
+        "snyk/asset/finding/v1": "f62614bc-117e-48c1-8267-e866c507367a",
+        "identity": "f62614bc-117e-48c1-8267-e866c507367a"
+      },
+      "evidenceSha256": "947aeabe83e1779ec52e190a5bd9dfb5e9124da4f48e29e3a4a126c9eaea3c38"
+    },
+    {
+      "findingId": "d724e3e9-b7ca-4eec-ac14-037f58090f2a",
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_candidate_group_b_boundaries.py",
+      "line": 76,
+      "reviewedSourceSha256": "bc387d07c1545bb3faccecf42b3272fc7040ed94225f2f8b3d559890ada4e41d",
+      "disposition": "false-positive",
+      "rationale": "Line 76: Local SDK constructor credentials are synthetic; fetch and request are AsyncMocks that reject unexpected provider transport.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_candidate_group_b_boundaries.py",
+          "line": 76
+        },
+        {
+          "path": "exchange_executor/tests/test_candidate_group_b_boundaries.py",
+          "line": 76
+        }
+      ],
+      "fingerprints": {
+        "0": "536cf9beacef877370ece2d9d1a0eef105b3275706bc7ce51a8f2d80c8ad210c",
+        "1": "16691f08.962feb11.79e62dc9.9a7f5d61.b05938da.3df0c333.f6f189a3.8e816aed.16691f08.962feb11.79e62dc9.9a7f5d61.b05938da.3df0c333.f6f189a3.8e816aed",
+        "identity": "d724e3e9-b7ca-4eec-ac14-037f58090f2a",
+        "snyk/asset/finding/v1": "d724e3e9-b7ca-4eec-ac14-037f58090f2a"
+      },
+      "evidenceSha256": "e194499d24d7f86d552979306b28c918a3ac7e0ecfdc5fffc8a986c38abd0c8e"
+    },
+    {
+      "findingId": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14",
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_kraken_bounded_matrix.py",
+      "line": 84,
+      "reviewedSourceSha256": "e2472c2781f767e7b03a5591bdd5b761296c352f926a4f4a50f45e6d33d4d9b3",
+      "disposition": "false-positive",
+      "rationale": "Line 84: Synthetic base64 signer material is consumed by SDK with fetch replaced by intercepted local responses; it is not a provider credential.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_kraken_bounded_matrix.py",
+          "line": 84
+        },
+        {
+          "path": "exchange_executor/tests/test_kraken_bounded_matrix.py",
+          "line": 84
+        }
+      ],
+      "fingerprints": {
+        "0": "f3d186928eb91bffe4d2f1bdb862759b97768db1baf1fb6ec6b772c3f2e0565c",
+        "1": "16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.186544da.16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.186544da",
+        "identity": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14",
+        "snyk/asset/finding/v1": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14"
+      },
+      "evidenceSha256": "04b55924928fa7169f71192b661200ce090f79b651dfbb17e27dd076c980f2e1"
+    },
+    {
+      "findingId": "367a2dd3-ef73-4e71-8066-f992a958af8a",
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_kraken_response_capture.py",
+      "line": 77,
+      "reviewedSourceSha256": "57b8ed4681d9d9414eb7e1dfecdeea355decdc9301bc608faa0772307632ec8b",
+      "disposition": "false-positive",
+      "rationale": "Line 77: Synthetic signer material is used with injected LocalSession/LocalResponse objects; request capture is entirely local.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_kraken_response_capture.py",
+          "line": 77
+        },
+        {
+          "path": "exchange_executor/tests/test_kraken_response_capture.py",
+          "line": 77
+        }
+      ],
+      "fingerprints": {
+        "0": "ac2630c5fc7f6ab65f4007dffc61cdd1ca83c4571bc64b6db5ae59b1e4e2773a",
+        "1": "16691f08.4e7c9b67.ea818a45.f198b706.b05938da.ba14daf2.081ac3f4.186544da.16691f08.4e7c9b67.ea818a45.f198b706.b05938da.ba14daf2.081ac3f4.186544da",
+        "identity": "367a2dd3-ef73-4e71-8066-f992a958af8a",
+        "snyk/asset/finding/v1": "367a2dd3-ef73-4e71-8066-f992a958af8a"
+      },
+      "evidenceSha256": "6c2ef0f1a742ca65505401be158afd9678d740544fe807f2ad0fb5a6b9499645"
+    },
+    {
+      "findingId": "24d61af9-11c9-4687-9dff-3e2b1b30670d",
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_kraken_response_capture_failures.py",
+      "line": 306,
+      "reviewedSourceSha256": "d96212edfd35072cff0a4dff3ad0f38589646f51a1c871e11d83c8f1d6cf0e67",
+      "disposition": "false-positive",
+      "rationale": "Line 306: Malformed signed-header cases use the local captured-client fixture; surrogate/CRLF Authenticity headers are expected to fail validation, not sent to a provider.",
+      "contextPaths": [
+        {
+          "path": "exchange_executor/tests/test_kraken_response_capture.py",
+          "sha256": "57b8ed4681d9d9414eb7e1dfecdeea355decdc9301bc608faa0772307632ec8b"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_kraken_response_capture_failures.py",
+          "line": 306
+        },
+        {
+          "path": "exchange_executor/tests/test_kraken_response_capture_failures.py",
+          "line": 306
+        }
+      ],
+      "fingerprints": {
+        "0": "7fd8f8d7698bc96ffceddb798848600ef59815c43420ccabb6a2291d4cc2765f",
+        "1": "16691f08.4e7c9b67.837fa761.87161e9e.5c9212ce.6d114566.1c46bb3a.07199113.16691f08.4e7c9b67.837fa761.87161e9e.5c9212ce.6d114566.1c46bb3a.07199113",
+        "identity": "24d61af9-11c9-4687-9dff-3e2b1b30670d",
+        "snyk/asset/finding/v1": "24d61af9-11c9-4687-9dff-3e2b1b30670d"
+      },
+      "evidenceSha256": "43a4b26c34f4ef16ec85bf5219da9a11a5a1cdd6488e37ecc08311f0d2a8ae53"
+    },
+    {
+      "findingId": "5da511d6-c50f-42ce-a617-e5650025b7c2",
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_kraken_response_capture_failures.py",
+      "line": 307,
+      "reviewedSourceSha256": "d96212edfd35072cff0a4dff3ad0f38589646f51a1c871e11d83c8f1d6cf0e67",
+      "disposition": "false-positive",
+      "rationale": "Line 307: Malformed signed-header cases use the local captured-client fixture; surrogate/CRLF Authenticity headers are expected to fail validation, not sent to a provider.",
+      "contextPaths": [
+        {
+          "path": "exchange_executor/tests/test_kraken_response_capture.py",
+          "sha256": "57b8ed4681d9d9414eb7e1dfecdeea355decdc9301bc608faa0772307632ec8b"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_kraken_response_capture_failures.py",
+          "line": 307
+        },
+        {
+          "path": "exchange_executor/tests/test_kraken_response_capture_failures.py",
+          "line": 307
+        }
+      ],
+      "fingerprints": {
+        "0": "de09644747ec53d1ee4ee1f1a1f55442b295990f557b6d43852617f608308c1e",
+        "1": "16691f08.ce8bfe09.837fa761.87161e9e.5c9212ce.6d114566.1c46bb3a.3691e360.16691f08.ce8bfe09.837fa761.87161e9e.5c9212ce.6d114566.1c46bb3a.3691e360",
+        "snyk/asset/finding/v1": "5da511d6-c50f-42ce-a617-e5650025b7c2",
+        "identity": "5da511d6-c50f-42ce-a617-e5650025b7c2"
+      },
+      "evidenceSha256": "a0d75cd0721f3cf3c19ca8be98e6e63bbc0e580cd0f185df6b3e8f71d660253e"
+    },
+    {
+      "findingId": "703c021a-6966-44a3-a93c-1405ac1a891b",
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_kucoin_contracts.py",
+      "line": 203,
+      "reviewedSourceSha256": "0495778ef607fbed1b9e90c82d0b6befd90d978112d2d1cf07d144782fcac2cc",
+      "disposition": "false-positive",
+      "rationale": "Line 203: Synthetic SDK key/secret/passphrase test signer and native fields; fetch is intercepted and socket/DNS entry points are blocked.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_kucoin_contracts.py",
+          "line": 203
+        },
+        {
+          "path": "exchange_executor/tests/test_kucoin_contracts.py",
+          "line": 203
+        }
+      ],
+      "fingerprints": {
+        "0": "3be4dd0318a1587ab1087b514068b757d1cc497815eb3131bb45c8bc16128caf",
+        "1": "16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.8e816aed.16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.8e816aed",
+        "snyk/asset/finding/v1": "703c021a-6966-44a3-a93c-1405ac1a891b",
+        "identity": "703c021a-6966-44a3-a93c-1405ac1a891b"
+      },
+      "evidenceSha256": "98259595ff1b6141a8d05b453489250290feee1bf82d8cb1fbbd505d85046558"
+    },
+    {
+      "findingId": "285f0b22-9dea-413f-b89e-1d183d4f1f84",
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_kucoin_provider_control.py",
+      "line": 27,
+      "reviewedSourceSha256": "d7b2c02bf8bff382dd316105c4d366366e7e9fa88c9564205cfdd672edf97db8",
+      "disposition": "false-positive",
+      "rationale": "Line 27: AsyncMock returns synthetic masked apiKey metadata to verify privacy/identity projection; no real key is stored here.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_kucoin_provider_control.py",
+          "line": 27
+        },
+        {
+          "path": "exchange_executor/tests/test_kucoin_provider_control.py",
+          "line": 27
+        }
+      ],
+      "fingerprints": {
+        "0": "8a636495e6571aca11096d8a8b21615d4032fe042f3c4377b98001f0309c8869",
+        "1": "e11987fc.b5a115c3.0966063a.4b9d3a59.9d74eded.3df0c333.dd2eed93.186544da.e11987fc.b5a115c3.0966063a.4b9d3a59.9d74eded.3df0c333.dd2eed93.186544da",
+        "identity": "285f0b22-9dea-413f-b89e-1d183d4f1f84",
+        "snyk/asset/finding/v1": "285f0b22-9dea-413f-b89e-1d183d4f1f84"
+      },
+      "evidenceSha256": "4ac653435bb70a571b5b6b31b67316eb39f8ad171190888cf4343a28ec912747"
+    },
+    {
+      "findingId": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34",
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_kucoin_provider_sdk_boundaries.py",
+      "line": 80,
+      "reviewedSourceSha256": "33968224804afe64ce12f5b1923f24fcbcb5042f01cead52ec9bb25d3e0b6869",
+      "disposition": "false-positive",
+      "rationale": "Line 80: Synthetic SDK credentials exercise request-path signing with intercepted fetch and blocked DNS/socket calls.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_kucoin_provider_sdk_boundaries.py",
+          "line": 80
+        },
+        {
+          "path": "exchange_executor/tests/test_kucoin_provider_sdk_boundaries.py",
+          "line": 80
+        }
+      ],
+      "fingerprints": {
+        "0": "91ccc51ff274818520ef2c1becc134aed1b5a55dc64b1710fb86e901b23cb633",
+        "1": "16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.8e816aed.16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.8e816aed",
+        "snyk/asset/finding/v1": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34",
+        "identity": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34"
+      },
+      "evidenceSha256": "e83b648821c0fda3f16abcf1f3ea8061fbf92fe3cf3a910c2df39a85381b8844"
+    },
+    {
+      "findingId": "2e366098-cb83-4d7f-961a-1fea7a162a44",
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_leverage_tier_evidence.py",
+      "line": 127,
+      "reviewedSourceSha256": "feb162ba8b932c32519ceab3c01d5953477dd8f0fe7b6c82895ec0e3a16eb325",
+      "disposition": "false-positive",
+      "rationale": "Line 127: Synthetic base64 signer material is used with rest.fetch=AsyncMock; only the expected signed read URL/header is asserted.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_leverage_tier_evidence.py",
+          "line": 127
+        },
+        {
+          "path": "exchange_executor/tests/test_leverage_tier_evidence.py",
+          "line": 127
+        }
+      ],
+      "fingerprints": {
+        "0": "d646a927458ac954b1ab134a7a933b13ac186c3fba6e1a3c64ba0e9b71a7310c",
+        "1": "49052ff0.bfd5ee6d.ea818a45.841b96d6.ed07ea9a.ba14daf2.081ac3f4.186544da.49052ff0.bfd5ee6d.ea818a45.841b96d6.ed07ea9a.ba14daf2.081ac3f4.186544da",
+        "identity": "2e366098-cb83-4d7f-961a-1fea7a162a44",
+        "snyk/asset/finding/v1": "2e366098-cb83-4d7f-961a-1fea7a162a44"
+      },
+      "evidenceSha256": "0092de21b5a174b51130a6660a19fe438a3d3409559d73346f5fd9a635284620"
+    },
+    {
+      "findingId": "62138ff6-d19f-4588-80f1-62274219af01",
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_provider_acceptance.py",
+      "line": 44,
+      "reviewedSourceSha256": "43132b9ca992e14994fb88017ee779a328ec30a45edb0465e55ca598fb46e525",
+      "disposition": "false-positive",
+      "rationale": "Line 44: Ambient fake API_KEY is a negative sentinel while socket construction and journal access are patched to fail; dry-run must perform zero network requests.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_provider_acceptance.py",
+          "line": 44
+        },
+        {
+          "path": "exchange_executor/tests/test_provider_acceptance.py",
+          "line": 44
+        }
+      ],
+      "fingerprints": {
+        "0": "4fbc11c5a036d41b1d00c7a4692abbf470e8611ddd9b71096d859c82f5d96ed4",
+        "1": "be5f964c.a755accd.baa94159.139c59a8.36c89bb6.66ffb861.081ac3f4.0990edd8.be5f964c.a755accd.baa94159.139c59a8.36c89bb6.66ffb861.081ac3f4.0990edd8",
+        "snyk/asset/finding/v1": "62138ff6-d19f-4588-80f1-62274219af01",
+        "identity": "62138ff6-d19f-4588-80f1-62274219af01"
+      },
+      "evidenceSha256": "cb13b152dbdb111d8df2f44cf28f8526a983b16b30e7f2e3e3c163af310f628e"
+    },
+    {
+      "findingId": "661f9264-b2a0-4f46-8f75-c629b1c80f36",
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_recovery_schedule.py",
+      "line": 39,
+      "reviewedSourceSha256": "f9aa10d36cd111e30dcf5cf8b4db15ec02eadf646332e8832a2546e08473b00f",
+      "disposition": "false-positive",
+      "rationale": "Line 39: Synthetic Bybit signer material is used with self.rest.fetch replaced by a local response function; scheduled recovery is not a provider acceptance run.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_recovery_schedule.py",
+          "line": 39
+        },
+        {
+          "path": "exchange_executor/tests/test_recovery_schedule.py",
+          "line": 39
+        }
+      ],
+      "fingerprints": {
+        "0": "65dfdbdfcc1a9c6bba80adbfc89f5304ff75ec58dba22d5117dc22cb564ef5ba",
+        "1": "5ab40f6d.962feb11.79e62dc9.9a7f5d61.32acb5bc.ba14daf2.cbfa2b68.293ad86a.5ab40f6d.962feb11.79e62dc9.9a7f5d61.32acb5bc.ba14daf2.cbfa2b68.293ad86a",
+        "snyk/asset/finding/v1": "661f9264-b2a0-4f46-8f75-c629b1c80f36",
+        "identity": "661f9264-b2a0-4f46-8f75-c629b1c80f36"
+      },
+      "evidenceSha256": "ac079c3ce975fe3bd3c8e53e0a7118dcdb21f7924f84395ef1d81fe129d00f22"
+    },
+    {
+      "findingId": "40ffaf95-f7bb-43b9-a3d7-2e1edf90464c",
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_provider_order_identity.py",
+      "line": 95,
+      "reviewedSourceSha256": "9870faead152b11956f55e87a2433ffffd8f8c30fa660ddacad274f14a6ca739",
+      "disposition": "false-positive",
+      "rationale": "Line 95: Synthetic Kraken signer material is used after a local sdk fixture is created; fetch is replaced with an intercepted function before the signed batch request.",
+      "contextPaths": [
+        {
+          "path": "exchange_executor/tests/test_entry_price_sdk.py",
+          "sha256": "9e6919a1fede26cb469ff67f2587973d012327532ff6ed5b6d6b8033bab236d7"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_provider_order_identity.py",
+          "line": 95
+        },
+        {
+          "path": "exchange_executor/tests/test_provider_order_identity.py",
+          "line": 95
+        }
+      ],
+      "fingerprints": {
+        "0": "efb5b32d2880abf6baa682542c34e6483d312edbc569b08fbef01d4353cf13e6",
+        "1": "16691f08.0ba80163.6dc0e326.98569367.2872b3c1.3d9c5264.b69c6615.6aac30d8.16691f08.0ba80163.6dc0e326.98569367.2872b3c1.3d9c5264.b69c6615.6aac30d8",
+        "snyk/asset/finding/v1": "40ffaf95-f7bb-43b9-a3d7-2e1edf90464c",
+        "identity": "40ffaf95-f7bb-43b9-a3d7-2e1edf90464c"
+      },
+      "evidenceSha256": "6bd8d01f8e981152b1c5d763a1bba97f73906751890c90ec4e7180be78f4d805"
+    },
+    {
+      "findingId": "70cd754b-0fc7-4cc2-b484-1e2c90036277",
+      "ruleId": "python/NoHardcodedPasswords/test",
+      "path": "exchange_executor/tests/test_candidate_group_b_boundaries.py",
+      "line": 77,
+      "reviewedSourceSha256": "bc387d07c1545bb3faccecf42b3272fc7040ed94225f2f8b3d559890ada4e41d",
+      "disposition": "false-positive",
+      "rationale": "Line 77: Local SDK constructor credentials are synthetic; fetch and request are AsyncMocks that reject unexpected provider transport.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_candidate_group_b_boundaries.py",
+          "line": 77
+        }
+      ],
+      "fingerprints": {
+        "0": "7145e53d595adf03c3703f6f29531a86a83d9e3bfdaa9db0dbe7f737bf2ea52e",
+        "1": "16691f08.962feb11.79e62dc9.9a7f5d61.84b4d0e6.3df0c333.f6f189a3.186544da.16691f08.962feb11.5a1308ce.9a7f5d61.84b4d0e6.ba14daf2.f6f189a3.8e816aed",
+        "snyk/asset/finding/v1": "70cd754b-0fc7-4cc2-b484-1e2c90036277",
+        "identity": "70cd754b-0fc7-4cc2-b484-1e2c90036277"
+      },
+      "evidenceSha256": "35c6f3fd4a2746980dd61061aa87abf74fd6896ad2ec8a4375bd949bd3d71275"
+    },
+    {
+      "findingId": "34a2fb72-f24d-4687-b513-e791a4ab2632",
+      "ruleId": "python/NoHardcodedPasswords/test",
+      "path": "exchange_executor/tests/test_kucoin_contracts.py",
+      "line": 203,
+      "reviewedSourceSha256": "0495778ef607fbed1b9e90c82d0b6befd90d978112d2d1cf07d144782fcac2cc",
+      "disposition": "false-positive",
+      "rationale": "Line 203: Synthetic SDK key/secret/passphrase test signer and native fields; fetch is intercepted and socket/DNS entry points are blocked.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_kucoin_contracts.py",
+          "line": 203
+        }
+      ],
+      "fingerprints": {
+        "0": "6eabd18aa59a0e989d1b115fd4e6f08871e7f21176875e180e47d40bfaf60cdb",
+        "1": "16691f08.962feb11.ea818a45.9a7f5d61.84b4d0e6.ba14daf2.cbfa2b68.186544da.16691f08.962feb11.ea818a45.9a7f5d61.84b4d0e6.ba14daf2.cbfa2b68.8e816aed",
+        "identity": "34a2fb72-f24d-4687-b513-e791a4ab2632",
+        "snyk/asset/finding/v1": "34a2fb72-f24d-4687-b513-e791a4ab2632"
+      },
+      "evidenceSha256": "7ff76791ccee1f8dfbc6783d85dc088b0fd66eb1c45f44b9621213c9d0f32cd8"
+    },
+    {
+      "findingId": "3823fd00-85ed-47e6-b085-8b3b2655febc",
+      "ruleId": "python/NoHardcodedPasswords/test",
+      "path": "exchange_executor/tests/test_kucoin_provider_sdk_boundaries.py",
+      "line": 81,
+      "reviewedSourceSha256": "33968224804afe64ce12f5b1923f24fcbcb5042f01cead52ec9bb25d3e0b6869",
+      "disposition": "false-positive",
+      "rationale": "Line 81: Synthetic SDK credentials exercise request-path signing with intercepted fetch and blocked DNS/socket calls.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "exchange_executor/tests/test_kucoin_provider_sdk_boundaries.py",
+          "line": 81
+        }
+      ],
+      "fingerprints": {
+        "0": "30a5b979a171b3b3126c0b424bb3b6e27de8092581ba98e3686734da7b253e1b",
+        "1": "16691f08.962feb11.ea818a45.9a7f5d61.84b4d0e6.ba14daf2.cbfa2b68.186544da.16691f08.962feb11.ea818a45.9a7f5d61.f6d5e68a.ba14daf2.cbfa2b68.8e816aed",
+        "snyk/asset/finding/v1": "3823fd00-85ed-47e6-b085-8b3b2655febc",
+        "identity": "3823fd00-85ed-47e6-b085-8b3b2655febc"
+      },
+      "evidenceSha256": "9dcd010d339293dfd57f9c47ee9e041be98d0d4c29a56f8248751c820cca136e"
+    },
+    {
+      "findingId": "15b62184-5d10-4c9f-8c45-36cebd259223",
+      "ruleId": "javascript/HttpToHttps",
+      "path": "src/alert_relay.ts",
+      "line": 170,
+      "reviewedSourceSha256": "f312f3232cd9e3d95609a4e5bdea623403de46eaeed4acabeb72f41bad403cb0",
+      "disposition": "open",
+      "rationale": "Line 170: Actual plaintext HTTP listener. Default loopback and Compose restrictions reduce exposure, and production guidance requires Tailscale/TLS for remote use, but Docker/internal or loopback transport remains unencrypted. Authentication does not encrypt its bytes. This architectural risk cannot be reclassified as false positive; explicit risk/deployment decision or transport change remains outstanding.",
+      "contextPaths": [
+        {
+          "path": "config/runtime-settings.json",
+          "sha256": "f9967bbcc742463e571b866555e7518f0983dd5ea2d9d70c6f84b7d5b223c4b1"
+        },
+        {
+          "path": "docker-compose.monitoring.yml",
+          "sha256": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be"
+        },
+        {
+          "path": "docs/PRODUCTION_GUIDE.md",
+          "sha256": "08bf60bab34a23a9458f0fab8909646427dba756c3a6732a068fcf4e97ef5363"
+        },
+        {
+          "path": "monitoring/alertmanager.yml",
+          "sha256": "e047d6db783d3b3768dd53fd5d64101a8fd1a617f501ef80d69e9b0e3788e341"
+        },
+        {
+          "path": "src/runtime_settings.ts",
+          "sha256": "31981e7951f6864d0f6d2a3d054bbe60208d74d64b2b7f691dd0aa99cf92a08b"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/alert_relay.ts",
+          "line": 170
+        }
+      ],
+      "fingerprints": {
+        "0": "877a11e66f716950501a287a3a7a1fed6de6bd3acc81bc7e7493d47af34ba8f1",
+        "1": "aac70831.4773f344.8b18f948.c559ebce.ac82cb7b.6f0d36d4.81cad6bb.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.81cad6bb.89d75565",
+        "identity": "15b62184-5d10-4c9f-8c45-36cebd259223",
+        "snyk/asset/finding/v1": "15b62184-5d10-4c9f-8c45-36cebd259223"
+      },
+      "evidenceSha256": "339def674904d43e4c1b053870985769b1ea928bfd1e5bd2a4d08991c74a7e50"
+    },
+    {
+      "findingId": "d75bc03c-19a7-4475-809c-525e9240e836",
+      "ruleId": "javascript/HttpToHttps",
+      "path": "src/metrics.ts",
+      "line": 227,
+      "reviewedSourceSha256": "e340e5305f86adf3db3ce54f3c359576e53252c1554641d93220313ea753c1df",
+      "disposition": "open",
+      "rationale": "Line 227: Actual plaintext HTTP listener. Default loopback and Compose restrictions reduce exposure, and production guidance requires Tailscale/TLS for remote use, but Docker/internal or loopback transport remains unencrypted. Authentication does not encrypt its bytes. This architectural risk cannot be reclassified as false positive; explicit risk/deployment decision or transport change remains outstanding.",
+      "contextPaths": [
+        {
+          "path": "docker-compose.monitoring.yml",
+          "sha256": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be"
+        },
+        {
+          "path": "docker-compose.yml",
+          "sha256": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642"
+        },
+        {
+          "path": "docs/PRODUCTION_GUIDE.md",
+          "sha256": "08bf60bab34a23a9458f0fab8909646427dba756c3a6732a068fcf4e97ef5363"
+        },
+        {
+          "path": "monitoring/prometheus.yml",
+          "sha256": "7ac881c1d0297d9f0ea4115240f7186927cb3c4b356fb03881295e35110eb354"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/metrics.ts",
+          "line": 227
+        }
+      ],
+      "fingerprints": {
+        "0": "554885c1201f76c0c70214e16542a13d5f58785206ca5581fa5db8298f1873d1",
+        "1": "aac70831.4773f344.607187b5.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.cd61fc56.89d75565",
+        "identity": "d75bc03c-19a7-4475-809c-525e9240e836",
+        "snyk/asset/finding/v1": "d75bc03c-19a7-4475-809c-525e9240e836"
+      },
+      "evidenceSha256": "15af14237ffce643cbfd61030342ee3284e5560573e3b3deb540fab2f9ecc81b"
+    },
+    {
+      "findingId": "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+      "ruleId": "javascript/HttpToHttps",
+      "path": "src/telegram_viewer/health_server.ts",
+      "line": 24,
+      "reviewedSourceSha256": "fe1f5be04de6cf9b37a6a32f67d8d4092bed0da39b6845880eb1d029b20a08a4",
+      "disposition": "open",
+      "rationale": "Line 24: Actual plaintext HTTP listener. Default loopback and Compose restrictions reduce exposure, and production guidance requires Tailscale/TLS for remote use, but Docker/internal or loopback transport remains unencrypted. Authentication does not encrypt its bytes. This architectural risk cannot be reclassified as false positive; explicit risk/deployment decision or transport change remains outstanding.",
+      "contextPaths": [
+        {
+          "path": "docker-compose.yml",
+          "sha256": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642"
+        },
+        {
+          "path": "docs/PRODUCTION_GUIDE.md",
+          "sha256": "08bf60bab34a23a9458f0fab8909646427dba756c3a6732a068fcf4e97ef5363"
+        },
+        {
+          "path": "src/secure_compare.ts",
+          "sha256": "8877e8301e78dc68392bb1d026a88c61babadd854b85b741c8329e3940b50313"
+        },
+        {
+          "path": "src/telegram_viewer/runtime.ts",
+          "sha256": "da7bc6f41077fd89d4d825404ff809085bde70b08a660e0ec9ad71aa0c19be4c"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/telegram_viewer/health_server.ts",
+          "line": 24
+        }
+      ],
+      "fingerprints": {
+        "0": "e260bc9d3794c3acf377cd4602ac53482cb451a607f8f2658682d7df5a26cc7c",
+        "1": "aac70831.4773f344.8b18f948.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.cd61fc56.89d75565",
+        "identity": "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+        "snyk/asset/finding/v1": "75310963-3f26-40a8-b6da-3e8ab4d6c57b"
+      },
+      "evidenceSha256": "9d5ac38d8e07e46fcd2d04bde3f327f393d9d278c397abfb575bfbd7dc8da226"
+    },
+    {
+      "findingId": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+      "ruleId": "javascript/HttpToHttps",
+      "path": "src/web_server.ts",
+      "line": 3187,
+      "reviewedSourceSha256": "87b0677894440971205d1d1d6673f5454392c48edaec8bfd1f4ea04e5f2fb77b",
+      "disposition": "open",
+      "rationale": "Line 3187: Actual plaintext HTTP listener. Default loopback and Compose restrictions reduce exposure, and production guidance requires Tailscale/TLS for remote use, but Docker/internal or loopback transport remains unencrypted. Authentication does not encrypt its bytes. This architectural risk cannot be reclassified as false positive; explicit risk/deployment decision or transport change remains outstanding.",
+      "contextPaths": [
+        {
+          "path": "config/runtime-settings.json",
+          "sha256": "f9967bbcc742463e571b866555e7518f0983dd5ea2d9d70c6f84b7d5b223c4b1"
+        },
+        {
+          "path": "docker-compose.yml",
+          "sha256": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642"
+        },
+        {
+          "path": "docs/PRODUCTION_GUIDE.md",
+          "sha256": "08bf60bab34a23a9458f0fab8909646427dba756c3a6732a068fcf4e97ef5363"
+        },
+        {
+          "path": "src/dashboard_auth.ts",
+          "sha256": "7f9decdb8daf6a81957ab270da42a21b764040e9d6a1b0fcd6fcdfebb971f5f7"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/web_server.ts",
+          "line": 3187
+        }
+      ],
+      "fingerprints": {
+        "0": "88ed3ca3efe9da980e882ab288fdc27ca07fd7018e26cf9caa93d33d2819fb6c",
+        "1": "aac70831.4773f344.607187b5.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.cd61fc56.89d75565",
+        "identity": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+        "snyk/asset/finding/v1": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59"
+      },
+      "evidenceSha256": "af475ea3c1371ff1e145de7af5f009ec548520f40a71c71ed1972042e6b15269"
+    },
+    {
+      "findingId": "bd4b655d-7094-41a4-8532-ca8faca295a0",
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_alert_relay.js",
+      "line": 23,
+      "reviewedSourceSha256": "a25a4d351da79220b4f6df16172bf8f6f3e3f825a6de9990c08a5547695b10ea",
+      "disposition": "false-positive",
+      "rationale": "Line 23: The test server/client is explicitly bound to 127.0.0.1 with a test-assigned ephemeral port (or the context-bound restart fixture base). Synthetic credentials/payloads are local transport fixtures; this is not a deployed public HTTP endpoint.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_alert_relay.js",
+          "line": 23
+        }
+      ],
+      "fingerprints": {
+        "0": "56208b61c10f8f5c0699751d3f98e8522b648c1d4757940c8da04b69bcbf2c2e",
+        "1": "aac70831.4773f344.8ea8e497.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.1cce3d77.e350f12c.4773f344.8ea8e497.c559ebce.e2d34e38.5fce695c.66b97542.1cce3d77",
+        "identity": "bd4b655d-7094-41a4-8532-ca8faca295a0",
+        "snyk/asset/finding/v1": "bd4b655d-7094-41a4-8532-ca8faca295a0"
+      },
+      "evidenceSha256": "ba26cb439895f28ba7f268f84bbd7a7ea65facb646b6b30368cef5a9adf64f69"
+    },
+    {
+      "findingId": "0e0cc32d-e62a-494f-b96a-0871ca8206b0",
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_audit_trail.js",
+      "line": 13,
+      "reviewedSourceSha256": "2c95c5df53946d0a8d3250b8b4def5bde3960a53d41a1d94f4f0638790249e5a",
+      "disposition": "false-positive",
+      "rationale": "The audit gateway still listens on ephemeral port 0 at 127.0.0.1 and receives synthetic local audit records. The changed test now retains and awaits an initial record after flush; it does not change listener exposure or transport destination. This is a bounded local transport fixture, not deployed plaintext service authority.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_audit_trail.js",
+          "line": 13
+        }
+      ],
+      "fingerprints": {
+        "0": "82c9326ce084a715deb1ac1a54d2ce157bd70f983b3db67b85fbf7b1e680ebcd",
+        "1": "aac70831.4773f344.8b18f948.c559ebce.a3d24608.6f0d36d4.cd61fc56.3cee0341.e350f12c.4773f344.72aa1700.c559ebce.a3d24608.5fce695c.66b97542.89d75565",
+        "identity": "0e0cc32d-e62a-494f-b96a-0871ca8206b0",
+        "snyk/asset/finding/v1": "0e0cc32d-e62a-494f-b96a-0871ca8206b0"
+      },
+      "evidenceSha256": "9fd04dd0dc6ffe3a7072bd3910dc4ee6b609a2d3b738e72a0e95eae400e0b770"
+    },
+    {
+      "findingId": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb",
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_backup_replication.js",
+      "line": 28,
+      "reviewedSourceSha256": "9588fd81215a55fc225fabf4e4ac8ddbc892742f98ebd5bbfea55eb0da58e6d7",
+      "disposition": "false-positive",
+      "rationale": "The backup transport server still binds 127.0.0.1:0 and the client template uses that exact assigned loopback port. Synthetic token/encrypted artifact exchange belongs to the temporary backup test; Promise.resolve download-hook cleanup does not change network scope.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_backup_replication.js",
+          "line": 28
+        }
+      ],
+      "fingerprints": {
+        "0": "e27b72ba45ff527c389a555e6b42d836cc01bb8e5a362f4186d291ddbe283503",
+        "1": "aac70831.4773f344.8b18f948.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.4773f344.72aa1700.c559ebce.e2d34e38.5fce695c.66b97542.89d75565",
+        "snyk/asset/finding/v1": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb",
+        "identity": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb"
+      },
+      "evidenceSha256": "11b20dfbca222c028697c3482cc67665841330f4077fda5e1059d081f5f45656"
+    },
+    {
+      "findingId": "dbeab5ab-3bb3-4484-b2a3-3d56187dd885",
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_ccxt_exchange.js",
+      "line": 95,
+      "reviewedSourceSha256": "19a3543824c434723f207de39c911451cebcc1777d5767d86a0b867d0915c6e7",
+      "disposition": "false-positive",
+      "rationale": "The CCXT executor fixture still binds 127.0.0.1:0 and sets EXCHANGE_EXECUTOR_URL to that local port. The changes group attempt/coercion counters and return rejected Promises for synthetic fetch failures; assertions still prohibit write retries and object coercion. No remote production HTTP endpoint is introduced.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 95
+        }
+      ],
+      "fingerprints": {
+        "0": "fa18696708bff379c49183f529122e98635a83f5ba43a8490bad0c3fa96f898d",
+        "1": "aac70831.4773f344.8b18f948.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.4773f344.72aa1700.c559ebce.e2d34e38.5fce695c.66b97542.89d75565",
+        "identity": "dbeab5ab-3bb3-4484-b2a3-3d56187dd885",
+        "snyk/asset/finding/v1": "dbeab5ab-3bb3-4484-b2a3-3d56187dd885"
+      },
+      "evidenceSha256": "276153f967b1bdf2e429867656456e0607068e96415f4d72e5e87900f3fd7f98"
+    },
+    {
+      "findingId": "a42d6e8a-142f-4310-951e-4781a06c3fa5",
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_trading_recovery_schedule_transport.js",
+      "line": 81,
+      "reviewedSourceSha256": "db3f473ca3aafeacd0bf0ac45a36110505352b2099f58cc1f5b3fbe5490b1f47",
+      "disposition": "false-positive",
+      "rationale": "Line 81: The test server/client is explicitly bound to 127.0.0.1 with a test-assigned ephemeral port (or the context-bound restart fixture base). Synthetic credentials/payloads are local transport fixtures; this is not a deployed public HTTP endpoint.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 81
+        }
+      ],
+      "fingerprints": {
+        "0": "996c2a6c1f5158bcad65ce54d83797a49a83a70ab5ce00e88a4943db6cf40029",
+        "1": "aac70831.4773f344.8b18f948.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.66b97542.89d75565",
+        "snyk/asset/finding/v1": "a42d6e8a-142f-4310-951e-4781a06c3fa5",
+        "identity": "a42d6e8a-142f-4310-951e-4781a06c3fa5"
+      },
+      "evidenceSha256": "845fe2015169abe4953200017a4b63b6f9297fbbff6e812f82dc7042af121c03"
+    },
+    {
+      "findingId": "c18a03f4-6ea4-45f2-8cc7-2f2e45325bbf",
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_startup_authority.js",
+      "line": 59,
+      "reviewedSourceSha256": "2b9f45fa9977f26509712a177f68db07a6ddc9a36948528237af51be6801e12e",
+      "disposition": "false-positive",
+      "rationale": "The intentionally occupied startup socket is still created only on 127.0.0.1:0; the second bind proves startup fails closed. Changes remove redundant undefined arguments from resolved fake gate/audit callbacks and preserve loopback scope and blocked mutation assertions.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_startup_authority.js",
+          "line": 59
+        }
+      ],
+      "fingerprints": {
+        "0": "2852938d7d3b701fecbb80ff014f129a6b176f69591b48ba2fe13a4909f66d53",
+        "1": "ae77ea27.b6e32c83.8b18f948.d7919eeb.9997f84d.4bb87e98.ea4b1c47.89d75565.e350f12c.b6e32c83.1f69c5ff.c2b0bb4c.e2d34e38.4bb87e98.66b97542.89d75565",
+        "snyk/asset/finding/v1": "c18a03f4-6ea4-45f2-8cc7-2f2e45325bbf",
+        "identity": "c18a03f4-6ea4-45f2-8cc7-2f2e45325bbf"
+      },
+      "evidenceSha256": "17ae1c317ab867e12775cc84f9be155ba1c02fcd1e16a1c0e26f3ec5732e11df"
+    },
+    {
+      "findingId": "38bece03-53dc-4566-a862-e4d59a573c82",
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_ui_restart_process.js",
+      "line": 80,
+      "reviewedSourceSha256": "71be392af8f388b22e5591a22b72f4169cc538e0494c2e574a9ae6a8af10c90d",
+      "disposition": "false-positive",
+      "rationale": "The HTTP request still targets literal 127.0.0.1 plus the isolated child reported port and fixed command route. Synthetic ADMIN credentials and the temporary restart harness remain bound. Equivalent interpolation and explicit undefined error callbacks do not expand transport authority.",
+      "contextPaths": [
+        {
+          "path": "tests/fixtures/ui_restart_child.js",
+          "sha256": "19d9ba7636bd49a7cb3a4bb42efbea82f0a730accd0e4a4361d0f2e88795c966"
+        },
+        {
+          "path": "tests/fixtures/ui_restart_fixture.js",
+          "sha256": "1931863eb58ae1286b74db0e799f1b2959ac8977b44ba7ce58c73970b4a01832"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_ui_restart_process.js",
+          "line": 80
+        }
+      ],
+      "fingerprints": {
+        "0": "ea50d16c7308c685575887468545e66d3683763c4c80feb522079a8106ef984f",
+        "1": "cf7733e4.4773f344.8b18f948.51947e3c.ac82cb7b.98c7c24d.0b4f0b50.f88a252f.a0720942.b6e32c83.72aa1700.51947e3c.e2d34e38.5fce695c.66b97542.f88a252f",
+        "snyk/asset/finding/v1": "38bece03-53dc-4566-a862-e4d59a573c82",
+        "identity": "38bece03-53dc-4566-a862-e4d59a573c82"
+      },
+      "evidenceSha256": "3cce94e4ee16c1dc44dc310997e44be6150df70b744ea91cf83b0ede73b590f6"
+    },
+    {
+      "findingId": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_ui_restart_recovery.js",
+      "line": 41,
+      "reviewedSourceSha256": "bdc72ee84b4e6b7f5753e83319a825c5481e7a94bec3ac03e03d20ad0d10146e",
+      "disposition": "false-positive",
+      "rationale": "fixture.base remains constructed from literal http://127.0.0.1 and the assigned isolated restart-server port. Updated receipt filenames and rotated synthetic token strings use equivalent interpolation; disconnect/error handling remains test-owned and no public listener is approved.",
+      "contextPaths": [
+        {
+          "path": "tests/fixtures/ui_restart_fixture.js",
+          "sha256": "1931863eb58ae1286b74db0e799f1b2959ac8977b44ba7ce58c73970b4a01832"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_ui_restart_recovery.js",
+          "line": 41
+        }
+      ],
+      "fingerprints": {
+        "0": "3456dbfa14fe774150f99d616ecef05ba9fb4ad32450b3480ca687e090df475c",
+        "1": "aac70831.4773f344.8b18f948.51947e3c.ac82cb7b.98c7c24d.261fc002.f88a252f.e350f12c.b6e32c83.ec4bfb0b.51947e3c.e2d34e38.5fce695c.66b97542.f88a252f",
+        "snyk/asset/finding/v1": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
+        "identity": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75"
+      },
+      "evidenceSha256": "97305176a16abb4743b323ee9ae49cda281fbc508180a53e6caba9998a1ee8da"
+    },
+    {
+      "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+      "ruleId": "javascript/IndirectCommandInjection",
+      "path": "scripts/verify_exchange_implementation.js",
+      "line": 292,
+      "reviewedSourceSha256": "2ca7a0a4ee9cc299dcfcfebf51649adc4ba8b6355335cd551cd41708f5e10907",
+      "disposition": "false-positive",
+      "rationale": "Re-reviewed CLI argument parser through runtimeReceipts and spawnSync. Exactly --python plus one absolute executable path is accepted; realpath and ordinary-file checks run first. spawnSync still uses shell:false, fixed -I/-B/-c arguments, fixed Python bridge text and fixed repository argument, with timeout/output limits. Choosing a local Python executable is the authorized local CLI capability. Script change is solely Unicode mode in source-path validation; package build-copy addition does not create an untrusted command source.",
+      "contextPaths": [
+        {
+          "path": "exchange_executor/ccxt_certification.py",
+          "sha256": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2"
+        },
+        {
+          "path": "exchange_executor/ccxt_certification_evidence.py",
+          "sha256": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8"
+        },
+        {
+          "path": "exchange_executor/ccxt_implementation_reviews.py",
+          "sha256": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289"
+        },
+        {
+          "path": "exchange_executor/ccxt_profiles.py",
+          "sha256": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd"
+        },
+        {
+          "path": "package.json",
+          "sha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 310
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 285
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        }
+      ],
+      "fingerprints": {
+        "0": "e1d3eb3719a30ed49544043e6e83f3cd5f632c014aef3fafd3dd09c3fa1546a5",
+        "1": "bbc827ce.4773f344.8b18f948.d7919eeb.ef9f7d82.d4a8c500.83265159.3e55546e.bbc827ce.3df76230.2736cee9.c8688b2b.3f452f8c.93224842.83265159.62f49dc2",
+        "identity": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "snyk/asset/finding/v1": "4494650c-4f77-4efc-9956-2a491467ddaf"
+      },
+      "evidenceSha256": "066a1a42a40d523a48378883ddbda6edd2cd0d4e6d18d42f5feded9279f4cc05"
+    },
+    {
+      "findingId": "4bd5af47-516b-4885-9a70-71b7fa515f95",
+      "ruleId": "javascript/NoHardcodedPasswords/test",
+      "path": "tests/test_backup.js",
+      "line": 82,
+      "reviewedSourceSha256": "84431a489cc379028b241f2e845a035469b19f367d5d0b883a6c6217ccc08e55",
+      "disposition": "false-positive",
+      "rationale": "must-not-be-backed-up remains a deliberately forbidden nested password marker, checked for exclusion from a temporary backup artifact. Scheduler fake callbacks and Promise.withResolvers changed elsewhere; neither the fixture value nor its redaction purpose changed, and no authentication uses it.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_backup.js",
+          "line": 82
+        }
+      ],
+      "fingerprints": {
+        "0": "4794f2327e9bad0d303786931afdda1059e1f328b6b8e7571f371673e5caff5f",
+        "1": "40c5fd92.bf5b62f5.bd65d204.e052b9a9.79a7d027.fcf3002d.ce4a9d89.01ef785d.40c5fd92.bf5b62f5.bd65d204.e052b9a9.79a7d027.fcf3002d.ce4a9d89.01ef785d",
+        "snyk/asset/finding/v1": "4bd5af47-516b-4885-9a70-71b7fa515f95",
+        "identity": "4bd5af47-516b-4885-9a70-71b7fa515f95"
+      },
+      "evidenceSha256": "eaf244a1a0b1de759e2fc69d738e75bdbf870325659f3ec24c8118ae30447411"
+    },
+    {
+      "findingId": "ce402f84-0ed8-4cb8-9f26-60e05779e11f",
+      "ruleId": "javascript/NoHardcodedPasswords/test",
+      "path": "tests/test_ui_change_reviews.js",
+      "line": 59,
+      "reviewedSourceSha256": "ebec2a19f62ce75c5204fdb0e6e7e1a4276b784522185f8dc6de9dcf4cde6aa6",
+      "disposition": "false-positive",
+      "rationale": "Line 59: Fabricated private-value markers exercise bounded review-tree and MCP request/result redaction against temporary fixture data; no real password or secret is embedded.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_ui_change_reviews.js",
+          "line": 59
+        }
+      ],
+      "fingerprints": {
+        "0": "1193da3208b221957674f7807246ec7dd4c7e8638033ac67bf0b33a6fb1bf329",
+        "1": "12567ef6.3f481afb.bd65d204.d7919eeb.79a7d027.f7edcf51.d957dfe3.78b0701d.12567ef6.3f481afb.bd65d204.d7919eeb.79a7d027.f7edcf51.d957dfe3.78b0701d",
+        "identity": "ce402f84-0ed8-4cb8-9f26-60e05779e11f",
+        "snyk/asset/finding/v1": "ce402f84-0ed8-4cb8-9f26-60e05779e11f"
+      },
+      "evidenceSha256": "dd759ceb14cbb8904d7859dcd8ad410ebe2ab4a43d6e8fa19c4d08fd0cf23029"
+    },
+    {
+      "findingId": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0",
+      "ruleId": "javascript/NoHardcodedPasswords/test",
+      "path": "tests/test_ui_change_reviews.js",
+      "line": 144,
+      "reviewedSourceSha256": "ebec2a19f62ce75c5204fdb0e6e7e1a4276b784522185f8dc6de9dcf4cde6aa6",
+      "disposition": "false-positive",
+      "rationale": "Line 144: Fabricated private-value markers exercise bounded review-tree and MCP request/result redaction against temporary fixture data; no real password or secret is embedded.",
+      "contextPaths": [],
+      "codeFlowLocations": [
+        {
+          "path": "tests/test_ui_change_reviews.js",
+          "line": 144
+        }
+      ],
+      "fingerprints": {
+        "0": "7094434dcb1ca6ba48762bc857da978b9415cea6abaa36544d6313e68f23878b",
+        "1": "12567ef6.b09abfb9.bd65d204.e052b9a9.79a7d027.965282fa.0796ad2d.643a041d.12567ef6.b09abfb9.bd65d204.e052b9a9.79a7d027.965282fa.0796ad2d.643a041d",
+        "identity": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0",
+        "snyk/asset/finding/v1": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0"
+      },
+      "evidenceSha256": "ce9defcef135a2bc879116a3f1883f60ab11719b443f5417f8e5e6ea9a778f23"
+    },
+    {
+      "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+      "ruleId": "javascript/PT",
+      "path": "scripts/verify_exchange_implementation.js",
+      "line": 85,
+      "reviewedSourceSha256": "2ca7a0a4ee9cc299dcfcfebf51649adc4ba8b6355335cd551cd41708f5e10907",
+      "disposition": "false-positive",
+      "rationale": "Separately re-reviewed stableBytes ordinaryFile/lstat sink for the complete --python receipt flow. Fixed repository and certification directory, local pinned PROFILES identities and independently approved receipt hashes constrain the constructed member; source discovery also rejects invalid path segments. The only script edit adds /u to a BMP separator/control-character class, preserving its exclusions. Canonical parents, no symlinks, single hardlink and stable file identity checks remain intact. Local interpreter selection is explicit operator authority, not remote path input; package only adds declaration copying.",
+      "contextPaths": [
+        {
+          "path": "exchange_executor/ccxt_certification.py",
+          "sha256": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2"
+        },
+        {
+          "path": "exchange_executor/ccxt_certification_evidence.py",
+          "sha256": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8"
+        },
+        {
+          "path": "exchange_executor/ccxt_implementation_reviews.py",
+          "sha256": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289"
+        },
+        {
+          "path": "exchange_executor/ccxt_profiles.py",
+          "sha256": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd"
+        },
+        {
+          "path": "package.json",
+          "sha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 310
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 285
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 298
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 298
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 321
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 321
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 81
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        }
+      ],
+      "fingerprints": {
+        "0": "31976754b939a4ac1c87edf980b2fcafb931a2ece19265229dad845dba590806",
+        "1": "b6950d85.4773f344.4dd76406.d7919eeb.3a121ca8.d4a8c500.c08dd55c.eb397db7.bbc827ce.277c621c.cf0dc3a8.c8688b2b.3f452f8c.93224842.f43bf3be.bd73fe9f",
+        "snyk/asset/finding/v1": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "identity": "7039073d-34a6-4901-9897-4c0a40ca7b0a"
+      },
+      "evidenceSha256": "24dc6e7c46113a1c28cc3c6cd24209f6e4245d0b65c6448a32b382c624d13545"
+    }
+  ]
+}

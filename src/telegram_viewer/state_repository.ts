@@ -2,6 +2,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import sqlite3 from 'sqlite3';
 import { open, type Database } from 'sqlite';
+import { requireString } from '../contract_values.js';
 
 export type ViewerDeliveryKind = 'notification' | 'test';
 
@@ -147,7 +148,7 @@ export class TelegramViewerStateRepository {
   }
 
   async pendingDeliveries(now: number, limit = 100): Promise<PendingViewerDelivery[]> {
-    const rows = await this.db().all<any[]>(
+    const rows = await this.db().all<Array<Record<string, unknown>>>(
       `SELECT id, kind, source_seq, user_id, payload_json, attempts
        FROM viewer_deliveries
        WHERE status IN ('pending', 'retrying') AND next_retry_at <= ?
@@ -155,8 +156,8 @@ export class TelegramViewerStateRepository {
       [now, Math.min(Math.max(limit, 1), 100)],
     );
     return rows.map(row => ({
-      id: Number(row.id), kind: row.kind, sourceSeq: Number(row.source_seq), userId: String(row.user_id),
-      payload: JSON.parse(String(row.payload_json)), attempts: Number(row.attempts),
+      id: Number(row.id), kind: row.kind as ViewerDeliveryKind, sourceSeq: Number(row.source_seq), userId: requireString(row.user_id, 'Viewer user ID'),
+      payload: JSON.parse(requireString(row.payload_json, 'Viewer delivery JSON')), attempts: Number(row.attempts),
     }));
   }
 
@@ -191,11 +192,11 @@ export class TelegramViewerStateRepository {
   }
 
   async lastTest(): Promise<Record<string, unknown> | null> {
-    const row = await this.db().get<any>('SELECT * FROM viewer_last_test WHERE singleton_id = 1');
+    const row = await this.db().get<Record<string, unknown>>('SELECT * FROM viewer_last_test WHERE singleton_id = 1');
     return row ? {
-      sourceSeq: Number(row.source_seq), status: String(row.status), attemptedAt: Number(row.attempted_at),
+      sourceSeq: Number(row.source_seq), status: requireString(row.status, 'Viewer test status'), attemptedAt: Number(row.attempted_at),
       deliveredAt: row.delivered_at === null ? null : Number(row.delivered_at),
-      error: row.error === null ? null : String(row.error),
+      error: row.error === null ? null : requireString(row.error, 'Viewer test error'),
     } : null;
   }
 

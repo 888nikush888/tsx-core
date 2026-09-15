@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "reviewKind": "independent-documentation-fixture-redaction-verification",
+  "baselineRevision": "badf3488828c415f1ab2488df04bdd2cff7ff276",
+  "reviewedAt": "2026-09-13T07:53:13.009Z",
+  "status": "passed",
+  "totalFields": 13,
+  "reports": [
+    {
+      "path": "docs/testing/codacy-independent-python-test-review-2026-09-08.json",
+      "originalRevision": "c684aafc4c43de9031c68a1a3145d0430f43f850",
+      "originalReportSha256": "cef3f42eeb24b5f450d1d1d96c7bb51da0cef0d31519b3f9c8eb9d1aebc717ae",
+      "currentReportSha256": "6794d2b337e9f98c263d012ce3c7e13f13a53a4d4ac699e934f42d5610191e74",
+      "fields": [
+        {
+          "checkIssueId": "Q2hlY2tJc3N1ZTpuZ3dkcmx5ZGU=",
+          "jsonPath": "entries.6.original.text",
+          "originalLine": 365,
+          "field": "text",
+          "originalFieldValueSha256": "d3ff8303840c7116d0acab14c40df6e020fcbe4c5fa114554f59e85aec4bc42d",
+          "currentFieldValueSha256": "a133285af6a40c5a7b86acfe8eadc19db03ed3b56240393b3b4d119f9cbf5564",
+          "originalRecoverable": true,
+          "individualReviewMatched": true
+        },
+        {
+          "checkIssueId": "Q2hlY2tJc3N1ZTpwcXduZHB5bnk=",
+          "jsonPath": "entries.6.reviewed.text",
+          "originalLine": 372,
+          "field": "text",
+          "originalFieldValueSha256": "d3ff8303840c7116d0acab14c40df6e020fcbe4c5fa114554f59e85aec4bc42d",
+          "currentFieldValueSha256": "a133285af6a40c5a7b86acfe8eadc19db03ed3b56240393b3b4d119f9cbf5564",
+          "originalRecoverable": true,
+          "individualReviewMatched": true
+        },
+        {
+          "checkIssueId": "Q2hlY2tJc3N1ZTplYXh5ZXFreW4=",
+          "jsonPath": "entries.6.evidence.0.source",
+          "originalLine": 380,
+          "field": "source",
+          "originalFieldValueSha256": "4b4dd197555094018c6a131470517c3111901a5cc16f3eadd0da71f00122b94f",
+          "currentFieldValueSha256": "a133285af6a40c5a7b86acfe8eadc19db03ed3b56240393b3b4d119f9cbf5564",
+          "originalRecoverable": true,
+          "individualReviewMatched": true
+        },
+        {
+          "checkIssueId": "Q2hlY2tJc3N1ZTprdnlkb21qZGQ=",
+          "jsonPath": "entries.7.original.text",
+          "originalLine": 394,
+          "field": "text",
+          "originalFieldValueSha256": "fdf112b9e58e9a82f08321274c8a44e0b24561b6932cb282338398868608714f",
+          "currentFieldValueSha256": "a133285af6a40c5a7b86acfe8eadc19db03ed3b56240393b3b4d119f9cbf5564",
+          "originalRecoverable": true,
+          "individualReviewMatched": true
+        },
+        {
+          "checkIssueId": "Q2hlY2tJc3N1ZTp4cmducXB2bnI=",
+          "jsonPath": "entries.7.reviewed.text",
+          "originalLine": 401,
+          "field": "text",
+          "originalFieldValueSha256": "fdf112b9e58e9a82f08321274c8a44e0b24561b6932cb282338398868608714f",
+          "currentFieldValueSha256": "a133285af6a40c5a7b86acfe8eadc19db03ed3b56240393b3b4d119f9cbf5564",
+          "originalRecoverable": true,
+          "individualReviewMatched": true
+        },
+        {
+          "checkIssueId": "Q2hlY2tJc3N1ZTpveWFkd25xZG0=",
+          "jsonPath": "entries.11.rationale",
+          "originalLine": 530,
+          "field": "rationale",
+          "originalFieldValueSha256": "860080b9fea291a4fb715db464cb0a13833f512cca021878cfac7eccfd593c06",
+          "currentFieldValueSha256": "8afb4ba33d3c13d9120960e7db75508ef03ec8dd2c0de328fcf3bab6453f1b35",
+          "originalRecoverable": true,
+          "individualReviewMatched": true
+        },
+        {
+          "checkIssueId": "Q2hlY2tJc3N1ZTp2dm1ub2x4bmU=",
+          "jsonPath": "entries.21.evidence.0.source",
+          "originalLine": 850,
+          "field": "source",
+          "originalFieldValueSha256": "bde27bd14cead772e9d371b9e7ddfaba5308c8f2698a27410643a6f4f74e0fe3",
+          "currentFieldValueSha256": "a133285af6a40c5a7b86acfe8eadc19db03ed3b56240393b3b4d119f9cbf5564",
+          "originalRecoverable": true,
+          "individualReviewMatched": true
+        },
+        {
+          "checkIssueId": "Q2hlY2tJc3N1ZTptcmRud3F5bmQ=",
+          "jsonPath": "entries.22.original.text",
+          "originalLine": 864,
+          "field": "text",
+          "originalFieldValueSha256": "3991e0f762e5d34bc78045d1f03a20a10682c5dc385b0271c3c3477e98aa129c",
+          "currentFieldValueSha256": "a133285af6a40c5a7b86acfe8eadc19db03ed3b56240393b3b4d119f9cbf5564",
+          "originalRecoverable": true,
+          "individualReviewMatched": true
+        },
+        {
+          "checkIssueId": "Q2hlY2tJc3N1ZTpyZWtuYW9sbm0=",
+          "jsonPath": "entries.22.reviewed.text",
+          "originalLine": 871,
+          "field": "text",
+          "originalFieldValueSha256": "3991e0f762e5d34bc78045d1f03a20a10682c5dc385b0271c3c3477e98aa129c",
+          "currentFieldValueSha256": "a133285af6a40c5a7b86acfe8eadc19db03ed3b56240393b3b4d119f9cbf5564",
+          "originalRecoverable": true,
+          "individualReviewMatched": true
+        },
+        {
+          "checkIssueId": "Q2hlY2tJc3N1ZTpnZXZkcG5vZG4=",
+          "jsonPath": "entries.30.evidence.0.source",
+          "originalLine": 1136,
+          "field": "source",
+          "originalFieldValueSha256": "95db10fb6dfb4dc5a2464af660b0588d83e2f0217828ff705f5aaec5c51731a2",
+          "currentFieldValueSha256": "a133285af6a40c5a7b86acfe8eadc19db03ed3b56240393b3b4d119f9cbf5564",
+          "originalRecoverable": true,
+          "individualReviewMatched": true
+        },
+        {
+          "checkIssueId": "Q2hlY2tJc3N1ZTp5Z3luZGttZ3c=",
+          "jsonPath": "entries.41.evidence.2.source",
+          "originalLine": 1505,
+          "field": "source",
+          "originalFieldValueSha256": "a6099c420f29e33ec5b0e3bb1dc4b6666bb0488ec3cfb5826cb256c9bfd31a98",
+          "currentFieldValueSha256": "a133285af6a40c5a7b86acfe8eadc19db03ed3b56240393b3b4d119f9cbf5564",
+          "originalRecoverable": true,
+          "individualReviewMatched": true
+        }
+      ],
+      "unchangedOutsideDeclaredFieldsAndAddendum": true
+    },
+    {
+      "path": "docs/testing/codacy-independent-web-test-review-2026-09-08.json",
+      "originalRevision": "c684aafc4c43de9031c68a1a3145d0430f43f850",
+      "originalReportSha256": "84b4c4f25594fea8422aca5239397535ade73e0852f67f7d3e1b574b0293858d",
+      "currentReportSha256": "11ba00123a01bfe11b97401905cae2c58e655eebd2a6a0820b9ef1fbfd204cb0",
+      "fields": [
+        {
+          "checkIssueId": "Q2hlY2tJc3N1ZTpxcGVucWthcGQ=",
+          "jsonPath": "entries.23.evidenceLines.3.text",
+          "originalLine": 1336,
+          "field": "text",
+          "originalFieldValueSha256": "88f6a97b0bf0849576e178d05b4ef4a97d9794262ff8fa9f3c6a286e65bba3b1",
+          "currentFieldValueSha256": "a133285af6a40c5a7b86acfe8eadc19db03ed3b56240393b3b4d119f9cbf5564",
+          "originalRecoverable": true,
+          "individualReviewMatched": true
+        },
+        {
+          "checkIssueId": "Q2hlY2tJc3N1ZTpkYWt3cGdlYXg=",
+          "jsonPath": "entries.23.evidenceLines.4.text",
+          "originalLine": 1340,
+          "field": "text",
+          "originalFieldValueSha256": "a79d378b3fa2d72cd5b6b96b62ae83bac77a8e610b9a87c2bd1339df235f1b78",
+          "currentFieldValueSha256": "a133285af6a40c5a7b86acfe8eadc19db03ed3b56240393b3b4d119f9cbf5564",
+          "originalRecoverable": true,
+          "individualReviewMatched": true
+        }
+      ],
+      "unchangedOutsideDeclaredFieldsAndAddendum": true
+    }
+  ],
+  "conclusion": "Exactly 13 fields plus the two documentationRedactions addenda changed. Every original field hash and historical line is uniquely recoverable; duplicate literal values were disambiguated using their structural JSON paths. IDs, source bindings, classifications and all unmarked rationales are identical. One rationale restatement matches the individually reviewed reason. Other changed fields explicitly indicate omitted synthetic quotations.",
+  "scope": "Only the two named documentation files and individually reviewed synthetic fixture excerpts. Redaction script was read, not executed by reviewer; it writes only those documentation paths and does not change tests, real secrets or product code. No assertions concerning unrelated concurrent changes.",
+  "limits": "No scanner rescan, implementation approval, source/receipt/pin mutation or test execution. Historical source bindings remain historical, and reference text must not be treated as a verbatim excerpt."
+}

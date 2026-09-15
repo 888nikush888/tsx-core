@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { BUILD_INPUT_POLICY, collectBuildInputs, compareBuildReceipt } from '../scripts/verify_exchange_implementation.js';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
-let revision;
+let revision = null;
 const root = mkdtempSync(path.join(os.tmpdir(), 'tsx-implementation-build-'));
 const script = fileURLToPath(new URL('../scripts/verify_exchange_implementation.js', import.meta.url));
 
@@ -358,9 +358,12 @@ function pinTestReceipts(receipts) {
     return { exchange: receipt.exchange, version: receipt.profileVersion, digest: hash(bytes) };
   });
   put('exchange_executor/ccxt_implementation_reviews.py',
-    '# TRUSTED SYNTHETIC TEST CONTEXT ONLY; no gate or provider acceptance.\nfrom types import MappingProxyType\n'
-    + 'APPROVED_IMPLEMENTATION_RECEIPTS = MappingProxyType({\n'
-    + pins.map(pin => `    (${JSON.stringify(pin.exchange)}, ${pin.version}): (${JSON.stringify(pin.digest)},),\n`).join('') + '})\n');
+    [
+      '# TRUSTED SYNTHETIC TEST CONTEXT ONLY; no gate or provider acceptance.\nfrom types import MappingProxyType\n',
+      'APPROVED_IMPLEMENTATION_RECEIPTS = MappingProxyType({\n',
+      pins.map(pin => `    (${JSON.stringify(pin.exchange)}, ${pin.version}): (${JSON.stringify(pin.digest)},),\n`).join(''),
+      '})\n',
+    ].join(''));
   return pins;
 }
 

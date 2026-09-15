@@ -2,6 +2,15 @@ import { createHash, randomUUID } from 'node:crypto';
 import { compareDecimal, decimal, sumDecimals } from './trading_decimal.js';
 import type { StrategyConfiguration, TradingStrategyVersion } from './trading_types.js';
 
+// The legacy decimal boundary calls trim() itself; retain its accepted inputs and errors.
+// This adapts only the validator's input, never an unchecked value to a validated string.
+const validateDecimalInput = decimal as (value: unknown, options?: Parameters<typeof decimal>[1]) => string;
+
+function isMember<T extends string | number>(value: unknown, choices: readonly T[]): value is T {
+  const candidates: readonly unknown[] = choices;
+  return candidates.includes(value);
+}
+
 const SYMBOL_PATTERN = /^[A-Z0-9]{2,20}$/;
 export const SIGNAL_SCHEMA_ID_PATTERN = /^[a-z][a-z0-9_-]{0,39}$/;
 
@@ -66,20 +75,20 @@ function uniqueStrings(values: unknown, name: string): string[] {
   return normalized;
 }
 
-function object(value: unknown, name: string): Record<string, any> {
+function object(value: unknown, name: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${name} must be an object.`);
-  return value as Record<string, any>;
+  return value as Record<string, unknown>;
 }
 
-function exactKeys(value: Record<string, any>, name: string, keys: string[]): void {
+function exactKeys(value: Record<string, unknown>, name: string, keys: string[]): void {
   const extras = Object.keys(value).filter(key => !keys.includes(key));
   if (extras.length > 0) throw new Error(`${name} contains unsupported fields: ${extras.join(', ')}.`);
 }
 
-function validateAccess(value: Record<string, any>): Pick<StrategyConfiguration,
+function validateAccess(value: Record<string, unknown>): Pick<StrategyConfiguration,
   'schemaVersion' | 'allowedSignalSchemas' | 'allowedSymbols' | 'allowedSides'
 > {
-  if (![1, 2, 3, 4].includes(value.schemaVersion)) throw new Error('Unsupported strategy schema version.');
+  if (!isMember(value.schemaVersion, [1, 2, 3, 4] as const)) throw new Error('Unsupported strategy schema version.');
   if (!Array.isArray(value.allowedSignalSchemas) || value.allowedSignalSchemas.some(schema => typeof schema !== 'string')) {
     throw new Error('allowedSignalSchemas must be an array of strings.');
   }
@@ -90,6 +99,7 @@ function validateAccess(value: Record<string, any>): Pick<StrategyConfiguration,
   if (symbols.some(symbol => !SYMBOL_PATTERN.test(symbol))) throw new Error('allowedSymbols contains an invalid normalized symbol.');
   const sides = uniqueStrings(value.allowedSides, 'allowedSides');
   if (sides.length < 1 || sides.some(side => side !== 'LONG' && side !== 'SHORT')) throw new Error('allowedSides must contain LONG and/or SHORT.');
+  // Membership was checked above; includes accepts unknown without coercing it.
   return {
     schemaVersion: value.schemaVersion,
     allowedSignalSchemas: schemas,
@@ -101,8 +111,8 @@ function validateAccess(value: Record<string, any>): Pick<StrategyConfiguration,
 function validateEntry(input: unknown): StrategyConfiguration['entry'] {
   const value = object(input, 'entry');
   exactKeys(value, 'entry', ['orderType', 'rangePrice', 'postOnly', 'timeoutSeconds']);
-  if (!['market', 'limit'].includes(value.orderType)) throw new Error('entry.orderType must be market or limit.');
-  if (!['near', 'midpoint', 'far'].includes(value.rangePrice)) throw new Error('entry.rangePrice is invalid.');
+  if (!isMember(value.orderType, ['market', 'limit'] as const)) throw new Error('entry.orderType must be market or limit.');
+  if (!isMember(value.rangePrice, ['near', 'midpoint', 'far'] as const)) throw new Error('entry.rangePrice is invalid.');
   if (typeof value.postOnly !== 'boolean') throw new Error('entry.postOnly must be boolean.');
   if (value.orderType === 'market' && value.postOnly) throw new Error('Market entries cannot be post-only.');
   return {
@@ -120,13 +130,13 @@ function validateSizing(input: unknown, schemaVersion: 1 | 2 | 3 | 4): StrategyC
     'defaultLeverage', 'maxLeverage',
   ]);
   const positionSizingMode = value.positionSizingMode ?? 'risk_percent';
-  if (!['risk_percent', 'equity_percent_notional', 'equity_percent_margin'].includes(positionSizingMode)) {
+  if (!isMember(positionSizingMode, ['risk_percent', 'equity_percent_notional', 'equity_percent_margin'] as const)) {
     throw new Error('sizing.positionSizingMode must be risk_percent, equity_percent_notional or equity_percent_margin.');
   }
-  const riskPerTradePercent = decimal(value.riskPerTradePercent, { positive: true, max: '10' });
+  const riskPerTradePercent = validateDecimalInput(value.riskPerTradePercent, { positive: true, max: '10' });
   const maxAdaptiveRiskPercent = schemaVersion === 1
     ? undefined
-    : decimal(value.maxAdaptiveRiskPercent, { positive: true, max: '10' });
+    : validateDecimalInput(value.maxAdaptiveRiskPercent, { positive: true, max: '10' });
   if (maxAdaptiveRiskPercent && compareDecimal(maxAdaptiveRiskPercent, riskPerTradePercent) < 0) {
     throw new Error('sizing.maxAdaptiveRiskPercent must not be below the baseline risk.');
   }
@@ -144,7 +154,7 @@ function validateSizing(input: unknown, schemaVersion: 1 | 2 | 3 | 4): StrategyC
     positionSizingMode,
     riskPerTradePercent,
     ...(maxAdaptiveRiskPercent ? { maxAdaptiveRiskPercent } : {}),
-    maxPositionNotional: decimal(value.maxPositionNotional, { positive: true }),
+    maxPositionNotional: validateDecimalInput(value.maxPositionNotional, { positive: true }),
     defaultLeverage,
     maxLeverage,
   };
@@ -157,7 +167,7 @@ function validateExits(input: unknown): StrategyConfiguration['exits'] {
     'moveStopToBreakEvenAfterTarget', 'trailingStopPercent', 'closeRemainderAtLastTarget',
   ]);
   const targetAllocationMode = value.targetAllocationMode ?? 'manual';
-  if (!['manual', 'adaptive_halving'].includes(targetAllocationMode)) {
+  if (!isMember(targetAllocationMode, ['manual', 'adaptive_halving'] as const)) {
     throw new Error('exits.targetAllocationMode must be manual or adaptive_halving.');
   }
   if (!Array.isArray(value.targetAllocationsPercent) || value.targetAllocationsPercent.length < 1 || value.targetAllocationsPercent.length > 20) {
@@ -175,9 +185,9 @@ function validateExits(input: unknown): StrategyConfiguration['exits'] {
     );
   const trailingStop = value.trailingStopPercent === null
     ? null
-    : decimal(value.trailingStopPercent, { positive: true, max: '20' });
+    : validateDecimalInput(value.trailingStopPercent, { positive: true, max: '20' });
   const stopLossMode = value.stopLossMode ?? 'configured';
-  if (!['configured', 'adaptive_targets'].includes(stopLossMode)) {
+  if (!isMember(stopLossMode, ['configured', 'adaptive_targets'] as const)) {
     throw new Error('exits.stopLossMode must be configured or adaptive_targets.');
   }
   if (value.closeRemainderAtLastTarget !== true) {
@@ -203,19 +213,19 @@ function validateSafety(input: unknown, schemaVersion: 1 | 2 | 3 | 4): StrategyC
   exactKeys(value, 'safety', supportedKeys);
   if (value.requireProtectiveStop !== true) throw new Error('Protective stops are mandatory.');
   const maxDailyLossMode = value.maxDailyLossMode ?? 'absolute';
-  if (!['absolute', 'equity_percent'].includes(maxDailyLossMode as string)) {
+  if (!isMember(maxDailyLossMode, ['absolute', 'equity_percent'] as const)) {
     throw new Error('safety.maxDailyLossMode must be absolute or equity_percent.');
   }
   return {
     ...(schemaVersion < 3
       ? { maxConcurrentPositions: integer(value.maxConcurrentPositions, 'safety.maxConcurrentPositions', 1, 20) }
       : {}),
-    maxDailyLossMode: maxDailyLossMode as 'absolute' | 'equity_percent',
-    maxDailyLoss: decimal(value.maxDailyLoss, {
+    maxDailyLossMode,
+    maxDailyLoss: validateDecimalInput(value.maxDailyLoss, {
       positive: true,
       max: maxDailyLossMode === 'equity_percent' ? '100' : undefined,
     }),
-    maxSlippagePercent: decimal(value.maxSlippagePercent, { positive: true, max: '5' }),
+    maxSlippagePercent: validateDecimalInput(value.maxSlippagePercent, { positive: true, max: '5' }),
     entryOrderTtlSeconds: integer(value.entryOrderTtlSeconds, 'safety.entryOrderTtlSeconds', 10, 86_400),
     requireProtectiveStop: true,
   };

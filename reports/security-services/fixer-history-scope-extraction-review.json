@@ -1,0 +1,48 @@
+{
+  "kind": "hyperliquid-history-test-helper-extraction",
+  "baseRevision": "49e7de1a85377b78a8c83749ec0f29ef57f558f9",
+  "path": "exchange_executor/tests/test_history_coverage.py",
+  "priorGitBlobSha256": "596a288992226649153b9884ed2f873a9c80f578f591a622bb7f99832313ce39",
+  "currentLfSha256": "13ec759ea2e06d47d6c953b23a0b22d3684f5b0d365e4b227d7915e23372e823",
+  "changedMethods": [
+    "test_hyperliquid_accountwide_history_preserves_allowed_and_blocks_foreign_scopes"
+  ],
+  "verification": {
+    "allOriginalAssertionAstMultisetIdentical": true,
+    "originalAssertionExpressions": 57,
+    "inlineActualHelperBodiesExactlyReconstructsPriorTestAst": true,
+    "allOtherExistingMethodsAstIdentical": true,
+    "foreignSubcasesAndActualSdkNoNetworkSetupUnchanged": true
+  },
+  "semantics": "Normal snapshot traversal and assertions moved verbatim into an awaited helper, unresolved-scope assertions into a synchronous helper. All four subcases, SDK construction and cleanup, unknown-market BadSymbol branch and continue remain in caller. Recursive inlining of actual helper AST exactly reconstructs previous method, preserving branch/loop/statement order. An additional promise boundary occurs only after all normal-case assertions and before exiting the sequential subtest, without changing fixture lifetime or concurrency.",
+  "execution": {
+    "lintExit": 0,
+    "testExit": 0,
+    "command": "locked Python3.12 -B -m unittest test_history_coverage test_history_reader -v",
+    "tests": 22,
+    "seconds": 1.247,
+    "note": "These two history suites currently contain 22 tests; all passed."
+  },
+  "logs": [
+    {
+      "path": "reports\\security-services\\fixer-history-scope-extraction-tests.log",
+      "sha256": "a90a1a25c35e79c358c61f9c71e0a8239e841b2990e7e86a77e220d31c0b9d53"
+    },
+    {
+      "path": "reports\\security-services\\fixer-history-scope-extraction-lint.log",
+      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    }
+  ],
+  "pendingRootRenewal": {
+    "matrixPointer": "/assessments/33/evidence/1/sha256",
+    "requiredEvidenceSha256": "13ec759ea2e06d47d6c953b23a0b22d3684f5b0d365e4b227d7915e23372e823",
+    "proposedFullAssessmentsHash": "51502182fbeb4177a67e13703817b4da3a53c408edce840bfe05b3e5e96e3e7b",
+    "applied": false
+  },
+  "limits": [
+    "Only test source changed; no pins, policy, receipt or Services source mutation.",
+    "AST verification independently checks textual extraction but is performed by implementer, not claimed as a separate human/agent review.",
+    "First inlining-probe attempt had a nested-list transformer error; corrected harness flattens statement-list returns and passes without source changes.",
+    "Scanner closure awaits rescan."
+  ]
+}

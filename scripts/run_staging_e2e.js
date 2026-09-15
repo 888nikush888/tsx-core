@@ -28,7 +28,7 @@ function boundedInteger(value, fallback, minimum, maximum, name) {
 }
 
 async function withTimeout(operation, timeoutMs, label) {
-  let timer;
+  let timer = undefined;
   try {
     return await Promise.race([
       operation,
@@ -96,7 +96,7 @@ async function waitForForwardedMessage(client, targetChatId, correlationId, notB
 }
 
 async function closeE2eClient(client) {
-  if (client && !client.isClosed()) await withTimeout(client.close(), 15_000, 'E2E TDLib close').catch(() => {});
+  if (client && !client.isClosed()) await withTimeout(client.close(), 15_000, 'E2E TDLib close').catch(() => undefined);
 }
 
 async function writeEvidence(configuration, sent, received, correlationId, messageText, startedAt) {
@@ -130,7 +130,7 @@ async function run() {
   const messageText = configuration.fixture.replaceAll('{correlation_id}', correlationId).trim();
   const startedAt = Date.now();
   const notBeforeSeconds = Math.floor(startedAt / 1000) - 30;
-  let client;
+  let client = null;
   try {
     tdl.configure({ tdjson: getTdjson() });
     client = tdl.createClient({

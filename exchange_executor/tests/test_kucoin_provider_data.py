@@ -77,8 +77,7 @@ def history_state(source="fills", cursor=None):
 
 class KucoinDataTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        global NOW
-        NOW = int(time.time() * 1000)
+        self.enterContext(patch(f"{__name__}.NOW", int(time.time() * 1000)))
         for target in ((socket.socket, "connect"), (socket.socket, "connect_ex"),
                        (socket, "getaddrinfo"), (socket, "create_connection")):
             blocker = patch.object(*target, side_effect=AssertionError("Live transport forbidden."))

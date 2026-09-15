@@ -33,7 +33,7 @@ async function leaseTarget(label, action) {
   await mkdir(target);
   const databasePath = path.join(target, 'forwarder.db');
   const owner = await acquireProcessLock(path.join(target, '.process_active'));
-  let lease;
+  let lease = null;
   try {
     lease = await beginMcpOfflineMaintenance('isolated backup proof fixture', databasePath, owner);
     await lease.waitForQuiescence();
@@ -128,7 +128,7 @@ async function schedulerProofs(databasePath) {
   const replicator = { replicate: async artifact => ({ objectName: 'backup-2026-fixture.tgfb', sha256: 'a'.repeat(64),
     artifactSha256: (await inspectBackupArtifact(artifact)).artifactSha256,
     artifactCreatedAt: (await inspectBackupArtifact(artifact)).artifactCreatedAt, verifiedAt: Date.now() }) };
-  const scheduler = new BackupScheduler(path.join(root, 'scheduled'), () => ({ apiId: 17 }), 60_000, 3, () => {}, replicator, true);
+  const scheduler = new BackupScheduler(path.join(root, 'scheduled'), () => ({ apiId: 17 }), 60_000, 3, () => undefined, replicator, true);
   await initDb(databasePath);
   const artifact = await scheduler.runNow();
   const first = scheduler.getStatus();

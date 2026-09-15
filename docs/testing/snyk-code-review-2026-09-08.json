@@ -1,0 +1,1951 @@
+{
+  "schemaVersion": 1,
+  "reviewedOn": "2026-09-08",
+  "scanner": "Snyk Code CLI 1.1307.1",
+  "sarifSha256": "b835ee1177eb3d49e69b4abeb600b2a02113c8fdd9ad2554b887ff31da9156ba",
+  "reviewedCount": 86,
+  "counts": {
+    "proposed-false-positive": 81,
+    "fixed-public-preflight-boundary": 1,
+    "reviewed-internal-http-architecture": 4
+  },
+  "sourceEvidence": "SHA-256 hashes cover reviewed working-tree file bytes snapshotted from the integrating worktree, not a fabricated clean scan commit. SARIF does not supply full source blobs or an attested source revision. Reconcile scan revision and rerun after integration before resolving platform findings.",
+  "hashDefinition": "reviewedSourceSha256 is exact snapshot file bytes; reviewedLineSha256 normalizes line separators to LF and omits final newline.",
+  "noRealCredentialIdentified": true,
+  "entries": [
+    {
+      "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
+      "fingerprints": {
+        "0": "f880612106cabb1dc8ddaa3c17cadf0ea6dd859a5e3a352e00677c47d778cd9e",
+        "1": "e7bd117b.976997dc.d80e4376.863d43ab.32887ad7.e930b2ad.df7e59ba.c33fa564.49452a0f.706318d0.984373c0.85c7f9bf.85cd08c6.5fce695c.f50e577b.c33fa564",
+        "identity": "2450255f-e697-4aae-ae63-736ad651be82",
+        "snyk/asset/finding/v1": "2450255f-e697-4aae-ae63-736ad651be82"
+      },
+      "ruleId": "javascript/DOMXSS",
+      "path": "frontend/src/lib/navigation.tsx",
+      "region": {
+        "startLine": 187,
+        "endLine": 187,
+        "startColumn": 34,
+        "endColumn": 40
+      },
+      "reviewedSourceSha256": "e06fa40d7cbd4b0d6dc3568525329c5712e751b56fabece914d36df03a9d4ede",
+      "reviewedLineSha256": "94d4785b403646a2789e1cf8096a90c9eab2fb6c06c4b63350dfe33cdb4fd54f",
+      "disposition": "proposed-false-positive",
+      "rationale": "Link passes to through splitTarget, which parses using the current origin and rejects differing origins. browserUrl uses the parsed pathname/search; React emits the attribute rather than parsing HTML. javascript: and data: URLs have a different/null origin and cannot pass this boundary.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "98bcc36f-5e43-4d4b-9dc9-2b23b5bb5b77",
+      "fingerprints": {
+        "0": "4a48726db530550ca707e78d01ba3a7c3d7dca5358e035fd4d7c8d3774565e45",
+        "1": "b800e676.4773f344.8b18f948.d7919eeb.409b735f.5fce695c.53e1cb20.89d75565.b800e676.4773f344.8b18f948.d7919eeb.409b735f.5fce695c.53e1cb20.89d75565",
+        "snyk/asset/finding/v1": "98bcc36f-5e43-4d4b-9dc9-2b23b5bb5b77",
+        "identity": "98bcc36f-5e43-4d4b-9dc9-2b23b5bb5b77"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret",
+      "path": "frontend/src/lib/api.ts",
+      "region": {
+        "startLine": 1,
+        "endLine": 1,
+        "startColumn": 7,
+        "endColumn": 16
+      },
+      "reviewedSourceSha256": "b75e79e9854097e28d84ccd0910200317e6229361557302d160e3eaa84b94b04",
+      "reviewedLineSha256": "729c455f19fce812a9d2ade704142296642327cae39f72cefad732c707b4b768",
+      "disposition": "proposed-false-positive",
+      "rationale": "The constant is the local/session storage lookup key name, not an authentication token. getDashboardToken reads the actual user-supplied token separately from storage.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+      "fingerprints": {
+        "0": "9c63133ec86a0b7dccd7902fd601b73f3781845fe63b366f34b16eec1729ecd5",
+        "1": "f3d714f2.4773f344.eec2c252.d7919eeb.4a62e1e5.292a53dc.c08dd55c.eb397db7.214d3e14.b6e32c83.96e35b6b.c8688b2b.6c287ca9.5fce695c.f0256597.62f49dc2",
+        "snyk/asset/finding/v1": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "identity": "ca8d4075-1f15-40f9-9432-667e0a033660"
+      },
+      "ruleId": "javascript/PT",
+      "path": "scripts/verify_exchange_implementation.js",
+      "region": {
+        "startLine": 93,
+        "endLine": 93,
+        "startColumn": 21,
+        "endColumn": 29
+      },
+      "reviewedSourceSha256": "8910b121889e7dd25f3f72f4ee1f2b3bffd9dd69dd30550bf131f5cfe52b26d9",
+      "reviewedLineSha256": "d68e96cc4a3abb5ed1dac8a974a95e43db0692098fbe9d62821c5836c7f5a7e0",
+      "disposition": "proposed-false-positive",
+      "rationale": "stableBytes reads a previously opened file descriptor after ordinaryFile, canonical-directory, bounded-size, O_NOFOLLOW, inode and metadata equality checks. The source inventory is local build input, not a remote request path.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "88fce105-6148-4b77-904c-f82f35a3d8d9",
+      "fingerprints": {
+        "0": "1090fda6bdb19a96f7c986fa79f7d3ea71f331bcd97b5c0da72bc061c67a0081",
+        "1": "227ff053.4773f344.c9330245.64cd0520.ef9f7d82.8020cfdf.83265159.0b329124.6bb676bb.b6e32c83.c9330245.64cd0520.3f452f8c.5fce695c.9852386e.83183368",
+        "snyk/asset/finding/v1": "88fce105-6148-4b77-904c-f82f35a3d8d9",
+        "identity": "88fce105-6148-4b77-904c-f82f35a3d8d9"
+      },
+      "ruleId": "javascript/PT",
+      "path": "src/backup_cli.ts",
+      "region": {
+        "startLine": 29,
+        "endLine": 29,
+        "startColumn": 28,
+        "endColumn": 49
+      },
+      "reviewedSourceSha256": "55eb30b268c4b02561dd7813ae10461b9e08b3503474474936989ca802f8ec69",
+      "reviewedLineSha256": "1ebcdbda5b85c0f5e590d51e2c4f5f52f3ddc8a909f2edaf3f41ec6e4be744ee",
+      "disposition": "proposed-false-positive",
+      "rationale": "Offline backup CLI explicitly accepts operator-selected artifact and database paths. Restore is guarded by exclusive process ownership, a maintenance lease, quiescence and restore artifact validation. Confining all CLI paths to the repository would break the supported recovery operation.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "d63b1e99-99c4-443a-9241-dc2087e2d00c",
+      "fingerprints": {
+        "0": "3928b915d8983f3286629760c2dfd3fc5274c7bfdb0eca39fa03d88ffe219bf9",
+        "1": "c3f8dfad.4773f344.c9330245.d7919eeb.c405a950.72a8d180.83265159.d087f7d7.c3f8dfad.b6e32c83.c9330245.99f4e1a5.3f452f8c.8431f2ca.550931eb.83183368",
+        "snyk/asset/finding/v1": "d63b1e99-99c4-443a-9241-dc2087e2d00c",
+        "identity": "d63b1e99-99c4-443a-9241-dc2087e2d00c"
+      },
+      "ruleId": "javascript/PT",
+      "path": "src/backup_restore_drill_worker.ts",
+      "region": {
+        "startLine": 39,
+        "endLine": 39,
+        "startColumn": 28,
+        "endColumn": 36
+      },
+      "reviewedSourceSha256": "d2d604b255ac626550109b929019a4cc83752b22ad25af67bba529b2a143004a",
+      "reviewedLineSha256": "547a7c9d9958c5c475cad64b50220236403f5c443d40ff20167b3e3846f298d3",
+      "disposition": "proposed-false-positive",
+      "rationale": "Member names come from inspect/verifyBackupArtifact evidence and verified restore plans, not unchecked argv members. The worker requires its own empty real temporary restored directory and disables network/subprocess APIs. Artifact path validation occurs before member hash reads.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "164aa45d-3766-4932-9dd7-4f2729603758",
+      "fingerprints": {
+        "0": "ea1d192be03ff46c402521dbd275c6e30d59433386eed718793763c7fc3153fd",
+        "1": "c3f8dfad.4773f344.c9330245.d7919eeb.ef9f7d82.8020cfdf.e2ef5c06.ae94f388.c3f8dfad.b6e32c83.c9330245.cdaeacef.3f452f8c.8f47a30e.5c2e6593.83183368",
+        "snyk/asset/finding/v1": "164aa45d-3766-4932-9dd7-4f2729603758",
+        "identity": "164aa45d-3766-4932-9dd7-4f2729603758"
+      },
+      "ruleId": "javascript/PT",
+      "path": "src/signal_parser.ts",
+      "region": {
+        "startLine": 582,
+        "endLine": 582,
+        "startColumn": 39,
+        "endColumn": 47
+      },
+      "reviewedSourceSha256": "94dd82c89599810023bf352ef498e3f1c1dfc5d109bf245342f4bb2af7e1290f",
+      "reviewedLineSha256": "df005c4fff4e1dda3a347d7f85d29deefc10cc90532556dfba44ba5be559ad62",
+      "disposition": "proposed-false-positive",
+      "rationale": "This branch runs only when the module is the direct CLI entry point. --file is an operator-selected input file; arbitrary local input file selection is intentional and no HTTP route supplies this argument.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "142dd478-3551-4536-9562-b365bf50d287",
+      "fingerprints": {
+        "0": "755ec9dae1e87254c6a90ed9592cbf35c4a729d323a52a74f0bec8aeb659ee27",
+        "1": "40c5fd92.4773f344.126beb45.ed202363.c405a950.34a4d81a.d3fe104c.d66579bf.bbc827ce.b6e32c83.c9330245.01c4284e.79a7d027.5fce695c.5745f806.62f49dc2",
+        "identity": "142dd478-3551-4536-9562-b365bf50d287",
+        "snyk/asset/finding/v1": "142dd478-3551-4536-9562-b365bf50d287"
+      },
+      "ruleId": "javascript/PT/test",
+      "path": "tests/fixtures/backup_generation_crash_child.js",
+      "region": {
+        "startLine": 24,
+        "endLine": 24,
+        "startColumn": 7,
+        "endColumn": 25
+      },
+      "reviewedSourceSha256": "abdc2a5a85bbb14af6685d9ddc974527f2885762f6747e74c1b686f435247e20",
+      "reviewedLineSha256": "c746a80c568f1817e0d39aaad8e1d84b2b683c62d837e8506314c0ec58d259d8",
+      "disposition": "proposed-false-positive",
+      "rationale": "The parent crash-test harness supplies its temporary fixture root; the child acquires its local process lock to exercise real generation crash boundaries. There is no remote path input.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "9c50b436-5043-4541-a5c5-14a432cae733",
+      "fingerprints": {
+        "0": "7b967903b6d161a5dd26b80a111bdd34ac21f9524b0248086014d953f15d72d8",
+        "1": "bbc827ce.4773f344.c9330245.d7919eeb.ef9f7d82.8020cfdf.d3fe104c.d087f7d7.bbc827ce.b6e32c83.c9330245.cdaeacef.ac82cb7b.5fce695c.d3fe104c.83183368",
+        "identity": "9c50b436-5043-4541-a5c5-14a432cae733",
+        "snyk/asset/finding/v1": "9c50b436-5043-4541-a5c5-14a432cae733"
+      },
+      "ruleId": "javascript/PT/test",
+      "path": "tests/fixtures/crash_guard_owner_child.js",
+      "region": {
+        "startLine": 12,
+        "endLine": 12,
+        "startColumn": 23,
+        "endColumn": 41
+      },
+      "reviewedSourceSha256": "29ee34d2f58fe80880f062ea0ae5aae14f84be095ef4fe16d612e929c47fabc1",
+      "reviewedLineSha256": "877482e491e3482904999a566f5f37286d501ba7988ad2099d389194ec250aae",
+      "disposition": "proposed-false-positive",
+      "rationale": "The parent process supplies the temporary directory specifically to test owner-lock exclusion across processes; acquiring that local fixture lock is the behavior under test.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "6914aa0e-59d7-4481-9e11-2f13f86d60f4",
+      "fingerprints": {
+        "0": "e844841c618d03cfb36cbabf28ce4620ccfac7cb08586f179525b429fdf38b6a",
+        "1": "40c5fd92.4773f344.c9330245.27a6e0f7.ef9f7d82.8020cfdf.df7e59ba.e91df889.eb77718c.b6e32c83.c9330245.d7919eeb.79a7d027.5fce695c.83265159.e91df889",
+        "snyk/asset/finding/v1": "6914aa0e-59d7-4481-9e11-2f13f86d60f4",
+        "identity": "6914aa0e-59d7-4481-9e11-2f13f86d60f4"
+      },
+      "ruleId": "javascript/PT/test",
+      "path": "tests/fixtures/backup_generation_crash_child.js",
+      "region": {
+        "startLine": 25,
+        "endLine": 25,
+        "startColumn": 9,
+        "endColumn": 42
+      },
+      "reviewedSourceSha256": "abdc2a5a85bbb14af6685d9ddc974527f2885762f6747e74c1b686f435247e20",
+      "reviewedLineSha256": "2e973ba9803f9263f7d31465f61474148ba347ed824423ad350b4d4fd16dfb0d",
+      "disposition": "proposed-false-positive",
+      "rationale": "The same parent-supplied temporary source configuration is deliberately initialized before injected filesystem crashes. This call exercises generation durability on fixture files, not a production path endpoint.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "497d44e9-fe5f-4767-a66f-325c51e5dc95",
+      "fingerprints": {
+        "0": "6c0f0dcdb86a0d56d1a9e8bbf429d78841282905497f9e24099ee9c75a9ab2af",
+        "1": "bbc827ce.4773f344.c9330245.d7919eeb.740ca865.f7edcf51.ea4b1c47.545e9171.bbc827ce.b6e32c83.c9330245.d7919eeb.3fe0efa9.8431f2ca.cd61fc56.545e9171",
+        "identity": "497d44e9-fe5f-4767-a66f-325c51e5dc95",
+        "snyk/asset/finding/v1": "497d44e9-fe5f-4767-a66f-325c51e5dc95"
+      },
+      "ruleId": "javascript/PT/test",
+      "path": "tests/fixtures/crash_guard_owner_child.js",
+      "region": {
+        "startLine": 37,
+        "endLine": 37,
+        "startColumn": 11,
+        "endColumn": 30
+      },
+      "reviewedSourceSha256": "29ee34d2f58fe80880f062ea0ae5aae14f84be095ef4fe16d612e929c47fabc1",
+      "reviewedLineSha256": "fa3a77f886ba97693daecf9da1a3a5a64fb01d49b22638670473bee3701ccbfb",
+      "disposition": "proposed-false-positive",
+      "rationale": "The crash-guard child uses the same parent-selected temporary directory and held owner token to verify fail-closed crash-loop file behavior.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "9886fba1-1186-4e41-b1fa-6a6877440237",
+      "fingerprints": {
+        "0": "b899edefa3b0a0433c55007c1833b51909fb127fad920f8c7fd9eb343ea67315",
+        "1": "e0fda459.4773f344.c9330245.d7919eeb.79a7d027.8020cfdf.ea4b1c47.e8752bfb.6e283998.b6e32c83.c9330245.99f4e1a5.79a7d027.5fce695c.ea4b1c47.83183368",
+        "snyk/asset/finding/v1": "9886fba1-1186-4e41-b1fa-6a6877440237",
+        "identity": "9886fba1-1186-4e41-b1fa-6a6877440237"
+      },
+      "ruleId": "javascript/PT/test",
+      "path": "tests/fixtures/maintenance_participant_child.js",
+      "region": {
+        "startLine": 6,
+        "endLine": 6,
+        "startColumn": 27,
+        "endColumn": 65
+      },
+      "reviewedSourceSha256": "5e69f00fdb09992d9d392566d4e5e071e003636ddcc7f2ca7047f3111be87672",
+      "reviewedLineSha256": "3fcf8f8cab686bf746823c221c22ac40c6dc3cdaa400af17bcad53d05057ed7a",
+      "disposition": "proposed-false-positive",
+      "rationale": "The parent maintenance test intentionally supplies a temporary SQLite path to a child participant. Registration/opening the same file is required to exercise cross-process quiescence.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "bc179edb-989f-4eee-b6f0-4e0403e76fa0",
+      "fingerprints": {
+        "0": "eeff01727362c3468b1feaac9695f015e4a74709fa9b969bdec2287a1fc5a531",
+        "1": "bbc827ce.4773f344.c9330245.ed202363.ef9f7d82.8020cfdf.df7e59ba.d087f7d7.bbc827ce.b6e32c83.c9330245.99f4e1a5.ac82cb7b.5fce695c.d17b2723.83183368",
+        "identity": "bc179edb-989f-4eee-b6f0-4e0403e76fa0",
+        "snyk/asset/finding/v1": "bc179edb-989f-4eee-b6f0-4e0403e76fa0"
+      },
+      "ruleId": "javascript/PT/test",
+      "path": "tests/fixtures/ui_restart_child.js",
+      "region": {
+        "startLine": 14,
+        "endLine": 14,
+        "startColumn": 12,
+        "endColumn": 21
+      },
+      "reviewedSourceSha256": "19d9ba7636bd49a7cb3a4bb42efbea82f0a730accd0e4a4361d0f2e88795c966",
+      "reviewedLineSha256": "a47829f259dd02ace0c6c84b271410d7f6be25e449a19e0f39d9ea995e8ee3ee",
+      "disposition": "proposed-false-positive",
+      "rationale": "Writes a fixed checkpoint filename beneath the restart harness temporary directory after the injected application action completes, enabling parent verification of interruption boundaries.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "436da650-a34e-44b8-a133-bdad1b5788d7",
+      "fingerprints": {
+        "0": "61132a55fd2c2a8f827a79b9b266828e3e893a4321272938bd409116a8ba5de9",
+        "1": "bbc827ce.7f775b58.c9330245.ed202363.4414f8fb.8020cfdf.d17b2723.d087f7d7.c3f8dfad.b6e32c83.c9330245.17c49037.ac82cb7b.5fce695c.d17b2723.e8752bfb",
+        "identity": "436da650-a34e-44b8-a133-bdad1b5788d7",
+        "snyk/asset/finding/v1": "436da650-a34e-44b8-a133-bdad1b5788d7"
+      },
+      "ruleId": "javascript/PT/test",
+      "path": "tests/fixtures/ui_restart_child.js",
+      "region": {
+        "startLine": 57,
+        "endLine": 57,
+        "startColumn": 12,
+        "endColumn": 22
+      },
+      "reviewedSourceSha256": "19d9ba7636bd49a7cb3a4bb42efbea82f0a730accd0e4a4361d0f2e88795c966",
+      "reviewedLineSha256": "845b2d0425700694ac4aded4670f9616157c0063ffdbeebaf5270d0d2b6dc47b",
+      "disposition": "proposed-false-positive",
+      "rationale": "Appends a fixed restart-proof filename under the parent-created temporary directory; it records the fixture process instance before shutdown, with no remote path source.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "9d43190b-357e-4885-b1cd-8e98d8e05f5e",
+      "fingerprints": {
+        "0": "0e5e767d57f209d0908083a83c7feb7555dd36d2672180f171cd67e29c88c845",
+        "1": "bc441d81.4773f344.c9330245.e052b9a9.79a7d027.756a1932.83265159.e6930396.717272d6.c85e43e8.8070a78a.243c9be5.3f452f8c.81c05e24.6d478a30.86ee7f34",
+        "snyk/asset/finding/v1": "9d43190b-357e-4885-b1cd-8e98d8e05f5e",
+        "identity": "9d43190b-357e-4885-b1cd-8e98d8e05f5e"
+      },
+      "ruleId": "javascript/ServerLeak",
+      "path": "src/web_server.ts",
+      "region": {
+        "startLine": 269,
+        "endLine": 269,
+        "startColumn": 7,
+        "endColumn": 10
+      },
+      "reviewedSourceSha256": "87b0677894440971205d1d1d6673f5454392c48edaec8bfd1f4ea04e5f2fb77b",
+      "reviewedLineSha256": "199a68d57000a8fc12b53c7df88f48d6702c8df2818f7c17e2d4f37ca33d8ba6",
+      "disposition": "fixed-public-preflight-boundary",
+      "rationale": "Confirmed freshPreflight credential disclosure was first redacted in e639fa0. Commit 38c2f24 then adds an explicit public preflight diagnostic mode: authored domain blockers are preserved, but caught exceptions have no public-message contract and receive a fixed helpful message. The UI uses that mode. Regression proves arbitrary internal paths/text and credential formats are absent, allowed remains false, reviewHash is unchanged and explicit missing-contract blockers remain actionable. The change is limited to the traced UI boundary, not a global error-message replacement.",
+      "platformStatusChanged": false,
+      "resolutionCommits": [
+        "e639fa0",
+        "38c2f24"
+      ],
+      "resolutionSourceSha256": {
+        "src/mcp_repository.ts": "42e22124c18e97f9a8e799dc30c6f1f4088fe3ce45a7e0341373df2e03ca7636",
+        "src/ui_mcp_review.ts": "aef32a4bc8bf8ed104b0f402da0a3822fd35be9467e30528a3797b511198b84e",
+        "tests/test_ui_change_reviews.js": "ebec2a19f62ce75c5204fdb0e6e7e1a4276b784522185f8dc6de9dcf4cde6aa6",
+        "tests/test_mcp_control_plane.js": "5e62165d9a5325757bfe6fee2923afbe8d1ae97e4aaeadd5efaa3daba928517a"
+      }
+    },
+    {
+      "findingId": "4763ab6d-7279-4288-a467-5dbccf673f01",
+      "fingerprints": {
+        "0": "58b57e81b08202bf1798a64789e03fb0f764421c20deed17ea02685368efe501",
+        "1": "e18ecef6.59da5bcb.d5ebef4e.e052b9a9.79a7d027.fcf3002d.ce4a9d89.4bea0b18.e18ecef6.59da5bcb.607187b5.e052b9a9.79a7d027.fcf3002d.ce4a9d89.4bea0b18",
+        "identity": "4763ab6d-7279-4288-a467-5dbccf673f01",
+        "snyk/asset/finding/v1": "4763ab6d-7279-4288-a467-5dbccf673f01"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "frontend/tests/operator-state-regressions.test.tsx",
+      "region": {
+        "startLine": 104,
+        "endLine": 104,
+        "startColumn": 86,
+        "endColumn": 95
+      },
+      "reviewedSourceSha256": "16089f8ddaac089937a525511e82a0845020d9e818d915dba38aaf3973296e07",
+      "reviewedLineSha256": "d89d2af132bb36973d34b9447ba13b7fcd0808d3a3bef72d8e0c667be4474d68",
+      "disposition": "proposed-false-positive",
+      "rationale": "Assertion compares the expected write body to an explicitly named fixture secret entered in the local UI test, then verifies the secret input disappears. It is not a deployed account credential.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "8c0f552c-7615-4368-8f6a-6689679b611c",
+      "fingerprints": {
+        "0": "b7d1be61377d4b22892b28e1fb0aa353e26e2d4c84ba1fb0653aa224935eb2a9",
+        "1": "12567ef6.4773f344.607187b5.0755de8f.601e4ccc.fcf3002d.ce4a9d89.0c057e67.fa9bfeb6.4773f344.607187b5.c559ebce.601e4ccc.340a7504.ce4a9d89.ea55a745",
+        "identity": "8c0f552c-7615-4368-8f6a-6689679b611c",
+        "snyk/asset/finding/v1": "8c0f552c-7615-4368-8f6a-6689679b611c"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_config.js",
+      "region": {
+        "startLine": 104,
+        "endLine": 104,
+        "startColumn": 64,
+        "endColumn": 78
+      },
+      "reviewedSourceSha256": "318e9f74830b8b04d4523173cbec9835be3cc25aab83e577125930f0ca701827",
+      "reviewedLineSha256": "1642e7fdc289c59ea2d6fe60391ed0744f5989eb94932c42e6e90936464acd37",
+      "disposition": "proposed-false-positive",
+      "rationale": "Descriptive non-persistence placeholder under unknown surpriseSecret configuration key. validateConfig must reject that unknown field.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "32304334-8c66-4f4a-b4fa-26033d0ab225",
+      "fingerprints": {
+        "0": "3fc1f2d23ee8a1b9a327e31f5ed75b58f6dd1080c7fe9e64ecb6ee0426d4fa79",
+        "1": "8ae0f584.3f481afb.a1c822f2.e052b9a9.79a7d027.fcf3002d.80eb7e1f.4bea0b18.fc3065be.4773f344.548058c2.e052b9a9.79a7d027.39edca54.6fd57df8.4bea0b18",
+        "identity": "32304334-8c66-4f4a-b4fa-26033d0ab225",
+        "snyk/asset/finding/v1": "32304334-8c66-4f4a-b4fa-26033d0ab225"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "region": {
+        "startLine": 492,
+        "endLine": 492,
+        "startColumn": 20,
+        "endColumn": 26
+      },
+      "reviewedSourceSha256": "d6bf84de55ab17ee71ddb0b4c5fcaea201624952c0455e879f8da7f289759720",
+      "reviewedLineSha256": "af3250c9871e14a1f2f1ad63a9d8e86178c3f6142d7a59e3264b961f46f2537d",
+      "disposition": "proposed-false-positive",
+      "rationale": "Readable exchange fixture key/secret with a simple numeric suffix used for dynamic registration. gateioAdapter is a local stub with inline verification and no-op order methods.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44",
+      "fingerprints": {
+        "0": "18a85bb5fef3b1bcebc9e7be7b29678b404a58f327123d230a14e149c7a8739f",
+        "1": "e7fd436d.4773f344.607187b5.e052b9a9.79a7d027.fcf3002d.80eb7e1f.e0f43150.e7fd436d.4773f344.c9330245.e052b9a9.79a7d027.8020cfdf.7a8c7288.e6930396",
+        "identity": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44",
+        "snyk/asset/finding/v1": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_exchange_acceptance.js",
+      "region": {
+        "startLine": 89,
+        "endLine": 89,
+        "startColumn": 42,
+        "endColumn": 48
+      },
+      "reviewedSourceSha256": "d5d66b8327f0134ed4cf98b44e25c078c126e758537a3bda277722679cb6af2a",
+      "reviewedLineSha256": "fc76ca2ce07837ac3d3d4d641c5509984814a400fe958222af9afe990fdeada2",
+      "disposition": "proposed-false-positive",
+      "rationale": "The fixture overwrites a temporary evidence file with a descriptive secret sentinel and asserts the rejecting CLI stderr never echoes it.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "6747340c-e7a2-460b-87c7-e2e6c3802226",
+      "fingerprints": {
+        "0": "d9e44b7776e2850bd49192ad60b8c6b6096d57d5edd9434af14d697e0e8c338a",
+        "1": "fc3065be.3f481afb.1b459778.e052b9a9.79a7d027.fcf3002d.fdccee38.f562c5fc.fc3065be.94f191c0.3d62749e.e052b9a9.3b4d01cf.becd9ff1.71100302.c425cb87",
+        "identity": "6747340c-e7a2-460b-87c7-e2e6c3802226",
+        "snyk/asset/finding/v1": "6747340c-e7a2-460b-87c7-e2e6c3802226"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_exchange_contract_validation.js",
+      "region": {
+        "startLine": 31,
+        "endLine": 31,
+        "startColumn": 69,
+        "endColumn": 75
+      },
+      "reviewedSourceSha256": "a76d3c7fb41e757069600bce5f4eabb73fcc4f069b3e96404ffe262ea3df1fde",
+      "reviewedLineSha256": "3b3436e31f3fc4a9b5357169d529098d46a9a48a74f423111822a892cc2abc15",
+      "disposition": "proposed-false-positive",
+      "rationale": "Uppercase do-not-persist sentinel appears in acquisition secret/API-key fields. validateAcquisitionEvidence output is asserted not to contain the sentinel, API keys or headers.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "a3737d56-de9a-41e7-b30b-fb374b214f91",
+      "fingerprints": {
+        "0": "d9e44b7776e2850bd49192ad60b8c6b6096d57d5edd9434af14d697e0e8c338a",
+        "1": "e7fd436d.3f481afb.5ef5a079.d7919eeb.79a7d027.f7edcf51.11c09b46.e0f43150.eda9ef34.4773f344.9f5fea6f.d7919eeb.3f452f8c.5fce695c.11c09b46.695b0397",
+        "identity": "a3737d56-de9a-41e7-b30b-fb374b214f91",
+        "snyk/asset/finding/v1": "a3737d56-de9a-41e7-b30b-fb374b214f91"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_exchange_contract_validation.js",
+      "region": {
+        "startLine": 31,
+        "endLine": 31,
+        "startColumn": 100,
+        "endColumn": 106
+      },
+      "reviewedSourceSha256": "a76d3c7fb41e757069600bce5f4eabb73fcc4f069b3e96404ffe262ea3df1fde",
+      "reviewedLineSha256": "3b3436e31f3fc4a9b5357169d529098d46a9a48a74f423111822a892cc2abc15",
+      "disposition": "proposed-false-positive",
+      "rationale": "Uppercase do-not-persist sentinel appears in acquisition secret/API-key fields. validateAcquisitionEvidence output is asserted not to contain the sentinel, API keys or headers.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "a1ed4a9a-f08f-4f3b-b73b-87630d94a0c9",
+      "fingerprints": {
+        "0": "1bf157f525d7d6750e1c6892ffa063306a5a222af167526a177aaac80cda7d63",
+        "1": "fc3065be.3f481afb.1b459778.e052b9a9.79a7d027.fcf3002d.a56a8b5b.412aaddb.fc3065be.3f481afb.8b18f948.e052b9a9.79a7d027.5fce695c.ea4b1c47.89d75565",
+        "identity": "a1ed4a9a-f08f-4f3b-b73b-87630d94a0c9",
+        "snyk/asset/finding/v1": "a1ed4a9a-f08f-4f3b-b73b-87630d94a0c9"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_hyperliquid_retention.js",
+      "region": {
+        "startLine": 18,
+        "endLine": 18,
+        "startColumn": 41,
+        "endColumn": 47
+      },
+      "reviewedSourceSha256": "0675de5c304af8d3da9bff59524cbe9484840ca31ba8f35d0c820fe5575a063b",
+      "reviewedLineSha256": "c32731134a87da8dcff72e463c4952a1ef0dbea1f30d9ac80ec036223b1b6e09",
+      "disposition": "proposed-false-positive",
+      "rationale": "A descriptive forbidden-value sentinel is injected under an unsupported secret field in a checkpoint mutation; validateHistoryCheckpoint must reject it.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "9b50cbda-ded3-4582-a09b-87e659bcbca8",
+      "fingerprints": {
+        "0": "03b4379fad97fdad85d7980b6c516e44a9c1c79b9e9672c18b16af2b0fcf7bd9",
+        "1": "ce9f866e.7d8d7fe0.e2f4257e.0755de8f.601e4ccc.fcf3002d.35d817ee.ac9d0bd9.ce9f866e.4773f344.a5cb6912.0755de8f.601e4ccc.8020cfdf.35d817ee.83183368",
+        "snyk/asset/finding/v1": "9b50cbda-ded3-4582-a09b-87e659bcbca8",
+        "identity": "9b50cbda-ded3-4582-a09b-87e659bcbca8"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_integration.js",
+      "region": {
+        "startLine": 52,
+        "endLine": 52,
+        "startColumn": 30,
+        "endColumn": 48
+      },
+      "reviewedSourceSha256": "49690820167065e79d4ee9456b4730befaae4e3ad0da6999e3b99c705f84bb90",
+      "reviewedLineSha256": "16bc233a8d8a900c84a396938100f1e98e2044a2d8918fb92a929ba459706747",
+      "disposition": "proposed-false-positive",
+      "rationale": "A clearly dummy OpenRouter key is supplied to a child fixture process to exercise integration error handling; it is not provider-issued key material.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "efe2fbab-8939-42b3-acf3-d6f219f541f4",
+      "fingerprints": {
+        "0": "d93faf8261d02165bd006facc105f6c41d307ac0e58018e5946cb67b88239b4c",
+        "1": "70641390.4773f344.5111edd4.e052b9a9.79a7d027.16814402.047f4cc3.3cee0341.70641390.4773f344.f815c231.c725d013.79a7d027.16814402.aae58e7b.d087f7d7",
+        "snyk/asset/finding/v1": "efe2fbab-8939-42b3-acf3-d6f219f541f4",
+        "identity": "efe2fbab-8939-42b3-acf3-d6f219f541f4"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_secret_store.js",
+      "region": {
+        "startLine": 23,
+        "endLine": 23,
+        "startColumn": 5,
+        "endColumn": 21
+      },
+      "reviewedSourceSha256": "b2392c99e4a9aa267a638fa4883555b525966715cd288746f5f93741dcbd504f",
+      "reviewedLineSha256": "fdffc8058fc05ac6dacd99fe093949228ed8d4076f7fcab880a5a2589ae78624",
+      "disposition": "proposed-false-positive",
+      "rationale": "Explicit test-key material is stored in a temporary ManagedSecretStore and test environment object; assertions exercise persistence and configured-source reporting.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "3fd501f8-60d2-4533-84c1-0f8135a93b85",
+      "fingerprints": {
+        "0": "05e60ed1923fbda026f588b3eca8db5486f3216d4825668d05dc7e16df23b997",
+        "1": "70641390.4773f344.5111edd4.e052b9a9.79a7d027.abf5431f.ce4a9d89.3cee0341.70641390.4773f344.f815c231.e052b9a9.79a7d027.abf5431f.aae58e7b.d087f7d7",
+        "identity": "3fd501f8-60d2-4533-84c1-0f8135a93b85",
+        "snyk/asset/finding/v1": "3fd501f8-60d2-4533-84c1-0f8135a93b85"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_secret_store.js",
+      "region": {
+        "startLine": 28,
+        "endLine": 28,
+        "startColumn": 21,
+        "endColumn": 37
+      },
+      "reviewedSourceSha256": "b2392c99e4a9aa267a638fa4883555b525966715cd288746f5f93741dcbd504f",
+      "reviewedLineSha256": "3325a64431b61ad321bd5d174e269db894b7a3e38f7cc77aa0f49e365bb1b322",
+      "disposition": "proposed-false-positive",
+      "rationale": "Replacement test-key fixture verifies updating the managed store and associated environment value, with no provider authentication.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "aee14560-3ac3-41fd-9b53-37a838268421",
+      "fingerprints": {
+        "0": "bd960d6835fc8f88135c8fb3e67877dd9e692068db5111625cde113dccf5f18a",
+        "1": "70641390.3f481afb.5111edd4.e052b9a9.79a7d027.16814402.4a5b8cb9.53b7f170.70641390.4773f344.5111edd4.c725d013.79a7d027.16814402.4a5b8cb9.3cee0341",
+        "snyk/asset/finding/v1": "aee14560-3ac3-41fd-9b53-37a838268421",
+        "identity": "aee14560-3ac3-41fd-9b53-37a838268421"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_secret_store.js",
+      "region": {
+        "startLine": 102,
+        "endLine": 102,
+        "startColumn": 7,
+        "endColumn": 23
+      },
+      "reviewedSourceSha256": "b2392c99e4a9aa267a638fa4883555b525966715cd288746f5f93741dcbd504f",
+      "reviewedLineSha256": "bec14a1a58a525066c263992e4920fdaab34388e4029a1544a4b4faaf9c101a7",
+      "disposition": "proposed-false-positive",
+      "rationale": "Test-key fixture appears in a temporary interrupted transaction journal; subsequent initialization verifies journal recovery and secret consistency.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "55b8a65d-ce8d-4e3d-9039-678277b8ee68",
+      "fingerprints": {
+        "0": "f6b143346e72fc3290df7557dcb91be3462614954b01092f44e8cc820fe4b731",
+        "1": "70641390.4773f344.5111edd4.e052b9a9.79a7d027.16814402.bd10209a.d3904364.70641390.4773f344.f815c231.e052b9a9.79a7d027.16814402.aae58e7b.d087f7d7",
+        "identity": "55b8a65d-ce8d-4e3d-9039-678277b8ee68",
+        "snyk/asset/finding/v1": "55b8a65d-ce8d-4e3d-9039-678277b8ee68"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_secret_store.js",
+      "region": {
+        "startLine": 122,
+        "endLine": 122,
+        "startColumn": 21,
+        "endColumn": 37
+      },
+      "reviewedSourceSha256": "b2392c99e4a9aa267a638fa4883555b525966715cd288746f5f93741dcbd504f",
+      "reviewedLineSha256": "42e9417a67726ab2d1565c41ad85d8f2cff82b3c79cb75b2eb0bd4aa3e4a540f",
+      "disposition": "proposed-false-positive",
+      "rationale": "Explicit pre-corruption test key seeds the temporary store before a deliberately malformed file is written; initialization must detect invalid credential contents.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "06e9dbdb-8290-450a-95cc-25b789bcdde2",
+      "fingerprints": {
+        "0": "4972b7fb8a9532ccdce730196d2b6ba7ed2c284762b2fada45879fb082df06cc",
+        "1": "fbb35586.4773f344.5111edd4.e052b9a9.79a7d027.16814402.ce4a9d89.3cee0341.fbb35586.4773f344.c9330245.e052b9a9.79a7d027.16814402.70f01de0.d087f7d7",
+        "identity": "06e9dbdb-8290-450a-95cc-25b789bcdde2",
+        "snyk/asset/finding/v1": "06e9dbdb-8290-450a-95cc-25b789bcdde2"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_secret_store.js",
+      "region": {
+        "startLine": 129,
+        "endLine": 129,
+        "startColumn": 32,
+        "endColumn": 48
+      },
+      "reviewedSourceSha256": "b2392c99e4a9aa267a638fa4883555b525966715cd288746f5f93741dcbd504f",
+      "reviewedLineSha256": "46b9b1cacc1fb29d275cfc5bdb6c5e50056d93537b7ef8e9ce65fcc467a8331d",
+      "disposition": "proposed-false-positive",
+      "rationale": "Explicit recovered test-key fixture completes the preceding recovery scenario; the next assertion verifies the recovery warning is cleared.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4",
+      "fingerprints": {
+        "0": "d102a2cfade497ab2e62607af30b913f827549a7eddb8b9a4f524e420f1c8cba",
+        "1": "fc3065be.3f481afb.95758592.d7919eeb.79a7d027.5fce695c.ea4b1c47.89d75565.fc3065be.3f481afb.95758592.d7919eeb.79a7d027.5fce695c.ea4b1c47.89d75565",
+        "identity": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4",
+        "snyk/asset/finding/v1": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_sonar_review_decisions.js",
+      "region": {
+        "startLine": 12,
+        "endLine": 12,
+        "startColumn": 7,
+        "endColumn": 13
+      },
+      "reviewedSourceSha256": "17f7063a003d6420dc2a27d613f43b62cf9766946eaca99ffa834f7d539340af",
+      "reviewedLineSha256": "9044af274fb3153cc3a25fe7ef931f6ff8ed8e50a4b40be7445e97c4e1ae1ccc",
+      "disposition": "proposed-false-positive",
+      "rationale": "Explicit fake-token sentinel in the injected environment. transport() supplies fetchImpl; failure and success assertions ensure the sentinel never enters ledgers or output.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "e6282f6d-4f71-47ff-befa-7369873e4557",
+      "fingerprints": {
+        "0": "21692002cd87194d32e4826e5ddaaed39b8a55d2c2bc487e97496605844352e1",
+        "1": "a8ab77c2.3f481afb.c795088f.e052b9a9.79a7d027.e2358c82.378f23e6.e0f43150.a8ab77c2.4773f344.c795088f.e052b9a9.79a7d027.e2358c82.378f23e6.e0f43150",
+        "snyk/asset/finding/v1": "e6282f6d-4f71-47ff-befa-7369873e4557",
+        "identity": "e6282f6d-4f71-47ff-befa-7369873e4557"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_telegram_viewer_core.js",
+      "region": {
+        "startLine": 136,
+        "endLine": 136,
+        "startColumn": 42,
+        "endColumn": 48
+      },
+      "reviewedSourceSha256": "fb1f0ebae3e523a79d6275f11b3a151225260d429f50a3b12d9b6d38e3b183f8",
+      "reviewedLineSha256": "dd68352feed5e8e401e0d012f2f8d51c73f9ea573d24a535583f198276601cb2",
+      "disposition": "proposed-false-positive",
+      "rationale": "Descriptive secret sentinel is submitted in notification details and the operation is expected to reject with a secret-field validation error.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "1498a7a1-5346-49c7-b0b0-52ec594b5b0c",
+      "fingerprints": {
+        "0": "5b8178c7126da159d65103688b7ab7f13b05f499d493ae886ac76edca277467c",
+        "1": "e7fd436d.4773f344.607187b5.e052b9a9.79a7d027.fcf3002d.33585f60.e0f43150.03917ba0.428246c9.f815c231.4ff1aa48.79a7d027.8020cfdf.aae58e7b.e0f43150",
+        "identity": "1498a7a1-5346-49c7-b0b0-52ec594b5b0c",
+        "snyk/asset/finding/v1": "1498a7a1-5346-49c7-b0b0-52ec594b5b0c"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "region": {
+        "startLine": 35,
+        "endLine": 35,
+        "startColumn": 49,
+        "endColumn": 55
+      },
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "reviewedLineSha256": "87686556e6cf4e2b427f4193ea3c7a87db2d3868b2412279a06e3ba403c8c68d",
+      "disposition": "proposed-false-positive",
+      "rationale": "Readable Bybit key/secret with a simple numeric fixture suffix saved only in the temporary TradingCredentialStore. The assertion checks configured status; no exchange authentication occurs.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "e0d3690e-5911-4fa5-96ab-c0893d808e7f",
+      "fingerprints": {
+        "0": "ad2b33c013ca88b3c3af159836be225ee19b49718d0583e318b420423d9284de",
+        "1": "c38ef152.4773f344.607187b5.e052b9a9.79a7d027.bc3a06e6.80eb7e1f.e0f43150.31647f41.59da5bcb.f815c231.aad5b9ba.79a7d027.bc3a06e6.aae58e7b.e0f43150",
+        "identity": "e0d3690e-5911-4fa5-96ab-c0893d808e7f",
+        "snyk/asset/finding/v1": "e0d3690e-5911-4fa5-96ab-c0893d808e7f"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "region": {
+        "startLine": 38,
+        "endLine": 38,
+        "startColumn": 55,
+        "endColumn": 61
+      },
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "reviewedLineSha256": "ea1eb15aebe096d123b70f2a16a6f67322bb458d070bc770979d4dee362aea25",
+      "disposition": "proposed-false-positive",
+      "rationale": "Short descriptive key/secret placeholders accompany a deliberately invalid account identifier. store.set must reject the identifier.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e",
+      "fingerprints": {
+        "0": "cbf9bd0b157e9190fbb1ca41f976837236b9bf462c86ffcaf95ab17d4494207c",
+        "1": "c38ef152.3f481afb.a1c822f2.e052b9a9.79a7d027.bc3a06e6.80eb7e1f.4bea0b18.fc3065be.4773f344.607187b5.aad5b9ba.79a7d027.bc3a06e6.a56a8b5b.4bea0b18",
+        "identity": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e",
+        "snyk/asset/finding/v1": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "region": {
+        "startLine": 60,
+        "endLine": 60,
+        "startColumn": 22,
+        "endColumn": 28
+      },
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "reviewedLineSha256": "9f938a9e16996ad4a67091f0ec0d32ce2ede3244dc2ca34338ea7790ff2dc162",
+      "disposition": "proposed-false-positive",
+      "rationale": "Descriptive key/secret placeholders plus unsupported customParams credential field. The next assertion requires field validation rejection.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "95e532db-4651-47f3-b9da-40e0da5e0fcc",
+      "fingerprints": {
+        "0": "1344b0c601daf7be4887171a694af63bb295bd818e2b448b6def643dd744cf2f",
+        "1": "e7fd436d.3f481afb.4d0c4123.e052b9a9.79a7d027.fcf3002d.dddd9f4c.e0f43150.b44e9232.59da5bcb.cf0dc3a8.cb018436.3f452f8c.9b2f3091.6bdd8e71.e0f43150",
+        "identity": "95e532db-4651-47f3-b9da-40e0da5e0fcc",
+        "snyk/asset/finding/v1": "95e532db-4651-47f3-b9da-40e0da5e0fcc"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "region": {
+        "startLine": 73,
+        "endLine": 73,
+        "startColumn": 47,
+        "endColumn": 53
+      },
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "reviewedLineSha256": "852283cdc0770cfe5f22c30fe8b91e16f0a57305f927c3622712a9e9170177e1",
+      "disposition": "proposed-false-positive",
+      "rationale": "Readable legacy Bybit fixture input written as version 1 into a temporary store, then migrated. No provider-issued material or network authentication is involved.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "4d819ebc-b7ba-4de3-a71e-5daea6c942e7",
+      "fingerprints": {
+        "0": "dbe1e9aa58d2e149137f8aebd53156ce728c2aee4f0fc709af812c2a7a7e6cc1",
+        "1": "e7fd436d.ca37a272.f8f1d984.e052b9a9.79a7d027.fcf3002d.dddd9f4c.e0f43150.fc3065be.ca37a272.1b459778.e052b9a9.79a7d027.fcf3002d.da8a9d31.e0f43150",
+        "identity": "4d819ebc-b7ba-4de3-a71e-5daea6c942e7",
+        "snyk/asset/finding/v1": "4d819ebc-b7ba-4de3-a71e-5daea6c942e7"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "region": {
+        "startLine": 74,
+        "endLine": 74,
+        "startColumn": 19,
+        "endColumn": 25
+      },
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "reviewedLineSha256": "e6a874b46f16bbf8cdccb62261b1325e3a5d19707bd8ce46628dd412bc27ef60",
+      "disposition": "proposed-false-positive",
+      "rationale": "Expected normalized credential object for the preceding legacy Bybit fixture. Migration asserts exact equality, preserving values while converting apiSecret to secret.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "82e95abb-7def-48e9-9e03-f12ddb87396e",
+      "fingerprints": {
+        "0": "f0a9997e30401b11a21ca8c2f0a8996aa813c94e91b6d9063f29e73a35e2a086",
+        "1": "e7fd436d.3f481afb.4d0c4123.e052b9a9.79a7d027.fcf3002d.80eb7e1f.e0f43150.40c5fd92.59da5bcb.cf0dc3a8.e052b9a9.3f452f8c.9b2f3091.6bdd8e71.e0f43150",
+        "identity": "82e95abb-7def-48e9-9e03-f12ddb87396e",
+        "snyk/asset/finding/v1": "82e95abb-7def-48e9-9e03-f12ddb87396e"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "region": {
+        "startLine": 78,
+        "endLine": 78,
+        "startColumn": 55,
+        "endColumn": 61
+      },
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "reviewedLineSha256": "f0649f82d4b6b4b60056b616a49809d1cd292122ea94256549085b1b05b918c7",
+      "disposition": "proposed-false-positive",
+      "rationale": "Readable legacy Kraken fixture input in the same temporary version-1 migration fixture set.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "68016b09-7ac9-40c1-8640-8412bc77d91e",
+      "fingerprints": {
+        "0": "6c747f7d9eb2459130040a789d125f777600c0407c55a3a494b741b31c910006",
+        "1": "e7fd436d.ca37a272.f8f1d984.e052b9a9.79a7d027.fcf3002d.80eb7e1f.e0f43150.fc3065be.ca37a272.1b459778.e052b9a9.79a7d027.fcf3002d.a56a8b5b.e0f43150",
+        "snyk/asset/finding/v1": "68016b09-7ac9-40c1-8640-8412bc77d91e",
+        "identity": "68016b09-7ac9-40c1-8640-8412bc77d91e"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "region": {
+        "startLine": 79,
+        "endLine": 79,
+        "startColumn": 19,
+        "endColumn": 25
+      },
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "reviewedLineSha256": "6fa2237fdb27de2863cd3686cbaad5f7c73b1b7e4961e907e5f22968415cfa87",
+      "disposition": "proposed-false-positive",
+      "rationale": "Expected normalized object for the preceding legacy Kraken fixture; exact comparison verifies migration retains synthetic values.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "f1107dfb-8004-470e-ae80-5b3230735eea",
+      "fingerprints": {
+        "0": "77f6edc96e153a69520fb016657c06f908b4f27a6020210e8f639bbd7d3d416a",
+        "1": "e7fd436d.4773f344.607187b5.e052b9a9.79a7d027.fcf3002d.344645e1.e0f43150.59adff2f.59da5bcb.f815c231.d7919eeb.79a7d027.8020cfdf.aae58e7b.1d16e44c",
+        "identity": "f1107dfb-8004-470e-ae80-5b3230735eea",
+        "snyk/asset/finding/v1": "f1107dfb-8004-470e-ae80-5b3230735eea"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "region": {
+        "startLine": 108,
+        "endLine": 108,
+        "startColumn": 24,
+        "endColumn": 30
+      },
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "reviewedLineSha256": "51549fe5e359afb8bb60f58d04178e6887d5e3104382b575f609e06968a15ab8",
+      "disposition": "proposed-false-positive",
+      "rationale": "Readable candidate fixture key/secret staged in the temporary credential store, then promoted to an account. The following assertion verifies exchange identity.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "67212bb4-5c74-4ec1-a6f6-6404626cdc02",
+      "fingerprints": {
+        "0": "2de3c484b7c44f9fe51a7531f652f966616ec4a8064efa5846adb402c5b86d12",
+        "1": "e7fd436d.4773f344.607187b5.e052b9a9.79a7d027.1bad3d9d.80eb7e1f.e0f43150.59adff2f.59da5bcb.f815c231.d7919eeb.79a7d027.1bad3d9d.aae58e7b.e0f43150",
+        "identity": "67212bb4-5c74-4ec1-a6f6-6404626cdc02",
+        "snyk/asset/finding/v1": "67212bb4-5c74-4ec1-a6f6-6404626cdc02"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "region": {
+        "startLine": 115,
+        "endLine": 115,
+        "startColumn": 24,
+        "endColumn": 30
+      },
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "reviewedLineSha256": "3d1ef0c702cae70b3f79c24e1a60e80401f7600241451c8aafe75add2ac9fc78",
+      "disposition": "proposed-false-positive",
+      "rationale": "Readable discard fixture key/secret staged and immediately discarded. The subsequent status assertion proves candidate removal.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "68a1f53d-6f82-4221-baf2-f9f213aab9f2",
+      "fingerprints": {
+        "0": "68d0344b37f0203242daa61e860cb3f50751ee5cd4d352da60f3ff2a8fd955f8",
+        "1": "e7fd436d.4773f344.607187b5.e052b9a9.79a7d027.c94f2c31.80eb7e1f.e0f43150.4a429d10.59da5bcb.f815c231.d7919eeb.79a7d027.c94f2c31.aae58e7b.e0f43150",
+        "snyk/asset/finding/v1": "68a1f53d-6f82-4221-baf2-f9f213aab9f2",
+        "identity": "68a1f53d-6f82-4221-baf2-f9f213aab9f2"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_credentials.js",
+      "region": {
+        "startLine": 121,
+        "endLine": 121,
+        "startColumn": 24,
+        "endColumn": 30
+      },
+      "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "reviewedLineSha256": "1b87e107b24f97fec9d424afbcb11e016fc91e6e32e3bdddb303a4be1caf4aed",
+      "disposition": "proposed-false-positive",
+      "rationale": "Readable orphan fixture key/secret deliberately left staged before store reinitialization. The assertion proves abandoned candidate recovery removes it.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737",
+      "fingerprints": {
+        "0": "41185e34df97402d06d8df37c91ecbcb5c5fcec1380fd66b9e7022039f0331ee",
+        "1": "9685ad90.7860c269.296cb380.e052b9a9.79a7d027.0bef13c7.80eb7e1f.e0f43150.5d47fc0c.99355a7d.43f75789.d7919eeb.79a7d027.0bef13c7.faf26d9f.6e96b1ed",
+        "identity": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737",
+        "snyk/asset/finding/v1": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_evidence_repository.js",
+      "region": {
+        "startLine": 45,
+        "endLine": 45,
+        "startColumn": 75,
+        "endColumn": 81
+      },
+      "reviewedSourceSha256": "8e5c78f76dd36d0edaf5c6b53af64ecf564e443a7bbdb0ebc73760f6acbf0562",
+      "reviewedLineSha256": "4c2ea6a003b6cfb145324b108973dffc2f9be5596c3daade7d3b7d0fa5c3b082",
+      "disposition": "proposed-false-positive",
+      "rationale": "Descriptive remove-me fixture fields are included in unmapped remote fill evidence; assertions check deduplication and omission of sensitive keys from persisted evidence.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "9481f398-aa6b-4990-a250-a4ef4297442e",
+      "fingerprints": {
+        "0": "ec31a742cc50237a87ae7a5ca8a9e39e21ce2d3de74ed76375a8473abff5c862",
+        "1": "e7fd436d.4bc8f081.8cdc5866.e052b9a9.79a7d027.fcf3002d.62c87e89.e0f43150.e7fd436d.4bc8f081.8cdc5866.d7919eeb.79a7d027.f7edcf51.62c87e89.e0f43150",
+        "identity": "9481f398-aa6b-4990-a250-a4ef4297442e",
+        "snyk/asset/finding/v1": "9481f398-aa6b-4990-a250-a4ef4297442e"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_trading_failures.js",
+      "region": {
+        "startLine": 187,
+        "endLine": 187,
+        "startColumn": 34,
+        "endColumn": 40
+      },
+      "reviewedSourceSha256": "fded0a5b55f84d4707f74b83bd604052a87ce18d74866b905b23748c89ea18eb",
+      "reviewedLineSha256": "9e357c4b91aa9cd78f5be53ad8c8040a3626f69b0578ce6fa979c47cd5b5250b",
+      "disposition": "proposed-false-positive",
+      "rationale": "Uppercase do-not-save sentinel and Bearer fixture are returned by the injected paper adapter openState. Persisted unresolved evidence must omit the marker, authorization and apiKey.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0",
+      "fingerprints": {
+        "0": "0da2b9cfb111025a8af3378e43b1aa78a403499a4de2c7f6a6cdd36aa84b0aa1",
+        "1": "fc3065be.3f481afb.0249c237.e052b9a9.79a7d027.5f3dccdf.7603ada4.a60c1927.fc3065be.4773f344.607187b5.e052b9a9.79a7d027.5f3dccdf.7603ada4.3cee0341",
+        "identity": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0",
+        "snyk/asset/finding/v1": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_ui_change_reviews.js",
+      "region": {
+        "startLine": 82,
+        "endLine": 82,
+        "startColumn": 142,
+        "endColumn": 148
+      },
+      "reviewedSourceSha256": "15a2a7159a31891ed150801004a954d2375eb58ab8b066487883b53de72f4c8d",
+      "reviewedLineSha256": "f7fcad0d2b1f52b7365060021b601f6f340a88787b0a269a431635675f7da2d3",
+      "disposition": "proposed-false-positive",
+      "rationale": "Uppercase original-input sentinels populate proposal payload and preflight fixture metadata. Bounded MCP snapshot assertions require sensitive originals and payload/preflight bodies absent.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "75e4084d-676d-47b5-a497-7b0b5d3a6d2c",
+      "fingerprints": {
+        "0": "0da2b9cfb111025a8af3378e43b1aa78a403499a4de2c7f6a6cdd36aa84b0aa1",
+        "1": "fc3065be.3f481afb.0249c237.e052b9a9.79a7d027.fcf3002d.a56a8b5b.6767a0fb.fc3065be.4773f344.a61279c6.6d2be069.79a7d027.8020cfdf.79dc7538.6767a0fb",
+        "identity": "75e4084d-676d-47b5-a497-7b0b5d3a6d2c",
+        "snyk/asset/finding/v1": "75e4084d-676d-47b5-a497-7b0b5d3a6d2c"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_ui_change_reviews.js",
+      "region": {
+        "startLine": 82,
+        "endLine": 82,
+        "startColumn": 190,
+        "endColumn": 196
+      },
+      "reviewedSourceSha256": "15a2a7159a31891ed150801004a954d2375eb58ab8b066487883b53de72f4c8d",
+      "reviewedLineSha256": "f7fcad0d2b1f52b7365060021b601f6f340a88787b0a269a431635675f7da2d3",
+      "disposition": "proposed-false-positive",
+      "rationale": "Uppercase original-input sentinels populate proposal payload and preflight fixture metadata. Bounded MCP snapshot assertions require sensitive originals and payload/preflight bodies absent.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "86777f7f-c030-435e-9086-f29fcbffcb58",
+      "fingerprints": {
+        "0": "2f9118d9bb7e74229f0d88176b9cfbf4ae5840007e8088724f2458ca62aaaf97",
+        "1": "fc3065be.4773f344.607187b5.e052b9a9.79a7d027.fcf3002d.a56a8b5b.230dd7fb.fc3065be.4773f344.1b459778.e052b9a9.79a7d027.9aaae99c.a56a8b5b.e6930396",
+        "identity": "86777f7f-c030-435e-9086-f29fcbffcb58",
+        "snyk/asset/finding/v1": "86777f7f-c030-435e-9086-f29fcbffcb58"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_ui_next_reads.js",
+      "region": {
+        "startLine": 115,
+        "endLine": 115,
+        "startColumn": 249,
+        "endColumn": 255
+      },
+      "reviewedSourceSha256": "bb2d7b0f458e52f794f93670f103e9354db0ca621cea2a02f9f4252e36d51b75",
+      "reviewedLineSha256": "70f9b75f641c31b5f3166a291c3e3ad9dd95a48ffa2f77dd9eadae140eeb3e93",
+      "disposition": "proposed-false-positive",
+      "rationale": "Uppercase risk-details sentinel is written into temporary risk event rows with oversized text. Bounded attention-page assertions require sentinel absence and bounded output.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "35c81c03-fadd-4a16-a0e3-8e81108e18c4",
+      "fingerprints": {
+        "0": "c0ce7c7bbe590d5e635e8bb445781716e886f36c8027356b9db54d4db93211a7",
+        "1": "fc3065be.4773f344.16660365.e0151feb.79a7d027.fcf3002d.a56a8b5b.3cee0341.fc3065be.4773f344.16660365.e0151feb.79a7d027.0c17bcdd.a56a8b5b.e6930396",
+        "identity": "35c81c03-fadd-4a16-a0e3-8e81108e18c4",
+        "snyk/asset/finding/v1": "35c81c03-fadd-4a16-a0e3-8e81108e18c4"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_ui_next_reads.js",
+      "region": {
+        "startLine": 222,
+        "endLine": 222,
+        "startColumn": 350,
+        "endColumn": 356
+      },
+      "reviewedSourceSha256": "bb2d7b0f458e52f794f93670f103e9354db0ca621cea2a02f9f4252e36d51b75",
+      "reviewedLineSha256": "ad39da2ef3452395d398483ddceb82c5a651ef857e00d80d7d9dd945673ad23f",
+      "disposition": "proposed-false-positive",
+      "rationale": "Uppercase relation-payload sentinel inserted in a temporary database order request_json. Paginated relation responses are asserted not to expose it.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "d2853e9a-03af-4436-8200-1c45936744c5",
+      "fingerprints": {
+        "0": "4a8fad57c4fbcfdad7defbea56265789ef16b45d9be4ce51f9cb0fd75e08cc51",
+        "1": "fc3065be.4773f344.16660365.e0151feb.79a7d027.fcf3002d.a56a8b5b.3cee0341.fc3065be.4773f344.16660365.e0151feb.79a7d027.0c17bcdd.a56a8b5b.e6930396",
+        "identity": "d2853e9a-03af-4436-8200-1c45936744c5",
+        "snyk/asset/finding/v1": "d2853e9a-03af-4436-8200-1c45936744c5"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_ui_next_reads.js",
+      "region": {
+        "startLine": 223,
+        "endLine": 223,
+        "startColumn": 261,
+        "endColumn": 267
+      },
+      "reviewedSourceSha256": "bb2d7b0f458e52f794f93670f103e9354db0ca621cea2a02f9f4252e36d51b75",
+      "reviewedLineSha256": "b556bc4b7edf045a8a93f31a2446665057dd297444d967012c932d25828fc635",
+      "disposition": "proposed-false-positive",
+      "rationale": "Uppercase relation-payload sentinel inserted separately in temporary fill raw_json. The same bounded relation-page assertion covers this raw payload source.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee",
+      "fingerprints": {
+        "0": "8b640a4943a0d6b01296b3f15a2d359aacda5be6faa3169144f7f6598b59acc2",
+        "1": "fc3065be.4773f344.607187b5.e052b9a9.79a7d027.fcf3002d.a56a8b5b.3cee0341.fc3065be.8d6036c5.1b459778.e052b9a9.79a7d027.8020cfdf.a56a8b5b.07051301",
+        "identity": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee",
+        "snyk/asset/finding/v1": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_ui_next_reads.js",
+      "region": {
+        "startLine": 247,
+        "endLine": 247,
+        "startColumn": 256,
+        "endColumn": 262
+      },
+      "reviewedSourceSha256": "bb2d7b0f458e52f794f93670f103e9354db0ca621cea2a02f9f4252e36d51b75",
+      "reviewedLineSha256": "199f009e0befada1d56673b990453b99b93bdc66787131603ab889b8cba80329",
+      "disposition": "proposed-false-positive",
+      "rationale": "Uppercase do-not-leave-server sentinel in temporary pending-task configuration plus a raw-response sentinel. Outbox reads must omit both and config_json.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "d1163842-b198-4156-ab79-efd0cd8da57d",
+      "fingerprints": {
+        "0": "a8d85e1796f078b66ae6836dfc0a60b7a812a544ced11e2e8dad333a76c69130",
+        "1": "70641390.4773f344.5111edd4.e052b9a9.79a7d027.16814402.ac4cca8a.636f6787.70641390.4773f344.5111edd4.e052b9a9.79a7d027.16814402.ac4cca8a.636f6787",
+        "snyk/asset/finding/v1": "d1163842-b198-4156-ab79-efd0cd8da57d",
+        "identity": "d1163842-b198-4156-ab79-efd0cd8da57d"
+      },
+      "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+      "path": "tests/test_web_server.js",
+      "region": {
+        "startLine": 1270,
+        "endLine": 1270,
+        "startColumn": 28,
+        "endColumn": 44
+      },
+      "reviewedSourceSha256": "ef9890970077df018ea23f2d10b651566239e89ecbd5e9934603d4bbde8550be",
+      "reviewedLineSha256": "257d30d5740edbd8acc8d72ff9c9e9b7263a70256a0fcd318af01b74ebf1996b",
+      "disposition": "proposed-false-positive",
+      "rationale": "An intentionally synthetic, format-valid key is submitted to the loopback test server managed-secret endpoint. The response must expose configured status while omitting the key value; no OpenRouter authentication is attempted.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+      "fingerprints": {
+        "0": "adf669db1360ff57723322c3cfb807d8cd1241d3f743392b46e916216e2b7786",
+        "1": "688dedc0.4773f344.c9330245.c7263690.ef9f7d82.6d46fa17.0b4f0b50.f98102cd.6bb676bb.4773f344.c9330245.c559ebce.bd9ce4c6.6d46fa17.55818220.0449ed07",
+        "identity": "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+        "snyk/asset/finding/v1": "f2f8ea59-c823-49ff-8d81-50ae176c845a"
+      },
+      "ruleId": "javascript/Sqli/test",
+      "path": "tests/test_trading_adaptive_money_migration.js",
+      "region": {
+        "startLine": 45,
+        "endLine": 45,
+        "startColumn": 31,
+        "endColumn": 34
+      },
+      "reviewedSourceSha256": "4b6928acfb9563c755d3b0ec5f170734918273e5d88b887c03917d60121e0c54",
+      "reviewedLineSha256": "56090c1486d7152a2f61003096b15e82a8ed71676eaf88d1a9b85c34e87509a5",
+      "disposition": "proposed-false-positive",
+      "rationale": "The interpolated index name comes from SQLite PRAGMA index_list over hardcoded migration-test tables in a freshly constructed temporary database; the test reads schema metadata, not user-entered SQL.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+      "fingerprints": {
+        "0": "3cc1d4d3a86e95f7d033c4ab84e6b7208b78c492db3a6492a6d697c7298a7a45",
+        "1": "688dedc0.4773f344.c9330245.d7919eeb.ef9f7d82.8020cfdf.0b4f0b50.d087f7d7.988d3c10.4773f344.c9330245.c559ebce.c5cf438d.5fce695c.55818220.6723ddeb",
+        "identity": "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+        "snyk/asset/finding/v1": "db0f006d-1b47-43d9-8b35-86ae5ee08f58"
+      },
+      "ruleId": "javascript/Sqli/test",
+      "path": "tests/test_trading_adaptive_money_migration.js",
+      "region": {
+        "startLine": 51,
+        "endLine": 51,
+        "startColumn": 40,
+        "endColumn": 43
+      },
+      "reviewedSourceSha256": "4b6928acfb9563c755d3b0ec5f170734918273e5d88b887c03917d60121e0c54",
+      "reviewedLineSha256": "8e246189f4373aa3d26ff36037c4ff046933d44299f5143cc114debed27aad66",
+      "disposition": "proposed-false-positive",
+      "rationale": "Names come from the temporary test database sqlite_master and are JSON-quoted into a PRAGMA metadata query. No production query or external string reaches this test helper.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8",
+      "fingerprints": {
+        "0": "fac6466c4e4e0c184ab9ca20ae9b37e4196c2ff372ca8d198574533a0ac46da2",
+        "1": "bc441d81.4773f344.607187b5.7f82e2f6.ef9f7d82.756a1932.cd61fc56.8be9f57d.bc441d81.7d4b7307.f0575b1e.62086a14.79a7d027.98c7c24d.83265159.e8752bfb",
+        "identity": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8",
+        "snyk/asset/finding/v1": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8"
+      },
+      "ruleId": "javascript/XSS/test",
+      "path": "tests/test_backup_replication.js",
+      "region": {
+        "startLine": 55,
+        "endLine": 55,
+        "startColumn": 8,
+        "endColumn": 11
+      },
+      "reviewedSourceSha256": "be449c55b8674bbbd51d400ed8c9960459c0d2997686656fc2cb311272d60f94",
+      "reviewedLineSha256": "bd04216a96ffc5c56f5e359b9311d367be57d85bceaae70fece3bcc5b38a3a7b",
+      "disposition": "proposed-false-positive",
+      "rationale": "The loopback mock object server returns stored backup bytes with binary content type/hash metadata to the replication test client. It does not render attacker content in a browser document.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "0b078f4b-85ab-487e-8951-7a4f6ec03335",
+      "fingerprints": {
+        "0": "08652c50eba851b3bcf33ecfb9636592e08a44cbcb114caa30e003b36158599c",
+        "1": "556a3f69.4773f344.8b18f948.c559ebce.efe6faf0.8020cfdf.0c2d63db.6e19746a.556a3f69.b6e32c83.304e28be.ccdf159c.3f452f8c.67e8bccf.83265159.ef6bffc1",
+        "identity": "0b078f4b-85ab-487e-8951-7a4f6ec03335",
+        "snyk/asset/finding/v1": "0b078f4b-85ab-487e-8951-7a4f6ec03335"
+      },
+      "ruleId": "javascript/reDOS",
+      "path": "scripts/calculate_pr_risk.js",
+      "region": {
+        "startLine": 160,
+        "endLine": 160,
+        "startColumn": 30,
+        "endColumn": 37
+      },
+      "reviewedSourceSha256": "fad861630941f51339b205a1ec9d77e10abe3f37bee7f35b60360f011b7788e6",
+      "reviewedLineSha256": "85ca839de421f886fd602ea1e80864116a0afdce1c75312a407878b078cab22c",
+      "disposition": "proposed-false-positive",
+      "rationale": "factor.matches is an ordinary callback from the fixed FACTORS array, not a RegExp constructor or string-to-pattern API. User-controlled paths are inputs to fixed predicates/linear regex literals.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "d3f09f66-f994-4652-86bf-651b0262e797",
+      "fingerprints": {
+        "0": "270e6bf05d7534cd60087f28c90673ed9f8718d39173e732203d547e3fe33e43",
+        "1": "2d06e3d6.93dc32e3.607187b5.b62a4246.ef9f7d82.8020cfdf.29e74e17.3357ef26.6bb676bb.b6e32c83.c9330245.3fe041cc.8695fa9e.5fce695c.55818220.e6930396",
+        "snyk/asset/finding/v1": "d3f09f66-f994-4652-86bf-651b0262e797",
+        "identity": "d3f09f66-f994-4652-86bf-651b0262e797"
+      },
+      "ruleId": "javascript/reDOS",
+      "path": "src/incoming_work_repository.ts",
+      "region": {
+        "startLine": 147,
+        "endLine": 147,
+        "startColumn": 8,
+        "endColumn": 21
+      },
+      "reviewedSourceSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383",
+      "reviewedLineSha256": "a97bd8d6059bd4fec07c2b220aa3f5f3aef6f047e8525b0cea9e9274d13da133",
+      "disposition": "proposed-false-positive",
+      "rationale": "Database-sourced configured patterns flow through parseRegex length/syntax guards and safeRegexTest with a VM CPU timeout in filters.ts. The dynamic RegExp construction alone does not bypass that bounded execution path.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "f62614bc-117e-48c1-8267-e866c507367a",
+      "fingerprints": {
+        "0": "292703202186868bcaf23be59e718df6dfca7e84187752ac9a06df9af0c2a5cc",
+        "1": "6d41d7cd.41092c78.d29bd077.139c59a8.791ac95a.65be8dbb.b7c322fa.0990edd8.6d41d7cd.41092c78.d29bd077.139c59a8.791ac95a.65be8dbb.b7c322fa.0990edd8",
+        "identity": "f62614bc-117e-48c1-8267-e866c507367a",
+        "snyk/asset/finding/v1": "f62614bc-117e-48c1-8267-e866c507367a"
+      },
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_additional_exchange_profiles.py",
+      "region": {
+        "startLine": 166,
+        "endLine": 166,
+        "startColumn": 36,
+        "endColumn": 42
+      },
+      "reviewedSourceSha256": "220c7e82ce5d0aa9ee2a94c7a20252d69d7220bf29132f9af20438e0ffe92997",
+      "reviewedLineSha256": "5d62c0113b9dac58d74e6942c98b7c15f273e85a1f25a288d934cd9072d10122",
+      "disposition": "proposed-false-positive",
+      "rationale": "A descriptive unexpected secret field is inserted into a certification-document mutation; the invalid-document test requires rejection.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "d724e3e9-b7ca-4eec-ac14-037f58090f2a",
+      "fingerprints": {
+        "0": "536cf9beacef877370ece2d9d1a0eef105b3275706bc7ce51a8f2d80c8ad210c",
+        "1": "16691f08.962feb11.79e62dc9.9a7f5d61.b05938da.3df0c333.f6f189a3.8e816aed.16691f08.962feb11.79e62dc9.9a7f5d61.b05938da.3df0c333.f6f189a3.8e816aed",
+        "identity": "d724e3e9-b7ca-4eec-ac14-037f58090f2a",
+        "snyk/asset/finding/v1": "d724e3e9-b7ca-4eec-ac14-037f58090f2a"
+      },
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_candidate_group_b_boundaries.py",
+      "region": {
+        "startLine": 76,
+        "endLine": 76,
+        "startColumn": 9,
+        "endColumn": 41
+      },
+      "reviewedSourceSha256": "bc387d07c1545bb3faccecf42b3272fc7040ed94225f2f8b3d559890ada4e41d",
+      "reviewedLineSha256": "dccecb4c192009fb39ea4bd40704d15afd13b7d20e09c4a6a3dc964036c4c8d5",
+      "disposition": "proposed-false-positive",
+      "rationale": "Explicit fixture secret in a constructed SDK test client. Request transport is intercepted to test provider boundaries and signing without provider credentials.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14",
+      "fingerprints": {
+        "0": "f3d186928eb91bffe4d2f1bdb862759b97768db1baf1fb6ec6b772c3f2e0565c",
+        "1": "16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.186544da.16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.186544da",
+        "snyk/asset/finding/v1": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14",
+        "identity": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14"
+      },
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_kraken_bounded_matrix.py",
+      "region": {
+        "startLine": 84,
+        "endLine": 84,
+        "startColumn": 69,
+        "endColumn": 101
+      },
+      "reviewedSourceSha256": "e2472c2781f767e7b03a5591bdd5b761296c352f926a4f4a50f45e6d33d4d9b3",
+      "reviewedLineSha256": "ea44873f5e2da27887c5cec8160a7a4c818f78f3404f897e816bb027b79e4815",
+      "disposition": "proposed-false-positive",
+      "rationale": "Fixed synthetic API-key/base64 signing input initializes the Kraken SDK fixture. The sdk helper installs fixture responses/interception to exercise the reviewed request matrix, not live authentication.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "367a2dd3-ef73-4e71-8066-f992a958af8a",
+      "fingerprints": {
+        "0": "ac2630c5fc7f6ab65f4007dffc61cdd1ca83c4571bc64b6db5ae59b1e4e2773a",
+        "1": "16691f08.4e7c9b67.ea818a45.f198b706.b05938da.ba14daf2.081ac3f4.186544da.16691f08.4e7c9b67.ea818a45.f198b706.b05938da.ba14daf2.081ac3f4.186544da",
+        "identity": "367a2dd3-ef73-4e71-8066-f992a958af8a",
+        "snyk/asset/finding/v1": "367a2dd3-ef73-4e71-8066-f992a958af8a"
+      },
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_kraken_response_capture.py",
+      "region": {
+        "startLine": 77,
+        "endLine": 77,
+        "startColumn": 9,
+        "endColumn": 41
+      },
+      "reviewedSourceSha256": "57b8ed4681d9d9414eb7e1dfecdeea355decdc9301bc608faa0772307632ec8b",
+      "reviewedLineSha256": "e618607258bd6c216f3761fcabf83d46d1edab05c39fa5d8164045da6731c6f6",
+      "disposition": "proposed-false-positive",
+      "rationale": "Fixture API key and fixed signing secret are passed to a LocalSession-backed SDK client. LocalSession supplies deterministic responses for response-capture tests.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "24d61af9-11c9-4687-9dff-3e2b1b30670d",
+      "fingerprints": {
+        "0": "7fd8f8d7698bc96ffceddb798848600ef59815c43420ccabb6a2291d4cc2765f",
+        "1": "16691f08.4e7c9b67.837fa761.87161e9e.5c9212ce.6d114566.1c46bb3a.07199113.16691f08.4e7c9b67.837fa761.87161e9e.5c9212ce.6d114566.1c46bb3a.07199113",
+        "identity": "24d61af9-11c9-4687-9dff-3e2b1b30670d",
+        "snyk/asset/finding/v1": "24d61af9-11c9-4687-9dff-3e2b1b30670d"
+      },
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_kraken_response_capture_failures.py",
+      "region": {
+        "startLine": 306,
+        "endLine": 306,
+        "startColumn": 33,
+        "endColumn": 65
+      },
+      "reviewedSourceSha256": "01e0e80f8a6aad25cd42e81834122a000131250772f0d899a1208a61d4dad06f",
+      "reviewedLineSha256": "d87a67cc3ac76ac79fb0053f3e65f95ff75cdeb741ba0a78545caf78df82300f",
+      "disposition": "proposed-false-positive",
+      "rationale": "Fixture API-key marker is deliberately injected into an invalid headers shape before calling the capture/signing test. It checks credential-header shape failures.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "5da511d6-c50f-42ce-a617-e5650025b7c2",
+      "fingerprints": {
+        "0": "de09644747ec53d1ee4ee1f1a1f55442b295990f557b6d43852617f608308c1e",
+        "1": "16691f08.ce8bfe09.837fa761.87161e9e.5c9212ce.6d114566.1c46bb3a.3691e360.16691f08.ce8bfe09.837fa761.87161e9e.5c9212ce.6d114566.1c46bb3a.3691e360",
+        "snyk/asset/finding/v1": "5da511d6-c50f-42ce-a617-e5650025b7c2",
+        "identity": "5da511d6-c50f-42ce-a617-e5650025b7c2"
+      },
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_kraken_response_capture_failures.py",
+      "region": {
+        "startLine": 307,
+        "endLine": 307,
+        "startColumn": 33,
+        "endColumn": 65
+      },
+      "reviewedSourceSha256": "01e0e80f8a6aad25cd42e81834122a000131250772f0d899a1208a61d4dad06f",
+      "reviewedLineSha256": "5cdb07c99dc30d13bc113a512186e6fceb30e5ab96d26c579e71815da918b5f0",
+      "disposition": "proposed-false-positive",
+      "rationale": "The adjacent independent invalid-header fixture uses the same synthetic API-key marker with a different content/header value to exercise rejection.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "703c021a-6966-44a3-a93c-1405ac1a891b",
+      "fingerprints": {
+        "0": "3be4dd0318a1587ab1087b514068b757d1cc497815eb3131bb45c8bc16128caf",
+        "1": "16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.8e816aed.16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.8e816aed",
+        "identity": "703c021a-6966-44a3-a93c-1405ac1a891b",
+        "snyk/asset/finding/v1": "703c021a-6966-44a3-a93c-1405ac1a891b"
+      },
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_kucoin_contracts.py",
+      "region": {
+        "startLine": 203,
+        "endLine": 203,
+        "startColumn": 21,
+        "endColumn": 53
+      },
+      "reviewedSourceSha256": "0495778ef607fbed1b9e90c82d0b6befd90d978112d2d1cf07d144782fcac2cc",
+      "reviewedLineSha256": "a900b42cd8bd2d8124398571afcc969ffcdce780b5d532a1d0575d51d0d7ec2b",
+      "disposition": "proposed-false-positive",
+      "rationale": "Explicit fixture secret and passphrase initialize a KuCoin SDK test helper; calls are captured by local request stubs to validate provider contracts and signing.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "285f0b22-9dea-413f-b89e-1d183d4f1f84",
+      "fingerprints": {
+        "0": "8a636495e6571aca11096d8a8b21615d4032fe042f3c4377b98001f0309c8869",
+        "1": "e11987fc.b5a115c3.0966063a.4b9d3a59.9d74eded.3df0c333.dd2eed93.186544da.e11987fc.b5a115c3.0966063a.4b9d3a59.9d74eded.3df0c333.dd2eed93.186544da",
+        "identity": "285f0b22-9dea-413f-b89e-1d183d4f1f84",
+        "snyk/asset/finding/v1": "285f0b22-9dea-413f-b89e-1d183d4f1f84"
+      },
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_kucoin_provider_control.py",
+      "region": {
+        "startLine": 27,
+        "endLine": 27,
+        "startColumn": 17,
+        "endColumn": 51
+      },
+      "reviewedSourceSha256": "d7b2c02bf8bff382dd316105c4d366366e7e9fa88c9564205cfdd672edf97db8",
+      "reviewedLineSha256": "48a351e34828d2fc84863ff652db71c7ae8b14baba98eea1c7d9f45648dc4d16",
+      "disposition": "proposed-false-positive",
+      "rationale": "Descriptive non-credential sentinel is embedded in a fake provider account response to test removal of API-key fields from control evidence.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34",
+      "fingerprints": {
+        "0": "91ccc51ff274818520ef2c1becc134aed1b5a55dc64b1710fb86e901b23cb633",
+        "1": "16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.8e816aed.16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.8e816aed",
+        "identity": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34",
+        "snyk/asset/finding/v1": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34"
+      },
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_kucoin_provider_sdk_boundaries.py",
+      "region": {
+        "startLine": 80,
+        "endLine": 80,
+        "startColumn": 13,
+        "endColumn": 45
+      },
+      "reviewedSourceSha256": "b78e1fe1567c53051764eeb388167eda00ee395e0afadb176a4cbdafd52496cb",
+      "reviewedLineSha256": "8b516d3dd9ff1750e3b3868884d192c66f315ea6d11afb06375f7e82a06f4e00",
+      "disposition": "proposed-false-positive",
+      "rationale": "Explicit fixture secret in a KuCoin SDK instance whose request boundaries are intercepted by the test; required for exercising authentication construction without real accounts.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "2e366098-cb83-4d7f-961a-1fea7a162a44",
+      "fingerprints": {
+        "0": "d646a927458ac954b1ab134a7a933b13ac186c3fba6e1a3c64ba0e9b71a7310c",
+        "1": "49052ff0.bfd5ee6d.ea818a45.841b96d6.ed07ea9a.ba14daf2.081ac3f4.186544da.49052ff0.bfd5ee6d.ea818a45.841b96d6.ed07ea9a.ba14daf2.081ac3f4.186544da",
+        "snyk/asset/finding/v1": "2e366098-cb83-4d7f-961a-1fea7a162a44",
+        "identity": "2e366098-cb83-4d7f-961a-1fea7a162a44"
+      },
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_leverage_tier_evidence.py",
+      "region": {
+        "startLine": 127,
+        "endLine": 127,
+        "startColumn": 74,
+        "endColumn": 114
+      },
+      "reviewedSourceSha256": "bf9ef697f82ca5c79049e444a9aea1e1caa74f765e92aeacf5d7b3ba319dc8c9",
+      "reviewedLineSha256": "b45a028987fa66dfe41b405404190667c7d46f61100c7ebbeba3c083e20e28bf",
+      "disposition": "proposed-false-positive",
+      "rationale": "Fixture API key and fixed synthetic signing secret exercise the real Kraken SDK signing path, while rest.fetch is immediately replaced by AsyncMock.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "62138ff6-d19f-4588-80f1-62274219af01",
+      "fingerprints": {
+        "0": "4fbc11c5a036d41b1d00c7a4692abbf470e8611ddd9b71096d859c82f5d96ed4",
+        "1": "be5f964c.a755accd.baa94159.139c59a8.36c89bb6.66ffb861.081ac3f4.0990edd8.be5f964c.a755accd.baa94159.139c59a8.36c89bb6.66ffb861.081ac3f4.0990edd8",
+        "snyk/asset/finding/v1": "62138ff6-d19f-4588-80f1-62274219af01",
+        "identity": "62138ff6-d19f-4588-80f1-62274219af01"
+      },
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_provider_acceptance.py",
+      "region": {
+        "startLine": 44,
+        "endLine": 44,
+        "startColumn": 28,
+        "endColumn": 65
+      },
+      "reviewedSourceSha256": "43132b9ca992e14994fb88017ee779a328ec30a45edb0465e55ca598fb46e525",
+      "reviewedLineSha256": "ab65a828da90130098ae2de90ecda891a05277d83fb06c51781b438473dd90ee",
+      "disposition": "proposed-false-positive",
+      "rationale": "Synthetic environment API-key sentinel is used in a dry-run test that patches both network and credential access to raise AssertionError if touched.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "661f9264-b2a0-4f46-8f75-c629b1c80f36",
+      "fingerprints": {
+        "0": "65dfdbdfcc1a9c6bba80adbfc89f5304ff75ec58dba22d5117dc22cb564ef5ba",
+        "1": "5ab40f6d.962feb11.79e62dc9.9a7f5d61.32acb5bc.ba14daf2.cbfa2b68.293ad86a.5ab40f6d.962feb11.79e62dc9.9a7f5d61.32acb5bc.ba14daf2.cbfa2b68.293ad86a",
+        "identity": "661f9264-b2a0-4f46-8f75-c629b1c80f36",
+        "snyk/asset/finding/v1": "661f9264-b2a0-4f46-8f75-c629b1c80f36"
+      },
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_recovery_schedule.py",
+      "region": {
+        "startLine": 39,
+        "endLine": 39,
+        "startColumn": 85,
+        "endColumn": 117
+      },
+      "reviewedSourceSha256": "0d1d9400e9b9f4a2634fb4a66eceeafe62452ea35e7bf7476c32a571f1a6412d",
+      "reviewedLineSha256": "f052400a8d518f1bf1da9c4d07ef6930e6a0ffbc32ab83a9ebbfc94ed505b701",
+      "disposition": "proposed-false-positive",
+      "rationale": "Explicit fake key/secret initialize the Bybit SDK in asyncSetUp for the fixture recovery schedule; provider responses are supplied by test interception.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "40ffaf95-f7bb-43b9-a3d7-2e1edf90464c",
+      "fingerprints": {
+        "0": "efb5b32d2880abf6baa682542c34e6483d312edbc569b08fbef01d4353cf13e6",
+        "1": "16691f08.0ba80163.6dc0e326.98569367.2872b3c1.3d9c5264.b69c6615.6aac30d8.16691f08.0ba80163.6dc0e326.98569367.2872b3c1.3d9c5264.b69c6615.6aac30d8",
+        "identity": "40ffaf95-f7bb-43b9-a3d7-2e1edf90464c",
+        "snyk/asset/finding/v1": "40ffaf95-f7bb-43b9-a3d7-2e1edf90464c"
+      },
+      "ruleId": "python/HardcodedNonCryptoSecret/test",
+      "path": "exchange_executor/tests/test_provider_order_identity.py",
+      "region": {
+        "startLine": 95,
+        "endLine": 95,
+        "startColumn": 22,
+        "endColumn": 33
+      },
+      "reviewedSourceSha256": "9870faead152b11956f55e87a2433ffffd8f8c30fa660ddacad274f14a6ca739",
+      "reviewedLineSha256": "fedd2a7ddc31dc4b661597e04f2335b1c8fee7630f472b437e47913ee7f8369a",
+      "disposition": "proposed-false-positive",
+      "rationale": "Fixed synthetic API key/signing secret are assigned to a test SDK instance; the following intercepted fetch captures request bodies for identity assertions.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "70cd754b-0fc7-4cc2-b484-1e2c90036277",
+      "fingerprints": {
+        "0": "7145e53d595adf03c3703f6f29531a86a83d9e3bfdaa9db0dbe7f737bf2ea52e",
+        "1": "16691f08.962feb11.79e62dc9.9a7f5d61.84b4d0e6.3df0c333.f6f189a3.186544da.16691f08.962feb11.5a1308ce.9a7f5d61.84b4d0e6.ba14daf2.f6f189a3.8e816aed",
+        "identity": "70cd754b-0fc7-4cc2-b484-1e2c90036277",
+        "snyk/asset/finding/v1": "70cd754b-0fc7-4cc2-b484-1e2c90036277"
+      },
+      "ruleId": "python/NoHardcodedPasswords/test",
+      "path": "exchange_executor/tests/test_candidate_group_b_boundaries.py",
+      "region": {
+        "startLine": 77,
+        "endLine": 77,
+        "startColumn": 9,
+        "endColumn": 47
+      },
+      "reviewedSourceSha256": "bc387d07c1545bb3faccecf42b3272fc7040ed94225f2f8b3d559890ada4e41d",
+      "reviewedLineSha256": "e054118bbf6c91f49116673b13d6d4f317fff31fc53a4a10d2b49bba46cd8a97",
+      "disposition": "proposed-false-positive",
+      "rationale": "Explicit fixture passphrase in the same SDK-boundary helper, needed to exercise providers requiring password/passphrase signing fields under intercepted transport.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "34a2fb72-f24d-4687-b513-e791a4ab2632",
+      "fingerprints": {
+        "0": "6eabd18aa59a0e989d1b115fd4e6f08871e7f21176875e180e47d40bfaf60cdb",
+        "1": "16691f08.962feb11.ea818a45.9a7f5d61.84b4d0e6.ba14daf2.cbfa2b68.186544da.16691f08.962feb11.ea818a45.9a7f5d61.84b4d0e6.ba14daf2.cbfa2b68.8e816aed",
+        "identity": "34a2fb72-f24d-4687-b513-e791a4ab2632",
+        "snyk/asset/finding/v1": "34a2fb72-f24d-4687-b513-e791a4ab2632"
+      },
+      "ruleId": "python/NoHardcodedPasswords/test",
+      "path": "exchange_executor/tests/test_kucoin_contracts.py",
+      "region": {
+        "startLine": 203,
+        "endLine": 203,
+        "startColumn": 55,
+        "endColumn": 93
+      },
+      "reviewedSourceSha256": "0495778ef607fbed1b9e90c82d0b6befd90d978112d2d1cf07d144782fcac2cc",
+      "reviewedLineSha256": "a900b42cd8bd2d8124398571afcc969ffcdce780b5d532a1d0575d51d0d7ec2b",
+      "disposition": "proposed-false-positive",
+      "rationale": "Explicit fixture secret and passphrase initialize a KuCoin SDK test helper; calls are captured by local request stubs to validate provider contracts and signing.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "3823fd00-85ed-47e6-b085-8b3b2655febc",
+      "fingerprints": {
+        "0": "30a5b979a171b3b3126c0b424bb3b6e27de8092581ba98e3686734da7b253e1b",
+        "1": "16691f08.962feb11.ea818a45.9a7f5d61.84b4d0e6.ba14daf2.cbfa2b68.186544da.16691f08.962feb11.ea818a45.9a7f5d61.f6d5e68a.ba14daf2.cbfa2b68.8e816aed",
+        "identity": "3823fd00-85ed-47e6-b085-8b3b2655febc",
+        "snyk/asset/finding/v1": "3823fd00-85ed-47e6-b085-8b3b2655febc"
+      },
+      "ruleId": "python/NoHardcodedPasswords/test",
+      "path": "exchange_executor/tests/test_kucoin_provider_sdk_boundaries.py",
+      "region": {
+        "startLine": 81,
+        "endLine": 81,
+        "startColumn": 13,
+        "endColumn": 51
+      },
+      "reviewedSourceSha256": "b78e1fe1567c53051764eeb388167eda00ee395e0afadb176a4cbdafd52496cb",
+      "reviewedLineSha256": "3d44bb6254fc1457790d1cd97b3f1350bff72773a226ed5a47dc75e29e56c825",
+      "disposition": "proposed-false-positive",
+      "rationale": "Explicit fixture passphrase in the same intercepted SDK test helper, retained to exercise the provider passphrase requirement.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "15b62184-5d10-4c9f-8c45-36cebd259223",
+      "fingerprints": {
+        "0": "877a11e66f716950501a287a3a7a1fed6de6bd3acc81bc7e7493d47af34ba8f1",
+        "1": "aac70831.4773f344.8b18f948.c559ebce.ac82cb7b.6f0d36d4.81cad6bb.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.81cad6bb.89d75565",
+        "identity": "15b62184-5d10-4c9f-8c45-36cebd259223",
+        "snyk/asset/finding/v1": "15b62184-5d10-4c9f-8c45-36cebd259223"
+      },
+      "ruleId": "javascript/HttpToHttps",
+      "path": "src/alert_relay.ts",
+      "region": {
+        "startLine": 170,
+        "endLine": 170,
+        "startColumn": 23,
+        "endColumn": 35
+      },
+      "reviewedSourceSha256": "b2ff94a4e793a1921bcaab704b4819293e57525b0605a13eaf9686a63ba64477",
+      "reviewedLineSha256": "8f7d449b7e76b7b9eab358d3112663198c50bd977f4c9f168638adbcf17a4af6",
+      "disposition": "reviewed-internal-http-architecture",
+      "rationale": "The prior CLI wildcard default is fixed to loopback in 886d2b3; an actual-listener test verifies default127.0.0.1 and explicit0.0.0.0. Compose explicitly chooses the container bind and does not publish relay ports. Alertmanager consumes this authenticated internal service. No external TLS listener is replaced. This disposition is based on reviewed source/configuration and does not assert the state of any live deployment. See snyk-http-and-diagnostics-boundaries.md.",
+      "platformStatusChanged": false,
+      "resolutionCommits": [
+        "886d2b3"
+      ],
+      "resolutionSourceSha256": {
+        "src/alert_relay.ts": "f312f3232cd9e3d95609a4e5bdea623403de46eaeed4acabeb72f41bad403cb0",
+        "docker-compose.yml": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642",
+        "docker-compose.monitoring.yml": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be"
+      }
+    },
+    {
+      "findingId": "d75bc03c-19a7-4475-809c-525e9240e836",
+      "fingerprints": {
+        "0": "554885c1201f76c0c70214e16542a13d5f58785206ca5581fa5db8298f1873d1",
+        "1": "aac70831.4773f344.607187b5.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.cd61fc56.89d75565",
+        "snyk/asset/finding/v1": "d75bc03c-19a7-4475-809c-525e9240e836",
+        "identity": "d75bc03c-19a7-4475-809c-525e9240e836"
+      },
+      "ruleId": "javascript/HttpToHttps",
+      "path": "src/metrics.ts",
+      "region": {
+        "startLine": 227,
+        "endLine": 227,
+        "startColumn": 17,
+        "endColumn": 29
+      },
+      "reviewedSourceSha256": "e340e5305f86adf3db3ce54f3c359576e53252c1554641d93220313ea753c1df",
+      "reviewedLineSha256": "a1b7b7b933f0246f9bcb980db5778c9e7b9a2da777718cc30989a3364a20fa6c",
+      "disposition": "reviewed-internal-http-architecture",
+      "rationale": "Source default127.0.0.1 and Compose host mapping127.0.0.1 confine the HTTP listener to the local/service boundary. Prometheus and probes intentionally consume HTTP inside that boundary; arbitrary operator overrides are deployment changes, not attacker-controlled request flow. This disposition is based on reviewed source/configuration and does not assert the state of any live deployment. See snyk-http-and-diagnostics-boundaries.md.",
+      "platformStatusChanged": false,
+      "resolutionCommits": [
+        "886d2b3"
+      ],
+      "resolutionSourceSha256": {
+        "src/metrics.ts": "e340e5305f86adf3db3ce54f3c359576e53252c1554641d93220313ea753c1df",
+        "docker-compose.yml": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642",
+        "docker-compose.monitoring.yml": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be"
+      }
+    },
+    {
+      "findingId": "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+      "fingerprints": {
+        "0": "e260bc9d3794c3acf377cd4602ac53482cb451a607f8f2658682d7df5a26cc7c",
+        "1": "aac70831.4773f344.8b18f948.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.cd61fc56.89d75565",
+        "snyk/asset/finding/v1": "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+        "identity": "75310963-3f26-40a8-b6da-3e8ab4d6c57b"
+      },
+      "ruleId": "javascript/HttpToHttps",
+      "path": "src/telegram_viewer/health_server.ts",
+      "region": {
+        "startLine": 24,
+        "endLine": 24,
+        "startColumn": 23,
+        "endColumn": 35
+      },
+      "reviewedSourceSha256": "27ec75fb34b57794f8ca6d3da66db7b3d0203be79b2f0bddee97af04d4cf2f64",
+      "reviewedLineSha256": "287817fede6e127bf4eaa86ccd399cf89ca768d80bcb710976cc444c36ba3b02",
+      "disposition": "reviewed-internal-http-architecture",
+      "rationale": "The prior wildcard default is fixed to127.0.0.1 in886d2b3 and verified using the actual listener. Compose explicitly sets the container host, exposes8081 only internally and publishes no viewer port. Detailed status remains token-protected; readiness/liveness responses are booleans. This disposition is based on reviewed source/configuration and does not assert the state of any live deployment. See snyk-http-and-diagnostics-boundaries.md.",
+      "platformStatusChanged": false,
+      "resolutionCommits": [
+        "886d2b3"
+      ],
+      "resolutionSourceSha256": {
+        "src/telegram_viewer/health_server.ts": "fe1f5be04de6cf9b37a6a32f67d8d4092bed0da39b6845880eb1d029b20a08a4",
+        "docker-compose.yml": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642",
+        "docker-compose.monitoring.yml": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be"
+      }
+    },
+    {
+      "findingId": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+      "fingerprints": {
+        "0": "88ed3ca3efe9da980e882ab288fdc27ca07fd7018e26cf9caa93d33d2819fb6c",
+        "1": "aac70831.4773f344.607187b5.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.cd61fc56.89d75565",
+        "identity": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+        "snyk/asset/finding/v1": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59"
+      },
+      "ruleId": "javascript/HttpToHttps",
+      "path": "src/web_server.ts",
+      "region": {
+        "startLine": 3187,
+        "endLine": 3187,
+        "startColumn": 17,
+        "endColumn": 29
+      },
+      "reviewedSourceSha256": "87b0677894440971205d1d1d6673f5454392c48edaec8bfd1f4ea04e5f2fb77b",
+      "reviewedLineSha256": "e22a7070ea1320007b0648588ec9c16b2646b74b262c48c7412f3b343f2441a5",
+      "disposition": "reviewed-internal-http-architecture",
+      "rationale": "Source default127.0.0.1 and Compose host mapping127.0.0.1 constrain the dashboard listener. The documented Tailscale Serve proxy owns remote TLS; request URL data does not select transport or bind address. Converting this internal listener to HTTPS would break its designed proxy/client contract. This disposition is based on reviewed source/configuration and does not assert the state of any live deployment. See snyk-http-and-diagnostics-boundaries.md.",
+      "platformStatusChanged": false,
+      "resolutionCommits": [
+        "886d2b3"
+      ],
+      "resolutionSourceSha256": {
+        "src/web_server.ts": "87b0677894440971205d1d1d6673f5454392c48edaec8bfd1f4ea04e5f2fb77b",
+        "docker-compose.yml": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642",
+        "docker-compose.monitoring.yml": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be"
+      }
+    },
+    {
+      "findingId": "bd4b655d-7094-41a4-8532-ca8faca295a0",
+      "fingerprints": {
+        "0": "8607fb30f99ba8e90a85e26f026945c470d95a96245c2a49092330ede5e8fe24",
+        "1": "aac70831.4773f344.8ea8e497.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.1cce3d77.e350f12c.4773f344.8ea8e497.c559ebce.e2d34e38.5fce695c.66b97542.1cce3d77",
+        "identity": "bd4b655d-7094-41a4-8532-ca8faca295a0",
+        "snyk/asset/finding/v1": "bd4b655d-7094-41a4-8532-ca8faca295a0"
+      },
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_alert_relay.js",
+      "region": {
+        "startLine": 14,
+        "endLine": 14,
+        "startColumn": 23,
+        "endColumn": 35
+      },
+      "reviewedSourceSha256": "777982fa9e3120a9a9a0b6292e52e835b0e6106d5cc219e602de187c85ef9afe",
+      "reviewedLineSha256": "53851c009041a621ab5a62f20857055092cd094f00fbe92aea993bc1bef130e1",
+      "disposition": "proposed-false-positive",
+      "rationale": "HTTP receiver is explicitly bound to 127.0.0.1 on an ephemeral port and uses synthetic tokens to test relay delivery and errors.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "0e0cc32d-e62a-494f-b96a-0871ca8206b0",
+      "fingerprints": {
+        "0": "82c9326ce084a715deb1ac1a54d2ce157bd70f983b3db67b85fbf7b1e680ebcd",
+        "1": "aac70831.4773f344.8b18f948.c559ebce.a3d24608.6f0d36d4.cd61fc56.3cee0341.e350f12c.4773f344.72aa1700.c559ebce.a3d24608.5fce695c.66b97542.89d75565",
+        "identity": "0e0cc32d-e62a-494f-b96a-0871ca8206b0",
+        "snyk/asset/finding/v1": "0e0cc32d-e62a-494f-b96a-0871ca8206b0"
+      },
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_audit_trail.js",
+      "region": {
+        "startLine": 13,
+        "endLine": 13,
+        "startColumn": 22,
+        "endColumn": 34
+      },
+      "reviewedSourceSha256": "fb77c4b6d970569948d40f84761c26b923f367232bd8b197e269637e37cec555",
+      "reviewedLineSha256": "34b82c2df94b331cc1735e80a4a04b37a151841c92c77b6be0f81498eb7dac3f",
+      "disposition": "proposed-false-positive",
+      "rationale": "HTTP audit gateway is explicitly bound to 127.0.0.1 on an ephemeral port; it captures fixture request bodies to validate audit behavior.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb",
+      "fingerprints": {
+        "0": "e27b72ba45ff527c389a555e6b42d836cc01bb8e5a362f4186d291ddbe283503",
+        "1": "aac70831.4773f344.8b18f948.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.4773f344.72aa1700.c559ebce.e2d34e38.5fce695c.66b97542.89d75565",
+        "identity": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb",
+        "snyk/asset/finding/v1": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb"
+      },
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_backup_replication.js",
+      "region": {
+        "startLine": 28,
+        "endLine": 28,
+        "startColumn": 21,
+        "endColumn": 33
+      },
+      "reviewedSourceSha256": "be449c55b8674bbbd51d400ed8c9960459c0d2997686656fc2cb311272d60f94",
+      "reviewedLineSha256": "d41c7404c7a3ebea88e9268f1bd37523496bbb9f0dfcec849f50c8f869472725",
+      "disposition": "proposed-false-positive",
+      "rationale": "Authenticated mock object server is bound to 127.0.0.1 on an ephemeral port for deterministic upload/download/retention tests.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "dbeab5ab-3bb3-4484-b2a3-3d56187dd885",
+      "fingerprints": {
+        "0": "fa18696708bff379c49183f529122e98635a83f5ba43a8490bad0c3fa96f898d",
+        "1": "aac70831.4773f344.8b18f948.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.4773f344.72aa1700.c559ebce.e2d34e38.5fce695c.66b97542.89d75565",
+        "snyk/asset/finding/v1": "dbeab5ab-3bb3-4484-b2a3-3d56187dd885",
+        "identity": "dbeab5ab-3bb3-4484-b2a3-3d56187dd885"
+      },
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_ccxt_exchange.js",
+      "region": {
+        "startLine": 95,
+        "endLine": 95,
+        "startColumn": 21,
+        "endColumn": 33
+      },
+      "reviewedSourceSha256": "800871ce27365cadc5e95242b096fba75815e35e9401d9d970ab2b4ce71861b1",
+      "reviewedLineSha256": "b5fbf28e9b5d556eacb87cbc91e71088fdecf74ee5e5308395e58b29dd1246c6",
+      "disposition": "proposed-false-positive",
+      "rationale": "The mock executor HTTP server listens on 127.0.0.1 with a transient port and substitutes the executor URL only inside the test.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "a42d6e8a-142f-4310-951e-4781a06c3fa5",
+      "fingerprints": {
+        "0": "996c2a6c1f5158bcad65ce54d83797a49a83a70ab5ce00e88a4943db6cf40029",
+        "1": "aac70831.4773f344.8b18f948.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.66b97542.89d75565",
+        "snyk/asset/finding/v1": "a42d6e8a-142f-4310-951e-4781a06c3fa5",
+        "identity": "a42d6e8a-142f-4310-951e-4781a06c3fa5"
+      },
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_trading_recovery_schedule_transport.js",
+      "region": {
+        "startLine": 81,
+        "endLine": 81,
+        "startColumn": 21,
+        "endColumn": 33
+      },
+      "reviewedSourceSha256": "db3f473ca3aafeacd0bf0ac45a36110505352b2099f58cc1f5b3fbe5490b1f47",
+      "reviewedLineSha256": "b5fbf28e9b5d556eacb87cbc91e71088fdecf74ee5e5308395e58b29dd1246c6",
+      "disposition": "proposed-false-positive",
+      "rationale": "The fixture executor server is explicitly bound to 127.0.0.1 on an ephemeral port; request bodies drive deterministic schedule-transport tests.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "c18a03f4-6ea4-45f2-8cc7-2f2e45325bbf",
+      "fingerprints": {
+        "0": "2852938d7d3b701fecbb80ff014f129a6b176f69591b48ba2fe13a4909f66d53",
+        "1": "ae77ea27.b6e32c83.8b18f948.d7919eeb.9997f84d.4bb87e98.ea4b1c47.89d75565.e350f12c.b6e32c83.1f69c5ff.c2b0bb4c.e2d34e38.4bb87e98.66b97542.89d75565",
+        "identity": "c18a03f4-6ea4-45f2-8cc7-2f2e45325bbf",
+        "snyk/asset/finding/v1": "c18a03f4-6ea4-45f2-8cc7-2f2e45325bbf"
+      },
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_startup_authority.js",
+      "region": {
+        "startLine": 59,
+        "endLine": 59,
+        "startColumn": 18,
+        "endColumn": 30
+      },
+      "reviewedSourceSha256": "682aa2b3d44749a0e02102ed22f38402fbac03789a0f732a969817c1c274b00e",
+      "reviewedLineSha256": "ebf72abf0213cd378a7de658f8abfcee73b89e96beeb0224928471b4d150d399",
+      "disposition": "proposed-false-positive",
+      "rationale": "An empty HTTP listener binds only 127.0.0.1 with port zero to test startup-listener readiness; no sensitive application response is served.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "38bece03-53dc-4566-a862-e4d59a573c82",
+      "fingerprints": {
+        "0": "ea50d16c7308c685575887468545e66d3683763c4c80feb522079a8106ef984f",
+        "1": "cf7733e4.4773f344.8b18f948.51947e3c.ac82cb7b.98c7c24d.0b4f0b50.f88a252f.a0720942.b6e32c83.72aa1700.51947e3c.e2d34e38.5fce695c.66b97542.f88a252f",
+        "identity": "38bece03-53dc-4566-a862-e4d59a573c82",
+        "snyk/asset/finding/v1": "38bece03-53dc-4566-a862-e4d59a573c82"
+      },
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_ui_restart_process.js",
+      "region": {
+        "startLine": 80,
+        "endLine": 80,
+        "startColumn": 25,
+        "endColumn": 32
+      },
+      "reviewedSourceSha256": "6862587aded75bc63b080e8b1680533641da5ba115c3dec6351287a8c623293a",
+      "reviewedLineSha256": "2043b4427ce3aa616f675f84e5af39c3706a877f7f9dd3b192fe7cc20a343222",
+      "disposition": "proposed-false-positive",
+      "rationale": "HTTP request targets the child test server at explicit 127.0.0.1. The test deliberately destroys the client connection to verify accepted restart behavior.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
+      "fingerprints": {
+        "0": "3456dbfa14fe774150f99d616ecef05ba9fb4ad32450b3480ca687e090df475c",
+        "1": "aac70831.4773f344.8b18f948.51947e3c.ac82cb7b.98c7c24d.261fc002.f88a252f.e350f12c.b6e32c83.ec4bfb0b.51947e3c.e2d34e38.5fce695c.66b97542.f88a252f",
+        "identity": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
+        "snyk/asset/finding/v1": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75"
+      },
+      "ruleId": "javascript/HttpToHttps/test",
+      "path": "tests/test_ui_restart_recovery.js",
+      "region": {
+        "startLine": 41,
+        "endLine": 41,
+        "startColumn": 23,
+        "endColumn": 30
+      },
+      "reviewedSourceSha256": "7697315eecb50afcea1324bd7e279d0fe8d971ded9dae59fc56eaa70527d1870",
+      "reviewedLineSha256": "2d3dd17ec17d164619e5ed825b65e905a96e7e54a9012b058190e1ad3829fce0",
+      "disposition": "proposed-false-positive",
+      "rationale": "fixture.base is an explicit 127.0.0.1 address. A locally interrupted request exercises restart recovery; no external cleartext service is introduced.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+      "fingerprints": {
+        "0": "e1d3eb3719a30ed49544043e6e83f3cd5f632c014aef3fafd3dd09c3fa1546a5",
+        "1": "bbc827ce.4773f344.8b18f948.d7919eeb.ef9f7d82.d4a8c500.83265159.3e55546e.bbc827ce.3df76230.2736cee9.c8688b2b.3f452f8c.93224842.83265159.62f49dc2",
+        "identity": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "snyk/asset/finding/v1": "4494650c-4f77-4efc-9956-2a491467ddaf"
+      },
+      "ruleId": "javascript/IndirectCommandInjection",
+      "path": "scripts/verify_exchange_implementation.js",
+      "region": {
+        "startLine": 292,
+        "endLine": 292,
+        "startColumn": 18,
+        "endColumn": 27
+      },
+      "reviewedSourceSha256": "8910b121889e7dd25f3f72f4ee1f2b3bffd9dd69dd30550bf131f5cfe52b26d9",
+      "reviewedLineSha256": "4e3d70b8af01ed5c0165466822d01f889ac3d61a11c5154c4b3d6bdb51510d7c",
+      "disposition": "proposed-false-positive",
+      "rationale": "The executable is an explicit trusted operator Python path, canonicalized and validated as an ordinary file; spawnSync uses a fixed Python bridge, separate argv, shell:false, isolated -I mode and a 30-second timeout. Choosing the local interpreter is an intentional CLI capability, not remote command interpolation.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "4bd5af47-516b-4885-9a70-71b7fa515f95",
+      "fingerprints": {
+        "0": "4794f2327e9bad0d303786931afdda1059e1f328b6b8e7571f371673e5caff5f",
+        "1": "40c5fd92.bf5b62f5.bd65d204.e052b9a9.79a7d027.fcf3002d.ce4a9d89.01ef785d.40c5fd92.bf5b62f5.bd65d204.e052b9a9.79a7d027.fcf3002d.ce4a9d89.01ef785d",
+        "snyk/asset/finding/v1": "4bd5af47-516b-4885-9a70-71b7fa515f95",
+        "identity": "4bd5af47-516b-4885-9a70-71b7fa515f95"
+      },
+      "ruleId": "javascript/NoHardcodedPasswords/test",
+      "path": "tests/test_backup.js",
+      "region": {
+        "startLine": 82,
+        "endLine": 82,
+        "startColumn": 14,
+        "endColumn": 22
+      },
+      "reviewedSourceSha256": "f0dd2796eee46af285e4a268cf498db0ef00948edbd3aa6ee005dae56663969b",
+      "reviewedLineSha256": "54695f177d7d9bf663f541e1ded1d017c515bd714f2a11d1d7af81e74e25ea67",
+      "disposition": "proposed-false-positive",
+      "rationale": "Descriptive redaction placeholder in an array password field. Backup assertions require password removal while retaining the neighboring ordinary array value.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "ce402f84-0ed8-4cb8-9f26-60e05779e11f",
+      "fingerprints": {
+        "0": "1193da3208b221957674f7807246ec7dd4c7e8638033ac67bf0b33a6fb1bf329",
+        "1": "12567ef6.3f481afb.bd65d204.d7919eeb.79a7d027.f7edcf51.d957dfe3.78b0701d.12567ef6.3f481afb.bd65d204.d7919eeb.79a7d027.f7edcf51.d957dfe3.78b0701d",
+        "snyk/asset/finding/v1": "ce402f84-0ed8-4cb8-9f26-60e05779e11f",
+        "identity": "ce402f84-0ed8-4cb8-9f26-60e05779e11f"
+      },
+      "ruleId": "javascript/NoHardcodedPasswords/test",
+      "path": "tests/test_ui_change_reviews.js",
+      "region": {
+        "startLine": 59,
+        "endLine": 59,
+        "startColumn": 181,
+        "endColumn": 189
+      },
+      "reviewedSourceSha256": "15a2a7159a31891ed150801004a954d2375eb58ab8b066487883b53de72f4c8d",
+      "reviewedLineSha256": "f3f53579b03573ffec2bfba2edbe4331ff01ab7b9802fa63198800c042b35ee4",
+      "disposition": "proposed-false-positive",
+      "rationale": "Bounded review-tree fixture includes an uppercase password sentinel. Assertions require the password node to be non-expandable, the sentinel absent and direct access rejected.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0",
+      "fingerprints": {
+        "0": "a3e25e1d2105ccaa9ebac23bc7a7616a578f563024c2d3a33027c0163ab66a25",
+        "1": "12567ef6.b09abfb9.bd65d204.e052b9a9.79a7d027.965282fa.0796ad2d.643a041d.12567ef6.b09abfb9.bd65d204.e052b9a9.79a7d027.965282fa.0796ad2d.643a041d",
+        "identity": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0",
+        "snyk/asset/finding/v1": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0"
+      },
+      "ruleId": "javascript/NoHardcodedPasswords/test",
+      "path": "tests/test_ui_change_reviews.js",
+      "region": {
+        "startLine": 126,
+        "endLine": 126,
+        "startColumn": 98,
+        "endColumn": 106
+      },
+      "reviewedSourceSha256": "15a2a7159a31891ed150801004a954d2375eb58ab8b066487883b53de72f4c8d",
+      "reviewedLineSha256": "28159890d1744a7d406f3649d2ebebc78d6f6da4ab27c76244c70bceda3b4d4a",
+      "disposition": "proposed-false-positive",
+      "rationale": "Nested API-key, token and password fields contain descriptive uppercase sentinels. The following assertion requires their absence while retaining ordinary numeric, boolean and empty fields.",
+      "platformStatusChanged": false
+    },
+    {
+      "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+      "fingerprints": {
+        "0": "31976754b939a4ac1c87edf980b2fcafb931a2ece19265229dad845dba590806",
+        "1": "b6950d85.4773f344.4dd76406.d7919eeb.3a121ca8.d4a8c500.c08dd55c.eb397db7.bbc827ce.277c621c.cf0dc3a8.c8688b2b.3f452f8c.93224842.f43bf3be.bd73fe9f",
+        "identity": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "snyk/asset/finding/v1": "7039073d-34a6-4901-9897-4c0a40ca7b0a"
+      },
+      "ruleId": "javascript/PT",
+      "path": "scripts/verify_exchange_implementation.js",
+      "region": {
+        "startLine": 85,
+        "endLine": 85,
+        "startColumn": 18,
+        "endColumn": 26
+      },
+      "reviewedSourceSha256": "8910b121889e7dd25f3f72f4ee1f2b3bffd9dd69dd30550bf131f5cfe52b26d9",
+      "reviewedLineSha256": "4f9e60343aa975a81b24ef254f6418617fbc033ea17df6de68461d71d4512495",
+      "disposition": "proposed-false-positive",
+      "rationale": "stableBytes checks canonical parent directories and an ordinary non-symlink single-link file before read-only O_NOFOLLOW open, then verifies inode/size/mtime/ctime. This is the intended local source-verification boundary.",
+      "platformStatusChanged": false
+    }
+  ]
+}

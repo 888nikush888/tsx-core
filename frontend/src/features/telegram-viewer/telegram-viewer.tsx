@@ -136,7 +136,7 @@ export function TelegramViewer() {
           <h3>Telegram Viewer</h3>
           <p>Separater, ausschließlich lesender Bot ohne Handels-, Konfigurations- oder Börsenzugriff.</p>
         </div>
-        <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => void load().catch(reason => setLoadError(reason.message))}><RefreshCw /> Aktualisieren</Button>
+        <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => { load().catch(reason => setLoadError(reason.message)); }}><RefreshCw /> Aktualisieren</Button>
       </div>
 
       {message && <section className="operations-card" aria-live="polite"><p>{message}</p></section>}
@@ -193,7 +193,7 @@ export function TelegramViewer() {
             <option value="absolute">Absolut</option><option value="absolute_and_percent">Absolut und Prozent</option>
           </select></label>
         </div>
-        <div className="system-actions"><Button type="button" disabled={Boolean(busy) || form.conflict || readOnly} onClick={() => void saveSettings()}>Einstellungen speichern</Button></div>
+        <div className="system-actions"><Button type="button" disabled={Boolean(busy) || form.conflict || readOnly} onClick={() => { saveSettings(); }}>Einstellungen speichern</Button></div>
       </section>
 
       <section className="operations-card system-form">
@@ -216,11 +216,11 @@ export function TelegramViewer() {
         <label>Neuer Bot-Token<Input aria-label="Neuer Bot-Token" type="password" autoComplete="off" value={botToken}
           onChange={(event) => setBotToken(event.target.value)} placeholder="123456789:…" /></label>
         <div className="system-actions">
-          <Button type="button" disabled={Boolean(busy) || !botToken} onClick={() => void setToken()}>Bot-Token setzen</Button>
+          <Button type="button" disabled={Boolean(busy) || !botToken} onClick={() => { setToken(); }}>Bot-Token setzen</Button>
           <Button type="button" variant="destructive" disabled={Boolean(busy) || !botConfigured}
-            onClick={() => void deleteBotToken()}>Bot-Token löschen</Button>
+            onClick={() => { deleteBotToken(); }}>Bot-Token löschen</Button>
           <Button type="button" variant="outline" disabled={Boolean(busy)}
-            onClick={() => void rotateServiceToken()}>Dienst-Token rotieren</Button>
+            onClick={() => { rotateServiceToken(); }}>Dienst-Token rotieren</Button>
         </div>
       </section>
 
@@ -235,9 +235,9 @@ export function TelegramViewer() {
         <h3>Testnachricht</h3>
         <label>Testnachricht<Input aria-label="Testnachricht" value={testMessage} onChange={(event) => setTestMessage(event.target.value)} /></label>
         <div className="system-actions"><Button type="button" disabled={Boolean(busy) || !testMessage.trim()}
-          onClick={() => void mutate("Test angenommen", "/api/telegram-viewer/test", {
+          onClick={() => { mutate("Test angenommen", "/api/telegram-viewer/test", {
             method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: testMessage }),
-          })}>Test senden</Button></div>
+          }); }}>Test senden</Button></div>
       </section>
     </div>
   );

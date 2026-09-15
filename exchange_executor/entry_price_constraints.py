@@ -24,30 +24,49 @@ def needs_entry_boundary(request: dict[str, Any]) -> bool:
         or request.get('entryPriceBoundary') is not None)
 
 
-def assert_boundary(request: dict[str, Any], price_tick: str) -> str:
-    boundary = request.get('entryPriceBoundary')
-    if not isinstance(boundary, dict) or set(boundary) != BOUNDARY_FIELDS or type(boundary['version']) is not int or boundary['version'] != 1:
-        raise EntryPriceConstraintError('Original entry price boundary is missing or invalid.')
-    values = {key: Decimal(decimal_string(boundary[key], key, positive=True)) for key in BOUNDARY_FIELDS - {'version'}}
-    if values['maxSlippagePercent'] > 5 or values['priceTick'] != Decimal(price_tick):
-        raise EntryPriceConstraintError('Original entry boundary does not match its certified market tick or slippage.')
-    if request.get('maxSlippagePercent') != boundary['maxSlippagePercent']:
-        raise EntryPriceConstraintError('Original entry slippage changed.')
-    side = request.get('side')
-    if side not in ('buy', 'sell'):
-        raise EntryPriceConstraintError('Bounded entry side is invalid.')
+def _rounded_boundary(values: dict[str, Decimal], side: str) -> Decimal:
     with localcontext() as context:
         context.prec = 180
         factor = 100 + values['maxSlippagePercent'] if side == 'buy' else 100 - values['maxSlippagePercent']
         ticks = values['referencePrice'] * factor / (100 * values['priceTick'])
-        allowed = ticks.to_integral_value(rounding=ROUND_FLOOR if side == 'buy' else ROUND_CEILING) * values['priceTick']
+        return ticks.to_integral_value(rounding=ROUND_FLOOR if side == 'buy' else ROUND_CEILING) * values['priceTick']
+
+
+def _original_boundary(request: dict[str, Any]) -> dict[str, Any]:
+    boundary = request.get('entryPriceBoundary')
+    if not isinstance(boundary, dict) or set(boundary) != BOUNDARY_FIELDS or type(boundary['version']) is not int or boundary['version'] != 1:
+        raise EntryPriceConstraintError('Original entry price boundary is missing or invalid.')
+    return boundary
+
+
+def _boundary_values(request: dict[str, Any], price_tick: str) -> tuple[dict[str, Any], dict[str, Decimal], str]:
+    boundary = _original_boundary(request)
+    values = {key: Decimal(decimal_string(boundary[key], key, positive=True)) for key in BOUNDARY_FIELDS - {'version'}}
+    if values['maxSlippagePercent'] > 5 or values['priceTick'] != Decimal(price_tick):
+        raise EntryPriceConstraintError('Original entry boundary does not match its certified market tick or slippage.')
+    side = request.get('side')
+    if side not in ('buy', 'sell'):
+        raise EntryPriceConstraintError('Bounded entry side is invalid.')
+    return boundary, values, side
+
+
+def _boundary_limit(values: dict[str, Decimal], side: str, boundary: dict[str, Any]) -> str:
+    allowed = _rounded_boundary(values, side)
     if allowed <= 0 or values['limitPrice'] != allowed:
         raise EntryPriceConstraintError('Tick rounding widened or changed the original entry price boundary.')
+    return boundary['limitPrice']
+
+
+def assert_boundary(request: dict[str, Any], price_tick: str) -> str:
+    boundary, values, side = _boundary_values(request, price_tick)
+    if request.get('maxSlippagePercent') != boundary['maxSlippagePercent']:
+        raise EntryPriceConstraintError('Original entry slippage changed.')
+    limit = _boundary_limit(values, side, boundary)
     if (request.get('role'), request.get('orderType'), request.get('timeInForce')) != ('entry', 'limit', 'IOC'):
         raise EntryPriceConstraintError('Bounded entry requires the protected limit IOC order form.')
     if request.get('postOnly') is True or request.get('reduceOnly') is True or request.get('price') != boundary['limitPrice']:
         raise EntryPriceConstraintError('Submitted entry contradicts its original price boundary.')
-    return boundary['limitPrice']
+    return limit
 
 
 def apply_entry_boundary(profile: ExchangeProfile, request: dict[str, Any], spec: dict[str, Any], price_tick: str) -> None:

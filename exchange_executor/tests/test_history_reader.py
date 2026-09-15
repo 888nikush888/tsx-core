@@ -57,7 +57,8 @@ class HistoryRest:
         self.calls.append(("history", *_args))
         return []
 
-    async def fetch_positions(self):
+    @staticmethod
+    async def fetch_positions():
         return []
 
     async def fetch_my_trades(self, symbol, since, limit):
@@ -66,7 +67,8 @@ class HistoryRest:
 
 
 class HistoryReaderTests(unittest.IsolatedAsyncioTestCase):
-    def deadline(self):
+    @staticmethod
+    def deadline():
         return RequestDeadline(int(time.time() * 1000) + 30_000)
 
     async def test_open_state_shares_five_additional_calls_between_exact_lookup_and_backfill(self):
@@ -131,7 +133,7 @@ class HistoryReaderTests(unittest.IsolatedAsyncioTestCase):
             rest = HistoryRest()
             original = rest.fetch_order
 
-            async def wrong(*args, **kwargs):
+            async def wrong(*args, changed=changed, original=original, **kwargs):
                 return {**await original(*args, **kwargs), **changed}
             rest.fetch_order = wrong
             prepared_rows = [reference()]
@@ -189,7 +191,7 @@ class HistoryReaderTests(unittest.IsolatedAsyncioTestCase):
                 rest = HistoryRest()
                 request = {"id": exchange, "exchange": exchange, "mode": "testnet"}
 
-                async def account(value):
+                async def account(value, *, rest=rest):
                     return SimpleNamespace(rest=rest, account=value, account_identity=value["id"])
 
                 state = await CcxtAdapter(SimpleNamespace(account=account)).open_state(request, self.deadline(), {"since": old, "orders": []})

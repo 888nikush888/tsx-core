@@ -1,3 +1,4 @@
+import { DEFAULT_TELEGRAM_VIEWER_SETTINGS } from '../src/telegram_viewer_settings.js';
 import assert from 'node:assert';
 import http from 'node:http';
 import { once } from 'node:events';
@@ -45,7 +46,7 @@ function createUpstream(requests, responseState) {
       assert.strictEqual(request.method, 'GET');
       assert.strictEqual(request.headers.authorization, `Bearer ${SERVICE_TOKEN}`);
       response.end(JSON.stringify(request.url.includes('/config')
-        ? { settings: { enabled: false } }
+        ? { settings: { ...DEFAULT_TELEGRAM_VIEWER_SETTINGS, enabled: false } }
         : { events: [], nextSeq: 0 }));
       return;
     }
@@ -80,12 +81,14 @@ async function verifyResilientLoop() {
     recordHealthyPoll() { loopState.healthy += 1; },
     recordFailure(error) { loopState.failures.push(error); },
   };
-  await resilientLoop(async () => undefined, () => 250, loopService, 1);
-  await resilientLoop(async () => undefined, () => 0, loopService, 2);
-  await resilientLoop(async () => { throw new Error('short failure'); }, () => 250, loopService, 1);
-  await resilientLoop(async () => { throw 'non-error failure'; }, () => 250, loopService, 1);
+  await resilientLoop(() => Promise.resolve(), () => 250, loopService, 1);
+  await resilientLoop(() => Promise.resolve(), () => 0, loopService, 2);
+  await resilientLoop(() => Promise.reject(new Error('short failure')), () => 250, loopService, 1);
+  await resilientLoop(() => Promise.reject('non-error failure'), () => 250, loopService, 1);
   assert.strictEqual(loopState.healthy, 3);
   assert.strictEqual(loopState.failures.length, 2);
+  assert.strictEqual(loopState.failures[0].message, 'short failure');
+  assert.strictEqual(loopState.failures[1], 'non-error failure', 'Non-Error rejections reach recordFailure unchanged.');
 }
 
 function verifyTrustedInternalTransport() {
@@ -167,13 +170,19 @@ async function verifyApiClients(upstreamUrl, requests, responseState) {
 }
 
 async function verifyHealthServer(requests, activeBotToken) {
+  let currentStatus = { healthy: true, ready: true, enabled: false, lastError: null };
+  let tokenUnavailable = false;
   const health = startTelegramViewerHealthServer({
-    host: '127.0.0.1', port: 0, serviceToken: SERVICE_TOKEN,
-    status: () => ({ healthy: true, ready: true, enabled: false, lastError: null }),
+    port: 0, serviceToken: () => {
+      if (tokenUnavailable) return Promise.reject(new Error('Synthetic token provider failure'));
+      return Promise.resolve(SERVICE_TOKEN);
+    },
+    status: () => currentStatus,
   });
   await once(health, 'listening');
   const address = health.address();
   assert.ok(address && typeof address === 'object');
+  assert.equal(address.address, '127.0.0.1', 'Health server defaults to a local-only listener.');
   const base = `http://127.0.0.1:${address.port}`;
   let response = await fetch(`${base}/healthz`);
   assert.strictEqual(response.status, 200);
@@ -182,9 +191,28 @@ async function verifyHealthServer(requests, activeBotToken) {
   assert.strictEqual(response.status, 200);
   response = await fetch(`${base}/status`);
   assert.strictEqual(response.status, 401);
+  for (const authorization of ['', 'Basic invalid', `Bearer ${'wrong-token-'.repeat(3)}`]) {
+    response = await fetch(`${base}/status`, { headers: { Authorization: authorization } });
+    assert.strictEqual(response.status, 401);
+    assert.strictEqual(response.headers.get('www-authenticate'), 'Bearer realm="tsx-telegram-viewer"');
+  }
   response = await fetch(`${base}/status`, { headers: { Authorization: `Bearer ${SERVICE_TOKEN}` } });
   assert.strictEqual(response.status, 200);
   assert.strictEqual(JSON.stringify(await response.json()).includes(SERVICE_TOKEN), false);
+  currentStatus = { ...currentStatus, healthy: false, ready: false };
+  for (const [route, field] of [['health', 'healthy'], ['ready', 'ready']]) {
+    response = await fetch(`${base}/${route}`);
+    assert.strictEqual(response.status, 503);
+    assert.deepStrictEqual(await response.json(), { [field]: false });
+  }
+  response = await fetch(`${base}/missing`);
+  assert.strictEqual(response.status, 404);
+  tokenUnavailable = true;
+  response = await fetch(`${base}/status`, { headers: { Authorization: `Bearer ${SERVICE_TOKEN}` } });
+  assert.strictEqual(response.status, 500);
+  assert.deepStrictEqual(await response.json(), { error: 'Viewer health request failed.' });
+  response = await fetch(`${base}/healthz`);
+  assert.strictEqual(response.status, 503, 'Token provider failure must not disable the public health probe.');
   response = await fetch(`${base}/healthz`, { method: 'POST' });
   assert.strictEqual(response.status, 405);
   assert.ok(requests.some(request => request.url.includes(activeBotToken)), 'The Bot API client must re-read a rotated bot token without restarting the viewer.');

@@ -1,0 +1,18 @@
+{
+  "path": "src/contract_values.ts",
+  "scanner": "DeepSourcecomplexitytarget; remoteconfirmationpending",
+  "baseRevision": "8465469158745db718d4c7a50fca4b37a6774a04",
+  "assessment": "Explicitly reject typeof object/function before String. Remaining Node primitive types exactly match preceding positive whitelist; outer Error and null handling unchanged. Removes duplicated primitive discrimination and lowers branching without object coercion.",
+  "sourceRawSha256": "b56516782dbc13bdac7bb1066d33d14b358ae51f69dfe73e26869b1561f6ef27",
+  "independentReview": "pending",
+  "kind": "primitive-error-formatting-complexity-correction",
+  "validation": {
+    "testsExit": 0,
+    "targetTests": [
+      "test_exchange_contract_validation.js",
+      "test_forwarder_error_types.js"
+    ],
+    "typecheckExit": 0,
+    "eslintExit": 0
+  }
+}

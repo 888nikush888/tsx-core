@@ -1,0 +1,36 @@
+{
+  "baseRevision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+  "ciEvidence": {
+    "run": 34748978275,
+    "job": 103701906768,
+    "artifact": "quality-evidence-1535ae617ff482b063574a5fa410823d4170c581",
+    "htmlSha256": "956b7aaaa88341cb07b1592d7d2585cb7c0755497b97d86ab6408d1f4f36a35e",
+    "uncoveredFunction": "recoveredBackupJobArtifact",
+    "proof": "CI HTML explicitly wraps this declaration with fstat-no function not covered; backupJobArtifact and runBackupDrillJob are covered.",
+    "overallFunctions": {
+      "total": 3510,
+      "covered": 3481,
+      "skipped": 0,
+      "pct": 99.17
+    }
+  },
+  "changes": "Existing operator-command test now covers confirmed admin offsite durable recovery, receiver and result, no repeated operation on duplicate ID, failure persistence on rejected download, and late missing callback after acceptance.",
+  "targetCoverage": [
+    {
+      "file": "C:\\Users\\nikla\\Documents\\ChatGPT\\TSX CORE SERVER INSTALLATION\\tmp\\tsx-core-security-services\\src\\web_server.ts",
+      "function": "recoveredBackupJobArtifact",
+      "line": 1393,
+      "hits": 3
+    }
+  ],
+  "targetCoverageSha256": "dd0ea185df7e75523ac55c0dbc0d5c4ca0ff198b6fa2bd2984b6759c7bcd21b8",
+  "test": "tests/test_ui_operator_commands.js",
+  "testSha256": "a1f83b76c461d097fd372f6cfe839af348b5f6180b2bc343673152128602fd93",
+  "validation": "Existing operator-command suite PASS, repeated under targeted c8 PASS. No real backup/provider calls: fixture callback only.",
+  "ratchetAssessment": "One additional covered function would bring unchanged CI denominator to3482/3510=99.20%; final full-scope CI rerun required because current source has further reviewed additions.",
+  "limits": [
+    "No source or baseline changes; no commit.",
+    "Targeted coverage proves newly exercised helper, not aggregate current module coverage.",
+    "Existing other uncovered handlers remain outside this bounded regression."
+  ]
+}

@@ -7,6 +7,7 @@ import { initDb, closeDb, getDatabase, saveSignal } from '../src/db.js';
 import { listTradingAccounts, listTradingStrategies } from '../src/trading_repository.js';
 import { prepareTradingOperation, transitionTradingOperation } from '../src/trading_recovery.js';
 import { prepareProtectedOrderIdentityRequests } from '../src/trading_order_identity.js';
+import { validateOrderIdentityEvidence } from '../src/exchange_order_identity_contract.js';
 import { correlateNativeOrderEvidence } from '../src/trading_order_identity_bindings.js';
 import { persistTradingOrderResult } from '../src/trading_order_repository.js';
 import { protectionSourceDigest } from '../src/trading_protection_sources.js';
@@ -51,6 +52,22 @@ try {
     raw: { id: 'remote-stop', clientOrderId: null, info: { order_tag: batch.protectiveStop.clientOrderId, order_id: 'remote-stop' } },
     identityEvidence: { version: 1, profile: 'kraken_batch_tag_v1', tag: batch.protectiveStop.clientOrderId,
       clientOrderId: batch.protectiveStop.clientOrderId, exchangeOrderId: 'remote-stop', providerSymbol: 'BTC/USD:USD' } };
+  const originalLocal = await getDatabase().get('SELECT * FROM trading_orders WHERE id=?', [ack.clientOrderId]);
+  for (let unit = 0; unit < 32; unit += 1) {
+    // Exercise the stored-symbol fallback; malformed supplied symbols fail the earlier envelope validator.
+    await getDatabase().run('UPDATE trading_orders SET provider_symbol=? WHERE id=?', [`a${String.fromCodePoint(unit)}b`, ack.clientOrderId]);
+    const injected = await getDatabase().get('SELECT * FROM trading_orders WHERE id=?', [ack.clientOrderId]);
+    try {
+      await assert.rejects(persistTradingOrderResult(batch.intentId, ack.clientOrderId,
+        { ...ack, providerSymbol: undefined, identityEvidence: undefined }),
+      { message: 'Invalid provider symbol for remote order identity.' });
+      assert.deepEqual(await getDatabase().get('SELECT * FROM trading_orders WHERE id=?', [ack.clientOrderId]), injected,
+        'Control-bearing stored namespace must fail before acknowledgement writes.');
+      assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM trading_order_identity_bindings')).count, 0);
+    } finally {
+      await getDatabase().run('UPDATE trading_orders SET provider_symbol=? WHERE id=?', [originalLocal.provider_symbol, ack.clientOrderId]);
+    }
+  }
   const before = await protectionSourceDigest(kraken.id);
   await persistTradingOrderResult(batch.intentId, ack.clientOrderId, ack);
   const binding = await getDatabase().get('SELECT * FROM trading_order_identity_bindings WHERE order_id=?', [ack.clientOrderId]);
@@ -98,6 +115,42 @@ try {
     raw: { id: '1234', clientOrderId: null, symbol: 'BTC/USDC:USDC', info: { order: { oid: 1234, coin: 'BTC', cloid: null } } },
     identityEvidence: { version: 1, profile: 'hyperliquid_cloid_lookup_v1', clientOrderId: cloid, exchangeOrderId: '1234',
       providerSymbol: 'BTC/USDC:USDC', providerMarketId: 'BTC', user, startedAt: now - 1, completedAt: now } };
+  assert.equal(validateOrderIdentityEvidence(remote), remote.identityEvidence);
+  const nativeIdRemote = (oid, exchangeOrderId) => ({ ...remote, exchangeOrderId,
+    raw: { ...remote.raw, id: exchangeOrderId, info: { order: { ...remote.raw.info.order, oid } } },
+    identityEvidence: { ...remote.identityEvidence, exchangeOrderId } });
+  for (const oid of [0, 1234, Number.MAX_SAFE_INTEGER, '0', '0002', '9007199254740993', '9'.repeat(256)]) {
+    const valid = nativeIdRemote(oid, String(oid));
+    assert.equal(validateOrderIdentityEvidence(valid), valid.identityEvidence, 'Preserve exact primitive order identifiers.');
+  }
+  let nativeIdCoercions = 0;
+  const coercibleId = Object.defineProperty({}, Symbol.toPrimitive, { get() {
+    nativeIdCoercions += 1;
+    throw new Error('Native identity must not read coercion hooks.');
+  } });
+  const malformedIds = [[coercibleId, '1234'], [[1234], '1234'], [Object(1234), '1234'],
+    [true, 'true'], [false, 'false'], [null, 'null'], [undefined, 'undefined'],
+    [-1, '-1'], [1.5, '1.5'], [NaN, 'NaN'], [Infinity, 'Infinity'], [-Infinity, '-Infinity'],
+    [Number.MAX_SAFE_INTEGER + 1, '9007199254740992'], ['', '1234'], ['12x', '12x'], ['1234\n', '1234'],
+    ['9'.repeat(257), '1234']];
+  for (const [oid, exchangeOrderId] of malformedIds) {
+    const invalid = nativeIdRemote(oid, exchangeOrderId);
+    const scopeError = { name: 'Error', message: 'Hyperliquid lookup scope contradicts its original order.' };
+    assert.throws(() => validateOrderIdentityEvidence(invalid), scopeError);
+    await assert.rejects(correlateNativeOrderEvidence(hl, [invalid]), scopeError);
+  }
+  assert.equal(nativeIdCoercions, 0, 'Malformed native identity must not execute or read coercion hooks.');
+  assert.equal((await getDatabase().get('SELECT exchange_order_id FROM trading_orders WHERE id=?', [cloid])).exchange_order_id, null);
+  assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM trading_order_identity_bindings WHERE account_id=?', [hl.id])).count, 0);
+  let walletCoercions = 0;
+  const malformedWallet = { toString() { walletCoercions += 1; return user; } };
+  const invalidWalletRemote = { ...remote, identityEvidence: { ...remote.identityEvidence, user: malformedWallet } };
+  const invalidWalletError = { name: 'Error', message: 'Hyperliquid lookup scope contradicts its original order.' };
+  assert.throws(() => validateOrderIdentityEvidence(invalidWalletRemote), invalidWalletError);
+  await assert.rejects(correlateNativeOrderEvidence(hl, [invalidWalletRemote]), invalidWalletError);
+  assert.equal(walletCoercions, 0, 'Malformed wallet evidence must never execute object coercion.');
+  assert.equal((await getDatabase().get('SELECT exchange_order_id FROM trading_orders WHERE id=?', [cloid])).exchange_order_id, null);
+  assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM trading_order_identity_bindings WHERE account_id=?', [hl.id])).count, 0);
   for (const changed of [{ quantity: '2' }, { identityEvidence: { ...remote.identityEvidence, user: `0x${'e'.repeat(40)}` } }]) {
     await assert.rejects(correlateNativeOrderEvidence(hl, [{ ...remote, ...changed }]));
     assert.equal((await getDatabase().get('SELECT exchange_order_id FROM trading_orders WHERE id=?', [cloid])).exchange_order_id, null);

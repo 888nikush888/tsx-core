@@ -54,7 +54,10 @@ async function testReadEvidence(db, resource) {
   await assert.rejects(read({ kind: 'sources', id: 'evaluation-053', limit: '50', cursor: sources.nextCursor }), /match/);
   assert.equal((await read({ kind: 'paths', stateKey: fixture.stateKey })).entries.length, 0);
   assert.equal(await read({ kind: 'sources', id: 'absent' }), null);
-  await assert.rejects(read({ kind: 'constructor' }), /Unsupported/); await assert.rejects(read({ limit: '51' }), /1–50/);
+  for (const kind of ['constructor', '__proto__', 'unknown', 'states ']) {
+    await assert.rejects(read({ kind }), { message: 'Unsupported adaptive evidence kind.' });
+  }
+  await assert.rejects(read({ limit: '51' }), /1–50/u);
   assert.deepEqual(await db.all('SELECT * FROM workflow_adaptive_risk_state'), originalState);
   assert.deepEqual(await db.all('SELECT * FROM workflow_adaptive_risk_evaluations'), originalEvaluations, 'UI reads must never evaluate or invalidate an original observation.');
 }
@@ -62,6 +65,8 @@ async function testLegacyCopy(db) {
   await upsertChannelRiskPolicy({ ...configuration, channelId: 'old-channel', currentTier: 0 });
   await db.run("UPDATE trading_channel_risk_policies SET blocked=1,block_reason='Automatic legacy block' WHERE channel_id='old-channel'");
   const before = await db.get("SELECT * FROM trading_channel_risk_policies WHERE channel_id='old-channel'"); const active = await getActiveWorkflow();
+  assert.deepEqual((await read({ kind: 'legacy-evaluations', channelId: 'old-channel' })).entries, []);
+  await assert.rejects(read({ kind: 'legacy-evaluations' }), { message: 'Legacy evaluation requires a channel scope.' });
   const preview = (await read({ kind: 'legacy', channelId: 'old-channel' })).entries[0];
   assert.equal(preview.configuration.manuallyBlocked, true, 'Migration must retain an existing automatic block as an explicit manual policy block.');
   assert.equal(preview.configuration.lockedTier, null); assert.equal(preview.configuration.startingTier, 0);

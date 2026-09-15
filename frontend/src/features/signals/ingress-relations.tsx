@@ -27,7 +27,8 @@ function ingressObjectLink(kind: string, id: string) {
 
 export function IngressRelations({ id }: Readonly<{ id: string }>) {
   const [params, setParams] = useSearchParams(); const kind = params.get('relation') || 'signals';
-  const query = new URLSearchParams({ id, kind }); if (params.has('relationCursor')) query.set('cursor', params.get('relationCursor')!);
+  const query = new URLSearchParams({ id, kind }); const cursor = params.get('relationCursor');
+  if (cursor !== null) query.set('cursor', cursor);
   const key = query.toString(); const [state, setState] = useState<any>(null); const [error, setError] = useState('');
   const read = useCallback((signal: AbortSignal) => jsonRequest(`/api/signals/ingress/relations?${key}`, { signal }), [key]);
   usePoll(read, value => { setState({ key, value }); setError(''); }, failure => setError(failure.message)); const data = state?.key === key ? state.value : null;

@@ -1,0 +1,136 @@
+{
+  "kind": "independent-single-codacy-regexp-security-review",
+  "reviewedRevision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+  "issue": {
+    "issueId": "757f1b7f1e131822522fc6812066e0d6",
+    "resultDataId": 131539028740,
+    "filePath": "src/signal_schema.ts",
+    "fileId": 231374286227,
+    "patternInfo": {
+      "id": "Semgrep_javascript_dos_rule-non-literal-regexp",
+      "category": "Security",
+      "level": "Error",
+      "severityLevel": "Error",
+      "subCategory": "DoS"
+    },
+    "toolInfo": {
+      "uuid": "6792c561-236d-41b7-ba5e-9d6bee0d548b",
+      "name": "Opengrep"
+    },
+    "lineNumber": 570,
+    "message": "The `RegExp` constructor was called with a non-literal value.",
+    "language": "TypeScript",
+    "lineText": "      matches = new RegExp(field.pattern, 'u').test(value);",
+    "falsePositiveThreshold": 80,
+    "commitInfo": {
+      "sha": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+      "commiter": "89394004+888nikush888@users.noreply.github.com",
+      "commiterName": "888nikush888",
+      "timestamp": "2026-09-15T08:54:42Z"
+    }
+  },
+  "classification": "FalsePositive",
+  "readyForIndividualDisposition": true,
+  "platformMutationPerformed": false,
+  "rationale": "This exact non-literal RegExp is intentional contract data, but its only private call chain is enclosed by one vm.runInContext(validate(), timeout:100) execution deadline for the entire ordered additional-field batch. The timeout interrupts actual native backtracking even in the trusted host callback, as shown by three pathological expressions both first and after 29 ordinary fields. The batch deadline is not renewed per field. Timeout or construction failure rejects with SignalValidationError and never yields a validated signal. The scanner sees dynamic construction but does not account for the enclosing verified execution bound. This conclusion is specific to this occurrence and published source binding.",
+  "callChain": [
+    "signal_parser.ts:453 validates parsed content with the executable schema; incoming_work_repository.ts:55 revalidates persisted XML on readback.",
+    "validateSignalXml parses XML with a 64KiB input bound and selects the dynamic contract path; validateDynamicContract revalidates the definition before validateAdditionalFields.",
+    "signal_contract.ts permits at most 30 additional fields and at most 160 pattern characters, rejects unsupported constructs, and checks Unicode regexp syntax. These constraints alone are not claimed to eliminate catastrophic backtracking.",
+    "validateAdditionalFields creates one fixed trusted callback/context, starts the shared performance deadline after context creation, and invokes the ordered field loop inside one 100ms VM timeout.",
+    "validateAdditionalFieldText is private; its only call is validateAdditionalField, itself only called from that bounded loop. Allowed-value and length checks precede RegExp construction/test; the remaining shared wall-clock budget is checked before every nonempty pattern.",
+    "Timeout is recognized by native cross-realm error identity and own ERR_SCRIPT_EXECUTION_TIMEOUT code, wrapped with the currently processed field and original cause. Other validation errors propagate. validateDynamicContract returns an execution signal only after the batch succeeds."
+  ],
+  "actualExecutionEvidence": {
+    "publishedTargetedBinding": "All three implementation-report working LF hashes equal the current published Git blobs, and raw hashes equal current files. All recorded implementation log hashes were recomputed and matched.",
+    "pathologicalCases": "The existing child fixture uses 50 a characters plus ! with ^(a+)+$, ^(a|aa)+$, and ^((a+))+$; each runs first and after 29 valid fields. It asserts SignalValidationError, current note field, and deepest native ERR_SCRIPT_EXECUTION_TIMEOUT. Parent process timeout is 5 seconds and requires exit zero plus bounded-pattern-rejected, preventing a killed or hung child from counting as success.",
+    "safeAndBudgetCases": "Existing test accepts 30 ordinary patterns and asserts exactly one VM call with timeout 100. Advancing a fake performance clock proves the budget is shared rather than renewed. Unicode, benign nested-pattern and normal mismatch cases remain covered.",
+    "contention": "Root four-worker/two-iteration evidence has eight exit-zero results with stable input hashes. It precedes the documented equivalent empty-list early return and indentation adjustment; this is supplementary contention evidence, not an exact-final-byte execution claim.",
+    "fullModule": "The recorded final module run passed 226 test files; its log SHA256 was independently matched. This is corroborating existing execution evidence, not a fresh test run by this reviewer."
+  },
+  "limits": [
+    "No new tests or API calls were run in this review. Existing source-bound execution records were inspected and cryptographically checked.",
+    "VM is used as a synchronous execution deadline, not as isolation for arbitrary JavaScript. The only executable VM source is the constant validate(); pattern/value strings are data, not generated JavaScript.",
+    "An allowed hostile signal can consume up to approximately the configured per-validation budget and concurrent/repeated requests can still consume aggregate CPU. No claim of whole-service immunity to overload or precise wall-clock scheduling under host starvation.",
+    "The separate syntax-check RegExp in signal_contract.ts is not this issue and is not newly dispositioned here. Its bounded input and earlier dedicated review remain separate.",
+    "No rule disabling, receipt approval, provider acceptance or source mutation. Before platform disposition, recheck exact issue, published revision and working/source binding; after any single authorized mutation, verify readback rather than retrying mutation."
+  ],
+  "sourceBindings": [
+    {
+      "path": "src/signal_schema.ts",
+      "revision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+      "gitBlobSha256": "69be3d8a092d59135813b71c77f862fb8527dc655100c8e5a07b116dc3010df2",
+      "workingRawSha256": "b4e339d5dc00ec07993bb5a73133371b2f0d39ad9ad616802354e2e1ca892cad",
+      "workingLfMatchesPublished": true
+    },
+    {
+      "path": "src/signal_contract.ts",
+      "revision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+      "gitBlobSha256": "c7dff51c06d538a2cce203c6495b3649bad8206d37995b3b6661730a207c22d4",
+      "workingRawSha256": "c7dff51c06d538a2cce203c6495b3649bad8206d37995b3b6661730a207c22d4",
+      "workingLfMatchesPublished": true
+    },
+    {
+      "path": "src/signal_parser.ts",
+      "revision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+      "gitBlobSha256": "606910e2de5b08cf5925a12909500027b9ec1bbebbd408710c4fee47a9ceb515",
+      "workingRawSha256": "606910e2de5b08cf5925a12909500027b9ec1bbebbd408710c4fee47a9ceb515",
+      "workingLfMatchesPublished": true
+    },
+    {
+      "path": "src/incoming_work_repository.ts",
+      "revision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+      "gitBlobSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b",
+      "workingRawSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b",
+      "workingLfMatchesPublished": true
+    },
+    {
+      "path": "tests/test_signal_contract_validation.js",
+      "revision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+      "gitBlobSha256": "09c433d6a74db11089a7bd5528b11af9de8335e46ce7313c76e96fac6c745225",
+      "workingRawSha256": "d236d034e5522fe21a5a98be8a6723ea8cef702598e6ef84c910b678315887c6",
+      "workingLfMatchesPublished": true
+    },
+    {
+      "path": "tests/fixtures/signal_contract_regex_child.js",
+      "revision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+      "gitBlobSha256": "9f49f8d4d79ed843031ed7f81adf9a981e6e970d6c94f0b50215bd8998109736",
+      "workingRawSha256": "e4268ceb7ab2504efe2468f61773441411ddfab24274eea4ea99c6a8bcef1e2c",
+      "workingLfMatchesPublished": true
+    }
+  ],
+  "evidenceBindings": [
+    {
+      "path": "reports/security-services/codacy-20aea4b-current.json",
+      "sha256": "ccb513e4ab2efdc5a0d4b6139a6b99ae1b97e2d6aa3771ff7fc353744199dba1"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-single-regex-boundary-implementation-review.json",
+      "sha256": "a756f8d63481e1126859d3f418785314d38a659650e43af2f13e1230c705b730"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-single-regex-boundary-root-independent-review.json",
+      "sha256": "50f376de5fa37d571a04133d90fa4b969662d3065130b7ecc9b3092ec5d7c869"
+    },
+    {
+      "path": "reports/security-services/fixer-regex-single-boundary-four-worker.json",
+      "sha256": "1723fabe5f6620012ec71291170664e61b65a6c42d787bf0770adbd032ce65c6"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-regex-maintenance-module-completion-2026-09-15.json",
+      "sha256": "bdc801d985889db7b6a6cce918beda2054fe1cab3374cb0b33536e90d6a4bc3d"
+    },
+    {
+      "path": "reports/security-services/fixer-maintenance-diagnostics-module.log",
+      "sha256": "b637521a6caac87b45adb9f9b384fc950e63dad6f8a0d0403373d78288009267"
+    },
+    {
+      "path": "reports/security-services/fixer-single-regex-boundary-after.log",
+      "sha256": "26bb59dfb1c558a25994fcf8b0d809bc964e22b12dd58e6c8af24881782a7574"
+    },
+    {
+      "path": "reports/security-services/fixer-single-regex-boundary-before.log",
+      "sha256": "ea25417bf853918c3bc2765770c254f78ac09820e64ba827480e3d6c0562c950"
+    }
+  ]
+}

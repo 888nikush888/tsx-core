@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { hasCurrentRestorableBackup } from './backup_evidence.js';
-import { validateConfig, writeConfigSync } from './config.js';
+import { validateConfig, writeConfigSync, type Config } from './config.js';
+import type { MetricPoint } from './metrics_tracker.js';
+import type { OutboxTask } from './db.js';
 import { configurationRevision, mergeConfiguration } from './ui_configuration.js';
 import { addLog, getLogEntries } from './logger.js';
 import {
@@ -91,7 +93,7 @@ import { type UiOperationStore, type UiJobKind, UI_PROCESS_INSTANCE_ID } from '.
 import { UiRestartCoordinator } from './ui_restart_coordinator.js';
 import { prepareUiParserTest, runUiParserTest, uiParserMetadata } from './ui_parser_lab.js';
 import { uiMcpProposalReview, approveReviewedMcpProposal } from './ui_mcp_review.js';
-import { redactReview, reviewHash } from './ui_change_review.js';
+import { redactReview, redactReviewRecord, reviewHash } from './ui_change_review.js';
 import { setupReviewContent, setupContentReview, uiSetupCurrentState } from './ui_setup_review.js';
 import { uiReviewTree } from './ui_review_tree.js';
 import { uiWorkflowPage, uiWorkflowDetail, type UiWorkflowList } from './ui_workflow_reads.js';
@@ -171,21 +173,28 @@ const MIME_TYPES: Record<string, string> = {
 
 interface WebServerState {
   startupAuthority?: Pick<import('./startup_authority.js').StartupAuthority, 'canMutate' | 'snapshot'>;
-  config: any;
-  state: any;
+  config: Config;
+  state: {
+    isRunning: boolean;
+    connectionState?: string;
+    totalForwardedCount?: number;
+    processedSinceRestart?: number;
+    startupTime?: number | null;
+    resolvedSourceChatIds?: Iterable<unknown>;
+  };
   getQueueState: () => {
     running: number;
     queued: number;
     maxConcurrency: number;
     paused: boolean;
   };
-  startForwarding: (config: any) => Promise<void>;
-  stopForwarding: () => Promise<any>;
+  startForwarding: (config: Config) => Promise<void>;
+  stopForwarding: () => Promise<void>;
   reloadConfig: () => void;
-  applyRuntimeConfig: (config: any) => void;
-  persistConfig?: (config: any) => void;
-  getMetricsHistory?: () => any[];
-  getOutboxTasks?: (statuses?: string[]) => Promise<any[]>;
+  applyRuntimeConfig: (config: Config) => void;
+  persistConfig?: (config: Config) => void;
+  getMetricsHistory?: () => MetricPoint[];
+  getOutboxTasks?: (statuses?: string[]) => Promise<OutboxTask[]>;
   retryOutboxTask?: (id: string) => Promise<boolean>;
   acknowledgeOutboxTask?: (id: string, reason: string) => Promise<boolean>;
   auditTrail?: Pick<EnterpriseAuditTrail, 'record' | 'snapshot' | 'replayRemote' | 'flush'>;
@@ -378,7 +387,7 @@ async function readJsonBody(req: http.IncomingMessage, maxBytes = 256 * 1024): P
   }
 }
 
-function publicConfig(config: any): any {
+function publicConfig(config: Config): Record<string, unknown> {
   return JSON.parse(
     JSON.stringify(config || {}, (key, value) => (SECRET_CONFIG_KEYS.has(key) ? undefined : value))
   );
@@ -508,7 +517,7 @@ function installMutationAuditBarrier(context: RequestContext): void {
     let outcome: 'succeeded' | 'rejected' | 'failed' = 'failed';
     if (originalStatus < 400) outcome = 'succeeded';
     else if (originalStatus < 500) outcome = 'rejected';
-    void trail.record({
+    trail.record({
       phase: 'completed',
       action: audit.action,
       requestId: context.requestId,
@@ -545,7 +554,7 @@ function installMutationAuditBarrier(context: RequestContext): void {
   };
 }
 
-function containsSecretConfig(input: any): boolean {
+function containsSecretConfig(input: unknown): boolean {
   if (!input || typeof input !== 'object') return false;
   return Object.entries(input).some(
     ([key, value]) => SECRET_CONFIG_KEYS.has(key) || containsSecretConfig(value)
@@ -652,7 +661,7 @@ function firstConfigured(...values: Array<string | undefined>): string {
 }
 
 async function statusHandler({ res, appState }: RequestContext): Promise<void> {
-  const xmlConfig = appState.config.xmlParsing ?? {};
+  const xmlConfig: Partial<Config['xmlParsing']> = appState.config.xmlParsing ?? {};
   const apiKey = process.env.OPENROUTER_API_KEY;
   sendJson(res, 200, {
     startup: appState.startupAuthority?.snapshot(),
@@ -769,8 +778,14 @@ function sendDownload(
   res.end(content);
 }
 
+function requireActor(context: RequestContext): AuthenticatedActor {
+  const actor = context.actor;
+  if (!actor) throw new HttpError(401, 'Valid dashboard bearer token required.');
+  return actor;
+}
+
 function accessStatusHandler(context: RequestContext): void {
-  const actor = context.actor!;
+  const actor = requireActor(context);
   sendJson(context.res, 200, {
     mode: actor.identity?.provider ?? 'bearer',
     role: actor.role,
@@ -882,7 +897,7 @@ function requireConfirmation(context: RequestContext, expected: string, message:
   return false;
 }
 
-function requireTaskId(payload: any): string {
+function requireTaskId(payload: Record<string, unknown>): string {
   if (typeof payload.id !== 'string' || payload.id.length < 1 || payload.id.length > 256) {
     throw new HttpError(400, 'A valid outbox task id is required.');
   }
@@ -991,7 +1006,7 @@ async function controlHandler(context: RequestContext): Promise<void> {
       ) {
         throw new HttpError(409, 'Routing is already active.');
       }
-      void context.appState.startForwarding(context.appState.config).catch((error) => {
+      context.appState.startForwarding(context.appState.config).catch((error) => {
         addLog(`[ERROR] request_id=${context.requestId} Web start failed: ${error.message}`);
       });
       sendJson(context.res, 202, {
@@ -1043,7 +1058,7 @@ function getConfigHandler({ res, appState }: RequestContext): void {
   sendJson(res, 200, { ...configuration, configRevision: configurationRevision(configuration) });
 }
 
-function applyConfiguration(context: RequestContext, update: any, logMessage: string): void {
+function applyConfiguration(context: RequestContext, update: unknown, logMessage: string): void {
   const candidateConfig = validateConfig(mergeConfiguration(context.appState.config, update));
   (context.appState.persistConfig ?? writeConfigSync)(candidateConfig);
   Object.assign(context.appState.config, candidateConfig);
@@ -1139,7 +1154,7 @@ async function previewSetupBundleHandler(context: RequestContext): Promise<void>
     const current = await withDatabaseTransaction(() => uiSetupCurrentState(publicConfig(context.appState.config)));
     const baseHash = reviewHash(current);
     setupBundlePreviews.set(key, {
-      actorId: context.actor!.id,
+      actorId: requireActor(context).id,
       bundle,
       bundleHash: bundle.checksum,
       baseHash,
@@ -1223,25 +1238,25 @@ function setupBundleAccountMappings(payload: any, preview: SetupBundlePreview): 
   return accountMappings;
 }
 
-function activateSetupConfiguration(context: RequestContext, replacement: any): void {
+function activateSetupConfiguration(context: RequestContext, replacement: Config): void {
   for (const key of Object.keys(context.appState.config)) delete context.appState.config[key];
   Object.assign(context.appState.config, replacement);
   context.appState.reloadConfig();
   context.appState.applyRuntimeConfig(context.appState.config);
 }
 
-function restoreSetupConfiguration(context: RequestContext, previousConfig: any): void {
+function restoreSetupConfiguration(context: RequestContext, previousConfig: Config): void {
   (context.appState.persistConfig ?? writeConfigSync)(previousConfig);
   activateSetupConfiguration(context, previousConfig);
 }
 
 async function applySetupBundleHandler(context: RequestContext): Promise<void> {
-  let previousConfig: any = null;
+  let previousConfig: Config | null = null;
   let configPersisted = false;
   try {
     pruneSetupBundlePreviews();
     const payload = await readJsonBody(context.req, 256 * 1024);
-    const preview = consumeSetupBundlePreview(payload, context.actor!.id);
+    const preview = consumeSetupBundlePreview(payload, requireActor(context).id);
     const accountMappings = setupBundleAccountMappings(payload, preview);
     const assertPreviewCurrent = async () => {
       if (reviewHash(await uiSetupCurrentState(publicConfig(context.appState.config))) !== preview.baseHash) {
@@ -1252,15 +1267,16 @@ async function applySetupBundleHandler(context: RequestContext): Promise<void> {
     if (!context.appState.runBackupNow) throw new HttpError(503, 'A verified backup is required before setup replacement.');
     const backupArtifact = await context.appState.runBackupNow();
     previousConfig = structuredClone(context.appState.config);
-    const replacementConfig = structuredClone(preview.bundle.systemConfig);
-    if (containsSecretConfig(replacementConfig)) throw new HttpError(400, 'Setup replacement contains forbidden secret configuration.');
+    const replacementInput = structuredClone(preview.bundle.systemConfig);
+    if (containsSecretConfig(replacementInput)) throw new HttpError(400, 'Setup replacement contains forbidden secret configuration.');
+    const replacementConfig = validateConfig(replacementInput);
     const result = await applyPortableSetupBundle({
       bundle: preview.bundle,
       accountMappings,
-      actorId: context.actor!.id,
+      actorId: requireActor(context).id,
       beforeImport: assertPreviewCurrent,
       beforeCommit: () => {
-        (context.appState.persistConfig ?? writeConfigSync)(replacementConfig as any);
+        (context.appState.persistConfig ?? writeConfigSync)(replacementConfig);
         configPersisted = true;
         activateSetupConfiguration(context, replacementConfig);
       },
@@ -1286,7 +1302,7 @@ async function applySetupBundleHandler(context: RequestContext): Promise<void> {
 }
 
 function requireCurrentVerifiedBackup(context: RequestContext): void {
-  const operations = context.appState.getOperationsStatus?.() as any;
+  const operations = context.appState.getOperationsStatus?.();
   const backup = operations?.backup;
   if (!hasCurrentRestorableBackup(backup)) {
     throw new HttpError(409, 'A healthy, integrity-verified, configuration-coherent and artifact-local restore-eligible backup with matching SHA proofs no older than 30 minutes is required for this destructive action.');
@@ -1369,6 +1385,21 @@ function operationsHandler({ res, appState }: RequestContext): void {
   });
 }
 
+async function backupJobArtifact(context: RequestContext) {
+  if (!context.appState.runBackupNow) throw new HttpError(503, 'Backup control is unavailable.');
+  return { artifactName: path.basename(await context.appState.runBackupNow()) };
+}
+
+async function recoveredBackupJobArtifact(context: RequestContext, objectName: string) {
+  if (!context.appState.recoverOffsiteBackup) throw new HttpError(503, 'Off-site backup recovery is unavailable.');
+  return { artifactName: await context.appState.recoverOffsiteBackup(objectName) };
+}
+
+function runBackupDrillJob(context: RequestContext, name: string) {
+  if (!context.appState.runBackupDrill) throw new HttpError(503, 'Isolated restore drills are unavailable.');
+  return context.appState.runBackupDrill(name);
+}
+
 async function runBackupHandler(context: RequestContext): Promise<void> {
   if (!context.appState.runBackupNow) {
     sendJson(context.res, 503, { error: 'Backup control is unavailable.', requestId: context.requestId });
@@ -1379,9 +1410,9 @@ async function runBackupHandler(context: RequestContext): Promise<void> {
     if (typeof jobId === 'string') {
       const store = context.appState.uiOperations;
       if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
-      const accepted = await store.accept({ id: jobId, kind: 'backup-create', actorId: context.actor!.id, scope: { database: 'current', configuration: 'current' }, request: { action: 'backup-create' } });
+      const accepted = await store.accept({ id: jobId, kind: 'backup-create', actorId: requireActor(context).id, scope: { database: 'current', configuration: 'current' }, request: { action: 'backup-create' } });
       sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
-      if (accepted.created) void store.run(jobId, async () => ({ artifactName: path.basename(await context.appState.runBackupNow!()) })).catch(error => addLog(`[ERROR] Backup job persistence failed: ${errorMessage(error)}`));
+      if (accepted.created) store.run(jobId, () => backupJobArtifact(context)).catch(error => addLog(`[ERROR] Backup job persistence failed: ${errorMessage(error)}`));
       return;
     }
     const artifact = await context.appState.runBackupNow();
@@ -1497,13 +1528,14 @@ async function runRestartCommand(context: RequestContext, command: {
   operation: () => Promise<Record<string, unknown>>;
 }): Promise<void> {
   const coordinator = restartCoordinator(context.appState);
-  const store = context.appState.uiOperations!;
+  const store = context.appState.uiOperations;
+  if (!store) throw new HttpError(503, 'Operator store is unavailable.');
   const id = command.id ?? randomUUID();
   if (typeof id !== 'string') throw new HttpError(400, 'Invalid operator job ID.');
   // Lookup may cross a maintenance hold, but creating/executing a new destructive
   // command still requires the original startup gate. accept verifies the actor and payload.
   if (!(await store.get(id))) assertStartupMutationAllowed(context, 'POST');
-  const accepted = await store.accept({ id, kind: command.kind, actorId: context.actor!.id, scope: command.scope, request: command.request });
+  const accepted = await store.accept({ id, kind: command.kind, actorId: requireActor(context).id, scope: command.scope, request: command.request });
   const job = accepted.created ? await store.runRestart(id, command.operation) : accepted.job;
   coordinator.schedule(job, context.res);
   const restartScheduled = job.restart?.sourceInstanceId === store.processInstanceId;
@@ -1571,9 +1603,9 @@ async function recoverOffsiteBackupHandler(context: RequestContext): Promise<voi
     if (payload.jobId !== undefined) {
       const store = context.appState.uiOperations;
       if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
-      const accepted = await store.accept({ id: payload.jobId, kind: 'backup-recover', actorId: context.actor!.id, scope: { objectName }, request: { objectName } });
+      const accepted = await store.accept({ id: payload.jobId, kind: 'backup-recover', actorId: requireActor(context).id, scope: { objectName }, request: { objectName } });
       sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
-      if (accepted.created) void store.run(accepted.job.id, async () => ({ artifactName: await context.appState.recoverOffsiteBackup!(objectName) })).catch(error => addLog(`[ERROR] Offsite recovery job persistence failed: ${errorMessage(error)}`));
+      if (accepted.created) store.run(accepted.job.id, () => recoveredBackupJobArtifact(context, objectName)).catch(error => addLog(`[ERROR] Offsite recovery job persistence failed: ${errorMessage(error)}`));
       return;
     }
     const artifactName = await context.appState.recoverOffsiteBackup(objectName);
@@ -1844,7 +1876,8 @@ async function uiWorkflowObjectsHandler(context: RequestContext): Promise<void> 
   try {
     const query = context.parsedUrl.searchParams; const kind = query.get('kind') as UiWorkflowList;
     if (!['resources', 'paths', 'revisions'].includes(kind)) throw new HttpError(400, 'Invalid workflow object kind.');
-    const result = query.has('id') ? await uiWorkflowDetail(kind, query.get('id')!) : await uiWorkflowPage(kind, query);
+    const idParam = query.get('id');
+    const result = idParam !== null ? await uiWorkflowDetail(kind, idParam) : await uiWorkflowPage(kind, query);
     if (!result) throw new HttpError(404, 'Workflow object not found.');
     sendJson(context.res, 200, result);
   } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
@@ -2247,7 +2280,7 @@ async function uiWorkflowDraftHandler(context: RequestContext): Promise<void> {
       if (context.req.method === 'DELETE') {
         if (!requireConfirmation(context, 'delete-workflow-draft', 'Explicit graph draft deletion confirmation required.')) return;
         sendJson(context.res, 200, { result: await deleteUiWorkflowDraft(payload.id, payload.baseVersion) });
-      } else sendJson(context.res, 200, { draft: await saveUiWorkflowDraft(payload, context.actor!.id) });
+      } else sendJson(context.res, 200, { draft: await saveUiWorkflowDraft(payload, requireActor(context).id) });
     }
   } catch (error) { sendError(context, new HttpError(409, errorMessage(error))); }
 }
@@ -2265,6 +2298,13 @@ async function uiJobsHandler(context: RequestContext): Promise<void> {
   } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error))); }
 }
 
+function requireParserConsent(payload: Record<string, unknown>, prepared: Awaited<ReturnType<typeof prepareUiParserTest>>): void {
+  if (payload.externalDataConsent !== true || !prepared.preview.externalDataPolicyAccepted) throw new HttpError(412, 'Global external data policy and explicit test consent are required.');
+  if (!prepared.preview.providerConfigured) throw new HttpError(503, 'AI provider credential is not configured.');
+  if (payload.previewHash !== prepared.preview.previewHash || !Number.isSafeInteger(payload.previewObservedAt)
+    || (payload.previewObservedAt as number) > Date.now() || Date.now() - (payload.previewObservedAt as number) > 300_000) throw new HttpError(409, 'Parser preview is stale or does not match this source and configuration. Preview again.');
+}
+
 async function uiParserLabHandler(context: RequestContext): Promise<void> {
   try {
     if (context.req.method === 'GET') {
@@ -2274,16 +2314,13 @@ async function uiParserLabHandler(context: RequestContext): Promise<void> {
     const prepared = await prepareUiParserTest(context.appState.config, payload);
     if (context.parsedUrl.pathname.endsWith('/preview')) { sendJson(context.res, 200, prepared.preview); return; }
     if (!requireConfirmation(context, 'run-parser-test', 'Explicit external AI parser test confirmation required.')) return;
-    if (payload.externalDataConsent !== true || !prepared.preview.externalDataPolicyAccepted) throw new HttpError(412, 'Global external data policy and explicit test consent are required.');
-    if (!prepared.preview.providerConfigured) throw new HttpError(503, 'AI provider credential is not configured.');
-    if (payload.previewHash !== prepared.preview.previewHash || !Number.isSafeInteger(payload.previewObservedAt)
-      || payload.previewObservedAt > Date.now() || Date.now() - payload.previewObservedAt > 300_000) throw new HttpError(409, 'Parser preview is stale or does not match this source and configuration. Preview again.');
+    requireParserConsent(payload, prepared);
     const store = context.appState.uiOperations;
     if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
-    const accepted = await store.accept({ id: payload.jobId, kind: 'parser-test', actorId: context.actor!.id,
+    const accepted = await store.accept({ id: payload.jobId, kind: 'parser-test', actorId: requireActor(context).id,
       scope: { pathId: prepared.preview.pathId, sourceSha256: prepared.preview.sourceSha256, sourceChars: prepared.preview.sourceChars, previewHash: prepared.preview.previewHash }, request: { previewHash: payload.previewHash } });
     sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
-    if (accepted.created) void store.run(accepted.job.id, () => runUiParserTest(prepared)).catch(() => addLog('[ERROR] Parser test result could not be persisted. Inspect the job; do not repeat automatically.'));
+    if (accepted.created) store.run(accepted.job.id, () => runUiParserTest(prepared)).catch(() => addLog('[ERROR] Parser test result could not be persisted. Inspect the job; do not repeat automatically.'));
   } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
 }
 
@@ -2294,9 +2331,9 @@ async function uiBackupDrillHandler(context: RequestContext): Promise<void> {
     if (!store || !context.appState.runBackupDrill) throw new HttpError(503, 'Isolated restore drills are unavailable.');
     const payload = await readJsonBody(context.req, 4096);
     const name = backupArtifactName(payload.name);
-    const accepted = await store.accept({ id: payload.jobId, kind: 'backup-drill', actorId: context.actor!.id, scope: { artifactName: name }, request: { name } });
+    const accepted = await store.accept({ id: payload.jobId, kind: 'backup-drill', actorId: requireActor(context).id, scope: { artifactName: name }, request: { name } });
     sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
-    if (accepted.created) void store.run(accepted.job.id, () => context.appState.runBackupDrill!(name)).catch(error => addLog(`[ERROR] Operator drill result persistence failed: ${errorMessage(error)}`));
+    if (accepted.created) store.run(accepted.job.id, () => runBackupDrillJob(context, name)).catch(error => addLog(`[ERROR] Operator drill result persistence failed: ${errorMessage(error)}`));
   } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error))); }
 }
 
@@ -2307,7 +2344,7 @@ async function mcpSnapshotHandler(context: RequestContext): Promise<void> {
   }
   try {
     sendJson(context.res, 200, {
-      ...redactReview(context.parsedUrl.searchParams.get('view') === 'operator' ? await uiMcpSnapshot(context.parsedUrl.searchParams) : await mcpDashboardSnapshot()),
+      ...redactReviewRecord(context.parsedUrl.searchParams.get('view') === 'operator' ? await uiMcpSnapshot(context.parsedUrl.searchParams) : await mcpDashboardSnapshot()),
       endpoint: configuredMcpEndpoint(),
     });
   } catch (error) {
@@ -2318,7 +2355,9 @@ async function mcpSnapshotHandler(context: RequestContext): Promise<void> {
 async function mcpProposalDetailHandler(context: RequestContext): Promise<void> {
   if (context.actor?.role !== 'admin') { sendError(context, new HttpError(403, 'Administrator role required.')); return; }
   try {
-    const id = new URL(context.req.url!, 'http://localhost').searchParams.get('id');
+    const rawUrl = context.req.url;
+    if (!rawUrl) throw new HttpError(400, 'Invalid proposal identifier.');
+    const id = new URL(rawUrl, 'http://localhost').searchParams.get('id');
     if (!id || !/^[a-zA-Z0-9_-]{1,64}$/.test(id)) throw new HttpError(400, 'Invalid proposal identifier.');
     const review = await uiMcpProposalReview(id);
     if (!review) throw new HttpError(404, 'Proposal not found.');
@@ -2723,30 +2762,46 @@ function bootstrapStatusHandler(
   });
 }
 
+function bootstrapTokenState(authenticator: DashboardAuthenticator): void {
+  if (authenticator.mode !== 'token') {
+    throw new HttpError(409, 'Token bootstrap is unavailable in OIDC mode.');
+  }
+  if (authenticator.isConfigured()) {
+    throw new HttpError(409, 'Dashboard authentication is already configured.');
+  }
+}
+
+function requireBootstrapSecretStore(context: RequestContext): NonNullable<WebServerState['secretStore']> {
+  if (!context.appState.secretStore) {
+    throw new HttpError(503, 'Managed secret storage is unavailable.');
+  }
+  return context.appState.secretStore;
+}
+
+async function requireBootstrapProof(context: RequestContext): Promise<void> {
+  if (isDirectLoopbackRequest(context.req)) return;
+  const payload = await readJsonBody(context.req, 4 * 1024);
+  if (!validBootstrapProof(payload.bootstrapProof)) {
+    throw new HttpError(403, 'Dashboard bootstrap requires the one-time container bootstrap proof.');
+  }
+}
+
+function requireBootstrapOrigin(context: RequestContext): void {
+  const origin = typeof context.req.headers.origin === 'string' ? context.req.headers.origin : '';
+  if (!origin || !isAllowedOrigin(origin)) {
+    throw new HttpError(403, 'Dashboard bootstrap requires an allowed browser origin.');
+  }
+}
+
 async function bootstrapHandler(
   context: RequestContext,
   authenticator: DashboardAuthenticator
 ): Promise<void> {
   try {
-    if (authenticator.mode !== 'token') {
-      throw new HttpError(409, 'Token bootstrap is unavailable in OIDC mode.');
-    }
-    if (authenticator.isConfigured()) {
-      throw new HttpError(409, 'Dashboard authentication is already configured.');
-    }
-    if (!context.appState.secretStore) {
-      throw new HttpError(503, 'Managed secret storage is unavailable.');
-    }
-    if (!isDirectLoopbackRequest(context.req)) {
-      const payload = await readJsonBody(context.req, 4 * 1024);
-      if (!validBootstrapProof(payload.bootstrapProof)) {
-        throw new HttpError(403, 'Dashboard bootstrap requires the one-time container bootstrap proof.');
-      }
-    }
-    const origin = typeof context.req.headers.origin === 'string' ? context.req.headers.origin : '';
-    if (!origin || !isAllowedOrigin(origin)) {
-      throw new HttpError(403, 'Dashboard bootstrap requires an allowed browser origin.');
-    }
+    bootstrapTokenState(authenticator);
+    requireBootstrapSecretStore(context);
+    await requireBootstrapProof(context);
+    requireBootstrapOrigin(context);
     const actor: AuthenticatedActor = { role: 'admin', id: 'bootstrap:proved-operator' };
     if (context.appState.recovery?.active && context.appState.recovery.allowLoopbackLocalSession) {
       addLog(`[CRITICAL] request_id=${context.requestId} Recovery-mode proved bootstrap initialized without an audit trail.`, {
@@ -2811,8 +2866,7 @@ async function authorizeLocalSessionInitialization(
     });
     return true;
   }
-  if (!(await authorizeMutationAudit(context, actor, 'POST', '/api/local-session'))) return false;
-  return true;
+  return authorizeMutationAudit(context, actor, 'POST', '/api/local-session');
 }
 
 async function localSessionHandler(
@@ -2925,36 +2979,49 @@ function staticResponseBody(
   return { body: gzipSync(content, { level: 6 }), encoding: 'gzip' };
 }
 
-async function serveStatic(context: RequestContext, url: string): Promise<void> {
+function staticFilePath(url: string): string | { status: 400 | 403; error: string } {
   let decodedPath: string;
   try {
     decodedPath = decodeURIComponent(url === '/' ? 'index.html' : url.replace(/^\/+/, ''));
   } catch {
-    sendJson(context.res, 400, { error: 'Invalid URL encoding.', requestId: context.requestId });
-    return;
+    return { status: 400, error: 'Invalid URL encoding.' };
   }
   const absolutePath = path.resolve(STATIC_ROOT, decodedPath);
-  if (absolutePath !== STATIC_ROOT && !absolutePath.startsWith(`${STATIC_ROOT}${path.sep}`)) {
-    sendJson(context.res, 403, { error: 'Invalid static file path.', requestId: context.requestId });
+  if (absolutePath !== STATIC_ROOT && !absolutePath.startsWith(`${STATIC_ROOT}${path.sep}`)) return { status: 403, error: 'Invalid static file path.' };
+  return absolutePath;
+}
+
+function staticResponseHeaders(mimeType: string, body: Buffer, versioned: boolean, encoding?: string): Record<string, string> {
+  return {
+    'Content-Type': mimeType,
+    'Content-Length': String(body.length),
+    'Cache-Control': versioned ? 'public, max-age=31536000, immutable' : 'no-cache',
+    ...(encoding ? { 'Content-Encoding': encoding, Vary: 'Accept-Encoding' } : {}),
+  };
+}
+
+async function serveStaticFile(res: http.ServerResponse, absolutePath: string, decodedPath: string, acceptEncoding: string | undefined): Promise<void> {
+  const stats = await fsPromises.stat(absolutePath);
+  if (!stats.isFile()) {
+    await serveSpaFallback(res);
+    return;
+  }
+  const mimeType = MIME_TYPES[path.extname(absolutePath).toLowerCase()] ?? 'application/octet-stream';
+  const content = await fsPromises.readFile(absolutePath);
+  const response = staticResponseBody(content, mimeType, acceptEncoding);
+  const isVersionedAsset = decodedPath.startsWith(`assets${path.sep}`) || decodedPath.startsWith('assets/');
+  res.writeHead(200, staticResponseHeaders(mimeType, response.body, isVersionedAsset, response.encoding));
+  res.end(response.body);
+}
+
+async function serveStatic(context: RequestContext, url: string): Promise<void> {
+  const absolutePath = staticFilePath(url);
+  if (typeof absolutePath !== 'string') {
+    sendJson(context.res, absolutePath.status, { error: absolutePath.error, requestId: context.requestId });
     return;
   }
   try {
-    const stats = await fsPromises.stat(absolutePath);
-    if (!stats.isFile()) {
-      await serveSpaFallback(context.res);
-      return;
-    }
-    const mimeType = MIME_TYPES[path.extname(absolutePath).toLowerCase()] ?? 'application/octet-stream';
-    const content = await fsPromises.readFile(absolutePath);
-    const response = staticResponseBody(content, mimeType, context.req.headers['accept-encoding']);
-    const isVersionedAsset = decodedPath.startsWith(`assets${path.sep}`) || decodedPath.startsWith('assets/');
-    context.res.writeHead(200, {
-      'Content-Type': mimeType,
-      'Content-Length': String(response.body.length),
-      'Cache-Control': isVersionedAsset ? 'public, max-age=31536000, immutable' : 'no-cache',
-      ...(response.encoding ? { 'Content-Encoding': response.encoding, Vary: 'Accept-Encoding' } : {}),
-    });
-    context.res.end(response.body);
+    await serveStaticFile(context.res, absolutePath, decodeURIComponent(url === '/' ? 'index.html' : url.replace(/^\/+/, '')), context.req.headers['accept-encoding']);
   } catch {
     await serveSpaFallback(context.res);
   }
@@ -3114,15 +3181,19 @@ async function internalViewerPayload(context: RequestContext, relativePath: stri
   if (collectionLoader) return collectionLoader();
   const detail = /^\/(accounts|positions|orders|trades)\/([^/]+)$/.exec(relativePath);
   if (detail) {
-    const id = decodedViewerId(detail[2]);
+    const kind = detail[1];
+    const rawId = detail[2];
+    if (kind !== 'accounts' && kind !== 'positions' && kind !== 'orders' && kind !== 'trades') throw new HttpError(404, 'Internal viewer endpoint not found.');
+    if (rawId === undefined) throw new HttpError(404, 'Viewer resource not found.');
+    const id = decodedViewerId(rawId);
     const detailLoaders = {
       accounts: viewerAccounts,
       positions: viewerPositions,
       orders: viewerOrders,
       trades: viewerTrades,
     };
-    const payload = await detailLoaders[detail[1] as keyof typeof detailLoaders]({ id });
-    const value = (payload as Record<string, unknown>)[detail[1].slice(0, -1)];
+    const payload = await detailLoaders[kind]({ id });
+    const value = (payload as Record<string, unknown>)[kind.slice(0, -1)];
     if (!value) throw new HttpError(404, 'Viewer resource not found.');
     return payload;
   }
@@ -3185,7 +3256,7 @@ export function startWebServer(
 ): http.Server {
   const authenticator = appState.authenticator ?? dashboardAuthenticatorFromEnvironment();
   server = http.createServer((req, res) => {
-    void handleRequest(req, res, appState, authenticator).catch((error) => {
+    handleRequest(req, res, appState, authenticator).catch((error) => {
       addLog(`[ERROR] Unhandled dashboard request error: ${errorMessage(error)}`);
       if (!res.headersSent) sendJson(res, 500, { error: 'Unexpected server error.' });
       else res.destroy();
@@ -3199,7 +3270,7 @@ export function startWebServer(
     const listeningPort = typeof address === 'object' && address ? address.port : port;
     console.log(`[INFO] Web Control Dashboard listening on http://${host}:${listeningPort}`);
     if (appState.uiOperations && appState.requestRestart) {
-      void restartCoordinator(appState).reconcile().catch(error => {
+      restartCoordinator(appState).reconcile().catch(error => {
         addLog(`[CRITICAL] Durable restart reconciliation failed: ${errorMessage(error)}`);
       });
     }

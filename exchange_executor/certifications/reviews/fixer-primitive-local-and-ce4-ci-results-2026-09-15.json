@@ -1,0 +1,31 @@
+{
+  "kind": "actual-local-module-and-published-ci-results",
+  "baseRevision": "8465469158745db718d4c7a50fca4b37a6774a04",
+  "workingSourceChanges": [
+    "src/contract_values.ts"
+  ],
+  "local": {
+    "session": 12208,
+    "exitCode": 0,
+    "testFilesPassed": 226,
+    "coverage": {
+      "statements": 96.51,
+      "branches": 86.52,
+      "functions": 99.2,
+      "lines": 96.51
+    },
+    "log": "reports/security-services/fixer-primitive-final-module.log",
+    "sha256": "ad61f222e5b2bd3c3050b6d66322e164a36e0cfb07972e18578bf139a100a1da"
+  },
+  "publishedCI": {
+    "run": 34945186491,
+    "revision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+    "result": "failure",
+    "test": "tests/test_signal_contract_validation.js:410",
+    "error": "All 30 ordinary field patterns must remain supported; note_25 pattern evaluation exceeded its execution budget or failed.",
+    "causeLimit": "Generic catch does not distinguish shared deadline exhaustion from VM failure; under investigation.",
+    "sonar": "skipped",
+    "container": "skipped",
+    "logSha256": "d97abe09a609c1b26c89b3465a503b60ecf353f6aa77c314f651679d8a569dc1"
+  }
+}

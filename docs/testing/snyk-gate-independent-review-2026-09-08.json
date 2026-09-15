@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "reviewedRevision": "6f1ccc59e3c0b96701be22e9e90938602d86cc20",
+  "decision": "reviewed-no-remaining-blocking-finding-in-bounded-scope",
+  "sourceBindings": [
+    {
+      "path": "scripts/check_snyk_code_review.js",
+      "sha256": "0bee5994e73af93bfbd0489df778219316c2ebe4414673ff0f9ed8526b2e34c6"
+    },
+    {
+      "path": "tests/test_snyk_code_review.js",
+      "sha256": "02ea697a243aaadd4874493307a81c767a3d78745017ad7e5e42171abd4cd634"
+    }
+  ],
+  "scope": "Independent read-only review of the Snyk review evaluator and its tests. CI activation and remote scan integrity are not approved or performed here.",
+  "reviewedControls": [
+    "Exact finding identity, rule and primary path",
+    "Complete sorted fingerprint commitment and source-location/dataflow evidence digest",
+    "Every SARIF flow source and independent context source bound to exact SHA256 bytes",
+    "Only false-positive disposition can pass; open/accepted-risk/proposed remain blocking",
+    "Malformed or empty thread flows and invalid scanner execution metadata rejected",
+    "CLI status restricted to0or1; filesystem realpath must remain in checkout"
+  ],
+  "verification": {
+    "unitTests": {
+      "passed": 16,
+      "failed": 0
+    },
+    "independentAdversarialCases": [
+      {
+        "name": "missing-thread-flow",
+        "disposition": "rejected",
+        "reason": "Missing thread flows."
+      },
+      {
+        "name": "changed-fingerprint",
+        "remaining": 1,
+        "disposition": "findings"
+      },
+      {
+        "name": "contradictory-invocation-exit",
+        "disposition": "rejected",
+        "reason": "SARIF reports a scanner error."
+      },
+      {
+        "name": "error-notification",
+        "disposition": "rejected",
+        "reason": "SARIF reports an execution or configuration error."
+      },
+      {
+        "name": "string-execution-success",
+        "disposition": "rejected",
+        "reason": "SARIF reports incomplete or invalid execution."
+      },
+      {
+        "name": "findings-exit-without-results",
+        "disposition": "rejected",
+        "reason": "SARIF findings exit has no finding evidence."
+      }
+    ],
+    "historicalFullScan": {
+      "resultCount": 85,
+      "reviewedFalsePositives": 80,
+      "remaining": 5,
+      "revision": "fa31311c0310cafb88a3eb62977d8756546349aa"
+    },
+    "logs": [
+      "reports/security-services/snyk-gate-independent-tests.log",
+      "reports/security-services/snyk-gate-independent-negative-before.json",
+      "reports/security-services/snyk-gate-independent-negative-after.json",
+      "reports/security-services/snyk-gate-independent-exact-revision.json"
+    ]
+  },
+  "limits": "Review manifest provenance remains trusted repository content, not a scanner attestation. The original SARIF hash is audit provenance; current result fingerprints/flow and source/context commitments enforce applicability. Live deployment/TLS and provider acceptance remain outside this review."
+}

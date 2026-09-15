@@ -46,8 +46,10 @@ function groupMoneyRows(rows: ClosedMoneyRow[]): MoneyRows {
 
 function presentSummary(group: MoneyRows, allowEmpty: boolean): MoneySummary {
   const keys = [...group.currencies.keys()];
+  const first = keys[0];
   const known = !group.unresolved && (keys.length === 1 || (allowEmpty && keys.length === 0));
-  const value = known ? group.currencies.get(keys[0]!) ?? zero() : null;
+  let value: MoneyValue | null = null;
+  if (known) value = first === undefined ? zero() : group.currencies.get(first) ?? zero();
   return { realizedPnl: value?.decimal ?? null, realizedPnlValue: value,
     reportingCurrency: known ? keys[0] ?? null : null, accountingStatus: known ? 'complete' : 'unresolved',
     valuedSubtotalByCurrency: Object.fromEntries([...group.currencies].map(([currency, amount]) => [currency, amount.decimal])),
@@ -120,7 +122,16 @@ export async function channelClosedMoneyPerformance(channelId: string, accountId
   return { ...result, realizedPnl: result.realizedPnl };
 }
 
-function presentedMoneyEvent(row: any, event: Awaited<ReturnType<typeof getMoneyEvent>>, accountReady: boolean) {
+// Exact aliases selected below; the intent side is nullable because it is LEFT JOINed.
+interface MoneyEventQueryRow {
+  eventId: string; accountId: string; channelId: string | null;
+  exchange: string; mode: string; intentStatus: string | null; occurredAt: number; kind: string;
+}
+export interface MoneyPerformanceRow extends MoneyEventQueryRow, ClosedMoneyRow {
+  realizedPnlValue: MoneyValue | null;
+}
+
+function presentedMoneyEvent(row: MoneyEventQueryRow, event: Awaited<ReturnType<typeof getMoneyEvent>>, accountReady: boolean): MoneyPerformanceRow {
   if (!event || event.accountId !== row.accountId || event.occurredAt !== row.occurredAt || event.kind !== row.kind) {
     return { ...row, realizedPnl: null, realizedPnlValue: null, reportingCurrency: null, accountingStatus: 'unresolved' };
   }
@@ -130,16 +141,16 @@ function presentedMoneyEvent(row: any, event: Awaited<ReturnType<typeof getMoney
 }
 
 /** Events are filtered by execution time, independently of whether their intent is still open. */
-export async function moneyPerformanceRows(since: number, until: number): Promise<any[]> {
+export async function moneyPerformanceRows(since: number, until: number): Promise<MoneyPerformanceRow[]> {
   await projectAllFillAccounting();
   return withDatabaseTransaction(async db => {
-    const rows = await db.all<any[]>(`SELECT event.id AS eventId, event.account_id AS accountId, intent.channel_id AS channelId,
+    const rows = await db.all<MoneyEventQueryRow[]>(`SELECT event.id AS eventId, event.account_id AS accountId, intent.channel_id AS channelId,
     account.exchange, account.mode, intent.status AS intentStatus, event.occurred_at AS occurredAt,
     event.kind FROM trading_money_events event
     JOIN trading_accounts account ON account.id = event.account_id
     LEFT JOIN trading_trade_intents intent ON intent.id = event.intent_id
     WHERE event.occurred_at >= ? AND event.occurred_at < ? ORDER BY event.occurred_at,event.id`, [since, until]);
-    const accounts = new Map<string, boolean>(), result = [];
+    const accounts = new Map<string, boolean>(), result: MoneyPerformanceRow[] = [];
     for (const row of rows) {
       if (!accounts.has(row.accountId)) accounts.set(row.accountId,
         (await moneyLedgerSnapshot(row.accountId, since, until)).valuationStatus === 'valued');

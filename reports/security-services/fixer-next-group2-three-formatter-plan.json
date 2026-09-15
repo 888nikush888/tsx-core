@@ -1,0 +1,70 @@
+{
+  "kind": "read-only-next-three-baseline-money-formatter-candidates",
+  "revision": "3e41cf9514149f625c6fd8fdb19473df46db93df",
+  "candidates": [
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlscW0=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 53,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL",
+      "function": "moneyText",
+      "minimalChange": "Parameter summary: Record<string, any> -> Record<string, unknown>; function body unchanged.",
+      "reason": "accountingStatus and reportingCurrency are checked before display; realizedPnl has an explicit string guard before moneyValueFromDecimal; realizedPnlValue is already passed to validateMoneyValue(unknown)."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtvYXA=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 71,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL",
+      "function": "subtotalLines",
+      "minimalChange": "Parameter summary: Record<string, any> -> Record<string, unknown>; function body unchanged.",
+      "reason": "The valuedSubtotalValuesByCurrency property is truthy/object/non-array checked, currency keys are validated and each value goes through validateMoneyValue(unknown), with malformed values omitted by existing catch."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZ3cnk=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 81,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL",
+      "function": "moneyLines",
+      "minimalChange": "Parameter summary: Record<string, any> -> Record<string, unknown>; function body unchanged.",
+      "reason": "The function only checks presence of money properties and delegates to moneyText/subtotalLines. unknown field values require no unchecked read or cast and preserve unresolved fallback."
+    }
+  ],
+  "sourceBindings": [
+    {
+      "path": "src/telegram_viewer/formatters.ts",
+      "gitBlobSha256": "2025f0799045188b0981ff67a30890a55e2234c022a88642cdfa18dd0735fe59"
+    },
+    {
+      "path": "src/viewer_projection.ts",
+      "gitBlobSha256": "b907ea161dba31172cb2646bacb1dbf5fd7b0cd750800d0fc8a6f12b51c46740"
+    },
+    {
+      "path": "src/trading_money_value.ts",
+      "gitBlobSha256": "a674a815ba0154832c1a7fadf6a4cfdb41f043131b6f9ed6d78c83b5a8cff513"
+    },
+    {
+      "path": "tests/test_trading_fx_journal_viewer.js",
+      "gitBlobSha256": "5b2d03362316e8dbbca4af043bdd5d758619dbee3464dacee4de43073d68dad0"
+    }
+  ],
+  "scope": "Three baseline JS-0323 occurrences in Group2; none is one of the already implemented A0 fixes. No sources, worktrees or commits created.",
+  "rationale": "These are useful checked boundaries rather than a broad DTO rewrite: unknown makes existing scalar/status/currency validation mandatory at future edits. Current bodies already validate all accessed values, so no new coercion or malformed-object policy is necessary. No newly confirmed exploit is claimed.",
+  "producerConsumerContext": "Viewer projections deliver complete/unresolved MoneySummary records; public Telegram formatters also handle legacy/malformed payloads. Keep the unknown boundary instead of promising that every external payload is already MoneySummary. Negative fees, exact fractions and conservative bounds are rendered via validated MoneyValue. All arrays, list fallback, pagination and SQL remain outside this small change.",
+  "mustPreserve": [
+    "All bodies exactly unchanged, including undefined/null distinction, complete status guard and contradictory realizedPnl versus MoneyValue rejection.",
+    "Currency separation and unresolved per-currency subtotals; signed values and exact rational/bounded formats.",
+    "Current catches and no-throw formatting fallback; 4096 clipping at line boundary."
+  ],
+  "verificationPlan": [
+    "Run existing tests/test_trading_fx_journal_viewer.js: actual journal/viewer projection, negative tiny rational, bounded amount, mixed USD/USDT subtotals, contradictory scalar alias, legacy scalar, invalid bounds, 4096 clipping.",
+    "Run tests/test_telegram_viewer_contracts.js and tests/test_telegram_viewer_service.js for caller contracts.",
+    "Run backend typecheck and targeted ESLint. Transpile full old/new formatter with same compiler options and compare emitted JavaScript bytes to prove erased-only change."
+  ],
+  "deferred": "Do not include values() or export payload any removal in this batch: those propagate across list/singular primitive handling and require a separate typed DTO plan. Projection performance row typing likewise should be separate and bind SQL aliases plus currency grouping.",
+  "executedTests": false,
+  "newScannerClosureClaims": 0
+}

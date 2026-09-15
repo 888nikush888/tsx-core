@@ -12,7 +12,7 @@ import re
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, NoReturn, cast
 from urllib.parse import parse_qsl, urlsplit
 
 from common import ExchangeContractError
@@ -47,7 +47,13 @@ def _client_binding(rest: Any) -> tuple[str, tuple[str, str]]:
     values = (getattr(rest, 'apiKey', None), getattr(rest, 'secret', None))
     if any(not isinstance(value, str) or not value for value in values):
         raise _error('credentials')
-    return root, values
+    return root, cast(tuple[str, str], values)
+
+
+def _validate_request_integers(params: dict[str, Any]) -> None:
+    for key in ('since', 'before', 'from'):
+        if key in params and (type(params[key]) is not int or params[key] < 0 or len(str(params[key])) > MAX_NUMBER_TEXT):
+            raise _error('request integer')
 
 
 def _request_params(params: Any) -> dict[str, Any]:
@@ -56,9 +62,7 @@ def _request_params(params: Any) -> dict[str, Any]:
         raise _error('request parameters')
     if params['version'] != 'v3' or params['sort'] != 'asc' or type(params['count']) is not int or params['count'] != 500:
         raise _error('request profile')
-    for key in ('since', 'before', 'from'):
-        if key in params and (type(params[key]) is not int or params[key] < 0 or len(str(params[key])) > MAX_NUMBER_TEXT):
-            raise _error('request integer')
+    _validate_request_integers(params)
     if params['before'] <= params['since'] or ('from' in params and params['from'] < 1):
         raise _error('request interval')
     return dict(params)
@@ -77,7 +81,7 @@ class _Capture:
     failed: bool = False
     exact: dict[str, Any] | None = field(default=None, repr=False)
 
-    def fail(self, reason: str) -> None:
+    def fail(self, reason: str) -> NoReturn:
         self.failed = True
         raise _error(reason)
 
@@ -90,11 +94,14 @@ class _Capture:
                 or not hmac.compare_digest(credentials[1], self.credentials[1])):
             self.fail('changed client binding')
 
+    def _assert_transport_text(self, url: str, headers: dict[str, Any]) -> None:
+        if not _request_text(url) or any(not _request_text(key) or not _request_text(value) for key, value in headers.items()):
+            self.fail('transport text')
+
     def assert_request(self, url: Any, method: Any, headers: Any, body: Any) -> None:
         if method != 'GET' or body is not None or not isinstance(url, str) or not isinstance(headers, dict):
             self.fail('transport shape')
-        if not _request_text(url) or any(not _request_text(key) or not _request_text(value) for key, value in headers.items()):
-            self.fail('transport text')
+        self._assert_transport_text(url, headers)
         try:
             parsed = urlsplit(url)
         except ValueError:
@@ -127,7 +134,7 @@ def _number(token: str) -> Decimal:
     except InvalidOperation as error:
         raise _error('number syntax') from error
     # Check before formatting: 1e100000000 must not allocate a huge string.
-    if not result.is_finite() or abs(result.as_tuple().exponent) > MAX_NUMBER_TEXT or result.adjusted() > MAX_NUMBER_TEXT:
+    if not result.is_finite() or abs(cast(int, result.as_tuple().exponent)) > MAX_NUMBER_TEXT or result.adjusted() > MAX_NUMBER_TEXT:
         raise _error('number range')
     if len(format(result, 'f')) > MAX_NUMBER_TEXT:
         raise _error('expanded number length')

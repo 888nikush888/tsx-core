@@ -1,0 +1,36 @@
+{
+  "contract": "SQLite TEXT affinity permits BLOB values. Existing requireString now rejects nonstring before ID/JSON/status/error coercion. Valid strings not trimmed or changed; nullable error retained.",
+  "test": "Existing viewer-service suite extended using isolated realSQLite fixture; fixed-column BLOB updates prove reject of malformed stored values then restoring original text preserves public readback. No operational database modified.",
+  "validation": {
+    "typecheck": 0,
+    "after": {
+      "log": "fixer-viewer-state-strings-after.log",
+      "exit": 0
+    },
+    "before": {
+      "exit": 1,
+      "log": "fixer-viewer-state-strings-before.log",
+      "reason": "Missing expected rejection in firstBLOBuserIDcase"
+    },
+    "eslint": 0
+  },
+  "limits": "Runtimechange for malformed DB rows only; not fullsuite or provider verification. FourSonarS6551 targets require rescan.",
+  "baseRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+  "changes": [
+    "user_id",
+    "payload_json",
+    "last_test.status",
+    "last_test.error"
+  ],
+  "bindings": [
+    {
+      "path": "src/telegram_viewer/state_repository.ts",
+      "rawSha256": "8fdbd47fd1806ddce15e6e9f1a036c33477ff9f5e8cc0559db707f3949f2d076"
+    },
+    {
+      "path": "tests/test_telegram_viewer_service.js",
+      "rawSha256": "9fc48fa3feb85256d34cf5781b4baedf9d6d565f2508de870431e32260b2eac0"
+    }
+  ],
+  "kind": "viewer-stored-string-contract-correction"
+}

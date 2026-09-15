@@ -6,7 +6,7 @@ Dieses Dokument ist der Einstiegspunkt für Installation, Konfiguration, Betrieb
 
 Review- und Release-Freigaben in GitHub bleiben davon getrennte Governance-Kontrollen. Sie entscheiden über Softwareänderungen und Deployments, nicht über einzelne Nachrichten oder KI-Ergebnisse.
 
-Ein lokaler grüner Testlauf ist ein Release-Candidate-Nachweis, aber noch kein Produktionsnachweis. Ein Production-GO ist erst zulässig, wenn alle in [Enterprise-Nachweise](#enterprise-nachweise-und-aktuelle-offene-punkte) genannten externen Gates für exakt denselben Commit belegt sind.
+Ein lokaler grüner Testlauf ist ein Release-Candidate-Nachweis, aber noch kein Produktionsnachweis. Ein Production-GO ist erst zulässig, wenn alle in [Enterprise-Nachweise](#14-enterprise-nachweise-und-aktuelle-offene-punkte) genannten externen Gates für exakt denselben Commit belegt sind.
 
 ## 1. Systemüberblick
 

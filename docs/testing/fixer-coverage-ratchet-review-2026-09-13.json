@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-coverage-ratchet-review",
+  "reviewDate": "2026-09-13",
+  "decision": "Proposed increase is supported by both platform module-coverage runs; no threshold lowering or scope reduction is needed.",
+  "oldBaseline": {
+    "statements": 96.21,
+    "branches": 86.23,
+    "functions": 99.19,
+    "lines": 96.21
+  },
+  "proposedBaseline": {
+    "statements": 96.48,
+    "branches": 86.44,
+    "functions": 99.2,
+    "lines": 96.48
+  },
+  "componentwisePlatformMinimum": {
+    "statements": 96.48,
+    "branches": 86.44,
+    "functions": 99.2,
+    "lines": 96.48
+  },
+  "revisionEvidence": {
+    "testedHead": "c684aafc4c43de9031c68a1a3145d0430f43f850",
+    "ciMerge": "108a9f4d55ad289dfcfb213233a346535248111e",
+    "headTree": "fec5f0e6a1591381b34f43f9c789d325c97e0155",
+    "mergeTree": "fec5f0e6a1591381b34f43f9c789d325c97e0155",
+    "treesIdentical": true,
+    "reviewHead": "cc306679b74e09d8e82c4ac8fccd04f3f9e0629a"
+  },
+  "linux": {
+    "jobId": 103692702455,
+    "statusIndependentlyReadViaGitHubApi": "completed",
+    "conclusion": "success",
+    "startedAt": "2026-09-13T07:33:43Z",
+    "completedAt": "2026-09-13T08:00:06Z",
+    "platform": "Ubuntu 24.04.5",
+    "node": "22.23.2",
+    "install": "Clean checkout with npm ci --ignore-scripts --no-audit --no-fund; npm cache restoration does not replace clean dependency installation. Root installation added 404 packages and sqlite3 rebuild succeeded.",
+    "log": "reports/security-services/fixer-ci-c684aaf-core.log",
+    "sha256": "7eda3b9e89bf8babd198193af496cd37f9222e9bedd842ddd15adbc03bb0caa1",
+    "moduleCoverage": {
+      "statements": 96.48,
+      "branches": 86.5,
+      "functions": 99.2,
+      "lines": 96.48
+    },
+    "evidenceLines": {
+      "checkout": 161,
+      "npmCi": 221,
+      "moduleCommand": 1559,
+      "all226FilesPassed": 2436,
+      "moduleAggregate": 2440,
+      "ratchetPassed": 2647
+    }
+  },
+  "windows": {
+    "platform": "win32; local execution provenance supplied by root and recorded in existing verification report",
+    "install": "Existing locked node_modules installation; NOT a clean install. This review does not establish fresh Windows installation reproducibility.",
+    "node": "Node.js 22 local execution as recorded by task provenance; plain module log does not itself print node version.",
+    "log": "reports/security-services/fixer-module-coverage-final.log",
+    "sha256": "e54ca1e30ee735af6a97fb8c65c93f8f0a62577a08fc019c0ef5918c419a6ebb",
+    "moduleCoverage": {
+      "statements": 96.48,
+      "branches": 86.44,
+      "functions": 99.2,
+      "lines": 96.48
+    },
+    "evidenceLines": {
+      "moduleCommand": 2,
+      "all226FilesPassed": 880,
+      "moduleAggregate": 884,
+      "ratchetPassed": 1091
+    },
+    "sourceBinding": {
+      "record": "docs/testing/fixer-final-evidence-2026-09-13.json",
+      "recordedSourceRevision": "2f16fc25f9c248b20749cd0e1b24a650d8f94dde",
+      "recordedLogHashMatches": true,
+      "subsequentChangesToC684aaf": [
+        ".github/workflows/security-services.yml",
+        "docs/testing/fixer-final-evidence-2026-09-13.json",
+        "docs/testing/fixer-integration-2026-09-13.json",
+        "docs/testing/fixer-quality-verification-2026-09-13.md",
+        "docs/testing/snyk-code-independent-review-fixers-2026-09-13.json",
+        "exchange_executor/certifications/reviews/fixer-python-implementation-delta-review-2026-09-13.json"
+      ],
+      "coverageInputChangesToC684aaf": []
+    }
+  },
+  "scope": {
+    "configuration": "c8.modules.json",
+    "all": true,
+    "include": [
+      "src/**/*.ts"
+    ],
+    "exclude": [
+      "src/**/*.d.ts",
+      "src/trading_types.ts",
+      "src/forwarder.ts",
+      "src/*_cli.ts"
+    ],
+    "includesWebServerAndTelegramRuntime": true,
+    "harness": "scripts/check_module_coverage.js executes c8 --config c8.modules.json node tests/run_all.js, workers=4; child failure stops before summary evaluation. Baseline compares finite total percentages for the four metrics.",
+    "notConfusedWithCriticalScope": "Linux critical coverage is 97.16/89.88/100/97.16 at log line1548. It is a separate narrower run and was not used for this recommendation.",
+    "cleanFlagMeaning": "c8 clean=true cleans coverage output, not dependency installations."
+  },
+  "currentHeadDelta": {
+    "coverageInputPathsChangedSinceC684aaf": [
+      "src/delivery_tracker.ts"
+    ],
+    "deliveryReview": "reports/security-services/fixer-delivery-type-independent-review.json",
+    "deliveryWorkingSha256": "bd8ee825675eeb4535b4de0f3419d9c8f0f77be2ac1b4ea686128365afc45abd",
+    "rationale": "Only delivery_tracker.ts differs within these coverage inputs: independently reviewed type annotations with byte-identical ES2022/CommonJS emitted JavaScript. Remaining committed changes concern Python acceptance runner exports and documentation. A currently dirty Python journal test is outside the TypeScript module scope.",
+    "limit": "No fresh full coverage execution at current HEAD was performed by this reviewer. Type-only source changes can alter source-map line accounting even where emitted runtime is identical; future current-head CI remains the final exact-revision check."
+  },
+  "recommendations": [
+    "Raise all four thresholds to the componentwise minimum shown; every proposed metric strictly exceeds its old threshold.",
+    "Keep include/exclude scope unchanged. Describe the new evidence accurately as Linux clean install plus Windows existing locked dependencies. The current baseline scope wording mentioning clean Windows checkouts must not be presented as provenance for this local run.",
+    "Retain subsequent CI enforcement; do not weaken thresholds if a later source change causes a regression."
+  ],
+  "inspectedInputs": [
+    {
+      "path": "coverage-baseline.json",
+      "gitBlobSha256": "ec55b4f16445ce6bb65d03ae5d778a4e528baae366a123464261c950aa8b68a9"
+    },
+    {
+      "path": "c8.modules.json",
+      "gitBlobSha256": "9efd9c3c937a735eb414858e598834b76e0c753e0361dc5fe21b2e20a14a183b"
+    },
+    {
+      "path": "scripts/check_module_coverage.js",
+      "gitBlobSha256": "46606239b374571f9ab3ed7f0f02e974235f4519f326292026b2edcf8f5f4d79"
+    },
+    {
+      "path": "tests/run_all.js",
+      "gitBlobSha256": "b4a7484763bd151cb64abec3130d9e7467bbe17bce2b447c319620e1b70c928f"
+    },
+    {
+      "path": "package.json",
+      "gitBlobSha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00"
+    },
+    {
+      "path": "package-lock.json",
+      "gitBlobSha256": "86f4c2706a029c7672cda1849370b4ea5f70060fd66eac74c4bec5b6313724fa"
+    }
+  ],
+  "sourceOrThresholdsChangedByReviewer": false,
+  "broadTestsRerunByReviewer": false
+}

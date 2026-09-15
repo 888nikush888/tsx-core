@@ -100,7 +100,7 @@ class AccountStream:
                     ticker.cancel()
                 self._record_channel_success("tickers")
                 if requested and self.clients.pro.has.get("watchTickers") is True:
-                    provider_symbols = [CcxtAdapter._market(self.clients, symbol)["symbol"] for symbol in sorted(requested)]
+                    provider_symbols = [CcxtAdapter.get_market(self.clients, symbol)["symbol"] for symbol in sorted(requested)]
                     self._tasks["tickers"] = asyncio.create_task(
                         self._watch("tickers", lambda: self.clients.pro.watch_tickers(provider_symbols)),
                         name=f"ccxt-pro-tickers-{self.account['id']}",
@@ -116,8 +116,6 @@ class AccountStream:
                 attempt = 0
                 self._record_channel_success(channel)
                 self._ingest(channel, value)
-            except asyncio.CancelledError:
-                raise
             except Exception as error:
                 attempt = min(attempt + 1, 16)
                 self._record_channel_failure(channel, error)

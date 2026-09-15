@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "sonar-relation-page-parameter-grouping",
+  "source": {
+    "path": "src/ui_trade_relations.ts",
+    "baselineRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+    "baselineGitBlobSha256": "4edb9ed77ae4d2cc7a3d430c071636ef83c2c0f0880dd84e1540fbff7aa2591f",
+    "workingRawSha256": "ca82b32cf7f7aa5043588a093ee88897450429cac5061271788aca3639456498",
+    "workingLfSha256": "959399fe2ad68cfbe2de116af6e55b3d59032cd8b85f7e02b06fa2b29b4d5cb3"
+  },
+  "change": "Eight positional arguments reduced to five by grouping filter, observedAt, cursor and limit into typed RelationPageContext. One same-file caller updated; exported API unchanged.",
+  "review": [
+    "Full relationPage executable body remains exactly identical to baseline.",
+    "Caller computes, validates and decodes the same locals before the same Promise and transaction boundary. Object fields are plain local values, immediately destructured.",
+    "SQL definition whitelist, bound parameter order, clock/id descending order, limit+1 lookahead, filter fingerprint and snapshot cutoff remain unchanged.",
+    "web_server relations GET caller and original tests inspected; no API shape or authorization change."
+  ],
+  "contextBindings": [
+    {
+      "path": "src/web_server.ts",
+      "baselineRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+      "baselineGitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653",
+      "workingRawSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653",
+      "workingLfSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653"
+    },
+    {
+      "path": "tests/test_ui_next_reads.js",
+      "baselineRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+      "baselineGitBlobSha256": "ee4a0e77d50ad846b473600991c7079de71cb1e16be1675033ccf72ff2f8dc93",
+      "workingRawSha256": "ee4a0e77d50ad846b473600991c7079de71cb1e16be1675033ccf72ff2f8dc93",
+      "workingLfSha256": "ee4a0e77d50ad846b473600991c7079de71cb1e16be1675033ccf72ff2f8dc93"
+    }
+  ],
+  "validation": [
+    {
+      "command": "node --import tsx tests/test_ui_next_reads.js",
+      "result": "PASS",
+      "coverage": "105 orders/fills/money split100+5, uniqueness, observedAt continuity, cross-intent cursor rejection, raw payload/fingerprint exclusion, exact decimal strings, empty events, absent intent and unsupported inherited key",
+      "logSha256": "7ed208c035cb95faed4dd0362870587b23a1b2d43b6623ab0fa5305344648564"
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "result": "PASS",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "envReadOnlyReview": {
+    "source": {
+      "path": "src/env.ts",
+      "baselineRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+      "baselineGitBlobSha256": "16179827f026d45b47abf9686279fe133d00f3c7f908dccec905cf857e32dbe7",
+      "workingRawSha256": "a8d0c33bcc0570fe59cc8a695b5279be25c80ce33a6ee0d5551b5802cc7aa499",
+      "workingLfSha256": "a8d0c33bcc0570fe59cc8a695b5279be25c80ce33a6ee0d5551b5802cc7aa499"
+    },
+    "finding": "S6644 secretFileReference ternary",
+    "safeReplacement": "return fileReference || null;",
+    "rationale": "Optional trim produces string|undefined. Current ternary returns null for undefined or empty/whitespace strings, otherwise the trimmed string. Logical OR preserves precisely that truthiness selection and one read. Nullish coalescing would retain the empty string and is not identical.",
+    "editedByThisAgent": false
+  },
+  "limits": [
+    "Provider rescan required to confirm S107 disappearance.",
+    "No commit, push or platform mutation."
+  ]
+}

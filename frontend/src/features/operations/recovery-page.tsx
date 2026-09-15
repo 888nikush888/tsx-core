@@ -1,3 +1,4 @@
+import type { ManagedSecretStatuses, RecoveryObservation } from "./operation-status-types";
 import { listEntries } from "@/shared/list-entries";
 import { useCallback, useState } from "react";
 import { jsonRequest, mutateAndObserve } from "@/lib/api";
@@ -10,14 +11,14 @@ import { useDirtyGuard } from '@/shared/forms/use-dirty-guard';
 import { DraftState } from '@/shared/forms/draft-state';
 
 export function RecoveryPage() {
-  const [status, setStatus] = useState<any>(null);
+  const [status, setStatus] = useState<RecoveryObservation | null>(null);
   const [serverConfig, setServerConfig] = useState<any>(null);
   const [runtimePayload, setRuntimePayload] = useState<any>(null);
   const configForm = useVersionedDraft<any>('recovery-config', serverConfig, serverConfig?.configRevision ?? null, {});
   const runtimeForm = useVersionedDraft<any>('recovery-runtime', runtimePayload?.settings ?? null, runtimePayload?.revision ?? null, {});
   const { draft: config, setDraft: setConfig } = configForm;
   const { draft: runtime, setDraft: setRuntime } = runtimeForm;
-  const [secrets, setSecrets] = useState<Record<string, any>>({});
+  const [secrets, setSecrets] = useState<ManagedSecretStatuses>({});
   const [secretInput, setSecretInput] = useState<Record<string, string>>({});
   useDirtyGuard(Object.values(secretInput).some(Boolean));
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -92,7 +93,7 @@ export function RecoveryPage() {
     <p>Authentifizierung: {status?.session?.role ?? "unbekannt"} · Betriebsbereitschaft: {recoveryStatus()}</p>
     <p>Dieser Einstieg benötigt nur Recovery, Konfiguration, Runtime-Einstellungen und Secretstatus. Alle Reparaturen durchlaufen die bestehenden Serverprüfungen.</p>
     {Object.entries(errors).filter(([, error]) => error).map(([name, error]) => <p role="alert" key={name}>{name}: {error}</p>)}
-    {listEntries<any>(status?.issues ?? [], issue => JSON.stringify([issue.component, issue.name, issue.reason])).map(({ item: issue, key }) => <p role="alert" key={key}>{issue.component} {issue.name}: {issue.reason}</p>)}
+    {listEntries(status?.issues ?? [], issue => JSON.stringify([issue.component, issue.name, issue.reason])).map(({ item: issue, key }) => <p role="alert" key={key}>{issue.component} {issue.name}: {issue.reason}</p>)}
     {message && <p><output>{message}</output></p>}
     <DraftState label="Recovery-Konfiguration" form={configForm} server={serverConfig} />
     <DraftState label="Recovery-Runtime" form={runtimeForm} server={runtimePayload?.settings} />
@@ -103,18 +104,18 @@ export function RecoveryPage() {
       <label>Primärmodell<input value={config.xmlParsing?.primaryModel ?? ""} onChange={(event) => setConfig({ ...config, xmlParsing: { ...config.xmlParsing, primaryModel: event.target.value } })} /></label>
       <label>Fallbackmodell<input value={config.xmlParsing?.fallbackModel ?? ""} onChange={(event) => setConfig({ ...config, xmlParsing: { ...config.xmlParsing, fallbackModel: event.target.value } })} /></label>
       <AiLimitsForm value={config.xmlParsing?.aiLimits ?? {}} onChange={(aiLimits) => setConfig({ ...config, xmlParsing: { ...config.xmlParsing, aiLimits } })} />
-      <button className="primary-button" disabled={!can("config") || configForm.conflict} onClick={() => void save("config", { apiId: config.apiId, xmlParsing: config.xmlParsing })}>Grundkonfiguration speichern</button>
+      <button className="primary-button" disabled={!can("config") || configForm.conflict} onClick={() => { save("config", { apiId: config.apiId, xmlParsing: config.xmlParsing }); }}>Grundkonfiguration speichern</button>
     </fieldset></section>}
     {runtimePayload && <section className="operations-card system-form"><h2>Runtime reparieren</h2>
       <RuntimeParameters value={runtime} onChange={setRuntime} payload={runtimePayload} readOnly={!can('runtime-settings')} />
-      <button className="primary-button" disabled={!can("runtime-settings") || runtimeForm.conflict || !runtimePayload.parameters} onClick={() => void save("runtime-settings", runtime)}>Runtime speichern</button>
+      <button className="primary-button" disabled={!can("runtime-settings") || runtimeForm.conflict || !runtimePayload.parameters} onClick={() => { save("runtime-settings", runtime); }}>Runtime speichern</button>
     </section>}
     <section className="operations-card system-form"><h2>Secrets reparieren</h2><p>Write-only. Leeres Feld behält den Wert bei. Extern verwaltete Werte werden an ihrer Quelle geändert.</p>
       {Object.entries(secrets).filter(([name]) => !name.startsWith("dashboard")).map(([name, state]) => <label key={name}>{name} · {state.configured ? "konfiguriert" : "fehlt"} · {state.source}
         <input type="password" autoComplete="off" disabled={!can('secrets') || state.source === "external" || state.editable === false} value={secretInput[name] ?? ""} onChange={(event) => setSecretInput({ ...secretInput, [name]: event.target.value })} /></label>)}
-      <button className="primary-button" disabled={!can("secrets") || !Object.values(secretInput).some((value) => value.trim())} onClick={() => void save("secrets", Object.fromEntries(Object.entries(secretInput).filter(([, value]) => value.trim())))}>Secrets speichern</button>
+      <button className="primary-button" disabled={!can("secrets") || !Object.values(secretInput).some((value) => value.trim())} onClick={() => { save("secrets", Object.fromEntries(Object.entries(secretInput).filter(([, value]) => value.trim()))); }}>Secrets speichern</button>
     </section>
-    <button className="secondary-button" disabled={!can("restart") || Boolean(restartFrom && !restarted)} onClick={() => void restart()}>Kontrolliert neu starten</button>
+    <button className="secondary-button" disabled={!can("restart") || Boolean(restartFrom && !restarted)} onClick={() => { restart(); }}>Kontrolliert neu starten</button>
     {status?.session?.role === "viewer" && <p>Viewer dürfen den Zustand lesen. Reparaturen erfordern Administratorrechte.</p>}
   </main>;
 }

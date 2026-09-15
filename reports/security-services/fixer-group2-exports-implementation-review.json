@@ -1,0 +1,159 @@
+{
+  "kind": "group2-formatter-export-boundary-types",
+  "revision": "babf3aab18f5603f92b29296c933203e2cba60bc",
+  "path": "src/telegram_viewer/formatters.ts",
+  "priorGitBlobSha256": "f310db8af4458f48d76e4f2b22dca94c0f3848b06b524437ff0d6cf50c3c3393",
+  "currentLfSha256": "ba0dae3cfe95222e52364e8b518f43b10e821fb73516cf046e627b93ec2235d7",
+  "changedParameters": 12,
+  "baselineCandidates": [
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGp3a2E=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 278,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlscm0=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 228,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJ4ZXg=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 189,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHludmo=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 179,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmR5anI=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 173,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlqbWc=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 166,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2V4YXI=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 157,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFycGU=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 150,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9nZWo=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 138,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxqZWU=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 131,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFneXE=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 87,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHluZ2o=",
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 27,
+      "rule": "JS-0323",
+      "scannerSeverity": "CRITICAL"
+    }
+  ],
+  "occurrenceMappingLimit": "Resolved using full baseline column metadata: line27 column41 payload-any ID T2NjdXJyZW5jZTpuZ3dlZHluZ2o= addressed; column61 return-any ID T2NjdXJyZW5jZTpqd2dxZHJ4d3g= remains.",
+  "changes": [
+    "Nine export payload parameters and values payload parameter now Record<string, unknown>.",
+    "accountingLines and accountEquityLine parameters now Record<string, unknown>.",
+    "One erased cast after existing truthy/object/non-array guard narrows the actual nested component to a dictionary of unknown values; no claim of validated money fields. moneyLines and validateMoneyValue retain their own checks."
+  ],
+  "verification": {
+    "sameWholeFileEmittedJavascript": true,
+    "emittedJavascriptSha256": "f5ac98a958c065ff161c99113f0b71d5400c8520e94f3b5b105212e11c5d263c",
+    "compilerOptions": {
+      "target": 9,
+      "module": 199
+    },
+    "execution": {
+      "service": 0,
+      "types": 0,
+      "money": 0,
+      "contracts": 0,
+      "lint": 0
+    }
+  },
+  "logs": [
+    {
+      "path": "reports/security-services/fixer-group2-exports-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reports/security-services/fixer-group2-exports-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reports/security-services/fixer-group2-exports-contracts.log",
+      "sha256": "700562ea613cbd5280f1beb6d99d4778ec0430d718effba97509def01e67154f"
+    },
+    {
+      "path": "reports/security-services/fixer-group2-exports-service.log",
+      "sha256": "591574577d94c36142321c3299ba1dcde94c8f2eef6a91c65be0f90b5b8002c1"
+    },
+    {
+      "path": "reports/security-services/fixer-group2-exports-money.log",
+      "sha256": "45e8b836077c576a7f8755fd6bd6ffc8de8ff817691adeb27365f7df9dff5b1a"
+    }
+  ],
+  "remaining": [
+    {
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 27,
+      "code": "values return any[]",
+      "reason": "Core API client validates outer JSON object only; nested plural arrays can contain primitives. values preserves actual array elements unchanged and singular fallback only accepts truthy objects. Current consumers directly read properties, producing primitive fallback lines but throwing on null/undefined. A truthful unknown[] conversion therefore needs an explicit runtime row-access policy, to be examined separately rather than asserted as already validated DTO.",
+      "findingId": "T2NjdXJyZW5jZTpqd2dxZHJ4d3g="
+    },
+    {
+      "path": "src/telegram_viewer/formatters.ts",
+      "line": 121,
+      "code": "formatSummary payload Record<string, any>",
+      "reason": "Optional nested counters are read without schema validation. ViewerSummary producer returns nested number counters but Core API response boundary only checks outer object. Require dedicated nested-property handling/validation retaining legitimate legacy values before removing this final any.",
+      "findingId": "T2NjdXJyZW5jZTptcmRwbnlqcm4="
+    }
+  ],
+  "limits": [
+    "No tests modified or assertions removed.",
+    "Not all Group2 findings closed: exactly 12 explicit any sites removed; two remain.",
+    "No scanner rescan, receipt/pin changes, commit or Services edits.",
+    "Initial edit attempt failed UTF-8 decoding before any source write; all five recorded successful checks were rerun after the actual UTF-8 edit."
+  ]
+}

@@ -39,18 +39,36 @@ def _cursor(state: dict[str, Any]) -> tuple[str, str | None]:
     return endpoint, token
 
 
+def _valid_continuation_token(token: Any) -> bool:
+    return token is None or (isinstance(token, str) and len(token) <= 3000
+                             and all(ord(char) >= 32 for char in token))
+
+
+def _header_token(rest: Any) -> str | None:
+    headers = getattr(rest, "last_response_headers", {}) or {}
+    if not isinstance(headers, dict):
+        raise ExchangeContractError("Invalid Kraken history continuation envelope.")
+    return next((value for key, value in headers.items() if str(key).lower() == "next-continuation-token"), None)
+
+
 def _next_token(response: dict[str, Any], rest: Any) -> str | None:
     body_token = response.get("continuationToken")
-    headers = getattr(rest, "last_response_headers", {}) or {}
-    if not isinstance(headers, dict) or (body_token is not None and not isinstance(body_token, str)):
+    if body_token is not None and not isinstance(body_token, str):
         raise ExchangeContractError("Invalid Kraken history continuation envelope.")
-    header_token = next((value for key, value in headers.items() if str(key).lower() == "next-continuation-token"), None)
+    header_token = _header_token(rest)
     if body_token and header_token and body_token != header_token:
         raise ExchangeContractError("Kraken history continuation headers contradict the body.")
     token = body_token or header_token
-    if token is not None and (not isinstance(token, str) or len(token) > 3000 or any(ord(char) < 32 for char in token)):
+    if not _valid_continuation_token(token):
         raise ExchangeContractError("Invalid Kraken history continuation token.")
     return token or None
+
+
+def _history_rows(response: dict[str, Any]) -> list[dict[str, Any]]:
+    rows = response.get("elements")
+    if not isinstance(rows, list) or len(rows) > 500 or type(response.get("len")) is not int or response["len"] != len(rows):
+        raise ExchangeContractError("Invalid Kraken account-history collection.")
+    return rows
 
 
 async def kraken_history_page(rest: Any, state: dict[str, Any], budget: RecoveryReadBudget
@@ -70,9 +88,7 @@ async def kraken_history_page(rest: Any, state: dict[str, Any], budget: Recovery
     account_uid = order_identifier(response.get("accountUid"), "Kraken history account")
     if state.get("providerAccountUid") not in (None, account_uid):
         raise ExchangeContractError("Kraken history changed its provider account identity.")
-    rows = response.get("elements")
-    if not isinstance(rows, list) or len(rows) > 500 or type(response.get("len")) is not int or response["len"] != len(rows):
-        raise ExchangeContractError("Invalid Kraken account-history collection.")
+    rows = _history_rows(response)
     next_token = _next_token(response, rest)
     if next_token is not None and next_token == token:
         raise ExchangeContractError("Kraken returned a non-advancing history cursor.")

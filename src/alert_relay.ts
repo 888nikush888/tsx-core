@@ -86,17 +86,21 @@ function parseAlertPayload(body: Buffer): unknown {
   }
 }
 
-function validAlertEnvelope(payload: any): payload is { status: 'firing' | 'resolved'; alerts: unknown[] } {
-  return Boolean(payload)
-    && (payload.status === 'firing' || payload.status === 'resolved')
-    && Array.isArray(payload.alerts)
-    && payload.alerts.length <= 100;
+function validAlertEnvelope(payload: unknown): payload is { status: 'firing' | 'resolved'; alerts: unknown[] } {
+  if (!payload || typeof payload !== 'object') return false;
+  const envelope = payload as { status?: unknown; alerts?: unknown };
+  return (envelope.status === 'firing' || envelope.status === 'resolved')
+    && Array.isArray(envelope.alerts)
+    && envelope.alerts.length <= 100;
 }
 
-function validAlertLabels(alert: any): boolean {
-  return Boolean(alert?.labels)
-    && typeof alert.labels.alertname === 'string'
-    && typeof alert.labels.severity === 'string';
+function validAlertLabels(alert: unknown): boolean {
+  if (!alert || typeof alert !== 'object') return false;
+  const labels = (alert as { labels?: unknown }).labels;
+  if (!labels || typeof labels !== 'object') return false;
+  const names = labels as { alertname?: unknown; severity?: unknown };
+  return typeof names.alertname === 'string'
+    && typeof names.severity === 'string';
 }
 
 function validateAlertPayload(body: Buffer): AlertSummary {
@@ -174,6 +178,12 @@ export function createAlertRelay(options: AlertRelayOptions): http.Server {
   return server;
 }
 
+export function startAlertRelay(options: AlertRelayOptions, port: number, host = '127.0.0.1'): http.Server {
+  const server = createAlertRelay(options);
+  server.listen(port, host, () => console.log(`[INFO] Alert relay listening on port ${port}.`));
+  return server;
+}
+
 export async function applyManagedRuntimeSettings(env: NodeJS.ProcessEnv = process.env): Promise<void> {
   if (env.ALERT_WEBHOOK_URL?.trim()) return;
   const settingsPath = env.RUNTIME_SETTINGS_PATH?.trim();
@@ -188,13 +198,12 @@ async function startFromEnvironment(): Promise<void> {
   await applyManagedRuntimeSettings(process.env);
   const port = Number(process.env.ALERT_RELAY_PORT || 9095);
   if (!Number.isSafeInteger(port) || port < 1 || port > 65_535) throw new Error('ALERT_RELAY_PORT must be between 1 and 65535.');
-  const server = createAlertRelay({
+  startAlertRelay({
     incomingToken: process.env.ALERT_RELAY_TOKEN || '',
     webhookUrl: process.env.ALERT_WEBHOOK_URL || '',
     webhookToken: process.env.ALERT_WEBHOOK_TOKEN || '',
     timeoutMs: Number(process.env.ALERT_WEBHOOK_TIMEOUT_MS || 10_000)
-  });
-  server.listen(port, '0.0.0.0', () => console.log(`[INFO] Alert relay listening on port ${port}.`));
+  }, port, process.env.ALERT_RELAY_HOST?.trim() || '127.0.0.1');
 }
 
 if (path.resolve(process.argv[1] || '') === path.resolve(fileURLToPath(import.meta.url))) {

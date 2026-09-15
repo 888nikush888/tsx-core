@@ -1,0 +1,39 @@
+{
+  "kind": "prepared-three-formatter-type-only-patch",
+  "revision": "3e41cf9514149f625c6fd8fdb19473df46db93df",
+  "path": "src/telegram_viewer/formatters.ts",
+  "originalLfSha256": "2025f0799045188b0981ff67a30890a55e2234c022a88642cdfa18dd0735fe59",
+  "proposedLfSha256": "f310db8af4458f48d76e4f2b22dca94c0f3848b06b524437ff0d6cf50c3c3393",
+  "patch": {
+    "path": "reports/security-services/fixer-next-group2-three-formatter.patch",
+    "sha256": "832642f7c3d1770a6ec6c77b92c6de17c5deeff93b459f37539f5f52eaa6e5a7",
+    "gitApplyCheckExit": 0
+  },
+  "changes": [
+    {
+      "name": "moneyText",
+      "change": "Only summary parameter Record<string, any> -> Record<string, unknown>"
+    },
+    {
+      "name": "subtotalLines",
+      "change": "Only summary parameter Record<string, any> -> Record<string, unknown>"
+    },
+    {
+      "name": "moneyLines",
+      "change": "Only summary parameter Record<string, any> -> Record<string, unknown>"
+    }
+  ],
+  "verification": {
+    "typescriptVersion": "6.0.3",
+    "entireBackendVirtualTypecheckDiagnosticCount": 0,
+    "method": "Actual root tsconfig options/fileNames, real CompilerHost with readFile override for only this formatter. No source write or emit performed.",
+    "identicalEmittedJavascript": true,
+    "emittedJavascriptSha256": "24d403f52ec77e79db25c33db6f6dd4bc3b43e4871a40d18425eaa8a52037213",
+    "sourceUnmodifiedAfterCheck": true
+  },
+  "limits": [
+    "No actual test suites executed; existing targeted test plan remains required after adoption.",
+    "No scanner run or closure claim.",
+    "No pins, receipt, source, worktree, commit or push mutation."
+  ]
+}

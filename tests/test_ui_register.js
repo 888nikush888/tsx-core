@@ -17,7 +17,7 @@ import { AI_LIMIT_RANGES, TRADING_ACCOUNT_STATUSES, WORKFLOW_RESOURCE_KINDS } fr
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const state = { role: 'viewer', recovery: false, canMutate: false, mutationInProgress: false, startupPhase: 'initializing', startupReason: 'Required evidence missing' };
 function assertFields(defaults, fields) {
-  for (const key of parameterLeaves(defaults)) assert.ok(fields.some(field => field[0] === key), 'Unmapped default field: ' + key);
+  for (const key of parameterLeaves(defaults)) assert.ok(fields.some(field => field[0] === key), `Unmapped default field: ${key}`);
 }
 async function testMappings() {
   for (const args of [['scripts/build_ui_route_inventory.js', '--check'], ['--import', 'tsx', 'scripts/export_ui_register.js', '--check']]) {
@@ -59,8 +59,8 @@ async function testParameters() {
   assertFields(DEFAULT_CONFIG, CONFIG_PARAMETER_FIELDS); assertFields(DEFAULT_STRATEGY_CONFIGURATION, STRATEGY_PARAMETER_FIELDS);
   for (const contract of BUILTIN_SIGNAL_CONTRACTS) assertFields({ ...contract.definition, additionalFields: [] }, CONTRACT_PARAMETER_FIELDS);
   assert.deepEqual(Object.keys(RESOURCE_PARAMETER_FIELDS).sort(), [...WORKFLOW_RESOURCE_KINDS].sort());
-  assert.deepEqual(paths.filter(key => key.startsWith('runtime.')).sort(), Object.keys(DEFAULT_RUNTIME_SETTINGS).map(key => 'runtime.' + key).sort());
-  for (const [key, range] of Object.entries(AI_LIMIT_RANGES)) assert.ok(catalog.find(entry => entry.path === 'config.xmlParsing.aiLimits.' + key).constraints.startsWith(range.join('..')));
+  assert.deepEqual(paths.filter(key => key.startsWith('runtime.')).sort(), Object.keys(DEFAULT_RUNTIME_SETTINGS).map(key => `runtime.${key}`).sort());
+  for (const [key, range] of Object.entries(AI_LIMIT_RANGES)) assert.ok(catalog.find(entry => entry.path === `config.xmlParsing.aiLimits.${key}`).constraints.startsWith(range.join('..')));
   assert.equal(catalog.find(entry => entry.path === 'resource.adaptive_risk.lockedTier').nullable, true);
   assert.equal(catalog.find(entry => entry.path === 'strategy.safety.requireProtectiveStop').editable, false);
   assert.equal(catalog.find(entry => entry.path === 'config.xmlParsing.aiLimits.fallbackAttempts').type, 'integer');

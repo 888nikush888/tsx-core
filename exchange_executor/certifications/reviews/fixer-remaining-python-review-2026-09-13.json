@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "reviewKind": "independent-remaining-python-implementation-delta-review",
+  "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "c684aafc4c43de9031c68a1a3145d0430f43f850",
+  "workingTreeAddendum": "provider_acceptance_runner.py alias cleanup reviewed separately and bound by working-file hash; this is not a frozen source approval",
+  "prior55FileBindingCheck": {
+    "covered": 55,
+    "laterReviewedWithinThese55": 6,
+    "mismatches": []
+  },
+  "remainingPythonPaths": [
+    {
+      "path": "exchange_executor/ccxt_candidate_reviews.py",
+      "baselineGitBlobSha256": "70735136b151723e2e90e06e4eabcb6067f1177e4db1a9be2b6ee49531bc2dd1",
+      "reviewedGitBlobSha256": "cb7b2fb229c71adf288df06c2bfc961050695748972eed62cafc10b5521a916b",
+      "reviewedWorkingFileSha256": "cb7b2fb229c71adf288df06c2bfc961050695748972eed62cafc10b5521a916b",
+      "workingDiffersFromRevision": false,
+      "rationale": "Only2 fixed inventory/assessment hashes changed; validation logic unchanged. Existing security-candidate and fixer-candidate review chain binds the current values, preserves103 decisions/reasons and explicitly renews no implementation receipts. Current candidate policy tests reject altered decision/reason/inventory, evidence drift and invalid implementation receipts."
+    },
+    {
+      "path": "exchange_executor/ccxt_implementation_reviews.py",
+      "baselineGitBlobSha256": "1c112ad4d5900e5e9d305e2f173334f5328ed3e16c328d2126e5a9a4a6af141a",
+      "reviewedGitBlobSha256": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289",
+      "reviewedWorkingFileSha256": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289",
+      "workingDiffersFromRevision": false,
+      "rationale": "Only already-installed historical Hyperliquid profile1 pin changed since origin. Requirements assessment links050f94... to historical coverage report and stale current implementation receipt. No profile added; this report grants no current approval and changes no pin."
+    },
+    {
+      "path": "exchange_executor/server.py",
+      "baselineGitBlobSha256": "b3ea3c096b465ce379aa8bbd8790207a08250e5b787c414836381fd2507c5423",
+      "reviewedGitBlobSha256": "90442c0b962745834e34b6d2fb1a833561040c5b756acd2f1557e5e05a17f5a7",
+      "reviewedWorkingFileSha256": "90442c0b962745834e34b6d2fb1a833561040c5b756acd2f1557e5e05a17f5a7",
+      "workingDiffersFromRevision": false,
+      "rationale": "Only default EXECUTOR_HOST changes from0.0.0.0 to127.0.0.1. Explicit host, port, authentication, app initialization and shutdown are unchanged. Current executor Dockerfile and Compose explicitly set0.0.0.0. Targeted listener test covers absent/IPv4/IPv6 inputs with no real bind."
+    },
+    {
+      "path": "exchange_executor/tests/acceptance_contracts.py",
+      "baselineGitBlobSha256": null,
+      "reviewedGitBlobSha256": "90f1181a1fce16aa23cb1540fd449986c625e60c8a3e982d8708e70bd15dd85e",
+      "reviewedWorkingFileSha256": "90f1181a1fce16aa23cb1540fd449986c625e60c8a3e982d8708e70bd15dd85e",
+      "workingDiffersFromRevision": false,
+      "rationale": "All17 moved definitions and2constants are AST-identical to historical runner. Same closed schemas, source/profile binding, Decimal limits/quantity sums, authorization and refusal messages. Validation-only module has no journal or transport dependency."
+    },
+    {
+      "path": "exchange_executor/tests/acceptance_journal.py",
+      "baselineGitBlobSha256": "96eea6cf86278ce83f761b4ee0417349293c7d87ffb3b8a1178c16a7c18bcd54",
+      "reviewedGitBlobSha256": "49c6942656f2eca91042c0b13459924d31ab952d99f5993cd29805d79e22f4c1",
+      "reviewedWorkingFileSha256": "49c6942656f2eca91042c0b13459924d31ab952d99f5993cd29805d79e22f4c1",
+      "workingDiffersFromRevision": false,
+      "rationale": "Only3 delayed runner imports become1 module-level contracts import. AST identical after removing exactly these import nodes. Owner/path checks, SQLite FULL/fsync, checksum chain, append ordering, replay, deadline and close behavior unchanged. Offline adversarial/crash tests pass."
+    },
+    {
+      "path": "exchange_executor/tests/provider_acceptance_runner.py",
+      "baselineGitBlobSha256": "0821dfe03b5fd1cdbe19adfb2ac357bed6a269043722cd7b42683c1a9669ec24",
+      "reviewedGitBlobSha256": "7823d167f96dd9ec1cf0ad5f766d5f42340ec1fe8f55d389a974c9d9e9912f70",
+      "reviewedWorkingFileSha256": "1f08e609644273ae0b0aa261ab9ab7d013858fa9980237e4078e8e77a7c7c461",
+      "workingDiffersFromRevision": true,
+      "rationale": "Remaining runner AST is identical after excluding moved definitions, imports and explicit re-export assignments. All19 public moved definition/constant aliases have identity equal to contracts module. Latest uncommitted alias cleanup preserves exported names through ordinary imports or _contracts.name assignments. AcceptanceGuard state transitions unchanged; execute still refuses real provider transport and cleanup reports providerAcceptanceVerified=False.28 focused acceptance tests rerun successfully after this concurrent change."
+    },
+    {
+      "path": "exchange_executor/tests/test_additional_exchange_profiles.py",
+      "baselineGitBlobSha256": "220c7e82ce5d0aa9ee2a94c7a20252d69d7220bf29132f9af20438e0ffe92997",
+      "reviewedGitBlobSha256": "8fb66714e7986c9e0c3781998fe7437ab3f989f35d5b2fdc05f78228762431e0",
+      "reviewedWorkingFileSha256": "8fb66714e7986c9e0c3781998fe7437ab3f989f35d5b2fdc05f78228762431e0",
+      "workingDiffersFromRevision": false,
+      "rationale": "Only one unused-self instance test becomes staticmethod. Original body still loads and validates checked-in inventory; discovered and passed."
+    },
+    {
+      "path": "exchange_executor/tests/test_candidate_group_c_boundaries.py",
+      "baselineGitBlobSha256": "8b8fc20f58054e2c72aee39eae062c59e3db956adc4b72432d4bb2b8359ba3d3",
+      "reviewedGitBlobSha256": "904f3dfa25712f7bab71902b5f5a0d86492e44ee3d7debcf34ba93ef2f6a65bd",
+      "reviewedWorkingFileSha256": "904f3dfa25712f7bab71902b5f5a0d86492e44ee3d7debcf34ba93ef2f6a65bd",
+      "workingDiffersFromRevision": false,
+      "rationale": "Only one unused-self async test becomes staticmethod. Normal/trigger endpoint assertions, real fetch/request prohibition and finally-close remain; discovered and passed. Prior GroupC review binds exact candidate evidence refresh."
+    },
+    {
+      "path": "exchange_executor/tests/test_executor_listener.py",
+      "baselineGitBlobSha256": null,
+      "reviewedGitBlobSha256": "af0374933f12f2300d9c3f9475856f1eea7d37c08bfaad4dd57f73a15c74d57e",
+      "reviewedWorkingFileSha256": "af0374933f12f2300d9c3f9475856f1eea7d37c08bfaad4dd57f73a15c74d57e",
+      "workingDiffersFromRevision": false,
+      "rationale": "New patched test proves default127.0.0.1 and explicit0.0.0.0/::1 propagation,8090port, secret directory, shutdown_timeout30. No live listener/provider operation."
+    }
+  ],
+  "structuralProof": {
+    "method": "Full diff read plus ast.dump(include_attributes=False) comparisons against historical Git bytes",
+    "movedDefinitionsIdentical": {
+      "AcceptanceRefused": true,
+      "require": true,
+      "positive_decimal": true,
+      "validate_origins": true,
+      "validate_plan": true,
+      "validate_limits": true,
+      "journal_binding": true,
+      "validate_journal_binding": true,
+      "fields": true,
+      "identifier": true,
+      "quantity": true,
+      "exact_sum": true,
+      "validate_request": true,
+      "validate_notional": true,
+      "validate_original": true,
+      "validate_order_original": true,
+      "validate_journal_event": true
+    },
+    "remainingRunnerAstIdentical": true,
+    "journalAstIdenticalExceptMovedImports": true,
+    "runtimeExportIdentities": {
+      "exact_sum": true,
+      "validate_order_original": true,
+      "validate_plan": true,
+      "validate_journal_binding": true,
+      "quantity": true,
+      "journal_binding": true,
+      "validate_notional": true,
+      "AUTHORIZATION": true,
+      "fields": true,
+      "validate_original": true,
+      "validate_journal_event": true,
+      "TESTNET_ORIGINS": true,
+      "validate_limits": true,
+      "identifier": true,
+      "validate_request": true,
+      "validate_origins": true,
+      "require": true,
+      "AcceptanceRefused": true,
+      "positive_decimal": true
+    },
+    "unchangedConstants": [
+      "TESTNET_ORIGINS",
+      "AUTHORIZATION"
+    ]
+  },
+  "tests": [
+    {
+      "path": "reports/security-services/fixer-remaining-python-tests.log",
+      "sha256": "1033e81b8d6a650fdaa3052a74b460c3cc6f3d4108ffbc8f6e27a134055ee1cb",
+      "testsRun": 55,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "path": "reports/security-services/fixer-remaining-python-alias-tests.log",
+      "sha256": "1da1848e80001fd6fed738b88712f2f0e0420ac655e4b9dfdb719eb6a4756bc3",
+      "testsRun": 28,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "additionalChangedPaths": [
+    "exchange_executor/certifications/hyperliquid.json",
+    "exchange_executor/certifications/reviews/fixer-candidate-evidence-2026-09-13.json",
+    "exchange_executor/certifications/reviews/fixer-python-implementation-delta-review-2026-09-13.json",
+    "exchange_executor/certifications/reviews/security-candidate-evidence-2026-09-08.json",
+    "exchange_executor/certifications/reviews/security-python-review-2026-09-08.json",
+    "exchange_executor/certifications/reviews/sonar-coverage-timeout-2026-09-07.json",
+    "exchange_executor/requirements-dev.lock"
+  ],
+  "otherContext": {
+    "developmentLock": "Same coverage7.10.7 and ruff0.15.7; one Windows wheel hash added per tool. Runtime requirements.lock unchanged; Dockerfile installs only runtime lock. PyPI provenance not independently renewed here.",
+    "historicalReceipt": "Existing hyperliquid.json and historical coverage report/pin changes are metadata provenance; current receipt remains stale. No renewal authorized.",
+    "candidateReviewLinks": [
+      "exchange_executor/certifications/reviews/security-candidate-evidence-2026-09-08.json",
+      "exchange_executor/certifications/reviews/fixer-candidate-evidence-2026-09-13.json"
+    ]
+  },
+  "conclusion": "No blocking semantic regression identified in these complete remaining Python deltas, including current runner alias addendum. This report does not authorize implementation receipt renewal or provider acceptance.",
+  "residualLimits": [
+    "Remaining cross-layer/full-build/immutable-image verification is outside this bounded review.",
+    "Standalone remote access now requires explicit EXECUTOR_HOST; container configuration already supplies it.",
+    "AcceptanceRefused defining module changes to acceptance_contracts; runner consumers receive the identical re-exported class. External monkeypatching of runner validator globals is not an established supported contract and is not claimed compatible. Journal uses JSON rather than pickle.",
+    "Targeted tests are offline mocked SDK and local process-crash checks, not live-provider or hardware/power-loss acceptance.",
+    "Prior55file report plus6later file reviews currently match all55 working hashes, but their stated original scope/limits remain."
+  ],
+  "sourceChangedByReviewer": false,
+  "receiptsRenewed": false,
+  "providerAcceptanceVerified": false,
+  "liveProviderActionsPerformed": false
+}

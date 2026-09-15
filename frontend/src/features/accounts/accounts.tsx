@@ -14,18 +14,29 @@ import { groupExchangeCatalog } from "@/app/workflow/exchange-catalog";
 import { useDirtyGuard } from "@/shared/forms/use-dirty-guard";
 import { useOperatorReadOnly } from "@/shared/api/operator-session";
 
+export type AccountManagementSnapshot = Pick<TradingSnapshot, 'accounts' | 'accountIncidents'>;
+
+type AccountCreationDraft = {
+  name: string;
+  exchange: string;
+  mode: string;
+  initialBalance: string;
+  maxConcurrentPositions: number;
+  credentials: Record<string, string>;
+};
+
 export function Accounts({
   trading,
   catalog,
   onRefresh,
 }: Readonly<{
-  trading: TradingSnapshot | null;
+  trading: AccountManagementSnapshot | null;
   catalog: ExchangeCatalog | null;
   onRefresh: () => Promise<void>;
 }>) {
   const readOnly = useOperatorReadOnly();
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<Record<string, any>>({
+  const [form, setForm] = useState<AccountCreationDraft>({
     name: "",
     exchange: "paper",
     mode: "paper",
@@ -95,7 +106,7 @@ export function Accounts({
     }
   };
 
-  const releaseKillSwitch = async (account: TradingAccount) => {
+  const releaseKillSwitch = (account: TradingAccount) => {
     setReleaseTarget(account);
     setReleaseConfirmation("");
   };
@@ -282,7 +293,7 @@ export function Accounts({
                   type="button"
                   variant="outline"
                   disabled={Boolean(busy)}
-                  onClick={() => void probeCandidate(item.id)}
+                  onClick={() => { probeCandidate(item.id); }}
                 >
                   {busy === `probe:${item.id}` ? "Prüfe…" : "Öffentlich testen"}
                 </Button>
@@ -333,7 +344,7 @@ export function Accounts({
                   {incident.severity === "critical" ? "kritisch" : "Warnung"}
                 </Badge>
                 {account && (
-                  <Button type="button" variant="outline" size="sm" disabled={busy === account.id} onClick={() => void accountAction(account, "reconcile")}>
+                  <Button type="button" variant="outline" size="sm" disabled={busy === account.id} onClick={() => { accountAction(account, "reconcile"); }}>
                     Abgleichen
                   </Button>
                 )}
@@ -510,7 +521,7 @@ export function Accounts({
                   <span>{account.killSwitchReason || "Kontosperre aktiv"}</span>
                   <button
                     type="button"
-                    onClick={() => void releaseKillSwitch(account)}
+                    onClick={() => releaseKillSwitch(account)}
                   >
                     Prüfen & freigeben
                   </button>
@@ -540,7 +551,7 @@ export function Accounts({
                 <button
                   type="button"
                   disabled={busy === account.id}
-                  onClick={() => void accountAction(account, "reconcile")}
+                  onClick={() => { accountAction(account, "reconcile"); }}
                 >
                   Abgleichen
                 </button>
@@ -548,7 +559,7 @@ export function Accounts({
                   <button
                     type="button"
                     disabled={busy === account.id}
-                    onClick={() => void accountAction(account, "verify")}
+                    onClick={() => { accountAction(account, "verify"); }}
                   >
                     Verifizieren
                   </button>
@@ -556,7 +567,7 @@ export function Accounts({
                 <button
                   type="button"
                   disabled={busy === account.id}
-                  onClick={() => void accountAction(account, "toggle")}
+                  onClick={() => { accountAction(account, "toggle"); }}
                 >
                   {account.enabled ? "Deaktivieren" : "Aktivieren"}
                 </button>
@@ -565,10 +576,10 @@ export function Accounts({
                     type="button"
                     disabled={busy === account.id}
                     onClick={() =>
-                      void updateAccount(account, {
+                      { updateAccount(account, {
                         killSwitchActive: true,
                         killSwitchReason: "Manuell im Builder gesperrt",
-                      })
+                      }); }
                     }
                   >
                     Sperren
@@ -590,7 +601,7 @@ export function Accounts({
                   type="button"
                   className="danger-text"
                   disabled={busy === account.id}
-                  onClick={() => void accountAction(account, "delete")}
+                  onClick={() => { accountAction(account, "delete"); }}
                 >
                   Löschen
                 </button>
@@ -631,7 +642,7 @@ export function Accounts({
                       type="button"
                       className="primary-button"
                       disabled={busy === account.id}
-                      onClick={() => void replaceCredentials(account)}
+                      onClick={() => { replaceCredentials(account); }}
                     >
                       Prüfen & ersetzen
                     </button>
@@ -685,7 +696,7 @@ export function Accounts({
                 Boolean(busy) ||
                 releaseConfirmation !== "RELEASE ACCOUNT KILL SWITCH"
               }
-              onClick={() => void confirmKillSwitchRelease()}
+              onClick={() => { confirmKillSwitchRelease(); }}
             >
               {busy ? "Prüfe Schutz…" : "Prüfen und freigeben"}
             </Button>

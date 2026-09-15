@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "reviewedRevision": "1aead48508ef2123a516dd774f0f62152039814b",
+  "issueId": "78b31b234a8932e9787ca8054b286d82",
+  "path": "src/signal_contract.ts",
+  "line": 96,
+  "ruleId": "Semgrep_javascript_dos_rule-non-literal-regexp",
+  "reason": "FalsePositive",
+  "readyForPerIssueDisposition": true,
+  "rationale": "The flagged constructor only checks syntax and discards the RegExp object; it performs no text match. safePattern requires a nonempty string trimmed to at most160characters, rejects newline/NUL and selected unsupported constructs, and rejects invalid syntax. These heuristics are not a proof of safe backtracking. Actual validateSignalXml consumer validates the definition before validateDynamicContract, which establishes a shared100ms deadline across at most30additional fields. validateAdditionalFieldText rejects exhausted remaining time and executes the dynamic expression only through safeRegexTest and vm.runInContext timeout. Timeout/failure becomes SignalValidationError, not acceptance; nonmatch also rejects. XML is capped at64KiB. Independently rerun pathological and compatibility tests confirm bounded rejection. The generic constructor warning omits this bounded execution boundary.",
+  "sourceSha256": "c7dff51c06d538a2cce203c6495b3649bad8206d37995b3b6661730a207c22d4",
+  "contextBindings": [
+    {
+      "path": "src/signal_schema.ts",
+      "sha256": "cc62363ef835b6cfc60dee0869095ebdecebc249b03744113c8a7241f3bec2e4",
+      "workingRawSha256": "cc62363ef835b6cfc60dee0869095ebdecebc249b03744113c8a7241f3bec2e4",
+      "workingNormalizedEqualsRevision": true
+    },
+    {
+      "path": "src/filters.ts",
+      "sha256": "9135f07539b9582c98ec48fb116e243b4b1dd215fd6440743adc057bac5fdb0f",
+      "workingRawSha256": "9135f07539b9582c98ec48fb116e243b4b1dd215fd6440743adc057bac5fdb0f",
+      "workingNormalizedEqualsRevision": true
+    },
+    {
+      "path": "tests/test_signal_contract_validation.js",
+      "sha256": "e7c65e92ec9ccbc9288c87a5f8ac17e851828e05b0d6b886ea458fd2cefe6e7e",
+      "workingRawSha256": "e7c65e92ec9ccbc9288c87a5f8ac17e851828e05b0d6b886ea458fd2cefe6e7e",
+      "workingNormalizedEqualsRevision": true
+    },
+    {
+      "path": "tests/fixtures/signal_contract_regex_child.js",
+      "sha256": "366e8466744bb3ad2d20fba550d91847f1c708808948d465fd45899979bebbc8",
+      "workingRawSha256": "366e8466744bb3ad2d20fba550d91847f1c708808948d465fd45899979bebbc8",
+      "workingNormalizedEqualsRevision": true
+    }
+  ],
+  "sourceBinding": {
+    "path": "src/signal_contract.ts",
+    "sha256": "c7dff51c06d538a2cce203c6495b3649bad8206d37995b3b6661730a207c22d4",
+    "workingRawSha256": "c7dff51c06d538a2cce203c6495b3649bad8206d37995b3b6661730a207c22d4",
+    "workingNormalizedEqualsRevision": true
+  },
+  "historicalRelatedOccurrence": {
+    "issueId": "fda6a264aefb274f456acd3e83a130aa",
+    "report": "exchange_executor/certifications/reviews/codacy-fixer-dispositions-2026-09-13.json",
+    "relationship": "Same path,line,rule and conceptual site; historical review consulted, but current source/consumer/tests reviewed independently; no identity equivalence assumed."
+  },
+  "validation": {
+    "test": "Node22 --import tsx tests/test_signal_contract_validation.js",
+    "exitCode": 0,
+    "log": "reports/security-services/fixer-codacy-signal-regexp-independent-test.log",
+    "logSha256": "26bb59dfb1c558a25994fcf8b0d809bc964e22b12dd58e6c8af24881782a7574",
+    "pathologicalPatterns": [
+      "^(a+)+$",
+      "^(a|aa)+$",
+      "^((a+))+$"
+    ],
+    "cases": "Child5s watchdog requires successful bounded-pattern rejection; valid Unicode/escaped/ordinary patterns and30ordinaryfields pass; fake clock proves shared deadline; ordinary nonmatch rejects.",
+    "inventory": "reports/security-services/codacy-1aead48-current.json",
+    "inventorySha256": "e6f46a847513039035656e5c73a5c70b2e4f2a7aeb5b90a23db607e73a92e3e6"
+  },
+  "limits": [
+    "No platform mutation or source edit.",
+    "Pattern syntax compilation is outside VM timeout but length bounded;100ms is not a strict total request wall-clock guarantee.",
+    "Per-request matching budget is not global traffic rate limiting.",
+    "Diagnostic contract_values helper differs after1aead48; it does not implement timeout/evaluation. Its primitive-only change was separately reviewed in current Snyk review. Tests ran current workspace with the five bound source/test files byte-identical to1aead48 after newline normalization.",
+    "Other active numeric literal issue excluded."
+  ]
+}

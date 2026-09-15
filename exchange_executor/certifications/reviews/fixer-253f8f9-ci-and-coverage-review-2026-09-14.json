@@ -1,0 +1,64 @@
+{
+  "publishedRevision": "253f8f98406fc1c5801b47e4f7308b44d7756295",
+  "linux": {
+    "nodeRuns": 2,
+    "nodeFilesEach": 226,
+    "pythonTests": 547,
+    "moduleCoverage": {
+      "statements": 96.5,
+      "branches": 86.49,
+      "functions": 99.2,
+      "lines": 96.5
+    },
+    "allBrowserJobs": 4,
+    "allMutationJobs": 4,
+    "allSnykJobs": 5
+  },
+  "windows": {
+    "sourceRevision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+    "nodeFiles": 226,
+    "moduleCoverage": {
+      "statements": 96.49,
+      "branches": 86.45,
+      "functions": 99.2,
+      "lines": 96.49
+    }
+  },
+  "newFloor": {
+    "scope": "testable core modules in clean Node.js 22 Linux and Windows checkouts; excludes the composition root and confirmation-gated maintenance CLI entrypoints",
+    "verifiedPlatforms": [
+      "linux",
+      "win32"
+    ],
+    "statements": 96.49,
+    "branches": 86.45,
+    "functions": 99.2,
+    "lines": 96.49
+  },
+  "sonar": {
+    "analysisPassed": true,
+    "qualityGate": "OK",
+    "openIssues": 57,
+    "hotspotsToReview": 0,
+    "priorOpenIssues": 72
+  },
+  "container": "Stopped at independently reviewed implementation verification; no image-verification success claimed",
+  "evidence": [
+    {
+      "path": "reports/security-services/fixer-ci-253f8f9-core.log",
+      "sha256": "2bbb9776ce3c7516e1522b74dea8da66121bca54701426bd0bdbc4f957f2d0a9"
+    },
+    {
+      "path": "reports/security-services/fixer-e58bd77-module-coverage.log",
+      "sha256": "5f11544350368420097ad7016570a7e47fb7052b7cc10f2bc9309cedf67c49d2"
+    },
+    {
+      "path": "reports/security-services/sonar-253f8f9/reports/sonarcloud/summary.json",
+      "sha256": "0b608c016330ccaadf35dab8e05ac1cf4feb982262e765af9a4909a8ad4eb981"
+    }
+  ],
+  "limitations": [
+    "No claim that all scanner findings or implementation receipt are closed.",
+    "Windows verification used existing locked dependency environment."
+  ]
+}

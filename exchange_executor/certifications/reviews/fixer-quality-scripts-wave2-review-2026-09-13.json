@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-root-quality-script-delta-review",
+  "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+  "reviewedAt": "2026-09-13T08:40:00.884Z",
+  "entries": [
+    {
+      "path": "scripts/export_sonarcloud_findings.js",
+      "sourceSha256": "1bee8bbdf15c71d572a6f05a4b033548a393967942a26fef76306881f0c9d084",
+      "baselineSha256": "b09c8dbb8268692bfc63feead98a5c84ee9ec180e0a3c838533fb834f0eb0074",
+      "diffSha256": "26d908ecdeb32607c672065bf88bf8912e7cdf3c0fb879c72ea5c34a6ae5809c",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta is local reportTask-to-reportContent rename plus initial null. Read success replaces it before parsing; ENOENT optional early return and all other errors remain. No request scope, identity or export completeness rule changes."
+    },
+    {
+      "path": "scripts/export_ui_register.js",
+      "sourceSha256": "e10cf6a40b5a959252ad66aa28ec07baed20d734f4726eb75a0f7b446db7633b",
+      "baselineSha256": "397e6553456be6c921ebc2bc679d0fd94fe2e40d689a32323c54cb09388d6bbe",
+      "diffSha256": "9605ae48151204d82fe3f757dc6e3010043d51a9b352461ded72f74f4976c8f7",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta converts string concatenations to equivalent templates and joined segments. capability and parameter iteration, escaping, route boundaries, disclaimer text, JSON formatting and --check/write destinations remain. Generated UI documentation is not provider acceptance."
+    },
+    {
+      "path": "scripts/normalize_lcov_paths.js",
+      "sourceSha256": "543a920b97d486dc84c38936189e59f608245aeeed57d16643d340ab4577e24a",
+      "baselineSha256": "290eeb20c32f0b7a65a26e3d71d87bfff035b8d289fc6cd62c14727bf266dff7",
+      "diffSha256": "eec2df51c23722c8f5886abeb7d14fb571fa5eb0383c1130af71f2d38eb95c72",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta extracts source-record normalization into an awaited helper. Empty, lexical out-of-root, realpath out-of-root, missing and non-file source checks run in the original order. Non-source lines and record count are preserved; no evidence record is silently omitted."
+    },
+    {
+      "path": "scripts/run_mutation_shards.js",
+      "sourceSha256": "263ead6c26b564c85d4bad46b27f1041445167b5e27b2ee8acbdc7027247f387",
+      "baselineSha256": "85526c9a850ad6b1eae11f45072bdd962a857acc4718ba24fd785e43b73f9c84",
+      "diffSha256": "dba7a870ab9d17cf452c78caaafe5e0865b93c8d11f8553ca469132450515f05",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta extracts options/selection/execution helpers, preserving process.execPath, fixed Stryker executable, shell:false, force flag, environment, unknown-shard failure and fail-fast outcomes. Schema campaign timeout increases from20 to40minutes; other campaigns stay20. The documented two-worker/full-suite schema workload justifies an outer deadline increase, with no score/per-mutant timeout/source-selection relaxation in this file. Prior c684 actual schema CI passed; current e97 campaign remains separate."
+    },
+    {
+      "path": "scripts/run_staging_e2e.js",
+      "sourceSha256": "90d932180913e73a4887b695472875572db5813996603880f870024bf0678e6d",
+      "baselineSha256": "ab0ba37936e7a8c22600209f6dee4925d3ae578cce4d07d281eaf0f63e2b87e5",
+      "diffSha256": "e36d8b924a33c63c592a2caf39c5052dcceade872c379182504f758736d2f51d",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta initializes timer to undefined and client to null, and turns an empty rejection callback into one returning undefined. Both initial client values fail the existing guard; success assigns the client before use. Close failure swallowing and bounded timeouts are unchanged. Reviewed offline only; no Telegram or external alert action was initiated."
+    },
+    {
+      "path": "scripts/send_synthetic_alert.js",
+      "sourceSha256": "f5495c67cd2ebfdc57b255683c6ec7311e44447b6878f0fb2c3914066a1d2cf5",
+      "baselineSha256": "1fded1eeab9a48ad1a0152b784e2d984c1392a514eb2ca3b9331660533a1fd34",
+      "diffSha256": "e509473a87d91bd068ea41e2f70fbb426df19417a49a5d625d73802ff66fd2be",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta changes immediate process.exit(2) to exitCode=2 and moves all network construction/delivery inside the explicit confirmation else branch. Missing confirmation still prevents any fetch. Confirmed branch retains URL validation, fixed alert endpoint, redirect:error, timeout, body cancellation and status checks. No actual alert was sent by this review."
+    },
+    {
+      "path": "scripts/sonar_read.js",
+      "sourceSha256": "fc1a4f1153ca91946e642e7a85450dc37cc6c2f82a228e1f860871c66b4891c3",
+      "baselineSha256": "05ea591de39e38186482ee0eb1df26af94f806a88beed271e46772612e067afd",
+      "diffSha256": "3ad7933b33d037d40c2b0c6b6a5f753d2be0154e7e26363000b85a1cb4bf7173",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta extracts URL/retry helpers and renames JSON local. Retryable network/status classification, body cancellation, three-attempt bound, delay calculation and60second budget remain. Final retry now returns false then breaks to the same terminal error. Nonretryable status, invalid JSON and nonobject results still reject."
+    },
+    {
+      "path": "scripts/test_registry.js",
+      "sourceSha256": "951721593fce2bc0222e66d5dfc8b25bd22a10898b2fbd3461721c92c2fbc11e",
+      "baselineSha256": "8f3efdcd14f273cb6be7cef00c5b7fdadf2e98a256dcd73dc21623f80df7eeb1",
+      "diffSha256": "f4fb1ea39676dda1caae3ff8f033d678a5835cabb3530328e46ce628cebf215f",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta extracts registration/discovery/difference helpers without changing validation order, allowed naming, duplicate rejection, regular-file checks, missing/unregistered sets, sorted diagnostics or full-suite preflight. No test can be omitted merely by not registering it."
+    },
+    {
+      "path": "scripts/test_scheduler.js",
+      "sourceSha256": "1a6637a968bff1ae6b2b27e7e6e42af326deeeb3adfdb8d06d6cd41f61c361a8",
+      "baselineSha256": "43196590dc19a3d7ad24123170e727cf833196e7eade083d4626deefadee793f",
+      "diffSha256": "5d30f84b8f7a1bff12dadbe449e264b91fc6069567eb30c76e4845847c37f5d5",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta renames temporary child variable to spawned initialized null, binds child only after successful spawn and initializes failure null. Synchronous spawn failure still resolves1 and returns. Error/close ordering, timeout, subprocess arguments, isolation and coverage-flush barrier remain unchanged."
+    },
+    {
+      "path": "scripts/verify_sonar_evidence.js",
+      "sourceSha256": "d4180b55ffedb6d67a2274039b95eca59594b59aa54f82f63449e78622e3b39e",
+      "baselineSha256": "73658a5ad4de766f0f88f58e79e1568d4ec06535a85d25a688820b9c750c97bf",
+      "diffSha256": "a8e8ac49cfef53563fb4407b551d4e9f3bee2c4ac78b19abab69d0bbaea45927",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta extracts existing identity, dates, gate, artifact and count conditions. Conditions split across requireEvidence calls still throw before dereferencing missing records. Exact revision/project/task scope, successful quality gate, hotspot completeness, byte/hash manifests and unique complete partitions remain mandatory. No gate acceptance broadening found."
+    }
+  ],
+  "testEvidence": {
+    "node": "22.23.2",
+    "allNinePassed": true,
+    "files": [
+      {
+        "path": "tests/test_sonar_branch.js",
+        "sha256": "23ee4aca8b2d178d0e716e3c84611196b186856a7bbd11b4f2f4207c41910ae1"
+      },
+      {
+        "path": "tests/test_test_scheduler.js",
+        "sha256": "471b6be735bb90f9d1dc9226c0e3629ca800d1d872ebc4ae0b71091245db68f8"
+      },
+      {
+        "path": "tests/test_supply_chain.js",
+        "sha256": "e56649f8669d91c809296626d5c7c67b60aa151e730f3467df426674f777f83d"
+      },
+      {
+        "path": "tests/test_mutation_shards.js",
+        "sha256": "79e49de473590e03530a08d2d1973d0288e2853949f0a871f542120923725bae"
+      },
+      {
+        "path": "tests/test_lcov_paths.js",
+        "sha256": "c14400f684e78e2f043568a34c0a1965f360f52530fe086eb675b7afee83ce23"
+      },
+      {
+        "path": "tests/test_test_registry.js",
+        "sha256": "6c3512a8824357922cb5d654abc5e5e2aefe2172e7e22b910f40a672cc57fa0a"
+      },
+      {
+        "path": "tests/test_staging_e2e.js",
+        "sha256": "1e820faab6842ae86ee9f86806c18e188aef260ac694233797c85539251855e6"
+      },
+      {
+        "path": "tests/test_sonar_pull_request.js",
+        "sha256": "b20b10bc559c36bde63fe97aaadb9aa518c5f4689e520adce00ca52b4e16dfa7"
+      },
+      {
+        "path": "tests/test_sonar_evidence.js",
+        "sha256": "a01af093607ca250b42b8c96188d47273f6cdfc9aea3a87519e7c79091b87534"
+      }
+    ],
+    "log": "reports/security-services/fixer-implementation-root-scripts-wave2-tests.log",
+    "logSha256": "3e39d4fc70fcb12205d5ed83625e4540f7c607a22175e9c32e1cf404721c10b0"
+  },
+  "limits": [
+    "Only listed historical-to-current script deltas and offline targeted tests.",
+    "No full implementation receipt/provider or container approval."
+  ]
+}

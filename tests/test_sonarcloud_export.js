@@ -51,7 +51,7 @@ function retryClock() {
   return {
     delays,
     monotonicNow: () => elapsed,
-    sleepImpl: async milliseconds => { delays.push(milliseconds); elapsed += milliseconds; },
+    sleepImpl: milliseconds => { delays.push(milliseconds); elapsed += milliseconds; return Promise.resolve(); },
     random: () => 0,
     advance: milliseconds => { elapsed += milliseconds; }
   };
@@ -96,7 +96,7 @@ async function assertHardFailures(environment) {
     const clock = retryClock();
     let attempts = 0;
     await assert.rejects(exportFindings({
-      environment, ...clock, fetchImpl: async () => { attempts += 1; return makeResponse(); }
+      environment, ...clock, fetchImpl: () => { attempts += 1; return Promise.resolve(makeResponse()); }
     }), message);
     assert.equal(attempts, 1);
     assert.deepEqual(clock.delays, []);
@@ -110,7 +110,7 @@ async function assertRetryBudgets(environment) {
     let attempts = 0;
     await assert.rejects(exportFindings({
       environment, ...clock, now: () => new Date('2026-07-23T10:01:00Z'),
-      fetchImpl: async () => { attempts += 1; return jsonResponse({}, 429, { 'retry-after': retryAfter }); }
+      fetchImpl: () => { attempts += 1; return Promise.resolve(jsonResponse({}, 429, { 'retry-after': retryAfter })); }
     }), /60-second read budget/);
     assert.equal(attempts, 1);
     assert.deepEqual(clock.delays, []);
@@ -119,8 +119,8 @@ async function assertRetryBudgets(environment) {
   let attempts = 0;
   await assert.rejects(exportFindings({
     environment, ...clock,
-    sleepImpl: async () => { clock.advance(60_000); },
-    fetchImpl: async () => { attempts += 1; return jsonResponse({}, 503); }
+    sleepImpl: () => { clock.advance(60_000); return Promise.resolve(); },
+    fetchImpl: () => { attempts += 1; return Promise.resolve(jsonResponse({}, 503)); }
   }), /60-second read budget/);
   assert.equal(attempts, 1, 'No new attempt may start after the overall deadline.');
   for (const retryAfter of ['2', 'Thu, 23 Jul 2026 10:01:02 GMT']) {
@@ -259,7 +259,7 @@ try {
     /does not match SONAR_EXPECTED_REVISION/
   );
   await assert.rejects(
-    exportFindings({ environment, fetchImpl: async () => jsonResponse({}, 401) }),
+    exportFindings({ environment, fetchImpl: () => Promise.resolve(jsonResponse({}, 401)) }),
     /HTTP 401/
   );
 

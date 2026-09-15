@@ -1,3 +1,4 @@
+import { fixtureValue } from "./fixture-value";
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
@@ -39,7 +40,7 @@ describe('runtime field and evidence value contracts', () => {
     fireEvent.change(screen.getByRole('spinbutton', { name: /^count / }), { target: { value: '7' } });
     fireEvent.click(screen.getByRole('checkbox', { name: /^enabled/ }));
     fireEvent.change(screen.getByRole('combobox', { name: /^mode/ }), { target: { value: 'second' } });
-    expect(JSON.parse(screen.getByLabelText('Submitted runtime draft').textContent!)).toEqual({
+    expect(JSON.parse(fixtureValue(screen.getByLabelText('Submitted runtime draft').textContent, 'submitted draft text'))).toEqual({
       text: 'new value', count: 7, enabled: true, mode: 'second', futureField: { preserved: true },
     });
     expect(screen.getByRole('status')).toHaveTextContent('Valid runtime draft');
@@ -80,6 +81,17 @@ describe('runtime field and evidence value contracts', () => {
     expect(screen.getAllByRole('definition').map(cell => cell.textContent)).toEqual(['nicht verfügbar', 'nicht verfügbar', 'leer', 'nein', 'ja', '0']);
     expect(within(screen.getByRole('table')).getAllByRole('cell').map(cell => cell.textContent)).toEqual(['nicht verfügbar', 'nicht verfügbar', '', 'nein', 'ja', '0', 'Original proof']);
     expect(screen.getByRole('link', { name: 'Original proof' })).toHaveAttribute('href', '/proof');
+  });
+
+  it('marks invalid cell values without invoking object coercion and preserves scalar representations', () => {
+    const coerce = vi.fn(() => { throw new Error('Object coercion must not run'); });
+    const values = [{ toString: coerce }, ['unexpected'], () => 'function', 12n, Symbol('proof'), Number.NaN, Number.POSITIVE_INFINITY];
+    render(<EvidenceTable caption="Typed evidence" rows={values.map((value, index) => ({ id: `row-${index}`, value }))}
+      columns={[["value", "Value"]]} />);
+    expect(screen.getAllByRole('cell').map(cell => cell.textContent)).toEqual([
+      'Ungültiger Wert', 'Ungültiger Wert', 'Ungültiger Wert', '12', 'Symbol(proof)', 'NaN', 'Infinity',
+    ]);
+    expect(coerce).not.toHaveBeenCalled();
   });
 
   it('shows the absence of table evidence and supports rows without an external identifier', () => {

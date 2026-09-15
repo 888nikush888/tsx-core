@@ -1,0 +1,11 @@
+{
+  "kind": "adaptive-risk-exhaustive-dispatch-root-review",
+  "baseRevision": "101d8fa72442e6b1be36bafa954b13c972121b3a",
+  "change": "Explicit unsupported-kind default throw after unchanged six dispatch cases. Existing selection validation already rejects unsupported kinds; new default is defensive exhaustiveness, not a newly demonstrated reachable runtime defect.",
+  "verification": "Implementing agent ran direct test, backend tsc and strict ESLint after actual source edit, all exit0. Root reviewed complete2file diff; negative cases validate exact existing error and legacy evaluation channel scope.",
+  "sourceRawHashes": {
+    "src/ui_adaptive_risk.ts": "6cf036021b04ff40d13c70fd936d3d49e5ed74f1aec07d04fe966a292f99f6a3",
+    "tests/test_ui_adaptive_risk.js": "150535b104719d7cdd1b56b1a2a999863eea9f4f01bf770fb550273bc1d512fc"
+  },
+  "scope": "Does not establish fresh platform closure or fullsuite execution on this later change."
+}

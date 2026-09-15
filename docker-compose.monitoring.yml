@@ -63,6 +63,7 @@ services:
     cpus: 0.25
     environment:
       ALERT_RELAY_TOKEN_FILE: /app/secrets/alert_relay_token
+      ALERT_RELAY_HOST: "0.0.0.0"
       ALERT_WEBHOOK_TOKEN_FILE: /app/secrets/alert_webhook_token
       RUNTIME_SETTINGS_PATH: /app/config/runtime-settings.json
     volumes:

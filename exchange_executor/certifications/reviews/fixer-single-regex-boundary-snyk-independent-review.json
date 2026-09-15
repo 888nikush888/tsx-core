@@ -1,0 +1,518 @@
+{
+  "schemaVersion": 1,
+  "baseRevision": "9d699b51c778a483cd5f6e75f1679bdf0cb8b58c",
+  "priorReview": {
+    "path": "reports/security-services/fixer-primitive-final-snyk-review-prepared.json",
+    "sha256": "6adebda3e2d00538da3a1ea5612a9b3c48bffcb2150e002622a4fe49175ea1ed",
+    "reviewedRevision": "8465469158745db718d4c7a50fca4b37a6774a04"
+  },
+  "scan": {
+    "path": "reports/security-services/fixer-single-regex-boundary-snyk.sarif.json",
+    "sha256": "57fe8e869a3b878b6248baeb4c8f704fd7be0e7fa510fe82170eee9b37ae4302",
+    "same85Ids": true,
+    "allFingerprintsAndFlowsUnchanged": true
+  },
+  "execution": {
+    "path": "reports/security-services/fixer-single-regex-boundary-snyk-execution.json",
+    "sha256": "8a96f2e59c60f7cacece09303cfebfe9a22a11eaa9ba7695a25926922128809b",
+    "scannerExit": 1,
+    "revision": "9d699b51c778a483cd5f6e75f1679bdf0cb8b58c",
+    "workingDelta": [
+      "src/signal_schema.ts",
+      "tests/test_signal_contract_validation.js",
+      "tests/fixtures/signal_contract_regex_child.js",
+      "tests/test_telegram_viewer_runtime.js"
+    ],
+    "finishedAt": "2026-09-15T08:37:58.3077751Z"
+  },
+  "unchangedEntryCount": 85,
+  "updatedEntryCount": 0,
+  "sourceContextBindingChecks": 182,
+  "allGitBaseAndCurrentLfBindingsMatch": true,
+  "rawLfDifferences": [],
+  "workingDeltaBindings": [
+    {
+      "path": "src/signal_schema.ts",
+      "rawSha256": "b4e339d5dc00ec07993bb5a73133371b2f0d39ad9ad616802354e2e1ca892cad",
+      "gitNormalizedLfSha256": "69be3d8a092d59135813b71c77f862fb8527dc655100c8e5a07b116dc3010df2",
+      "baseGitSha256": "cc62363ef835b6cfc60dee0869095ebdecebc249b03744113c8a7241f3bec2e4",
+      "affectedFindingIds": []
+    },
+    {
+      "path": "tests/test_signal_contract_validation.js",
+      "rawSha256": "d236d034e5522fe21a5a98be8a6723ea8cef702598e6ef84c910b678315887c6",
+      "gitNormalizedLfSha256": "09c433d6a74db11089a7bd5528b11af9de8335e46ce7313c76e96fac6c745225",
+      "baseGitSha256": "e7c65e92ec9ccbc9288c87a5f8ac17e851828e05b0d6b886ea458fd2cefe6e7e",
+      "affectedFindingIds": []
+    },
+    {
+      "path": "tests/fixtures/signal_contract_regex_child.js",
+      "rawSha256": "e4268ceb7ab2504efe2468f61773441411ddfab24274eea4ea99c6a8bcef1e2c",
+      "gitNormalizedLfSha256": "9f49f8d4d79ed843031ed7f81adf9a981e6e970d6c94f0b50215bd8998109736",
+      "baseGitSha256": "366e8466744bb3ad2d20fba550d91847f1c708808948d465fd45899979bebbc8",
+      "affectedFindingIds": []
+    },
+    {
+      "path": "tests/test_telegram_viewer_runtime.js",
+      "rawSha256": "0178d5bf92f8e4430b93f2d49e9ea81f1de02faff24a6ca9e8bbe480e4bd9654",
+      "gitNormalizedLfSha256": "0178d5bf92f8e4430b93f2d49e9ea81f1de02faff24a6ca9e8bbe480e4bd9654",
+      "baseGitSha256": "d7ba0de74466c0a6e6d5b0ec6c7c87be3b08601b4b56f4d7b6da61996f263f78",
+      "affectedFindingIds": []
+    }
+  ],
+  "verification": {
+    "resultCount": 85,
+    "reviewedFalsePositives": 81,
+    "acceptedRisks": 4,
+    "remaining": 0,
+    "disposition": "clean",
+    "findings": [
+      {
+        "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
+        "ruleId": "javascript/DOMXSS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "98bcc36f-5e43-4d4b-9dc9-2b23b5bb5b77",
+        "ruleId": "javascript/HardcodedNonCryptoSecret",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "88fce105-6148-4b77-904c-f82f35a3d8d9",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "164aa45d-3766-4932-9dd7-4f2729603758",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "142dd478-3551-4536-9562-b365bf50d287",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9c50b436-5043-4541-a5c5-14a432cae733",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "6914aa0e-59d7-4481-9e11-2f13f86d60f4",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "497d44e9-fe5f-4767-a66f-325c51e5dc95",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9886fba1-1186-4e41-b1fa-6a6877440237",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "bc179edb-989f-4eee-b6f0-4e0403e76fa0",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "436da650-a34e-44b8-a133-bdad1b5788d7",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+        "ruleId": "javascript/Sqli/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+        "ruleId": "javascript/Sqli/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4763ab6d-7279-4288-a467-5dbccf673f01",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "8c0f552c-7615-4368-8f6a-6689679b611c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "32304334-8c66-4f4a-b4fa-26033d0ab225",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "6747340c-e7a2-460b-87c7-e2e6c3802226",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a3737d56-de9a-41e7-b30b-fb374b214f91",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a1ed4a9a-f08f-4f3b-b73b-87630d94a0c9",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9b50cbda-ded3-4582-a09b-87e659bcbca8",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "efe2fbab-8939-42b3-acf3-d6f219f541f4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3fd501f8-60d2-4533-84c1-0f8135a93b85",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "aee14560-3ac3-41fd-9b53-37a838268421",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "55b8a65d-ce8d-4e3d-9039-678277b8ee68",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "06e9dbdb-8290-450a-95cc-25b789bcdde2",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "e6282f6d-4f71-47ff-befa-7369873e4557",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "1498a7a1-5346-49c7-b0b0-52ec594b5b0c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "e0d3690e-5911-4fa5-96ab-c0893d808e7f",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "95e532db-4651-47f3-b9da-40e0da5e0fcc",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4d819ebc-b7ba-4de3-a71e-5daea6c942e7",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "82e95abb-7def-48e9-9e03-f12ddb87396e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "68016b09-7ac9-40c1-8640-8412bc77d91e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f1107dfb-8004-470e-ae80-5b3230735eea",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "67212bb4-5c74-4ec1-a6f6-6404626cdc02",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "68a1f53d-6f82-4221-baf2-f9f213aab9f2",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9481f398-aa6b-4990-a250-a4ef4297442e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "75e4084d-676d-47b5-a497-7b0b5d3a6d2c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "86777f7f-c030-435e-9086-f29fcbffcb58",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "35c81c03-fadd-4a16-a0e3-8e81108e18c4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d2853e9a-03af-4436-8200-1c45936744c5",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d1163842-b198-4156-ab79-efd0cd8da57d",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "2585237f-36d5-4607-9e5c-3f4b73b518da",
+        "ruleId": "javascript/XSS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8",
+        "ruleId": "javascript/XSS/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0b078f4b-85ab-487e-8951-7a4f6ec03335",
+        "ruleId": "javascript/reDOS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d3f09f66-f994-4652-86bf-651b0262e797",
+        "ruleId": "javascript/reDOS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f62614bc-117e-48c1-8267-e866c507367a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d724e3e9-b7ca-4eec-ac14-037f58090f2a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "367a2dd3-ef73-4e71-8066-f992a958af8a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "24d61af9-11c9-4687-9dff-3e2b1b30670d",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "5da511d6-c50f-42ce-a617-e5650025b7c2",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "703c021a-6966-44a3-a93c-1405ac1a891b",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "285f0b22-9dea-413f-b89e-1d183d4f1f84",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "2e366098-cb83-4d7f-961a-1fea7a162a44",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "62138ff6-d19f-4588-80f1-62274219af01",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "661f9264-b2a0-4f46-8f75-c629b1c80f36",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "40ffaf95-f7bb-43b9-a3d7-2e1edf90464c",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "70cd754b-0fc7-4cc2-b484-1e2c90036277",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "34a2fb72-f24d-4687-b513-e791a4ab2632",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3823fd00-85ed-47e6-b085-8b3b2655febc",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "15b62184-5d10-4c9f-8c45-36cebd259223",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "d75bc03c-19a7-4475-809c-525e9240e836",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "bd4b655d-7094-41a4-8532-ca8faca295a0",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0e0cc32d-e62a-494f-b96a-0871ca8206b0",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "dbeab5ab-3bb3-4484-b2a3-3d56187dd885",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a42d6e8a-142f-4310-951e-4781a06c3fa5",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "c18a03f4-6ea4-45f2-8cc7-2f2e45325bbf",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "38bece03-53dc-4566-a862-e4d59a573c82",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "ruleId": "javascript/IndirectCommandInjection",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4bd5af47-516b-4885-9a70-71b7fa515f95",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "ce402f84-0ed8-4cb8-9f26-60e05779e11f",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      }
+    ]
+  },
+  "riskAcceptance": {
+    "expiry": "2026-10-08",
+    "scope": "same four individual HTTP risks remain open",
+    "sha256": "7b5076bdd1d9e4dd40ddf44d5096310f0fd0ccb6466c32a602a48d68b76634ff"
+  },
+  "limits": [
+    "No source/workflow/platform mutation.",
+    "No scannerzero claim;85actual findings,81reviewedFP and4accepted open HTTP risks.",
+    "All four changed paths are outside182bindings; this source-binding review does not replace separate functional delta reviews.",
+    "Final adoption must verify exact final Gitblobs/working delta against this snapshot; no future reviewedRevision invented.",
+    "No fullmodulecoverage pass claim.",
+    "Absence of newSnykfinding is not proof of no vulnerability; changed regex execution boundary assessed separately above. Sonarnegativeprimitiveguardquestion remains open until actualscan."
+  ],
+  "executionBoundaryReassessment": {
+    "scope": "Actual new singleVM boundary inspected, not inferred from unchanged finding count.",
+    "source": "src/signal_schema.ts",
+    "rationale": "Private validateAdditionalFieldText has one caller, validateAdditionalField; its sole caller executes in fixed trusted callback inside validateAdditionalFields vm.runInContext with100mstimeout. Regex expression remains160char-contractvalidated and directtest is wholly inside outerVMexecution. Sharedperformance deadline retained; nativecrossrealmtimeout preserves cause and fails withfield-specificSignalValidationError. No script interpolation or remote-selected JS code is used. Newcode is not in existing182bindings, but freshSARIF entire85IDs/fingerprints/flows checked and produced no newfinding.",
+    "independentProbe": "Existing30normal+fakeclockbudget and3pathologies first/late allpass in implementing-agenttest; root separately4worker8/8beforeemptyguard, not scanner evidence.",
+    "evidence": "reports/security-services/fixer-single-regex-boundary-implementation-review.json",
+    "evidenceSha256": "a756f8d63481e1126859d3f418785314d38a659650e43af2f13e1230c705b730"
+  }
+}

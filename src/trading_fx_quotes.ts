@@ -41,7 +41,12 @@ function usdRate(asset: string, receipts: FxLegReceipt[]): ExactRational {
     if (!row) return invalidFx('QUOTE_UNAVAILABLE');
     return rationalFromDecimal(row.value);
   });
-  return asset === 'USDC' ? legs[0]! : divideRational(legs[0]!, legs[1]!);
+  const first = legs[0];
+  const second = legs[1];
+  if (first === undefined || (asset !== 'USDC' && second === undefined)) return invalidFx('QUOTE_UNAVAILABLE');
+  if (asset === 'USDC') return first;
+  if (!second) return invalidFx('QUOTE_UNAVAILABLE');
+  return divideRational(first, second);
 }
 export function deriveFxConversion(values: unknown[], baseAsset: string, quoteAsset: string, at: number, context: FxContext): FxConversionEvidence {
   if (!Array.isArray(values) || values.length > 256 || !Number.isSafeInteger(at) || at < 0 || baseAsset === quoteAsset) invalidFx();

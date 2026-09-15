@@ -12,8 +12,7 @@ import { getTradingAccount, getTradingRuntimeState, listTradingAccounts, listTra
 import { seedTradingFixtures } from './trading_fixtures.js';
 
 function deferred() {
-  let resolve;
-  const promise = new Promise(done => { resolve = done; });
+  const { promise, resolve } = Promise.withResolvers();
   return { promise, resolve };
 }
 const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-control-race-'));
@@ -74,3 +73,45 @@ try {
   await closeDb();
   await rm(directory, { recursive: true, force: true });
 }
+
+// Exercise the actual expiry catch without starting a runtime or opening a database.
+const thrownValues = [undefined, null, false, 0, 1, '', 'failure', 1n, Symbol('failure'),
+  new Error('native'), { message: 'text' }, { message: 42 }, { message: true },
+  { message: '' }, { message: 0 }, { message: false }, { message: null },
+  { message: { toString() { return 'nested'; } } }, { message: Symbol('nested') },
+  Object.assign(() => undefined, { message: 'callable' })];
+const getterFailure = new Error('getter failure');
+const coercionFailure = new Error('coercion failure');
+thrownValues.push({ get message() { throw getterFailure; } },
+  { message: { toString() { throw coercionFailure; } } });
+for (const thrown of thrownValues) {
+  let expected;
+  let expectedError;
+  try { expected = `entry-expiry: ${thrown?.message || String(thrown)}`; }
+  catch (error) { expectedError = error; }
+  const fixtureRuntime = new TradingRuntime({ cancelExpiredEntries: () => Promise.reject(thrown) });
+  const failures = [];
+  if (expectedError) {
+    await assert.rejects(fixtureRuntime.captureEntryExpiryFailure(failures), error =>
+      error === expectedError || (error.constructor === expectedError.constructor && error.message === expectedError.message));
+    assert.deepEqual(failures, []);
+  } else {
+    await fixtureRuntime.captureEntryExpiryFailure(failures);
+    assert.deepEqual(failures, [expected]);
+  }
+}
+const oldNumberMessage = Object.getOwnPropertyDescriptor(Number.prototype, 'message');
+try {
+  Object.defineProperty(Number.prototype, 'message', { configurable: true, get() {
+    assert.equal(typeof this, 'number', 'Primitive message getters retain their original receiver.');
+    return 'primitive receiver';
+  } });
+  const fixtureRuntime = new TradingRuntime({ cancelExpiredEntries: () => Promise.reject(7) });
+  const failures = [];
+  await fixtureRuntime.captureEntryExpiryFailure(failures);
+  assert.deepEqual(failures, ['entry-expiry: primitive receiver']);
+} finally {
+  if (oldNumberMessage) Object.defineProperty(Number.prototype, 'message', oldNumberMessage);
+  else delete Number.prototype.message;
+}
+console.log('Runtime failure diagnostics retain primitive, getter and coercion behavior.');

@@ -1,0 +1,929 @@
+{
+  "schemaVersion": 1,
+  "kind": "lossless-new-final-evidence-manifest",
+  "sourceRevision": "f1b7b9dcec419cb7b055b8e718076b0fbb414e97",
+  "files": [
+    {
+      "member": "next/reports/security-services/fixer-accounting-all-complexity-review.json",
+      "path": "reports/security-services/fixer-accounting-all-complexity-review.json",
+      "sha256": "6303fb5439b6b19843108455466afb3dc6b3b585fc3ef72443a2f8e39aab274d",
+      "bytes": 4193
+    },
+    {
+      "member": "next/reports/security-services/fixer-accounting-all-complexity-test_trading_accounting_gate.log",
+      "path": "reports/security-services/fixer-accounting-all-complexity-test_trading_accounting_gate.log",
+      "sha256": "e17ad1e966b161c0946676a37b68145de05cce65adcd7ae11b8a078d00df0cc6",
+      "bytes": 107
+    },
+    {
+      "member": "next/reports/security-services/fixer-accounting-all-complexity-test_trading_safety_proof.log",
+      "path": "reports/security-services/fixer-accounting-all-complexity-test_trading_safety_proof.log",
+      "sha256": "3781ac87863bc2c18f8c43585f47b7c57c264ac7680df65e091c2593f06801c9",
+      "bytes": 55
+    },
+    {
+      "member": "next/reports/security-services/fixer-accounting-helpers-independent-review.json",
+      "path": "reports/security-services/fixer-accounting-helpers-independent-review.json",
+      "sha256": "deb45d81de446bde9d437303858dde504cdbcba325ab661b5d602700b076ee8b",
+      "bytes": 2338
+    },
+    {
+      "member": "next/reports/security-services/fixer-batch-7b40-independent-source-supplement-plan.json",
+      "path": "reports/security-services/fixer-batch-7b40-independent-source-supplement-plan.json",
+      "sha256": "d9d08efcac6ea2ae0960ca375b1d32fa48cd55994aab74e2c275e2ac583645f6",
+      "bytes": 137286
+    },
+    {
+      "member": "next/reports/security-services/fixer-batch-7b40-inputs.json",
+      "path": "reports/security-services/fixer-batch-7b40-inputs.json",
+      "sha256": "f45e5265cebc6a44d71fff881956b4bc18c91d8c34f33a365f06bab5714d6e87",
+      "bytes": 171587
+    },
+    {
+      "member": "next/reports/security-services/fixer-batch-7b40-receipt-delta-plan.json",
+      "path": "reports/security-services/fixer-batch-7b40-receipt-delta-plan.json",
+      "sha256": "f8de573991e2adf319d83218bd15c0fed69511ae7352d37f430961661b3dc746",
+      "bytes": 46066
+    },
+    {
+      "member": "next/reports/security-services/fixer-batch-f1b7-build.log",
+      "path": "reports/security-services/fixer-batch-f1b7-build.log",
+      "sha256": "0e049b47c0dda651c42fe5dd49e030be6a5302dc209073636b64fdced56f779d",
+      "bytes": 1625
+    },
+    {
+      "member": "next/reports/security-services/fixer-batch-f1b7-frontend-install.log",
+      "path": "reports/security-services/fixer-batch-f1b7-frontend-install.log",
+      "sha256": "a8bc5f0af1fe06dad04d539f8349be0ddc5b16cfbfe657fcfb8beedbdb50df37",
+      "bytes": 28
+    },
+    {
+      "member": "next/reports/security-services/fixer-batch-f1b7-install.log",
+      "path": "reports/security-services/fixer-batch-f1b7-install.log",
+      "sha256": "bd9ba5f2d288f35a3a4602669b5c353a18e78cb86348c3556a76aca3bcaaf524",
+      "bytes": 179
+    },
+    {
+      "member": "next/reports/security-services/fixer-batch-f1b7-module.log",
+      "path": "reports/security-services/fixer-batch-f1b7-module.log",
+      "sha256": "ba322b06563e845057cd093e75095449a44404d41c8acd4f2a157f59e5fe46f5",
+      "bytes": 93013
+    },
+    {
+      "member": "next/reports/security-services/fixer-batch-f1b7-verification-completion.json",
+      "path": "reports/security-services/fixer-batch-f1b7-verification-completion.json",
+      "sha256": "f7f713ac3837e580ad7ccf34433427a11099fdbcdfb4c5fb8eff7fe5685dc361",
+      "bytes": 481
+    },
+    {
+      "member": "next/reports/security-services/fixer-final-f1b7-62-requirement-supplement-plan.json",
+      "path": "reports/security-services/fixer-final-f1b7-62-requirement-supplement-plan.json",
+      "sha256": "fc77786e43fe2d4f64b48f09679e551df14826b39e8977f74aa47c9ff151f2c2",
+      "bytes": 404281
+    },
+    {
+      "member": "next/reports/security-services/fixer-final-f1b7-candidate-preparation-state.json",
+      "path": "reports/security-services/fixer-final-f1b7-candidate-preparation-state.json",
+      "sha256": "31a7ece0c8ae564a7dfc39364161a441694d5547470d492e01a8e7d0b8d23221",
+      "bytes": 1231
+    },
+    {
+      "member": "next/reports/security-services/fixer-final-f1b7-complete-source-supplement.json",
+      "path": "reports/security-services/fixer-final-f1b7-complete-source-supplement.json",
+      "sha256": "649fefdf08194902da825d8fcdbf349dce41be3646b8d8114e365ff2166ad2cb",
+      "bytes": 9395
+    },
+    {
+      "member": "next/reports/security-services/fixer-final-f1b7-context-after.json",
+      "path": "reports/security-services/fixer-final-f1b7-context-after.json",
+      "sha256": "524ff79f63cb09d42cccbc987d99f61d54c3f8029bd98db50bfe451f54751de1",
+      "bytes": 404417
+    },
+    {
+      "member": "next/reports/security-services/fixer-final-f1b7-context-before.json",
+      "path": "reports/security-services/fixer-final-f1b7-context-before.json",
+      "sha256": "abc67d36a63227623b303204f8d861c3b11574701638c4dd4e6ac6ff0e075864",
+      "bytes": 404417
+    },
+    {
+      "member": "next/reports/security-services/fixer-final-f1b7-execution-supplement.json",
+      "path": "reports/security-services/fixer-final-f1b7-execution-supplement.json",
+      "sha256": "871e673159ee68f15b9f0bd0cab394ab0fc9b545ede6245ee4b317454d13fa47",
+      "bytes": 4897
+    },
+    {
+      "member": "next/reports/security-services/fixer-final-f1b7-independent-receipt-mechanical-review.json",
+      "path": "reports/security-services/fixer-final-f1b7-independent-receipt-mechanical-review.json",
+      "sha256": "86d64a484999855a07437ade43a2cbf82b26cd7438fb184dd170f82bc1911520",
+      "bytes": 4258
+    },
+    {
+      "member": "next/reports/security-services/fixer-final-f1b7-independent-receipt-reference-graph.json",
+      "path": "reports/security-services/fixer-final-f1b7-independent-receipt-reference-graph.json",
+      "sha256": "54484dedac210ea1bc7023368e0f7dd1331234f4d38968efca88574b8d5bef0c",
+      "bytes": 2893
+    },
+    {
+      "member": "next/reports/security-services/fixer-final-f1b7-independent-receipt-review.json",
+      "path": "reports/security-services/fixer-final-f1b7-independent-receipt-review.json",
+      "sha256": "63fa8656bffa01215acbf0d79470a0d7fe35ee563d3594b3ebd68c7f30cd0d86",
+      "bytes": 4108
+    },
+    {
+      "member": "next/reports/security-services/fixer-final-f1b7-parity-supplement.json",
+      "path": "reports/security-services/fixer-final-f1b7-parity-supplement.json",
+      "sha256": "1ebfe9eb2373df6cee1e08b276656eda2845a9bfd2d985ad8162298cbf0a06f8",
+      "bytes": 372275
+    },
+    {
+      "member": "next/reports/security-services/fixer-final-f1b7-post-adoption-verification.json",
+      "path": "reports/security-services/fixer-final-f1b7-post-adoption-verification.json",
+      "sha256": "d6ee4729ef6bace09f9d01024225339fba837cc7072f5e6a618743c528e144e6",
+      "bytes": 909
+    },
+    {
+      "member": "next/reports/security-services/fixer-final-f1b7-python-completion.json",
+      "path": "reports/security-services/fixer-final-f1b7-python-completion.json",
+      "sha256": "a0dc240f496cc5586d939728e0d2ef9ec9829d9e13d7eb4df00c7d009db235d1",
+      "bytes": 176
+    },
+    {
+      "member": "next/reports/security-services/fixer-final-f1b7-python.log",
+      "path": "reports/security-services/fixer-final-f1b7-python.log",
+      "sha256": "ffdda41ec097d4537cf92288882d7c94564fe1796d372b2fc526b27c11b77198",
+      "bytes": 106239
+    },
+    {
+      "member": "next/reports/security-services/fixer-final-f1b7-receipt-adoption-approval.json",
+      "path": "reports/security-services/fixer-final-f1b7-receipt-adoption-approval.json",
+      "sha256": "d1cb9bc9b6acd916d2de8f103fff13605f5e61943984b0830f1b7ef60f5c5a53",
+      "bytes": 1857
+    },
+    {
+      "member": "next/reports/security-services/fixer-formatter-getter-differential.json",
+      "path": "reports/security-services/fixer-formatter-getter-differential.json",
+      "sha256": "414e9f9fe8b34e0df1ef4a6b578db639c3bd83b00d3da9b91e4df6ab5a86d9d0",
+      "bytes": 1604
+    },
+    {
+      "member": "next/reports/security-services/fixer-formatter-three-execution.json",
+      "path": "reports/security-services/fixer-formatter-three-execution.json",
+      "sha256": "d31d42cf0d1e6fec09ff336614e7ef439211a5ca89e216ddfa77a959deae3056",
+      "bytes": 1839
+    },
+    {
+      "member": "next/reports/security-services/fixer-formatter-three-fx-viewer.log",
+      "path": "reports/security-services/fixer-formatter-three-fx-viewer.log",
+      "sha256": "c259132310f9843004b245272ca48d56a7dcc6787597199ee754ab65370622da",
+      "bytes": 134
+    },
+    {
+      "member": "next/reports/security-services/fixer-formatter-three-viewer-contracts.log",
+      "path": "reports/security-services/fixer-formatter-three-viewer-contracts.log",
+      "sha256": "4b3ce468b3461672bcc4f603ced0d6adb03cca389f8f2e8f292bc4b7e4d87396",
+      "bytes": 92
+    },
+    {
+      "member": "next/reports/security-services/fixer-formatter-three-viewer-service.log",
+      "path": "reports/security-services/fixer-formatter-three-viewer-service.log",
+      "sha256": "32aa0aed993d6605831105a6a1e809a1299c42780a1ee53701c82232c160542e",
+      "bytes": 37
+    },
+    {
+      "member": "next/reports/security-services/fixer-formatter-unknown-boundary-after.json",
+      "path": "reports/security-services/fixer-formatter-unknown-boundary-after.json",
+      "sha256": "ede44fb48c9a070a3ee0a81d35ca60342d0af232b0b9f2ff7a18c7010595024b",
+      "bytes": 12250
+    },
+    {
+      "member": "next/reports/security-services/fixer-formatter-unknown-boundary-observation.json",
+      "path": "reports/security-services/fixer-formatter-unknown-boundary-observation.json",
+      "sha256": "38d61fc36b806cac3f9ae8c1da6da95ace68abf6006581f7d0474bb0150191cd",
+      "bytes": 12250
+    },
+    {
+      "member": "next/reports/security-services/fixer-formatter-unknown-fx-journal-viewer.log",
+      "path": "reports/security-services/fixer-formatter-unknown-fx-journal-viewer.log",
+      "sha256": "c259132310f9843004b245272ca48d56a7dcc6787597199ee754ab65370622da",
+      "bytes": 134
+    },
+    {
+      "member": "next/reports/security-services/fixer-formatter-unknown-implementation.json",
+      "path": "reports/security-services/fixer-formatter-unknown-implementation.json",
+      "sha256": "43b195dc3e0c2b339e7cd4aa7db78cff49472f45d069356876a54167c5ff4ae7",
+      "bytes": 3773
+    },
+    {
+      "member": "next/reports/security-services/fixer-formatter-unknown-viewer-contracts.log",
+      "path": "reports/security-services/fixer-formatter-unknown-viewer-contracts.log",
+      "sha256": "4b3ce468b3461672bcc4f603ced0d6adb03cca389f8f2e8f292bc4b7e4d87396",
+      "bytes": 92
+    },
+    {
+      "member": "next/reports/security-services/fixer-formatter-unknown-viewer-service.log",
+      "path": "reports/security-services/fixer-formatter-unknown-viewer-service.log",
+      "sha256": "32aa0aed993d6605831105a6a1e809a1299c42780a1ee53701c82232c160542e",
+      "bytes": 37
+    },
+    {
+      "member": "next/reports/security-services/fixer-frontend28-any-implementation-review.json",
+      "path": "reports/security-services/fixer-frontend28-any-implementation-review.json",
+      "sha256": "56626d5bae2877e48a4da063f0cb3acc84c0fc16691dc09edcfcfa526fc156b7",
+      "bytes": 13235
+    },
+    {
+      "member": "next/reports/security-services/fixer-frontend28-build.log",
+      "path": "reports/security-services/fixer-frontend28-build.log",
+      "sha256": "a721248b75b6414d44cd304bdd0a00bd10e949567450e1f11361ff537fba1046",
+      "bytes": 1485
+    },
+    {
+      "member": "next/reports/security-services/fixer-frontend28-lint.log",
+      "path": "reports/security-services/fixer-frontend28-lint.log",
+      "sha256": "fe3ac2339ddbe9dca8eb8ae2e4e60ff16b20db3e8c4e3050df316572c996259a",
+      "bytes": 46
+    },
+    {
+      "member": "next/reports/security-services/fixer-frontend28-runtime-equivalence.json",
+      "path": "reports/security-services/fixer-frontend28-runtime-equivalence.json",
+      "sha256": "87478bf22410bac44b15b94a6c44bc51b12659581044e83c6b5ca68fbd05d623",
+      "bytes": 1667
+    },
+    {
+      "member": "next/reports/security-services/fixer-frontend28-test.log",
+      "path": "reports/security-services/fixer-frontend28-test.log",
+      "sha256": "25829229d5ec8a73c687abef8e00bad38d65e588ba42ed0fffe78c928f0ac865",
+      "bytes": 456
+    },
+    {
+      "member": "next/reports/security-services/fixer-group2-exports-contracts.log",
+      "path": "reports/security-services/fixer-group2-exports-contracts.log",
+      "sha256": "700562ea613cbd5280f1beb6d99d4778ec0430d718effba97509def01e67154f",
+      "bytes": 93
+    },
+    {
+      "member": "next/reports/security-services/fixer-group2-exports-implementation-review.json",
+      "path": "reports/security-services/fixer-group2-exports-implementation-review.json",
+      "sha256": "df416fdf091ca98128eab0bb35209f5760063d54d41f54e25f3aaba56fc258f0",
+      "bytes": 6246
+    },
+    {
+      "member": "next/reports/security-services/fixer-group2-exports-money.log",
+      "path": "reports/security-services/fixer-group2-exports-money.log",
+      "sha256": "45e8b836077c576a7f8755fd6bd6ffc8de8ff817691adeb27365f7df9dff5b1a",
+      "bytes": 135
+    },
+    {
+      "member": "next/reports/security-services/fixer-history-matrix-binding-independent-approval.json",
+      "path": "reports/security-services/fixer-history-matrix-binding-independent-approval.json",
+      "sha256": "8c79d8fc29daf1b88c2467ec7a4121f3b237e4b00c0224138d4b9076a36adf22",
+      "bytes": 50244
+    },
+    {
+      "member": "next/reports/security-services/fixer-incident-rows-execution.json",
+      "path": "reports/security-services/fixer-incident-rows-execution.json",
+      "sha256": "b422c5dc341e777e3279a4501ea0e34b03313675a3fc2eb60aff977b678150a6",
+      "bytes": 828
+    },
+    {
+      "member": "next/reports/security-services/fixer-incident-rows-failures.log",
+      "path": "reports/security-services/fixer-incident-rows-failures.log",
+      "sha256": "cb620c632ccf8b04c82b7f3fe979e2b24d0a1c3affc9770a1705c54c0fa363b1",
+      "bytes": 37
+    },
+    {
+      "member": "next/reports/security-services/fixer-incident-rows-independent-review.json",
+      "path": "reports/security-services/fixer-incident-rows-independent-review.json",
+      "sha256": "3f4eafddb03cfd5ad1cb1249c0ce010c8c54fa3d699966a5805c9aec47c52621",
+      "bytes": 2296
+    },
+    {
+      "member": "next/reports/security-services/fixer-incident-rows-retirement.log",
+      "path": "reports/security-services/fixer-incident-rows-retirement.log",
+      "sha256": "07578d2fe272089101480d5f83655e6bca3bb8e9312cf5f54e927922f80c12f6",
+      "bytes": 121
+    },
+    {
+      "member": "next/reports/security-services/fixer-incident-rows-viewer-core.log",
+      "path": "reports/security-services/fixer-incident-rows-viewer-core.log",
+      "sha256": "c794bb86fbb4db6b874f17721c6a636c51cbd1c8c125671ade4a45373c4d5cd8",
+      "bytes": 181
+    },
+    {
+      "member": "next/reports/security-services/fixer-mcp-rename-complexity.json",
+      "path": "reports/security-services/fixer-mcp-rename-complexity.json",
+      "sha256": "dc1d4288fe2e141ccb931a025a428e7f76b93aedb5dd460014fb80d2d6fb7302",
+      "bytes": 257760
+    },
+    {
+      "member": "next/reports/security-services/fixer-mcp-rename-db-tests.log",
+      "path": "reports/security-services/fixer-mcp-rename-db-tests.log",
+      "sha256": "2ba996dc8c36c1d6482e381239e74f6a9807dc504be8fb4d4af82503faafedc5",
+      "bytes": 110
+    },
+    {
+      "member": "next/reports/security-services/fixer-mcp-rename-implementation-review.json",
+      "path": "reports/security-services/fixer-mcp-rename-implementation-review.json",
+      "sha256": "01c0bb97882c97ea977ec5a3ca237309baff671159dda31fe869bf1ad296f6c1",
+      "bytes": 8526
+    },
+    {
+      "member": "next/reports/security-services/fixer-monitoring-grpc-1832-implementation.json",
+      "path": "reports/security-services/fixer-monitoring-grpc-1832-implementation.json",
+      "sha256": "b86845995b527657aa6fb6c68327e82a2095675234874560f94c70c8ab8ba6dc",
+      "bytes": 3465
+    },
+    {
+      "member": "next/reports/security-services/fixer-native-evidence-complexity-differential.json",
+      "path": "reports/security-services/fixer-native-evidence-complexity-differential.json",
+      "sha256": "d19dc5f8a9d47f24e6054cde28b6b405b49af071485d5fbed78ae85bc3932cf8",
+      "bytes": 31352
+    },
+    {
+      "member": "next/reports/security-services/fixer-native-evidence-complexity-implementation-report.json",
+      "path": "reports/security-services/fixer-native-evidence-complexity-implementation-report.json",
+      "sha256": "2c1b60ffbac2aadac649473ab2acc924f19d21259f60b9188c29bb3c40af8ea5",
+      "bytes": 4213
+    },
+    {
+      "member": "next/reports/security-services/fixer-native-evidence-complexity-verification.json",
+      "path": "reports/security-services/fixer-native-evidence-complexity-verification.json",
+      "sha256": "d7b3cee0fdb02fcfa5567c49048a73cf39fe87ab84c49a23b939b2aaa6ac8d09",
+      "bytes": 3102
+    },
+    {
+      "member": "next/reports/security-services/fixer-queue-generic-review.json",
+      "path": "reports/security-services/fixer-queue-generic-review.json",
+      "sha256": "1c49a68896dccf0685e8d6ed750b19a7fc4fe6eaa14f44cc15b5d1f99cbc473d",
+      "bytes": 3727
+    },
+    {
+      "member": "next/reports/security-services/fixer-queue-generic-tests.log",
+      "path": "reports/security-services/fixer-queue-generic-tests.log",
+      "sha256": "3dc353df324e33b9696cc86b033b9c3d886ecfdd2df4319f3e5b1426d026f8d1",
+      "bytes": 623
+    },
+    {
+      "member": "next/reports/security-services/fixer-runtime-unknown-dispatch.log",
+      "path": "reports/security-services/fixer-runtime-unknown-dispatch.log",
+      "sha256": "82440b0a3bdb3d342e1cc2a06fe556462617ad0ab04118edb7ed85a0bc4b1256",
+      "bytes": 103
+    },
+    {
+      "member": "next/reports/security-services/fixer-runtime-unknown-races.log",
+      "path": "reports/security-services/fixer-runtime-unknown-races.log",
+      "sha256": "ad248fe919b05f39795a3beda3523c109455a533564df9d5a03a677a90ce0875",
+      "bytes": 155
+    },
+    {
+      "member": "next/reports/security-services/fixer-runtime-unknown-review.json",
+      "path": "reports/security-services/fixer-runtime-unknown-review.json",
+      "sha256": "3048527ff2e6b5edd861e641fe89a78362f9f7ae3ab454d281a3e2ab14e193ce",
+      "bytes": 4051
+    },
+    {
+      "member": "next/reports/security-services/fixer-sonar-native-followup-execution.json",
+      "path": "reports/security-services/fixer-sonar-native-followup-execution.json",
+      "sha256": "bf091b5a942a4e8f967441534170e8eb18760b0134d11f645028af69e0eeb4e6",
+      "bytes": 250
+    },
+    {
+      "member": "next/reports/security-services/fixer-sonar-three-execution.json",
+      "path": "reports/security-services/fixer-sonar-three-execution.json",
+      "sha256": "fb25ce6a2b1dc06f3c6a2fa7a107509a375738b29e5ebf216a38475695c01901",
+      "bytes": 917
+    },
+    {
+      "member": "next/reports/security-services/fixer-sonar-three-implementation-review.json",
+      "path": "reports/security-services/fixer-sonar-three-implementation-review.json",
+      "sha256": "dc31132c1c96a6823de44aa7ff456bedc158a2cda7549e2d8eb243a8e51a4dc3",
+      "bytes": 3241
+    },
+    {
+      "member": "next/reports/security-services/fixer-telemetry-row-types-analytics.log",
+      "path": "reports/security-services/fixer-telemetry-row-types-analytics.log",
+      "sha256": "de87d2e3f5bc1e1b41b083238f0f1ad9ab5da52839a6b3f8b096e1e1c720797d",
+      "bytes": 58
+    },
+    {
+      "member": "next/reports/security-services/fixer-telemetry-row-types-fx-analytics.log",
+      "path": "reports/security-services/fixer-telemetry-row-types-fx-analytics.log",
+      "sha256": "d1355cc208764df0945bc8271123f9e85ad0635c388939908622f3fe2c5d9c3c",
+      "bytes": 119
+    },
+    {
+      "member": "next/reports/security-services/fixer-telemetry-row-types-fx-money-reporting.log",
+      "path": "reports/security-services/fixer-telemetry-row-types-fx-money-reporting.log",
+      "sha256": "862168ccd4966a26b89075c7b3afea40843cf11991bbe2fb309142b080b74eb2",
+      "bytes": 130
+    },
+    {
+      "member": "next/reports/security-services/fixer-telemetry-row-types-implementation.json",
+      "path": "reports/security-services/fixer-telemetry-row-types-implementation.json",
+      "sha256": "82f79c746f514433c87cb1bcf48f323ab2888900359177edf6f4084a54bcf873",
+      "bytes": 14298
+    },
+    {
+      "member": "next/reports/security-services/fixer-viewer-row-types-fx-journal-viewer.log",
+      "path": "reports/security-services/fixer-viewer-row-types-fx-journal-viewer.log",
+      "sha256": "c259132310f9843004b245272ca48d56a7dcc6787597199ee754ab65370622da",
+      "bytes": 134
+    },
+    {
+      "member": "next/reports/security-services/fixer-viewer-row-types-implementation-report.json",
+      "path": "reports/security-services/fixer-viewer-row-types-implementation-report.json",
+      "sha256": "1dbf300a6f23b8e02d0cbfbd59269702f9f9ac03cc13f76daaf35c5f9eea9338",
+      "bytes": 12875
+    },
+    {
+      "member": "next/reports/security-services/fixer-viewer-row-types-independent-review.json",
+      "path": "reports/security-services/fixer-viewer-row-types-independent-review.json",
+      "sha256": "28dfed7bb138b9589be44d228cfdd154e402ac69b85fb9437bedf617cf4a394e",
+      "bytes": 3566
+    },
+    {
+      "member": "next/reports/security-services/fixer-viewer-row-types-money-reporting.log",
+      "path": "reports/security-services/fixer-viewer-row-types-money-reporting.log",
+      "sha256": "862168ccd4966a26b89075c7b3afea40843cf11991bbe2fb309142b080b74eb2",
+      "bytes": 130
+    },
+    {
+      "member": "next/reports/security-services/fixer-viewer-row-types-viewer-contracts.log",
+      "path": "reports/security-services/fixer-viewer-row-types-viewer-contracts.log",
+      "sha256": "4b3ce468b3461672bcc4f603ced0d6adb03cca389f8f2e8f292bc4b7e4d87396",
+      "bytes": 92
+    },
+    {
+      "member": "next/reports/security-services/hyperliquid-f1b7-receipt-candidate-lf.json",
+      "path": "reports/security-services/hyperliquid-f1b7-receipt-candidate-lf.json",
+      "sha256": "2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264",
+      "bytes": 1355
+    }
+  ],
+  "inheritedExactFiles": [
+    {
+      "referencePath": "reports/security-services/fixer-a6-candidate-evidence-independent-review.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-a6-candidate-evidence-independent-review.json",
+      "memberSha256": "a8ce8efded5b2bdb47ef0992486d6b80595c8c111b9b8387e0b8994eef0c17ff",
+      "bytes": 10931
+    },
+    {
+      "referencePath": "reports/security-services/fixer-accounting-all-complexity-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-accounting-all-complexity-test_exchange_contract_validation.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-contract-undefined-target.log",
+      "memberSha256": "dede4eed716023f613655264568b7a81041cb5ab78cdcf3bc9def0a057477714",
+      "bytes": 44
+    },
+    {
+      "referencePath": "reports/security-services/fixer-accounting-all-complexity-test_exchange_history_coverage.log",
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+      "member": "active/reports/security-services/fixer-optional-exchange_history_coverage.log",
+      "memberSha256": "67d0432881434b02bade9248b887c37265a1de924861c3d026ebfbc96b19c130",
+      "bytes": 108
+    },
+    {
+      "referencePath": "reports/security-services/fixer-accounting-all-complexity-types.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-baseline-batch1-final-verification.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-verification.json",
+      "memberSha256": "1367932a07dc04a968186a3b3ad8b74df5d68b946bc88911080a85e1d727ef0d",
+      "bytes": 4036
+    },
+    {
+      "referencePath": "reports/security-services/fixer-baseline-batch1-implementation-report.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-implementation-report.json",
+      "memberSha256": "6eed8c9cbae626643188caf570916be105032b0331178ce36272d33d836fc5d2",
+      "bytes": 8779
+    },
+    {
+      "referencePath": "reports/security-services/fixer-baseline-batch1-independent-review.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-independent-review.json",
+      "memberSha256": "6c0b89fff987057efcdb746b47903293f1bbab0c7b4cd75e72d612a26937ca57",
+      "bytes": 7210
+    },
+    {
+      "referencePath": "reports/security-services/fixer-candidate-policy-root-execution-a0e831a.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-candidate-policy-root-execution-a0e831a.json",
+      "memberSha256": "827cf3ea9b923dfd745eeaffb7abf316e9b4d7d4db2d91cca9249ffce48a5493",
+      "bytes": 764
+    },
+    {
+      "referencePath": "reports/security-services/fixer-contract-undefined-review.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-contract-undefined-review.json",
+      "memberSha256": "edb7e9638d9d1230f4f2ca33189aae8b352fc665b924f61930f3c4ee5b4fd9d5",
+      "bytes": 2022
+    },
+    {
+      "referencePath": "reports/security-services/fixer-formatter-three-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-formatter-three-types.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-formatter-unknown-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-formatter-unknown-typecheck.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-four-control-character-implementation-review.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-four-control-character-implementation-review.json",
+      "memberSha256": "62f650cea0d3cdef07de835bf286290fbcbd79fe59b9ae3912146f1fe1261e16",
+      "bytes": 7766
+    },
+    {
+      "referencePath": "reports/security-services/fixer-four-control-character-independent-review.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-four-control-character-independent-review.json",
+      "memberSha256": "d19ae36c715cf0c2a846d1e5baddcaeed4d9fff09882a4a4eca5fd5cdd96c1b0",
+      "bytes": 4385
+    },
+    {
+      "referencePath": "reports/security-services/fixer-frontend28-npm-ci.log",
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+      "member": "lf101/reports/implementation-renewal/npm-ci-frontend.log",
+      "memberSha256": "ca655ec2ab8341451964efc6e389649089e03a0c1f762b06a6071269f88d4d68",
+      "bytes": 152
+    },
+    {
+      "referencePath": "reports/security-services/fixer-group2-exports-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-group2-exports-service.log",
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+      "member": "active/reports/security-services/fixer-codacy-c1-viewer-test.log",
+      "memberSha256": "591574577d94c36142321c3299ba1dcde94c8f2eef6a91c65be0f90b5b8002c1",
+      "bytes": 38
+    },
+    {
+      "referencePath": "reports/security-services/fixer-group2-exports-typecheck.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-history-extraction-root-ast-review.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-history-extraction-root-ast-review.json",
+      "memberSha256": "47248db8ddb5bf7112404332d0d73d0acdc6f130df2697d25f71cef0b35c077e",
+      "bytes": 497
+    },
+    {
+      "referencePath": "reports/security-services/fixer-history-scope-extraction-execution.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-history-scope-extraction-execution.json",
+      "memberSha256": "83eb957bcac24c368a2301ec4fb1ed10778d03eb3d48a1a3701d2384df1d3301",
+      "bytes": 41
+    },
+    {
+      "referencePath": "reports/security-services/fixer-history-scope-extraction-review.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-history-scope-extraction-review.json",
+      "memberSha256": "fbd529fb88cbf9517bd7b7d334e4715878a872f9b6026921c2b8d57d53e59a54",
+      "bytes": 2786
+    },
+    {
+      "referencePath": "reports/security-services/fixer-hyperliquid-history-scope-followup-review.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-hyperliquid-history-scope-followup-review.json",
+      "memberSha256": "ca03762e1ad7a5e405491e224f5a0456040b492b667efe28fc7085a9fe51b37b",
+      "bytes": 5463
+    },
+    {
+      "referencePath": "reports/security-services/fixer-incident-rows-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-incident-rows-types.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-mcp-rename-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-mcp-rename-tests.log",
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+      "member": "active/reports/security-services/fixer-mcp-maintenance-diagnostics-target.log",
+      "memberSha256": "26de40c30c4b46d4f1ee2b8deaa95c121409a6caca7a7a4b9a2a0cd613fe0058",
+      "bytes": 125
+    },
+    {
+      "referencePath": "reports/security-services/fixer-mcp-rename-tsc.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-native-evidence-complexity-exchange-contract.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-exchange-contract.log",
+      "memberSha256": "983c3559953b44949477a21a6738bc4d3bcc7c434d33aa6ac347e3671db463ff",
+      "bytes": 43
+    },
+    {
+      "referencePath": "reports/security-services/fixer-native-evidence-complexity-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-native-evidence-complexity-native-bindings.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-native-bindings.log",
+      "memberSha256": "7c5dbfda2056bd167aad5aa1ad7d0a6f85f0bd537f5e3972c0e2bc81eb54134f",
+      "bytes": 98
+    },
+    {
+      "referencePath": "reports/security-services/fixer-native-evidence-complexity-order-requests.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-order-identity.log",
+      "memberSha256": "ff4c6fe2acfffdb644b6123ffec324c6b35f5eecdf2e8bc1be3ea160a22a2c46",
+      "bytes": 103
+    },
+    {
+      "referencePath": "reports/security-services/fixer-native-evidence-complexity-typecheck.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-a0-build-inputs.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-next-a0-build-inputs.json",
+      "memberSha256": "3975cf5137799415a3c568acbfbbc69994fb4958838401b9c749bfd1f072341b",
+      "bytes": 171408
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-a0-canonical-input-review.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-next-a0-canonical-input-review.json",
+      "memberSha256": "93e181a1be240207b1895da9b23b841098851b7b38f9816479fbe5d7a53fd904",
+      "bytes": 257714
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-a0-complete-source-coverage.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-next-a0-complete-source-coverage.json",
+      "memberSha256": "41ec2ca2a35a939ad83086f9904834e9ee72702be72b585c7871b3ba871454ce",
+      "bytes": 7523
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-a0-execution-supplement.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-next-a0-execution-supplement.json",
+      "memberSha256": "7be841bae665137df8decccf4b2209849782fa0eb72fd602a62d684cb980415b",
+      "bytes": 8644
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-a0-parity-supplement.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-next-a0-parity-supplement.json",
+      "memberSha256": "03ad220287c340dc25efa3ed45d957f561f191054a2331f44cc74422011f09e2",
+      "bytes": 101291
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-a0-runtime-observation.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-next-a0-runtime-observation.json",
+      "memberSha256": "760970ed2c1112eb78bf1dab0ff56bb90a76316eae8d9141f64cd962b8f069d7",
+      "bytes": 1053
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-forwarder-fixture-execution.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-next-forwarder-fixture-execution.json",
+      "memberSha256": "3e9a0aade4b9f6419889c6cb1bd301f99ce5a3466c77cdf84c42a98837443f19",
+      "bytes": 115
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-forwarder-fixture-independent-review.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-next-forwarder-fixture-independent-review.json",
+      "memberSha256": "23eecd1f7839af2df5f5368853d72592f323599b480730ef331e5ee1b62044ad",
+      "bytes": 5543
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-forwarder-fixture-review.json",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-next-forwarder-fixture-review.json",
+      "memberSha256": "c3616b1f558f8dd70a6d5729a5fb285c97f6669b5577a0018e1aaaf0ef9cf5a3",
+      "bytes": 1768
+    },
+    {
+      "referencePath": "reports/security-services/fixer-queue-generic-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-queue-generic-types.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-runtime-unknown-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-runtime-unknown-typecheck.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-telemetry-row-types-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-telemetry-row-types-typecheck.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-viewer-row-types-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-viewer-row-types-typecheck.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "inheritedAssetsNotDuplicated": [
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-current-review-coverage-8465469.json.gz",
+      "sha256": "b5c042f31070437eaceb48f04b7d125b7cdea7fa840406da376c4a6817a4ded5"
+    }
+  ],
+  "historicalNameReferencesResolvedToArchive": [
+    {
+      "reference": "reports/security-services/fixer-101-receipt-requirement-mapping-wave-b.json",
+      "inheritedCandidates": [
+        {
+          "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+          "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+          "member": "active/reports/security-services/fixer-101-receipt-requirement-mapping-wave-b.json",
+          "memberSha256": "c1d3c079bad3ae85666d30d273cf49c99fc2f868fd1c163154ea39569f5a9a1d",
+          "bytes": 76789
+        }
+      ]
+    },
+    {
+      "reference": "reports/security-services/fixer-hyperliquid-parity-22-assertions-101d8fa.json",
+      "inheritedCandidates": [
+        {
+          "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+          "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+          "member": "active/reports/security-services/fixer-hyperliquid-parity-22-assertions-101d8fa.json",
+          "memberSha256": "ee6632c73c780b44598b0a6e499f643f8205f600450aa36d05722724384b0fc7",
+          "bytes": 66755
+        }
+      ]
+    },
+    {
+      "reference": "reports/security-services/fixer-hyperliquid-parity-draft-101d8fa-node-followup.json",
+      "inheritedCandidates": [
+        {
+          "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+          "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+          "member": "active/reports/security-services/fixer-hyperliquid-parity-draft-101d8fa-node-followup.json",
+          "memberSha256": "3eec7a4970e08badf0b47b302bcd5e0107e4b1fb1031141c2aaa54b34030aa23",
+          "bytes": 351939
+        }
+      ]
+    }
+  ],
+  "unresolvedHistoricalNameReferences": [],
+  "scope": "New exact raw reports/logs only. Source files are bound to frozen Git/collector; existing archives and matching archived reports are inherited by hash and member reference, never duplicated.",
+  "providerAcceptanceVerified": false,
+  "operativeReceiptOrPinsChanged": false
+}

@@ -7,11 +7,17 @@ function evidenceFieldValue(value: ReactNode): ReactNode {
   return value;
 }
 
-function evidenceCellValue(value: any): ReactNode {
+function evidenceCellValue(value: unknown): ReactNode {
   if (value == null) return "nicht verfügbar";
   if (typeof value === "boolean") return value ? "ja" : "nein";
   if (isValidElement(value)) return value;
-  return String(value);
+  return evidenceScalarValue(value);
+}
+
+function evidenceScalarValue(value: unknown): ReactNode {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "bigint" || typeof value === "symbol") return String(value);
+  return "Ungültiger Wert";
 }
 
 export function EvidenceFields({ fields }: Readonly<{ fields: Array<[string, ReactNode]> }>) {
@@ -20,7 +26,7 @@ export function EvidenceFields({ fields }: Readonly<{ fields: Array<[string, Rea
   )}</dl>;
 }
 
-export function EvidenceTable({ caption, rows, columns }: Readonly<{ caption: string; rows: Array<Record<string, any>>; columns: Array<[string, string]> }>) {
+export function EvidenceTable({ caption, rows, columns }: Readonly<{ caption: string; rows: Array<Record<string, unknown>>; columns: Array<[string, string]> }>) {
   return <section className="overflow-x-auto" tabIndex={0} aria-label={`Tabellenbereich: ${caption}`}>
     <table className="w-full text-left">
       <caption className="text-left py-3">{caption}</caption>

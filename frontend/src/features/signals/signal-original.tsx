@@ -23,18 +23,41 @@ export function DeleteStoredSignal({ id, kind, onDeleted }: Readonly<{ id: strin
     } catch (error) { setMessage(`Löschung nicht bestätigt; keine automatische Wiederholung. ${error instanceof Error ? error.message : String(error)}`); }
     finally { setBusy(false); }
   };
-  return <div>{confirmationDialog}<button className="danger-button" disabled={readOnly || busy || deleted} onClick={() => void remove()}>Gespeichertes Original löschen</button>
+  return <div>{confirmationDialog}<button className="danger-button" disabled={readOnly || busy || deleted} onClick={() => { remove(); }}>Gespeichertes Original löschen</button>
     {readOnly && <p>Löschung erfordert die Administratorrolle.</p>}{message && <p><output>{message}</output></p>}</div>;
+}
+
+interface StoredSignalOriginal {
+  channelId: string | number | null;
+  messageId: string | number | null;
+  createdAt: number;
+  model?: string | null;
+  templateName?: string | null;
+  schemaName?: string | null;
+  promptSha256?: string | null;
+  parserVersion?: string | null;
+  workflowRevisionId?: string | null;
+  interpretation: string;
+  offset: number;
+  totalCharacters: number | null;
+  text: string | null;
+  hasMore: boolean;
+  nextCursor: string | null;
+}
+
+interface StoredSignalObservation {
+  query: string;
+  value: StoredSignalOriginal | null;
 }
 
 export function SignalOriginal({ id, kind }: Readonly<{ id: string; kind: 'messages' | 'processed' }>) {
   const [params, setParams] = useSearchParams(); const field = params.get('field') || (kind === 'messages' ? 'text' : 'xml');
   const cursor = params.get('textCursor') || ''; const query = new URLSearchParams({ id, kind, field, cursor }).toString();
-  const [state, setState] = useState<any>(null); const [error, setError] = useState(''); const [deleted, setDeleted] = useState(false);
+  const [state, setState] = useState<StoredSignalObservation | null>(null); const [error, setError] = useState(''); const [deleted, setDeleted] = useState(false);
   const read = useCallback((signal: AbortSignal) => jsonRequest(`/api/signals/original?${query}`, { signal }), [query]);
   usePoll(read, value => { setState({ query, value }); setError(''); }, failure => setError(failure.message));
   const data = state?.query === query ? state.value : null;
-  const select = (nextField: string, nextCursor?: string) => setParams(previous => { previous.set('field', nextField); if (nextCursor) { previous.set('textCursor', nextCursor); } else { previous.delete('textCursor'); } return previous; });
+  const select = (nextField: string, nextCursor?: string | null) => setParams(previous => { previous.set('field', nextField); if (nextCursor) { previous.set('textCursor', nextCursor); } else { previous.delete('textCursor'); } return previous; });
   return <div className="operations-stack"><Link to={kind === 'messages' ? '/signals/cache' : '/signals/processed'}>Zur Liste</Link><h1>Gespeichertes Original {id}</h1>
     <DeleteStoredSignal id={id} kind={kind} onDeleted={() => setDeleted(true)} />
     {error && !deleted && <p role="alert">{error} · Vorhandener Abschnitt möglicherweise veraltet.</p>}

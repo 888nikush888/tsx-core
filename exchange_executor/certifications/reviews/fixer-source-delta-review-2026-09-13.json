@@ -1,0 +1,1222 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-complete-source-delta-wave-review",
+  "baseRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+  "generatedAt": "2026-09-13T08:35:50.500Z",
+  "selection": "First 40 alphabetically among changedSinceReceiptOrigin, no current exactBindings, src/ paths in coverage index. LocaleCompare selection matches initial PowerShell ordering for this set.",
+  "files": [
+    {
+      "path": "src/audit_cli.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "ae765ec3cfbd1f2b5ba900aad528f5b05f6fe75a335ea1a6c1b0d2fb64a46e4e",
+      "currentWorkingFileSha256": "ae765ec3cfbd1f2b5ba900aad528f5b05f6fe75a335ea1a6c1b0d2fb64a46e4e",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "4ada7db05f018bb87fcc28b3c8b8fbba4eff99bcbdd5e071eaa5d9c297f42987",
+      "hunks": [
+        "@@ -1,15 +1,20 @@",
+        "@@ -22,7 +27,7 @@ async function main(): Promise<void> {"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Command helper preserves exact verify/replay admission and replay confirmation before initialization. Unknown thrown values now print usefully rather than accessing .message blindly; exitCode remains 1.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/backup_evidence.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "a78afd94748470c7822cebc7e55babc47b4049c4c535636decccd1d5472e4fc0",
+      "currentWorkingFileSha256": "a78afd94748470c7822cebc7e55babc47b4049c4c535636decccd1d5472e4fc0",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "38053c87f1e6f19c576cb0b6a961b9d8eec32e4ea4a1d2fb93934ec2a26075fa",
+      "hunks": [
+        "@@ -1,7 +1,10 @@",
+        "@@ -23,54 +26,6 @@ export async function boundedBackupManifestBytes(destination: string): Promise<B",
+        "@@ -101,7 +56,7 @@ export async function assessRestoreEligibility(database: Database, now = Date.no"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Interfaces moved as type exports; runtime scope re-export is the same artifact-local-integrated-restore literal in ui_contracts. Eligibility SQL and manifest I/O unchanged; error string evaluates identically.",
+      "contextPaths": [
+        {
+          "path": "src/ui_contracts.ts",
+          "sha256": "5ce33185d9c79c90802207e3efc752d1213fedfe0ecd02bc252ac9f735e9aa9d"
+        }
+      ],
+      "historicalScopedBindings": [
+        {
+          "report": "docs/testing/snyk-code-independent-review-2026-09-08.json",
+          "reportSha256": "82475ac7a167f62bcd6dbe483df08fd27a2d0a3945adc46738008c2f92bb2e67",
+          "jsonPointer": "/entries/4/contextPaths/1",
+          "hashField": "sha256",
+          "boundSha256": "870533fb90f5f47dd30d93cb4f764024f4d089d0fd6a7953c1c4cf2484fc22f4",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "independent-second-source-review",
+          "reviewedRevision": "fa31311c0310cafb88a3eb62977d8756546349aa",
+          "scope": "Exactly the85wave3SARIF findings. Read-only review; no platform disposition changed. Only false-positive entries may satisfy a source-and-fingerprint-bound gate. Open findings remain blocking; later source fixes are not retroactively approved. All source/context hashes use git show reviewedRevision:path bytes.",
+          "rationale": null,
+          "disposition": null,
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/snyk-code-independent-review-wave5-2026-09-08.json",
+          "reportSha256": "625d8a5efc0cf35d444fbbfdbce401ee8611d4202fb7bff098c90997a7747d76",
+          "jsonPointer": "/entries/4/contextPaths/1",
+          "hashField": "sha256",
+          "boundSha256": "42340d768780c7f4f0a3f8abc18fda2ac3fe0bc6db44083389b55bcdbace3a7c",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "independent-second-source-review-wave5",
+          "reviewedRevision": "032dff339607b6138eb5a6db134dc91c1be5cb82",
+          "scope": "Exactly 85 wave5 findings. 66 unchanged fingerprint/flow/source/context bindings revalidated; 19 changed/open findings individually re-reviewed. Four internal HTTP findings remain open, handled only by the separately owner-authorized scoped risk acceptance. No platform statuses or source files changed.",
+          "rationale": null,
+          "disposition": null,
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/snyk-code-independent-review-wave8-2026-09-08.json",
+          "reportSha256": "9c6839bfe198280860f633dc119c51f5371dfaaf9f312c4536d0cc11d547a8f8",
+          "jsonPointer": "/entries/4/contextPaths/1",
+          "hashField": "sha256",
+          "boundSha256": "42340d768780c7f4f0a3f8abc18fda2ac3fe0bc6db44083389b55bcdbace3a7c",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "independent-second-source-review-wave8",
+          "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+          "scope": "Exactly 85 wave8 findings. 76 unchanged fingerprint/flow/source/context bindings revalidated; 9 changed findings individually re-reviewed. Four internal HTTP findings remain open, handled only by the separately owner-authorized scoped risk acceptance. No platform statuses or source files changed.",
+          "rationale": null,
+          "disposition": null,
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        }
+      ],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/backup_restore_drill_worker.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "22cd0fce53601b4726790c46046d205cf360147e82fef3ba2ee9165d313b7b60",
+      "currentWorkingFileSha256": "22cd0fce53601b4726790c46046d205cf360147e82fef3ba2ee9165d313b7b60",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "afb81e9717ea765d3a4595f6a83522a6cc60ee6e8c2ec626056522dca8eca631",
+      "hunks": [
+        "@@ -9,9 +9,13 @@ import dgram from 'node:dgram';",
+        "@@ -23,10 +27,10 @@ function denyExternalWork(): void {",
+        "@@ -43,13 +47,23 @@ async function checkRestoredFiles(root: string, artifact: string, files: Record<",
+        "@@ -60,8 +74,8 @@ async function perform(): Promise<void> {"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Argument and empty-real-directory checks extracted without moving denyExternalWork after any dynamic restore import. Ownership and lease changes are erased types. DNS self-probe callback now throws if unexpectedly invoked; normal deny hook still throws synchronously before callback. No actual restore performed.",
+      "contextPaths": [],
+      "historicalScopedBindings": [
+        {
+          "report": "docs/testing/snyk-code-independent-review-2026-09-08.json",
+          "reportSha256": "82475ac7a167f62bcd6dbe483df08fd27a2d0a3945adc46738008c2f92bb2e67",
+          "jsonPointer": "/entries/4",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "d2d604b255ac626550109b929019a4cc83752b22ad25af67bba529b2a143004a",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "independent-second-source-review",
+          "reviewedRevision": "fa31311c0310cafb88a3eb62977d8756546349aa",
+          "scope": "Exactly the85wave3SARIF findings. Read-only review; no platform disposition changed. Only false-positive entries may satisfy a source-and-fingerprint-bound gate. Open findings remain blocking; later source fixes are not retroactively approved. All source/context hashes use git show reviewedRevision:path bytes.",
+          "rationale": "Line 39: member keys reach readFile only from verifyBackupArtifact: allowed core filenames or validated templates segments, no dot/dotdot/separators, resolved containment and no symlink parents. The worker additionally requires its own empty canonical restored directory; this flow cannot supply arbitrary manifest traversal names.",
+          "disposition": "false-positive",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/snyk-code-independent-review-wave5-2026-09-08.json",
+          "reportSha256": "625d8a5efc0cf35d444fbbfdbce401ee8611d4202fb7bff098c90997a7747d76",
+          "jsonPointer": "/entries/4",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "d2d604b255ac626550109b929019a4cc83752b22ad25af67bba529b2a143004a",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "independent-second-source-review-wave5",
+          "reviewedRevision": "032dff339607b6138eb5a6db134dc91c1be5cb82",
+          "scope": "Exactly 85 wave5 findings. 66 unchanged fingerprint/flow/source/context bindings revalidated; 19 changed/open findings individually re-reviewed. Four internal HTTP findings remain open, handled only by the separately owner-authorized scoped risk acceptance. No platform statuses or source files changed.",
+          "rationale": "The only changed prior context moves backup DTO interfaces and the unchanged restore-scope literal to pure ui_contracts.ts, now also bound. Manifest member validation and filesystem boundaries are unchanged: verifyBackupArtifact permits fixed core members or validated template segments, rejects traversal/separators, and checks resolved containment and symlink parents. The worker reads only these verified members inside its own canonical restored directory; argv does not bypass manifest validation.",
+          "disposition": "false-positive",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/snyk-code-independent-review-wave8-2026-09-08.json",
+          "reportSha256": "9c6839bfe198280860f633dc119c51f5371dfaaf9f312c4536d0cc11d547a8f8",
+          "jsonPointer": "/entries/4",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "d2d604b255ac626550109b929019a4cc83752b22ad25af67bba529b2a143004a",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "independent-second-source-review-wave8",
+          "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+          "scope": "Exactly 85 wave8 findings. 76 unchanged fingerprint/flow/source/context bindings revalidated; 9 changed findings individually re-reviewed. Four internal HTTP findings remain open, handled only by the separately owner-authorized scoped risk acceptance. No platform statuses or source files changed.",
+          "rationale": "The only changed prior context moves backup DTO interfaces and the unchanged restore-scope literal to pure ui_contracts.ts, now also bound. Manifest member validation and filesystem boundaries are unchanged: verifyBackupArtifact permits fixed core members or validated template segments, rejects traversal/separators, and checks resolved containment and symlink parents. The worker reads only these verified members inside its own canonical restored directory; argv does not bypass manifest validation.",
+          "disposition": "false-positive",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/snyk-code-review-2026-09-08.json",
+          "reportSha256": "5edfbc2371e7599003f64b6ea9d2c8ba565b2c5b5d58b740c969bd06cc78be78",
+          "jsonPointer": "/entries/4",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "d2d604b255ac626550109b929019a4cc83752b22ad25af67bba529b2a143004a",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "structured-report",
+          "reviewedRevision": null,
+          "scope": null,
+          "rationale": "Member names come from inspect/verifyBackupArtifact evidence and verified restore plans, not unchecked argv members. The worker requires its own empty real temporary restored directory and disables network/subprocess APIs. Artifact path validation occurs before member hash reads.",
+          "disposition": "proposed-false-positive",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        }
+      ],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/backup_restore_drill.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "bc5d9ad9187e9e61e481cff9a89e41bf3364c8b9d863a2c389a93ddcbd3f002e",
+      "currentWorkingFileSha256": "bc5d9ad9187e9e61e481cff9a89e41bf3364c8b9d863a2c389a93ddcbd3f002e",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "27b2ff72261fc736d8d21cad8bea7f2624b97ff29f3fe81bd9a54c3849f13a3f",
+      "hunks": [
+        "@@ -61,15 +61,39 @@ async function runWorker(artifact: string, root: string, nonce: string, expected"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "All nonce/hash/runtime/isolation/osSandbox/date/safeinteger/time-window predicates retained in receipt helpers. Input originates from JSON.parse bounded child output, so reordered plain-property checks introduce no getter behavior. Wrong primitive containers now explicitly reject with same receipt error.",
+      "contextPaths": [],
+      "historicalScopedBindings": [
+        {
+          "report": "docs/testing/snyk-code-independent-review-2026-09-08.json",
+          "reportSha256": "82475ac7a167f62bcd6dbe483df08fd27a2d0a3945adc46738008c2f92bb2e67",
+          "jsonPointer": "/entries/4/contextPaths/2",
+          "hashField": "sha256",
+          "boundSha256": "3328f13c22feb72af4b9307e1e241c56dfb31ef7d706f7410af577583b539bcf",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "independent-second-source-review",
+          "reviewedRevision": "fa31311c0310cafb88a3eb62977d8756546349aa",
+          "scope": "Exactly the85wave3SARIF findings. Read-only review; no platform disposition changed. Only false-positive entries may satisfy a source-and-fingerprint-bound gate. Open findings remain blocking; later source fixes are not retroactively approved. All source/context hashes use git show reviewedRevision:path bytes.",
+          "rationale": null,
+          "disposition": null,
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/snyk-code-independent-review-wave5-2026-09-08.json",
+          "reportSha256": "625d8a5efc0cf35d444fbbfdbce401ee8611d4202fb7bff098c90997a7747d76",
+          "jsonPointer": "/entries/4/contextPaths/2",
+          "hashField": "sha256",
+          "boundSha256": "3328f13c22feb72af4b9307e1e241c56dfb31ef7d706f7410af577583b539bcf",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "independent-second-source-review-wave5",
+          "reviewedRevision": "032dff339607b6138eb5a6db134dc91c1be5cb82",
+          "scope": "Exactly 85 wave5 findings. 66 unchanged fingerprint/flow/source/context bindings revalidated; 19 changed/open findings individually re-reviewed. Four internal HTTP findings remain open, handled only by the separately owner-authorized scoped risk acceptance. No platform statuses or source files changed.",
+          "rationale": null,
+          "disposition": null,
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/snyk-code-independent-review-wave8-2026-09-08.json",
+          "reportSha256": "9c6839bfe198280860f633dc119c51f5371dfaaf9f312c4536d0cc11d547a8f8",
+          "jsonPointer": "/entries/4/contextPaths/2",
+          "hashField": "sha256",
+          "boundSha256": "3328f13c22feb72af4b9307e1e241c56dfb31ef7d706f7410af577583b539bcf",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "independent-second-source-review-wave8",
+          "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+          "scope": "Exactly 85 wave8 findings. 76 unchanged fingerprint/flow/source/context bindings revalidated; 9 changed findings individually re-reviewed. Four internal HTTP findings remain open, handled only by the separately owner-authorized scoped risk acceptance. No platform statuses or source files changed.",
+          "rationale": null,
+          "disposition": null,
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        }
+      ],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/clock_guard.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "b04535b41acf92b21c3edf160cab352288a32e51b6b4a1da5d237642edb98d5f",
+      "currentWorkingFileSha256": "b04535b41acf92b21c3edf160cab352288a32e51b6b4a1da5d237642edb98d5f",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "28a1dce48dc41a6b786ca29514e3ff63ada4171e5be5c202e1eba0e63bfa3efc",
+      "hunks": [
+        "@@ -32,9 +32,50 @@ export function clockDriftLimitFromEnvironment(env: NodeJS.ProcessEnv = process.",
+        "@@ -43,44 +84,20 @@ export class ClockGuard implements ClockHealthMonitor {",
+        "@@ -90,6 +107,17 @@ export class ClockGuard implements ClockHealthMonitor {"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Reviewed limit, baseline, source checks, measured drift and first-failure latch extraction. Sample still reads wall then monotonic once; same threshold and latched drift output. Constructor now stops before reading monotonic if wall baseline invalid; finite extreme subtraction producing NaN is now unhealthy instead of old healthy result. These are explicit invalid-clock hardenings, not claimed universal mathematical equivalence. Baseline visibility is TypeScript-only; sampleDrift is newly exposed but ordinary sample remains authoritative. Tests passed.",
+      "contextPaths": [
+        {
+          "path": "tests/test_clock_guard.js",
+          "sha256": "68f7cc7b03365d664ce80111e228ce32e8c6e3aec22597e53e9611eed17ea379"
+        }
+      ],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/dupe_blocker.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "0ebad4355f47c7e06b78a00c7c9176dbf3d0c7eccebccd8266852d7785ca8971",
+      "currentWorkingFileSha256": "0ebad4355f47c7e06b78a00c7c9176dbf3d0c7eccebccd8266852d7785ca8971",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "a8e7e815c9da7f19f9cdec699df240328a55719a8ca6311ecbfd3a74c98f5aa6",
+      "hunks": [
+        "@@ -21,6 +21,23 @@ export function normalizeSignalXml(xmlString: string): string {",
+        "@@ -41,20 +58,7 @@ export async function isDuplicateSignal("
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "duplicateMatchResult is called only after same match?.isDupe condition. Permanent cooldown===0 versus finite cooldown message and matchFile return fields unchanged. Lookup and normalization untouched.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/exchange_entry_deadline.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "dcaa0c801730ff2f65cc7c96943702551d39e7c7e547451255b8b14122538d7b",
+      "currentWorkingFileSha256": "dcaa0c801730ff2f65cc7c96943702551d39e7c7e547451255b8b14122538d7b",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "f45966c388996ac95d1490c12b4a45cd202dfb6559a535629d3c14adfcadbba8",
+      "hunks": [
+        "@@ -1,16 +1,21 @@"
+      ],
+      "fullDiffRead": true,
+      "status": "concrete-delta-coverage-gap",
+      "rationale": "Candidate helper retains endpoint mapping and reduceOnly gate for valid object requests. Primitive truthy requests previously failed ENTRY_DEADLINE_UNPROVEN and now produce no deadline. ccxt_exchange.post clones and can send that payload, so full cross-language invalid-request rejection/provenance must still be checked before closing complete delta coverage. No demonstrated valid-order regression.",
+      "contextPaths": [
+        {
+          "path": "src/ccxt_exchange.ts",
+          "sha256": "adc917238be037b2de1a52b7297eb312fbff80cec3887d0a0fc656c612400cdb"
+        }
+      ],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/exchange_history_contract.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "42bac5199ede76c70799d81b52feb90adbb4db757d6fa1d8f9c7e9481f25a7a0",
+      "currentWorkingFileSha256": "42bac5199ede76c70799d81b52feb90adbb4db757d6fa1d8f9c7e9481f25a7a0",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "699fdf50ed3fe97df559e040b74e139493e874c9dcf602c4de5ad2da69c43d27",
+      "hunks": [
+        "@@ -63,7 +63,10 @@ function retentionAnchor(value: unknown): ExchangeHistoryRetention['anchor'] {"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "token explicitly returns null only for null input; prior anchor guard already rejects null coin/tid. New local null check is unreachable for accepted anchors. Token order and integer time evaluation retained.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/exchange_history_coverage.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "a218548cde9391b341416b1e0466de6317a7981cf5546d340634450f58d9bd95",
+      "currentWorkingFileSha256": "a218548cde9391b341416b1e0466de6317a7981cf5546d340634450f58d9bd95",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "c6ba3d5013f04c31098119cfc067c27802bf446c51c5ccb10c64590e72b26f88",
+      "hunks": [
+        "@@ -38,8 +38,8 @@ export function assertCoverageContinuation(previous: ExchangeHistoryCheckpoint,",
+        "@@ -59,10 +59,13 @@ export function fillCoverageReason(exchange: string, evidence: ExchangeAcquisiti",
+        "@@ -72,7 +75,9 @@ export function fillCoverageReason(exchange: string, evidence: ExchangeAcquisiti"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Added absent-coverage/first-row guards fail closed; successful checkpoint validation and one-row selection retain same baseline, freshness, profile and retention bounds. No bound widened.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/exchange_order_correlation.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "1ec1e95e5511c846f4b98484b31bcd0cb74969f4391ed6f12eab9e5d291e27e4",
+      "currentWorkingFileSha256": "1ec1e95e5511c846f4b98484b31bcd0cb74969f4391ed6f12eab9e5d291e27e4",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "ef2964422ecbee33cbdff9a790c75b0952f36602a63ffe2460c3180cd282839c",
+      "hunks": [
+        "@@ -21,32 +21,59 @@ function namespaceMatches(local: LocalCorrelationOrder, remote: RemoteIdentity):"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Complete helper extraction preserves client-first identity, exchange-ID namespace fallback, ambiguity rejection and conflicting-client error. Boolean wrappers merely normalize predicates used as conditions. Side/reduceOnly/quantity order and stop-only nonnull trigger checks remain short-circuit equivalent.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/factory_reset_paths.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "8336cdb1b8adc0302591c7659d1a300cc0521e896a0f9c41b1dc5571035ad006",
+      "currentWorkingFileSha256": "8336cdb1b8adc0302591c7659d1a300cc0521e896a0f9c41b1dc5571035ad006",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "5bcd7fbef77c8e9c9a6182c051fdd9cef391ebae75804c0589a936499d30d90f",
+      "hunks": [
+        "@@ -32,44 +32,60 @@ function assertSafeExactLeaf(root: string, applicationRoot: string): void {"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "All original boundary checks retained before mkdir, then lstat real-directory, realpath equality and canonical application-descendant checks. Managed-secret exact path and safe-leaf checks unchanged. Promise helper return remains adopted by async public entry. Type cast preserves optional errno access. No deletion executed.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/forwarder_errors.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "c2ed10cfee7a3417ed642ce89e9db1507127b6eadd8776ad08635644e1978430",
+      "currentWorkingFileSha256": "c2ed10cfee7a3417ed642ce89e9db1507127b6eadd8776ad08635644e1978430",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "5263080e5cbbd0bf592f75deacd105c1135eca6d6b2c3dd01c8f0cd8e93eabe2",
+      "hunks": [
+        "@@ -0,0 +1,11 @@"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "New helper explicitly accepts only primitive code string/number and classifies restricted errors via safe unknownErrorMessage. Actual callers compare ENOENT or decide sendCopy fallback. Installed TDLibError and Error/string positive cases and object-coercion negative cases are exercised by passed targeted test; historical forwarding policy restoration retained. Scope is these new helper semantics, not all forwarder changes.",
+      "contextPaths": [
+        {
+          "path": "src/contract_values.ts",
+          "sha256": "871e1ef8c09fed21648fb385c02c6c79f76b19289e8eea4970d43e984c82f613"
+        },
+        {
+          "path": "tests/test_forwarder_error_types.js",
+          "sha256": "4088dfd9de15f64760bd598550d43b7f4ca048bfdcb8a27cf921052dc1f8ac5f"
+        },
+        {
+          "path": "src/forwarder.ts",
+          "sha256": "71537e7d74b2b9d9ea00176b16779e90cbceb79628676cf7008cf22bfa31c62c"
+        }
+      ],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/incoming_work_rows.d.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "d94866c5040f1d250e11a974a8d999d324acbd36ffca4304cebcdcbfa7a269fb",
+      "currentWorkingFileSha256": "d94866c5040f1d250e11a974a8d999d324acbd36ffca4304cebcdcbfa7a269fb",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "9e79e6f89baebc3b374afe61442e87e67d76f9ad03126944a46f9da310f9e30b",
+      "hunks": [
+        "@@ -0,0 +1,9 @@"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "New ambient interfaces only; id/chat/message/config/status schema declarations have no emitted execution or serializer coercion. This closes this file delta, not database consumers.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/logger.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "9ac923c038eef0a8337bc197103f10fd0fcdd21b924f2d6f64802af5c918a905",
+      "currentWorkingFileSha256": "9ac923c038eef0a8337bc197103f10fd0fcdd21b924f2d6f64802af5c918a905",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "21c9f2e9ce25e219a19116527540fe1e3c702bf1e0d9e46ebdb9bde3233e6a99",
+      "hunks": [
+        "@@ -90,7 +90,7 @@ function reportLogWriteFailure(error: unknown): void {"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Only discarded void operator removed from appendFile.then statement. Both fulfillment and rejection handlers stay attached to same promise; execution and error containment unchanged.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/mcp_server.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "21fc0ba2f2077611384a1ba43e43dc51c97f28bc945daf0b9ecc85de5598f0cc",
+      "currentWorkingFileSha256": "21fc0ba2f2077611384a1ba43e43dc51c97f28bc945daf0b9ecc85de5598f0cc",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "c90629da28307d378098b57dcf4ed431335884c752d604af25cb3776a15cf35e",
+      "hunks": [
+        "@@ -371,7 +371,7 @@ function registerCoreReadTools(server: McpServer, agentId: string): void {",
+        "@@ -379,7 +379,7 @@ function registerCoreReadTools(server: McpServer, agentId: string): void {",
+        "@@ -1065,7 +1065,7 @@ async function initializeMcpSession(agent: AuthenticatedMcpAgent, req: any, res:",
+        "@@ -1077,7 +1077,7 @@ async function initializeMcpSession(agent: AuthenticatedMcpAgent, req: any, res:",
+        "@@ -1118,7 +1118,7 @@ async function handleMcpRequest(req: any, res: any): Promise<void> {",
+        "@@ -1133,7 +1133,7 @@ function startMaintenanceMonitor(databasePath: string, initialDatabaseIdentity:",
+        "@@ -1143,7 +1143,7 @@ function startMaintenanceMonitor(databasePath: string, initialDatabaseIdentity:",
+        "@@ -1158,7 +1158,7 @@ function startRuntimeModeMonitor(): void {",
+        "@@ -1187,7 +1187,7 @@ async function main(): Promise<void> {"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Full diff inspected. Preview callback now returns Promise.resolve success and may throw synchronously, but registerTool invokes it inside try with await handler and records failures. Historical anonymous-review explicitly identified same containment and current caller confirms it. Remaining void removals preserve handlers; timer callback return ignored. Process-exit catch no longer async but exits same way.",
+      "contextPaths": [
+        {
+          "path": "../tsx-core-triage-reconciliation/reports/triage-reconciliation/anonymous-review.md",
+          "sha256": "f37672c9ca4b64f581745ac0a9416fc4a1571f213ed2cc98855d63ac802ffea0"
+        }
+      ],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/metrics_tracker.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "3a95c5c0c2b82b3f718c625d99335aea1751794be2d705a75764461cadf3eb13",
+      "currentWorkingFileSha256": "3a95c5c0c2b82b3f718c625d99335aea1751794be2d705a75764461cadf3eb13",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "5451507e9763ac7c9e4eced25fb2db65f502cf12b9247c1e3e4f35b37e0c6b1c",
+      "hunks": [
+        "@@ -15,6 +15,16 @@ export interface MetricsTrackerConfig {",
+        "@@ -29,10 +39,8 @@ export class MetricsTracker {"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Validation helpers retain interval then maxPoints conditions/defaults/error texts, and initial counter callback remains after validation. Invalid interval now prevents maxPoints read, irrelevant for plain config values; no sampling/history logic change.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/migration_cli.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "5314eaffed3f0fa4f8a14bb729792563f202e438275a9af8b7976a06b9d4e3f9",
+      "currentWorkingFileSha256": "5314eaffed3f0fa4f8a14bb729792563f202e438275a9af8b7976a06b9d4e3f9",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "b3e1b3fa6fbb7a2e18e63fc9744edb37b040ea0f9cc84faba6ab03406498cba8",
+      "hunks": [
+        "@@ -17,24 +17,37 @@ async function restoreOfflineSnapshot(snapshot: string, target: string): Promise"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Parse/target/report helpers retain confirmation, target resolution, offline restore await and output order. Catch now renders non-Error thrown values instead of undefined; exitCode remains 1.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/migration_recovery.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "12b45ec06d712e2af808de1ff6be33ecf240a640d3727fe2adb63e1a00103bcb",
+      "currentWorkingFileSha256": "12b45ec06d712e2af808de1ff6be33ecf240a640d3727fe2adb63e1a00103bcb",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "0a4c351f63631ba7cba25cc13eebe534bca1699ef4c9ae2befb32679627493d0",
+      "hunks": [
+        "@@ -12,7 +12,7 @@ interface PreservedDatabaseSet {",
+        "@@ -23,13 +23,24 @@ async function assertMigrationFence(target: string, stateDirectory: string, leas",
+        "@@ -72,7 +83,9 @@ export async function restorePreMigrationSnapshot("
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Snapshot checks retain same-path, lstat regular/nonempty/no-symlink, operational file identity and integrity order. Explicit lease check follows existing fence and refuses missing proof. ENOENT classification now object-guards native fs errors; genuine native errors retain behavior.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/paper_exchange.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "19e47e104887260111915447dd2debfa8f008a319819e5f9f5b19e25489621f8",
+      "currentWorkingFileSha256": "19e47e104887260111915447dd2debfa8f008a319819e5f9f5b19e25489621f8",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "aad037523f608b81a667a4b6f5f6e725b824c494967cf0da542980a2781d38f5",
+      "hunks": [
+        "@@ -125,9 +125,7 @@ async function updateOpeningPosition(row: any, fillQuantity: string, fillPrice:",
+        "@@ -139,14 +137,12 @@ async function updateOpeningPosition(row: any, fillQuantity: string, fillPrice:",
+        "@@ -283,7 +279,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {",
+        "@@ -309,7 +305,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {",
+        "@@ -372,7 +368,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {",
+        "@@ -487,20 +483,24 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "SQL text evaluates identically. markPrice fallback is unreachable for dense five-item validated values array. COUNT aggregate still supplies one row, so nullish zero fallback does not affect normal SQLite result. All-account order map supplies fill symbols; missing order now explicitly rejects rather than emitting malformed fill evidence.",
+      "contextPaths": [
+        {
+          "path": "src/paper_exchange.ts",
+          "sha256": "19e47e104887260111915447dd2debfa8f008a319819e5f9f5b19e25489621f8"
+        }
+      ],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/retention.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "8591825efb51a8e48d1a029def9de8e8b50fe88da628394fcd958762621dc9d3",
+      "currentWorkingFileSha256": "8591825efb51a8e48d1a029def9de8e8b50fe88da628394fcd958762621dc9d3",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "e1a28e3033e32db164719f7c132b3fc6c32eaeaa6cf4e8d16506de6120cbb79f",
+      "hunks": [
+        "@@ -92,7 +92,7 @@ export class OperationalDataRetention {",
+        "@@ -157,7 +157,7 @@ export class OperationalDataRetention {"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Void operator removal leaves catch attached. Backlog error literal is exactly same value assigned immediately to status.lastError in synchronous block; no intervening await.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/secret_store.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "ba7d7565a766701aa664093ead81c1badb5dede465f58d0ceadae4542f99f71e",
+      "currentWorkingFileSha256": "ba7d7565a766701aa664093ead81c1badb5dede465f58d0ceadae4542f99f71e",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "560000f38b6512bbc0826d85db3f50c16726b0d9bb7ca613e1d3b72524b67d99",
+      "hunks": [
+        "@@ -432,7 +432,7 @@ export class ManagedSecretStore {"
+      ],
+      "fullDiffRead": true,
+      "status": "concrete-delta-coverage-gap",
+      "rationale": "Reflect.deleteProperty differs from strict-mode delete when injected env property is nonconfigurable: false return no longer throws, yet source is marked missing. Constructor accepts env injection. Normal process.env deletion is unaffected, but complete delta coverage needs explicit supported-env contract and negative test or restoration decision. No source mutation made.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/setup_bundle.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "92f77eb1ea8f17df10b698a4734d23f14d0cda0f3fb56b04a3988a89d4f79d27",
+      "currentWorkingFileSha256": "92f77eb1ea8f17df10b698a4734d23f14d0cda0f3fb56b04a3988a89d4f79d27",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "24e004e3f4f304b281acf90e6dd41c763b65ce634777ce92c191f0d39fed8b70",
+      "hunks": [
+        "@@ -60,12 +60,12 @@ const HIGH_CONFIDENCE_SECRET_VALUES = [",
+        "@@ -426,7 +426,7 @@ function validateBundleStrategy(strategyValue: unknown): void {",
+        "@@ -504,7 +504,8 @@ export async function suggestPortableAccountMappings(bundle: PortableSetupBundle"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Unknown annotations/casts erase; sorted canonical JSON recursion unchanged. Matching account array is filter-produced and dense; new existence check with length===1 preserves normal selection and otherwise leaves unresolved.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/tdlib_retry.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "f504a599c928ab056d06f04df7538d88b7de404228d0bf518059969605695e81",
+      "currentWorkingFileSha256": "f504a599c928ab056d06f04df7538d88b7de404228d0bf518059969605695e81",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "429fb699a768b28f80c4e8144ea4ccc82a479645a6cc8ebb78c3c6ceec398a9f",
+      "hunks": [
+        "@@ -25,7 +25,8 @@ async function abortableDelay(milliseconds: number, signal?: AbortSignal | null)"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Captured signal is immutable parameter and abort handler is registered only via signal?.addEventListener. Added absent-signal rejection branch cannot be reached by normal registration. Timer clearing/reason rejection preserved; targeted test passed.",
+      "contextPaths": [
+        {
+          "path": "tests/test_tdlib_retry.js",
+          "sha256": "c9fc90e385c8bfe2d9db11cf5beb55427795a0fdeea5b91c008b32b2fd74fca8"
+        }
+      ],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/telegram_viewer_secrets.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "119140501370e3e5c9b27fb89582109da2774910ec3387533a673fffef4abd7b",
+      "currentWorkingFileSha256": "119140501370e3e5c9b27fb89582109da2774910ec3387533a673fffef4abd7b",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "a818c37d1454896635decf4df14d16c20628ad0670cba9e7c2a4a5ca78c6b22f",
+      "hunks": [
+        "@@ -122,7 +122,7 @@ export class TelegramViewerSecretStore {",
+        "@@ -142,7 +142,7 @@ export class TelegramViewerSecretStore {",
+        "@@ -169,4 +169,3 @@ export function telegramViewerSecretStoreFromEnvironment("
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Methods remain async; explicit Promise.resolve adopts same string/null values without changing retrieval or secret lifecycle. Promise timing differs by adoption microtasks, no side effects in body; historical restoration documents intended Promise boundary.",
+      "contextPaths": [
+        {
+          "path": "docs/testing/fixer-contract-restorations-2026-09-13.json",
+          "sha256": "50c01fe683c09725f8b487ec5acec2b36cbc2685e17bb7281a1ab9f42cbd4319"
+        }
+      ],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/telegram_viewer/contracts.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "d980b57e4cd5b002ade43ddc7abc125fb5f292a544d4572d4fc0f8752cfaf329",
+      "currentWorkingFileSha256": "d980b57e4cd5b002ade43ddc7abc125fb5f292a544d4572d4fc0f8752cfaf329",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "a9ac3c81f0604ba80e17e0837cafd9848a7eaafb540498c95483c9d38fb55fac",
+      "hunks": [
+        "@@ -0,0 +1,86 @@"
+      ],
+      "fullDiffRead": true,
+      "status": "concrete-delta-coverage-gap",
+      "rationale": "Entire new 86-line module read. Adds record, update, pagination, cursor, event, notification and private-user validation plus command/route parsing. Full replacement-to-original client/service flow and absent-context API compatibility not checked in this bounded wave; cannot treat new validator file as type-only extraction.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/telegram_viewer/state_repository.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "d6f23aedf3e4c145253161e212a238d36b6be3e98e80f438383d68849aff6df2",
+      "currentWorkingFileSha256": "d6f23aedf3e4c145253161e212a238d36b6be3e98e80f438383d68849aff6df2",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "1350e005b381464b8a00ba22a7d12ec535fe31c3a9c97b699f3a6757b42435b2",
+      "hunks": [
+        "@@ -147,7 +147,7 @@ export class TelegramViewerStateRepository {",
+        "@@ -155,7 +155,7 @@ export class TelegramViewerStateRepository {",
+        "@@ -191,7 +191,7 @@ export class TelegramViewerStateRepository {"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "All three hunks replace any database generics with record type and one ViewerDeliveryKind cast. SQL, JSON.parse and Number/String conversions exactly preserved.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/trade_journal.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "acd6e94c0e00c4ec0a4d9e2558e221cd2141931cee9b27e005e8093debc30d7a",
+      "currentWorkingFileSha256": "acd6e94c0e00c4ec0a4d9e2558e221cd2141931cee9b27e005e8093debc30d7a",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "bae78dced9287cf6006f3c9cc2e23e4646757bbdbda609171dae6c730aa7115f",
+      "hunks": [
+        "@@ -346,7 +346,7 @@ async function loadJournalOrders(database: Database, intentIds: string[]): Promi",
+        "@@ -379,7 +379,7 @@ async function loadJournalSchemas(database: Database, rows: JournalRow[]): Promi",
+        "@@ -465,6 +465,8 @@ function journalTimeline(events: JournalRow[]): Record<string, number> {",
+        "@@ -501,7 +503,7 @@ function mapJournalRow(row: JournalRow, relations: JournalRelations): TradeJourn"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Empty-query branches retain async and explicit resolved arrays. moneyByIntent is built from Promise.all for every intentId before row projection; added missing money guard protects invariant without changing successful rows. No implicit monetary fallback introduced.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/trading_account_baseline.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "eb4ba2474de0197c210ff6e715d0235d8738c992f81598411b80dc2ab88907cd",
+      "currentWorkingFileSha256": "eb4ba2474de0197c210ff6e715d0235d8738c992f81598411b80dc2ab88907cd",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "727bd6fc059354df8ad534193a434d79b29eb2983c6d630bb3dce5ba4c4c9492",
+      "hunks": [
+        "@@ -82,7 +82,7 @@ async function localHistoryProof(accountId: string): Promise<LocalLedgerProof |"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Single static SQL template converted to identical string; parameters and database call unchanged.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/trading_account_log_contract.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "98802ad2371a4ddcc98ed11cd09e10f7234485c6419cb12d7353b51850317585",
+      "currentWorkingFileSha256": "98802ad2371a4ddcc98ed11cd09e10f7234485c6419cb12d7353b51850317585",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "6a88b25792d93141b79413604d0d3e6d9376702bc3d6b57cd1af56ba479d65c6",
+      "hunks": [
+        "@@ -95,7 +95,9 @@ function window(since: number, until: number): void {"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Missing namespace lookup now explicit error before split instead of undefined.split TypeError. Allowlist set and per-field economic checks unchanged; accepted namespaces unchanged.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/trading_account_log_repository.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "adac188ec39923f70eb793d0d1489d584a6c108e73349e3bcdad8db6248f7ae5",
+      "currentWorkingFileSha256": "adac188ec39923f70eb793d0d1489d584a6c108e73349e3bcdad8db6248f7ae5",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "4a69f0556bcff3940cfc0c9c6a593f5595d833484b1de4596e6b5f9546e41e1c",
+      "hunks": [
+        "@@ -29,13 +29,13 @@ export async function storedAccountLogCheckpoint(account: TradingAccount): Promi",
+        "@@ -67,7 +67,8 @@ function assertReceiptChain(previous: AccountLogCheckpoint, progress: AccountLog"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Async early-null return adopts explicit resolved null, no DB work added. Non-null annotations erased. Receipt guard follows length===1 and protects malformed sparse input; cursor/window chain logic unchanged.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/trading_account_mode_contract.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "ea95eb5791a2f8a30e01dfd3bf2a9e073526ab4bab11434410be32acffea8b58",
+      "currentWorkingFileSha256": "ea95eb5791a2f8a30e01dfd3bf2a9e073526ab4bab11434410be32acffea8b58",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "141b52136921769a2adbabfbccadf73dbdc0cc5e27b3e6bcbe5b1df7ad82e25e",
+      "hunks": [
+        "@@ -21,37 +21,118 @@ function object(value: unknown): Record<string, unknown> {"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Complete identity/schema/time/progress helper extraction reviewed. Same key counts, allowed margins, 64hex binding, UID role, safe times, freshness/digest and exactly-two-read evidence. Margin type now checked before Number coercion: invalid nonnumbers reject earlier with same schema error; no accepted native-number set changes. Digest and clone remain after successful checks.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/trading_account_scope.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "194e80ba22ded82644fcf06f213da4bc8ded19af5532390d08af99fe2a07dc3f",
+      "currentWorkingFileSha256": "194e80ba22ded82644fcf06f213da4bc8ded19af5532390d08af99fe2a07dc3f",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "0f25a9cad9fd11e7970620fe183efc8254b7c4aa35cbab1336bd6b9251edb2dd",
+      "hunks": [
+        "@@ -23,9 +23,14 @@ function nonExecution(record: AccountLogRecord): boolean {",
+        "@@ -62,14 +67,19 @@ async function classifyTrade(account: TradingAccount, record: AccountLogRecord,"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Complete diff preserves transfer classification failure catch and zero-economic-fields condition. Missing transfer change now false before decimal validation instead of thrown-and-caught false. Unique execution and terminal proof gate retained; receipt helper keeps namespace/fingerprint/generation/50record/providerUID checks before projection.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/trading_accounting.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "02bdc82a125f47f4e5721ce25358152f2eaf704d78c7833d05f17f23b490e8ea",
+      "currentWorkingFileSha256": "02bdc82a125f47f4e5721ce25358152f2eaf704d78c7833d05f17f23b490e8ea",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "b2383d7ed9f986d25b4953f27aa6743f049ee44887cf1b7035e69800ded2a5fa",
+      "hunks": [
+        "@@ -9,11 +9,15 @@ function incomplete(reason: string): never {",
+        "@@ -22,13 +26,7 @@ export async function assertPersistedMoneyReady(accountId: string): Promise<void",
+        "@@ -40,11 +38,25 @@ export async function assertEntryAccountingReady(account: TradingAccount, snapsh"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Full extraction retains snapshot validation, freshness, currency/event writes, price-only unrealized semantics, persisted observation, funding valuation and persisted ledger readiness order. Catch scopes and ACCOUNTING_INCOMPLETE reasons unchanged; protection/exit caller behavior not expanded by this delta.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/trading_baseline_classification.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "c780e6daf52e52a0711f052e5369ceb49bba87063d207a174e89904528a7c092",
+      "currentWorkingFileSha256": "c780e6daf52e52a0711f052e5369ceb49bba87063d207a174e89904528a7c092",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "9f08d803360e34ec85e694d32253f49146c59030f79a6758e201e24377c19375",
+      "hunks": [
+        "@@ -9,19 +9,37 @@ const knownReference = `EXISTS (SELECT 1 FROM trading_orders AS orders WHERE ord"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Timestamp split preserves safe integer strict pre-boundary condition. Order reason and terminal-status set same. JSON economic values now explicitly require strings; native numbers already failed decimal trim path and caught false. Identity and money ordering preserved for JSON records; no historical-evidence acceptance widened.",
+      "contextPaths": [
+        {
+          "path": "src/trading_decimal.ts",
+          "sha256": "30f9058ce628d90bfe6303933e7f19e2fad81cb965aa9a30e7aa3e4b43bfb415"
+        }
+      ],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/trading_cancel_budget.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "f7e1ad865639229117c3831d131b13552ae5ee54aa1920a526015ab20f03790b",
+      "currentWorkingFileSha256": "f7e1ad865639229117c3831d131b13552ae5ee54aa1920a526015ab20f03790b",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "04c00dce8d496c15b0e3cd864192a11fa7f4f11908c68b85c60ac21dbbda618d",
+      "hunks": [
+        "@@ -36,9 +36,23 @@ export function claimCancelAttempt(accountId: string, clientOrderId: string): Ca"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Permit lookup and active/unused/current AsyncLocalStorage ownership checks stay before account/order match and final used=true. No budget increment moved; extracted asserts retain same error and one-use semantics.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/trading_cancel_evidence.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "dad43e362108251e11c0e46df5b8d910af12105b8de96a2a51703020a1b077de",
+      "currentWorkingFileSha256": "dad43e362108251e11c0e46df5b8d910af12105b8de96a2a51703020a1b077de",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "583ed244d948a23e2c1da410a2a54f144a5deaa3aec095a040eefd81fdb7dcc4",
+      "hunks": [
+        "@@ -1,6 +1,6 @@",
+        "@@ -12,18 +12,31 @@ export class CancellationEvidenceError extends Error {",
+        "@@ -39,36 +52,58 @@ export function assertCancelAcquisition(remote: ExchangeOpenState, after = 0): v"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Full extraction reviewed: unique complete sources, bound account/namespace/order semantics, monotone filled quantity and positive remaining preserved. Newly requires safeinteger completedAt and source timestamps, rejecting formerly coerced/fractional clock evidence. Targeted genuine boundary/adversarial tests passed. Account binding now checked before freshness; both return null for invalid plain snapshots, no cancellation authorized by reordering.",
+      "contextPaths": [
+        {
+          "path": "tests/test_cancel_evidence_contract_guards.js",
+          "sha256": "7b8893623fc72da3f29e5e1c4fe94a6c9bfa95cb586eeae3b650f61dbc1ee84a"
+        }
+      ],
+      "historicalScopedBindings": [
+        {
+          "report": "docs/testing/deepsource-cancel-evidence-2026-09-08.json",
+          "reportSha256": "86ffc6460eba97b8e2466d375ca8e1a68dba880dd245e5a6a31ff45f6925bee2",
+          "jsonPointer": "/occurrences/0",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "structured-report",
+          "reviewedRevision": null,
+          "scope": "All12baseline findings in cancellation evidence:8non-null and4complexity.",
+          "rationale": null,
+          "disposition": "fixed",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/deepsource-cancel-evidence-2026-09-08.json",
+          "reportSha256": "86ffc6460eba97b8e2466d375ca8e1a68dba880dd245e5a6a31ff45f6925bee2",
+          "jsonPointer": "/occurrences/1",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "structured-report",
+          "reviewedRevision": null,
+          "scope": "All12baseline findings in cancellation evidence:8non-null and4complexity.",
+          "rationale": null,
+          "disposition": "fixed",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/deepsource-cancel-evidence-2026-09-08.json",
+          "reportSha256": "86ffc6460eba97b8e2466d375ca8e1a68dba880dd245e5a6a31ff45f6925bee2",
+          "jsonPointer": "/occurrences/2",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "structured-report",
+          "reviewedRevision": null,
+          "scope": "All12baseline findings in cancellation evidence:8non-null and4complexity.",
+          "rationale": null,
+          "disposition": "fixed",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/deepsource-cancel-evidence-2026-09-08.json",
+          "reportSha256": "86ffc6460eba97b8e2466d375ca8e1a68dba880dd245e5a6a31ff45f6925bee2",
+          "jsonPointer": "/occurrences/3",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "structured-report",
+          "reviewedRevision": null,
+          "scope": "All12baseline findings in cancellation evidence:8non-null and4complexity.",
+          "rationale": null,
+          "disposition": "fixed",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/deepsource-cancel-evidence-2026-09-08.json",
+          "reportSha256": "86ffc6460eba97b8e2466d375ca8e1a68dba880dd245e5a6a31ff45f6925bee2",
+          "jsonPointer": "/occurrences/4",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "structured-report",
+          "reviewedRevision": null,
+          "scope": "All12baseline findings in cancellation evidence:8non-null and4complexity.",
+          "rationale": null,
+          "disposition": "fixed",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/deepsource-cancel-evidence-2026-09-08.json",
+          "reportSha256": "86ffc6460eba97b8e2466d375ca8e1a68dba880dd245e5a6a31ff45f6925bee2",
+          "jsonPointer": "/occurrences/5",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "structured-report",
+          "reviewedRevision": null,
+          "scope": "All12baseline findings in cancellation evidence:8non-null and4complexity.",
+          "rationale": null,
+          "disposition": "fixed",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/deepsource-cancel-evidence-2026-09-08.json",
+          "reportSha256": "86ffc6460eba97b8e2466d375ca8e1a68dba880dd245e5a6a31ff45f6925bee2",
+          "jsonPointer": "/occurrences/6",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "structured-report",
+          "reviewedRevision": null,
+          "scope": "All12baseline findings in cancellation evidence:8non-null and4complexity.",
+          "rationale": null,
+          "disposition": "fixed",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/deepsource-cancel-evidence-2026-09-08.json",
+          "reportSha256": "86ffc6460eba97b8e2466d375ca8e1a68dba880dd245e5a6a31ff45f6925bee2",
+          "jsonPointer": "/occurrences/7",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "structured-report",
+          "reviewedRevision": null,
+          "scope": "All12baseline findings in cancellation evidence:8non-null and4complexity.",
+          "rationale": null,
+          "disposition": "fixed",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/deepsource-cancel-evidence-2026-09-08.json",
+          "reportSha256": "86ffc6460eba97b8e2466d375ca8e1a68dba880dd245e5a6a31ff45f6925bee2",
+          "jsonPointer": "/occurrences/8",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "structured-report",
+          "reviewedRevision": null,
+          "scope": "All12baseline findings in cancellation evidence:8non-null and4complexity.",
+          "rationale": null,
+          "disposition": "fixed",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/deepsource-cancel-evidence-2026-09-08.json",
+          "reportSha256": "86ffc6460eba97b8e2466d375ca8e1a68dba880dd245e5a6a31ff45f6925bee2",
+          "jsonPointer": "/occurrences/9",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "structured-report",
+          "reviewedRevision": null,
+          "scope": "All12baseline findings in cancellation evidence:8non-null and4complexity.",
+          "rationale": null,
+          "disposition": "fixed",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/deepsource-cancel-evidence-2026-09-08.json",
+          "reportSha256": "86ffc6460eba97b8e2466d375ca8e1a68dba880dd245e5a6a31ff45f6925bee2",
+          "jsonPointer": "/occurrences/10",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "structured-report",
+          "reviewedRevision": null,
+          "scope": "All12baseline findings in cancellation evidence:8non-null and4complexity.",
+          "rationale": null,
+          "disposition": "fixed",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        },
+        {
+          "report": "docs/testing/deepsource-cancel-evidence-2026-09-08.json",
+          "reportSha256": "86ffc6460eba97b8e2466d375ca8e1a68dba880dd245e5a6a31ff45f6925bee2",
+          "jsonPointer": "/occurrences/11",
+          "hashField": "reviewedSourceSha256",
+          "boundSha256": "6c78fcb870e33bd9037700414810dee42f22ce8e967086cff415bf81a74bfdd8",
+          "currentBytesMatch": false,
+          "currentGitBlobMatch": false,
+          "evidenceClass": "stale-or-other-source-binding",
+          "reviewKind": "structured-report",
+          "reviewedRevision": null,
+          "scope": "All12baseline findings in cancellation evidence:8non-null and4complexity.",
+          "rationale": null,
+          "disposition": "fixed",
+          "limit": "Hash match binds only the stated review scope; no automatic whole-file semantic or gate approval. Git-only matches do not assert current working-file byte equality."
+        }
+      ],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/trading_cancel_recovery.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "08398d719477dc56b2277149bf15c3ce14448029afbc60c9cb9086b211e34bd4",
+      "currentWorkingFileSha256": "08398d719477dc56b2277149bf15c3ce14448029afbc60c9cb9086b211e34bd4",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "41526e9e366996a278791327c49ff9de53c5f3582ee32349f922265fc2e11947",
+      "hunks": [
+        "@@ -73,10 +73,10 @@ async function recoverActiveCancelAttempt(account: TradingAccount, remote: Excha",
+        "@@ -127,7 +127,7 @@ function entryTargetObservation(evidence: StillActiveEvidence | null): ExchangeO"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Positive evidence already requires acquisition; additional guard cannot permit new retry and prevents writing incomplete recovery proof. Raw target remains explicitly null. Remaining SQL string evaluates identically.",
+      "contextPaths": [
+        {
+          "path": "src/trading_cancel_evidence.ts",
+          "sha256": "dad43e362108251e11c0e46df5b8d910af12105b8de96a2a51703020a1b077de"
+        }
+      ],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/trading_channel_risk_math.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "6f32a211383aeae8849cb3d4ed4bb01cf7f2d114917aefae7f4d34cb96a5fe5d",
+      "currentWorkingFileSha256": "6f32a211383aeae8849cb3d4ed4bb01cf7f2d114917aefae7f4d34cb96a5fe5d",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "b9a2e36792b8fec3b68a916151fb0084f504adbc168afdbd27c8e46e5da35c96",
+      "hunks": [
+        "@@ -4,6 +4,18 @@ import { compareRational, divideRational, multiplyRational, rationalFromDecimal",
+        "@@ -12,9 +24,8 @@ export function channelReturnThreshold(value: MoneyValue, equity: string, thresh"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "Gain/loss helper split exactly preserves comparison decision table: gain lower>=0 reached, upper<0 not; loss upper<=0 reached, lower>0 not; otherwise uncertain. Rational boundary construction and exact/interval choice unchanged.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/trading_channel_risk_rows.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "6a279ac09f5e0dae89c8e08acd76d58b3b959875f10a2c5ccc0ffaacac3e7e45",
+      "currentWorkingFileSha256": "6a279ac09f5e0dae89c8e08acd76d58b3b959875f10a2c5ccc0ffaacac3e7e45",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "1aef2eff3c8cf9b2d24febac1831c6e0297ee7cb3cc97ded9c2a42a5f0ae7198",
+      "hunks": [
+        "@@ -0,0 +1,30 @@"
+      ],
+      "fullDiffRead": true,
+      "status": "complete-file-delta-review-confirmed-with-stated-boundaries",
+      "rationale": "New interfaces and type-only import emit no SQL, defaults or conversions. Runtime row consumers require separate review, covered as pending channel-risk entry.",
+      "contextPaths": [],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    },
+    {
+      "path": "src/trading_channel_risk.ts",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "sourceGitBlobSha256": "05919b49763163a142f9288f60ee3a393fa62b994a29c6e80ca2aab38953ad73",
+      "currentWorkingFileSha256": "05919b49763163a142f9288f60ee3a393fa62b994a29c6e80ca2aab38953ad73",
+      "currentMatchesSelectedRevision": true,
+      "fullDiffSha256": "1b0df52b8a525e8397fddfd067e06371765f4a765b7c688e0281270bb351da5b",
+      "hunks": [
+        "@@ -1,3 +1,4 @@",
+        "@@ -65,19 +66,26 @@ function validateTiers(value: unknown): ChannelRiskTier[] {",
+        "@@ -104,7 +112,7 @@ export function policyFromRow(row: any): ChannelRiskPolicy {",
+        "@@ -132,7 +140,7 @@ function storedMoneyValue(encoded: string | null, scalar: string | null): MoneyV",
+        "@@ -143,7 +151,7 @@ function evaluationMoneyFields(row: any) {",
+        "@@ -151,7 +159,7 @@ export async function listChannelRiskPolicies(): Promise<ChannelRiskPolicy[]> {",
+        "@@ -161,7 +169,7 @@ export async function listChannelRiskEvaluations(limit = 500): Promise<ChannelRi",
+        "@@ -210,7 +218,7 @@ export async function upsertChannelRiskPolicy(",
+        "@@ -295,12 +303,12 @@ type CapitalRequest = { channelId: string; accountId?: string; reportingCurrency",
+        "@@ -328,13 +336,16 @@ async function capitalAccount(request: CapitalRequest, positions: Array<{ accoun",
+        "@@ -352,18 +363,18 @@ async function capitalEvidence(request: CapitalRequest, positions: Array<{ accou",
+        "@@ -374,7 +385,7 @@ async function assertCachedEvidence(row: any, request: CapitalRequest): Promise<",
+        "@@ -436,7 +447,7 @@ async function evaluatePolicy(",
+        "@@ -444,7 +455,7 @@ async function evaluatePolicy(",
+        "@@ -522,7 +533,7 @@ export async function resolveEffectiveChannelRisk(input: {",
+        "@@ -537,7 +548,7 @@ export async function resolveEffectiveChannelRisk(input: {",
+        "@@ -553,7 +564,7 @@ export async function resolveEffectiveChannelRisk(input: {",
+        "@@ -562,7 +573,7 @@ export async function resolveEffectiveChannelRisk(input: {",
+        "@@ -638,9 +649,9 @@ async function loadWorkflowRiskState(input: {",
+        "@@ -655,7 +666,7 @@ async function loadWorkflowRiskState(input: {",
+        "@@ -666,8 +677,9 @@ async function loadWorkflowRiskState(input: {",
+        "@@ -753,17 +765,17 @@ async function persistWorkflowRiskEvaluation(input: {",
+        "@@ -771,12 +783,12 @@ async function evaluateWorkflowRiskState(input: {",
+        "@@ -793,7 +805,7 @@ async function evaluateWorkflowRiskState(input: {",
+        "@@ -806,7 +818,7 @@ function resolvedWorkflowRisk(input: WorkflowAdaptiveRiskInput, state: any): {",
+        "@@ -824,7 +836,7 @@ export async function resolveWorkflowAdaptiveRisk(input: WorkflowAdaptiveRiskInp",
+        "@@ -834,7 +846,7 @@ export async function resolveWorkflowAdaptiveRisk(input: WorkflowAdaptiveRiskInp",
+        "@@ -863,7 +875,7 @@ interface WorkflowRiskEvaluationAnalytics {",
+        "@@ -873,7 +885,7 @@ export function workflowRiskStateAnalytics(row: any): WorkflowRiskStateAnalytics",
+        "@@ -892,7 +904,7 @@ export async function getWorkflowAdaptiveRiskAnalytics(limit = 200): Promise<{",
+        "@@ -903,7 +915,7 @@ export async function getWorkflowAdaptiveRiskAnalytics(limit = 200): Promise<{"
+      ],
+      "fullDiffRead": true,
+      "status": "concrete-delta-coverage-gap",
+      "rationale": "Full diff read; primitive decimal input restriction, required-tier guards, fingerprint/state guards and performance shallow copy explicitly identified. Important new withDatabaseTransaction around loadWorkflowRiskState changes atomicity/locking/rollback, not just types. db implementation nests by current-operation ownership and BEGIN IMMEDIATE otherwise. Still need concurrent initialization/policy-change and nested caller evidence, plus stored numeric/coercion compatibility for tier input, before full delta coverage.",
+      "contextPaths": [
+        {
+          "path": "src/db.ts",
+          "sha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8"
+        }
+      ],
+      "historicalScopedBindings": [],
+      "limit": "Independent review of this complete file delta only, within stated plain-data/native-runtime boundaries. Not whole-program approval, not proof of all executions, not permission to renew receipt."
+    }
+  ],
+  "historicalReportsInspected": [
+    {
+      "path": "docs/testing/fixer-contract-restorations-2026-09-13.json",
+      "sha256": "50c01fe683c09725f8b487ec5acec2b36cbc2685e17bb7281a1ab9f42cbd4319",
+      "limits": "Only actual stated scope reused; restoration inventory is contextual evidence, not prior independent approval."
+    },
+    {
+      "path": "../tsx-core-triage-reconciliation/reports/triage-reconciliation/anonymous-review.md",
+      "sha256": "f37672c9ca4b64f581745ac0a9416fc4a1571f213ed2cc98855d63ac802ffea0",
+      "limits": "Only actual stated scope reused; restoration inventory is contextual evidence, not prior independent approval."
+    },
+    {
+      "path": "../tsx-core-triage-reconciliation/reports/triage-reconciliation/extraction-semantic-review.md",
+      "sha256": "66db79c10afee98f9430fba3e15d208b3cc6cbaa5f71bf0764540397945755e5",
+      "limits": "Only actual stated scope reused; restoration inventory is contextual evidence, not prior independent approval."
+    }
+  ],
+  "validation": {
+    "command": "node22 --import tsx --test tests/test_clock_guard.js tests/test_forwarder_error_types.js tests/test_cancel_evidence_contract_guards.js tests/test_tdlib_retry.js",
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0,
+    "log": {
+      "path": "reports/security-services/fixer-implementation-src-wave1-tests.log",
+      "sha256": "446b31e97f16838e95cbadac1e593cef27b25aab3e39d3e81e6264c7909bbbdb"
+    }
+  },
+  "counts": {
+    "selected": 40,
+    "confirmed": 36,
+    "pending": 4
+  },
+  "limits": "No source/receipt/pin edits. No provider access or container execution. Four selected tests are supplemental and do not claim whole 40-file execution coverage. Historical reports are separately bound; current complete-diff review is new evidence. Pending means missing semantic coverage, not an established production bug."
+}

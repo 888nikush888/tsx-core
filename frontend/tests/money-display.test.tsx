@@ -28,6 +28,7 @@ describe("monetary evidence presentation", () => {
   it("keeps exact native decimals and rejects malformed fractional presentation", () => {
     expect(moneyDisplay({ amount: "4.990000000000000001", currency: "USDT" }).label).toBe("4,990000000000000001 USDT");
     expect(moneyDisplay({ value: { ...rational, exact: { numerator: "1", denominator: "0" } }, amount: "1" }).uncertain).toBe(true);
+    expect(moneyDisplay({ value: { ...rational, exact: null }, amount: "1" }).uncertain).toBe(true);
   });
   it("rejects contradictory exact aliases and bounds instead of showing a loss as zero", () => {
     for (const value of [

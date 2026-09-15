@@ -1,0 +1,35 @@
+{
+  "kind": "root-independent-regex-boundary-review",
+  "scope": [
+    "src/signal_schema.ts",
+    "tests/test_signal_contract_validation.js",
+    "tests/fixtures/signal_contract_regex_child.js"
+  ],
+  "assessment": [
+    "All callers of validateAdditionalFieldText remain private and reached through the single bounded validateAdditionalFields callback.",
+    "One100ms VM boundary covers all ordered validations and matches; the existing shared performance deadline remains enforced. No deadline increase or accepted-on-error route.",
+    "Existing safeRegexTest did not truncate its input, so replacing its call inside the new boundary does not change the tested string. Existing filter matcher remains unchanged.",
+    "Native cross-realm timeout code is recognized through types.isNativeError and own property descriptor; timeout remains SignalValidationError with the current field and inspectable native cause. Other validation exceptions are rethrown unchanged.",
+    "Empty field list early return preserves the original empty-loop behavior.",
+    "Actual three pathological patterns at first and last position demonstrate VM interruption even when RegExp.test runs in the trusted host callback. VM is an execution deadline here, not a sandbox for arbitrary source."
+  ],
+  "validation": {
+    "fourWorkerEightRuns": {
+      "exit": 0,
+      "stableInputs": true,
+      "log": "reports/security-services/fixer-regex-single-boundary-four-worker.json",
+      "sha256": "1723fabe5f6620012ec71291170664e61b65a6c42d787bf0770adbd032ce65c6",
+      "scopeNote": "Before equivalent empty-list fastpath and indentation-only adjustment; final targeted tests rerun by implementation agent."
+    },
+    "fullModule": {
+      "session": 61369,
+      "status": "running"
+    },
+    "githubReverification": "pending"
+  },
+  "sourceRawHashes": {
+    "src/signal_schema.ts": "b4e339d5dc00ec07993bb5a73133371b2f0d39ad9ad616802354e2e1ca892cad",
+    "tests/test_signal_contract_validation.js": "d236d034e5522fe21a5a98be8a6723ea8cef702598e6ef84c910b678315887c6",
+    "tests/fixtures/signal_contract_regex_child.js": "e4268ceb7ab2504efe2468f61773441411ddfab24274eea4ea99c6a8bcef1e2c"
+  }
+}

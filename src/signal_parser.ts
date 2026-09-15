@@ -392,7 +392,7 @@ function createCompletionClient(apiKey: string, limits: AiLimits): RequestComple
       'X-Title': 'TSX Core',
     },
   });
-  return async (request, requestOptions) =>
+  return (request, requestOptions) =>
     client.chat.completions.create(
       request as any,
       requestOptions as any
@@ -439,7 +439,8 @@ function validatedCompletion(
   if (!Array.isArray(response.choices) || response.choices.length !== 1) {
     throw new SignalValidationError('AI response must contain exactly one choice.');
   }
-  const choice = response.choices[0]!;
+  const choice = response.choices[0];
+  if (!choice) throw new SignalValidationError('AI response must contain exactly one choice.');
   if (choice.finish_reason !== 'stop') {
     throw new SignalValidationError(
       `AI response did not finish cleanly (finish_reason=${choice.finish_reason || 'missing'}).`
@@ -506,7 +507,27 @@ function hasAnotherAttempt(
   attempt: number,
   plans: Array<{ model: string; attempts: number }>
 ): boolean {
-  return attempt < plans[planIndex]!.attempts || planIndex < plans.length - 1;
+  const plan = plans[planIndex];
+  if (!plan) return false;
+  return attempt < plan.attempts || planIndex < plans.length - 1;
+}
+
+function nextAttemptDelay(
+  error: unknown,
+  planIndex: number,
+  attempt: number,
+  plans: Array<{ model: string; attempts: number }>,
+  limits: AiLimits,
+): number | null {
+  const classification = classifyAiError(error);
+  if (!classification.retryable) throw error;
+  if (!hasAnotherAttempt(planIndex, attempt, plans)) return null;
+  const exponentialDelay = limits.backoffMs * 2 ** (attempt - 1);
+  const delayMs = retryDelayMilliseconds(error, exponentialDelay, limits);
+  console.error(
+    `[XML-Parser WARN] category=${classification.code} status=${classification.httpStatus || 'none'} retry_in_ms=${delayMs}`
+  );
+  return delayMs;
 }
 
 export async function parseSignalToXml(
@@ -537,22 +558,15 @@ export async function parseSignalToXml(
   const plans = modelPlan(models, limits);
   let lastError: any;
   for (let planIndex = 0; planIndex < plans.length; planIndex += 1) {
-    const plan = plans[planIndex]!;
+    const plan = plans[planIndex];
+    if (!plan) continue;
     for (let attempt = 1; attempt <= plan.attempts; attempt += 1) {
       try {
         return await runProviderAttempt(context, plan.model);
       } catch (error) {
         lastError = error;
-        const classification = classifyAiError(error);
-        if (!classification.retryable) throw error;
-        if (hasAnotherAttempt(planIndex, attempt, plans)) {
-          const exponentialDelay = limits.backoffMs * 2 ** (attempt - 1);
-          const delayMs = retryDelayMilliseconds(error, exponentialDelay, limits);
-          console.error(
-            `[XML-Parser WARN] category=${classification.code} status=${classification.httpStatus || 'none'} retry_in_ms=${delayMs}`
-          );
-          await abortableDelay(delayMs, options.signal);
-        }
+        const delayMs = nextAttemptDelay(error, planIndex, attempt, plans, limits);
+        if (delayMs !== null) await abortableDelay(delayMs, options.signal);
       }
     }
   }

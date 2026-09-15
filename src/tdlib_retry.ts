@@ -25,7 +25,8 @@ async function abortableDelay(milliseconds: number, signal?: AbortSignal | null)
     }, milliseconds);
     const onAbort = () => {
       clearTimeout(timer);
-      reject(abortError(signal!));
+      if (signal) reject(abortError(signal));
+      else reject(new Error('Aborted.'));
     };
     signal?.addEventListener('abort', onAbort, { once: true });
   });

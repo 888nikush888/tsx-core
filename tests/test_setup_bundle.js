@@ -112,6 +112,26 @@ try {
   assert.doesNotMatch(JSON.stringify(bundle), /credentialRef|apiSecret|privateKey|bearerToken/i);
   assert.deepEqual(validatePortableSetupBundle(bundle), bundle);
 
+  for (const [collection, key, label] of [
+    ['contracts', 'sourceVersionId', 'contract'], ['schemas', 'sourceId', 'schema'],
+    ['strategies', 'sourceVersionId', 'strategy'],
+  ]) {
+    for (const value of [{ toString() { throw new Error('Must not coerce a model identifier'); } }, [], 17, null]) {
+      const invalid = structuredClone(bundle);
+      invalid.models[collection][0][key] = value;
+      assert.throws(() => validatePortableSetupBundle(invalid), /id is invalid/);
+    }
+    const distinct = structuredClone(bundle);
+    const extra = structuredClone(distinct.models[collection][0]);
+    extra[key] = ` ${extra[key]} `;
+    distinct.models[collection].push(extra);
+    distinct.checksum = checksumBundle(distinct);
+    assert.deepEqual(validatePortableSetupBundle(distinct), distinct, 'Validated identifiers retain bytes rather than being trimmed.');
+    const duplicate = structuredClone(bundle);
+    duplicate.models[collection].push(structuredClone(duplicate.models[collection][0]));
+    assert.throws(() => validatePortableSetupBundle(duplicate), { message: `Setup bundle ${label} identifiers are duplicated.` });
+  }
+
   const tampered = structuredClone(bundle);
   tampered.workflow.resources[0].name = 'Tampered';
   assert.throws(() => validatePortableSetupBundle(tampered), /checksum verification failed/);

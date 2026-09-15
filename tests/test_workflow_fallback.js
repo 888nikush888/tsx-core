@@ -179,10 +179,10 @@ try {
     { accountId: thirdAccount.id, fallbackRank: 2, fallbackOn: [], routeGroupKey: fallbackGroup.key },
   ]);
 
-  async function seedActivePosition(account, symbol, suffix) {
+  async function seedActivePosition(adapter, account, symbol, suffix) {
     const sourceSignalId = `capacity-seed-${suffix}`;
     await saveSignal(sourceSignalId, '-100-fallback-a', 100 + suffix.length, '<signal/>', '<signal/>');
-    await paper.setMarket(account.id, {
+    await adapter.setMarket(account.id, {
       symbol, markPrice: '1', priceTick: '0.001', quantityStep: '0.001',
       minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 50,
     });
@@ -192,10 +192,10 @@ try {
         targets: [{ min: '1.1', max: '1.1' }, { min: '1.2', max: '1.2' }], stopLoss: '0.5' },
     });
     assert.equal(intent.accountId, account.id);
-    await new TradingEngine([paper]).processIntent(intent.id);
+    await new TradingEngine([adapter]).processIntent(intent.id);
     const opened = await getTradingIntent(intent.id);
     assert.equal(opened.status, 'monitoring', JSON.stringify(opened));
-    assert.ok((await paper.openState(account)).positions.some(position => position.symbol === symbol));
+    assert.ok((await adapter.openState(account)).positions.some(position => position.symbol === symbol));
     return intent.id;
   }
 
@@ -370,7 +370,7 @@ try {
   await new TradingEngine([technicalAdapter]).processIntent(technicalPrimary.id);
   assert.equal((await getTradingIntent(technicalPrimary.id)).status, 'unknown');
   const technicalRun = await getDatabase().get(
-    `SELECT id, status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = ?`,
+    'SELECT id, status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = ?',
     ['fallback-technical-stop'],
   );
   assert.deepEqual(
@@ -378,12 +378,11 @@ try {
     { status: 'stopped', stopReason: 'ORDER_OUTCOME_UNKNOWN' },
   );
   assert.equal(Number((await getDatabase().get(
-    `SELECT COUNT(*) AS count FROM trading_fallback_candidates
-     WHERE fallback_run_id = ? AND rank > 0 AND intent_id IS NOT NULL`,
+    'SELECT COUNT(*) AS count FROM trading_fallback_candidates\n     WHERE fallback_run_id = ? AND rank > 0 AND intent_id IS NOT NULL',
     [technicalRun.id],
   )).count), 0, 'Technical failures must never promote a fallback account.');
   await getDatabase().run(
-    `UPDATE trading_risk_events SET acknowledged_at = ? WHERE intent_id = ?`,
+    'UPDATE trading_risk_events SET acknowledged_at = ? WHERE intent_id = ?',
     [Date.now(), technicalPrimary.id],
   );
 
@@ -401,8 +400,7 @@ try {
   await new TradingEngine([accountFailureAdapter]).processIntent(accountFailurePrimary.id);
   assert.equal((await getTradingIntent(accountFailurePrimary.id)).status, 'unknown');
   const accountFailureRun = await getDatabase().get(
-    `SELECT id, status, stop_reason AS stopReason
-     FROM trading_fallback_runs WHERE source_signal_id = ?`,
+    'SELECT id, status, stop_reason AS stopReason\n     FROM trading_fallback_runs WHERE source_signal_id = ?',
     ['fallback-account-stop'],
   );
   assert.deepEqual(
@@ -411,12 +409,11 @@ try {
   );
   assert.equal(marketCallsAfterAccountFailure, 0, 'Account health must be established before symbol fallback is evaluated.');
   assert.equal(Number((await getDatabase().get(
-    `SELECT COUNT(*) AS count FROM trading_fallback_candidates
-     WHERE fallback_run_id = ? AND rank > 0 AND intent_id IS NOT NULL`,
+    'SELECT COUNT(*) AS count FROM trading_fallback_candidates\n     WHERE fallback_run_id = ? AND rank > 0 AND intent_id IS NOT NULL',
     [accountFailureRun.id],
   )).count), 0);
   await getDatabase().run(
-    `UPDATE trading_risk_events SET acknowledged_at = ? WHERE intent_id = ?`,
+    'UPDATE trading_risk_events SET acknowledged_at = ? WHERE intent_id = ?',
     [Date.now(), accountFailurePrimary.id],
   );
 
@@ -429,8 +426,7 @@ try {
   await engine.processIntent(riskPrimary.id);
   assert.equal((await getTradingIntent(riskPrimary.id)).blockReason, 'EXECUTION_DISABLED');
   const riskRun = await getDatabase().get(
-    `SELECT id, status, stop_reason AS stopReason
-     FROM trading_fallback_runs WHERE source_signal_id = ?`,
+    'SELECT id, status, stop_reason AS stopReason\n     FROM trading_fallback_runs WHERE source_signal_id = ?',
     ['fallback-risk-stop'],
   );
   assert.deepEqual(
@@ -438,13 +434,12 @@ try {
     { status: 'stopped', stopReason: 'EXECUTION_DISABLED' },
   );
   assert.equal(Number((await getDatabase().get(
-    `SELECT COUNT(*) AS count FROM trading_fallback_candidates
-     WHERE fallback_run_id = ? AND rank > 0 AND intent_id IS NOT NULL`,
+    'SELECT COUNT(*) AS count FROM trading_fallback_candidates\n     WHERE fallback_run_id = ? AND rank > 0 AND intent_id IS NOT NULL',
     [riskRun.id],
   )).count), 0, 'Risk and runtime gates must stop the route instead of activating fallback.');
   await updateTradingRuntimeState({ executionEnabled: true });
 
-  const capacitySeedIntentId = await seedActivePosition(primaryAccount, 'OTHERUSDT', 'full');
+  const capacitySeedIntentId = await seedActivePosition(paper, primaryAccount, 'OTHERUSDT', 'full');
   await getDatabase().run(
     'UPDATE trading_accounts SET max_concurrent_positions = 1 WHERE id = ?',
     [primaryAccount.id],
@@ -479,9 +474,7 @@ try {
   assert.deepEqual(capacityCalls, { account: 0, market: 0 },
     'Local capacity fallback must happen before exchange account and market calls.');
   const capacityPromoted = await getDatabase().get(
-    `SELECT candidate.status, candidate.intent_id AS intentId FROM trading_fallback_candidates AS candidate
-     JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
-     WHERE run.source_signal_id = 'fallback-capacity' AND candidate.rank = 1`,
+    "SELECT candidate.status, candidate.intent_id AS intentId FROM trading_fallback_candidates AS candidate\n     JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id\n     WHERE run.source_signal_id = 'fallback-capacity' AND candidate.rank = 1",
   );
   assert.equal(capacityPromoted.status, 'pending');
   await getDatabase().run(
@@ -492,15 +485,13 @@ try {
   assert.equal((await getTradingIntent(capacityPromoted.intentId)).blockReason, 'MAX_CONCURRENT_POSITIONS');
   assert.deepEqual(
     await getDatabase().get(
-      `SELECT status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = 'fallback-capacity'`,
+      'SELECT status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = \'fallback-capacity\'',
     ),
     { status: 'stopped', stopReason: 'MAX_CONCURRENT_POSITIONS' },
     'The A→B full-capacity policy must not leak into the pair-only B→C edge.',
   );
   assert.equal(Number((await getDatabase().get(
-    `SELECT COUNT(*) AS count FROM trading_fallback_candidates AS candidate
-     JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
-     WHERE run.source_signal_id = 'fallback-capacity' AND candidate.rank = 2 AND candidate.intent_id IS NOT NULL`,
+    "SELECT COUNT(*) AS count FROM trading_fallback_candidates AS candidate\n     JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id\n     WHERE run.source_signal_id = 'fallback-capacity' AND candidate.rank = 2 AND candidate.intent_id IS NOT NULL",
   )).count), 0);
   await getDatabase().run(
     'UPDATE trading_accounts SET max_concurrent_positions = 10 WHERE id = ?',
@@ -573,12 +564,7 @@ try {
   );
 
   await getDatabase().run(
-    `INSERT INTO trading_orders (
-       id, intent_id, account_id, client_order_id, exchange_order_id, role, side, order_type,
-       status, price, trigger_price, quantity, filled_quantity, reduce_only, request_json,
-       response_json, last_error, created_at, updated_at
-     ) VALUES ('capacity-unknown-order', ?, ?, 'capacity-unknown-client', NULL, 'entry', 'buy',
-               'limit', 'unknown', '1', NULL, '1', '0', 0, '{}', NULL, 'unknown', ?, ?)`,
+    "INSERT INTO trading_orders (id, intent_id, account_id, client_order_id, exchange_order_id, role, side, order_type, status, price, trigger_price, quantity, filled_quantity, reduce_only, request_json, response_json, last_error, created_at, updated_at) VALUES ('capacity-unknown-order', ?, ?, 'capacity-unknown-client', NULL, 'entry', 'buy', 'limit', 'unknown', '1', NULL, '1', '0', 0, '{}', NULL, 'unknown', ?, ?)",
     [capacitySeedIntentId, primaryAccount.id, Date.now(), Date.now()],
   );
   await saveSignal('fallback-hard-safety', '-100-fallback-a', 21, '<signal/>', '<signal/>');
@@ -591,25 +577,21 @@ try {
     'An unresolved order must win over an otherwise eligible capacity fallback.');
   assert.deepEqual(
     await getDatabase().get(
-      `SELECT status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = 'fallback-hard-safety'`,
+      'SELECT status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = \'fallback-hard-safety\'',
     ),
     { status: 'stopped', stopReason: 'UNRESOLVED_ORDER' },
   );
   assert.equal(Number((await getDatabase().get(
-    `SELECT COUNT(*) AS count FROM trading_fallback_candidates AS candidate
-     JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id
-     WHERE run.source_signal_id = 'fallback-hard-safety' AND candidate.rank > 0 AND candidate.intent_id IS NOT NULL`,
+    "SELECT COUNT(*) AS count FROM trading_fallback_candidates AS candidate JOIN trading_fallback_runs AS run ON run.id = candidate.fallback_run_id WHERE run.source_signal_id = 'fallback-hard-safety' AND candidate.rank > 0 AND candidate.intent_id IS NOT NULL",
   )).count), 0);
-  await getDatabase().run("DELETE FROM trading_orders WHERE id = 'capacity-unknown-order'");
+  await getDatabase().run('DELETE FROM trading_orders WHERE id = \'capacity-unknown-order\'');
 
   await getDatabase().run(
     'UPDATE trading_accounts SET max_concurrent_positions = 10 WHERE id = ?',
     [primaryAccount.id],
   );
   await getDatabase().run(
-    `INSERT INTO trading_risk_events (
-       id, severity, code, account_id, intent_id, details_json, created_at, acknowledged_at
-     ) VALUES ('fallback-critical-risk', 'critical', 'TEST_CRITICAL', ?, NULL, '{}', ?, NULL)`,
+    "INSERT INTO trading_risk_events (id, severity, code, account_id, intent_id, details_json, created_at, acknowledged_at) VALUES ('fallback-critical-risk', 'critical', 'TEST_CRITICAL', ?, NULL, '{}', ?, NULL)",
     [primaryAccount.id, Date.now()],
   );
   await saveSignal('fallback-critical-owned', '-100-fallback-a', 23, '<signal/>', '<signal/>');
@@ -625,12 +607,12 @@ try {
      WHERE run.source_signal_id = 'fallback-critical-owned' AND candidate.rank > 0 AND candidate.intent_id IS NOT NULL`,
   )).count), 0, 'Critical risk must win over an otherwise eligible owned-symbol fallback.');
   await getDatabase().run(
-    "UPDATE trading_risk_events SET acknowledged_at = ? WHERE id = 'fallback-critical-risk'",
+    'UPDATE trading_risk_events SET acknowledged_at = ? WHERE id = \'fallback-critical-risk\'',
     [Date.now()],
   );
 
   await getDatabase().run(
-    "UPDATE trading_accounts SET kill_switch_active = 1, kill_switch_reason = 'test' WHERE id = ?",
+    'UPDATE trading_accounts SET kill_switch_active = 1, kill_switch_reason = \'test\' WHERE id = ?',
     [primaryAccount.id],
   );
   await saveSignal('fallback-account-kill', '-100-fallback-a', 24, '<signal/>', '<signal/>');
@@ -685,7 +667,7 @@ try {
     'SELECT plan_json FROM trading_trade_intents WHERE id = ?', [capacitySeedIntentId],
   )).plan_json;
   await getDatabase().run(
-    "UPDATE trading_trade_intents SET plan_json = 'not-json' WHERE id = ?",
+    'UPDATE trading_trade_intents SET plan_json = \'not-json\' WHERE id = ?',
     [capacitySeedIntentId],
   );
   await saveSignal('fallback-daily-risk', '-100-fallback-a', 27, '<signal/>', '<signal/>');
@@ -711,7 +693,7 @@ try {
   const releaseControl = new TradingWebControl(new TradingCredentialStore(directory), paper, [], engine);
   await releaseControl.releaseAccountKillSwitch({ id: primaryAccount.id, confirmation: 'RELEASE ACCOUNT KILL SWITCH' });
 
-  await seedActivePosition(primaryAccount, 'DOTUSDT', 'owned');
+  await seedActivePosition(paper, primaryAccount, 'DOTUSDT', 'owned');
   await paper.setMarket(fallbackAccount.id, {
     symbol: 'DOTUSDT', markPrice: '10', priceTick: '0.01', quantityStep: '0.01',
     minimumQuantity: '0.01', minimumNotional: '10', maxLeverage: 50,
@@ -757,7 +739,7 @@ try {
   await engine.processIntent(expiredPrimary.id);
   assert.equal((await getTradingIntent(expiredPrimary.id)).blockReason, 'ENTRY_INTENT_EXPIRED');
   const expiredRun = await getDatabase().get(
-    `SELECT id, status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = ?`,
+    'SELECT id, status, stop_reason AS stopReason FROM trading_fallback_runs WHERE source_signal_id = ?',
     ['fallback-expired'],
   );
   assert.deepEqual(
@@ -765,8 +747,7 @@ try {
     { status: 'stopped', stopReason: 'ENTRY_INTENT_EXPIRED' },
   );
   assert.equal(Number((await getDatabase().get(
-    `SELECT COUNT(*) AS count FROM trading_fallback_candidates
-     WHERE fallback_run_id = ? AND rank > 0 AND intent_id IS NOT NULL`,
+    'SELECT COUNT(*) AS count FROM trading_fallback_candidates\n     WHERE fallback_run_id = ? AND rank > 0 AND intent_id IS NOT NULL',
     [expiredRun.id],
   )).count), 0, 'The original entry TTL must never reset for fallback accounts.');
 

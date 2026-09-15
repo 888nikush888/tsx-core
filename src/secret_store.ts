@@ -432,7 +432,9 @@ export class ManagedSecretStore {
     await fs.unlink(this.secretPath(name)).catch((error: any) => {
       if (error?.code !== 'ENOENT') throw error;
     });
-    delete this.env[DEFINITIONS[name].environmentName];
+    if (!Reflect.deleteProperty(this.env, DEFINITIONS[name].environmentName)) {
+      throw new TypeError(`${DEFINITIONS[name].environmentName} could not be removed from the environment.`);
+    }
     this.sources.set(name, 'missing');
     await syncDirectory(this.directory);
   }

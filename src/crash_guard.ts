@@ -21,9 +21,10 @@ export class CrashLoopBlockedError extends Error {
   }
 }
 
-function validCounter(value: any): CrashCounter {
-  const count = Number(value?.count);
-  const lastCrash = Number(value?.lastCrash);
+function validCounter(value: unknown): CrashCounter {
+  const row = (value ?? {}) as { count?: unknown; lastCrash?: unknown };
+  const count = Number(row.count);
+  const lastCrash = Number(row.lastCrash);
   return {
     count: Number.isSafeInteger(count) && count >= 0 ? count : 0,
     lastCrash: Number.isSafeInteger(lastCrash) && lastCrash >= 0 ? lastCrash : 0

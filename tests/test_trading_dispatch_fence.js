@@ -11,14 +11,14 @@ import { seedTradingFixtures } from './trading_fixtures.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-dispatch-fence-'));
 const filename = path.join(directory, 'test.db');
-let reader;
+let reader = null;
 async function fixture(account, id) {
   await getDatabase().run(`INSERT INTO trading_orders (id, intent_id, account_id, client_order_id, role, side, order_type, status,
     quantity, filled_quantity, reduce_only, request_json, created_at, updated_at)
     VALUES (?, 'fence-intent', ?, ?, 'entry', 'buy', 'limit', 'created', '1', '0', 0, '{}', 1, 1)`, [id, account.id, id]);
   const result = { clientOrderId: id, exchangeOrderId: `remote-${id}`, status: 'open', filledQuantity: '0', averagePrice: null, error: null, raw: {} };
-  return { account, intentId: 'fence-intent', kind: 'submit', clientOrderIds: [id], request: { id }, beforeDispatch: async () => {},
-    beforeSend: async () => {}, guard: () => {}, send: async () => result, persist: async () => [result] };
+  return { account, intentId: 'fence-intent', kind: 'submit', clientOrderIds: [id], request: { id }, beforeDispatch: () => Promise.resolve(),
+    beforeSend: () => Promise.resolve(), guard: () => undefined, send: () => Promise.resolve(result), persist: () => Promise.resolve([result]) };
 }
 const phase = async input => (await getDatabase().get('SELECT phase FROM trading_operations WHERE request_json = ?', [JSON.stringify(input.request)])).phase;
 async function failureMatrix(account) {
@@ -74,10 +74,9 @@ async function rejectedDispatchMutation(account, boundary, name, mutate) {
     assert.equal(JSON.parse(operation.expected_orders_json)[0].client_order_id, JSON.parse(original).id);
 }
 async function ownerIsolation() {
-  let releaseNetwork;
-  const network = new Promise(resolve => { releaseNetwork = resolve; });
+  const { promise: network, resolve: releaseNetwork } = Promise.withResolvers();
   let wrote = false;
-  const { pending } = await withDatabaseDispatchFence(async () => {}, async () => {
+  const { pending } = await withDatabaseDispatchFence(() => Promise.resolve(), async () => {
     await network;
     await getDatabase().run("UPDATE trading_accounts SET updated_at = updated_at WHERE id = 'paper-default'");
     wrote = true;
@@ -90,7 +89,7 @@ async function ownerIsolation() {
   await pending;
   assert.equal(wrote, true);
   let starts = 0;
-  await assert.rejects(withDatabaseTransaction(() => withDatabaseDispatchFence(async () => {}, async () => { starts += 1; })), /inherit/);
+  await assert.rejects(withDatabaseTransaction(() => withDatabaseDispatchFence(() => Promise.resolve(), () => { starts += 1; return Promise.resolve(); })), /inherit/);
   assert.equal(starts, 0);
 }
 async function commitFailure(account) {
@@ -98,7 +97,7 @@ async function commitFailure(account) {
   const db = getDatabase();
   const original = db.exec;
   let started = false;
-  let rejected;
+  let rejected = null;
   input.send = () => { started = true; return new Promise((_resolve, reject) => { rejected = reject; }); };
   db.exec = async sql => {
     if (sql === 'COMMIT' && started) { started = false; throw new Error('fixture read-fence commit failure'); }
@@ -119,7 +118,7 @@ try {
     VALUES ('fence-intent', 'fence-signal', 'fence-signal', '-fence', ?, ?, 'paper', 'paper', 'BTCUSDT', 'LONG', 'submitting', '{}', 1, 1)`, [strategy.id, account.id]);
   reader = await open({ filename, driver: sqlite3.Database });
   const normal = await fixture(account, 'durable');
-  let capturedWitness;
+  let capturedWitness = null;
   normal.beforeSend = async witness => {
     capturedWitness = witness;
     const row = await reader.get('SELECT id, phase, request_hash FROM trading_operations WHERE request_json = ?', [JSON.stringify(normal.request)]);

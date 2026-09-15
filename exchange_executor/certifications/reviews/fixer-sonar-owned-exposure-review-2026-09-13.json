@@ -1,0 +1,24 @@
+{
+  "path": "src/trading_safety_repository.ts",
+  "issueId": "AaCaApdgQzi-Va3r5ZAA",
+  "baseRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+  "beforeSha256": "a45193e814caa0b3e5053f1b0170bf1ce17f563971dfcf86758bedf7e760b915",
+  "afterSha256": "f6237d733759b28c74aae423b1e5b5ebee28c9ba2b734f64211d7fa5394cf428",
+  "diffSha256": "3740f4530cae60b30ce0b4739579acb92c359df4b94f8da1606ea6cd58939661",
+  "rationale": "Presence guard moved into synchronous ownedExposureMatches. ownership-null, zero-count strict zero quantity, ambiguous count and side/quantity short-circuit order retained. No optional side equality permits absent position.",
+  "equivalence": {
+    "cases": 180,
+    "source": "Actual before/current remoteMatches AST plus actual helper; actual compareDecimal; getter trace and thrown type/message compared",
+    "differences": 0
+  },
+  "tests": {
+    "passedFiles": 2,
+    "failed": 0,
+    "skipped": 0,
+    "logSha256": "451a660bfbbd7e0f9e4bed9c666e23b3c6fb9df0ba15f1dbd650a9181af0b375",
+    "eslint": "PASS changed file",
+    "typecheck": "PASS tsc --noEmit",
+    "typecheckLogSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "limits": "No provider calls, commit or receipt approval. Remote Sonar rescan pending."
+}

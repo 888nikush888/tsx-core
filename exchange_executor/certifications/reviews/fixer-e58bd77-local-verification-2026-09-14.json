@@ -1,0 +1,89 @@
+{
+  "sourceRevision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+  "generatedAt": "2026-09-14T07:16:00.168Z",
+  "nodeTestFilesPassed": 226,
+  "moduleCoverage": {
+    "lines": {
+      "total": 50257,
+      "covered": 48498,
+      "skipped": 0,
+      "pct": 96.49
+    },
+    "statements": {
+      "total": 50257,
+      "covered": 48498,
+      "skipped": 0,
+      "pct": 96.49
+    },
+    "functions": {
+      "total": 3514,
+      "covered": 3486,
+      "skipped": 0,
+      "pct": 99.2
+    },
+    "branches": {
+      "total": 18494,
+      "covered": 15989,
+      "skipped": 0,
+      "pct": 86.45
+    },
+    "branchesTrue": {
+      "total": 0,
+      "covered": 0,
+      "skipped": 0,
+      "pct": 100
+    }
+  },
+  "baseline": {
+    "scope": "testable core modules in clean Node.js 22 Linux and Windows checkouts; excludes the composition root and confirmation-gated maintenance CLI entrypoints",
+    "verifiedPlatforms": [
+      "linux",
+      "win32"
+    ],
+    "statements": 96.48,
+    "branches": 86.44,
+    "functions": 99.2,
+    "lines": 96.48
+  },
+  "ratchet": "passed; no floors lowered",
+  "sourceNormalization": {
+    "items": [
+      {
+        "path": "src/filters.ts",
+        "beforeSha256": "1bafcfe0ff3d669072bc3c42647fa600caf322adf4797cb6996312ace51382bc",
+        "afterGitLfSha256": "9135f07539b9582c98ec48fb116e243b4b1dd215fd6440743adc057bac5fdb0f",
+        "emittedJavaScriptIdentical": true
+      },
+      {
+        "path": "src/ingress_contracts.ts",
+        "beforeSha256": "3b5b1ea4f8eb9e185507e5fab3ecc03a552547b012ab3d7a9defbd8b8f4d6f26",
+        "afterGitLfSha256": "5419ee6e96ab6685aabd5b2f388fae430c2ef483de1af3225f2ad23531674b98",
+        "emittedJavaScriptIdentical": true
+      }
+    ],
+    "coverageCompletedBeforeNormalization": true
+  },
+  "evidence": [
+    {
+      "path": "reports/security-services/fixer-e58bd77-module-coverage.log",
+      "sha256": "5f11544350368420097ad7016570a7e47fb7052b7cc10f2bc9309cedf67c49d2"
+    },
+    {
+      "path": "reports/security-services/fixer-e58bd77-snyk-execution.json",
+      "sha256": "f44c911fc81d0854a243ea68c0b426af02a8c7a58644b54e053c4169882086b4"
+    },
+    {
+      "path": "reports/security-services/fixer-e58bd77-adopted-snyk-verification.json",
+      "sha256": "990b1085da9ec8f4e48c620c059d9de4b4ca350f27863d30401996de63c8e14c"
+    },
+    {
+      "path": "reports/security-services/fixer-e58bd77-lf-verification.json",
+      "sha256": "da126c2d4d76cfc1b0cb669f48b30f74f1e69b43b978a0e2c96a50c152cede72"
+    }
+  ],
+  "limits": [
+    "Windows existing locked dependencies; clean Linux CI still required.",
+    "Raise improved coverage floors only after confirming cross-platform minimum on fresh Linux CI.",
+    "Complete remaining scanners and independent implementation receipt remain open."
+  ]
+}

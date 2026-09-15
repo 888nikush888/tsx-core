@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "sourceSha256": "0ffa3faa197e463369912f34a39d0585ca35b4d1975227c138094190b0da7fdb",
+  "scope": "Two explicit-any occurrences in canonical review checksum recursion; redaction return type remains separately open.",
+  "verification": [
+    "159 before/after checksum or exact error comparisons passed, including nested arrays, Unicode key ordering, non-JSON values and safe scalar inputs.",
+    "Enumerable getter observation order remains sorted and identical.",
+    "Typecheck, targeted ESLint and complete UI change review suite passed; existing immutable expected checksum and conflict tests preserved."
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhycnA=",
+      "rule": "JS-0323",
+      "path": "src/ui_change_review.ts",
+      "baselineLine": 5,
+      "baselineColumn": 34,
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFlZXc=",
+      "rule": "JS-0323",
+      "path": "src/ui_change_review.ts",
+      "baselineLine": 5,
+      "baselineColumn": 28,
+      "disposition": "fixed-locally-pending-cloud-rescan"
+    }
+  ]
+}

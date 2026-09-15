@@ -156,8 +156,7 @@ await withFixture(async ({ paper, engine, control }) => {
 });
 
 function deferred() {
-  let resolve;
-  const promise = new Promise(done => { resolve = done; });
+  const { promise, resolve } = Promise.withResolvers();
   return { promise, resolve };
 }
 

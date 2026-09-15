@@ -1,0 +1,993 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-full-historical-core-source-review-wave5",
+  "generatedAt": "2026-09-15T07:44:30.598625+00:00",
+  "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+  "selection": {
+    "baseline": "5b025d9",
+    "target": "c37a356",
+    "priorTarget": "1aead48",
+    "paths": [
+      "src/trading_risk_admission.ts",
+      "src/trading_risk_reconciliation.ts",
+      "src/trading_risk_reservations.ts",
+      "src/trading_risk_sources.ts",
+      "src/trading_runtime_release.ts",
+      "src/trading_safety_repository.ts",
+      "src/trading_scope_execution.ts",
+      "src/trading_state_transitions.ts",
+      "src/trading_take_profit.ts",
+      "src/trading_take_profit_recovery.ts",
+      "src/trading_telemetry.ts",
+      "src/trading_web_control.ts",
+      "src/ui_account_evidence.ts",
+      "src/ui_adaptive_risk.ts",
+      "src/ui_attention.ts",
+      "src/ui_capabilities.ts",
+      "src/ui_change_review.ts",
+      "src/ui_configuration.ts",
+      "src/ui_contracts.ts",
+      "src/ui_cursor.ts",
+      "src/ui_effective_parameters.ts",
+      "src/ui_ingress_relations.ts",
+      "src/ui_mcp_reads.ts",
+      "src/ui_mcp_review.ts",
+      "src/ui_model_parameters.ts",
+      "src/ui_operation_store.ts",
+      "src/ui_paper_configuration.ts",
+      "src/ui_parameter_catalog.ts"
+    ]
+  },
+  "counts": {
+    "selected": 28,
+    "completeHistoricalDeltaCoverage": 28,
+    "concreteRegressions": 0,
+    "remainingSelectedFileDeltaGaps": 0
+  },
+  "entries": [
+    {
+      "path": "src/trading_risk_admission.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "e48d41a0b5d5bcbdf08dfba09ebfaf14e9b897c8",
+        "gitBlobSha256": "fd4de3e10a28a3db55e4304dfd0b92c25548a680d51b4366356dc91e768fe185"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "1bcb7fa29e67611f22e29e005a27e8e867005632",
+        "gitBlobSha256": "fae250cb7e81587c0021faab112227ded27a5c80a4313278dce451bf55e0b827"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "1bcb7fa29e67611f22e29e005a27e8e867005632",
+        "gitBlobSha256": "fae250cb7e81587c0021faab112227ded27a5c80a4313278dce451bf55e0b827"
+      },
+      "fullHistoricalDeltaSha256": "f73c79730fa3af05844bb6ec47644083f4c3ba8612c5e74cfbed623154271185",
+      "hunks": [
+        "@@ -101,18 +101,25 @@ export async function createRiskAdmission(input: { account: TradingAccount; inte",
+        "@@ -131,7 +138,9 @@ export async function verifyRiskAdmission(proof: RiskAdmissionProof, plan: Tradi"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full delta captures required accounting before freshness, sizing and final ledger comparison. Missing evidence explicitly unavailable; original FX match, reporting currency, ledger hash, account/market/UTC guards remain. Optional sizing read does not change valid captured plan conversion lookup.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/trading_risk_reconciliation.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "7b2181950ec2ac26ec5337b1bda7e6b285ccf4ae",
+        "gitBlobSha256": "76bb517c92e61f18565ff245820173ef4bb02e2e99b3866398fb21cc0a365db5"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "2bf4661e11130c2950f331212469b1949aafcb4a",
+        "gitBlobSha256": "8307ef2d25070aeb1006112b753c6b00c9972891849f4d8ad3cf076a3f703399"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "2bf4661e11130c2950f331212469b1949aafcb4a",
+        "gitBlobSha256": "8307ef2d25070aeb1006112b753c6b00c9972891849f4d8ad3cf076a3f703399"
+      },
+      "fullHistoricalDeltaSha256": "2ea2269ccd0553a3ef69c93a06ac6a43f81a7129082ed2b0617be377ee322d11",
+      "hunks": [
+        "@@ -24,11 +24,13 @@ async function reconciledRiskStatus(input: ReconciledRiskInput, snapshot: Tradin"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire delta explicitly rejects absent accounting before reserve read and uses same captured reporting currency. Existing catch still marks risk unresolved; no completed protection rollback or monetary-zero substitution.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/trading_risk_reservations.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "ce2270baabfcdbf88a5711cee53699b7bd98ec73",
+        "gitBlobSha256": "84619165f9d0708d8651637dc13e4275dc7f6886c10add61d2442a0e8bf7575c"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "22ad500c7e2398412bacb3751fbe750483e26a4e",
+        "gitBlobSha256": "64d87c5460fde5564212145a4976296b8c33ac7dd5cc8e396d36d2d09fa53638"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "22ad500c7e2398412bacb3751fbe750483e26a4e",
+        "gitBlobSha256": "64d87c5460fde5564212145a4976296b8c33ac7dd5cc8e396d36d2d09fa53638"
+      },
+      "fullHistoricalDeltaSha256": "6a696202fe6b481fd2dbbbc5c097683f23ab05cbd8e8c0058fd9880dd24776cb",
+      "hunks": [
+        "@@ -22,25 +22,42 @@ export interface RiskReservationAmounts {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full delta extracts adverse direction, stop distance, entry quantity and lifecycle predicates. Filled-with-residual and unresolved operation checks precede terminal zero as before; unknown statuses still reject. LONG/SHORT exact arithmetic and terminal loss treatment unchanged.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/trading_risk_sources.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "d370dc7fa428f2e32bc251432ff999a07e6be1c4",
+        "gitBlobSha256": "f0829b8b81b94e7798aed3989d114db4dae0c6ed716d187b59c3c84610c8f2a9"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "1dd10d1ff915db42d4575be3c82bf854a005ddf0",
+        "gitBlobSha256": "040646799986bc42c0736ca025def0a21a61347a2d2988f82f9e842afd8c4926"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "1dd10d1ff915db42d4575be3c82bf854a005ddf0",
+        "gitBlobSha256": "040646799986bc42c0736ca025def0a21a61347a2d2988f82f9e842afd8c4926"
+      },
+      "fullHistoricalDeltaSha256": "45e3056375083b41536e7ac5dc8a8820136f30fa08e45676ff64f767d434f13f",
+      "hunks": [
+        "@@ -8,7 +8,7 @@ import { calculateFxRiskReservation } from './trading_fx_risk.js';",
+        "@@ -68,14 +68,16 @@ function currentStop(source: RiskIntentSource, remote: ExchangeOpenState, accoun",
+        "@@ -86,7 +88,8 @@ function marketMetadata(source: RiskIntentSource, account: TradingAccount, remot"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full delta replaces missing nonpaper fingerprint undefined/null with empty sentinel; valid bound account strings and paper namespace unchanged. This is an invalid/unbound identity representation difference, not a new proof: source/observation identity, credential/epoch and complete monetary evidence still required downstream. Stop selection retains unique correlated order, protectiveStopCoverage and positive string trigger; accounting JSON only parsed if present. No unverified stop becomes protection.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/trading_runtime_release.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "9218814c0b29adb1ae72e4d11c953b4572106339",
+        "gitBlobSha256": "320eb3a1a25f27ebbbb0ca53f2140bd7c7842d79c639ddf4fc14c6832ef8a6a1"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "cca618395487fded9ad30f23a2b9f7411359854c",
+        "gitBlobSha256": "77125f36c96ad1aa811f2262359b2e663a861e1c565f94892e05bcfad245fa5d"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "cca618395487fded9ad30f23a2b9f7411359854c",
+        "gitBlobSha256": "77125f36c96ad1aa811f2262359b2e663a861e1c565f94892e05bcfad245fa5d"
+      },
+      "fullHistoricalDeltaSha256": "87454598a7925131522f4f02fb3c2da74fe3b1454c4c3483a217f3c5b0cff25d",
+      "hunks": [
+        "@@ -37,9 +37,11 @@ async function withAccountOwners<T>(",
+        "@@ -110,8 +112,10 @@ export async function releaseGlobalTradingKillSwitch(dependencies: RuntimeReleas"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full delta explicitly requires account index, epoch and prepared owner. Removed async from mutation callback still returns recursive Promise under TradingMutationCoordinator.run async operation/cancel-budget/finally boundary. No owner acquisition order or prepared-account assertion changed. Timing/adoption differs; global release still cannot omit missing owner.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/trading_safety_repository.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "88a9d8682b9262365baab97b5e9a297059c37907",
+        "gitBlobSha256": "ccd4b70b115f3d46a2a2a6fdf8f9a7d4c4c01e934206bbc2e9809607f43b4489"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "b988e0bf9ea8fb3a6c04bab629484dcc10cec56c",
+        "gitBlobSha256": "f6237d733759b28c74aae423b1e5b5ebee28c9ba2b734f64211d7fa5394cf428"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "b988e0bf9ea8fb3a6c04bab629484dcc10cec56c",
+        "gitBlobSha256": "f6237d733759b28c74aae423b1e5b5ebee28c9ba2b734f64211d7fa5394cf428"
+      },
+      "fullHistoricalDeltaSha256": "fb2e7b33f57453f3cf8daa9c499a6a11dee361c613db3ec3fec1c94ac67e4adc",
+      "hunks": [
+        "@@ -35,7 +35,8 @@ function remoteConfirms(order: StoredSafetyOrder, state: ExchangeOpenState): boo",
+        "@@ -52,6 +53,15 @@ async function safetyOrders(accountId: string, remote: ExchangeOpenState): Promi",
+        "@@ -61,12 +71,13 @@ async function safetyPositions(accountId: string, remote: ExchangeOpenState): Pr"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full delta explicitly captures unique order/position and synchronous ownedExposureMatches helper. ownership null remains unproved; zero remote matches only accepted with netQuantity0; one match still exact side/quantity and namespace proof; multiple rejected. Previous independent180case helper review corroborates latest segment, not sole full-file basis.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/trading_scope_execution.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "207abeab3320cfed286434c7ce3855efc4ee67ad",
+        "gitBlobSha256": "688dbdf0b2b8e4c2837d8402ede0ad96d4c5cebf8ce30d3390b19ec5ccc1501f"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "66ea52f106cc8d793f4d38820db588766f5b1faf",
+        "gitBlobSha256": "64ec850b42a5227790e8c55f306017d70ef782a519d27efa1847b1895a0a3264"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "66ea52f106cc8d793f4d38820db588766f5b1faf",
+        "gitBlobSha256": "64ec850b42a5227790e8c55f306017d70ef782a519d27efa1847b1895a0a3264"
+      },
+      "fullHistoricalDeltaSha256": "0e1832e562c099cfcc3851a88cdc5c2be9a3e116d5b13028f10998192be0fdbb",
+      "hunks": [
+        "@@ -51,7 +51,7 @@ function realExecution(fill: StoredExecution, order: ScopeOrder, account: Tradin",
+        "@@ -74,8 +74,9 @@ export async function observedOrderExecutions(account: TradingAccount, order: Sc"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire delta static SQL literal and required raw qty/tradePrice/fee guards inside existing catch. Native parsed string0 fee remains truthy and compares identically; absent/invalid values return false. No normalized numeric or invented fill adoption.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/trading_state_transitions.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "3985e6623d4e2c161c69b1b395a966afc62e9d31",
+        "gitBlobSha256": "efc5c4946064e61dbc78a81b6a7f78b1099cb307e6be02c88c2dd5cd63c5110a"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "1baff85b856bbd43612e9c80dbcf0f5138d988ba",
+        "gitBlobSha256": "6bd047e80c717b6f3387722a22b8b53f7eb26232b16a35dd6a3723ec3613cc3e"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "1baff85b856bbd43612e9c80dbcf0f5138d988ba",
+        "gitBlobSha256": "6bd047e80c717b6f3387722a22b8b53f7eb26232b16a35dd6a3723ec3613cc3e"
+      },
+      "fullHistoricalDeltaSha256": "8beb2bd985f75fddf22d4809586292c2e62612298b2cd5f1a7795affd274b573",
+      "hunks": [
+        "@@ -38,20 +38,71 @@ function validStatus(value: string): asserts value is LocalOrderStatus {",
+        "@@ -59,15 +110,12 @@ export function mergeOrderEvidence(current: LocalOrderEvidence, incoming: OrderE"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full extraction preserves status precedence, rejected execution conflict, cancelled late complete fills, cancel_pending hold, nondecreasing filled total and average selection. Actual historical-vs-current3240case matrix matches values and errors. Average parsing moved before overfill test; when BOTH fields invalid first Error message differs but both reject before returned evidence or side effects. No status/quantity acceptance regression.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/trading_take_profit.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "075c56bfa71c53349f16a4790ce6606563da1da7",
+        "gitBlobSha256": "29c9b81dcbf2188f0c816a0d30463490b8ff85cbf86e05e219e6ab3d27dd6db8"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "27f42696add66b13c2c9f0d519b51e4d128b265a",
+        "gitBlobSha256": "24e989141748771d05c15d170eb2be66bf84826df03f2af33ea4962fada79212"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "27f42696add66b13c2c9f0d519b51e4d128b265a",
+        "gitBlobSha256": "24e989141748771d05c15d170eb2be66bf84826df03f2af33ea4962fada79212"
+      },
+      "fullHistoricalDeltaSha256": "26ee0bc8d30986c1b4d1f56a93b25b46c56e26790a5c821c2dac84944d46fd94",
+      "hunks": [
+        "@@ -1,4 +1,4 @@",
+        "@@ -8,6 +8,30 @@ import { createGeneratedTradingOrder } from './trading_order_repository.js';",
+        "@@ -18,24 +42,32 @@ export function targetIndexFromOrderRow(row: TakeProfitOrderRow): number | null",
+        "@@ -49,11 +81,43 @@ export function targetOrderCoverage(rows: TakeProfitOrderRow[], price: string) {",
+        "@@ -62,17 +126,8 @@ export function resizeTargetTotals(previous: string[], filled: string[], netQuan",
+        "@@ -83,17 +138,18 @@ interface AllocationRow {",
+        "@@ -101,19 +157,26 @@ function completionState(row: AllocationRow | undefined, totals: string[], fille",
+        "@@ -128,9 +191,7 @@ async function persistAllocation(intentId: string, hash: string, row: Allocation",
+        "@@ -138,20 +199,40 @@ export async function loadTakeProfitAllocation(intentId: string, plan: TradingPl"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "All full hunks reviewed: planned target scalar/index checks intentionally run before engine recovery/cancel effects; quantities/completion arrays reject holes and malformed values. Valid resize retains unconsumed weights, floor quantization, last-target remainder and old-cap shrink limits. Prepared-order identity retained once; extra created rows require no-dispatch proof to retire. Stored plan hash uses equal-length timingSafeEqual; identical UTF8 hash strings remain identical. Terminal entries/ownership proof precede allocation; existing-row vs recovered basis branches unchanged, optimistic version write retained. Added awaits not timing-equivalence claim. Existing resize/restart suite passed.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/trading_take_profit_recovery.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "0355493cca22dcc574b8a20ff669b4e0cfed53a6",
+        "gitBlobSha256": "c94167b0246b4aab09834d5b3d9c3bcd627bb8a2ef00c600da2947edee4efd90"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "cad597d2a2a438c74b72293f0b0fa828cefd5e78",
+        "gitBlobSha256": "5accf1eb64ba5a23d2a963fcf259716cf78a5f769e0c82254d318d9964e8f3a7"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "cad597d2a2a438c74b72293f0b0fa828cefd5e78",
+        "gitBlobSha256": "5accf1eb64ba5a23d2a963fcf259716cf78a5f769e0c82254d318d9964e8f3a7"
+      },
+      "fullHistoricalDeltaSha256": "de409fa5eeb9860c85eb1f63414e8b3fb2297e9aa0b282b0722395a133d5997c",
+      "hunks": [
+        "@@ -32,7 +32,8 @@ function exactCurrentTarget(row: RecoverableTargetRow, target: PlannedOrder, rem",
+        "@@ -46,10 +47,12 @@ function proveTargetBasis(rows: RecoverableTargetRow[], target: PlannedOrder, re"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire delta captures unique active/finished rows after cardinality checks. Same exact remote target and prior-row ordering requirements, same total/completed proof. Missing rows cannot become recovered allocation.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/trading_telemetry.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "0b420e8e3661e81593215813c35ef2f3929051af",
+        "gitBlobSha256": "d8a5997fdcfce2f350c2392d4227733cd58654ece5bff5f0d49636cb08fe7fa2"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "837c40041b5f2a3b6f822f116905aeb31eea487d",
+        "gitBlobSha256": "3b0817983efe2f95be5a4d53185f160b276d59c9424bf2ded0a448a07aa3e4a9"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "837c40041b5f2a3b6f822f116905aeb31eea487d",
+        "gitBlobSha256": "3b0817983efe2f95be5a4d53185f160b276d59c9424bf2ded0a448a07aa3e4a9"
+      },
+      "fullHistoricalDeltaSha256": "5691ebb8a3a8e49b85e13dfdfd320556994165c808639fba6ae67f2fc1f50b17",
+      "hunks": [
+        "@@ -40,7 +40,8 @@ export async function recordTradingEquitySnapshot(",
+        "@@ -159,7 +160,9 @@ function percentile(values: number[], quantile: number): number | null {",
+        "@@ -342,7 +345,7 @@ function executionFilterSql(filters: TradingAnalyticsFilters) {",
+        "@@ -396,8 +399,11 @@ async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Prom",
+        "@@ -590,9 +596,9 @@ function presentedAggregate(value: PerformanceAggregate): Record<string, unknown"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire delta requires account ID, guards percentile index and selected fallback candidate. Both latter indices established by existing nonempty/selected filters; normal sorting/nearest-rank unchanged. SQL interpolation only formatting; rational PnL variable rename retains currency/exact/tie order.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/trading_web_control.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "c6dce503aefda0f4c65a932f5378991c639acab7",
+        "gitBlobSha256": "145fc4bd1ed3b538d010d4b698ac671d03281b5580a83630f126f67dbfe88b8f"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "14ad8662c67c8b35b83734d4ea3b9f2088be65ea",
+        "gitBlobSha256": "81194a5eecad80577f2bf603212e4f97abf754f6299d8091f642d032fd521182"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "14ad8662c67c8b35b83734d4ea3b9f2088be65ea",
+        "gitBlobSha256": "81194a5eecad80577f2bf603212e4f97abf754f6299d8091f642d032fd521182"
+      },
+      "fullHistoricalDeltaSha256": "b57fe726af29a8c1f8c71f7df17750bd62d57d2fd4d690139c1de5fe975bdb9c",
+      "hunks": [
+        "@@ -1,3 +1,13 @@",
+        "@@ -283,7 +293,8 @@ export class TradingWebControl {",
+        "@@ -340,7 +351,7 @@ export class TradingWebControl {",
+        "@@ -348,14 +359,14 @@ export class TradingWebControl {",
+        "@@ -364,7 +375,7 @@ export class TradingWebControl {",
+        "@@ -384,7 +395,7 @@ export class TradingWebControl {",
+        "@@ -397,7 +408,7 @@ export class TradingWebControl {",
+        "@@ -413,7 +424,7 @@ export class TradingWebControl {",
+        "@@ -422,11 +433,11 @@ export class TradingWebControl {",
+        "@@ -437,7 +448,7 @@ export class TradingWebControl {",
+        "@@ -462,7 +473,7 @@ export class TradingWebControl {",
+        "@@ -476,15 +487,21 @@ export class TradingWebControl {",
+        "@@ -516,13 +533,13 @@ export class TradingWebControl {",
+        "@@ -628,9 +645,9 @@ export class TradingWebControl {",
+        "@@ -668,7 +685,7 @@ export class TradingWebControl {",
+        "@@ -678,7 +695,7 @@ export class TradingWebControl {",
+        "@@ -696,7 +713,7 @@ export class TradingWebControl {",
+        "@@ -706,7 +723,7 @@ export class TradingWebControl {",
+        "@@ -757,7 +774,7 @@ export class TradingWebControl {",
+        "@@ -770,7 +787,7 @@ export class TradingWebControl {",
+        "@@ -779,7 +796,7 @@ export class TradingWebControl {",
+        "@@ -790,7 +807,7 @@ export class TradingWebControl {",
+        "@@ -814,7 +831,7 @@ export class TradingWebControl {",
+        "@@ -827,7 +844,7 @@ export class TradingWebControl {",
+        "@@ -844,19 +861,19 @@ export class TradingWebControl {",
+        "@@ -874,7 +891,7 @@ export class TradingWebControl {",
+        "@@ -890,12 +907,14 @@ export class TradingWebControl {",
+        "@@ -910,7 +929,7 @@ export class TradingWebControl {",
+        "@@ -977,7 +996,7 @@ export class TradingWebControl {",
+        "@@ -987,7 +1006,7 @@ export class TradingWebControl {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full delta adds payload types without replacing operation validators. Channel-risk projection copies all consumed normalizedRiskPolicy inputs, avoiding unrelated payload fields; workflow resource name nullish fallback still rejected by existing required name validator. Credential enumeration/required checks retained. Mutation callback async removal remains under coordinator awaiting/error cleanup. Error rendering uses reviewed safe helper, no provider credentials serialized. Existing control operations suite passed; malformed error text may differ, not permission behavior.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_account_evidence.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "aca5164988ab0353b07503d55cb0c958879c4aa3",
+        "gitBlobSha256": "7067ea1eff023b303bd287f8b04057c7a77811ef68cf2368ed8b208a97b6857b"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "8f003232225334c3b293ef78505e53cd98c0e14c",
+        "gitBlobSha256": "220ecec34674d61581ae4ec8996c4038f79110c491810b2638bd0338c1fcb05a"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "8f003232225334c3b293ef78505e53cd98c0e14c",
+        "gitBlobSha256": "220ecec34674d61581ae4ec8996c4038f79110c491810b2638bd0338c1fcb05a"
+      },
+      "fullHistoricalDeltaSha256": "05864f207ce6f6396b3078406c38c1c20b950fbc94ac7bd5571f25191582d8d5",
+      "hunks": [
+        "@@ -5,7 +5,7 @@ import { moneyLedgerSnapshot } from './trading_money_ledger.js';",
+        "@@ -24,7 +24,7 @@ async function accountRiskObservation(accountId: string, observationId: string |"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire delta uses redactReviewRecord for an object-rest visible row. Redaction still starts at depth0 and identity/generation/timestamp flags appended after hidden identity removal. No raw fingerprint newly exposed.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_adaptive_risk.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "485320b4165d067524d7a21a75f208ac68452794",
+        "gitBlobSha256": "87c08973ab66cdc9bc135d9ed0fd6e19f5f1288e5e134a796c894ccaa339c5a3"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "6b11f7c8bdd1738b888fc7516ae8ae95749e8ac8",
+        "gitBlobSha256": "cf45ea9f0f1ba550923f58ea9152359a5049118643f4cb4de7c279f3f5773cbd"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "6b11f7c8bdd1738b888fc7516ae8ae95749e8ac8",
+        "gitBlobSha256": "cf45ea9f0f1ba550923f58ea9152359a5049118643f4cb4de7c279f3f5773cbd"
+      },
+      "fullHistoricalDeltaSha256": "65cadccfcd7ce76d360a1173639867c7611b51208e47829b107d5e03a82b4dfe",
+      "hunks": [
+        "@@ -105,7 +105,9 @@ async function legacy(page: Selection) {",
+        "@@ -121,8 +123,14 @@ async function legacyEvaluations(page: Selection) {",
+        "@@ -132,7 +140,8 @@ export async function copyLegacyRiskPolicy(input: { channelId: unknown; copyHash"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full delta captures expected legacy definition and replaces handler map with exhaustive switch. selection first validates KINDS allowlist, so switch fallthrough cannot admit arbitrary kind. Legacy copy identity/hash and no automatic activation preserved.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_attention.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "918935ba20e90c9858f082daf8374a341d3b8867",
+        "gitBlobSha256": "cb763292cce15c6269f38532016b23472c1a22f4a43cf7b7454c1223848436d2"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "fb42f2cfadded19991a8c2656b930323768649a0",
+        "gitBlobSha256": "ace05155a34261819fda8d26ac1d1146fa4be74de21889f0ec5a022416cd9d33"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "fb42f2cfadded19991a8c2656b930323768649a0",
+        "gitBlobSha256": "ace05155a34261819fda8d26ac1d1146fa4be74de21889f0ec5a022416cd9d33"
+      },
+      "fullHistoricalDeltaSha256": "c033a81ad363bc0d44e60bc79231952c175b8433886ad2cf0dae8dd4d69cb7ca",
+      "hunks": [
+        "@@ -20,11 +20,22 @@ const ACTIONS: Record<string, { label: string; path: string; query: string }> ="
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire extraction retains limit1..50 validation, same filter fingerprint/cursor snapshot/time before parallel evidence reads. Pagination/action/counter SQL unchanged.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_capabilities.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "be0606d58858b0f5035c91268b9b538473adaca1",
+        "gitBlobSha256": "06cfdf48d505dbe2e03baf7ab06fc6733102fd5b64236da22cea73e8520b2848"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "a09bf8ddda72a4fadba07a31b75dc6bec4910799",
+        "gitBlobSha256": "2779fc8a2aa63a4f15b6407d993494ffac5603b87b88d30cb70966fb9417d4c6"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "a09bf8ddda72a4fadba07a31b75dc6bec4910799",
+        "gitBlobSha256": "2779fc8a2aa63a4f15b6407d993494ffac5603b87b88d30cb70966fb9417d4c6"
+      },
+      "fullHistoricalDeltaSha256": "66fe6e54a2e21070f55c094b73adfbb1dd318fd9dd58cb1448a1ce5672a044fd",
+      "hunks": [
+        "@@ -79,7 +79,7 @@ export const UI_CAPABILITY_GROUPS: Group[] = [",
+        "@@ -93,7 +93,7 @@ function currentBlockers(entry: typeof UI_ROUTE_INVENTORY[number], state: UiCapa"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire delta two string-concatenation templates for typed route/startup labels. Same capability group selection, blockers and write repair exceptions.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_change_review.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "1c2ae42132ea4ce72c7e74e284ce3cca49fe2d6a",
+        "gitBlobSha256": "e337a8b0dfadde6c61afdd2d282f37f814879b0baa394588c8bfccf1b72599ef"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "ed067d3fb22a4153dcbbbf8e092633cdb71bd45c",
+        "gitBlobSha256": "7ab52e76ad50d969c76345ea6c753e97702591f93376ea03595c17920ed33afb"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "ed067d3fb22a4153dcbbbf8e092633cdb71bd45c",
+        "gitBlobSha256": "7ab52e76ad50d969c76345ea6c753e97702591f93376ea03595c17920ed33afb"
+      },
+      "fullHistoricalDeltaSha256": "9f5e740c9cc633d6be45b2857187dabfbf753eb78b59e3ce83c43bef1dac3de2",
+      "hunks": [
+        "@@ -2,14 +2,18 @@ import { createHash } from 'node:crypto';",
+        "@@ -22,14 +26,39 @@ const SECRET_PATTERNS = ["
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full delta preserves UTF16 sorted canonical hash, depth45 recursive bound, secret-key and PII/bearer redaction. Object-root projection prevents falsely typing redacted fields as originals. Userinfo colon check now includes leading/trailing colon, deliberately fixes formerly missed empty-user/password credentials while leaving noncolon/encoded-colon literals. Existing regression loops verify colon variants; no command uses redacted copy as authoritative config.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_configuration.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "00f63b724b88ddfd61ded84d4466fdccde4d7dd1",
+        "gitBlobSha256": "0a50aa88fc265da6d83a8b529faea70c73b6007f399d689b7fc03900ad362cbd"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "93e04184de8070929c420e7cb4800483ec4e98d8",
+        "gitBlobSha256": "081d35b10ba3b831139b0c3402abcec0dd8ca8a16cf28c3939c39f5756190e44"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "93e04184de8070929c420e7cb4800483ec4e98d8",
+        "gitBlobSha256": "081d35b10ba3b831139b0c3402abcec0dd8ca8a16cf28c3939c39f5756190e44"
+      },
+      "fullHistoricalDeltaSha256": "16509871769fab18ca09cfdbeffc56c4fde420f480502fd0ff5bf69135604328",
+      "hunks": [
+        "@@ -4,14 +4,38 @@ export function configurationRevision(value: unknown): string {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full helper extraction retains depth16 refusal before atomic structuredClone; objects clone base and recurse entries in order, arrays replace; prototype/constructor key block remains before assignment. No patch side-effect or sibling deletion change.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_contracts.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "a54d315a2a15b9e2723c33a6884649218ad5462f",
+        "gitBlobSha256": "fe88c4aab0714dcc91403b76ac2148383fbf1895fab0adfd1e15580c72dc3bef"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "8b5d62abae043b2b3a613eb97d2968e60e3d160a",
+        "gitBlobSha256": "5ce33185d9c79c90802207e3efc752d1213fedfe0ecd02bc252ac9f735e9aa9d"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "8b5d62abae043b2b3a613eb97d2968e60e3d160a",
+        "gitBlobSha256": "5ce33185d9c79c90802207e3efc752d1213fedfe0ecd02bc252ac9f735e9aa9d"
+      },
+      "fullHistoricalDeltaSha256": "ed92370247619efad3960e642992f99f68952f08cb2c95dc6ea2f83e2b6ec75c",
+      "hunks": [
+        "@@ -24,3 +24,60 @@ export const AI_LIMIT_LABELS: Record<keyof typeof AI_LIMIT_RANGES, [string, stri"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire appended interfaces and shared artifact-local-integrated-restore literal reviewed. Static UiParameter/backup proof shapes carry no runtime grants; backup_evidence imports/reexports same scope literal and still separately validates proof identity/runtimeDisabled. No eligibility inference from interface alone.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_cursor.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "b380ef3c00e2b239a1d3725264430752a5a65c2e",
+        "gitBlobSha256": "113e7b9271e98ad62f18c050433e1ff59166f47fef74ac23d6b626d2d24eb276"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "5569ba0916eb8ed306d00c8828bccb543866d1ac",
+        "gitBlobSha256": "548d90e02aaf60e09d54723fb2b60434577d1f5621a804a3c83229dce482286d"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "5569ba0916eb8ed306d00c8828bccb543866d1ac",
+        "gitBlobSha256": "548d90e02aaf60e09d54723fb2b60434577d1f5621a804a3c83229dce482286d"
+      },
+      "fullHistoricalDeltaSha256": "6864bb10eb2f065036de0750ba1ded44430e1c06f6159be136c06a0af2426388",
+      "hunks": [
+        "@@ -21,14 +21,27 @@ function validCursorSelection(parsed: UiCursor, filter: string): boolean {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire split retains null/empty skip, bounded string, HMAC signature length/timingSafeEqual before JSON parse then selection/time checks. Nonempty extra segment rejects earlier before HMAC work, same error. Empty extra handling unchanged; no cursor authentication relaxation.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_effective_parameters.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "013e6d2b6b6ccb665396b18aa3b8add108e2cb81",
+        "gitBlobSha256": "b8d142e8aed995639ea52e8d61e06f03526f1ff1365488152b8d49105ca4d022"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "a5c5dfa7397ef75c46d88e87a89c141725b3a1a5",
+        "gitBlobSha256": "474c2e30a0286a0525339a59f346e15bdc710c77fba01dece459753ff70c398d"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "a5c5dfa7397ef75c46d88e87a89c141725b3a1a5",
+        "gitBlobSha256": "474c2e30a0286a0525339a59f346e15bdc710c77fba01dece459753ff70c398d"
+      },
+      "fullHistoricalDeltaSha256": "779ef346a489ebde56ee2bddfed5d23a022c8cd98c2793d3619bdc568832cea5",
+      "hunks": [
+        "@@ -1,34 +1,52 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full delta extracts nonempty object leaves, unit suffix table and sizing origin helpers. Suffix order retained. at reads object paths without coercing primitives; normalized compiler sizing is object. Object.hasOwn(Object(...)) equivalent for nonnull typed sizing; no computed parameter used to authorize/recalculate trade.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_ingress_relations.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "70858c3e369a684d0c721dc815f3937b3f376364",
+        "gitBlobSha256": "6ddf0e4c82169e685d70d168f49abce1b871919b980cc8933baba41da16acd08"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "bd29a79570e723426f6673671d9137ab42c93d3d",
+        "gitBlobSha256": "1e4ea3cc2f58c8688c443193c9c046f1634047a5bf8ce09441a984897a1294be"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "bd29a79570e723426f6673671d9137ab42c93d3d",
+        "gitBlobSha256": "1e4ea3cc2f58c8688c443193c9c046f1634047a5bf8ce09441a984897a1294be"
+      },
+      "fullHistoricalDeltaSha256": "5f222c06972788c5edfe5a5eb53321407672e49c466a34e13f876a320ddab042",
+      "hunks": [
+        "@@ -45,15 +45,29 @@ const DEFINITIONS = {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full delta retains objectID/kind/limit validation then existence lookup before cursor. Same bound work IDs, observedAt and descending time/ID keyset SQL and parameter order. No cross-ingress relation widening.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_mcp_reads.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "3251ebfd07d7a5bc88c55f910a6716d4e020ef7c",
+        "gitBlobSha256": "a7aad79ab5381f4927535d394fd49b7ae3963f786bfd2e9ba097d37817ca31d2"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "8a8bc59028ef0982df9758ffa067568874cd2e50",
+        "gitBlobSha256": "bc52555d0dfcff407211859d74a1986d3e0e93ea2992f9c3cfca78a9470b8896"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "8a8bc59028ef0982df9758ffa067568874cd2e50",
+        "gitBlobSha256": "bc52555d0dfcff407211859d74a1986d3e0e93ea2992f9c3cfca78a9470b8896"
+      },
+      "fullHistoricalDeltaSha256": "30fc9d37b7bea0ec96bb35f1d0f54f16b38f1d0b25df177a8dd0ef41a7f075fc",
+      "hunks": [
+        "@@ -12,22 +12,37 @@ const LISTS = {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full delta extracts proposal status and time scopes with identical allowlist, expired CASE evaluated against same now and observedAt bound. Same where/params/field replacement/order/limit+1 and agent enabled===1 projection; no permission or subscription contents added.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_mcp_review.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "5ce3a66fc38186a26036c32bcb5b8fb1a4e240a2",
+        "gitBlobSha256": "f2c310d8869cb9b75d0e5b44d354948d8c7b8f012aa2aa0ad9d175370ac7a4d8"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "7bdaeffeab3617dabcbdf1ee5a0df3caf2e31c6c",
+        "gitBlobSha256": "afcdbebd66e11c31372adb40e98f42988f09f9bf97906e029039224dc041ef15"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "7bdaeffeab3617dabcbdf1ee5a0df3caf2e31c6c",
+        "gitBlobSha256": "afcdbebd66e11c31372adb40e98f42988f09f9bf97906e029039224dc041ef15"
+      },
+      "fullHistoricalDeltaSha256": "6dab0e1daa6adde0dd3493e343ed4b996b48369966e5ea4190b33e69eacc4cb0",
+      "hunks": [
+        "@@ -33,7 +33,7 @@ function affectedProposalPaths(action: string, payload: Record<string, any>, bef",
+        "@@ -56,11 +56,12 @@ export async function uiMcpProposalReview(id: string) {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire delta guards missing active graph and calls public preflight plus redacts result. Public mode alters unexpected diagnostic exposure only; stored proposal/action, fresh preflight and reviewHash still independent. No mutation/approval executed by review endpoint.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_model_parameters.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "6349eebe3205ba8fbca8da914e8dc2ae70ec9f06",
+        "gitBlobSha256": "dcf80c200f494ee3b7072e432e12cef6cae11032795fb0737fd5c19684b71a42"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "edb5393c9f005d4d50d342621b08645b3c06a958",
+        "gitBlobSha256": "7b7be8b111843dceff1bc4033b7c0e4d76c768609bdccb1f7f33e3aa95f87f2c"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "edb5393c9f005d4d50d342621b08645b3c06a958",
+        "gitBlobSha256": "7b7be8b111843dceff1bc4033b7c0e4d76c768609bdccb1f7f33e3aa95f87f2c"
+      },
+      "fullHistoricalDeltaSha256": "cca7b2c399dfce68b7d0dcc9aed11a79a34ec0e0dc8bffd780bedee2c5fb09f9",
+      "hunks": [
+        "@@ -92,7 +92,7 @@ export function uiModelParameters() {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire delta resource.kind concatenation to template for Object.entries string key; field list/editability and consumers unchanged.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_operation_store.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "ddb802d046bef26d709dc31aa42034122830a22d",
+        "gitBlobSha256": "51ee627abe8cabca1b7beccb52e76f5cb2c09c24207b53e3f84fc913fd1734af"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "60e0fc63e67ccebbb5459c9cef65a84d4122ee97",
+        "gitBlobSha256": "6ca19330d59d052caa32494dbfbaff7c32098e5ac28a9efc9528dbbdc7cdbdd3"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "60e0fc63e67ccebbb5459c9cef65a84d4122ee97",
+        "gitBlobSha256": "6ca19330d59d052caa32494dbfbaff7c32098e5ac28a9efc9528dbbdc7cdbdd3"
+      },
+      "fullHistoricalDeltaSha256": "b614b44418cda8776ad44a4ca4d363aec82ba83cb281f5589d2a62d33b34e259",
+      "hunks": [
+        "@@ -158,7 +158,8 @@ export class UiOperationStore {",
+        "@@ -167,7 +168,7 @@ export class UiOperationStore {",
+        "@@ -182,7 +183,8 @@ export class UiOperationStore {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire delta explicitly requires existing record in completion/failure fallback and guards restart receipt before uncertainty assignment. next.restart constructed immediately before write in this path; valid receipt stays uncertain on failed persistence, no success fabricated. Existing operation-store tests passed.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_paper_configuration.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "d86dbccc9c7dc2c5adb8d9a9ea1fa9e3fc236f44",
+        "gitBlobSha256": "04e5dc43dd71d77bac3ac4adb609ea44ceb3c1b5a8b3bbc7039edbec3dab88c8"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "93fcb7923f2b9396b4e688bc4e5de5068768d477",
+        "gitBlobSha256": "0204804a60c97bfe87f524f54dc1ca8a355a36dc1b4f7a62ff3f5d2ae372394e"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "93fcb7923f2b9396b4e688bc4e5de5068768d477",
+        "gitBlobSha256": "0204804a60c97bfe87f524f54dc1ca8a355a36dc1b4f7a62ff3f5d2ae372394e"
+      },
+      "fullHistoricalDeltaSha256": "7dc4e3c5e8fc2a297cd0c8c339859c7b5263869feb25cf18d975c1f03c32804a",
+      "hunks": [
+        "@@ -9,8 +9,8 @@ export function paperConfigurationRevision(kind: 'market' | 'balance', row: any)"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire delta converts two static SQL strings only. Same account/symbol parameters, uppercase symbol lookup and paper revision/reporting fields.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_parameter_catalog.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "8e32cc29a0aec86e68bf97de059e2cc3fbd35c4e",
+        "gitBlobSha256": "e27cc2188b014b7b83dfabfea0deb001037c506a28b07da690b313fb21aff712"
+      },
+      "priorPublishedBinding": {
+        "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+        "gitBlobOid": "15ef434bd77cbe4747dfa73d198695673ba519f5",
+        "gitBlobSha256": "8f16a645246ae2aee5f1b95f4daa4031aa8b8aff7cb16a04e7ad56538452a79f"
+      },
+      "current": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "15ef434bd77cbe4747dfa73d198695673ba519f5",
+        "gitBlobSha256": "8f16a645246ae2aee5f1b95f4daa4031aa8b8aff7cb16a04e7ad56538452a79f"
+      },
+      "fullHistoricalDeltaSha256": "f12784a7ec63154dcb7d21876d01d9324878f9922e8e7d6e31c129fb5fb6bf17",
+      "hunks": [
+        "@@ -17,19 +17,19 @@ export const CONFIG_PARAMETER_FIELDS: FieldSpec[] = [",
+        "@@ -129,13 +129,33 @@ export function uiParameterCatalog(): UiParameter[] {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full delta string templates and synchronous prefix/limit/cursor helpers. Same field metadata, prefix syntax, limit1..50 and offset integer/range bounds; catalog fingerprint and observedAt pagination unchanged. Invalid prefix rejects before unused limit conversion, both same message.",
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    }
+  ],
+  "method": "Entire historical Git delta per selected file read, helper consumers/coordinator/validator boundaries inspected. Disjoint from wave3/4; excluded concurrent contract_values and health_server. Existing scoped reviews only corroborate specific hunks.",
+  "contextBindings": [
+    {
+      "path": "src/trading_mutation_coordinator.ts",
+      "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+      "gitBlobOid": "295e1530b08447f4b007c68d8059b320f1bc1406",
+      "gitBlobSha256": "61e0ae5bb5e2fc482d3e7e66793de0419b0d5c8bbcd0a47a2249618cc60da487"
+    },
+    {
+      "path": "src/trading_risk_repository.ts",
+      "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+      "gitBlobOid": "70893c34ef45f54ab640f510ea5aa5c190d7a72d",
+      "gitBlobSha256": "00693b2f953539f9c1a1359b434ebb12275553166dcbb82b27e0581bd8020bea"
+    },
+    {
+      "path": "src/trading_channel_risk.ts",
+      "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+      "gitBlobOid": "36979085b24c3728636ccf0aeafd0dad655b5862",
+      "gitBlobSha256": "05919b49763163a142f9288f60ee3a393fa62b994a29c6e80ca2aab38953ad73"
+    },
+    {
+      "path": "src/trading_protection.ts",
+      "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+      "gitBlobOid": "ae2b3de9b3c4a47453dca791d998f31900d5ab85",
+      "gitBlobSha256": "3d8b7effbdc557655b441c07b81acef264c29df69b53848c9639d3da1c9da0c9"
+    },
+    {
+      "path": "src/trading_engine.ts",
+      "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+      "gitBlobOid": "43416b0c775d8d05444cd5649fbb562be68bf9fb",
+      "gitBlobSha256": "313a8f1f6fdced67333c367cb1660c3ddcf7cd07d11fc5494ca9b2a22bd44e05"
+    },
+    {
+      "path": "src/backup_evidence.ts",
+      "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+      "gitBlobOid": "18d070c8f32c4421c40f928055043f4714497b40",
+      "gitBlobSha256": "a78afd94748470c7822cebc7e55babc47b4049c4c535636decccd1d5472e4fc0"
+    },
+    {
+      "path": "src/mcp_repository.ts",
+      "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+      "gitBlobOid": "b740a01f956feb68a776f485e4cb003435fab397",
+      "gitBlobSha256": "d9ba2dae24ae84ddf7c6c0d521a2c547a447bda2f6480b593c62693f5934ecb1"
+    }
+  ],
+  "priorScopedReports": [
+    {
+      "path": "docs/testing/fixer-anonymous-callback-review-2026-09-13.md",
+      "sha256": "92e70630c7435124face058b12f52970af51d263527a7c2e6ca0b74fb918bf53"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-sonar-owned-exposure-review-2026-09-13.json",
+      "sha256": "e28f783462ac94ed8b65891ca45e5ea8e67f59df088ebd3bcba287f7bd0178f4"
+    }
+  ],
+  "freshTests": [
+    {
+      "path": "tests/test_trading_take_profit.js",
+      "binding": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "ece19802334eeef4e38ffafaa79d22ae1efbd882",
+        "gitBlobSha256": "9ab8475127df430662e8efe98669f954c7db602bf574e8908092d9fb0f212d7c"
+      },
+      "result": "pass",
+      "log": "reports/security-services/fixer-src-wave5-test_trading_take_profit.js.log",
+      "logSha256": "20d7b19b41c44d73e4f2dce5f64d582aa67b8eb97098aebaff5ba68cec856ae9"
+    },
+    {
+      "path": "tests/test_trading_risk_reservations.js",
+      "binding": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "aca375f092a92529bb444cf0379f0116ddc1c461",
+        "gitBlobSha256": "a6bc84569829bc5f97578bcb49d0bae3870a69c58359bd245bb0811ad7f88fc8"
+      },
+      "result": "pass",
+      "log": "reports/security-services/fixer-src-wave5-test_trading_risk_reservations.js.log",
+      "logSha256": "d726797aaec1d0aa1202a4200489dff9400852956c69970383bfb9834cc47b14"
+    },
+    {
+      "path": "tests/test_trading_web_control.js",
+      "binding": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "172b493901a8aaabf99621f32d8a77e0cf2f32a5",
+        "gitBlobSha256": "8ef015246c9935a7d64bb67feb1ce35dd64c8fc6c197db53516a6b301c99d7c6"
+      },
+      "result": "pass",
+      "log": "reports/security-services/fixer-src-wave5-test_trading_web_control.js.log",
+      "logSha256": "92dbd932bb07055de20d1af8472c96a14fce856c15479cae04bc76cfe40be0ae"
+    },
+    {
+      "path": "tests/test_ui_change_reviews.js",
+      "binding": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "8af8d11e677aa3ae8085d24739dd7fcbbcfe347a",
+        "gitBlobSha256": "ebec2a19f62ce75c5204fdb0e6e7e1a4276b784522185f8dc6de9dcf4cde6aa6"
+      },
+      "result": "pass",
+      "log": "reports/security-services/fixer-src-wave5-test_ui_change_reviews.js.log",
+      "logSha256": "7696e3fd1c10e16f033c05723400d3ce6ee8d8cf2cbdb4677f161909a033a4fb"
+    },
+    {
+      "path": "tests/test_ui_next_reads.js",
+      "binding": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "222cf1ffb46fde1e9f113872b4c6c9cd6c4c46b4",
+        "gitBlobSha256": "ee4a0e77d50ad846b473600991c7079de71cb1e16be1675033ccf72ff2f8dc93"
+      },
+      "result": "pass",
+      "log": "reports/security-services/fixer-src-wave5-test_ui_next_reads.js.log",
+      "logSha256": "7ed208c035cb95faed4dd0362870587b23a1b2d43b6623ab0fa5305344648564"
+    },
+    {
+      "path": "tests/test_ui_operation_store.js",
+      "binding": {
+        "revision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+        "gitBlobOid": "86277541efed50d33c13338ac63bc09f40f9d8b5",
+        "gitBlobSha256": "f8c1434dbedf515c16e39d3bcdbc831a4f4e533232bb7b61dd9cd8cd9e2da0b0"
+      },
+      "result": "pass",
+      "log": "reports/security-services/fixer-src-wave5-test_ui_operation_store.js.log",
+      "logSha256": "c4d4d64a7ce5afee77e2413d6ab237e0dfad5d9c1b82f8648170102bc66b43ef"
+    }
+  ],
+  "independentProbe": {
+    "cases": 3240,
+    "result": "all returned values/errors match for9x9statuses x4previous quantities x5reported quantities x2average cases; two-invalid-field first-error change separately recorded",
+    "artifacts": [
+      {
+        "path": "reports/security-services/wave5-old-state-transitions.ts",
+        "sha256": "eb19f9c01b2c4bac2dd4b42e5bce1e8719649495a3da3d80d824aeffca2431a9"
+      },
+      {
+        "path": "reports/security-services/probe-wave5-state-transitions.mjs",
+        "sha256": "2b5d89cf837738dd90c4ad8f82ec063450da0a5199c83c57946c827d201ba873"
+      },
+      {
+        "path": "reports/security-services/probe-wave5-state-transitions.log",
+        "sha256": "55f608794c2f45b50482fd6cdbd388a5434b9a45b8bcd5bba38ab87322e5412e"
+      }
+    ]
+  },
+  "executionWorktreeHead": "26127c6256632992d49cc74f7a387f8c80c56e18",
+  "concurrentWorktreeStatus": [
+    " M frontend/src/features/risk-analytics/equity-chart.tsx",
+    " M src/workflow_repository.ts",
+    " M tests/test_workflow_input_types.js"
+  ],
+  "limits": [
+    "No tracked edits, commits, live provider access, receipt or trustpin changes.",
+    "Selected current Git blobs verified; fresh tests run in shared worktree, not asserted clean-checkout execution certification.",
+    "Additional async helper/adoption differences explicitly distinguished from unchanged guard/transaction effects.",
+    "Out-of-contract missing fields, malformed errors and multiple-invalid-field diagnostics can differ; no valid trading/account/cursor acceptance regression found.",
+    "File delta coverage is not implementation receipt or scanner/provider approval."
+  ],
+  "implementationReceiptApproval": false,
+  "providerAcceptance": false
+}

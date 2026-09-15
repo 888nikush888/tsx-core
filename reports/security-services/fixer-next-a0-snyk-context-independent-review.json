@@ -1,0 +1,82 @@
+{
+  "kind": "snyk-single-context-semantic-review",
+  "revision": "a0e831ac7bc5e10404d516723fd6d750860ff300",
+  "findingId": "d3f09f66-f994-4652-86bf-651b0262e797",
+  "ruleId": "javascript/reDOS",
+  "reviewerIndependence": {
+    "implementationAuthorSameAgent": true,
+    "limitation": "This agent authored the one-line cleanup; this is a fresh source/context verification, not independent author approval. Parent independent diff review is separate."
+  },
+  "bindings": [
+    {
+      "path": "src/incoming_work_repository.ts",
+      "priorSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b",
+      "currentGitBlobSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b"
+    },
+    {
+      "path": "src/filters.ts",
+      "priorSha256": "9135f07539b9582c98ec48fb116e243b4b1dd215fd6440743adc057bac5fdb0f",
+      "currentGitBlobSha256": "9135f07539b9582c98ec48fb116e243b4b1dd215fd6440743adc057bac5fdb0f"
+    },
+    {
+      "path": "src/ingress_contracts.ts",
+      "priorSha256": "5419ee6e96ab6685aabd5b2f388fae430c2ef483de1af3225f2ad23531674b98",
+      "currentGitBlobSha256": "5419ee6e96ab6685aabd5b2f388fae430c2ef483de1af3225f2ad23531674b98"
+    },
+    {
+      "path": "src/contract_values.ts",
+      "priorSha256": "f6306c6e970ddb06a8b8d9a7bec919cbc5e83351c6db621b886906d9f21f5dd1",
+      "currentGitBlobSha256": "72d202a727fa714c760a1083b24c5f5723777f526c6d1c1672208326d1ed47a8"
+    },
+    {
+      "path": "tests/test_filters.js",
+      "priorSha256": "46f771d4d7cf1c6d6627502f058b19500a65b451f7028a15fa43dd9a2c32ce7b",
+      "currentGitBlobSha256": "46f771d4d7cf1c6d6627502f058b19500a65b451f7028a15fa43dd9a2c32ce7b"
+    }
+  ],
+  "semanticConclusion": "The sole byte delta substitutes error === undefined for typeof error === undefined on an always-declared function parameter. No undefined shadow exists. This preserves all accepted primitives, avoids object/function coercion, and retains Error.message/null handling and diagnostic fallback.",
+  "flowConclusion": "filters uses unknownErrorMessage solely in compile and caught-match error diagnostics. regexErrorMessage retains native cross-realm own-string message handling. Neither regex construction inputs nor any evaluator change. The 150-character pattern cap, nested-quantifier heuristic, removal of g/y flags, 100-entry cache, 8000-character production match cap and literal regex.test VM call with 100ms timeout remain exactly bound. Matching exceptions still throw the wrapper with cause and are rejected by matchesAllRegexPatterns. The existing bounded-flow FP rationale remains semantically supported by this context-only delta.",
+  "testsEvidence": {
+    "kind": "single-undefined-comparison-cleanup",
+    "baseRevision": "3b31d40fb285b62b93003117b1b8d42367b6d733",
+    "path": "src/contract_values.ts",
+    "priorGitBlobSha256": "f6306c6e970ddb06a8b8d9a7bec919cbc5e83351c6db621b886906d9f21f5dd1",
+    "currentLfSha256": "72d202a727fa714c760a1083b24c5f5723777f526c6d1c1672208326d1ed47a8",
+    "delta": "Only typeof error === 'undefined' becomes error === undefined.",
+    "behavior": "The function parameter error is always declared; undefined is not shadowed. Both predicates therefore select exactly the same input. All primitive formatting and object-coercion rejection branches remain unchanged.",
+    "compilerNarrowingAtStringArgument": "string | boolean | symbol | undefined",
+    "execution": {
+      "typeExit": 0,
+      "lintExit": 0,
+      "forwarderExit": 0,
+      "contractExit": 0
+    },
+    "logs": [
+      {
+        "path": "reports/security-services/fixer-contract-undefined-target.log",
+        "sha256": "dede4eed716023f613655264568b7a81041cb5ab78cdcf3bc9def0a057477714"
+      },
+      {
+        "path": "reports/security-services/fixer-contract-undefined-forwarder.log",
+        "sha256": "e5d4fa2698c478dd6eb06022d3635a85e0bc24a2eff72eaf6de3f474caa3afcd"
+      },
+      {
+        "path": "reports/security-services/fixer-contract-undefined-typecheck.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/security-services/fixer-contract-undefined-lint.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "limits": [
+      "Only the requested source line changed; existing Symbol and malformed-object tests retained without modifications.",
+      "Backend typecheck sees simultaneous unrelated agent source edits; own exact one-line delta verified separately.",
+      "Original supplied Sonar export path was unavailable locally; remediation scope determined from the explicit assigned source expression.",
+      "No commit, Services edit, scanner disposition or full-suite claim."
+    ]
+  },
+  "sarifStatus": "Fresh scan is owned by root; no current fingerprint/evidenceDigest equivalence asserted here. Root must verify completed scan before review adoption.",
+  "recommendation": "Retain prior disposition only after root confirms fresh finding identity/fingerprints/flow commitment. Do not treat this report as a scanner zero-finding or whole-review renewal.",
+  "mutations": "Only this ignored report written. No review entries, hashes, pins or source changed."
+}

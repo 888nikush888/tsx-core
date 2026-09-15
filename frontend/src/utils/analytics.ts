@@ -17,30 +17,34 @@ const IS_PRODUCTION = import.meta.env.PROD;
  * Only loads GTM if VITE_GTM_ID environment variable is set AND in production mode
  */
 export const initGTM = (): void => {
-  if (!GTM_ID) return;
+  if (!/^GTM-[A-Z0-9]+$/.test(GTM_ID)) return;
 
   if (!IS_PRODUCTION) return;
 
   // Initialize dataLayer
   window.dataLayer = window.dataLayer || [];
 
-  // GTM script injection
+  // Keep the configured identifier out of executable JavaScript and HTML.
   const gtmScript = document.createElement("script");
-  gtmScript.innerHTML = `
-    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','${GTM_ID}');
-  `;
+  window.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
+  gtmScript.async = true;
+  const scriptUrl = new URL("https://www.googletagmanager.com/gtm.js");
+  scriptUrl.searchParams.set("id", GTM_ID);
+  gtmScript.src = scriptUrl.href;
   document.head.appendChild(gtmScript);
 
   // GTM noscript fallback
   const noscript = document.createElement("noscript");
-  noscript.innerHTML = `
-    <iframe src="https://www.googletagmanager.com/ns.html?id=${GTM_ID}"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe>
-  `;
+  const iframe = document.createElement("iframe");
+  const fallbackUrl = new URL("https://www.googletagmanager.com/ns.html");
+  fallbackUrl.searchParams.set("id", GTM_ID);
+  iframe.src = fallbackUrl.href;
+  iframe.height = "0";
+  iframe.width = "0";
+  iframe.style.display = "none";
+  iframe.style.visibility = "hidden";
+  iframe.title = "Google Tag Manager";
+  noscript.appendChild(iframe);
   document.body.insertBefore(noscript, document.body.firstChild);
 
 };

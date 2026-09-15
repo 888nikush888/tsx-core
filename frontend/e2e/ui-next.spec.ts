@@ -433,7 +433,8 @@ async function api(page: Page, override?: (url: URL, method: string, body: any) 
     const request = route.request();
     const url = new URL(request.url());
     const method = request.method();
-    const body = request.postData() ? JSON.parse(request.postData()!) : null;
+    const postData = request.postData();
+    const body = postData ? JSON.parse(postData) : null;
     requests.push({ path: url.pathname, query: url.search, method, body, authorization: request.headers().authorization });
     const custom = await override?.(url, method, body);
     const common: Record<string, unknown> = {
@@ -692,7 +693,9 @@ test('Telegram settings observe normalization, retain unrelated fields and prese
   await page.getByRole('button', { name: 'Grundkonfiguration speichern', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Servernormalisierung nach dem Speichern', exact: true })).toContainText('255');
   await expect(page.getByLabel('Queue · Zeitlimit (Sekunden)', { exact: true })).toHaveValue('255');
-  const saved = requests.find(request => request.path === '/api/config' && request.method === 'POST')!.body;
+  const savedRequest = requests.find(request => request.path === '/api/config' && request.method === 'POST');
+  if (!savedRequest) throw new Error('Expected recorded config save request.');
+  const saved = savedRequest.body;
   expect(saved.xmlParsing.aiLimits.requestTimeoutMs).toBe(250000); expect(saved.xmlParsing.signalsDir).toBe('./original-signals'); expect(saved.xmlParsing.saveToFile).toBe(true); expect(saved.forwardOptions.forwardToTarget).toBe(false); expect(saved.dupeBlocker.cooldownHours).toBe(0);
   await page.getByLabel(/Telegram API Hash ·/).fill('telegram-hash-fixture'); await page.getByRole('button', { name: 'Telegram-/KI-Zugangsdaten speichern' }).click();
   expect(requests.filter(request => request.path === '/api/config' && request.method === 'POST')).toHaveLength(1);

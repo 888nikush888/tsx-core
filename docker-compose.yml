@@ -192,6 +192,7 @@ services:
       TELEGRAM_VIEWER_SECRET_DIR: "/app/secrets"
       TELEGRAM_VIEWER_STATE_DB: "/app/state/viewer_state.db"
       TELEGRAM_VIEWER_HEALTH_PORT: "8081"
+      TELEGRAM_VIEWER_HEALTH_HOST: "0.0.0.0"
     volumes:
       - telegram_viewer_secrets:/app/secrets:ro
       - telegram_viewer_state:/app/state

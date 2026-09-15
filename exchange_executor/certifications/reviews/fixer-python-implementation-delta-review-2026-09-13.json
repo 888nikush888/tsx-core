@@ -1,0 +1,173 @@
+{
+  "baselineRevision": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+  "sourceBindings": [
+    {
+      "path": "exchange_executor/account_log_reader.py",
+      "baselineRevision": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+      "baselineSha256": "6d2c86cce0ee528b9ada22b387e2761fd84174ac92ce7770b4b08e1e4ad5b05c",
+      "currentSha256": "99e72de502d2bd6b2819afe67db7478c82ce55e637469ee2e81b165bcf13ea4b",
+      "diff": "diff --git a/exchange_executor/account_log_reader.py b/exchange_executor/account_log_reader.py\nindex 3c9ed87..5b26190 100644\n--- a/exchange_executor/account_log_reader.py\n+++ b/exchange_executor/account_log_reader.py\n@@ -98,7 +98,7 @@ def _audit(value, required_since):\n \n def _select_lane(state, now):\n     today = now // DAY * DAY\n-    if state['revision'] % 2 == 1 and state['requiredSince'] < today <= (state['scannedThrough'] or 0):\n+    if state['revision'] % 2 == 1 and state['requiredSince'] < today and today <= (state['scannedThrough'] or 0):\n         audit = state.get('audit', {'windowSince': state['requiredSince'], 'windowUntil': None,\n                                     'cursor': None, 'completedAt': 0})\n         end = audit['windowUntil'] if audit['windowUntil'] is not None else min(today, audit['windowSince'] + 7 * DAY)\n",
+      "reviewResult": "no blocking semantic regression identified",
+      "rationale": "Complete diff is one chained integer comparison expanded to two short-circuit comparisons. today is a local integer computed before the condition; no repeated expression with effects. validate_log_checkpoint precedes _select_lane. Audit/forward lane selection, cursor, shared read budget and incomplete/error paths remain unchanged."
+    },
+    {
+      "path": "exchange_executor/ccxt_adapter.py",
+      "baselineRevision": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+      "baselineSha256": "397feb3041cebd29aee14ae63dd331f698302c00368e18c826b303660d312653",
+      "currentSha256": "db5bcb0a5a96b61e4b1647d9b081a26821c1398b3c029c6a14442ed9b29a1c1a",
+      "diff": "diff --git a/exchange_executor/ccxt_adapter.py b/exchange_executor/ccxt_adapter.py\nindex 0d4b8dc..724c14d 100644\n--- a/exchange_executor/ccxt_adapter.py\n+++ b/exchange_executor/ccxt_adapter.py\n@@ -405,6 +405,10 @@ class CcxtAdapter:\n                 symbol=requested_symbol,\n             ) from error\n \n+    @staticmethod\n+    def get_market(clients: AccountClients, requested_symbol: str) -> dict[str, Any]:\n+        return CcxtAdapter._market(clients, requested_symbol)\n+\n     async def verify(self, account: dict[str, str], deadline: RequestDeadline) -> dict[str, Any]:\n         clients = await self._clients(account, deadline)\n         balance = await _within(deadline, clients.rest.fetch_balance())\n",
+      "reviewResult": "no blocking semantic regression identified",
+      "rationale": "Only addition is public static get_market, delegating directly to unchanged CcxtAdapter._market. Existing _market uses the same exact linear-market resolver, profile settlement preferences and typed unavailable/contract exceptions. No SDK instance method was replaced and no provider call added."
+    },
+    {
+      "path": "exchange_executor/entry_price_constraints.py",
+      "baselineRevision": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+      "baselineSha256": "e916081236f0671675bad0b298d1bdec59f6667236076bd04a1e9652000d5e9d",
+      "currentSha256": "663a36fa3361abc63237059b54135e07145a9deaf55c85a2c1adea93e4a9b2b7",
+      "diff": "diff --git a/exchange_executor/entry_price_constraints.py b/exchange_executor/entry_price_constraints.py\nindex 1232775..6d16e09 100644\n--- a/exchange_executor/entry_price_constraints.py\n+++ b/exchange_executor/entry_price_constraints.py\n@@ -39,24 +39,34 @@ def _original_boundary(request: dict[str, Any]) -> dict[str, Any]:\n     return boundary\n \n \n-def assert_boundary(request: dict[str, Any], price_tick: str) -> str:\n+def _boundary_values(request: dict[str, Any], price_tick: str) -> tuple[dict[str, Any], dict[str, Decimal], str]:\n     boundary = _original_boundary(request)\n     values = {key: Decimal(decimal_string(boundary[key], key, positive=True)) for key in BOUNDARY_FIELDS - {'version'}}\n     if values['maxSlippagePercent'] > 5 or values['priceTick'] != Decimal(price_tick):\n         raise EntryPriceConstraintError('Original entry boundary does not match its certified market tick or slippage.')\n-    if request.get('maxSlippagePercent') != boundary['maxSlippagePercent']:\n-        raise EntryPriceConstraintError('Original entry slippage changed.')\n     side = request.get('side')\n     if side not in ('buy', 'sell'):\n         raise EntryPriceConstraintError('Bounded entry side is invalid.')\n+    return boundary, values, side\n+\n+\n+def _boundary_limit(values: dict[str, Decimal], side: str, boundary: dict[str, Any]) -> str:\n     allowed = _rounded_boundary(values, side)\n     if allowed <= 0 or values['limitPrice'] != allowed:\n         raise EntryPriceConstraintError('Tick rounding widened or changed the original entry price boundary.')\n+    return boundary['limitPrice']\n+\n+\n+def assert_boundary(request: dict[str, Any], price_tick: str) -> str:\n+    boundary, values, side = _boundary_values(request, price_tick)\n+    if request.get('maxSlippagePercent') != boundary['maxSlippagePercent']:\n+        raise EntryPriceConstraintError('Original entry slippage changed.')\n+    limit = _boundary_limit(values, side, boundary)\n     if (request.get('role'), request.get('orderType'), request.get('timeInForce')) != ('entry', 'limit', 'IOC'):\n         raise EntryPriceConstraintError('Bounded entry requires the protected limit IOC order form.')\n     if request.get('postOnly') is True or request.get('reduceOnly') is True or request.get('price') != boundary['limitPrice']:\n         raise EntryPriceConstraintError('Submitted entry contradicts its original price boundary.')\n-    return boundary['limitPrice']\n+    return limit\n \n \n def apply_entry_boundary(profile: ExchangeProfile, request: dict[str, Any], spec: dict[str, Any], price_tick: str) -> None:\n",
+      "reviewResult": "no blocking semantic regression identified",
+      "rationale": "Complete extraction retains numeric/slippage/tick/rounding/IOC/reduce-only/price rejection and returned original limit. One bounded diagnostic ordering difference exists: side validation now precedes request maxSlippagePercent equality. With both invalid, text changes but EntryPriceConstraintError, ENTRY_PRICE_BOUND_UNPROVEN and HTTP 422 are unchanged. apply_entry_boundary and assert_final_entry_spec still reject before changing/sending the bounded provider order. SDK wire tests forbid real transport and passed. No safety gate or successful order behavior regression identified."
+    },
+    {
+      "path": "exchange_executor/kraken_history.py",
+      "baselineRevision": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+      "baselineSha256": "55ca04912947d1adfd3573df484dae3a961dbcd0383b2683b05aa11fc21faed7",
+      "currentSha256": "25289f718fa46c6c5cd73db172ee9e2fd6a61f0427ead73cf8101a1395c06886",
+      "diff": "diff --git a/exchange_executor/kraken_history.py b/exchange_executor/kraken_history.py\nindex 59ffa6c..09fc586 100644\n--- a/exchange_executor/kraken_history.py\n+++ b/exchange_executor/kraken_history.py\n@@ -44,12 +44,18 @@ def _valid_continuation_token(token: Any) -> bool:\n                              and all(ord(char) >= 32 for char in token))\n \n \n+def _header_token(rest: Any) -> str | None:\n+    headers = getattr(rest, \"last_response_headers\", {}) or {}\n+    if not isinstance(headers, dict):\n+        raise ExchangeContractError(\"Invalid Kraken history continuation envelope.\")\n+    return next((value for key, value in headers.items() if str(key).lower() == \"next-continuation-token\"), None)\n+\n+\n def _next_token(response: dict[str, Any], rest: Any) -> str | None:\n     body_token = response.get(\"continuationToken\")\n-    headers = getattr(rest, \"last_response_headers\", {}) or {}\n-    if not isinstance(headers, dict) or (body_token is not None and not isinstance(body_token, str)):\n+    if body_token is not None and not isinstance(body_token, str):\n         raise ExchangeContractError(\"Invalid Kraken history continuation envelope.\")\n-    header_token = next((value for key, value in headers.items() if str(key).lower() == \"next-continuation-token\"), None)\n+    header_token = _header_token(rest)\n     if body_token and header_token and body_token != header_token:\n         raise ExchangeContractError(\"Kraken history continuation headers contradict the body.\")\n     token = body_token or header_token\n",
+      "reviewResult": "no blocking semantic regression identified",
+      "rationale": "Extracts header selection only. Header envelope must still be a dict; case-insensitive first matching header, body/header contradiction, token type/length/control-character checks and non-advancing cursor refusal remain. Invalid body type now rejects before reading last_response_headers; actual CCXT response-header state is a plain value. Same invalid-envelope exception/message; no supported runtime behavior regression identified."
+    },
+    {
+      "path": "exchange_executor/stream_hub.py",
+      "baselineRevision": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+      "baselineSha256": "8e5cfdca3f886f786ad80ab9a069c7669610209dc5d7d11667f4046a71c9c14e",
+      "currentSha256": "882f01ffd533f0131cd09a76119829f5f185724fdda910fcf55feb25d3b79a7a",
+      "diff": "diff --git a/exchange_executor/stream_hub.py b/exchange_executor/stream_hub.py\nindex 48557b1..52a1eca 100644\n--- a/exchange_executor/stream_hub.py\n+++ b/exchange_executor/stream_hub.py\n@@ -100,7 +100,7 @@ class AccountStream:\n                     ticker.cancel()\n                 self._record_channel_success(\"tickers\")\n                 if requested and self.clients.pro.has.get(\"watchTickers\") is True:\n-                    provider_symbols = [CcxtAdapter._market(self.clients, symbol)[\"symbol\"] for symbol in sorted(requested)]\n+                    provider_symbols = [CcxtAdapter.get_market(self.clients, symbol)[\"symbol\"] for symbol in sorted(requested)]\n                     self._tasks[\"tickers\"] = asyncio.create_task(\n                         self._watch(\"tickers\", lambda: self.clients.pro.watch_tickers(provider_symbols)),\n                         name=f\"ccxt-pro-tickers-{self.account['id']}\",\n",
+      "reviewResult": "no blocking semantic regression identified",
+      "rationale": "Only changed call targets public get_market wrapper with the identical clients/symbol arguments. Symbol sorting, watchTickers capability check, provider symbol list capture, task cancellation, lock and watch loop are unchanged. Wrapper delegates to exact prior static implementation, so no overridden SDK method resolution is altered."
+    },
+    {
+      "path": "exchange_executor/tests/test_contracts.py",
+      "baselineRevision": "ac90c6f95732be704458301fd58b2d7b67d0ee5e",
+      "baselineSha256": "120d79c5d928b74596347d25a5c1e88df02c43f45ef627709397811ccab906f4",
+      "currentSha256": "647fbaee9009cd9f751fed8713a7555d32b31ccd860d8254f459dec7c2ded369",
+      "diff": "diff --git a/exchange_executor/tests/test_contracts.py b/exchange_executor/tests/test_contracts.py\nindex c47bef4..9d73b77 100644\n--- a/exchange_executor/tests/test_contracts.py\n+++ b/exchange_executor/tests/test_contracts.py\n@@ -495,7 +495,10 @@ class FakeProtectedRest:\n     parse_position = parse_order\n \n     def safe_market(self, identifier, *_args):\n-        return next(market for market in self.markets.values() if market['id'] == identifier)\n+        for market in self.markets.values():\n+            if market['id'] == identifier:\n+                return market\n+        raise StopIteration(f\"Market {identifier} is not registered.\")\n \n     async def publicPostInfo(self, params):\n         if params['type'] == 'userAbstraction':\n",
+      "reviewResult": "no blocking semantic regression identified",
+      "rationale": "FakeProtectedRest.safe_market now uses an explicit first-match loop and explicitly raises StopIteration if absent. Matching market selection and exception type are unchanged; missing-market diagnostic now includes the identifier. No assertions removed and no missing market is skipped or accepted. All contract tests passed."
+    }
+  ],
+  "tests": {
+    "modules": [
+      "test_account_log_reader",
+      "test_contracts",
+      "test_entry_price_constraints",
+      "test_entry_price_sdk",
+      "test_kraken_history",
+      "test_stream_health",
+      "test_sdk_async_contract",
+      "test_kraken_response_capture_failures"
+    ],
+    "testsRun": 102,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 7.75,
+    "logPath": "reports/security-services/fixer-python-implementation-delta-tests.log",
+    "logSha256": "242b4ee3ff5536b766b245b0a5bd326eff7eda43f17a30abad601501a332bcba"
+  },
+  "dualInvalidBoundary": {
+    "request": {
+      "role": "entry",
+      "accountId": "account-1",
+      "symbol": "BTCUSDT",
+      "side": "invalid",
+      "orderType": "limit",
+      "quantity": "2",
+      "price": "100.5",
+      "triggerPrice": null,
+      "clientOrderId": "entry-client",
+      "reduceOnly": false,
+      "postOnly": false,
+      "leverage": 20,
+      "entryExpiresAt": 1789284650974,
+      "leverageTierDecision": {
+        "version": 1,
+        "evidenceHash": "5c38b38c09388b5195bdc2a2793c3e22c86ade005ceb717b8affefb65be19419",
+        "providerSymbol": "BTC/USDC:USDC",
+        "contractSize": "1",
+        "tierIndex": 0,
+        "quantity": "2",
+        "leverage": 20,
+        "maximumNotional": "1000000"
+      },
+      "timeInForce": "IOC",
+      "maxSlippagePercent": "4",
+      "entryPriceBoundary": {
+        "version": 1,
+        "referencePrice": "100.05",
+        "maxSlippagePercent": "0.5",
+        "priceTick": "0.1",
+        "limitPrice": "100.5"
+      }
+    },
+    "old": {
+      "type": "EntryPriceConstraintError",
+      "message": "Original entry slippage changed.",
+      "code": "ENTRY_PRICE_BOUND_UNPROVEN",
+      "http_status": 422
+    },
+    "current": {
+      "type": "EntryPriceConstraintError",
+      "message": "Bounded entry side is invalid.",
+      "code": "ENTRY_PRICE_BOUND_UNPROVEN",
+      "http_status": 422
+    }
+  },
+  "schemaVersion": 1,
+  "kind": "independent_bounded_python_implementation_delta_review",
+  "reviewedDate": "2026-09-13",
+  "reviewer": "triage_trading_review",
+  "runtime": {
+    "python": "3.12.14",
+    "ccxt": "4.5.75"
+  },
+  "checkoutRevisionAtCompletion": "2f16fc25f9c248b20749cd0e1b24a650d8f94dde",
+  "boundedDifferential": {
+    "comparisons": 275,
+    "differences": [],
+    "scope": "240 account log lane cases plus 35 Kraken token envelope cases; current shared dependencies; not exhaustive proof"
+  },
+  "contextPaths": [
+    {
+      "path": "exchange_executor/server.py",
+      "sha256": "90442c0b962745834e34b6d2fb1a833561040c5b756acd2f1557e5e05a17f5a7"
+    },
+    {
+      "path": "src/ccxt_exchange.ts",
+      "sha256": "adc917238be037b2de1a52b7297eb312fbff80cec3887d0a0fc656c612400cdb"
+    },
+    {
+      "path": "exchange_executor/tests/test_entry_price_sdk.py",
+      "sha256": "9e6919a1fede26cb469ff67f2587973d012327532ff6ed5b6d6b8033bab236d7"
+    },
+    {
+      "path": "exchange_executor/tests/test_sdk_async_contract.py",
+      "sha256": "1d5273b22a117dab842097fcfdfadbdb1cf35d10378fdbd81dcd1fa513317977"
+    },
+    {
+      "path": "exchange_executor/tests/test_account_log_reader.py",
+      "sha256": "2b0040adc852c924f989ff73f7e369ec955696f0b6226c4fa9d515e52343f7e8"
+    },
+    {
+      "path": "exchange_executor/tests/test_kraken_history.py",
+      "sha256": "9c71ac859f50c8fb958a15477edd255065925be540c341c455fd1f3dc1ec725e"
+    },
+    {
+      "path": "exchange_executor/tests/test_stream_health.py",
+      "sha256": "ff91c0c3b47b5d343962ba2c54e7300856198c83c58bd57a054a613a82adf0e2"
+    }
+  ],
+  "diagnosticAssessment": "The dual-invalid boundary diagnostic is externally visible as response.error, but repository searches found no branch matching either exact text. server.py maps both to identical code/status; ccxt_exchange.ts handles specialized SYMBOL_UNAVAILABLE and ORDER_OUTCOME_UNRESOLVED separately and otherwise constructs the same failure Error with response text. No recovery, retry, authorization or acceptance change was identified. Retain code and document the diagnostic variation; no mutation justified.",
+  "conclusion": "All six complete later deltas independently inspected against Git bytes proven equal to prior fileBindings.afterSha256. 102 focused tests passed without skips; 275 helper comparisons found no differences. No blocking semantic regression; two diagnostic/validation-order changes are explicitly disclosed.",
+  "limits": "Exactly six files and inspected callers/SDK contexts. No receipt/pin/source changes. No full implementation approval, no current Node complete-gate claim, no new provider acceptance or live provider operation. Full final-tree source commitments, independent remaining deltas and release/container gates remain separate."
+}

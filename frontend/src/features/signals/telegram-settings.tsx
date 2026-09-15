@@ -74,13 +74,13 @@ export function TelegramSettings() {
       return <p>Telegram-Link nicht als zulässiger Anmeldelink erkennbar.</p>;
     }
     return <>{prompt?.kind === 'name' ? <div className="builder-field-grid"><label>Vorname<input value={loginInput.firstName} onChange={event => setLoginInput({ ...loginInput, firstName: event.target.value })} /></label><label>Nachname<input value={loginInput.lastName} onChange={event => setLoginInput({ ...loginInput, lastName: event.target.value })} /></label></div> : <label>{prompt?.label}<input type={prompt?.kind === 'password' ? 'password' : 'text'} autoComplete="off" value={loginInput.value} onChange={event => setLoginInput({ ...loginInput, value: event.target.value })} /></label>}
-      <button className="primary-button" onClick={() => void command('/api/telegram-login', prompt?.kind === 'name' ? { firstName: loginInput.firstName, lastName: loginInput.lastName } : { value: loginInput.value }, () => setLoginInput({ value: '', firstName: '', lastName: '' }), 'Anmeldedaten angenommen; Verbindung wird weiter beobachtet.')}>Weiter</button></>;
+      <button className="primary-button" onClick={() => { command('/api/telegram-login', prompt?.kind === 'name' ? { firstName: loginInput.firstName, lastName: loginInput.lastName } : { value: loginInput.value }, () => setLoginInput({ value: '', firstName: '', lastName: '' }), 'Anmeldedaten angenommen; Verbindung wird weiter beobachtet.'); }}>Weiter</button></>;
   };
   return <div className="operations-stack"><h2>Telegram & KI-Grundlage</h2>
     {Object.entries(errors).filter(([, error]) => error).map(([key, error]) => <p role="alert" key={key}>{key}: {error} · Vorhandene Daten können veraltet sein.</p>)}
     {message && <p><output>{message}</output></p>}{readOnly && <p>Nur Lesezugriff. Änderungen und Anmeldung benötigen die Adminrolle.</p>}
     <section className="operations-card system-form"><h3>Telegram-Routing</h3><EvidenceFields fields={[["Verbindung", status?.connectionState], ["Dienst läuft", status?.isRunning], ["Beobachtete Quellen", status?.resolvedSources?.length], ["Queue · aktiv", status?.queue?.running], ["Queue · wartend", status?.queue?.queued]]} />
-      <fieldset disabled={readOnly || busy || !status || Boolean(errors.Verbindung)}><button className="primary-button" disabled={canStop} onClick={() => void command('/api/control', { action: 'start' }, () => undefined, 'Verbindungsaufbau angefordert; Erfolg erst durch den Verbindungszustand bestätigt.')}>Starten</button><button className="secondary-button" disabled={!canStop} onClick={() => void command('/api/control', { action: 'stop' }, () => undefined, 'Telegram-Routing gestoppt. Bestehende Trades und deren Schutz laufen gesondert weiter.')}>Stoppen</button></fieldset>
+      <fieldset disabled={readOnly || busy || !status || Boolean(errors.Verbindung)}><button className="primary-button" disabled={canStop} onClick={() => { command('/api/control', { action: 'start' }, () => undefined, 'Verbindungsaufbau angefordert; Erfolg erst durch den Verbindungszustand bestätigt.'); }}>Starten</button><button className="secondary-button" disabled={!canStop} onClick={() => { command('/api/control', { action: 'stop' }, () => undefined, 'Telegram-Routing gestoppt. Bestehende Trades und deren Schutz laufen gesondert weiter.'); }}>Stoppen</button></fieldset>
       {status?.telegramLogin?.state === 'waiting' && <fieldset disabled={readOnly || busy}><legend>Telegram-Anmeldung · {prompt?.label}</legend>
         {loginPrompt()}
       </fieldset>}
@@ -109,7 +109,7 @@ export function TelegramSettings() {
           </div>}
         </details>
         <ChangeReview before={server.values} after={config} label="Zu speichernde Konfigurationsänderungen" />
-        <button className="primary-button" disabled={form.conflict} onClick={() => void save()}>Grundkonfiguration speichern</button>
+        <button className="primary-button" disabled={form.conflict} onClick={() => { save(); }}>Grundkonfiguration speichern</button>
       </fieldset>{!form.baseRevision && <p role="alert">Versionsvertrag fehlt. Speichern benötigt eine kompatible Serverversion.</p>}
       {normalization && <ChangeReview before={normalization.before} after={normalization.after} label="Servernormalisierung nach dem Speichern" />}
     </section> : <p>Grundkonfiguration wird geladen.</p>}
@@ -125,6 +125,6 @@ export function TelegramSettings() {
       };
       return (<label key={key}>{label} · {secretStatus()}<input type="password" autoComplete="off" placeholder="Leer lassen zum Beibehalten" value={secretInput[key] ?? ''} onChange={event => setSecretInput({ ...secretInput, [key]: event.target.value })} /></label>);
     })}
-      <button className="secondary-button" disabled={!Object.values(secretInput).some(value => value.trim())} onClick={() => void command('/api/secrets', Object.fromEntries(Object.entries(secretInput).filter(([, value]) => value.trim())), () => setSecretInput({}), 'Zugangsdaten gespeichert. Die Konfiguration wurde durch diese Aktion nicht geändert.')}>Telegram-/KI-Zugangsdaten speichern</button></fieldset></section>}
+      <button className="secondary-button" disabled={!Object.values(secretInput).some(value => value.trim())} onClick={() => { command('/api/secrets', Object.fromEntries(Object.entries(secretInput).filter(([, value]) => value.trim())), () => setSecretInput({}), 'Zugangsdaten gespeichert. Die Konfiguration wurde durch diese Aktion nicht geändert.'); }}>Telegram-/KI-Zugangsdaten speichern</button></fieldset></section>}
   </div>;
 }

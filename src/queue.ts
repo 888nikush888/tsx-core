@@ -2,10 +2,16 @@
  * A concurrency queue designed to limit the number of parallel asynchronous operations.
  * Defaults to a maximum concurrency of 2.
  */
+interface TypedQueueItem<T> {
+  taskFn: (signal: AbortSignal) => Promise<T>;
+  resolve: (value: T) => void;
+  reject: (reason: unknown) => void;
+}
+
+// Each entry retains its own result type, even in the heterogeneous pending list.
 interface QueueItem {
-  taskFn: (signal: AbortSignal) => Promise<any>;
-  resolve: (value: any) => void;
-  reject: (reason: any) => void;
+  apply: (consume: <T>(item: TypedQueueItem<T>) => void) => void;
+  reject: (reason: unknown) => void;
 }
 
 export class ConcurrencyQueue {
@@ -41,7 +47,8 @@ export class ConcurrencyQueue {
       return Promise.reject(new QueueCapacityError(this.maxPending));
     }
     return new Promise<T>((resolve, reject) => {
-      this.queue.push({ taskFn, resolve, reject });
+      const item: TypedQueueItem<T> = { taskFn, resolve, reject };
+      this.queue.push({ reject, apply: consume => consume(item) });
       this.next();
     });
   }
@@ -139,6 +146,10 @@ export class ConcurrencyQueue {
     const item = this.queue.shift();
     if (!item) return;
 
+    item.apply(task => this.run(task));
+  }
+
+  private run<T>(item: TypedQueueItem<T>): void {
     const { taskFn, resolve, reject } = item;
     this.running++;
 

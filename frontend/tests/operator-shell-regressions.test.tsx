@@ -1,3 +1,4 @@
+import { fixtureValue } from "./fixture-value";
 import '@testing-library/jest-dom/vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,7 +9,7 @@ const api = vi.hoisted(() => ({ jsonRequest: vi.fn() }));
 vi.mock('@/lib/api', async original => ({ ...await original<typeof import('@/lib/api')>(), ...api }));
 // Route views have separate suites. This seam exposes the shell's permission contract and refresh callback.
 vi.mock('@/app/operator-page', () => ({ OperatorPage: ({ readOnly, onRefresh }: Readonly<{ readOnly: boolean; onRefresh: () => Promise<void> }>) =>
-  <button disabled={readOnly} onClick={() => void onRefresh()}>Edit routed view</button> }));
+  <button disabled={readOnly} onClick={() => { onRefresh(); }}>Edit routed view</button> }));
 
 beforeEach(() => { vi.clearAllMocks(); window.history.replaceState(null, '', '/operations/jobs'); Object.defineProperty(document, 'hidden', { configurable: true, value: false }); });
 afterEach(cleanup);
@@ -66,7 +67,7 @@ describe('operator shell permission and connection evidence', () => {
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'Matching resource' } });
     expect(await screen.findByRole('link', { name: 'Matching resource' })).toBeVisible();
     expect(screen.getByText('Keine Treffer für diese Auswahl.')).toBeVisible();
-    const request = api.jsonRequest.mock.calls.find(([url]) => url.startsWith('/api/ui/search'))!;
+    const request = fixtureValue(api.jsonRequest.mock.calls.find(([url]) => url.startsWith('/api/ui/search')), 'search read request');
     expect(request[0]).not.toContain('Matching');
     expect(request[1].headers['X-UI-Search']).toBe('Matching%20resource');
     expect(window.location.search).toBe('');

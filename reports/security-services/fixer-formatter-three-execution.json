@@ -1,0 +1,60 @@
+{
+  "baseRevision": "851dae04dfbd0f2ecc582448c1d5ae0ab54b78e3",
+  "node": "v22.23.2",
+  "sourceLfSha256": "f310db8af4458f48d76e4f2b22dca94c0f3848b06b524437ff0d6cf50c3c3393",
+  "results": [
+    {
+      "name": "fx-viewer",
+      "args": [
+        "--import",
+        "tsx",
+        "tests/test_trading_fx_journal_viewer.js"
+      ],
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-formatter-three-fx-viewer.log",
+      "sha256": "c259132310f9843004b245272ca48d56a7dcc6787597199ee754ab65370622da"
+    },
+    {
+      "name": "viewer-contracts",
+      "args": [
+        "--import",
+        "tsx",
+        "tests/test_telegram_viewer_contracts.js"
+      ],
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-formatter-three-viewer-contracts.log",
+      "sha256": "4b3ce468b3461672bcc4f603ced0d6adb03cca389f8f2e8f292bc4b7e4d87396"
+    },
+    {
+      "name": "viewer-service",
+      "args": [
+        "--import",
+        "tsx",
+        "tests/test_telegram_viewer_service.js"
+      ],
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-formatter-three-viewer-service.log",
+      "sha256": "32aa0aed993d6605831105a6a1e809a1299c42780a1ee53701c82232c160542e"
+    },
+    {
+      "name": "types",
+      "args": [
+        "node_modules/typescript/bin/tsc",
+        "--noEmit"
+      ],
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-formatter-three-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "lint",
+      "args": [
+        "node_modules/eslint/bin/eslint.js",
+        "src/telegram_viewer/formatters.ts"
+      ],
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-formatter-three-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

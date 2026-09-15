@@ -1,0 +1,94 @@
+{
+  "baseRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+  "reviewKind": "root-independent-final-delta-review",
+  "generatedAt": "2026-09-13T09:20:33.599Z",
+  "sources": [
+    {
+      "path": "src/env.ts",
+      "sha256": "a8d0c33bcc0570fe59cc8a695b5279be25c80ce33a6ee0d5551b5802cc7aa499",
+      "gitLfSha256": "a8d0c33bcc0570fe59cc8a695b5279be25c80ce33a6ee0d5551b5802cc7aa499"
+    },
+    {
+      "path": "src/exchange_history_coverage.ts",
+      "sha256": "83cfb9a3df81759ec87538ddb515382e7281dec444da2b59068a34afc9b3afa6",
+      "gitLfSha256": "83cfb9a3df81759ec87538ddb515382e7281dec444da2b59068a34afc9b3afa6"
+    },
+    {
+      "path": "src/signal_parser.ts",
+      "sha256": "606910e2de5b08cf5925a12909500027b9ec1bbebbd408710c4fee47a9ceb515",
+      "gitLfSha256": "606910e2de5b08cf5925a12909500027b9ec1bbebbd408710c4fee47a9ceb515"
+    },
+    {
+      "path": "src/trading_engine.ts",
+      "sha256": "313a8f1f6fdced67333c367cb1660c3ddcf7cd07d11fc5494ca9b2a22bd44e05",
+      "gitLfSha256": "313a8f1f6fdced67333c367cb1660c3ddcf7cd07d11fc5494ca9b2a22bd44e05"
+    },
+    {
+      "path": "src/trading_exit_cancel.ts",
+      "sha256": "0207a0639a3e40d3044ea26b8830a74f9f296f68f6a1c9895c5210e68934f7aa",
+      "gitLfSha256": "0207a0639a3e40d3044ea26b8830a74f9f296f68f6a1c9895c5210e68934f7aa"
+    },
+    {
+      "path": "src/trading_leverage_admission.ts",
+      "sha256": "4e3acd459e95dc5285ee0ed19b609a726eb92bbe0f8dc34a9ebc23fd56755a9a",
+      "gitLfSha256": "4e3acd459e95dc5285ee0ed19b609a726eb92bbe0f8dc34a9ebc23fd56755a9a"
+    },
+    {
+      "path": "src/trading_risk_admission.ts",
+      "sha256": "fae250cb7e81587c0021faab112227ded27a5c80a4313278dce451bf55e0b827",
+      "gitLfSha256": "fae250cb7e81587c0021faab112227ded27a5c80a4313278dce451bf55e0b827"
+    },
+    {
+      "path": "src/trading_safety_repository.ts",
+      "sha256": "f6237d733759b28c74aae423b1e5b5ebee28c9ba2b734f64211d7fa5394cf428",
+      "gitLfSha256": "f6237d733759b28c74aae423b1e5b5ebee28c9ba2b734f64211d7fa5394cf428"
+    },
+    {
+      "path": "src/trading_take_profit.ts",
+      "sha256": "24e989141748771d05c15d170eb2be66bf84826df03f2af33ea4962fada79212",
+      "gitLfSha256": "24e989141748771d05c15d170eb2be66bf84826df03f2af33ea4962fada79212"
+    },
+    {
+      "path": "src/ui_trade_relations.ts",
+      "sha256": "ca82b32cf7f7aa5043588a093ee88897450429cac5061271788aca3639456498",
+      "gitLfSha256": "959399fe2ad68cfbe2de116af6e55b3d59032cd8b85f7e02b06fa2b29b4d5cb3"
+    }
+  ],
+  "checks": [
+    "typecheck passed",
+    "lint passed",
+    "complexity passed zero warnings zero threshold violations",
+    "env existing file-backed-secret tests passed",
+    "12 truthy fallback equivalence cases passed"
+  ],
+  "independentReview": [
+    "Parser helper preserves synchronous classification/logging and returns null only when no further attempt exists; zero delay still awaits original abortableDelay. No provider/model/rejection boundary changes.",
+    "Protected-entry message expression remains identical and evaluated at same SQL argument position before Date.now; transaction and rethrow order unchanged.",
+    "Relation context consists of same plain locals, immediately destructured inside same async transaction callback; SQL body unchanged.",
+    "Owned-exposure helper retains existing explicit undefined guard, comparison order and short-circuit call site; root read actual full diff.",
+    "Five separate evidence checks independently reviewed and tested, including missing objects/undefined expected values."
+  ],
+  "evidence": [
+    {
+      "path": "reports/security-services/fixer-sonar-parser-engine-complexity-fixes.json",
+      "sha256": "c5cef0b04b3c599cf3e02f59cf546842e1328816078e511784eb9720981b6389"
+    },
+    {
+      "path": "reports/security-services/fixer-sonar-relation-page-review.json",
+      "sha256": "f83637f84f1ba8efff517dc553de081ea6ba00fcc837e23b43b2877b617a1bd2"
+    },
+    {
+      "path": "reports/security-services/fixer-sonar-optional-chain-fixes-independent-review.json",
+      "sha256": "c17328dc3cdfae7df4991093baf693553bb8f1616146d0b656000dba290bd10d"
+    },
+    {
+      "path": "reports/security-services/fixer-sonar-owned-exposure-review.json",
+      "sha256": "014ad09c1e76c60bcc01b5ddec316e4959fece5083be518e71e4d99152e69aa3"
+    }
+  ],
+  "limits": [
+    "Remote Sonar proof pending.",
+    "Fresh Snyk review remains to renew for changed source bindings.",
+    "No overall implementation receipt approval."
+  ]
+}

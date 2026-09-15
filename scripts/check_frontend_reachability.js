@@ -1,6 +1,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const frontendRoot = path.join(root, 'frontend');
@@ -50,17 +51,45 @@ async function resolveLocal(importer, specifier) {
   ]);
 }
 
+function literalText(node) {
+  return node && ts.isStringLiteralLike(node) ? node.text : undefined;
+}
+
+function urlDependency(node) {
+  if (!ts.isIdentifier(node.expression) || node.expression.text !== 'URL') return undefined;
+  const specifier = literalText(node.arguments?.[0]);
+  // Relative worker/asset URLs participate in the graph; network addresses are not packages.
+  return specifier?.startsWith('.') || specifier?.startsWith('@/') ? specifier : undefined;
+}
+
+function moduleReference(node) {
+  if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return literalText(node.moduleSpecifier);
+  if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) return literalText(node.arguments[0]);
+  if (ts.isNewExpression(node)) return urlDependency(node);
+  return undefined;
+}
+
+export function frontendDependencies(content) {
+  const dependencies = [];
+  const source = ts.createSourceFile('frontend.tsx', content, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  function visit(node) {
+    const specifier = moduleReference(node);
+    if (specifier !== undefined) dependencies.push(specifier);
+    ts.forEachChild(node, visit);
+  }
+  visit(source);
+  return dependencies;
+}
+
 async function buildFrontendGraph(files) {
   const graph = new Map(files.map((file) => [file, []]));
   const externalByFile = new Map(files.map((file) => [file, []]));
   const violations = [];
-  const importPattern = /(?:\bfrom\s+|\bimport\s*\(\s*|\bimport\s*|\bnew\s+URL\(\s*)['"]([^'"]+)['"]/g;
 
   const queue = [...files];
   for (const file of queue) {
     const content = await readFile(file, 'utf8');
-    for (const match of content.matchAll(importPattern)) {
-      const specifier = match[1];
+    for (const specifier of frontendDependencies(content)) {
       if (specifier.startsWith('.') || specifier.startsWith('@/')) {
         await connectLocalImport({ file, specifier, graph, externalByFile, queue, violations });
       } else {

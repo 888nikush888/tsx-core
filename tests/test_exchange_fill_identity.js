@@ -18,6 +18,17 @@ for (const exchange of ['bybit', 'hyperliquid', 'krakenfutures']) {
   if (exchange === 'hyperliquid') assert.notEqual(provenFillIdentity(account(exchange), later).key, proof.key);
   else assert.equal(provenFillIdentity(account(exchange), later).key, proof.key, 'Bybit/Kraken timestamp changes remain payload conflicts on the same native ID.'); // gitleaks:allow
 }
+const identifierFixture = nativeFillFixture('bybit', fill).identity;
+for (const field of ['providerMarketId', 'providerSymbol', 'providerFillId']) {
+  for (let unit = 0; unit < 32; unit += 1) {
+    assert.throws(() => validateFillIdentity({ ...identifierFixture, [field]: `a${String.fromCodePoint(unit)}b` }),
+      /FILL_IDENTITY_UNPROVEN: missing exact provider identifier/u);
+  }
+  for (const value of ['a b', 'a\u007fb', 'a\u0085b', 'a\u00a0b', 'a😀b', 'a\ud800b']) {
+    assert.equal(validateFillIdentity({ ...identifierFixture, [field]: value })[field], value,
+      'Only C0 controls are forbidden inside a fill identifier; accepted bytes must not be normalized.');
+  }
+}
 const recent = nativeFillFixture('krakenfutures', fill);
 delete recent.raw.info.identitySource;
 assert.equal(provenFillIdentity(account('krakenfutures'), recent), null, 'Recent fill_id is not an execution.uid alias.');

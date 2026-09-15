@@ -1,0 +1,2219 @@
+{
+  "schemaVersion": 1,
+  "repository": "888nikush888/tsx-core",
+  "reviewDate": "2026-09-08",
+  "reviewer": "scanner_integration independent source review; did not perform the original Codacy inventory triage",
+  "inventoryPath": "docs/testing/codacy-inventory-2026-09-08.json",
+  "inventoryRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+  "inventorySha256": "1c398559a1efaffdf34ebac081c928c7d7a806262f35a9683ce40358fdd2bf47",
+  "originalScanRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+  "scope": {
+    "proposedTestFalsePositives": 239,
+    "individuallyReviewed": 40,
+    "remainingNotReviewedHere": 199,
+    "pathTraversal": 23,
+    "ssrf": 15,
+    "dynamicRegex": 2
+  },
+  "method": [
+    "Read all five selected test files at the immutable reviewed revision.",
+    "Traced each reported argument to fixture creation, fixed literal sets and private helper call sites; inspected surrounding assertions and cleanup.",
+    "Verified original scan source SHA-256 and each original sink against Git blobs; separately bound unchanged sink lines to reviewed Git source hashes."
+  ],
+  "limitations": [
+    "This is a source review of exactly the listed 40 occurrence IDs, not a general exemption for tests or rules.",
+    "No fresh Codacy scan, platform ignore or closure was applied. Remaining 199 proposals need independent review.",
+    "No test or production source was modified for this review, and no test execution is claimed as evidence for these review decisions.",
+    "Private local fixture ownership is the path-traversal threat model; this review does not establish resistance to a hostile process already executing as the same OS user."
+  ],
+  "platformChangesApplied": false,
+  "sourceBindings": [
+    {
+      "path": "tests/test_crash_guard.js",
+      "originalRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+      "originalSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+      "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+      "reviewedSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc"
+    },
+    {
+      "path": "tests/test_telegram_viewer_api.js",
+      "originalRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+      "originalSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+      "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+      "reviewedSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de"
+    },
+    {
+      "path": "tests/test_outbox.js",
+      "originalRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+      "originalSha256": "b7d9112722cf5092f1abb10244f298b4bb01e19e71c2880985bdc8f86a97aa0b",
+      "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+      "reviewedSha256": "b7d9112722cf5092f1abb10244f298b4bb01e19e71c2880985bdc8f86a97aa0b"
+    },
+    {
+      "path": "tests/test_trading_fx_sizing_python.js",
+      "originalRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+      "originalSha256": "723fae117a94a791117bdaf20997b78f56244a7246faab04d895181583c36129",
+      "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+      "reviewedSha256": "2e432a310473d8e8748d6c1b52faee89020469a78c212f3efc1e690f9ca6a5a0"
+    },
+    {
+      "path": "tests/test_entry_deadline_transport.js",
+      "originalRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+      "originalSha256": "65ea476a61e31ec7ea1e99dde71bba119a14427951e2c44737629d323091439d",
+      "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+      "reviewedSha256": "39ae1b8173c4844223ffa39f787b59ce05caa4fdcd82b02cbf5edb46eaf40302"
+    }
+  ],
+  "entries": [
+    {
+      "issueId": "dfe76bc58cbca92da3a03aa401c89c2a",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 31,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "c3ad2cab0150f32c8ae87462e25cbd7624cfebc2118ff709a3a5b38cb512078f"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 31,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "c3ad2cab0150f32c8ae87462e25cbd7624cfebc2118ff709a3a5b38cb512078f"
+      },
+      "rationale": "The apparent parent segment is a literal normalization fixture: joining dot/unused/parent returns the same owned stateDir; the following check verifies canonical ownership, with no caller-controlled segment.",
+      "evidence": [
+        {
+          "line": 31,
+          "text": "  const alias = path.join(stateDir, '.', 'unused', '..');"
+        },
+        {
+          "line": 32,
+          "text": "  await checkCrashLoopFiles(alias, owner, 10001);"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 113,
+          "text": "    await testScopeAndLifetime(stateDir, owner);"
+        }
+      ]
+    },
+    {
+      "issueId": "6ac80cc28637eddf5aaddac645910a96",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 72,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "c0172d0e2a10b295e305db7270767b2578a46fddfa08794a2997d1bd53b5f02d"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 72,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "c0172d0e2a10b295e305db7270767b2578a46fddfa08794a2997d1bd53b5f02d"
+      },
+      "rationale": "mode comes exclusively from the two literal crash modes. Both create children inside the private mkdtemp directory before spawning the owned child fixture.",
+      "evidence": [
+        {
+          "line": 70,
+          "text": "async function testHardCrashes(stateDir) {"
+        },
+        {
+          "line": 71,
+          "text": "  for (const mode of ['counter-paused', 'block-paused']) {"
+        },
+        {
+          "line": 72,
+          "text": "    const directory = path.join(stateDir, mode);"
+        },
+        {
+          "line": 73,
+          "text": "    await mkdir(directory);"
+        },
+        {
+          "line": 77,
+          "text": "    const { child, ready } = startFixture(directory, mode);"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 115,
+          "text": "    await testHardCrashes(stateDir);"
+        }
+      ]
+    },
+    {
+      "issueId": "5728e0a3b5a65c6c0debb0095ab20a41",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 143,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "5113122b70f80794547e3dcd63e1ae1ac7945e49a29b46c4412bde9e220e8bff"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 143,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "5113122b70f80794547e3dcd63e1ae1ac7945e49a29b46c4412bde9e220e8bff"
+      },
+      "rationale": "A local service token against fixed trading route verifies authorization rejection. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 143,
+          "text": "  response = await fetch(`${baseUrl}/api/trading`, { headers: authorization(serviceToken) });"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "536d846c568367256d5335c07ee02ba7",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 211,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "1e4cde93d9e696f1498684b0880c9ca2f72e52021b84b5917df2cb9343d7cf07"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 211,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "1e4cde93d9e696f1498684b0880c9ca2f72e52021b84b5917df2cb9343d7cf07"
+      },
+      "rationale": "The fixed bot-token DELETE verifies clearing the local fixture configuration. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 211,
+          "text": "  response = await fetch(`${baseUrl}/api/telegram-viewer/token`, { method: 'DELETE', headers: mutationHeaders() });"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "2277fa18e875692390030e566b798093",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 176,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "885a65a26ca05af53b2b60e1e352f75f6de801aa380454ffecc1c718777bc965"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 176,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "885a65a26ca05af53b2b60e1e352f75f6de801aa380454ffecc1c718777bc965"
+      },
+      "rationale": "The synthetic dashboard identity requests the fixed viewer-status route and verifies that no credential is returned. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 176,
+          "text": "  let response = await fetch(`${baseUrl}/api/telegram-viewer`, { headers: authorization(DASHBOARD_VIEWER) });"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "965e61ad0bc00b0f30a16138251f0f8a",
+      "rule": "Semgrep_javascript_dos_rule-non-literal-regexp",
+      "path": "tests/test_trading_fx_sizing_python.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 112,
+        "sourceSha256": "723fae117a94a791117bdaf20997b78f56244a7246faab04d895181583c36129",
+        "lineSha256": "2fcf8ffccd5536601e995163db8bcb103d69cf755367072e805e3eecd49059b0"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 112,
+        "sourceSha256": "2e432a310473d8e8748d6c1b52faee89020469a78c212f3efc1e690f9ca6a5a0",
+        "lineSha256": "2fcf8ffccd5536601e995163db8bcb103d69cf755367072e805e3eecd49059b0"
+      },
+      "rationale": "expected.error is taken from the local cases array, whose error fields are exclusively the literal words budget, rounding, table or contract, currency, alias, disagree, reduced and sizing. None contains a regex operator or nested repetition. The Python response supplies the message subject, not the regex source; case immutability and returned case ordering are asserted before indexing. Thus this sink has no untrusted pattern or catastrophic-backtracking construction.",
+      "evidence": [
+        {
+          "line": 75,
+          "text": "const cases = [];"
+        },
+        {
+          "line": 76,
+          "text": "function add(name, options = {}, change = (_request, _decision) => undefined) {"
+        },
+        {
+          "line": 79,
+          "text": "  cases.push({ name, path: 'sdk', contract: 'unit', mark: '100', ...options, request });"
+        },
+        {
+          "line": 86,
+          "text": "add('spec-price-above-exact', { path: 'gate', specPrice: threshold.upper, error: 'budget' });"
+        },
+        {
+          "line": 88,
+          "text": "add('mark-above-exact', { mark: threshold.upper, error: 'budget' });"
+        },
+        {
+          "line": 89,
+          "text": "add('actual-sdk-entry-above', { error: 'budget' }, request => { request.price = '100.1'; });"
+        },
+        {
+          "line": 90,
+          "text": "add('native-mark-above', { request: native, mark: '100.000000000000000001', error: 'budget' });"
+        },
+        {
+          "line": 91,
+          "text": "add('oversized-quantity', { error: 'budget' }, (request, decision) => { request.quantity = decision.quantity = '2.005'; });"
+        },
+        {
+          "line": 92,
+          "text": "add('sdk-rounding', { error: 'rounding' }, (request, decision) => { request.quantity = decision.quantity = '2.0045'; });"
+        },
+        {
+          "line": 93,
+          "text": "add('changed-table-hash', { error: 'table or contract' }, (_request, decision) => { decision.evidenceHash = '0'.repeat(64); });"
+        },
+        {
+          "line": 94,
+          "text": "add('changed-currency', { error: 'currency' }, (_request, decision) => { decision.maximumNotionalCurrency = 'USD'; });"
+        },
+        {
+          "line": 95,
+          "text": "add('invented-decimal-alias', { error: 'alias' }, (_request, decision) => { decision.maximumNotional = '201'; });"
+        },
+        {
+          "line": 96,
+          "text": "add('missing-null-alias', { error: 'alias' }, (_request, decision) => { delete decision.maximumNotional; });"
+        },
+        {
+          "line": 97,
+          "text": "add('changed-upper-bound', { error: 'disagree' }, (_request, decision) => { decision.maximumNotionalValue.upper = '201'; });"
+        },
+        {
+          "line": 98,
+          "text": "add('noncanonical-rational', { error: 'reduced' }, (_request, decision) => {"
+        },
+        {
+          "line": 101,
+          "text": "add('missing-original-sizing', { error: 'sizing' }, request => { request.quantity = '2.005'; });"
+        },
+        {
+          "line": 103,
+          "text": "const originalBytes = JSON.stringify(cases);"
+        },
+        {
+          "line": 104,
+          "text": "const result = python('check', cases);"
+        },
+        {
+          "line": 105,
+          "text": "assert.equal(JSON.stringify(cases), originalBytes);"
+        },
+        {
+          "line": 106,
+          "text": "assert.deepEqual(result.map(row => row.name), cases.map(row => row.name));"
+        },
+        {
+          "line": 107,
+          "text": "for (const [index, row] of result.entries()) {"
+        },
+        {
+          "line": 108,
+          "text": "  const expected = cases[index];"
+        },
+        {
+          "line": 110,
+          "text": "  if (expected.error) {"
+        },
+        {
+          "line": 111,
+          "text": "    assert.equal(row.code, 'LEVERAGE_TIERS_UNPROVEN', expected.name);"
+        },
+        {
+          "line": 112,
+          "text": "    assert.match(row.message, new RegExp(expected.error), expected.name);"
+        }
+      ]
+    },
+    {
+      "issueId": "658c45d2d9f7e1873c0630c81dddb05",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 207,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "e9c93b8fefeb047c940cb51a018d08bbad345b7354edf42d80c00d1c194bacb1"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 207,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "e9c93b8fefeb047c940cb51a018d08bbad345b7354edf42d80c00d1c194bacb1"
+      },
+      "rationale": "The fixed test-message POST carries a literal test message and verifies acceptance by the local server. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 207,
+          "text": "  response = await fetch(`${baseUrl}/api/telegram-viewer/test`, {"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "1c0433e8fa308096577ba417840ef8c3",
+      "rule": "Semgrep_javascript_dos_rule-non-literal-regexp",
+      "path": "tests/test_entry_deadline_transport.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 78,
+        "sourceSha256": "65ea476a61e31ec7ea1e99dde71bba119a14427951e2c44737629d323091439d",
+        "lineSha256": "cdd7e0564fd0716335a03909ebcc3a3c09d4f0713e3d33d423298db3c293970b"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 78,
+        "sourceSha256": "39ae1b8173c4844223ffa39f787b59ce05caa4fdcd82b02cbf5edb46eaf40302",
+        "lineSha256": "cdd7e0564fd0716335a03909ebcc3a3c09d4f0713e3d33d423298db3c293970b"
+      },
+      "rationale": "code is selected exclusively by the local loop over ENTRY_INTENT_EXPIRED, ENTRY_DEADLINE_CHANGED and ENTRY_DEADLINE_UNPROVEN. These fixed ASCII letters/underscore patterns have no regex operators. The caught error message is the subject, never the pattern source. globalThis.fetch is replaced by a local response stub and restored in finally; this tests rejection semantics rather than accepting a remote pattern.",
+      "evidence": [
+        {
+          "line": 26,
+          "text": "  globalThis.fetch = async (_url, options) => {"
+        },
+        {
+          "line": 71,
+          "text": "  for (const code of ['ENTRY_INTENT_EXPIRED', 'ENTRY_DEADLINE_CHANGED', 'ENTRY_DEADLINE_UNPROVEN']) {"
+        },
+        {
+          "line": 74,
+          "text": "    respond = _requestBody => new Response(JSON.stringify({ error: 'Deadline rejected after an executor await.', code }), { status: 422 });"
+        },
+        {
+          "line": 75,
+          "text": "    await assert.rejects(adapter.submitProtectedEntry(account, request(), stop), error => {"
+        },
+        {
+          "line": 76,
+          "text": "      assert.equal(error instanceof TradingRiskError, false, 'An HTTP error code alone cannot prove that an operation was never dispatched.');"
+        },
+        {
+          "line": 77,
+          "text": "      assert.notEqual(error.sideEffects, false);"
+        },
+        {
+          "line": 78,
+          "text": "      assert.match(error.message, new RegExp(code));"
+        },
+        {
+          "line": 86,
+          "text": "  globalThis.fetch = realFetch;"
+        }
+      ]
+    },
+    {
+      "issueId": "b4b106aca4a09e22cbf64baad9597169",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 38,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "68cefa18c6f2ec907de1addf549f05e605a999889b8a4e6611fdfd9b30534351"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 38,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "68cefa18c6f2ec907de1addf549f05e605a999889b8a4e6611fdfd9b30534351"
+      },
+      "rationale": "The process lock basename is constant; directory is the wrong-type fixture formed from a finite literal filename array inside the private stateDir.",
+      "evidence": [
+        {
+          "line": 35,
+          "text": "async function testNonFileStatePaths(stateDir) {"
+        },
+        {
+          "line": 36,
+          "text": "  for (const file of ['.routing_active', '.crash_counter', '.crash_blocked']) {"
+        },
+        {
+          "line": 37,
+          "text": "    const directory = path.join(stateDir, `wrong-type-${file}`);"
+        },
+        {
+          "line": 38,
+          "text": "    const owner = await acquireProcessLock(path.join(directory, '.process_active'));"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 114,
+          "text": "    await testNonFileStatePaths(stateDir);"
+        }
+      ]
+    },
+    {
+      "issueId": "ee943476c8d2a979d56e590c5887d007",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 13,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "6ac7ba87696ccefe210609b744d9c7b2b4bf5692b952f4f8cd2aa740d6dc88c2"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 13,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "6ac7ba87696ccefe210609b744d9c7b2b4bf5692b952f4f8cd2aa740d6dc88c2"
+      },
+      "rationale": "foreign-db is a constant child of private stateDir, deliberately representing a different ownership scope for the rejection assertion.",
+      "evidence": [
+        {
+          "line": 13,
+          "text": "  const foreignDir = path.join(stateDir, 'foreign-db');"
+        },
+        {
+          "line": 14,
+          "text": "  const foreign = await acquireProcessLock(path.join(foreignDir, '.process_active'));"
+        },
+        {
+          "line": 17,
+          "text": "    await assert.rejects(checkCrashLoopFiles(stateDir, foreign), /different realpath scopes/);"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 113,
+          "text": "    await testScopeAndLifetime(stateDir, owner);"
+        }
+      ]
+    },
+    {
+      "issueId": "ce13ab969db17ceac73e096020469e78",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 85,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "4dc1492083020359a21c68f7c87e47d9cb1660fa6c9af3eb90db56aa7bb3d2d7"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 85,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "4dc1492083020359a21c68f7c87e47d9cb1660fa6c9af3eb90db56aa7bb3d2d7"
+      },
+      "rationale": "Reading the constant crash-counter filename checks that a killed, paused child did not alter the initial counter. The directory uses only the two literal modes.",
+      "evidence": [
+        {
+          "line": 71,
+          "text": "  for (const mode of ['counter-paused', 'block-paused']) {"
+        },
+        {
+          "line": 72,
+          "text": "    const directory = path.join(stateDir, mode);"
+        },
+        {
+          "line": 74,
+          "text": "    const before = JSON.stringify({ count: 2, lastCrash: 123000 });"
+        },
+        {
+          "line": 75,
+          "text": "    await writeFile(path.join(directory, '.crash_counter'), before);"
+        },
+        {
+          "line": 81,
+          "text": "      await killFixture(child);"
+        },
+        {
+          "line": 85,
+          "text": "      if (mode === 'counter-paused') assert.equal(await readFile(path.join(directory, '.crash_counter'), 'utf8'), before);"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 115,
+          "text": "    await testHardCrashes(stateDir);"
+        }
+      ]
+    },
+    {
+      "issueId": "3a4da52b47432620d7c045786d5c01ee",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_outbox.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 269,
+        "sourceSha256": "b7d9112722cf5092f1abb10244f298b4bb01e19e71c2880985bdc8f86a97aa0b",
+        "lineSha256": "60c7aff28fc60d340181cc3c0a5c585a3576db143f438a80376cf07068c8826c"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 269,
+        "sourceSha256": "b7d9112722cf5092f1abb10244f298b4bb01e19e71c2880985bdc8f86a97aa0b",
+        "lineSha256": "60c7aff28fc60d340181cc3c0a5c585a3576db143f438a80376cf07068c8826c"
+      },
+      "rationale": "The selected name comes from readdir of the private migration directory, hence is a single filesystem entry name, not an arbitrary path. The local prefix/suffix filter and exact count assertion select the fixture snapshot. No HTTP or caller-provided path enters this join.",
+      "evidence": [
+        {
+          "line": 265,
+          "text": "    const migrationBackupDirectory = path.join(testDir, '.migration-backups');"
+        },
+        {
+          "line": 266,
+          "text": "    const migrationSnapshots = (await readdir(migrationBackupDirectory))"
+        },
+        {
+          "line": 267,
+          "text": "      .filter(name => name.startsWith('pre-migration-v0-to-v') && name.endsWith('.db'));"
+        },
+        {
+          "line": 268,
+          "text": "    assert.strictEqual(migrationSnapshots.length, 1, 'Legacy upgrade must create one verified pre-migration snapshot');"
+        },
+        {
+          "line": 269,
+          "text": "    const migrationSnapshot = path.join(migrationBackupDirectory, migrationSnapshots[0]);"
+        },
+        {
+          "line": 271,
+          "text": "      restorePreMigrationSnapshot(migrationSnapshot, dbPath, testDir),"
+        },
+        {
+          "line": 284,
+          "text": "      restored = await restorePreMigrationSnapshot(migrationSnapshot, dbPath, testDir, { maintenanceLease });"
+        },
+        {
+          "line": 296,
+          "text": "  const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-outbox-test-'));"
+        },
+        {
+          "line": 299,
+          "text": "    await prepareLegacyDatabase(testDir, dbPath);"
+        },
+        {
+          "line": 303,
+          "text": "    await testMigrationRecovery(testDir, dbPath);"
+        }
+      ]
+    },
+    {
+      "issueId": "b1d6533c1ff28c0dacdbbfa211ea3e7c",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 127,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "d22f4a68c009361c13892dcf5784e0d20bb7dacd162c4b6c4f7e81d076d2cfa6"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 127,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "d22f4a68c009361c13892dcf5784e0d20bb7dacd162c4b6c4f7e81d076d2cfa6"
+      },
+      "rationale": "Unauthenticated summary request verifies 401. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 127,
+          "text": "  let response = await fetch(`${baseUrl}/internal/viewer/v1/summary`);"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "e7b8178f645dbc5f192354fabfc4e59d",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 12,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "8327e2e5562a50ce314c739966e0e7ef1c255f9791276dd2108bc8c293744142"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 12,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "8327e2e5562a50ce314c739966e0e7ef1c255f9791276dd2108bc8c293744142"
+      },
+      "rationale": "The initial counter read uses a constant basename in the private stateDir; the same bytes are later compared after an invalid ownership attempt.",
+      "evidence": [
+        {
+          "line": 12,
+          "text": "  const original = await readFile(path.join(stateDir, '.crash_counter'), 'utf8');"
+        },
+        {
+          "line": 17,
+          "text": "    await assert.rejects(checkCrashLoopFiles(stateDir, foreign), /different realpath scopes/);"
+        },
+        {
+          "line": 18,
+          "text": "    assert.equal(await readFile(path.join(stateDir, '.crash_counter'), 'utf8'), original);"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 113,
+          "text": "    await testScopeAndLifetime(stateDir, owner);"
+        }
+      ]
+    },
+    {
+      "issueId": "d96e66b213fac7bed514510cbeefafda",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 76,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "536116f90565ee08e9cc528f37e4dd94dcbde48116ea9dd32f92fa1ee3587832"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 76,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "536116f90565ee08e9cc528f37e4dd94dcbde48116ea9dd32f92fa1ee3587832"
+      },
+      "rationale": "The routing marker write uses a constant filename within a literal-mode child of the private test directory; its content is the literal test timestamp.",
+      "evidence": [
+        {
+          "line": 71,
+          "text": "  for (const mode of ['counter-paused', 'block-paused']) {"
+        },
+        {
+          "line": 72,
+          "text": "    const directory = path.join(stateDir, mode);"
+        },
+        {
+          "line": 76,
+          "text": "    await writeFile(path.join(directory, '.routing_active'), 'active');"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 115,
+          "text": "    await testHardCrashes(stateDir);"
+        }
+      ]
+    },
+    {
+      "issueId": "d296dd503d7ea16c8b3d41b155b0a59c",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 40,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "e4665fe1160cb3ec719618153b0e1ac39db46780854345a93199acfb0c128ff3"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 40,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "e4665fe1160cb3ec719618153b0e1ac39db46780854345a93199acfb0c128ff3"
+      },
+      "rationale": "file is one of three literal marker names. Creating a directory at that path is the deliberate wrong-file-type fixture; subsequent assertions require rejection and preservation.",
+      "evidence": [
+        {
+          "line": 36,
+          "text": "  for (const file of ['.routing_active', '.crash_counter', '.crash_blocked']) {"
+        },
+        {
+          "line": 37,
+          "text": "    const directory = path.join(stateDir, `wrong-type-${file}`);"
+        },
+        {
+          "line": 40,
+          "text": "      await mkdir(path.join(directory, file));"
+        },
+        {
+          "line": 41,
+          "text": "      await assert.rejects(checkCrashLoopFiles(directory, owner), /not a regular, non-symlink file/);"
+        },
+        {
+          "line": 42,
+          "text": "      assert.ok((await readdir(directory)).includes(file), 'Rejected paths must not be removed or converted.');"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 114,
+          "text": "    await testNonFileStatePaths(stateDir);"
+        }
+      ]
+    },
+    {
+      "issueId": "92dbd5cd49d80dd2e7bc065f5ae4cfc3",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 84,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "edb86807ef65eed3fcf685d7f194c4417a41a1142d019ae39305a55caec8bab9"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 84,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "edb86807ef65eed3fcf685d7f194c4417a41a1142d019ae39305a55caec8bab9"
+      },
+      "rationale": "The second abandoned-lock read checks byte preservation after rejecting takeover. Its basename and mode directory are finite literals, created by the owned fixture.",
+      "evidence": [
+        {
+          "line": 71,
+          "text": "  for (const mode of ['counter-paused', 'block-paused']) {"
+        },
+        {
+          "line": 72,
+          "text": "    const directory = path.join(stateDir, mode);"
+        },
+        {
+          "line": 77,
+          "text": "    const { child, ready } = startFixture(directory, mode);"
+        },
+        {
+          "line": 81,
+          "text": "      await killFixture(child);"
+        },
+        {
+          "line": 82,
+          "text": "      const abandoned = await readFile(path.join(directory, '.process_active'), 'utf8');"
+        },
+        {
+          "line": 83,
+          "text": "      await assert.rejects(acquireProcessLock(path.join(directory, '.process_active')), ProcessLockRecoveryRequiredError);"
+        },
+        {
+          "line": 84,
+          "text": "      assert.equal(await readFile(path.join(directory, '.process_active'), 'utf8'), abandoned);"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 115,
+          "text": "    await testHardCrashes(stateDir);"
+        }
+      ]
+    },
+    {
+      "issueId": "a30d1418d22843e7e1054a23d146a415",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 129,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "8ebb228a60e5dad6d1e2989329551131ed8f74c41bc36965862c21f23f655e87"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 129,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "8ebb228a60e5dad6d1e2989329551131ed8f74c41bc36965862c21f23f655e87"
+      },
+      "rationale": "A locally constructed invalid bearer token verifies summary rejection. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 129,
+          "text": "  response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { headers: authorization('w'.repeat(43)) });"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "ac109bbfb616a2f06e3ed529048aa8c9",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 80,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "a140857e1bfd41349495ef4285ef4d9481a29a33b73d9dca348ef317d2c82838"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 80,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "a140857e1bfd41349495ef4285ef4d9481a29a33b73d9dca348ef317d2c82838"
+      },
+      "rationale": "This fixed lock path is passed to an assertion that takeover of the running owned child must reject. Neither the basename nor its literal-mode parent comes from external data.",
+      "evidence": [
+        {
+          "line": 71,
+          "text": "  for (const mode of ['counter-paused', 'block-paused']) {"
+        },
+        {
+          "line": 72,
+          "text": "    const directory = path.join(stateDir, mode);"
+        },
+        {
+          "line": 77,
+          "text": "    const { child, ready } = startFixture(directory, mode);"
+        },
+        {
+          "line": 79,
+          "text": "      assert.equal((await ready).state, mode);"
+        },
+        {
+          "line": 80,
+          "text": "      await assert.rejects(acquireProcessLock(path.join(directory, '.process_active')), ProcessLockActiveError);"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 115,
+          "text": "    await testHardCrashes(stateDir);"
+        }
+      ]
+    },
+    {
+      "issueId": "dbac2f5dca266214674af3c37972fc53",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 197,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "dee232484a18c30261151d0d5887847f9c4cd948be8f2eefc65e3b4c90285e6d"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 197,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "dee232484a18c30261151d0d5887847f9c4cd948be8f2eefc65e3b4c90285e6d"
+      },
+      "rationale": "The fixed bot-token POST stores only a synthetic fixture token and asserts that the response does not echo it. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 197,
+          "text": "  response = await fetch(`${baseUrl}/api/telegram-viewer/token`, {"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "806a22c2ab4aff470a3e1bd7cf1cb697",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 182,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "10fb14169af3123fd1a51c2c39e091ed0738a1bc04a63314dd04d512df14ae1e"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 182,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "10fb14169af3123fd1a51c2c39e091ed0738a1bc04a63314dd04d512df14ae1e"
+      },
+      "rationale": "The fixed viewer-settings POST serializes the local settings fixture and literal test options; body fields do not select the request origin. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 182,
+          "text": "  response = await fetch(`${baseUrl}/api/telegram-viewer/settings`, {"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "e0dab4c7f7d9cd99c19d03ea1da80f3f",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 83,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "7abcb15dc4041b2fac6b2ebd8e6e693d373d6a45860465ad859f5f314e4006cb"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 83,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "7abcb15dc4041b2fac6b2ebd8e6e693d373d6a45860465ad859f5f314e4006cb"
+      },
+      "rationale": "This fixed lock path exercises rejection of automatic recovery after the owned child is killed. It remains within the private literal-mode test directory.",
+      "evidence": [
+        {
+          "line": 71,
+          "text": "  for (const mode of ['counter-paused', 'block-paused']) {"
+        },
+        {
+          "line": 72,
+          "text": "    const directory = path.join(stateDir, mode);"
+        },
+        {
+          "line": 81,
+          "text": "      await killFixture(child);"
+        },
+        {
+          "line": 82,
+          "text": "      const abandoned = await readFile(path.join(directory, '.process_active'), 'utf8');"
+        },
+        {
+          "line": 83,
+          "text": "      await assert.rejects(acquireProcessLock(path.join(directory, '.process_active')), ProcessLockRecoveryRequiredError);"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 115,
+          "text": "    await testHardCrashes(stateDir);"
+        }
+      ]
+    },
+    {
+      "issueId": "b144c8d625c68c77409a2e6048a6fa9e",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 88,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "353d2d902b64727306c212eab2a9e376c3c559cf2cd16b911bb88ff68e237830"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 88,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "353d2d902b64727306c212eab2a9e376c3c559cf2cd16b911bb88ff68e237830"
+      },
+      "rationale": "The replacement lock is acquired only in the owned fixture directory after the test kills its child and explicitly removes its abandoned lock; basename is constant.",
+      "evidence": [
+        {
+          "line": 71,
+          "text": "  for (const mode of ['counter-paused', 'block-paused']) {"
+        },
+        {
+          "line": 72,
+          "text": "    const directory = path.join(stateDir, mode);"
+        },
+        {
+          "line": 81,
+          "text": "      await killFixture(child);"
+        },
+        {
+          "line": 87,
+          "text": "      await unlink(path.join(directory, '.process_active'));"
+        },
+        {
+          "line": 88,
+          "text": "      const recovered = await acquireProcessLock(path.join(directory, '.process_active'));"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 115,
+          "text": "    await testHardCrashes(stateDir);"
+        }
+      ]
+    },
+    {
+      "issueId": "faffb51733ae2070e00924e5ea4bbaf2",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 202,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "47f26d96716a12e22ea840d563473cfb12e82bcf985015dd406ba95719e0fbe4"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 202,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "47f26d96716a12e22ea840d563473cfb12e82bcf985015dd406ba95719e0fbe4"
+      },
+      "rationale": "The fixed service-token rotation POST verifies the local response contract and omission of the generated secret. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 202,
+          "text": "  response = await fetch(`${baseUrl}/api/telegram-viewer/service-token/rotate`, {"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "5b6c4c97c8a94a75a085e850778fa155",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_outbox.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 279,
+        "sourceSha256": "b7d9112722cf5092f1abb10244f298b4bb01e19e71c2880985bdc8f86a97aa0b",
+        "lineSha256": "48abdd88844ba03ad4f19b28a3708565c41089cb8aaeaa9df216169c56440afc"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 279,
+        "sourceSha256": "b7d9112722cf5092f1abb10244f298b4bb01e19e71c2880985bdc8f86a97aa0b",
+        "lineSha256": "48abdd88844ba03ad4f19b28a3708565c41089cb8aaeaa9df216169c56440afc"
+      },
+      "rationale": "The process lock basename is constant beneath the private mkdtemp root. This owned lock is used for the explicit offline-maintenance restore test and released in finally.",
+      "evidence": [
+        {
+          "line": 279,
+          "text": "    const owner = await acquireProcessLock(path.join(testDir, '.process_active'));"
+        },
+        {
+          "line": 280,
+          "text": "    const maintenanceLease = await beginMcpOfflineMaintenance('isolated outbox migration recovery', dbPath, owner);"
+        },
+        {
+          "line": 284,
+          "text": "      restored = await restorePreMigrationSnapshot(migrationSnapshot, dbPath, testDir, { maintenanceLease });"
+        },
+        {
+          "line": 285,
+          "text": "    } finally { await maintenanceLease.release(); await owner.release(); }"
+        },
+        {
+          "line": 296,
+          "text": "  const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-outbox-test-'));"
+        },
+        {
+          "line": 303,
+          "text": "    await testMigrationRecovery(testDir, dbPath);"
+        }
+      ]
+    },
+    {
+      "issueId": "7ab3e809df7f2d3b99deb17e84c7d423",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 14,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "062b761065783b7ce5001717f753169c1f49a86c7a33c08424cbd5bc72c89146"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 14,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "062b761065783b7ce5001717f753169c1f49a86c7a33c08424cbd5bc72c89146"
+      },
+      "rationale": "The foreign-owner lock uses a constant basename beneath the constant foreign-db child. It supports the scope mismatch rejection and is released in finally.",
+      "evidence": [
+        {
+          "line": 13,
+          "text": "  const foreignDir = path.join(stateDir, 'foreign-db');"
+        },
+        {
+          "line": 14,
+          "text": "  const foreign = await acquireProcessLock(path.join(foreignDir, '.process_active'));"
+        },
+        {
+          "line": 17,
+          "text": "    await assert.rejects(checkCrashLoopFiles(stateDir, foreign), /different realpath scopes/);"
+        },
+        {
+          "line": 28,
+          "text": "  } finally {"
+        },
+        {
+          "line": 29,
+          "text": "    await foreign.release();"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 113,
+          "text": "    await testScopeAndLifetime(stateDir, owner);"
+        }
+      ]
+    },
+    {
+      "issueId": "f1a3d105e8c864b958abead5402badb4",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 153,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "756bcd70e17f68f6cc78f097291ce5a271aa717004107f07ea8e69af9c8c75cc"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 153,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "756bcd70e17f68f6cc78f097291ce5a271aa717004107f07ea8e69af9c8c75cc"
+      },
+      "rationale": "The route variable is exclusively the finite literal read-model route array at lines 146-150; responses are checked for bounded data and are never used as request origins. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 146,
+          "text": "  const routes = ["
+        },
+        {
+          "line": 147,
+          "text": "    '/config', '/system', '/accounts', '/accounts/account-dynamic', '/positions', '/positions/position-1',"
+        },
+        {
+          "line": 148,
+          "text": "    '/orders', '/orders/order-1', '/trades', '/trades/intent-1', '/performance', '/risk', '/incidents',"
+        },
+        {
+          "line": 149,
+          "text": "    '/events?afterSeq=0', '/test-events?afterSeq=0',"
+        },
+        {
+          "line": 150,
+          "text": "  ];"
+        },
+        {
+          "line": 153,
+          "text": "    response = await fetch(`${baseUrl}/internal/viewer/v1${route}`, { headers: authorization(serviceToken) });"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "d7d50ac0e34fe5c83441a8df0daf6ca2",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 141,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "bf53884ed154a9c62122320796429920ed7bc6e5c110b13a42dab69ae3899047"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 141,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "bf53884ed154a9c62122320796429920ed7bc6e5c110b13a42dab69ae3899047"
+      },
+      "rationale": "A local service token against fixed dashboard status verifies separation of authorization scopes. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 141,
+          "text": "  response = await fetch(`${baseUrl}/api/status`, { headers: authorization(serviceToken) });"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "16d14f2089e72f19339a4af2ced221ec",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 87,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "ac9b44aff67b74d676bc794ee6abec1ca9b09b4f0711bfd3c33c95011ff8dddd"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 87,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "ac9b44aff67b74d676bc794ee6abec1ca9b09b4f0711bfd3c33c95011ff8dddd"
+      },
+      "rationale": "The unlink targets only the fixed process-lock name in the owned literal-mode directory after child termination. It is an explicit fixture recovery step, not an externally selected deletion.",
+      "evidence": [
+        {
+          "line": 71,
+          "text": "  for (const mode of ['counter-paused', 'block-paused']) {"
+        },
+        {
+          "line": 72,
+          "text": "    const directory = path.join(stateDir, mode);"
+        },
+        {
+          "line": 81,
+          "text": "      await killFixture(child);"
+        },
+        {
+          "line": 83,
+          "text": "      await assert.rejects(acquireProcessLock(path.join(directory, '.process_active')), ProcessLockRecoveryRequiredError);"
+        },
+        {
+          "line": 87,
+          "text": "      await unlink(path.join(directory, '.process_active'));"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 115,
+          "text": "    await testHardCrashes(stateDir);"
+        }
+      ]
+    },
+    {
+      "issueId": "11028e8211d625c1d6dd4b5ea37558f1",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 139,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "75e599d8135c01bdbbbb30cf1af4fd01ef08816f727e9956e0386c9e406d2eda"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 139,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "75e599d8135c01bdbbbb30cf1af4fd01ef08816f727e9956e0386c9e406d2eda"
+      },
+      "rationale": "A POST to the fixed summary route verifies the GET-only method contract. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 139,
+          "text": "  response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { method: 'POST', headers: authorization(serviceToken) });"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "d881087595f38e31226667e426c59bd0",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 131,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "9f4030df91dac22b16d987b9db501a67225e6c19b4da129491cc4192aa0b27e6"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 131,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "9f4030df91dac22b16d987b9db501a67225e6c19b4da129491cc4192aa0b27e6"
+      },
+      "rationale": "The synthetic dashboard token verifies it cannot access the internal summary. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 131,
+          "text": "  response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { headers: authorization(ADMIN) });"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "da88be684e1f3bef6ce1c243825ed1fa",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 168,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "a8e3d9fa721c85a077bd5bafb59d71f5d1ea4423ec235aa2847f8a3534b18ca4"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 168,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "a8e3d9fa721c85a077bd5bafb59d71f5d1ea4423ec235aa2847f8a3534b18ca4"
+      },
+      "rationale": "The accounts pagination query has literal limit/offset values and verifies a bounded page. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 168,
+          "text": "  response = await fetch(`${baseUrl}/internal/viewer/v1/accounts?limit=1&offset=1`, { headers: authorization(serviceToken) });"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "e1473fabb0b888108f9d437e4488a4e4",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 82,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "0a8d479a4aded01b4483643783312079f4dab81da3b5b2984a79a49aa8a694d4"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 82,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "0a8d479a4aded01b4483643783312079f4dab81da3b5b2984a79a49aa8a694d4"
+      },
+      "rationale": "The first abandoned-lock read captures the local child lock for the subsequent byte-preservation assertion; both path segments are fixed fixture choices.",
+      "evidence": [
+        {
+          "line": 71,
+          "text": "  for (const mode of ['counter-paused', 'block-paused']) {"
+        },
+        {
+          "line": 72,
+          "text": "    const directory = path.join(stateDir, mode);"
+        },
+        {
+          "line": 77,
+          "text": "    const { child, ready } = startFixture(directory, mode);"
+        },
+        {
+          "line": 81,
+          "text": "      await killFixture(child);"
+        },
+        {
+          "line": 82,
+          "text": "      const abandoned = await readFile(path.join(directory, '.process_active'), 'utf8');"
+        },
+        {
+          "line": 84,
+          "text": "      assert.equal(await readFile(path.join(directory, '.process_active'), 'utf8'), abandoned);"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 115,
+          "text": "    await testHardCrashes(stateDir);"
+        }
+      ]
+    },
+    {
+      "issueId": "d07f34fa8e4dc0085b0ad3772721dc58",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 37,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "e907028dceaf8412e3a82f06a3d75b5ab91a9c440194319fc6fd803b5f2a30f0"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 37,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "e907028dceaf8412e3a82f06a3d75b5ab91a9c440194319fc6fd803b5f2a30f0"
+      },
+      "rationale": "The interpolated filename is drawn from the three literal marker names and prefixed with wrong-type-. It cannot introduce separators or parent traversal.",
+      "evidence": [
+        {
+          "line": 35,
+          "text": "async function testNonFileStatePaths(stateDir) {"
+        },
+        {
+          "line": 36,
+          "text": "  for (const file of ['.routing_active', '.crash_counter', '.crash_blocked']) {"
+        },
+        {
+          "line": 37,
+          "text": "    const directory = path.join(stateDir, `wrong-type-${file}`);"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 114,
+          "text": "    await testNonFileStatePaths(stateDir);"
+        }
+      ]
+    },
+    {
+      "issueId": "a7e6f7103f23f8922998e3c0ee9cbb7c",
+      "rule": "Semgrep_rules_lgpl_javascript_ssrf_rule-node-ssrf",
+      "path": "tests/test_telegram_viewer_api.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 133,
+        "sourceSha256": "531070bfe868a432fca4fd388fac3b5e8fbf73cf0efcdfcc90de5cb1074809ef",
+        "lineSha256": "2e08b80bb70e0a28baa6e425ad37feffa11d9a0b6d3533ff94f28da855b36466"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 133,
+        "sourceSha256": "614e756da0c60a68c4b70e4c8a3f07d4e20416fecaae118c7e8fa6f29f8735de",
+        "lineSha256": "2e08b80bb70e0a28baa6e425ad37feffa11d9a0b6d3533ff94f28da855b36466"
+      },
+      "rationale": "A service token generated by the local fixture verifies authorized summary data and omission of credential references. The URL origin is constructed only from literal http://127.0.0.1 and the native address.port of this test's newly started server. The two private helpers are called only with that baseUrl; neither request bodies nor response data replace it.",
+      "evidence": [
+        {
+          "line": 133,
+          "text": "  response = await fetch(`${baseUrl}/internal/viewer/v1/summary`, { headers: authorization(serviceToken) });"
+        },
+        {
+          "line": 259,
+          "text": "    const server = startWebServer(0, appState);"
+        },
+        {
+          "line": 261,
+          "text": "    await once(server, 'listening');"
+        },
+        {
+          "line": 262,
+          "text": "    const address = server.address();"
+        },
+        {
+          "line": 263,
+          "text": "    assert.ok(address && typeof address === 'object');"
+        },
+        {
+          "line": 264,
+          "text": "    const baseUrl = `http://127.0.0.1:${address.port}`;"
+        },
+        {
+          "line": 266,
+          "text": "    await verifyInternalViewerApi(baseUrl, serviceToken);"
+        },
+        {
+          "line": 267,
+          "text": "    await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);"
+        },
+        {
+          "line": 269,
+          "text": "  } finally {"
+        }
+      ]
+    },
+    {
+      "issueId": "bd8bffa8487b9243b2f1e0f9d98af13",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 18,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "a992d606c6eef501e0a6cb2c1be404a744ab07b424343df2545415b51b6743e3"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 18,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "a992d606c6eef501e0a6cb2c1be404a744ab07b424343df2545415b51b6743e3"
+      },
+      "rationale": "The second counter read verifies that rejection of a foreign owner left the private stateDir counter unchanged; the basename is fixed.",
+      "evidence": [
+        {
+          "line": 12,
+          "text": "  const original = await readFile(path.join(stateDir, '.crash_counter'), 'utf8');"
+        },
+        {
+          "line": 17,
+          "text": "    await assert.rejects(checkCrashLoopFiles(stateDir, foreign), /different realpath scopes/);"
+        },
+        {
+          "line": 18,
+          "text": "    assert.equal(await readFile(path.join(stateDir, '.crash_counter'), 'utf8'), original);"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 113,
+          "text": "    await testScopeAndLifetime(stateDir, owner);"
+        }
+      ]
+    },
+    {
+      "issueId": "fc4b2067bb0d3335f422450feba9a34",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 91,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "1252a0f0a89b1bb26254b895ebf89a80a4905ca1c3309912cd5ce85846bd34d7"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 91,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "1252a0f0a89b1bb26254b895ebf89a80a4905ca1c3309912cd5ce85846bd34d7"
+      },
+      "rationale": "The parsed crash-block record comes from a constant filename inside the private literal-mode directory and is asserted to contain the expected count after recovery.",
+      "evidence": [
+        {
+          "line": 71,
+          "text": "  for (const mode of ['counter-paused', 'block-paused']) {"
+        },
+        {
+          "line": 72,
+          "text": "    const directory = path.join(stateDir, mode);"
+        },
+        {
+          "line": 88,
+          "text": "      const recovered = await acquireProcessLock(path.join(directory, '.process_active'));"
+        },
+        {
+          "line": 90,
+          "text": "        await assert.rejects(checkCrashLoopFiles(directory, recovered, 123002), CrashLoopBlockedError);"
+        },
+        {
+          "line": 91,
+          "text": "        assert.equal(JSON.parse(await readFile(path.join(directory, '.crash_blocked'), 'utf8')).count, 3);"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 115,
+          "text": "    await testHardCrashes(stateDir);"
+        }
+      ]
+    },
+    {
+      "issueId": "316f2f6fedb2790578badc5b616a82f2",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_outbox.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 54,
+        "sourceSha256": "b7d9112722cf5092f1abb10244f298b4bb01e19e71c2880985bdc8f86a97aa0b",
+        "lineSha256": "aadfd39244190be7a2490bfbccb9ec7b75dd8020d72c2535d01da06538edcb13"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 54,
+        "sourceSha256": "b7d9112722cf5092f1abb10244f298b4bb01e19e71c2880985bdc8f86a97aa0b",
+        "lineSha256": "aadfd39244190be7a2490bfbccb9ec7b75dd8020d72c2535d01da06538edcb13"
+      },
+      "rationale": "future.db is a constant child of the private mkdtemp root, passed only by runTests to prepareLegacyDatabase. The constructed future-version SQLite database intentionally makes initDb reject.",
+      "evidence": [
+        {
+          "line": 53,
+          "text": "async function prepareLegacyDatabase(testDir, dbPath) {"
+        },
+        {
+          "line": 54,
+          "text": "    const futurePath = path.join(testDir, 'future.db');"
+        },
+        {
+          "line": 55,
+          "text": "    const futureDb = await open({ filename: futurePath, driver: sqlite3.Database });"
+        },
+        {
+          "line": 63,
+          "text": "      INSERT INTO schema_migrations VALUES (999, 'future', '${'f'.repeat(64)}', 1);"
+        },
+        {
+          "line": 66,
+          "text": "    await assert.rejects(initDb(futurePath), /schema is newer than this binary/);"
+        },
+        {
+          "line": 295,
+          "text": "async function runTests() {"
+        },
+        {
+          "line": 296,
+          "text": "  const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-outbox-test-'));"
+        },
+        {
+          "line": 299,
+          "text": "    await prepareLegacyDatabase(testDir, dbPath);"
+        }
+      ]
+    },
+    {
+      "issueId": "7da8b63862c663b445c6e8fcf08477b8",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_crash_guard.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 75,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "5139355a3749ecbf40fd08f471b2c6237b6d90c3dd2d38bfdf9a28731e4d6954"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 75,
+        "sourceSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+        "lineSha256": "5139355a3749ecbf40fd08f471b2c6237b6d90c3dd2d38bfdf9a28731e4d6954"
+      },
+      "rationale": "The initial counter write targets a fixed basename in the private literal-mode directory and serializes only locally constructed count/timestamp fixture data.",
+      "evidence": [
+        {
+          "line": 71,
+          "text": "  for (const mode of ['counter-paused', 'block-paused']) {"
+        },
+        {
+          "line": 72,
+          "text": "    const directory = path.join(stateDir, mode);"
+        },
+        {
+          "line": 74,
+          "text": "    const before = JSON.stringify({ count: 2, lastCrash: 123000 });"
+        },
+        {
+          "line": 75,
+          "text": "    await writeFile(path.join(directory, '.crash_counter'), before);"
+        },
+        {
+          "line": 102,
+          "text": "  const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));"
+        },
+        {
+          "line": 115,
+          "text": "    await testHardCrashes(stateDir);"
+        }
+      ]
+    },
+    {
+      "issueId": "2354cefd3a1b87f31d94b8fd0ae04cda",
+      "rule": "Semgrep_javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal",
+      "path": "tests/test_outbox.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 265,
+        "sourceSha256": "b7d9112722cf5092f1abb10244f298b4bb01e19e71c2880985bdc8f86a97aa0b",
+        "lineSha256": "cb6af6d9e19a75bae31e4767da29645a443ad8f18f0e5c38d7ed4d72f7a6090a"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 265,
+        "sourceSha256": "b7d9112722cf5092f1abb10244f298b4bb01e19e71c2880985bdc8f86a97aa0b",
+        "lineSha256": "cb6af6d9e19a75bae31e4767da29645a443ad8f18f0e5c38d7ed4d72f7a6090a"
+      },
+      "rationale": "The backup directory name is constant and its parent is the private mkdtemp root passed only by runTests. It is read to inspect the migration created earlier by the local legacy database fixture.",
+      "evidence": [
+        {
+          "line": 100,
+          "text": "    await initDb(dbPath);"
+        },
+        {
+          "line": 263,
+          "text": "async function testMigrationRecovery(testDir, dbPath) {"
+        },
+        {
+          "line": 265,
+          "text": "    const migrationBackupDirectory = path.join(testDir, '.migration-backups');"
+        },
+        {
+          "line": 266,
+          "text": "    const migrationSnapshots = (await readdir(migrationBackupDirectory))"
+        },
+        {
+          "line": 295,
+          "text": "async function runTests() {"
+        },
+        {
+          "line": 296,
+          "text": "  const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-outbox-test-'));"
+        },
+        {
+          "line": 299,
+          "text": "    await prepareLegacyDatabase(testDir, dbPath);"
+        },
+        {
+          "line": 303,
+          "text": "    await testMigrationRecovery(testDir, dbPath);"
+        }
+      ]
+    }
+  ],
+  "reviewedIssueCount": 40
+}

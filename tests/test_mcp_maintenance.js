@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import fsPromises from 'node:fs/promises';
+import { syncBuiltinESMExports } from 'node:module';
+import { mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
@@ -28,14 +30,85 @@ async function member(databasePath) {
   const participant = await registerDatabaseMaintenanceParticipant(databasePath);
   const database = await open({ filename: databasePath, driver: sqlite3.Database });
   await participant.afterOpen();
-  return { participant, database, closed: false, async close() {
-    if (this.closed) return;
-    await participant.closeStarted();
-    await database.close();
-    this.closed = true;
+  return { participant, database, closed: false, acknowledged: false, async close() {
+    if (this.acknowledged) return;
+    if (!this.closed) {
+      await participant.closeStarted();
+      await database.close();
+      this.closed = true;
+    }
     await participant.closeSucceeded();
+    this.acknowledged = true;
   } };
 }
+
+async function injectClosedRecordRename(file, code, failures, operation) {
+  const originalRename = fsPromises.rename;
+  const injected = Object.assign(new Error('Controlled maintenance rename failure'), { code });
+  const attempts = [];
+  fsPromises.rename = async (temporary, destination) => {
+    if (destination !== file || JSON.parse(await readFile(temporary, 'utf8')).state !== 'closed') {
+      return originalRename(temporary, destination);
+    }
+    attempts.push(temporary);
+    assert.equal(JSON.parse(await readFile(destination, 'utf8')).state, 'closing', 'Failed replacement preserves the old complete record.');
+    assert.equal(temporary, attempts[0], 'Retries reuse the same fully written evidence.');
+    if (attempts.length <= failures) throw injected;
+    return originalRename(temporary, destination);
+  };
+  syncBuiltinESMExports();
+  try { await operation({ injected, attempts }); }
+  finally { fsPromises.rename = originalRename; syncBuiltinESMExports(); }
+}
+
+const uncoercibleCode = { toString() { throw new Error('Unknown error codes must not be coerced.'); } };
+for (const code of ['EPERM', 'EACCES', 'EBUSY', 'EIO', 'ACCESSOR', uncoercibleCode]) {
+  await fixture(async ({ directory, databasePath, owner }) => {
+    const handle = await member(databasePath);
+    const lease = await beginMcpSharedMaintenance('bounded atomic evidence retry', databasePath, owner);
+    const file = path.join(directory, '.mcp-participants', `${handle.participant.id}.json`);
+    const retryable = process.platform === 'win32' && ['EPERM', 'EACCES', 'EBUSY'].includes(code);
+    try {
+      await injectClosedRecordRename(file, code, 2, async ({ injected, attempts }) => {
+        if (code === 'ACCESSOR') Object.defineProperty(injected, 'code', { get() { throw new Error('Error code getters must not execute.'); } });
+        if (retryable) {
+          await handle.close();
+          assert.equal(attempts.length, 3);
+        } else {
+          await assert.rejects(handle.close(), error => error === injected);
+          assert.equal(attempts.length, 1, 'Other failures are propagated immediately.');
+          await assert.rejects(lease.assertQuiescent(), /not acknowledged/);
+        }
+      });
+      await handle.close(); // A failed publication retries without closing SQLite twice.
+      await lease.waitForQuiescence();
+      await lease.assertQuiescent();
+      assert.equal((await readdir(path.join(directory, '.mcp-participants'))).some(name => name.endsWith('.tmp')), false);
+    } finally { await handle.close(); await lease.release(); }
+  });
+}
+
+await fixture(async ({ directory, databasePath, owner }) => {
+  const handle = await member(databasePath);
+  const lease = await beginMcpSharedMaintenance('persistent evidence lock remains a failure', databasePath, owner);
+  const file = path.join(directory, '.mcp-participants', `${handle.participant.id}.json`);
+  try {
+    await injectClosedRecordRename(file, 'EPERM', Infinity, async ({ injected, attempts }) => {
+      await assert.rejects(handle.close(), error => error === injected);
+      assert.equal(attempts.length, process.platform === 'win32' ? 5 : 1);
+      assert.equal(handle.closed, true);
+      assert.equal(handle.acknowledged, false);
+      await assert.rejects(lease.assertQuiescent(), /not acknowledged/);
+      assert.equal((await readdir(path.join(directory, '.mcp-maintenance-acks')).catch(error => {
+        if (error.code === 'ENOENT') return [];
+        throw error;
+      })).length, 0, 'No acknowledgement is published after a failed state replacement.');
+    });
+    await handle.close();
+    await lease.waitForQuiescence();
+    await lease.assertQuiescent();
+  } finally { await handle.close(); await lease.release(); }
+});
 
 await fixture(async ({ databasePath, owner }) => {
   assert.equal(await mcpMaintenanceActive(databasePath), false);
@@ -50,7 +123,7 @@ await fixture(async ({ databasePath, owner }) => {
   assert.deepEqual(await readMcpMaintenanceRequest(databasePath), lease.request);
   assert.ok(lease.protectedEntries.includes('.mcp-participants'));
   await assert.rejects(lease.assertQuiescent(), /not acknowledged/);
-  await assert.rejects(assertMcpMaintenanceLease({ ...lease, assertQuiescent: async () => {} }, databasePath), /genuine.*lease/i);
+  await assert.rejects(assertMcpMaintenanceLease({ ...lease, assertQuiescent: () => Promise.resolve() }, databasePath), /genuine.*lease/i);
   await assert.rejects(assertMcpMaintenanceLease(lease, `${databasePath}.different`), /database scope/i);
   await assert.rejects(assertMcpMaintenanceLease(lease, databasePath), /not acknowledged/);
   await assert.rejects(clearMcpMaintenanceMarker(databasePath), /owning lease/);
@@ -156,14 +229,31 @@ await fixture(async ({ databasePath, owner }) => {
   } finally { process.kill = originalKill; await active.close(); await lease.release(); }
 });
 
+async function maintenanceFixtureSnapshot(directory, request) {
+  const snapshot = { request, records: {} };
+  for (const registry of ['.mcp-participants', '.mcp-maintenance-acks']) {
+    try {
+      const files = await readdir(path.join(directory, registry));
+      snapshot.records[registry] = await Promise.all(files.map(async file => {
+        try { return { file, content: await readFile(path.join(directory, registry, file), 'utf8') }; }
+        catch (error) { return { file, error: error.message }; }
+      }));
+    } catch (error) { snapshot.records[registry] = { error: error.message }; }
+  }
+  return snapshot;
+}
+
 await fixture(async ({ databasePath, owner, directory }) => {
   const first = await member(databasePath);
   const second = await member(databasePath);
   const lease = await beginMcpSharedMaintenance('two native handles in the same process', databasePath, owner);
-  await first.close();
   let quiescent = false;
-  const waiting = lease.waitForQuiescence().then(() => { quiescent = true; });
+  let waiting = Promise.resolve();
+  const failures = [];
   try {
+    await first.close();
+    waiting = lease.waitForQuiescence().then(() => { quiescent = true; });
+    waiting.catch(() => undefined); // Preserve the original promise while observing early rejection.
     await delay(100);
     assert.equal(quiescent, false, 'One closed handle must not acknowledge another generation in the same PID.');
     await second.close();
@@ -173,13 +263,32 @@ await fixture(async ({ databasePath, owner, directory }) => {
     assert.equal(firstAck.pid, secondAck.pid);
     assert.notEqual(firstAck.participantGeneration, secondAck.participantGeneration);
     await lease.assertQuiescent();
-  } finally { await first.close(); await second.close(); await waiting; await lease.release(); }
+  } catch (error) {
+    failures.push({ stage: 'test body', error });
+  } finally {
+    for (const [stage, cleanup] of [
+      ['first close', () => first.close()], ['second close', () => second.close()],
+      ['quiescence', () => waiting],
+    ]) {
+      try { await cleanup(); }
+      catch (error) { failures.push({ stage, error }); }
+    }
+    if (failures.length) {
+      console.error('Maintenance fixture evidence:', JSON.stringify(await maintenanceFixtureSnapshot(directory, lease.request)));
+    }
+    try { await lease.release(); }
+    catch (error) { failures.push({ stage: 'lease release', error }); }
+  }
+  if (failures.length) {
+    throw new AggregateError(failures.map(({ stage, error }) => new Error(stage, { cause: error })),
+      'Two-handle maintenance fixture failed; original and cleanup errors retained.');
+  }
 });
 
 await fixture(async ({ databasePath, owner }) => {
   const fixturePath = fileURLToPath(new URL('./fixtures/maintenance_participant_child.js', import.meta.url));
   const child = spawn(process.execPath, ['--import', 'tsx', fixturePath, databasePath], { stdio: ['ignore', 'ignore', 'pipe', 'ipc'], windowsHide: true });
-  let lease;
+  let lease = null;
   try {
     const [ready] = await once(child, 'message');
     assert.equal(ready.state, 'opened');
@@ -197,20 +306,20 @@ await fixture(async ({ databasePath, owner }) => {
 });
 
 const tracker = createMaintenanceWorkTracker();
-let finish;
+let finish = null;
 const pending = tracker.run(() => new Promise(resolve => { finish = resolve; }));
 await delay(0);
 const draining = tracker.stopAndDrain(Date.now() + 1000);
-await assert.rejects(tracker.run(async () => 'new mutation'), /new database work is blocked/);
+await assert.rejects(tracker.run(() => Promise.resolve('new mutation')), /new database work is blocked/);
 finish('old work finished');
 await Promise.all([pending, draining]);
 
 const blockedTracker = createMaintenanceWorkTracker();
-let finishBlocked;
+let finishBlocked = null;
 const blocked = blockedTracker.run(() => new Promise(resolve => { finishBlocked = resolve; }));
 await delay(0);
 await assert.rejects(blockedTracker.stopAndDrain(Date.now() + 30), /did not drain/);
-await assert.rejects(blockedTracker.run(async () => 'late mutation'), /new database work is blocked/);
+await assert.rejects(blockedTracker.run(() => Promise.resolve('late mutation')), /new database work is blocked/);
 finishBlocked();
 await blocked;
 

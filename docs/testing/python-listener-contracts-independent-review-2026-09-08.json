@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "reviewedRevision": "cf3b8f5934bf652e90ae3638986fd40d664e5341",
+  "reviewedChanges": [
+    "c6584cabd576f4ce1982297b74c7276232a1f051",
+    "cf3b8f5934bf652e90ae3638986fd40d664e5341"
+  ],
+  "reviewer": "independent baseline_verification agent",
+  "files": {
+    "exchange_executor/server.py": "90442c0b962745834e34b6d2fb1a833561040c5b756acd2f1557e5e05a17f5a7",
+    "exchange_executor/tests/test_executor_listener.py": "af0374933f12f2300d9c3f9475856f1eea7d37c08bfaad4dd57f73a15c74d57e",
+    "exchange_executor/tests/acceptance_contracts.py": "90f1181a1fce16aa23cb1540fd449986c625e60c8a3e982d8708e70bd15dd85e",
+    "exchange_executor/tests/acceptance_journal.py": "49c6942656f2eca91042c0b13459924d31ab952d99f5993cd29805d79e22f4c1",
+    "exchange_executor/tests/provider_acceptance_runner.py": "7823d167f96dd9ec1cf0ad5f766d5f42340ec1fe8f55d389a974c9d9e9912f70",
+    "docker-compose.yml": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642"
+  },
+  "decision": "No blocking findings in reviewed changes",
+  "verification": {
+    "ast": "All 19 constants, classes and functions in acceptance_contracts have identical ASTs to definitions in c6584ca runner.",
+    "identity": "All 19 runner reexports are object-identical to contract exports; journal validators are identical, and invalid bindings remain catchable through runner.AcceptanceRefused before any file creation.",
+    "journal": "JSON canonicalization, checksum chain, SQLite transactions, fsync, ownership and no-replay logic unchanged. Journal imports contracts without importing runner; eliminates duplicate runner module on direct CLI execution.",
+    "tests": {
+      "command": "python -m unittest test_executor_listener test_provider_acceptance test_acceptance_journal test_acceptance_journal_crash",
+      "passed": 29,
+      "failed": 0,
+      "durationSeconds": 4.073
+    },
+    "cli": "Default invocation returns DRY_RUN with networkRequests=0 and secretReads=0; --execute without authorization exits 1 with redacted refusal.",
+    "listener": "Only absent EXECUTOR_HOST changes to 127.0.0.1. Explicit 0.0.0.0 and ::1 remain preserved. Compose explicitly retains EXECUTOR_HOST 0.0.0.0."
+  },
+  "limits": [
+    "Local offline review and regression tests only; no real provider, network deployment or power-loss durability acceptance.",
+    "The exception class __module__ now names acceptance_contracts; inspected journal persists JSON, not pickled exception objects. Public runner import and exception identity remain compatible."
+  ]
+}

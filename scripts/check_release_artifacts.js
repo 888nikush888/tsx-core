@@ -14,9 +14,25 @@ function coreReleaseViolations(manifest, changelog, license) {
   if (!new RegExp(String.raw`^## \[${escapedVersion}\] - \d{4}-\d{2}-\d{2}$`, 'm').test(changelog)) {
     violations.push(`CHANGELOG has no dated section for ${manifest.version}`);
   }
+  violations.push(...licenseTextViolations(license));
+  return violations;
+}
+
+function licenseTextViolations(license) {
+  const violations = [];
   if (!/^MIT License\r?\n/.test(license)) violations.push('LICENSE is not an MIT license text');
   if (!license.includes('THE SOFTWARE IS PROVIDED "AS IS"')) violations.push('LICENSE is missing the MIT warranty disclaimer');
   return violations;
+}
+
+function lockVersionMatches(lock, version) {
+  return lock.version === version && lock.packages?.['']?.version === version;
+}
+
+function lockVersionViolations(lock, version, label) {
+  if (!lock) return [];
+  if (lockVersionMatches(lock, version)) return [];
+  return [`${label} lockfile version must match the release package version`];
 }
 
 function versionAlignmentViolations(manifest, frontendManifest, backendLock, frontendLock) {
@@ -24,12 +40,8 @@ function versionAlignmentViolations(manifest, frontendManifest, backendLock, fro
   if (frontendManifest && frontendManifest.version !== manifest.version) {
     violations.push('frontend package version must match the release package version');
   }
-  if (backendLock && (backendLock.version !== manifest.version || backendLock.packages?.['']?.version !== manifest.version)) {
-    violations.push('backend lockfile version must match the release package version');
-  }
-  if (frontendLock && (frontendLock.version !== manifest.version || frontendLock.packages?.['']?.version !== manifest.version)) {
-    violations.push('frontend lockfile version must match the release package version');
-  }
+  violations.push(...lockVersionViolations(backendLock, manifest.version, 'backend'));
+  violations.push(...lockVersionViolations(frontendLock, manifest.version, 'frontend'));
   return violations;
 }
 

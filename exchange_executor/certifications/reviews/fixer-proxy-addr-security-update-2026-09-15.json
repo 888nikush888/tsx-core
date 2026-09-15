@@ -1,0 +1,87 @@
+{
+  "kind": "proxy-address-security-dependency-update",
+  "baseRevision": "c2617205eadfb755a1258a87a08c625ae3b43d3b",
+  "advisory": "https://github.com/jshttp/proxy-addr/security/advisories/GHSA-jqcg-44mw-7w3h",
+  "package": "proxy-addr",
+  "before": "2.0.7",
+  "after": "2.0.8",
+  "installation": "npm install --ignore-scripts --no-audit --no-fund changed exactly1package in each tree; actual require(package.json)2.0.8 confirmed. Existing other dependencies retained, not a clean installation.",
+  "lockScope": "Only proxy-addr package entry changed in each lock; unrelated libc selector removals by npm restored exactly from HEAD.",
+  "verification": {
+    "networkSuites": [
+      "test_mcp_server.js",
+      "test_dashboard_auth.js",
+      "test_web_server.js"
+    ],
+    "networkExit": 0,
+    "networkLogSha256": "33457bb5d5207f67eedfe7a0a2fd1b297cf043a7bfab3d9105c2701429f5332e",
+    "directAdvisoryRegression": {
+      "advisory": "https://github.com/jshttp/proxy-addr/security/advisories/GHSA-jqcg-44mw-7w3h",
+      "results": [
+        {
+          "scope": ".",
+          "version": "2.0.8",
+          "advisoryRegression": "passed",
+          "validIpv4AndMappedSubnetCompatibility": "passed"
+        },
+        {
+          "scope": "frontend",
+          "version": "2.0.8",
+          "advisoryRegression": "passed",
+          "validIpv4AndMappedSubnetCompatibility": "passed"
+        }
+      ]
+    },
+    "dependencyScans": [
+      {
+        "scope": "backend",
+        "scannerExit": 0,
+        "findings": 0,
+        "execution": {
+          "finishedAt": "2026-09-15T09:06:57.9195106Z",
+          "arguments": [
+            "test",
+            "--file=package-lock.json",
+            "--package-manager=npm",
+            "--ignore-policy",
+            "--dev",
+            "--strict-out-of-sync=true",
+            "--sarif",
+            "--json-file-output=reports/security-services/fixer-proxy-addr-backend.json"
+          ],
+          "revision": "c2617205eadfb755a1258a87a08c625ae3b43d3b",
+          "lockRawSha256": "e9af579583c31baa6ea55909db02fde91cfb117630f794e791ae61df1c1bbf58",
+          "scannerExit": 0,
+          "file": "package-lock.json",
+          "org": "configured CLI default, no explicit SNYK_ORG override"
+        }
+      },
+      {
+        "scope": "frontend",
+        "scannerExit": 0,
+        "findings": 0,
+        "execution": {
+          "finishedAt": "2026-09-15T09:07:03.8004343Z",
+          "arguments": [
+            "test",
+            "--file=frontend/package-lock.json",
+            "--package-manager=npm",
+            "--ignore-policy",
+            "--dev",
+            "--strict-out-of-sync=true",
+            "--sarif",
+            "--json-file-output=reports/security-services/fixer-proxy-addr-frontend.json"
+          ],
+          "revision": "c2617205eadfb755a1258a87a08c625ae3b43d3b",
+          "lockRawSha256": "a2e54a01556011c8063e9e1f3b926a197aed2f17adb7de39c320354dca7d015a",
+          "scannerExit": 0,
+          "file": "frontend/package-lock.json",
+          "org": "configured CLI default, no explicit SNYK_ORG override"
+        }
+      }
+    ]
+  },
+  "limits": [
+    "Published CI still uses2.0.7 until next push; prior complete226suite preceded dependency update. Focused network regressions and direct package checks ran after installation."
+  ]
+}

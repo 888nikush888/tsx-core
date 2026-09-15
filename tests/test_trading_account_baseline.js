@@ -135,7 +135,7 @@ try {
   const initialQuery = await exchangeRecoveryQuery(await getTradingAccount(created.id));
   let state = snapshot([oldFill]);
   let mutations = 0;
-  const adapter = { exchange: 'bybit', openState: async () => state,
+  const adapter = { exchange: 'bybit', openState: () => Promise.resolve(state),
     submitOrder: async () => { mutations += 1; throw new Error('No real order permitted.'); },
     cancelOrder: async () => { mutations += 1; throw new Error('No real cancel permitted.'); } };
   const engine = new TradingEngine([adapter]);

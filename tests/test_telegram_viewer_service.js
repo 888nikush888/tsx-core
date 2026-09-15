@@ -22,6 +22,15 @@ import {
 import { TelegramViewerService } from '../src/telegram_viewer/service.js';
 import { TelegramViewerStateRepository } from '../src/telegram_viewer/state_repository.js';
 
+// Legacy projection lists must preserve primitive fallback versus monetary rejection.
+assert.strictEqual(formatAccounts({ accounts: [0, false, 'legacy'] }), 'TSX Core · Accounts\nKonto\nKonto\nKonto');
+assert.strictEqual(formatAccounts({ accounts: [], account: { name: 'ignored' } }), 'TSX Core · Accounts\nKeine Einträge.');
+assert.throws(() => formatAccounts({ accounts: [null] }), { name: 'TypeError' });
+assert.throws(() => formatPositions({ positions: [0] }), { name: 'TypeError' });
+assert.throws(() => formatTrades({ trades: ['legacy'] }), { name: 'TypeError' });
+assert.strictEqual(formatSummary({ accounts: { total: false }, positions: null }),
+  'TSX Core · Übersicht\nKonten: false\nAktive Positionen: 0\nOffene Intents: 0\nOffene Incidents: 0');
+
 const SETTINGS = {
   enabled: true,
   allowedUserIds: ['1001'],
@@ -47,7 +56,7 @@ function fakeCore() {
   };
   return {
     calls,
-    config: async () => { calls.push('config'); return { settings: structuredClone(SETTINGS) }; },
+    config: () => { calls.push('config'); return Promise.resolve({ settings: structuredClone(SETTINGS) }); },
     get: async (resource, query = {}) => {
       calls.push(`${resource}:${Number(query.offset || 0)}`);
       if (resource === 'events') return { events: Number(query.afterSeq || 0) < 1 ? [event] : [], nextSeq: 1 };
@@ -72,17 +81,22 @@ function fakeCore() {
 function fakeBot() {
   return {
     updates: [], sent: [], answered: [], failNext: false,
-    async getUpdates() { const updates = this.updates; this.updates = []; return updates; },
+    getUpdates() { const updates = this.updates; this.updates = []; return Promise.resolve(updates); },
     async sendMessage(chatId, text, options) {
       if (this.failNext) { this.failNext = false; throw new Error('temporary telegram failure'); }
       this.sent.push({ chatId, text, options }); return { message_id: this.sent.length };
     },
-    async answerCallbackQuery(id, text) { this.answered.push({ id, text }); },
+    answerCallbackQuery(id, text) { this.answered.push({ id, text }); return Promise.resolve(); },
   };
 }
 
 function assertNoInlineMenu(message, label) {
   assert.strictEqual(message.options, undefined, label);
+}
+
+function assertTestDelivery(message) {
+  assertNoInlineMenu(message, 'Viewer test messages must not attach the full viewer menu.');
+  assert.strictEqual(message.text, 'TSX Core \u00b7 Test\nViewer test', 'Test delivery preserves the intended Unicode text.');
 }
 
 function assertUnknownResponse(message) {
@@ -171,12 +185,12 @@ async function verifyViewerModes(directory, state) {
   const mutedState = new TelegramViewerStateRepository(path.join(directory, 'muted-state.db'));
   await mutedState.initialize();
   const mutedCore = fakeCore();
-  mutedCore.config = async () => ({
+  mutedCore.config = () => Promise.resolve(({
     settings: {
       ...structuredClone(SETTINGS),
       notifications: { ...structuredClone(SETTINGS.notifications), positionOpened: false },
     },
-  });
+  }));
   const mutedBot = fakeBot();
   const muted = new TelegramViewerService({ core: mutedCore, bot: mutedBot, state: mutedState });
   await muted.refreshSettings();
@@ -184,7 +198,7 @@ async function verifyViewerModes(directory, state) {
   assert.strictEqual(mutedBot.sent.length, 0, 'A disabled notification type must not be delivered.');
   await mutedState.close();
   const disabledCore = fakeCore();
-  disabledCore.config = async () => ({ settings: { ...structuredClone(SETTINGS), enabled: false } });
+  disabledCore.config = () => Promise.resolve(({ settings: { ...structuredClone(SETTINGS), enabled: false } }));
   const disabledBot = fakeBot();
   const disabled = new TelegramViewerService({ core: disabledCore, bot: disabledBot, state, now: () => 1_700_000_030_000 });
   await disabled.refreshSettings();
@@ -284,7 +298,7 @@ async function run() {
     await service.pollTestEventsOnce();
     assert.strictEqual(service.status().lastTest.status, 'retrying');
     await service.deliverPendingOnce(1_700_000_012_000);
-    assertNoInlineMenu(bot.sent.at(-1), 'Viewer test messages must not attach the full viewer menu.');
+    assertTestDelivery(bot.sent.at(-1));
     assert.strictEqual(service.status().lastTestEventId, 1);
     assert.strictEqual((await state.lastTest()).status, 'delivered');
 
@@ -311,7 +325,106 @@ async function run() {
   }
 }
 
-run().catch(error => {
+async function verifyStoredStringContracts() {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-viewer-string-rows-'));
+  const state = new TelegramViewerStateRepository(path.join(directory, 'viewer.db'));
+  try {
+    await state.initialize();
+    await state.queueDeliveries({ kind: 'test', sourceSeq: 1, sourceId: 'fixture', userIds: ['1001'], payload: { message: 'hello' }, now: 1 });
+    const database = state.db();
+    const original = (await state.pendingDeliveries(1))[0];
+    for (const column of ['user_id', 'payload_json']) {
+      const saved = (await database.get(`SELECT ${column} AS value FROM viewer_deliveries WHERE id = ?`, [original.id])).value;
+      await database.run(`UPDATE viewer_deliveries SET ${column} = ? WHERE id = ?`, [Buffer.from(column === 'user_id' ? '1001' : '{"message":"hello"}'), original.id]);
+      await assert.rejects(state.pendingDeliveries(1), /must be a string/);
+      await database.run(`UPDATE viewer_deliveries SET ${column} = ? WHERE id = ?`, [saved, original.id]);
+    }
+    assert.deepStrictEqual((await state.pendingDeliveries(1))[0], original);
+    await state.setLastTest({ sourceSeq: 1, status: 'failed', attemptedAt: 1, error: 'fixture failure' });
+    const lastTest = await state.lastTest();
+    for (const column of ['status', 'error']) {
+      await database.run(`UPDATE viewer_last_test SET ${column} = ? WHERE singleton_id = 1`, [Buffer.from(lastTest[column])]);
+      await assert.rejects(state.lastTest(), /must be a string/);
+      await database.run(`UPDATE viewer_last_test SET ${column} = ? WHERE singleton_id = 1`, [lastTest[column]]);
+    }
+    assert.deepStrictEqual(await state.lastTest(), lastTest);
+    await state.setLastTest({ sourceSeq: 1, status: 'delivered', attemptedAt: 1, deliveredAt: 2 });
+    assert.strictEqual((await state.lastTest()).error, null);
+  } finally {
+    await state.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+async function verifyDeliveryMessageContracts() {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-viewer-message-contracts-'));
+  const state = new TelegramViewerStateRepository(path.join(directory, 'viewer.db'));
+  const bot = fakeBot();
+  const sendMessage = bot.sendMessage.bind(bot);
+  let botCalls = 0;
+  bot.sendMessage = (...args) => { botCalls += 1; return sendMessage(...args); };
+  const now = Date.parse('2023-11-14T22:13:30.000Z');
+  const service = new TelegramViewerService({ core: fakeCore(), bot, state, now: () => now });
+  let sourceSeq = 0;
+  const queue = async message => {
+    sourceSeq += 1;
+    await state.queueDeliveries({ kind: 'test', sourceSeq, sourceId: `message-${sourceSeq}`,
+      userIds: ['1001'], payload: { test: { message } }, now });
+    return sourceSeq;
+  };
+  try {
+    await state.initialize();
+    await service.refreshSettings();
+    for (const message of [undefined, null, '', ' \t ', 'Viewer test', 'x'.repeat(6_000)]) {
+      await queue(message);
+      const callsBefore = botCalls;
+      await service.deliverPendingOnce(now);
+      assert.strictEqual(botCalls, callsBefore + 1);
+      assert.strictEqual(bot.sent.at(-1).text, `TSX Core \u00b7 Test\n${message ?? 'Testnachricht'}`.slice(0, 4096));
+      assertNoInlineMenu(bot.sent.at(-1), 'Validated test messages retain the existing delivery options.');
+      assert.strictEqual((await state.lastTest()).status, 'delivered');
+    }
+    const invalidSequences = [];
+    for (const message of [{}, { privateField: 'must not be sent' }, [], ['array text'], false, 0, 42]) {
+      invalidSequences.push(await queue(message));
+      const callsBefore = botCalls;
+      await service.deliverPendingOnce(now);
+      assert.strictEqual(botCalls, callsBefore, 'Malformed message values must not invoke the bot.');
+      assert.deepStrictEqual(await state.lastTest(), {
+        sourceSeq, status: 'retrying', attemptedAt: now, deliveredAt: null,
+        error: 'Viewer test message must be a string.',
+      });
+      assert.strictEqual((await state.pendingDeliveries(now)).length, 0, 'Malformed deliveries retain bounded backoff.');
+    }
+    const pending = await state.pendingDeliveries(now + 1_000);
+    assert.deepStrictEqual(pending.map(delivery => delivery.sourceSeq), invalidSequences);
+    assert.ok(pending.every(delivery => delivery.attempts === 1));
+
+    const retrySequence = await queue('Retry after a real bot failure');
+    const callsBeforeFailure = botCalls;
+    bot.failNext = true;
+    await service.deliverPendingOnce(now);
+    assert.strictEqual(botCalls, callsBeforeFailure + 1, 'Valid text must still reach the real failure branch.');
+    assert.strictEqual((await state.lastTest()).error, 'temporary telegram failure');
+    assert.strictEqual((await state.lastTest()).status, 'retrying');
+    assert.strictEqual((await state.pendingDeliveries(now + 999)).length, 0);
+    await service.deliverPendingOnce(now + 1_000);
+    assert.strictEqual(botCalls, callsBeforeFailure + 2, 'Malformed retries never call the bot; the valid retry does.');
+    assert.strictEqual(bot.sent.at(-1).text, 'TSX Core \u00b7 Test\nRetry after a real bot failure');
+    assert.deepStrictEqual(await state.lastTest(), {
+      sourceSeq: retrySequence, status: 'delivered', attemptedAt: now + 1_000,
+      deliveredAt: now + 1_000, error: null,
+    });
+    const malformedRetries = await state.pendingDeliveries(now + 3_000);
+    assert.deepStrictEqual(malformedRetries.map(delivery => delivery.sourceSeq), invalidSequences);
+    assert.ok(malformedRetries.every(delivery => delivery.attempts === 2));
+  } finally {
+    await state.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+verifyStoredStringContracts().then(verifyDeliveryMessageContracts).then(run).catch(error => {
   console.error(error);
   process.exit(1);
 });

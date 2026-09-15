@@ -1,0 +1,386 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "scope": "All 37 baseline JS-0323 and JS-0339 occurrences in src/trading_channel_risk.ts.",
+  "verification": [
+    "Node22 tsc --noEmit",
+    "Node22 tests/test_trading_fx_channel_risk.js",
+    "Node22 tests/test_trading_analytics.js",
+    "Node22 tests/test_ui_adaptive_risk.js",
+    "Targeted ESLint",
+    "Node22 tests/test_channel_risk_type_guards.js: create/update missing readback rollback",
+    "TypeScript AST: zero AnyKeyword and NonNullExpression nodes; tier object-coercion and corrupted persisted-tier regressions"
+  ],
+  "occurrences": [
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHF3a2w=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 906,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZxeXE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 895,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpvcXc=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 876,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtlbXY=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 866,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlyYXg=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 774,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VwZGE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 774,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJ5cGE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 525,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlya3g=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 439,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1kcHY=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 377,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxheHY=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 366,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJ5dmE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 213,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlyYXc=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 164,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlydng=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 154,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VwbWE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 146,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFxbG4=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 135,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG9wcm8=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 107,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmxhcHY=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 80,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Concrete SQL policy/evaluation and workflow analytics projections follow stored schema fields and nullability. Shared evaluation provenance readers consume exact evaluation columns; joined resource metadata is represented explicitly. Row conversion and risk decisions are unchanged."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlkeGE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 837,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Workflow risk state is a concrete stored row plus optional evaluation warning. Missing create/update readback fails explicitly within the encompassing database transaction; fault injection proves policy hash, tier and block state roll back together."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpqd2dxZHJ5amE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 796,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Workflow risk state is a concrete stored row plus optional evaluation warning. Missing create/update readback fails explicitly within the encompassing database transaction; fault injection proves policy hash, tier and block state roll back together."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFxeG4=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 760,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Workflow risk state is a concrete stored row plus optional evaluation warning. Missing create/update readback fails explicitly within the encompassing database transaction; fault injection proves policy hash, tier and block state roll back together."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1kcnY=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 756,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Workflow risk state is a concrete stored row plus optional evaluation warning. Missing create/update readback fails explicitly within the encompassing database transaction; fault injection proves policy hash, tier and block state roll back together."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl3YWE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 669,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Workflow risk state is a concrete stored row plus optional evaluation warning. Missing create/update readback fails explicitly within the encompassing database transaction; fault injection proves policy hash, tier and block state roll back together."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhvcmo=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 658,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Workflow risk state is a concrete stored row plus optional evaluation warning. Missing create/update readback fails explicitly within the encompassing database transaction; fault injection proves policy hash, tier and block state roll back together."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHF3ZWw=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 643,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Workflow risk state is a concrete stored row plus optional evaluation warning. Missing create/update readback fails explicitly within the encompassing database transaction; fault injection proves policy hash, tier and block state roll back together."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZxZHE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 641,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Workflow risk state is a concrete stored row plus optional evaluation warning. Missing create/update readback fails explicitly within the encompassing database transaction; fault injection proves policy hash, tier and block state roll back together."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29ncW4=",
+      "rule": "JS-0339",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 809,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Risk-tier scalars are narrowed without arbitrary object coercion; previous tiers are locally guarded, selected tiers require a present policy member. Numeric/string scalar compatibility and invalid persisted empty tiers are tested."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRwcW0=",
+      "rule": "JS-0339",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 779,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Existing complete-history guard returns the never-returning unresolved-risk error explicitly; evidence carries a proven MoneyValue through percent and tier decisions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtlZHY=",
+      "rule": "JS-0339",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 565,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Risk-tier scalars are narrowed without arbitrary object coercion; previous tiers are locally guarded, selected tiers require a present policy member. Numeric/string scalar compatibility and invalid persisted empty tiers are tested."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlka2E=",
+      "rule": "JS-0339",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 556,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Risk-tier scalars are narrowed without arbitrary object coercion; previous tiers are locally guarded, selected tiers require a present policy member. Numeric/string scalar compatibility and invalid persisted empty tiers are tested."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29nam4=",
+      "rule": "JS-0339",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 540,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Risk-tier scalars are narrowed without arbitrary object coercion; previous tiers are locally guarded, selected tiers require a present policy member. Numeric/string scalar compatibility and invalid persisted empty tiers are tested."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRwZW0=",
+      "rule": "JS-0339",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 447,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Existing complete-history guard returns the never-returning unresolved-risk error explicitly; evidence carries a proven MoneyValue through percent and tier decisions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhvamo=",
+      "rule": "JS-0339",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 358,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Existing complete-history guard returns the never-returning unresolved-risk error explicitly; evidence carries a proven MoneyValue through percent and tier decisions."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZxbXE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 332,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Position valuation and account binding SELECT projections have explicit columns/nullability. Live external account fingerprint must exist before constructing proven capital evidence."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpvZXc=",
+      "rule": "JS-0339",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 331,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "After single-account cardinality proof, iterator value is explicitly checked before querying capital binding."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlkZWE=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 303,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Position valuation and account binding SELECT projections have explicit columns/nullability. Live external account fingerprint must exist before constructing proven capital evidence."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnl3bWE=",
+      "rule": "JS-0339",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 73,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Risk-tier scalars are narrowed without arbitrary object coercion; previous tiers are locally guarded, selected tiers require a present policy member. Numeric/string scalar compatibility and invalid persisted empty tiers are tested."
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhvcGo=",
+      "rule": "JS-0323",
+      "path": "src/trading_channel_risk.ts",
+      "baselineLine": 70,
+      "baselineSourceSha256": "03fa534e2a2bfa1715563e90a1e5a5f13ba4bb7da8e709f10134eeccfe8a7ecb",
+      "reviewedSourceSha256": "2d8ca8414722b7c3e6a930c9859b53f06f6c4a3cd9924759147e3e7374928732",
+      "disposition": "fixed",
+      "reason": "Risk-tier scalars are narrowed without arbitrary object coercion; previous tiers are locally guarded, selected tiers require a present policy member. Numeric/string scalar compatibility and invalid persisted empty tiers are tested."
+    }
+  ]
+}

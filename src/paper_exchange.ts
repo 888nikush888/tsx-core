@@ -125,9 +125,7 @@ async function updateOpeningPosition(row: any, fillQuantity: string, fillPrice: 
       multiplyDecimal(fillQuantity, fillPrice),
     );
     await database.run(
-      `UPDATE trading_paper_positions
-       SET quantity = ?, average_entry_price = ?, margin_used = ?, updated_at = ?
-       WHERE account_id = ? AND symbol = ?`,
+      'UPDATE trading_paper_positions\n       SET quantity = ?, average_entry_price = ?, margin_used = ?, updated_at = ?\n       WHERE account_id = ? AND symbol = ?',
       [
         quantity,
         divideDecimal(weighted, quantity),
@@ -139,14 +137,12 @@ async function updateOpeningPosition(row: any, fillQuantity: string, fillPrice: 
     );
   } else {
     await database.run(
-      `INSERT INTO trading_paper_positions (
-         account_id, symbol, side, quantity, average_entry_price, margin_used, realized_pnl, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, '0', ?)`,
+      "INSERT INTO trading_paper_positions (\n         account_id, symbol, side, quantity, average_entry_price, margin_used, realized_pnl, updated_at\n       ) VALUES (?, ?, ?, ?, ?, ?, '0', ?)",
       [row.account_id, row.symbol, side, fillQuantity, fillPrice, margin, now],
     );
   }
   await database.run(
-    `UPDATE trading_paper_accounts SET available_balance = ?, updated_at = ? WHERE account_id = ?`,
+    'UPDATE trading_paper_accounts SET available_balance = ?, updated_at = ? WHERE account_id = ?',
     [subtractDecimal(account.available_balance, margin), now, row.account_id],
   );
 }
@@ -283,7 +279,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
     const normalizedAvailable = decimal(availableBalance);
     if (compareDecimal(normalizedAvailable, normalizedEquity) > 0) throw new Error('Available paper balance cannot exceed equity.');
     await getDatabase().run(
-      `UPDATE trading_paper_accounts SET equity = ?, available_balance = ?, updated_at = ? WHERE account_id = ?`,
+      'UPDATE trading_paper_accounts SET equity = ?, available_balance = ?, updated_at = ? WHERE account_id = ?',
       [normalizedEquity, normalizedAvailable, now, accountId],
     );
   }
@@ -309,7 +305,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
            updated_at = excluded.updated_at`,
         [accountId, symbol, ...values, market.maxLeverage, now],
       );
-      await settleOpenOrders(accountId, symbol, values[0]!, now, this.executionOptions);
+      await settleOpenOrders(accountId, symbol, values[0] ?? market.markPrice, now, this.executionOptions);
     });
   }
 
@@ -372,7 +368,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
       accountFingerprint: account.id, credentialGeneration: 'paper', ccxtVersion: 'paper', profileHash: 'paper-v1',
       source: 'paper_simulated_complete_tiers_v1', currency: 'USDT', contractSize: '1', markPrice: market.mark_price,
       observedAt, expiresAt: observedAt + 10_000,
-      scope: { complete: true, positionQuantity: position?.quantity ?? '0', openOrderCount: Number(orders!.count) },
+      scope: { complete: true, positionQuantity: position?.quantity ?? '0', openOrderCount: Number(orders?.count ?? 0) },
       tiers: [{ lowerBound: '0', upperBound: null, maxLeverage: Math.min(50, Number(market.max_leverage)) }] };
   }
 
@@ -487,20 +483,24 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
         markPrice: row.mark_price ?? null,
         accounting: paperAccounting(row.symbol),
       })),
-      fills: fills.map(row => ({
+      fills: fills.map(row => {
+        const symbol = symbols.get(row.exchange_order_id);
+        if (!symbol) throw new Error('Paper fill order symbol is missing.');
+        return {
         exchangeFillId: row.exchange_fill_id,
         clientOrderId: row.client_order_id,
         exchangeOrderId: row.exchange_order_id,
-        symbol: symbols.get(row.exchange_order_id),
-        providerSymbol: symbols.get(row.exchange_order_id),
+        symbol,
+        providerSymbol: symbol,
         price: row.price,
         quantity: row.quantity,
         fee: row.fee,
         feeAsset: row.fee_asset || null,
         filledAt: Number(row.filled_at),
-        accounting: paperAccounting(symbols.get(row.exchange_order_id)!),
+        accounting: paperAccounting(symbol),
         raw: JSON.parse(row.raw_json),
-      })),
+        };
+      }),
       unresolvedEvents: [],
       observedAt: completedAt,
       acquisition: { version: 1, startedAt, completedAt, checkedOrders: [],

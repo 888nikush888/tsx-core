@@ -1,0 +1,104 @@
+{
+  "baseRevision": "c3966c5974315a07499e66a39285628dd4b3255d",
+  "workingTreeReview": true,
+  "bindings": [
+    {
+      "path": "src/trading_leverage_admission.ts",
+      "sourceSha256": "4e3acd459e95dc5285ee0ed19b609a726eb92bbe0f8dc34a9ebc23fd56755a9a",
+      "baseSha256": "0faf39305f9729df26b1a1544bb3afc7a1e74c89216d760a55c3a9ff47add150"
+    },
+    {
+      "path": "src/trading_risk_admission.ts",
+      "sourceSha256": "fae250cb7e81587c0021faab112227ded27a5c80a4313278dce451bf55e0b827",
+      "baseSha256": "c548fee9d4bb3fb410d3307b81314c53783442fd8e7d2bd928e715940169f987"
+    },
+    {
+      "path": "src/trading_exit_cancel.ts",
+      "sourceSha256": "0207a0639a3e40d3044ea26b8830a74f9f296f68f6a1c9895c5210e68934f7aa",
+      "baseSha256": "d7aff23463a5466c1f4d1215c9e57918f795a83e394648ec8eef451f5235976a"
+    },
+    {
+      "path": "src/trading_take_profit.ts",
+      "sourceSha256": "24e989141748771d05c15d170eb2be66bf84826df03f2af33ea4962fada79212",
+      "baseSha256": "70f11b24fec234a504849f8602c5321ed49680b8568e5bea5a5035ffbee08932"
+    },
+    {
+      "path": "src/exchange_history_coverage.ts",
+      "sourceSha256": "83cfb9a3df81759ec87538ddb515382e7281dec444da2b59068a34afc9b3afa6",
+      "baseSha256": "a218548cde9391b341416b1e0466de6317a7981cf5546d340634450f58d9bd95"
+    }
+  ],
+  "completeDiff": "diff --git a/src/exchange_history_coverage.ts b/src/exchange_history_coverage.ts\nindex 7095f1c..43602ba 100644\n--- a/src/exchange_history_coverage.ts\n+++ b/src/exchange_history_coverage.ts\n@@ -38,8 +38,8 @@ export function assertCoverageContinuation(previous: ExchangeHistoryCheckpoint,\n function assertRetentionCoverageBound(state: ExchangeHistoryCheckpoint): void {\n   const retention = state.retention;\n   if (!retention) return;\n-  if (retention.phase !== 'proved' || retention.fixedUntil === null || !state.coverage\n-    || state.coverage.profile !== PROFILES.hyperliquid || state.coverage.through > Math.min(retention.originalUntil, retention.fixedUntil)) {\n+  if (retention.phase !== 'proved' || retention.fixedUntil === null\n+    || state.coverage?.profile !== PROFILES.hyperliquid || state.coverage.through > Math.min(retention.originalUntil, retention.fixedUntil)) {\n     throw new Error('Historical coverage exceeds verified retention.');\n   }\n }\ndiff --git a/src/trading_exit_cancel.ts b/src/trading_exit_cancel.ts\nindex 7ec444b..b2a575b 100644\n--- a/src/trading_exit_cancel.ts\n+++ b/src/trading_exit_cancel.ts\n@@ -57,7 +57,8 @@ export async function assertExitCancellationSafe(account: TradingAccount, row: C\n   const positions = remote.positions.filter(item => item.symbol === row.symbol);\n   if (proof.flat && proof.entriesTerminal && positions.length === 0 && await entriesProvedTerminal(account, row, remote)) return;\n   const remotePosition = positions[0];\n-  if (positions.length !== 1 || !remotePosition || remotePosition.providerSymbol !== row.provider_symbol || remotePosition.side !== position.side\n+  if (positions.length !== 1 || !remotePosition) throw new Error('Exit cancellation lacks exact current owned exposure.');\n+  if (remotePosition.providerSymbol !== row.provider_symbol || remotePosition.side !== position.side\n     || compareDecimal(remotePosition.quantity, proof.ownership.netQuantity) !== 0) throw new Error('Exit cancellation lacks exact current owned exposure.');\n   if (row.role === 'stop_loss' && !await hasIndependentProtection(account, row, remote, position.side, proof.ownership.netQuantity, position.stop_price)) {\n     throw new Error('Stop cancellation requires a fresh independent replacement covering owned exposure and entry remainder.');\ndiff --git a/src/trading_leverage_admission.ts b/src/trading_leverage_admission.ts\nindex 69bb227..3b3309b 100644\n--- a/src/trading_leverage_admission.ts\n+++ b/src/trading_leverage_admission.ts\n@@ -51,7 +51,8 @@ export function assertTierEvidence(\n     'Existing or unknown actual tier scope blocks scale-in.');\n   try { validateTierTable(value.tiers); } catch { throw new TradingRiskError('LEVERAGE_TIERS_UNPROVEN', 'Complete consistent leverage tiers are required.'); }\n   const firstTier = value.tiers[0];\n-  requireEvidence(firstTier !== undefined && firstTier.maxLeverage === market.maxLeverage, 'Display maximum conflicts with actual tiers.');\n+  requireEvidence(firstTier !== undefined, 'Display maximum conflicts with actual tiers.');\n+  requireEvidence(firstTier.maxLeverage === market.maxLeverage, 'Display maximum conflicts with actual tiers.');\n   return value;\n }\n \ndiff --git a/src/trading_risk_admission.ts b/src/trading_risk_admission.ts\nindex a3847d5..1bcb7fa 100644\n--- a/src/trading_risk_admission.ts\n+++ b/src/trading_risk_admission.ts\n@@ -139,7 +139,8 @@ export async function verifyRiskAdmission(proof: RiskAdmissionProof, plan: Tradi\n   if (riskHash(source) !== proof.existing.sourceHash) unavailable('order, fill, stop or operation sources changed.');\n   const ledger = await dailyLedger(proof.accountId);\n   const accounting = proof.accountSnapshot.accounting;\n-  if (!accounting || ledger.reportingCurrency !== accounting.reportingCurrency) unavailable('reporting currency differs from the bound ledger.');\n+  if (!accounting) unavailable('reporting currency differs from the bound ledger.');\n+  if (ledger.reportingCurrency !== accounting.reportingCurrency) unavailable('reporting currency differs from the bound ledger.');\n   if (ledger.hash !== proof.ledgerHash) unavailable('monetary evidence changed.');\n   assertDailyBudget(proof.budget, ledger.value, proof.accountSnapshot.unrealizedPnl, proof.existing.value, proof.candidateValue);\n   assertRiskAdmissionFresh(proof);\ndiff --git a/src/trading_take_profit.ts b/src/trading_take_profit.ts\nindex 0ded659..27f4269 100644\n--- a/src/trading_take_profit.ts\n+++ b/src/trading_take_profit.ts\n@@ -166,8 +166,9 @@ function previousTotals(row: AllocationRow, plan: TradingPlan, hash: string): st\n }\n \n function unchangedAllocation(row: AllocationRow | undefined, json: string, fillsJson: string, completedJson: string, unallocated: string): boolean {\n-  return Boolean(row && row.target_totals_json === json && row.unallocated_quantity === unallocated\n-    && row.observed_fills_json === fillsJson && row.completed_targets_json === completedJson);\n+  if (!row) return false;\n+  return row.target_totals_json === json && row.unallocated_quantity === unallocated\n+    && row.observed_fills_json === fillsJson && row.completed_targets_json === completedJson;\n }\n \n async function persistAllocation(intentId: string, hash: string, row: AllocationRow | undefined,\n",
+  "conclusion": "Five scoped fixes retain missing-evidence rejection and ordinary caller behavior; no concrete regression found.",
+  "rationale": [
+    "Leverage presence check still rejects before max comparison with same requireEvidence error; table validation remains earlier.",
+    "Risk missing accounting still unavailable before currency equality; missing accounting plus missing expected currency cannot pass.",
+    "Exit count/presence guard remains before provider/side/decimal reads; flat-terminal exception and protection checks unchanged.",
+    "TP missing row now explicit false; remaining expressions all equality booleans so Boolean wrapper is redundant. INSERT path remains reachable.",
+    "History missing coverage compares undefined against fixed nonundefined profile and short-circuits with same historical-retention error."
+  ],
+  "probes": [
+    {
+      "path": "src/trading_leverage_admission.ts",
+      "edgeCases": 4,
+      "result": "PASS same result/error name/message/code"
+    },
+    {
+      "path": "src/trading_risk_admission.ts",
+      "edgeCases": 5,
+      "result": "PASS same result/error name/message/code"
+    },
+    {
+      "path": "src/trading_exit_cancel.ts",
+      "edgeCases": 4,
+      "result": "PASS same result/error name/message/code"
+    },
+    {
+      "path": "src/trading_take_profit.ts",
+      "edgeCases": 4,
+      "result": "PASS same results/error names/messages"
+    },
+    {
+      "path": "src/exchange_history_coverage.ts",
+      "edgeCases": 8,
+      "result": "PASS same results/error names/messages"
+    }
+  ],
+  "tests": [
+    {
+      "test": "tests/test_trading_leverage_tiers.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-optional-trading_leverage_tiers.log",
+      "logSha256": "7c471dc6e04b5dd5fbf1e63bffe3b9fc02e842c44ffbc4d79f9aa028ff358be4"
+    },
+    {
+      "test": "tests/test_trading_fx_risk_admission.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-optional-trading_fx_risk_admission.log",
+      "logSha256": "b189f25a49aa54e23e01851c22932c11b721fcd33349c9d7ef69bae0983f21d2"
+    },
+    {
+      "test": "tests/test_exchange_history_coverage.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-optional-exchange_history_coverage.log",
+      "logSha256": "67d0432881434b02bade9248b887c37265a1de924861c3d026ebfbc96b19c130"
+    },
+    {
+      "test": "tests/test_trading_exit_cancel_engine.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-optional-trading_exit_cancel_engine.log",
+      "logSha256": "d98c92f98086cc22556fefad21179ea537d5ea6f807e02abb8b304fbbb392e39"
+    },
+    {
+      "test": "tests/test_trading_take_profit.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-optional-trading_take_profit.log",
+      "logSha256": "20d7b19b41c44d73e4f2dce5f64d582aa67b8eb97098aebaff5ba68cec856ae9"
+    }
+  ],
+  "limits": [
+    "Isolated probes exercise extracted changed guards and complete small functions, not live providers. Error helpers in guard probes are controlled stubs; full targeted product tests also passed.",
+    "No source edit, commit, or scanner disposition by reviewer.",
+    "trading_safety_repository unchanged and outside these five fixes."
+  ]
+}

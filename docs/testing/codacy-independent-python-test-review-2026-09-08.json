@@ -1,0 +1,1857 @@
+{
+  "schemaVersion": 1,
+  "repository": "888nikush888/tsx-core",
+  "reviewDate": "2026-09-08",
+  "reviewer": "scanner_integration, independent of initial Codacy triage; previously contributed separate Python source clarifications, disclosed in per-occurrence mappings",
+  "inventoryPath": "docs/testing/codacy-inventory-2026-09-08.json",
+  "inventorySha256": "1c398559a1efaffdf34ebac081c928c7d7a806262f35a9683ce40358fdd2bf47",
+  "scanRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+  "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+  "reviewedIssueCount": 50,
+  "scope": {
+    "python": 47,
+    "javascript": 3,
+    "priorReviewed": 90,
+    "reviewedHere": 50,
+    "remainingTestProposals": 99
+  },
+  "platformChangesApplied": false,
+  "method": [
+    "Read the actual bounded helper/test clusters, subprocess child implementation, network interception and local fixture lifecycle before assigning each decision.",
+    "Verify every original inventory SHA-256 from the scan Git blob, map the original expression to the current immutable Git blob, and retain both line text hashes and excerpts.",
+    "Check 50 distinct IDs against the prior 90 reviewed IDs. Numerically verify the three JS literals with Number.isSafeInteger and exact BigInt equality."
+  ],
+  "limitations": [
+    "No production/test source edit, platform ignore/closure, fresh scan or test execution is claimed by this review.",
+    "The explicit Windows cmd junction fixture is shell-mediated; local test environment/path authority is assumed, and executable lookup hardening is outside these two occurrence decisions.",
+    "Test assertions require normal Python execution; optimized -O tests would omit asserts and are not claimed to provide equivalent validation.",
+    "Some original findings have moved or been clarified by previous source changes; exact mappings document this rather than binding to stale line numbers.",
+    "Descriptions of local SDK stubs apply only to the inspected fixtures, not a general production sandbox or provider acceptance claim."
+  ],
+  "sourceBindings": [
+    {
+      "path": "exchange_executor/tests/test_provider_acceptance.py",
+      "originalSha256": "43132b9ca992e14994fb88017ee779a328ec30a45edb0465e55ca598fb46e525",
+      "reviewedSha256": "43132b9ca992e14994fb88017ee779a328ec30a45edb0465e55ca598fb46e525"
+    },
+    {
+      "path": "exchange_executor/tests/test_kucoin_provider_sdk_boundaries.py",
+      "originalSha256": "b78e1fe1567c53051764eeb388167eda00ee395e0afadb176a4cbdafd52496cb",
+      "reviewedSha256": "33968224804afe64ce12f5b1923f24fcbcb5042f01cead52ec9bb25d3e0b6869"
+    },
+    {
+      "path": "tests/test_trading_fx_channel_risk.js",
+      "originalSha256": "cfc86fabac997b8ea28ffa6e050d8f1d3bdd08a627dabc6751ee9ebf81e4fb5a",
+      "reviewedSha256": "cfc86fabac997b8ea28ffa6e050d8f1d3bdd08a627dabc6751ee9ebf81e4fb5a"
+    },
+    {
+      "path": "exchange_executor/tests/test_acceptance_journal_crash.py",
+      "originalSha256": "c3d4a5b599857abb680336720f1a785649eeedaea8b816ced277d7d14742784b",
+      "reviewedSha256": "39979e53576e6212c338e8a9f93f80dfbbecd499a0bc8fd7cf24f8b559a05edd"
+    },
+    {
+      "path": "exchange_executor/tests/test_recovery_schedule.py",
+      "originalSha256": "0d1d9400e9b9f4a2634fb4a66eceeafe62452ea35e7bf7476c32a571f1a6412d",
+      "reviewedSha256": "f9aa10d36cd111e30dcf5cf8b4db15ec02eadf646332e8832a2546e08473b00f"
+    },
+    {
+      "path": "tests/test_trading_entry_expiry.js",
+      "originalSha256": "b423ec2c7b302de2a86e5cf9b6a2e274dca7552b81638336eb6949c4bbe7f263",
+      "reviewedSha256": "b423ec2c7b302de2a86e5cf9b6a2e274dca7552b81638336eb6949c4bbe7f263"
+    },
+    {
+      "path": "tests/test_process_lock.js",
+      "originalSha256": "7e22a0ab4c2b74c1fa9f04f1e9d4dd52b1bb901002f4a4818fa4f57fc4827031",
+      "reviewedSha256": "7e22a0ab4c2b74c1fa9f04f1e9d4dd52b1bb901002f4a4818fa4f57fc4827031"
+    },
+    {
+      "path": "exchange_executor/tests/test_additional_myokx_boundaries.py",
+      "originalSha256": "db9be578b896ea588d95085bd5605735c228f133fbdc10293e7ddc595da4d46c",
+      "reviewedSha256": "db9be578b896ea588d95085bd5605735c228f133fbdc10293e7ddc595da4d46c"
+    },
+    {
+      "path": "exchange_executor/tests/test_kraken_history.py",
+      "originalSha256": "4766e34f3a3d79facf3172a714191611019ac110d42baac50aaeb6a151291270",
+      "reviewedSha256": "9c71ac859f50c8fb958a15477edd255065925be540c341c455fd1f3dc1ec725e"
+    },
+    {
+      "path": "exchange_executor/tests/test_fill_quantity_provenance.py",
+      "originalSha256": "f91bf116dd5e0165f3cb7e121099fe45c8ea581bd773d260c79879d03e7df9d8",
+      "reviewedSha256": "fcc58f7aaba097dab858761990d81dce9184e1ea6c0acbb6bbb4e79b3b6783d7"
+    },
+    {
+      "path": "exchange_executor/tests/test_hyperliquid_retention.py",
+      "originalSha256": "9bfc387b4cfe9ec6ce65869a5684a603ebd08d6dbd8fec37cff2d30329ff9775",
+      "reviewedSha256": "2c733b41d11af3d73aba439a654caf797cf74dac0aa8d9b4df565d32f8e988bc"
+    },
+    {
+      "path": "exchange_executor/tests/test_implementation_runtime.py",
+      "originalSha256": "ff92162ae158bcfbaac96052207c9e058e70c028a6ac8fc1cfe1dd9f23385aaf",
+      "reviewedSha256": "ff92162ae158bcfbaac96052207c9e058e70c028a6ac8fc1cfe1dd9f23385aaf"
+    },
+    {
+      "path": "exchange_executor/tests/test_phase2_registry.py",
+      "originalSha256": "9ba924d0aecb8fb295143a4d469d3495f8d9a66e6a72d1146dc46cd7fd5bcf99",
+      "reviewedSha256": "51d006e4e25bfab71a3e034de21560f74b485aa1f2dd8e63eaf63c290154e196"
+    },
+    {
+      "path": "exchange_executor/tests/test_kucoin_contracts.py",
+      "originalSha256": "0495778ef607fbed1b9e90c82d0b6befd90d978112d2d1cf07d144782fcac2cc",
+      "reviewedSha256": "0495778ef607fbed1b9e90c82d0b6befd90d978112d2d1cf07d144782fcac2cc"
+    },
+    {
+      "path": "exchange_executor/tests/test_entry_deadline.py",
+      "originalSha256": "433d9d6fde190172a8f2355e7c599009561f989ffe7eb632762ee57d4a541a0b",
+      "reviewedSha256": "05913345d6a75c9161421a7904c6d9777dc12545adb68ae15f8f306612132860"
+    },
+    {
+      "path": "exchange_executor/tests/test_mutation_identity.py",
+      "originalSha256": "1a797ef8bfdfc857696ce8a521ac6a4be143fe6c597e09668f6e4ac65691bc70",
+      "reviewedSha256": "4603e8f835f705e621b6e71c1cfbc775dfb37be60593010f19d8567fa127adc0"
+    },
+    {
+      "path": "exchange_executor/tests/test_candidate_group_b_boundaries.py",
+      "originalSha256": "bc387d07c1545bb3faccecf42b3272fc7040ed94225f2f8b3d559890ada4e41d",
+      "reviewedSha256": "bc387d07c1545bb3faccecf42b3272fc7040ed94225f2f8b3d559890ada4e41d"
+    },
+    {
+      "path": "exchange_executor/tests/test_contracts.py",
+      "originalSha256": "90a48474c0227cfc92a9b75a9adaed02540954053c3519b5eceb689ef2d2829e",
+      "reviewedSha256": "120d79c5d928b74596347d25a5c1e88df02c43f45ef627709397811ccab906f4"
+    },
+    {
+      "path": "exchange_executor/tests/test_acceptance_journal.py",
+      "originalSha256": "8559b29f46f9f4210aa2f60ace654a76ce43855d53e5c78d4230ca200c9ca066",
+      "reviewedSha256": "d408c9b32ec06bf7e0b76f9015caa053bb0cb5261167ccff8b73e16b98dfe15f"
+    },
+    {
+      "path": "exchange_executor/tests/test_cancel_recovery.py",
+      "originalSha256": "ca634bd23df34c8024d0f31f844ab14aff282f4d387d6d20f02879de8eef0753",
+      "reviewedSha256": "ca634bd23df34c8024d0f31f844ab14aff282f4d387d6d20f02879de8eef0753"
+    },
+    {
+      "path": "exchange_executor/tests/test_additional_exchange_profiles.py",
+      "originalSha256": "220c7e82ce5d0aa9ee2a94c7a20252d69d7220bf29132f9af20438e0ffe92997",
+      "reviewedSha256": "220c7e82ce5d0aa9ee2a94c7a20252d69d7220bf29132f9af20438e0ffe92997"
+    },
+    {
+      "path": "exchange_executor/tests/test_leverage_tier_evidence.py",
+      "originalSha256": "bf9ef697f82ca5c79049e444a9aea1e1caa74f765e92aeacf5d7b3ba319dc8c9",
+      "reviewedSha256": "feb162ba8b932c32519ceab3c01d5953477dd8f0fe7b6c82895ec0e3a16eb325"
+    },
+    {
+      "path": "exchange_executor/tests/test_bybit_account_mode.py",
+      "originalSha256": "d971a1aea4ce0fcd413e4dd2cca2bb244ba450e4acd8508511bf74ab2cc4e486",
+      "reviewedSha256": "3daaf7f43381728a86a20871aebcd0a8fcf969a086b41551dbebd023d7183da0"
+    },
+    {
+      "path": "exchange_executor/tests/test_kraken_bounded_matrix.py",
+      "originalSha256": "e2472c2781f767e7b03a5591bdd5b761296c352f926a4f4a50f45e6d33d4d9b3",
+      "reviewedSha256": "e2472c2781f767e7b03a5591bdd5b761296c352f926a4f4a50f45e6d33d4d9b3"
+    },
+    {
+      "path": "exchange_executor/tests/test_kraken_response_capture.py",
+      "originalSha256": "57b8ed4681d9d9414eb7e1dfecdeea355decdc9301bc608faa0772307632ec8b",
+      "reviewedSha256": "57b8ed4681d9d9414eb7e1dfecdeea355decdc9301bc608faa0772307632ec8b"
+    }
+  ],
+  "supportingSourceBindings": [
+    {
+      "path": "exchange_executor/tests/acceptance_journal_child.py",
+      "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+      "reviewedSha256": "27633d9ab5eeb58d6c7ce2685a8b50cc764d785953132e95e0126275bbea1142"
+    },
+    {
+      "path": "exchange_executor/tests/provider_acceptance_runner.py",
+      "reviewedRevision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+      "reviewedSha256": "7823d167f96dd9ec1cf0ad5f766d5f42340ec1fe8f55d389a974c9d9e9912f70"
+    }
+  ],
+  "entries": [
+    {
+      "issueId": "8d4568a191c93e0cd8ea335c92160943",
+      "rule": "Semgrep_python.lang.security.audit.dangerous-subprocess-use-audit.dangerous-subprocess-use-audit",
+      "path": "exchange_executor/tests/test_provider_acceptance.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 31,
+        "sourceSha256": "43132b9ca992e14994fb88017ee779a328ec30a45edb0465e55ca598fb46e525",
+        "lineSha256": "0bb4cae33a73008807c9f18989ecb3f04492610518c62d3f28ac746fd5a862fa",
+        "text": "            result = subprocess.run("
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 31,
+        "sourceSha256": "43132b9ca992e14994fb88017ee779a328ec30a45edb0465e55ca598fb46e525",
+        "lineSha256": "0bb4cae33a73008807c9f18989ecb3f04492610518c62d3f28ac746fd5a862fa",
+        "text": "            result = subprocess.run("
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The only subprocess runs sys.executable -B and the repository-owned provider_acceptance_runner.py with either no arguments or the literal --execute. The former returns DRY_RUN; the latter lacks authorization and must refuse. The child entry point was inspected: it offers no implemented provider transport. Argument lists use the default shell=False and a 10-second timeout; the observed exit status/output are asserted. The separate TemporaryDirectory helper belongs to journal tests, not this CLI invocation.",
+      "evidence": [
+        {
+          "start": 28,
+          "end": 58,
+          "source": "    def test_cli_is_offline_by_default_and_execute_fails(self):\n        script = Path(__file__).with_name(\"provider_acceptance_runner.py\")\n        for arguments, expected_status in [([], 0), ([\"--execute\"], 1)]:\n            result = subprocess.run(\n                [sys.executable, \"-B\", str(script), *arguments], check=False,\n                text=True, capture_output=True, timeout=10,\n                creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0),\n            )\n            self.assertEqual(result.returncode, expected_status)\n            if expected_status == 0:\n                self.assertEqual(json.loads(result.stdout)[\"status\"], \"DRY_RUN\")\n            else:\n                self.assertIn(\"Provider acceptance refused\", result.stderr)\n\n    def test_default_dry_run_has_no_network_or_secret_access(self):\n        with patch(\"socket.socket\", side_effect=AssertionError(\"network access\")), patch.dict(\n            \"os.environ\", {\"API_KEY\": \"ambient-must-not-be-read\", \"PROVIDER_ACCEPTANCE_EXECUTE\": \"true\"}\n        ), patch(\"provider_acceptance_runner.AcceptanceJournal\", side_effect=AssertionError(\"journal access\")):\n            result = run_acceptance()\n        self.assertEqual(result[\"status\"], \"DRY_RUN\")\n        self.assertFalse(result[\"providerAcceptanceVerified\"])\n        self.assertEqual(result[\"networkRequests\"], 0)\n\n    def test_execution_refuses_without_authorization_or_implemented_transport(self):\n        prepared_plan = plan()\n        with self.assertRaisesRegex(AcceptanceRefused, \"explicit authorization\"):\n            run_acceptance(prepared_plan, execute=True, expected_source_sha=SHA, expected_profile_hash=PROFILE_HASH)\n        prepared_plan = plan()\n        with self.assertRaisesRegex(AcceptanceRefused, \"transport is not implemented\"):\n            run_acceptance(prepared_plan, execute=True, authorization=\"RUN APPROVED TESTNET ACCEPTANCE\",\n                           expected_source_sha=SHA, expected_profile_hash=PROFILE_HASH)"
+        }
+      ]
+    },
+    {
+      "issueId": "4deea9f4aad238f027c20e0877ba38ed",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_kucoin_provider_sdk_boundaries.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 80,
+        "sourceSha256": "b78e1fe1567c53051764eeb388167eda00ee395e0afadb176a4cbdafd52496cb",
+        "lineSha256": "8b516d3dd9ff1750e3b3868884d192c66f315ea6d11afb06375f7e82a06f4e00",
+        "text": "            \"secret\": \"local-fixture-secret\","
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 80,
+        "sourceSha256": "33968224804afe64ce12f5b1923f24fcbcb5042f01cead52ec9bb25d3e0b6869",
+        "lineSha256": "8b516d3dd9ff1750e3b3868884d192c66f315ea6d11afb06375f7e82a06f4e00",
+        "text": "            \"secret\": \"local-fixture-secret\","
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The credential/passphrase is the public local-fixture string supplied solely to exercise the pinned SDK signer. asyncSetUp blocks connect/connect_ex/getaddrinfo/create_connection before SDK construction, local interceptors return fixture responses, and addAsyncCleanup closes clients. No usable account credential is embedded.",
+      "evidence": [
+        {
+          "start": 67,
+          "end": 86,
+          "source": "class KucoinProviderSdkBoundaryTests(unittest.IsolatedAsyncioTestCase):\n    async def asyncSetUp(self):\n        self.assertEqual(ccxt.__version__, \"4.5.75\")\n        for target in ((socket.socket, \"connect\"), (socket.socket, \"connect_ex\"),\n                       (socket, \"getaddrinfo\"), (socket, \"create_connection\")):\n            blocker = patch.object(*target, side_effect=AssertionError(\"Live transport forbidden.\"))\n            blocker.start()\n            self.addCleanup(blocker.stop)\n\n    def client(self, exchange=\"kucoinfutures\"):\n        rest = getattr(sdk, exchange)({\n            \"enableRateLimit\": False,\n            \"apiKey\": \"local-fixture-key\",\n            \"secret\": \"local-fixture-secret\",\n            \"password\": \"local-fixture-passphrase\",\n            \"options\": {\"uta\": False, \"defaultType\": \"swap\", \"adjustForTimeDifference\": False},\n        })\n        rest.set_markets([market()])\n        self.addAsyncCleanup(rest.close)\n        return rest"
+        },
+        {
+          "start": 88,
+          "end": 118,
+          "source": "    async def test_both_sdk_ids_sign_the_five_exact_mode_and_binding_reads(self):\n        for exchange in (\"kucoin\", \"kucoinfutures\"):\n            with self.subTest(exchange=exchange):\n                rest = self.client(exchange)\n                calls = []\n\n                async def intercepted(url, method=\"GET\", headers=None, body=None, *, calls=calls):\n                    parsed = urlsplit(url)\n                    calls.append((parsed.path, parse_qs(parsed.query), method))\n                    self.assertTrue(headers.get(\"KC-API-SIGN\"))\n                    data = {\n                        \"/api/v1/user/api-key\": {\n                            \"apiVersion\": 3, \"permission\": \"General,Futures\", \"createdAt\": 1,\n                            \"uid\": UID, \"isMaster\": True, \"region\": \"PW\", \"siteType\": \"global\",\n                            \"apiKey\": \"must-not-escape\", \"remark\": \"must-not-escape\",\n                        },\n                        \"/api/ua/v1/account/mode\": {\n                            \"selfAccountMode\": \"CLASSIC\", \"unifiedSubAccount\": [],\n                            \"classicSubAccount\": [UID],\n                        },\n                        \"/api/v2/position/getPositionMode\": {\"positionMode\": 0},\n                        \"/api/v2/position/getMarginMode\": {\"symbol\": NATIVE, \"marginMode\": \"CROSS\"},\n                        \"/api/v2/getCrossUserLeverage\": {\"symbol\": NATIVE, \"leverage\": \"20\"},\n                    }[parsed.path]\n                    return {\"code\": \"200000\", \"data\": data}\n\n                rest.fetch = intercepted\n                result = await read_kucoin_classic_observation(\n                    rest, NATIVE, budget(5), account_fingerprint=FINGERPRINT,\n                    credential_generation=GENERATION,\n                )"
+        }
+      ]
+    },
+    {
+      "issueId": "53c3b73dc9d912c50682e96d08767b1d",
+      "rule": "PMD_category_ecmascript_errorprone_InnaccurateNumericLiteral",
+      "path": "tests/test_trading_fx_channel_risk.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 28,
+        "sourceSha256": "cfc86fabac997b8ea28ffa6e050d8f1d3bdd08a627dabc6751ee9ebf81e4fb5a",
+        "lineSha256": "fdac7c6a87d09e6d38199497228d4a2184c42ed352c64d530dcde7639f23d6a0",
+        "text": "const closedAt = now - 86400000;"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 28,
+        "sourceSha256": "cfc86fabac997b8ea28ffa6e050d8f1d3bdd08a627dabc6751ee9ebf81e4fb5a",
+        "lineSha256": "fdac7c6a87d09e6d38199497228d4a2184c42ed352c64d530dcde7639f23d6a0",
+        "text": "const closedAt = now - 86400000;"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "86400000 is exactly representable and equals the integer milliseconds in one day. Subtracting it from the fixed Date.UTC fixture remains a safe integer, used as historical closedAt in the private risk.db test fixture. The rule is not evidence of numeric rounding at this literal.",
+      "evidence": [
+        {
+          "start": 25,
+          "end": 35,
+          "source": "const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-fx-channel-risk-'));\nconst filename = path.join(directory, 'risk.db');\nconst now = Date.UTC(2026, 7, 31, 12);\nconst closedAt = now - 86400000;\nlet strategyId;\nconst strategy = { ...structuredClone(DEFAULT_STRATEGY_CONFIGURATION), sizing: {\n  ...DEFAULT_STRATEGY_CONFIGURATION.sizing, maxAdaptiveRiskPercent: '10' } };\nconst policy = (channelId, changes = {}) => ({ channelId, mode: 'automatic',\n  tiers: [{ riskPercent: '0.5' }, { riskPercent: '1' }, { riskPercent: '1.5' }], currentTier: 1,\n  lookbackWeeks: 1, minimumClosedTrades: 1, lossThresholdPercent: '0.000000000000000001',\n  profitThresholdPercent: '0.000000000000000001', weakChannelAction: 'none', weakWeeksBeforeBlock: 2, ...changes });"
+        }
+      ]
+    },
+    {
+      "issueId": "60a4dde655667b422460e6070b4f37e1",
+      "rule": "Bandit_B603",
+      "path": "exchange_executor/tests/test_acceptance_journal_crash.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 74,
+        "sourceSha256": "c3d4a5b599857abb680336720f1a785649eeedaea8b816ced277d7d14742784b",
+        "lineSha256": "0606537036c16ad690b2cc7ad5d5da1838de0a2806ebc6db68d6e64cb52305fd",
+        "text": "            failed = subprocess.run(arguments(directory, \"fsync_error\"), capture_output=True, text=True,"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 74,
+        "sourceSha256": "39979e53576e6212c338e8a9f93f80dfbbecd499a0bc8fd7cf24f8b559a05edd",
+        "lineSha256": "cfe3aa5a251f50fba9d711ab6b4669eb6d2cc1865e45f831129212a514600f82",
+        "text": "            failed = subprocess.run(arguments(directory, \"fsync_error\"), capture_output=True, text=True, check=False,"
+      },
+      "mapping": "pre-existing explicit check=False documents the subprocess nonzero-status assertion contract",
+      "rationale": "arguments() fixes sys.executable -B and the sibling acceptance_journal_child.py. The only variable directory is a TemporaryDirectory fixture and phase is a finite local crash-mode key or literal replay/fsync_error. The child was inspected: economic attempts are fsynced file appends and an isolated SQLite journal, with no HTTP provider transport. The fsync_error fixture must exit unsuccessfully without sending or leaking its synthetic error sentinel into output/database; its 10-second bounded replay verifies unresolved ownership without another write.",
+      "evidence": [
+        {
+          "start": 17,
+          "end": 21,
+          "source": "CHILD = Path(__file__).with_name(\"acceptance_journal_child.py\")\n\n\ndef arguments(directory, phase):\n    return [sys.executable, \"-B\", str(CHILD), str(directory), phase]"
+        },
+        {
+          "start": 71,
+          "end": 84,
+          "source": "    def test_child_fsync_error_never_sends_or_exposes_its_original_secret_cause(self):\n        with tempfile.TemporaryDirectory(prefix=\"acceptance-fsync-child-\") as location:\n            directory = Path(location)\n            failed = subprocess.run(arguments(directory, \"fsync_error\"), capture_output=True, text=True, check=False,\n                                    timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n            self.assertNotEqual(failed.returncode, 0)\n            self.assertNotIn(\"NEVER-PRINT-THIS-SECRET\", failed.stdout + failed.stderr)\n            self.assertEqual(rows(directory / \"writes.jsonl\"), [])\n            self.assertNotIn(b\"NEVER-PRINT-THIS-SECRET\", (directory / \"run.sqlite\").read_bytes())\n            resumed = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                     timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n            self.assertEqual(resumed.returncode, 0, resumed.stderr)\n            self.assertEqual(json.loads(resumed.stdout)[\"unresolved\"], [\"own-1\"])\n            self.assertEqual(rows(directory / \"writes.jsonl\"), [])"
+        }
+      ]
+    },
+    {
+      "issueId": "933614d4e4852275900579c78832ad8b",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_recovery_schedule.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 39,
+        "sourceSha256": "0d1d9400e9b9f4a2634fb4a66eceeafe62452ea35e7bf7476c32a571f1a6412d",
+        "lineSha256": "f052400a8d518f1bf1da9c4d07ef6930e6a0ffbc32ab83a9ebbfc94ed505b701",
+        "text": "        self.rest = bybit({'enableRateLimit': False, 'apiKey': 'isolated-fake-key', 'secret': 'isolated-fake-secret'})"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 39,
+        "sourceSha256": "f9aa10d36cd111e30dcf5cf8b4db15ec02eadf646332e8832a2546e08473b00f",
+        "lineSha256": "f052400a8d518f1bf1da9c4d07ef6930e6a0ffbc32ab83a9ebbfc94ed505b701",
+        "text": "        self.rest = bybit({'enableRateLimit': False, 'apiKey': 'isolated-fake-key', 'secret': 'isolated-fake-secret'})"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "isolated-fake-secret is a synthetic signer key, even though account.mode deliberately says live to test profile semantics. rest.fetch is replaced with a local function that records path/query, asserts GET and the expected host, and returns generated envelopes; read_current_state and history reads are mocked and the SDK is closed in teardown. The mode field does not enable provider transport.",
+      "evidence": [
+        {
+          "start": 37,
+          "end": 75,
+          "source": "class RecoveryScheduleTests(unittest.IsolatedAsyncioTestCase):\n    async def asyncSetUp(self):\n        self.rest = bybit({'enableRateLimit': False, 'apiKey': 'isolated-fake-key', 'secret': 'isolated-fake-secret'})\n        self.account = {'id': 'scheduled-fixture', 'exchange': 'bybit', 'mode': 'live'}\n        self.clients = SimpleNamespace(rest=self.rest, account=dict(self.account), profile=profile_for('bybit'),\n            account_identity='isolated-identity', credential_fingerprint='isolated-credential')\n        self.account.update(expectedAccountFingerprint=external_account_id('bybit', 'live', self.clients.account_identity),\n                            credentialGeneration=credential_generation(self.clients))\n        self.registry = SimpleNamespace(account=AsyncMock(return_value=self.clients), assert_binding=lambda *_args: None)\n        self.adapter = CcxtAdapter(self.registry)\n        self.adapter._recent_historical_orders = AsyncMock(return_value=[])\n        self.adapter._recent_trades = AsyncMock(return_value=[])\n        self.market = {'symbol': SYMBOL, 'id': 'BTCUSDT', 'base': 'BTC', 'contract': True, 'linear': True,\n            'contractSize': 1, 'type': 'swap', 'swap': True, 'spot': False, 'future': False, 'option': False, 'inverse': False}\n        self.rest.market = lambda _symbol: self.market\n        self.rest.markets = {SYMBOL: self.market}\n        self.http = []\n        self.transform = lambda _path, _params, raw: raw\n\n        async def fetch(url, method='GET', headers=None, body=None):\n            parsed = urlsplit(url)\n            params = {key: values[0] for key, values in parse_qs(parsed.query).items()}\n            self.http.append((parsed.path, params))\n            self.assertEqual((parsed.netloc, method, body), ('api.bybit.com', 'GET', None))\n            raw = self.transform(parsed.path, params, self.envelope(parsed.path, params))\n            return self.rest.parse_json(json.dumps(raw))\n\n        self.rest.fetch = fetch\n\n        async def current(*_args):\n            return [], [], [source_evidence(name, now(), 'complete') for name in ('orders', 'positions')]\n\n        self.current = AsyncMock(side_effect=current)\n        self.current_patch = patch('ccxt_adapter.read_current_state', new=self.current)\n        self.current_patch.start()\n\n    async def asyncTearDown(self):\n        self.current_patch.stop()\n        await self.rest.close()"
+        }
+      ]
+    },
+    {
+      "issueId": "66530fb439f00f8af3a1a065ea40c24c",
+      "rule": "PMD_category_ecmascript_errorprone_InnaccurateNumericLiteral",
+      "path": "tests/test_trading_entry_expiry.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 25,
+        "sourceSha256": "b423ec2c7b302de2a86e5cf9b6a2e274dca7552b81638336eb6949c4bbe7f263",
+        "lineSha256": "2721091659634c1f8b74597dca8c310779ce965e87a5c2f11bfebcc8a01ac34b",
+        "text": "  const origin = 1_700_000_000_000;"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 25,
+        "sourceSha256": "b423ec2c7b302de2a86e5cf9b6a2e274dca7552b81638336eb6949c4bbe7f263",
+        "lineSha256": "2721091659634c1f8b74597dca8c310779ce965e87a5c2f11bfebcc8a01ac34b",
+        "text": "  const origin = 1_700_000_000_000;"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The origin fixture 1700000000000 is an exactly representable safe integer timestamp. It is passed to the pure createTradingPlan timing checks, which distinguish original expiry from construction time and reject invalid/maximal origins. Decimal separators do not introduce precision loss.",
+      "evidence": [
+        {
+          "start": 22,
+          "end": 39,
+          "source": "const ttl = DEFAULT_STRATEGY_CONFIGURATION.safety.entryOrderTtlSeconds * 1_000;\n\nfunction assertPlanTiming() {\n  const origin = 1_700_000_000_000;\n  const input = {\n    intentId: 'timing', signal, strategy: structuredClone(DEFAULT_STRATEGY_CONFIGURATION),\n    account: { equity: '10000', availableBalance: '10000' }, market,\n    entryOriginAt: origin, now: origin + ttl * 0.9\n  };\n  const plan = createTradingPlan(input);\n  assert.equal(plan.entryExpiresAt, origin + ttl, 'Plan construction must not restart the original entry clock.');\n  assert.equal(plan.createdAt, input.now, 'Plan creation time remains distinct from signal origin.');\n  assert.equal(createTradingPlan({ ...input, entryExpiresAt: origin + ttl / 2 }).entryExpiresAt, origin + ttl / 2);\n  assert.equal(createTradingPlan({ ...input, entryExpiresAt: origin + ttl * 2 }).entryExpiresAt, origin + ttl);\n  for (const entryOriginAt of [0, Number.NaN, Number.MAX_SAFE_INTEGER]) {\n    assert.throws(() => createTradingPlan({ ...input, entryOriginAt }), /deadline|origin/i);\n  }\n}"
+        }
+      ]
+    },
+    {
+      "issueId": "f56f65e82c42eb4cef4dae8032d56c0c",
+      "rule": "PMD_category_ecmascript_errorprone_InnaccurateNumericLiteral",
+      "path": "tests/test_process_lock.js",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 48,
+        "sourceSha256": "7e22a0ab4c2b74c1fa9f04f1e9d4dd52b1bb901002f4a4818fa4f57fc4827031",
+        "lineSha256": "d3ff8303840c7116d0acab14c40df6e020fcbe4c5fa114554f59e85aec4bc42d",
+        "text": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 48,
+        "sourceSha256": "7e22a0ab4c2b74c1fa9f04f1e9d4dd52b1bb901002f4a4818fa4f57fc4827031",
+        "lineSha256": "d3ff8303840c7116d0acab14c40df6e020fcbe4c5fa114554f59e85aec4bc42d",
+        "text": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The PID fixture 2147483647 equals 2^31-1 and is exactly representable as a JavaScript safe integer. It is written only to a private mkdtemp lock file to require explicit stale-owner recovery, and unchanged bytes are asserted. This review confirms numeric precision, not that every possible OS guarantees that PID is absent.",
+      "evidence": [
+        {
+          "start": 28,
+          "end": 54,
+          "source": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
+        }
+      ]
+    },
+    {
+      "issueId": "bce2fee8af343cc1c65c52d4fdae026b",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_additional_myokx_boundaries.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 86,
+        "sourceSha256": "db9be578b896ea588d95085bd5605735c228f133fbdc10293e7ddc595da4d46c",
+        "lineSha256": "fdf112b9e58e9a82f08321274c8a44e0b24561b6932cb282338398868608714f",
+        "text": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 86,
+        "sourceSha256": "db9be578b896ea588d95085bd5605735c228f133fbdc10293e7ddc595da4d46c",
+        "lineSha256": "fdf112b9e58e9a82f08321274c8a44e0b24561b6932cb282338398868608714f",
+        "text": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The public offline-fixture secret/passphrase drives a real HMAC signing comparison for an IOC attachment. DNS/socket calls are blocked in asyncSetUp; the client defaults to a failing fetch mock, then this test installs a capture callback returning a local ACK. Signature equality is checked locally, no order is transmitted, and clients are closed.",
+      "evidence": [
+        {
+          "start": 31,
+          "end": 51,
+          "source": "class MyOkxBoundaryTests(unittest.IsolatedAsyncioTestCase):\n    async def asyncSetUp(self):\n        self.assertEqual(ccxt.__version__, \"4.5.75\")\n        self.assertEqual(sys.version_info[:2], (3, 12))\n        # Install only after unittest created its Windows event-loop self-pipe.\n        self.network_guards = []\n        for target, name in ((socket.socket, \"connect\"), (socket.socket, \"connect_ex\"), (socket, \"getaddrinfo\")):\n            guard = patch.object(target, name, side_effect=AssertionError(\"No provider network or DNS permitted.\"))\n            self.network_guards.append(guard.start())\n            self.addCleanup(guard.stop)\n\n    async def asyncTearDown(self):\n        for guard in self.network_guards:\n            guard.assert_not_called()\n\n    def client(self, *, pro=False):\n        cls = pro_sdk.myokx if pro else rest_sdk.myokx\n        client = cls({\"enableRateLimit\": False, \"options\": {\"adjustForTimeDifference\": False}})\n        client.fetch = AsyncMock(side_effect=AssertionError(\"Unspecified SDK transport is forbidden.\"))\n        self.addAsyncCleanup(client.close)\n        return client"
+        },
+        {
+          "start": 83,
+          "end": 117,
+          "source": "    async def test_signed_ioc_attachment_keeps_original_ids_but_ack_is_parent_only(self):\n        client = self.client()\n        client.apiKey = \"offline-fixture-key\"\n        client.secret = \"offline-fixture-secret\"\n        client.password = \"offline-fixture-passphrase\"\n        market = client.parse_market(native_market())\n        client.set_markets([market])\n        attachment = {\"attachAlgoClOrdId\": \"tsxstop1\", \"slTriggerPx\": \"90\", \"slOrdPx\": \"-1\", \"slTriggerPxType\": \"mark\"}\n        request = {\"symbol\": market[\"symbol\"], \"type\": \"limit\", \"side\": \"buy\", \"amount\": \"2\", \"price\": \"100.5\",\n                   \"params\": {\"timeInForce\": \"IOC\", \"tdMode\": \"cross\", \"posSide\": \"net\", \"clOrdId\": \"tsxparent1\",\n                              \"attachAlgoOrds\": [attachment]}}\n        original = copy.deepcopy(request)\n        ack = {\"code\": \"0\", \"data\": [{\"ordId\": \"900000000000001\", \"clOrdId\": \"tsxparent1\", \"sCode\": \"0\"}]}\n        original_ack = copy.deepcopy(ack)\n\n        async def capture(url, method=\"GET\", headers=None, body=None):\n            self.assertEqual((url, method), (\"https://eea.okx.com/api/v5/trade/batch-orders\", \"POST\"))\n            self.assertEqual(json.loads(body), [{\"instId\": market[\"id\"], \"side\": \"buy\", \"ordType\": \"ioc\", \"sz\": \"2\",\n                \"px\": \"100.5\", \"tdMode\": \"cross\", \"posSide\": \"net\", \"clOrdId\": \"tsxparent1\", \"attachAlgoOrds\": [attachment]}])\n            message = f\"{headers['OK-ACCESS-TIMESTAMP']}{method}{urlsplit(url).path}{body}\"\n            expected = base64.b64encode(hmac.digest(client.secret.encode(), message.encode(), \"sha256\")).decode()\n            self.assertEqual(headers[\"OK-ACCESS-SIGN\"], expected)\n            return copy.deepcopy(ack)\n\n        client.fetch = AsyncMock(side_effect=capture)\n        result = await client.create_orders([request])\n        client.fetch.assert_awaited_once()\n        self.assertEqual(request, original)\n        self.assertEqual(ack, original_ack)\n        self.assertEqual(len(result), 1)\n        self.assertEqual(result[0][\"id\"], ack[\"data\"][0][\"ordId\"])\n        self.assertEqual(result[0][\"clientOrderId\"], \"tsxparent1\")\n        self.assertEqual(result[0][\"info\"], ack[\"data\"][0])\n        self.assertIsNone(result[0][\"status\"], \"A placement ACK is not a terminal or fill observation.\")\n        self.assertNotIn(\"tsxstop1\", [row[\"clientOrderId\"] for row in result])"
+        }
+      ]
+    },
+    {
+      "issueId": "c16ebac85c730d13bafde38d4eb825e2",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_kraken_history.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 192,
+        "sourceSha256": "4766e34f3a3d79facf3172a714191611019ac110d42baac50aaeb6a151291270",
+        "lineSha256": "3580cda83261b85063fdb7ea57291f5d699bf38e44f1e4129235b4f3ecd91cc1",
+        "text": "        rest = krakenfutures({\"apiKey\": \"fixture-key\", \"secret\": \"Zml4dHVyZS1zZWNyZXQ=\"})  # gitleaks:allow"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 193,
+        "sourceSha256": "9c71ac859f50c8fb958a15477edd255065925be540c341c455fd1f3dc1ec725e",
+        "lineSha256": "3580cda83261b85063fdb7ea57291f5d699bf38e44f1e4129235b4f3ecd91cc1",
+        "text": "        rest = krakenfutures({\"apiKey\": \"fixture-key\", \"secret\": \"Zml4dHVyZS1zZWNyZXQ=\"})  # gitleaks:allow"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The base64 value decodes to fixture-secret and accompanies fixture-key. This case calls only the SDK sign method for three literal history endpoints, inspects URL/version/header output, and closes the client. No request/fetch is executed.",
+      "evidence": [
+        {
+          "start": 192,
+          "end": 202,
+          "source": "    async def test_real_ccxt_version_parameter_selects_v3_without_custom_signing(self):\n        rest = krakenfutures({\"apiKey\": \"fixture-key\", \"secret\": \"Zml4dHVyZS1zZWNyZXQ=\"})  # gitleaks:allow\n        try:\n            for endpoint in (\"executions\", \"orders\", \"triggers\"):\n                signed = rest.sign(endpoint, \"history\", \"GET\", {\"version\": \"v3\", \"since\": 1, \"before\": 2, \"sort\": \"asc\"})\n                self.assertIn(f\"/api/history/v3/{endpoint}?\", signed[\"url\"])\n                self.assertNotIn(\"version=\", signed[\"url\"])\n                self.assertIn(\"Authent\", signed[\"headers\"])\n                self.assertEqual(rest.options[\"versions\"][\"history\"][\"GET\"][endpoint], \"v2\", \"No mutable client-global route override.\")\n        finally:\n            await rest.close()"
+        }
+      ]
+    },
+    {
+      "issueId": "a360f0efd27887cef03a99054153d167",
+      "rule": "Semgrep_python.lang.security.audit.dangerous-subprocess-use-audit.dangerous-subprocess-use-audit",
+      "path": "exchange_executor/tests/test_acceptance_journal_crash.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 38,
+        "sourceSha256": "c3d4a5b599857abb680336720f1a785649eeedaea8b816ced277d7d14742784b",
+        "lineSha256": "19c4cb61c0c98ddf9b54f4f2b0fd3e7ee9489901581d7825490d9b2a55e8ebf7",
+        "text": "            second_owner = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True,"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 38,
+        "sourceSha256": "39979e53576e6212c338e8a9f93f80dfbbecd499a0bc8fd7cf24f8b559a05edd",
+        "lineSha256": "c67e7cd931991ba79714e0ae9440b770c4972d8078c326cffe31d0b4b422015f",
+        "text": "            second_owner = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,"
+      },
+      "mapping": "pre-existing explicit check=False documents the subprocess nonzero-status assertion contract",
+      "rationale": "arguments() fixes sys.executable -B and the sibling acceptance_journal_child.py. The only variable directory is a TemporaryDirectory fixture and phase is a finite local crash-mode key or literal replay/fsync_error. The child was inspected: economic attempts are fsynced file appends and an isolated SQLite journal, with no HTTP provider transport. This second-owner replay must fail while the first owned child holds the journal; capture_output and timeout=10 bound the subprocess and its error contract is asserted.",
+      "evidence": [
+        {
+          "start": 17,
+          "end": 21,
+          "source": "CHILD = Path(__file__).with_name(\"acceptance_journal_child.py\")\n\n\ndef arguments(directory, phase):\n    return [sys.executable, \"-B\", str(CHILD), str(directory), phase]"
+        },
+        {
+          "start": 29,
+          "end": 58,
+          "source": "    def crash_at(self, directory, phase):\n        process = subprocess.Popen(arguments(directory, phase), stdout=subprocess.PIPE, stderr=subprocess.PIPE,\n                                   text=True, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n        try:\n            deadline = time.monotonic() + 10\n            while not (directory / \"ready.jsonl\").exists():\n                self.assertIsNone(process.poll(), \"child exited before the durable checkpoint\")\n                self.assertLess(time.monotonic(), deadline, \"child checkpoint timeout\")\n                time.sleep(0.01)\n            second_owner = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                          timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n            self.assertNotEqual(second_owner.returncode, 0)\n            self.assertIn(\"journal refused\", second_owner.stderr)\n        finally:\n            process.kill()\n            process.communicate(timeout=10)\n        self.assertNotEqual(process.returncode, 0)\n\n    def test_actual_kills_replay_original_phase_and_never_repeat_unknown_send(self):\n        phases = {\"opened\": (0, 0), \"before_reserve\": (0, 0), \"reserved\": (0, 0),\n                  \"dispatching\": (0, 0), \"before_accept\": (1, 0), \"accepted\": (1, 1), \"acknowledged\": (1, 1)}\n        for phase, (attempts, accepted) in phases.items():\n            with self.subTest(phase=phase), tempfile.TemporaryDirectory(prefix=\"acceptance-hardkill-\") as location:\n                directory = Path(location)\n                self.crash_at(directory, phase)\n                before = rows(directory / \"writes.jsonl\")\n                self.assertEqual(sum(row[\"event\"] == \"attempt\" for row in before), attempts)\n                self.assertEqual(sum(row[\"event\"] == \"accepted\" for row in before), accepted)\n                resumed = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                         timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))"
+        }
+      ]
+    },
+    {
+      "issueId": "4f5a8e6e9b96c852cf4c546ea50b5f4c",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_fill_quantity_provenance.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 52,
+        "sourceSha256": "f91bf116dd5e0165f3cb7e121099fe45c8ea581bd773d260c79879d03e7df9d8",
+        "lineSha256": "8d572308245f9f9e89fcc21150843fa411aaee01481c95ce6f2ecd1252995c57",
+        "text": "        self.factor_token = \"0.25\""
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 52,
+        "sourceSha256": "fcc58f7aaba097dab858761990d81dce9184e1ea6c0acbb6bbb4e79b3b6783d7",
+        "lineSha256": "8d572308245f9f9e89fcc21150843fa411aaee01481c95ce6f2ecd1252995c57",
+        "text": "        self.factor_token = \"0.25\""
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "factor_token is decimal test data 0.25, inserted into the original JSON contractSize field to exercise exact numeric provenance. fake_transport returns that local JSON and replaces rest.fetch. The identifier token has no authentication meaning.",
+      "evidence": [
+        {
+          "start": 47,
+          "end": 68,
+          "source": "class FillQuantityProvenanceTests(unittest.IsolatedAsyncioTestCase):\n    async def asyncSetUp(self):\n        self.assertEqual(ccxt.__version__, \"4.5.75\")\n        self.rest = krakenfutures({\"enableRateLimit\": False})\n        self.calls = []\n        self.factor_token = \"0.25\"\n\n        async def fake_transport(url, method=\"GET\", headers=None, body=None):\n            self.assertEqual((method, url), (\"GET\", \"https://futures.kraken.com/derivatives/api/v3/instruments\"))\n            self.calls.append((method, url))\n            response = {\"result\": \"success\", \"serverTime\": \"2026-09-02T09:00:00.000Z\", \"instruments\": [{\n                \"symbol\": \"PF_XBTUSD\", \"type\": \"flexible_futures\", \"tradeable\": True,\n                \"base\": \"XBT\", \"quote\": \"USD\", \"contractSize\": \"PROBE_FACTOR_TOKEN\",\n                \"tickSize\": 0.5, \"contractValueTradePrecision\": 4, \"marginLevels\": []}]}\n            original = json.dumps(response).replace('\"PROBE_FACTOR_TOKEN\"', self.factor_token)\n            self.rest.last_http_response = original\n            return self.rest.parse_json(original)\n\n        self.rest.fetch = fake_transport\n\n    async def asyncTearDown(self):\n        await self.rest.close()"
+        }
+      ]
+    },
+    {
+      "issueId": "73d6277a03a158cfc662daf32a1d5ca0",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_hyperliquid_retention.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 186,
+        "sourceSha256": "9bfc387b4cfe9ec6ce65869a5684a603ebd08d6dbd8fec37cff2d30329ff9775",
+        "lineSha256": "22f3d517155be05442f33fd39936f885393569d970806ee7040ea8a30189afa1",
+        "text": "                       {'secret': 'not-allowlisted'}, {'anchor': None}, {'cursor': self.now + 2}):"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 188,
+        "sourceSha256": "2c733b41d11af3d73aba439a654caf797cf74dac0aa8d9b4df565d32f8e988bc",
+        "lineSha256": "22f3d517155be05442f33fd39936f885393569d970806ee7040ea8a30189afa1",
+        "text": "                       {'secret': 'not-allowlisted'}, {'anchor': None}, {'cursor': self.now + 2}):"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "Documentation rationale describes a deliberately forbidden checkpoint field/value. Underlying retention test places it among malformed variants that must raise ExchangeContractError. It is schema-adversarial data, not a credential or accepted checkpoint secret.",
+      "evidence": [
+        {
+          "start": 183,
+          "end": 190,
+          "source": "    async def test_serialized_probe_rejects_unbounded_or_contradictory_fields(self):\n        original = state()\n        rest = RetentionRest([fill(1, original['baselineSince'] + 1)])\n        scan = await self.phase(rest, original, 'scan')\n        for change in ({'version': True}, {'count': 10000}, {'fixedUntil': 0}, {'validatedAt': self.now},\n                       {'secret': 'not-allowlisted'}, {'anchor': None}, {'cursor': self.now + 2}):\n            with self.assertRaises(ExchangeContractError):\n                checkpoint({**scan, 'retention': {**scan['retention'], **change}})"
+        }
+      ]
+    },
+    {
+      "issueId": "bb44fe4b872c6be67e0208bb2d13c053",
+      "rule": "PyLintPython3_W0106",
+      "path": "exchange_executor/tests/test_fill_quantity_provenance.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 178,
+        "sourceSha256": "f91bf116dd5e0165f3cb7e121099fe45c8ea581bd773d260c79879d03e7df9d8",
+        "lineSha256": "552a7919a623f0a595ec8a5a0e32143a9ac63ef9f9b5fea495881dcff8625ff0",
+        "text": "            Decimal(\"12345678901234567890.12345679\") * Decimal(\"0.25\")"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 179,
+        "sourceSha256": "fcc58f7aaba097dab858761990d81dce9184e1ea6c0acbb6bbb4e79b3b6783d7",
+        "lineSha256": "604a1a41726a48176d55596aadf3b617fa3d406813552a5db77e2dd671e030fb",
+        "text": "            _rounded_product = Decimal(\"12345678901234567890.12345679\") * Decimal(\"0.25\")"
+      },
+      "mapping": "pre-existing explicit assignment/comment preserves the original Decimal flag side effect",
+      "rationale": "The original bare Decimal multiplication intentionally sets ambient Decimal flags; expected_flags is captured immediately afterward and compared with the helper result inside localcontext. Its side effect, not its numeric return, is the assertion input. Current source explicitly assigns _rounded_product and comments on this purpose; the operation and flag comparison remain. This original finding is behaviorally a false positive, with source clarification already present before this review.",
+      "evidence": [
+        {
+          "start": 173,
+          "end": 185,
+          "source": "    async def test_helper_does_not_change_ambient_context_or_flags(self):\n        await self.loaded_market()\n        with localcontext() as context:\n            context.prec = 28\n            context.clear_flags()\n            # Exercise Decimal arithmetic to populate ambient flags for the comparison.\n            _rounded_product = Decimal(\"12345678901234567890.12345679\") * Decimal(\"0.25\")\n            expected_flags = dict(context.flags)\n            context.clear_flags()\n            self.normalized(\"12345678901234567890.12345679\")\n            self.assertEqual(context.flags, expected_flags)\n            self.assertIs(getcontext(), context)\n            self.assertEqual(context.prec, 28)"
+        }
+      ]
+    },
+    {
+      "issueId": "6aa8d8e19a3d24cb9a076739cb71b1da",
+      "rule": "Bandit_B101",
+      "path": "exchange_executor/tests/test_hyperliquid_retention.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 46,
+        "sourceSha256": "9bfc387b4cfe9ec6ce65869a5684a603ebd08d6dbd8fec37cff2d30329ff9775",
+        "lineSha256": "2d47bf874f8a4b3a62dadb7524622775f0ac649970e5697790d0cbc03f81a84e",
+        "text": "        assert params['aggregateByTime'] is False"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 48,
+        "sourceSha256": "2c733b41d11af3d73aba439a654caf797cf74dac0aa8d9b4df565d32f8e988bc",
+        "lineSha256": "2d47bf874f8a4b3a62dadb7524622775f0ac649970e5697790d0cbc03f81a84e",
+        "text": "        assert params['aggregateByTime'] is False"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The assert belongs to the local RetentionRest fake and requires aggregateByTime=False for its generated unaggregated fill pages. It is test request validation, not a production authorization guard. The fake returns local rows and never opens a network connection. Running tests with optimization would remove this assertion and is not claimed as supported validation.",
+      "evidence": [
+        {
+          "start": 24,
+          "end": 48,
+          "source": "class RetentionRest:\n    def __init__(self, rows):\n        self.rows = rows\n        self.calls = []\n        self.page_limit = 2000\n\n    @staticmethod\n    def handle_public_address(*_args):\n        return 'offline-wallet', {}\n\n    @staticmethod\n    def parse_trade(row):\n        return {**row, 'id': str(row['tid']), 'timestamp': row['time']}\n\n    async def publicPostInfo(self, params):\n        self.calls.append(dict(params))\n        if params['type'] == 'userFills':\n            return list(reversed(self.rows[-2000:]))\n        self.assert_unaggregated(params)\n        return [row for row in self.rows[-10000:]\n                if params['startTime'] <= row['time'] <= params.get('endTime', 2**53 - 1)][:self.page_limit]\n\n    @staticmethod\n    def assert_unaggregated(params):\n        assert params['aggregateByTime'] is False"
+        },
+        {
+          "start": 58,
+          "end": 65,
+          "source": "    async def read(self, rest, saved, remaining=5):\n        before = len(rest.calls)\n        _, rows, updates = await read_history_pages(rest, 'hyperliquid', [saved], budget(remaining))\n        self.assertLessEqual(len(rest.calls) - before, remaining)\n        self.assertEqual(updates[0]['pages'], len(rest.calls) - before)\n        serialized = json.dumps(updates[0]['checkpoint'])\n        self.assertLess(len(serialized.encode()), 8192)\n        return checkpoint(json.loads(serialized)), rows, updates"
+        }
+      ]
+    },
+    {
+      "issueId": "1a98617b62421f98f396baa754539170",
+      "rule": "Bandit_B404",
+      "path": "exchange_executor/tests/test_implementation_runtime.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 10,
+        "sourceSha256": "ff92162ae158bcfbaac96052207c9e058e70c028a6ac8fc1cfe1dd9f23385aaf",
+        "lineSha256": "7d8752c4c7ea34c2c6d04a15aa31a1f25f62848f8c3c82528fd62439c01a225b",
+        "text": "import subprocess"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 10,
+        "sourceSha256": "ff92162ae158bcfbaac96052207c9e058e70c028a6ac8fc1cfe1dd9f23385aaf",
+        "lineSha256": "7d8752c4c7ea34c2c6d04a15aa31a1f25f62848f8c3c82528fd62439c01a225b",
+        "text": "import subprocess"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The subprocess runs this Python interpreter with -E -B and the fixed verifier filename in an isolated TemporaryDirectory copy. Each executor source is copied byte-for-byte and checked; only the disposable copy receives an empty test approval policy. cwd is the fixture, command is a list with no shell, timeout is 30 seconds, NO-GO is required, and the original policy bytes are checked unchanged. This is local verification, not provider execution.",
+      "evidence": [
+        {
+          "start": 28,
+          "end": 39,
+          "source": "    def setUp(self):\n        self.temporary = tempfile.TemporaryDirectory()\n        self.addCleanup(self.temporary.cleanup)\n        self.executor = Path(self.temporary.name) / 'executor'\n        self.sdk = Path(self.temporary.name) / 'sdk'\n        self.receipts = self.executor / 'certifications'\n        self.receipts.mkdir(parents=True)\n        (self.sdk / 'base').mkdir(parents=True)\n        for name in ('ccxt_certification.py', 'verify_implementation_runtime.py', 'adapter.py'):\n            (self.executor / name).write_text(f'# original {name}\\n', encoding='utf-8')\n        (self.sdk / '__init__.py').write_text('# original SDK\\n', encoding='utf-8')\n        (self.sdk / 'base' / 'exchange.py').write_text('# original SDK base\\n', encoding='utf-8')"
+        },
+        {
+          "start": 215,
+          "end": 241,
+          "source": "    def test_fresh_cli_with_explicitly_empty_fixture_policy_is_no_go(self):\n        # A future legitimate production approval must not break this negative\n        # test. Copy actual source bytes, but use a separate empty TEST policy.\n        source = Path(evidence.__file__).resolve().parent\n        fixture = Path(self.temporary.name) / 'unreviewed-executor'\n        fixture.mkdir()\n        authority = 'ccxt_implementation_reviews.py'\n        original_policy = (source / authority).read_bytes()\n        for file in sorted(source.glob('*.py')):\n            copied = fixture / file.name\n            shutil.copyfile(file, copied)\n            self.assertEqual(copied.read_bytes(), file.read_bytes())\n            self.assertEqual(copied.stat().st_nlink, 1)\n        (fixture / authority).write_text(\n            '# Explicit isolated TEST policy; never changes production review pins.\\n'\n            'from types import MappingProxyType\\nAPPROVED_IMPLEMENTATION_RECEIPTS = MappingProxyType({})\\n',\n            encoding='utf-8',\n        )\n        cli = fixture / 'verify_implementation_runtime.py'\n        outcome = subprocess.run([sys.executable, '-E', '-B', str(cli)], cwd=fixture, capture_output=True,\n                                 text=True, timeout=30, check=False)\n        self.assertEqual(outcome.returncode, 1)\n        self.assertEqual(outcome.stdout, '')\n        self.assertIn('NO-GO', outcome.stderr)\n        self.assertNotIn('Traceback', outcome.stderr)\n        self.assertEqual((source / authority).read_bytes(), original_policy)\n        self.assertFalse((fixture / '__pycache__').exists())"
+        }
+      ]
+    },
+    {
+      "issueId": "757059ea2875109ac626f52375d613e7",
+      "rule": "Bandit_B603",
+      "path": "exchange_executor/tests/test_acceptance_journal_crash.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 30,
+        "sourceSha256": "c3d4a5b599857abb680336720f1a785649eeedaea8b816ced277d7d14742784b",
+        "lineSha256": "ee170fdd3638e632b6be241695b8e0fe1a8052b3c9587c4e774dd71fe63c8d1f",
+        "text": "        process = subprocess.Popen(arguments(directory, phase), stdout=subprocess.PIPE, stderr=subprocess.PIPE,"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 30,
+        "sourceSha256": "39979e53576e6212c338e8a9f93f80dfbbecd499a0bc8fd7cf24f8b559a05edd",
+        "lineSha256": "ee170fdd3638e632b6be241695b8e0fe1a8052b3c9587c4e774dd71fe63c8d1f",
+        "text": "        process = subprocess.Popen(arguments(directory, phase), stdout=subprocess.PIPE, stderr=subprocess.PIPE,"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "arguments() fixes sys.executable -B and the sibling acceptance_journal_child.py. The only variable directory is a TemporaryDirectory fixture and phase is a finite local crash-mode key or literal replay/fsync_error. The child was inspected: economic attempts are fsynced file appends and an isolated SQLite journal, with no HTTP provider transport. Popen uses a list and default shell=False. This deliberately paused child has a 10-second checkpoint deadline, is killed in finally, and communicate is bounded at 10 seconds; no arbitrary process identifier is killed.",
+      "evidence": [
+        {
+          "start": 17,
+          "end": 21,
+          "source": "CHILD = Path(__file__).with_name(\"acceptance_journal_child.py\")\n\n\ndef arguments(directory, phase):\n    return [sys.executable, \"-B\", str(CHILD), str(directory), phase]"
+        },
+        {
+          "start": 29,
+          "end": 58,
+          "source": "    def crash_at(self, directory, phase):\n        process = subprocess.Popen(arguments(directory, phase), stdout=subprocess.PIPE, stderr=subprocess.PIPE,\n                                   text=True, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n        try:\n            deadline = time.monotonic() + 10\n            while not (directory / \"ready.jsonl\").exists():\n                self.assertIsNone(process.poll(), \"child exited before the durable checkpoint\")\n                self.assertLess(time.monotonic(), deadline, \"child checkpoint timeout\")\n                time.sleep(0.01)\n            second_owner = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                          timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n            self.assertNotEqual(second_owner.returncode, 0)\n            self.assertIn(\"journal refused\", second_owner.stderr)\n        finally:\n            process.kill()\n            process.communicate(timeout=10)\n        self.assertNotEqual(process.returncode, 0)\n\n    def test_actual_kills_replay_original_phase_and_never_repeat_unknown_send(self):\n        phases = {\"opened\": (0, 0), \"before_reserve\": (0, 0), \"reserved\": (0, 0),\n                  \"dispatching\": (0, 0), \"before_accept\": (1, 0), \"accepted\": (1, 1), \"acknowledged\": (1, 1)}\n        for phase, (attempts, accepted) in phases.items():\n            with self.subTest(phase=phase), tempfile.TemporaryDirectory(prefix=\"acceptance-hardkill-\") as location:\n                directory = Path(location)\n                self.crash_at(directory, phase)\n                before = rows(directory / \"writes.jsonl\")\n                self.assertEqual(sum(row[\"event\"] == \"attempt\" for row in before), attempts)\n                self.assertEqual(sum(row[\"event\"] == \"accepted\" for row in before), accepted)\n                resumed = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                         timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))"
+        }
+      ]
+    },
+    {
+      "issueId": "f16d0cc149ea750f2037ffb36b195934",
+      "rule": "Semgrep_python.lang.security.audit.dangerous-subprocess-use-audit.dangerous-subprocess-use-audit",
+      "path": "exchange_executor/tests/test_acceptance_journal_crash.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 57,
+        "sourceSha256": "c3d4a5b599857abb680336720f1a785649eeedaea8b816ced277d7d14742784b",
+        "lineSha256": "1903a0748f3f095380e1d3b057c10484e39ea2db517a0036d008d442814986d8",
+        "text": "                resumed = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True,"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 57,
+        "sourceSha256": "39979e53576e6212c338e8a9f93f80dfbbecd499a0bc8fd7cf24f8b559a05edd",
+        "lineSha256": "58d7d2f957fba24baaadc7479a15d58c427ff67ad1b945f2d17045036d299665",
+        "text": "                resumed = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,"
+      },
+      "mapping": "pre-existing explicit check=False documents the subprocess nonzero-status assertion contract",
+      "rationale": "arguments() fixes sys.executable -B and the sibling acceptance_journal_child.py. The only variable directory is a TemporaryDirectory fixture and phase is a finite local crash-mode key or literal replay/fsync_error. The child was inspected: economic attempts are fsynced file appends and an isolated SQLite journal, with no HTTP provider transport. This replay is launched after the owned child is killed; return code, retained absolute deadline and exact economic-attempt counts are checked, with timeout=10 and shell=False.",
+      "evidence": [
+        {
+          "start": 17,
+          "end": 21,
+          "source": "CHILD = Path(__file__).with_name(\"acceptance_journal_child.py\")\n\n\ndef arguments(directory, phase):\n    return [sys.executable, \"-B\", str(CHILD), str(directory), phase]"
+        },
+        {
+          "start": 47,
+          "end": 69,
+          "source": "    def test_actual_kills_replay_original_phase_and_never_repeat_unknown_send(self):\n        phases = {\"opened\": (0, 0), \"before_reserve\": (0, 0), \"reserved\": (0, 0),\n                  \"dispatching\": (0, 0), \"before_accept\": (1, 0), \"accepted\": (1, 1), \"acknowledged\": (1, 1)}\n        for phase, (attempts, accepted) in phases.items():\n            with self.subTest(phase=phase), tempfile.TemporaryDirectory(prefix=\"acceptance-hardkill-\") as location:\n                directory = Path(location)\n                self.crash_at(directory, phase)\n                before = rows(directory / \"writes.jsonl\")\n                self.assertEqual(sum(row[\"event\"] == \"attempt\" for row in before), attempts)\n                self.assertEqual(sum(row[\"event\"] == \"accepted\" for row in before), accepted)\n                resumed = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                         timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n                self.assertEqual(resumed.returncode, 0, resumed.stderr)\n                self.assertEqual(json.loads(resumed.stdout)[\"deadline\"], 130)\n                after = rows(directory / \"writes.jsonl\")\n                expected = 1 if phase in {\"opened\", \"before_reserve\", \"reserved\"} else attempts\n                self.assertEqual(sum(row[\"event\"] == \"attempt\" for row in after), expected)\n                with AcceptanceJournal(directory / \"run.sqlite\", journal_binding(plan()), clock=lambda: 129) as journal:\n                    guard = AcceptanceGuard(plan(), SHA, PROFILE_HASH, journal=journal)\n                    self.assertEqual(journal.deadline, 130)\n                    unknown = phase in {\"dispatching\", \"before_accept\", \"accepted\"}\n                    self.assertEqual(guard.unresolved, [\"own-1\"] if unknown else [])\n                    self.assertEqual(journal.binding[\"plan\"], plan())"
+        }
+      ]
+    },
+    {
+      "issueId": "473d75b0a12718de86447b0c453a8467",
+      "rule": "Bandit_B603",
+      "path": "exchange_executor/tests/test_provider_acceptance.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 31,
+        "sourceSha256": "43132b9ca992e14994fb88017ee779a328ec30a45edb0465e55ca598fb46e525",
+        "lineSha256": "0bb4cae33a73008807c9f18989ecb3f04492610518c62d3f28ac746fd5a862fa",
+        "text": "            result = subprocess.run("
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 31,
+        "sourceSha256": "43132b9ca992e14994fb88017ee779a328ec30a45edb0465e55ca598fb46e525",
+        "lineSha256": "0bb4cae33a73008807c9f18989ecb3f04492610518c62d3f28ac746fd5a862fa",
+        "text": "            result = subprocess.run("
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The only subprocess runs sys.executable -B and the repository-owned provider_acceptance_runner.py with either no arguments or the literal --execute. The former returns DRY_RUN; the latter lacks authorization and must refuse. The child entry point was inspected: it offers no implemented provider transport. Argument lists use the default shell=False and a 10-second timeout; the observed exit status/output are asserted. The separate TemporaryDirectory helper belongs to journal tests, not this CLI invocation.",
+      "evidence": [
+        {
+          "start": 28,
+          "end": 58,
+          "source": "    def test_cli_is_offline_by_default_and_execute_fails(self):\n        script = Path(__file__).with_name(\"provider_acceptance_runner.py\")\n        for arguments, expected_status in [([], 0), ([\"--execute\"], 1)]:\n            result = subprocess.run(\n                [sys.executable, \"-B\", str(script), *arguments], check=False,\n                text=True, capture_output=True, timeout=10,\n                creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0),\n            )\n            self.assertEqual(result.returncode, expected_status)\n            if expected_status == 0:\n                self.assertEqual(json.loads(result.stdout)[\"status\"], \"DRY_RUN\")\n            else:\n                self.assertIn(\"Provider acceptance refused\", result.stderr)\n\n    def test_default_dry_run_has_no_network_or_secret_access(self):\n        with patch(\"socket.socket\", side_effect=AssertionError(\"network access\")), patch.dict(\n            \"os.environ\", {\"API_KEY\": \"ambient-must-not-be-read\", \"PROVIDER_ACCEPTANCE_EXECUTE\": \"true\"}\n        ), patch(\"provider_acceptance_runner.AcceptanceJournal\", side_effect=AssertionError(\"journal access\")):\n            result = run_acceptance()\n        self.assertEqual(result[\"status\"], \"DRY_RUN\")\n        self.assertFalse(result[\"providerAcceptanceVerified\"])\n        self.assertEqual(result[\"networkRequests\"], 0)\n\n    def test_execution_refuses_without_authorization_or_implemented_transport(self):\n        prepared_plan = plan()\n        with self.assertRaisesRegex(AcceptanceRefused, \"explicit authorization\"):\n            run_acceptance(prepared_plan, execute=True, expected_source_sha=SHA, expected_profile_hash=PROFILE_HASH)\n        prepared_plan = plan()\n        with self.assertRaisesRegex(AcceptanceRefused, \"transport is not implemented\"):\n            run_acceptance(prepared_plan, execute=True, authorization=\"RUN APPROVED TESTNET ACCEPTANCE\",\n                           expected_source_sha=SHA, expected_profile_hash=PROFILE_HASH)"
+        }
+      ]
+    },
+    {
+      "issueId": "61a92478fae6e28f1c002f42decfa0e4",
+      "rule": "Bandit_B603",
+      "path": "exchange_executor/tests/test_implementation_runtime.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 234,
+        "sourceSha256": "ff92162ae158bcfbaac96052207c9e058e70c028a6ac8fc1cfe1dd9f23385aaf",
+        "lineSha256": "1d86f63a5e9033a846b21fb4dc4ba5f643eca9d742d56cb289d54484b9508f25",
+        "text": "        outcome = subprocess.run([sys.executable, '-E', '-B', str(cli)], cwd=fixture, capture_output=True,"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 234,
+        "sourceSha256": "ff92162ae158bcfbaac96052207c9e058e70c028a6ac8fc1cfe1dd9f23385aaf",
+        "lineSha256": "1d86f63a5e9033a846b21fb4dc4ba5f643eca9d742d56cb289d54484b9508f25",
+        "text": "        outcome = subprocess.run([sys.executable, '-E', '-B', str(cli)], cwd=fixture, capture_output=True,"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The subprocess runs this Python interpreter with -E -B and the fixed verifier filename in an isolated TemporaryDirectory copy. Each executor source is copied byte-for-byte and checked; only the disposable copy receives an empty test approval policy. cwd is the fixture, command is a list with no shell, timeout is 30 seconds, NO-GO is required, and the original policy bytes are checked unchanged. This is local verification, not provider execution.",
+      "evidence": [
+        {
+          "start": 28,
+          "end": 39,
+          "source": "    def setUp(self):\n        self.temporary = tempfile.TemporaryDirectory()\n        self.addCleanup(self.temporary.cleanup)\n        self.executor = Path(self.temporary.name) / 'executor'\n        self.sdk = Path(self.temporary.name) / 'sdk'\n        self.receipts = self.executor / 'certifications'\n        self.receipts.mkdir(parents=True)\n        (self.sdk / 'base').mkdir(parents=True)\n        for name in ('ccxt_certification.py', 'verify_implementation_runtime.py', 'adapter.py'):\n            (self.executor / name).write_text(f'# original {name}\\n', encoding='utf-8')\n        (self.sdk / '__init__.py').write_text('# original SDK\\n', encoding='utf-8')\n        (self.sdk / 'base' / 'exchange.py').write_text('# original SDK base\\n', encoding='utf-8')"
+        },
+        {
+          "start": 215,
+          "end": 241,
+          "source": "    def test_fresh_cli_with_explicitly_empty_fixture_policy_is_no_go(self):\n        # A future legitimate production approval must not break this negative\n        # test. Copy actual source bytes, but use a separate empty TEST policy.\n        source = Path(evidence.__file__).resolve().parent\n        fixture = Path(self.temporary.name) / 'unreviewed-executor'\n        fixture.mkdir()\n        authority = 'ccxt_implementation_reviews.py'\n        original_policy = (source / authority).read_bytes()\n        for file in sorted(source.glob('*.py')):\n            copied = fixture / file.name\n            shutil.copyfile(file, copied)\n            self.assertEqual(copied.read_bytes(), file.read_bytes())\n            self.assertEqual(copied.stat().st_nlink, 1)\n        (fixture / authority).write_text(\n            '# Explicit isolated TEST policy; never changes production review pins.\\n'\n            'from types import MappingProxyType\\nAPPROVED_IMPLEMENTATION_RECEIPTS = MappingProxyType({})\\n',\n            encoding='utf-8',\n        )\n        cli = fixture / 'verify_implementation_runtime.py'\n        outcome = subprocess.run([sys.executable, '-E', '-B', str(cli)], cwd=fixture, capture_output=True,\n                                 text=True, timeout=30, check=False)\n        self.assertEqual(outcome.returncode, 1)\n        self.assertEqual(outcome.stdout, '')\n        self.assertIn('NO-GO', outcome.stderr)\n        self.assertNotIn('Traceback', outcome.stderr)\n        self.assertEqual((source / authority).read_bytes(), original_policy)\n        self.assertFalse((fixture / '__pycache__').exists())"
+        }
+      ]
+    },
+    {
+      "issueId": "7aa9d162e50ed33757c91ed3922f3a32",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_phase2_registry.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 285,
+        "sourceSha256": "9ba924d0aecb8fb295143a4d469d3495f8d9a66e6a72d1146dc46cd7fd5bcf99",
+        "lineSha256": "10b1e3694a50abbc24225ba152545d578ae9f674ddff840520940fb9dc8f3e13",
+        "text": "                \"credentials\": {\"apiKey\": \"bybit-key-123\", \"secret\": \"bybit-secret-123\"},"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 287,
+        "sourceSha256": "51d006e4e25bfab71a3e034de21560f74b485aa1f2dd8e63eaf63c290154e196",
+        "lineSha256": "10b1e3694a50abbc24225ba152545d578ae9f674ddff840520940fb9dc8f3e13",
+        "text": "                \"credentials\": {\"apiKey\": \"bybit-key-123\", \"secret\": \"bybit-secret-123\"},"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The dummy bybit secret is written to a UUID-named JSON file under a TemporaryDirectory trading subdirectory, read through CredentialStore and compared for schema parity. An added unsupported field then must reject. No SDK/network method receives this fixture credential.",
+      "evidence": [
+        {
+          "start": 277,
+          "end": 297,
+          "source": "    def test_python_reads_v2_and_rejects_unknown_fields(self) -> None:\n        with tempfile.TemporaryDirectory() as directory:\n            trading = Path(directory) / \"trading\"\n            trading.mkdir()\n            account_id = \"11111111-1111-4111-8111-111111111111\"\n            destination = trading / f\"{account_id}.json\"\n            destination.write_text(json.dumps({\n                \"version\": 2,\n                \"accountId\": account_id,\n                \"exchange\": \"bybit\",\n                \"credentials\": {\"apiKey\": \"bybit-key-123\", \"secret\": \"bybit-secret-123\"},\n                \"updatedAt\": 1,\n            }), encoding=\"utf-8\")\n            loaded = CredentialStore(directory).account(account_id, \"bybit\")\n            self.assertEqual(loaded[\"credentials\"][\"secret\"], \"bybit-secret-123\")\n            value = json.loads(destination.read_text(encoding=\"utf-8\"))\n            value[\"credentials\"][\"customParams\"] = \"forbidden\"\n            destination.write_text(json.dumps(value), encoding=\"utf-8\")\n            prepared_store = CredentialStore(directory)\n            with self.assertRaisesRegex(CredentialError, \"unsupported credential field\"):\n                prepared_store.account(account_id, \"bybit\")"
+        }
+      ]
+    },
+    {
+      "issueId": "d7f940b0a95a9840552cfdc5b80bb4c5",
+      "rule": "Bandit_B404",
+      "path": "exchange_executor/tests/test_provider_acceptance.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 5,
+        "sourceSha256": "43132b9ca992e14994fb88017ee779a328ec30a45edb0465e55ca598fb46e525",
+        "lineSha256": "7d8752c4c7ea34c2c6d04a15aa31a1f25f62848f8c3c82528fd62439c01a225b",
+        "text": "import subprocess"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 5,
+        "sourceSha256": "43132b9ca992e14994fb88017ee779a328ec30a45edb0465e55ca598fb46e525",
+        "lineSha256": "7d8752c4c7ea34c2c6d04a15aa31a1f25f62848f8c3c82528fd62439c01a225b",
+        "text": "import subprocess"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The only subprocess runs sys.executable -B and the repository-owned provider_acceptance_runner.py with either no arguments or the literal --execute. The former returns DRY_RUN; the latter lacks authorization and must refuse. The child entry point was inspected: it offers no implemented provider transport. Argument lists use the default shell=False and a 10-second timeout; the observed exit status/output are asserted. The separate TemporaryDirectory helper belongs to journal tests, not this CLI invocation.",
+      "evidence": [
+        {
+          "start": 28,
+          "end": 58,
+          "source": "    def test_cli_is_offline_by_default_and_execute_fails(self):\n        script = Path(__file__).with_name(\"provider_acceptance_runner.py\")\n        for arguments, expected_status in [([], 0), ([\"--execute\"], 1)]:\n            result = subprocess.run(\n                [sys.executable, \"-B\", str(script), *arguments], check=False,\n                text=True, capture_output=True, timeout=10,\n                creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0),\n            )\n            self.assertEqual(result.returncode, expected_status)\n            if expected_status == 0:\n                self.assertEqual(json.loads(result.stdout)[\"status\"], \"DRY_RUN\")\n            else:\n                self.assertIn(\"Provider acceptance refused\", result.stderr)\n\n    def test_default_dry_run_has_no_network_or_secret_access(self):\n        with patch(\"socket.socket\", side_effect=AssertionError(\"network access\")), patch.dict(\n            \"os.environ\", {\"API_KEY\": \"ambient-must-not-be-read\", \"PROVIDER_ACCEPTANCE_EXECUTE\": \"true\"}\n        ), patch(\"provider_acceptance_runner.AcceptanceJournal\", side_effect=AssertionError(\"journal access\")):\n            result = run_acceptance()\n        self.assertEqual(result[\"status\"], \"DRY_RUN\")\n        self.assertFalse(result[\"providerAcceptanceVerified\"])\n        self.assertEqual(result[\"networkRequests\"], 0)\n\n    def test_execution_refuses_without_authorization_or_implemented_transport(self):\n        prepared_plan = plan()\n        with self.assertRaisesRegex(AcceptanceRefused, \"explicit authorization\"):\n            run_acceptance(prepared_plan, execute=True, expected_source_sha=SHA, expected_profile_hash=PROFILE_HASH)\n        prepared_plan = plan()\n        with self.assertRaisesRegex(AcceptanceRefused, \"transport is not implemented\"):\n            run_acceptance(prepared_plan, execute=True, authorization=\"RUN APPROVED TESTNET ACCEPTANCE\",\n                           expected_source_sha=SHA, expected_profile_hash=PROFILE_HASH)"
+        }
+      ]
+    },
+    {
+      "issueId": "68708aaa88ce75b68e37bd70a65b862d",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_kraken_history.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 56,
+        "sourceSha256": "4766e34f3a3d79facf3172a714191611019ac110d42baac50aaeb6a151291270",
+        "lineSha256": "83b9975260624eff4ddad6691ba2e5fbf421d246dc9f2e485f399cdc82ae3b27",
+        "text": "        index = 0 if token == \"after-empty\" else int(token)"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 57,
+        "sourceSha256": "9c71ac859f50c8fb958a15477edd255065925be540c341c455fd1f3dc1ec725e",
+        "lineSha256": "83b9975260624eff4ddad6691ba2e5fbf421d246dc9f2e485f399cdc82ae3b27",
+        "text": "        index = 0 if token == \"after-empty\" else int(token)"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "token is a synthetic pagination continuation marker: after-empty selects index zero in KrakenRest.page, otherwise a generated integer cursor is parsed. The fake produces local rows and headers; the value is never used for authentication.",
+      "evidence": [
+        {
+          "start": 30,
+          "end": 73,
+          "source": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
+        }
+      ]
+    },
+    {
+      "issueId": "a4941f6c5b19e4bc882ea5aece92731b",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_additional_myokx_boundaries.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 87,
+        "sourceSha256": "db9be578b896ea588d95085bd5605735c228f133fbdc10293e7ddc595da4d46c",
+        "lineSha256": "3991e0f762e5d34bc78045d1f03a20a10682c5dc385b0271c3c3477e98aa129c",
+        "text": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 87,
+        "sourceSha256": "db9be578b896ea588d95085bd5605735c228f133fbdc10293e7ddc595da4d46c",
+        "lineSha256": "3991e0f762e5d34bc78045d1f03a20a10682c5dc385b0271c3c3477e98aa129c",
+        "text": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The public offline-fixture secret/passphrase drives a real HMAC signing comparison for an IOC attachment. DNS/socket calls are blocked in asyncSetUp; the client defaults to a failing fetch mock, then this test installs a capture callback returning a local ACK. Signature equality is checked locally, no order is transmitted, and clients are closed.",
+      "evidence": [
+        {
+          "start": 31,
+          "end": 51,
+          "source": "class MyOkxBoundaryTests(unittest.IsolatedAsyncioTestCase):\n    async def asyncSetUp(self):\n        self.assertEqual(ccxt.__version__, \"4.5.75\")\n        self.assertEqual(sys.version_info[:2], (3, 12))\n        # Install only after unittest created its Windows event-loop self-pipe.\n        self.network_guards = []\n        for target, name in ((socket.socket, \"connect\"), (socket.socket, \"connect_ex\"), (socket, \"getaddrinfo\")):\n            guard = patch.object(target, name, side_effect=AssertionError(\"No provider network or DNS permitted.\"))\n            self.network_guards.append(guard.start())\n            self.addCleanup(guard.stop)\n\n    async def asyncTearDown(self):\n        for guard in self.network_guards:\n            guard.assert_not_called()\n\n    def client(self, *, pro=False):\n        cls = pro_sdk.myokx if pro else rest_sdk.myokx\n        client = cls({\"enableRateLimit\": False, \"options\": {\"adjustForTimeDifference\": False}})\n        client.fetch = AsyncMock(side_effect=AssertionError(\"Unspecified SDK transport is forbidden.\"))\n        self.addAsyncCleanup(client.close)\n        return client"
+        },
+        {
+          "start": 83,
+          "end": 117,
+          "source": "    async def test_signed_ioc_attachment_keeps_original_ids_but_ack_is_parent_only(self):\n        client = self.client()\n        client.apiKey = \"offline-fixture-key\"\n        client.secret = \"offline-fixture-secret\"\n        client.password = \"offline-fixture-passphrase\"\n        market = client.parse_market(native_market())\n        client.set_markets([market])\n        attachment = {\"attachAlgoClOrdId\": \"tsxstop1\", \"slTriggerPx\": \"90\", \"slOrdPx\": \"-1\", \"slTriggerPxType\": \"mark\"}\n        request = {\"symbol\": market[\"symbol\"], \"type\": \"limit\", \"side\": \"buy\", \"amount\": \"2\", \"price\": \"100.5\",\n                   \"params\": {\"timeInForce\": \"IOC\", \"tdMode\": \"cross\", \"posSide\": \"net\", \"clOrdId\": \"tsxparent1\",\n                              \"attachAlgoOrds\": [attachment]}}\n        original = copy.deepcopy(request)\n        ack = {\"code\": \"0\", \"data\": [{\"ordId\": \"900000000000001\", \"clOrdId\": \"tsxparent1\", \"sCode\": \"0\"}]}\n        original_ack = copy.deepcopy(ack)\n\n        async def capture(url, method=\"GET\", headers=None, body=None):\n            self.assertEqual((url, method), (\"https://eea.okx.com/api/v5/trade/batch-orders\", \"POST\"))\n            self.assertEqual(json.loads(body), [{\"instId\": market[\"id\"], \"side\": \"buy\", \"ordType\": \"ioc\", \"sz\": \"2\",\n                \"px\": \"100.5\", \"tdMode\": \"cross\", \"posSide\": \"net\", \"clOrdId\": \"tsxparent1\", \"attachAlgoOrds\": [attachment]}])\n            message = f\"{headers['OK-ACCESS-TIMESTAMP']}{method}{urlsplit(url).path}{body}\"\n            expected = base64.b64encode(hmac.digest(client.secret.encode(), message.encode(), \"sha256\")).decode()\n            self.assertEqual(headers[\"OK-ACCESS-SIGN\"], expected)\n            return copy.deepcopy(ack)\n\n        client.fetch = AsyncMock(side_effect=capture)\n        result = await client.create_orders([request])\n        client.fetch.assert_awaited_once()\n        self.assertEqual(request, original)\n        self.assertEqual(ack, original_ack)\n        self.assertEqual(len(result), 1)\n        self.assertEqual(result[0][\"id\"], ack[\"data\"][0][\"ordId\"])\n        self.assertEqual(result[0][\"clientOrderId\"], \"tsxparent1\")\n        self.assertEqual(result[0][\"info\"], ack[\"data\"][0])\n        self.assertIsNone(result[0][\"status\"], \"A placement ACK is not a terminal or fill observation.\")\n        self.assertNotIn(\"tsxstop1\", [row[\"clientOrderId\"] for row in result])"
+        }
+      ]
+    },
+    {
+      "issueId": "5acc5758efbe3602f1e235c18949f43f",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_kucoin_contracts.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 203,
+        "sourceSha256": "0495778ef607fbed1b9e90c82d0b6befd90d978112d2d1cf07d144782fcac2cc",
+        "lineSha256": "a900b42cd8bd2d8124398571afcc969ffcdce780b5d532a1d0575d51d0d7ec2b",
+        "text": "                    'secret': 'local-fixture-secret', 'password': 'local-fixture-passphrase',"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 203,
+        "sourceSha256": "0495778ef607fbed1b9e90c82d0b6befd90d978112d2d1cf07d144782fcac2cc",
+        "lineSha256": "a900b42cd8bd2d8124398571afcc969ffcdce780b5d532a1d0575d51d0d7ec2b",
+        "text": "                    'secret': 'local-fixture-secret', 'password': 'local-fixture-passphrase',"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The literal local-fixture secret/passphrase exercises signed batch serialization using the actual SDK. All socket/DNS connection paths are blocked before client construction; intercepted replaces fetch and returns explicit local market/order responses, and async cleanup closes the SDK.",
+      "evidence": [
+        {
+          "start": 190,
+          "end": 224,
+          "source": "class KucoinContractSdkTests(unittest.IsolatedAsyncioTestCase):\n    async def asyncSetUp(self):\n        self.assertEqual(ccxt.__version__, '4.5.75')\n        # Install after IsolatedAsyncioTestCase has created Windows' local\n        # event-loop socketpair, but before any SDK instance can open transport.\n        for target in ((socket.socket, 'connect'), (socket.socket, 'connect_ex'),\n                       (socket, 'getaddrinfo'), (socket, 'create_connection')):\n            blocker = patch.object(*target, side_effect=AssertionError('Live transport forbidden.'))\n            blocker.start()\n            self.addCleanup(blocker.stop)\n\n    async def sdk(self, exchange, raw):\n        rest = getattr(ccxt_async, exchange)({'enableRateLimit': False, 'apiKey': 'local-fixture-key',\n                    'secret': 'local-fixture-secret', 'password': 'local-fixture-passphrase',\n                    'options': {'uta': False, 'defaultType': 'swap'}})\n        self.addAsyncCleanup(rest.close)\n        calls = []\n        # The SDK's own standard JSON path sees floats, independently of the\n        # retained exact original used by our helper. Injecting Decimal into\n        # CCXT safe_number would produce None rather than its real market parse.\n        sdk_raw = json.loads(json.dumps(raw, default=float))\n\n        async def intercepted(url, method='GET', headers=None, body=None):\n            path = urlsplit(url).path\n            calls.append((path, method, json.loads(body) if body else None))\n            if path == '/api/v1/contracts/active' and method == 'GET':\n                return {'code': '200000', 'data': [copy.deepcopy(sdk_raw)]}\n            self.assertEqual((path, method), ('/api/v1/orders/multi', 'POST'))\n            self.assertTrue(headers.get('KC-API-SIGN'), 'Use the actual pinned signer; do not expose the signature.')\n            return {'code': '200000', 'data': [{'orderId': f\"id-{row['clientOid']}\", 'clientOid': row['clientOid'],\n                     'symbol': NATIVE_SYMBOL, 'code': '200000', 'msg': 'success'} for row in json.loads(body)]}\n\n        rest.fetch = intercepted\n        rest.set_markets(await rest.fetch_contract_markets())\n        return rest, calls"
+        }
+      ]
+    },
+    {
+      "issueId": "203dcc1ea1feba7cd53dcdb41e27d867",
+      "rule": "PyLintPython3_E0203",
+      "path": "exchange_executor/tests/test_entry_deadline.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 25,
+        "sourceSha256": "433d9d6fde190172a8f2355e7c599009561f989ffe7eb632762ee57d4a541a0b",
+        "lineSha256": "a6146fa7a98c9d9b917ecfeca796fbe9584030b46c5f3bdff8e4441fa9d5714f",
+        "text": "            self.clock_patch.stop()"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 25,
+        "sourceSha256": "05913345d6a75c9161421a7904c6d9777dc12545adb68ae15f8f306612132860",
+        "lineSha256": "a6146fa7a98c9d9b917ecfeca796fbe9584030b46c5f3bdff8e4441fa9d5714f",
+        "text": "            self.clock_patch.stop()"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "clock_patch.stop() is reached only after hasattr(self, clock_patch) succeeds. fixture then installs a fresh patch and registers its bound stop cleanup, allowing repeated subtests to replace the prior clock safely. The object has no custom attribute hook; there is no unconditional access-before-definition.",
+      "evidence": [
+        {
+          "start": 22,
+          "end": 32,
+          "source": "class EntryDeadlineTests(unittest.IsolatedAsyncioTestCase):\n    def fixture(self):\n        if hasattr(self, 'clock_patch'):\n            self.clock_patch.stop()\n        self.clock = [time.time()]\n        self.clock_patch = patch('time.time', side_effect=lambda: self.clock[0])\n        self.clock_patch.start()\n        self.addCleanup(self.clock_patch.stop)\n        entry, stop = bounded_orders()\n        entry['entryExpiresAt'] = int(self.clock[0] * 1000) + 5000\n        return entry, stop, RequestDeadline(int(self.clock[0] * 1000) + 30_000)"
+        },
+        {
+          "start": 59,
+          "end": 65,
+          "source": "    async def test_expiry_after_each_mode_or_tier_read_never_sends_entry(self):\n        for phase in ('first_mode', 'final_mode', 'first_tier', 'final_tier'):\n            with self.subTest(phase=phase):\n                entry, stop, deadline = self.fixture()\n                rest = rest_fixture()\n                rest.configured_leverage = 10\n                adapter = CcxtAdapter(FakeRegistry(rest))"
+        }
+      ]
+    },
+    {
+      "issueId": "c9cfb93bc875d1057148447acdbbd453",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_mutation_identity.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 51,
+        "sourceSha256": "1a797ef8bfdfc857696ce8a521ac6a4be143fe6c597e09668f6e4ac65691bc70",
+        "lineSha256": "050f3a0da644eb7e588cd7cad4ae3aec8b4851f199706710819a28a04331004c",
+        "text": "            registry.credentials.account = lambda *_args: {\"credentials\": {**test_secret(), \"secret\": \"rotated-secret\"}}"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 51,
+        "sourceSha256": "4603e8f835f705e621b6e71c1cfbc775dfb37be60593010f19d8567fa127adc0",
+        "lineSha256": "050f3a0da644eb7e588cd7cad4ae3aec8b4851f199706710819a28a04331004c",
+        "text": "            registry.credentials.account = lambda *_args: {\"credentials\": {**test_secret(), \"secret\": \"rotated-secret\"}}"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "rotated-secret is deliberately substituted into FakeRegistry.credentials during the local _entry_tier_fence callback. The adapter must reject Credentials changed before either captured leverage operations or created_batches occurs. FakeProtectedRest and the registry contain only local test data; this string is not a live credential.",
+      "evidence": [
+        {
+          "start": 45,
+          "end": 61,
+          "source": "    async def test_rotation_during_prepare_prevents_set_leverage_and_create(self):\n        rest = FakeProtectedRest([[]])\n        registry = FakeRegistry(rest)\n        adapter = CcxtAdapter(registry)\n\n        async def changed_generation(*_args):\n            registry.credentials.account = lambda *_args: {\"credentials\": {**test_secret(), \"secret\": \"rotated-secret\"}}\n            return None\n\n        adapter._entry_tier_fence = changed_generation\n        prepared_bound_test_account = bound_test_account()\n        prepared_protected_requests = protected_requests()\n        prepared_deadline = deadline()\n        with self.assertRaisesRegex(ExchangeContractError, \"Credentials changed\"):\n            await adapter.submit_protected_entry(prepared_bound_test_account, *prepared_protected_requests, prepared_deadline)\n        self.assertEqual(rest.leverage, [])\n        self.assertEqual(rest.created_batches, [])"
+        }
+      ]
+    },
+    {
+      "issueId": "279290d309bfb05c1d32b5d63a3b519d",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_candidate_group_b_boundaries.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 76,
+        "sourceSha256": "bc387d07c1545bb3faccecf42b3272fc7040ed94225f2f8b3d559890ada4e41d",
+        "lineSha256": "dccecb4c192009fb39ea4bd40704d15afd13b7d20e09c4a6a3dc964036c4c8d5",
+        "text": "        \"secret\": \"local-fixture-secret\","
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 76,
+        "sourceSha256": "bc387d07c1545bb3faccecf42b3272fc7040ed94225f2f8b3d559890ada4e41d",
+        "lineSha256": "dccecb4c192009fb39ea4bd40704d15afd13b7d20e09c4a6a3dc964036c4c8d5",
+        "text": "        \"secret\": \"local-fixture-secret\","
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The public local-fixture credential/passphrase populates a test SDK instance. _client replaces both fetch and request with failing mocks, sets a local market, and the test class independently blocks socket/DNS calls before constructors. Specific endpoint mocks exercise serialization; these strings cannot authenticate any real provider account.",
+      "evidence": [
+        {
+          "start": 72,
+          "end": 101,
+          "source": "def _client(exchange: str):\n    credentials = {\n        \"enableRateLimit\": False,\n        \"apiKey\": \"local-fixture-key\",\n        \"secret\": \"local-fixture-secret\",\n        \"password\": \"local-fixture-passphrase\",\n        \"privateKey\": \"1\",\n        \"options\": {\"adjustForTimeDifference\": False, \"uta\": False, \"defaultType\": \"swap\"},\n    }\n    client = getattr(sdk, exchange)(credentials)\n    client.fetch = AsyncMock(side_effect=AssertionError(\"Provider transport is forbidden.\"))\n    client.request = AsyncMock(side_effect=AssertionError(\"Unexpected SDK endpoint is forbidden.\"))\n    client.set_markets([_market(exchange)])\n    return client\n\n\nclass CandidateGroupBTests(unittest.IsolatedAsyncioTestCase):\n    async def asyncSetUp(self):\n        self.assertEqual(ccxt.__version__, \"4.5.75\")\n        # IsolatedAsyncioTestCase has already created its local loop socketpair.\n        # Block every later DNS/provider transport before constructing clients.\n        for target in (\n            (socket.socket, \"connect\"),\n            (socket.socket, \"connect_ex\"),\n            (socket, \"getaddrinfo\"),\n            (socket, \"create_connection\"),\n        ):\n            blocker = patch.object(*target, side_effect=AssertionError(\"Live transport is forbidden.\"))\n            blocker.start()\n            self.addCleanup(blocker.stop)"
+        },
+        {
+          "start": 109,
+          "end": 116,
+          "source": "    async def test_extended_attached_stop_ack_has_only_the_parent_identity(self):\n        client = _client(\"extended\")\n        client.fetch_extended_account = AsyncMock(return_value={\"l2Key\": \"1\", \"l2Vault\": \"1\"})\n        client.create_order_settlement_data = Mock(return_value={\"r\": \"1\", \"s\": \"2\"})\n        client.v1PrivatePostUserOrder = AsyncMock(return_value={\n            \"status\": \"OK\",\n            \"data\": {\"id\": \"2051479786538188800\", \"externalId\": \"tsx-entry\"},\n        })"
+        }
+      ]
+    },
+    {
+      "issueId": "7e8e67187cf392f2ae2764ad54b04622",
+      "rule": "Bandit_B101",
+      "path": "exchange_executor/tests/test_contracts.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 469,
+        "sourceSha256": "90a48474c0227cfc92a9b75a9adaed02540954053c3519b5eceb689ef2d2829e",
+        "lineSha256": "9ad18b64328a3305b929e0cb35e25042ea7f4ac1e56843bd8a3b26961da07d76",
+        "text": "        assert (path, api, method, params) == ('trading/instruments', 'private', 'GET', {'contractType': 'flexible_futures'})"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 477,
+        "sourceSha256": "120d79c5d928b74596347d25a5c1e88df02c43f45ef627709397811ccab906f4",
+        "lineSha256": "9ad18b64328a3305b929e0cb35e25042ea7f4ac1e56843bd8a3b26961da07d76",
+        "text": "        assert (path, api, method, params) == ('trading/instruments', 'private', 'GET', {'contractType': 'flexible_futures'})"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The assert validates the exact trading/instruments GET tuple inside FakeProtectedRest.request before returning a local instruments payload. It is a test double assertion, not production authorization. Removing assertions under Python optimization would weaken tests, and this review does not claim optimized test runs preserve checks.",
+      "evidence": [
+        {
+          "start": 476,
+          "end": 482,
+          "source": "    async def request(self, path, api, method, params):\n        assert (path, api, method, params) == ('trading/instruments', 'private', 'GET', {'contractType': 'flexible_futures'})\n        market = next(iter(self.markets.values()))\n        return {'result': 'success', 'serverTime': str(int(time.time() * 1000)), 'instruments': [{\n            'symbol': market['id'], 'base': 'BTC', 'quote': 'USD', 'type': 'flexible_futures',\n            'restricted': False, 'postOnly': False, 'isExpired': False, 'contractValueTradePrecision': 3,\n            'marginLevels': [{'numNonContractUnits': '0', 'initialMargin': '0.02'}]}]}"
+        },
+        {
+          "start": 537,
+          "end": 553,
+          "source": "class FakeRegistry:\n    def __init__(self, rest, exchange=\"bybit\") -> None:\n        for market in getattr(rest, 'markets', {}).values():\n            market.setdefault('id', 'pf_xbtusd' if exchange == 'krakenfutures' else 'BTCUSDT')\n        if isinstance(rest, FakeProtectedRest) and exchange != 'bybit':\n            market = next(iter(rest.markets.values()))\n            currency = 'USDC' if exchange == 'hyperliquid' else 'USD'\n            market.update({'symbol': f'BTC/{currency}:{currency}', 'quote': currency, 'settle': currency})\n            market.setdefault('precision', {'amount': 0.001, 'price': 0.1})\n            rest.markets = {market['symbol']: market}\n        self.clients = SimpleNamespace(\n            account=bound_test_account(exchange),\n            rest=rest,\n            account_identity=_account_identity(test_secret(exchange), exchange, \"testnet\"),\n            credential_fingerprint=_credential_fingerprint(test_secret(exchange), exchange, \"testnet\"),\n        )\n        self.credentials = SimpleNamespace(account=lambda _id, _exchange: {\"credentials\": test_secret(exchange)})"
+        }
+      ]
+    },
+    {
+      "issueId": "6945afb1da9f95de70eecace91b1e246",
+      "rule": "Bandit_B603",
+      "path": "exchange_executor/tests/test_acceptance_journal.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 318,
+        "sourceSha256": "8559b29f46f9f4210aa2f60ace654a76ce43855d53e5c78d4230ca200c9ca066",
+        "lineSha256": "3171898342384c20f7a1bbd7da14535096f05c1a22efd719ab061345297a67b1",
+        "text": "            subprocess.run([\"cmd\", \"/c\", \"mklink\", \"/J\", str(alias_directory), str(target_directory)],"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 322,
+        "sourceSha256": "d408c9b32ec06bf7e0b76f9015caa053bb0cb5261167ccff8b73e16b98dfe15f",
+        "lineSha256": "3171898342384c20f7a1bbd7da14535096f05c1a22efd719ab061345297a67b1",
+        "text": "            subprocess.run([\"cmd\", \"/c\", \"mklink\", \"/J\", str(alias_directory), str(target_directory)],"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The Windows branch explicitly invokes cmd /c mklink /J, so this is shell-mediated despite subprocess receiving an argument list. Its sole purpose is to create a test junction between two constant-named children of the generated TemporaryDirectory. No provider/request input selects command or paths. timeout=10 and check=True require bounded successful setup; the journal must then reject the alias without creating its database. This classification assumes the locally controlled test environment, and does not resolve executable-search hardening or make a general safe-shell claim.",
+      "evidence": [
+        {
+          "start": 21,
+          "end": 33,
+          "source": "class AcceptanceJournalTests(unittest.TestCase):\n    def setUp(self):\n        self.directory = tempfile.TemporaryDirectory(prefix=\"acceptance-journal-\")\n        self.addCleanup(self.directory.cleanup)\n        self.path = Path(self.directory.name) / \"run.sqlite\"\n        self.now = 100.0\n\n    def opened(self, proposed=None, origins=None):\n        original = proposed or plan()\n        journal = AcceptanceJournal(self.path, journal_binding(original, origins), clock=lambda: self.now)\n        self.addCleanup(journal.close)\n        guard = AcceptanceGuard(original, SHA, PROFILE_HASH, journal=journal, profile_origins=origins)\n        return journal, guard"
+        },
+        {
+          "start": 309,
+          "end": 330,
+          "source": "    def test_real_hardlink_and_directory_aliases_are_refused(self):\n        journal, _ = self.opened()\n        journal.close()\n        alias = self.path.with_name(\"hardlinked.sqlite\")\n        os.link(self.path, alias)\n        with self.assertRaises(JournalRefused):\n            self.opened()\n        # The alias is solely this fixture's extra link; no journal data is deleted.\n        alias.unlink()\n        alias_directory = self.path.parent / \"directory-alias\"\n        target_directory = self.path.parent / \"actual-directory\"\n        target_directory.mkdir()\n        if os.name == \"nt\":\n            subprocess.run([\"cmd\", \"/c\", \"mklink\", \"/J\", str(alias_directory), str(target_directory)],\n                           check=True, capture_output=True, timeout=10,\n                           creationflags=subprocess.CREATE_NO_WINDOW)\n        else:\n            alias_directory.symlink_to(target_directory, target_is_directory=True)\n        prepared_journal_binding = journal_binding(plan())\n        with self.assertRaises(JournalRefused):\n            AcceptanceJournal(alias_directory / \"alias.sqlite\", prepared_journal_binding, clock=lambda: 100)\n        self.assertFalse((target_directory / \"alias.sqlite\").exists())"
+        }
+      ]
+    },
+    {
+      "issueId": "f1b7911fc32868b85368073683fa1666",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_phase2_registry.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 43,
+        "sourceSha256": "9ba924d0aecb8fb295143a4d469d3495f8d9a66e6a72d1146dc46cd7fd5bcf99",
+        "lineSha256": "cb0eb799a22ec9065cd4cdbd1e57c6e7b5026b466f439584ae6bdcc5af328fdb",
+        "text": "    requiredCredentials = {\"apiKey\": True, \"secret\": True}"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 43,
+        "sourceSha256": "51d006e4e25bfab71a3e034de21560f74b485aa1f2dd8e63eaf63c290154e196",
+        "lineSha256": "cb0eb799a22ec9065cd4cdbd1e57c6e7b5026b466f439584ae6bdcc5af328fdb",
+        "text": "    requiredCredentials = {\"apiKey\": True, \"secret\": True}"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "requiredCredentials maps secret to the boolean True. It describes the fake StaticExchange credential-field requirement, not a string secret. Its load_markets method raises if discovery attempts network activity.",
+      "evidence": [
+        {
+          "start": 41,
+          "end": 65,
+          "source": "class StaticExchange:\n    name = \"Static Exchange\"\n    requiredCredentials = {\"apiKey\": True, \"secret\": True}\n    has = REST_REQUIRED\n    constructed = 0\n    network_calls = 0\n\n    def __init__(self, _configuration=None) -> None:\n        type(self).constructed += 1\n\n    async def load_markets(self):\n        type(self).network_calls += 1\n        raise AssertionError(\"static discovery must not load markets\")\n\n    @staticmethod\n    async def close():\n        return None\n\n\nclass ProExchange(StaticExchange):\n    has = PRO_REQUIRED\n\n\nclass UnsupportedCredentials(StaticExchange):\n    requiredCredentials = {\"apiKey\": True, \"rsaPrivateKey\": True}"
+        }
+      ]
+    },
+    {
+      "issueId": "8a1aef3a37f4d0f895b9cf510b52a079",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_kraken_history.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 206,
+        "sourceSha256": "4766e34f3a3d79facf3172a714191611019ac110d42baac50aaeb6a151291270",
+        "lineSha256": "08413b5a8fecb369afa4de46db55887e3228ffcf4ea2299126b3b5658c58cf62",
+        "text": "        original.update(cursor=json.dumps({\"endpoint\": \"orders\", \"token\": \"after-empty\"}), windowUntil=original[\"windowSince\"] + 100_000)"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 207,
+        "sourceSha256": "9c71ac859f50c8fb958a15477edd255065925be540c341c455fd1f3dc1ec725e",
+        "lineSha256": "08413b5a8fecb369afa4de46db55887e3228ffcf4ea2299126b3b5658c58cf62",
+        "text": "        original.update(cursor=json.dumps({\"endpoint\": \"orders\", \"token\": \"after-empty\"}), windowUntil=original[\"windowSince\"] + 100_000)"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "after-empty is a serialized local history cursor installed in a checkpoint for the missing-durable-consumer rejection test. KrakenRest returns local arrays; this token is not an authentication secret.",
+      "evidence": [
+        {
+          "start": 50,
+          "end": 73,
+          "source": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
+        },
+        {
+          "start": 204,
+          "end": 210,
+          "source": "    async def test_order_event_consumer_is_required_before_cursor_can_advance(self):\n        rest = KrakenRest(1)\n        original = state(\"orders\")\n        original.update(cursor=json.dumps({\"endpoint\": \"orders\", \"token\": \"after-empty\"}), windowUntil=original[\"windowSince\"] + 100_000)\n        prepared_budget = budget(1)\n        with self.assertRaisesRegex(ExchangeContractError, \"durable evidence consumer\"):\n            await read_history_pages(rest, \"krakenfutures\", [original], prepared_budget)"
+        }
+      ]
+    },
+    {
+      "issueId": "29295a6db6e8c0574e64473c317a89f0",
+      "rule": "Semgrep_python.lang.security.audit.dangerous-subprocess-use-audit.dangerous-subprocess-use-audit",
+      "path": "exchange_executor/tests/test_acceptance_journal_crash.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 30,
+        "sourceSha256": "c3d4a5b599857abb680336720f1a785649eeedaea8b816ced277d7d14742784b",
+        "lineSha256": "ee170fdd3638e632b6be241695b8e0fe1a8052b3c9587c4e774dd71fe63c8d1f",
+        "text": "        process = subprocess.Popen(arguments(directory, phase), stdout=subprocess.PIPE, stderr=subprocess.PIPE,"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 30,
+        "sourceSha256": "39979e53576e6212c338e8a9f93f80dfbbecd499a0bc8fd7cf24f8b559a05edd",
+        "lineSha256": "ee170fdd3638e632b6be241695b8e0fe1a8052b3c9587c4e774dd71fe63c8d1f",
+        "text": "        process = subprocess.Popen(arguments(directory, phase), stdout=subprocess.PIPE, stderr=subprocess.PIPE,"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "arguments() fixes sys.executable -B and the sibling acceptance_journal_child.py. The only variable directory is a TemporaryDirectory fixture and phase is a finite local crash-mode key or literal replay/fsync_error. The child was inspected: economic attempts are fsynced file appends and an isolated SQLite journal, with no HTTP provider transport. Popen uses a list and default shell=False. This deliberately paused child has a 10-second checkpoint deadline, is killed in finally, and communicate is bounded at 10 seconds; no arbitrary process identifier is killed.",
+      "evidence": [
+        {
+          "start": 17,
+          "end": 21,
+          "source": "CHILD = Path(__file__).with_name(\"acceptance_journal_child.py\")\n\n\ndef arguments(directory, phase):\n    return [sys.executable, \"-B\", str(CHILD), str(directory), phase]"
+        },
+        {
+          "start": 29,
+          "end": 58,
+          "source": "    def crash_at(self, directory, phase):\n        process = subprocess.Popen(arguments(directory, phase), stdout=subprocess.PIPE, stderr=subprocess.PIPE,\n                                   text=True, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n        try:\n            deadline = time.monotonic() + 10\n            while not (directory / \"ready.jsonl\").exists():\n                self.assertIsNone(process.poll(), \"child exited before the durable checkpoint\")\n                self.assertLess(time.monotonic(), deadline, \"child checkpoint timeout\")\n                time.sleep(0.01)\n            second_owner = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                          timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n            self.assertNotEqual(second_owner.returncode, 0)\n            self.assertIn(\"journal refused\", second_owner.stderr)\n        finally:\n            process.kill()\n            process.communicate(timeout=10)\n        self.assertNotEqual(process.returncode, 0)\n\n    def test_actual_kills_replay_original_phase_and_never_repeat_unknown_send(self):\n        phases = {\"opened\": (0, 0), \"before_reserve\": (0, 0), \"reserved\": (0, 0),\n                  \"dispatching\": (0, 0), \"before_accept\": (1, 0), \"accepted\": (1, 1), \"acknowledged\": (1, 1)}\n        for phase, (attempts, accepted) in phases.items():\n            with self.subTest(phase=phase), tempfile.TemporaryDirectory(prefix=\"acceptance-hardkill-\") as location:\n                directory = Path(location)\n                self.crash_at(directory, phase)\n                before = rows(directory / \"writes.jsonl\")\n                self.assertEqual(sum(row[\"event\"] == \"attempt\" for row in before), attempts)\n                self.assertEqual(sum(row[\"event\"] == \"accepted\" for row in before), accepted)\n                resumed = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                         timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))"
+        }
+      ]
+    },
+    {
+      "issueId": "e8938de7f5b7c28ecf397e68697e76f",
+      "rule": "Bandit_B404",
+      "path": "exchange_executor/tests/test_acceptance_journal_crash.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 4,
+        "sourceSha256": "c3d4a5b599857abb680336720f1a785649eeedaea8b816ced277d7d14742784b",
+        "lineSha256": "7d8752c4c7ea34c2c6d04a15aa31a1f25f62848f8c3c82528fd62439c01a225b",
+        "text": "import subprocess"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 4,
+        "sourceSha256": "39979e53576e6212c338e8a9f93f80dfbbecd499a0bc8fd7cf24f8b559a05edd",
+        "lineSha256": "7d8752c4c7ea34c2c6d04a15aa31a1f25f62848f8c3c82528fd62439c01a225b",
+        "text": "import subprocess"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "arguments() fixes sys.executable -B and the sibling acceptance_journal_child.py. The only variable directory is a TemporaryDirectory fixture and phase is a finite local crash-mode key or literal replay/fsync_error. The child was inspected: economic attempts are fsynced file appends and an isolated SQLite journal, with no HTTP provider transport. Importing subprocess supplies the owned child lifecycle and bounded replay calls; the import itself executes no command.",
+      "evidence": [
+        {
+          "start": 17,
+          "end": 21,
+          "source": "CHILD = Path(__file__).with_name(\"acceptance_journal_child.py\")\n\n\ndef arguments(directory, phase):\n    return [sys.executable, \"-B\", str(CHILD), str(directory), phase]"
+        },
+        {
+          "start": 29,
+          "end": 58,
+          "source": "    def crash_at(self, directory, phase):\n        process = subprocess.Popen(arguments(directory, phase), stdout=subprocess.PIPE, stderr=subprocess.PIPE,\n                                   text=True, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n        try:\n            deadline = time.monotonic() + 10\n            while not (directory / \"ready.jsonl\").exists():\n                self.assertIsNone(process.poll(), \"child exited before the durable checkpoint\")\n                self.assertLess(time.monotonic(), deadline, \"child checkpoint timeout\")\n                time.sleep(0.01)\n            second_owner = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                          timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n            self.assertNotEqual(second_owner.returncode, 0)\n            self.assertIn(\"journal refused\", second_owner.stderr)\n        finally:\n            process.kill()\n            process.communicate(timeout=10)\n        self.assertNotEqual(process.returncode, 0)\n\n    def test_actual_kills_replay_original_phase_and_never_repeat_unknown_send(self):\n        phases = {\"opened\": (0, 0), \"before_reserve\": (0, 0), \"reserved\": (0, 0),\n                  \"dispatching\": (0, 0), \"before_accept\": (1, 0), \"accepted\": (1, 1), \"acknowledged\": (1, 1)}\n        for phase, (attempts, accepted) in phases.items():\n            with self.subTest(phase=phase), tempfile.TemporaryDirectory(prefix=\"acceptance-hardkill-\") as location:\n                directory = Path(location)\n                self.crash_at(directory, phase)\n                before = rows(directory / \"writes.jsonl\")\n                self.assertEqual(sum(row[\"event\"] == \"attempt\" for row in before), attempts)\n                self.assertEqual(sum(row[\"event\"] == \"accepted\" for row in before), accepted)\n                resumed = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                         timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))"
+        },
+        {
+          "start": 71,
+          "end": 84,
+          "source": "    def test_child_fsync_error_never_sends_or_exposes_its_original_secret_cause(self):\n        with tempfile.TemporaryDirectory(prefix=\"acceptance-fsync-child-\") as location:\n            directory = Path(location)\n            failed = subprocess.run(arguments(directory, \"fsync_error\"), capture_output=True, text=True, check=False,\n                                    timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n            self.assertNotEqual(failed.returncode, 0)\n            self.assertNotIn(\"NEVER-PRINT-THIS-SECRET\", failed.stdout + failed.stderr)\n            self.assertEqual(rows(directory / \"writes.jsonl\"), [])\n            self.assertNotIn(b\"NEVER-PRINT-THIS-SECRET\", (directory / \"run.sqlite\").read_bytes())\n            resumed = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                     timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n            self.assertEqual(resumed.returncode, 0, resumed.stderr)\n            self.assertEqual(json.loads(resumed.stdout)[\"unresolved\"], [\"own-1\"])\n            self.assertEqual(rows(directory / \"writes.jsonl\"), [])"
+        }
+      ]
+    },
+    {
+      "issueId": "475efeb1f19a9df5f388bb1a9914e181",
+      "rule": "Bandit_B603",
+      "path": "exchange_executor/tests/test_acceptance_journal_crash.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 57,
+        "sourceSha256": "c3d4a5b599857abb680336720f1a785649eeedaea8b816ced277d7d14742784b",
+        "lineSha256": "1903a0748f3f095380e1d3b057c10484e39ea2db517a0036d008d442814986d8",
+        "text": "                resumed = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True,"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 57,
+        "sourceSha256": "39979e53576e6212c338e8a9f93f80dfbbecd499a0bc8fd7cf24f8b559a05edd",
+        "lineSha256": "58d7d2f957fba24baaadc7479a15d58c427ff67ad1b945f2d17045036d299665",
+        "text": "                resumed = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,"
+      },
+      "mapping": "pre-existing explicit check=False documents the subprocess nonzero-status assertion contract",
+      "rationale": "arguments() fixes sys.executable -B and the sibling acceptance_journal_child.py. The only variable directory is a TemporaryDirectory fixture and phase is a finite local crash-mode key or literal replay/fsync_error. The child was inspected: economic attempts are fsynced file appends and an isolated SQLite journal, with no HTTP provider transport. This replay is launched after the owned child is killed; return code, retained absolute deadline and exact economic-attempt counts are checked, with timeout=10 and shell=False.",
+      "evidence": [
+        {
+          "start": 17,
+          "end": 21,
+          "source": "CHILD = Path(__file__).with_name(\"acceptance_journal_child.py\")\n\n\ndef arguments(directory, phase):\n    return [sys.executable, \"-B\", str(CHILD), str(directory), phase]"
+        },
+        {
+          "start": 47,
+          "end": 69,
+          "source": "    def test_actual_kills_replay_original_phase_and_never_repeat_unknown_send(self):\n        phases = {\"opened\": (0, 0), \"before_reserve\": (0, 0), \"reserved\": (0, 0),\n                  \"dispatching\": (0, 0), \"before_accept\": (1, 0), \"accepted\": (1, 1), \"acknowledged\": (1, 1)}\n        for phase, (attempts, accepted) in phases.items():\n            with self.subTest(phase=phase), tempfile.TemporaryDirectory(prefix=\"acceptance-hardkill-\") as location:\n                directory = Path(location)\n                self.crash_at(directory, phase)\n                before = rows(directory / \"writes.jsonl\")\n                self.assertEqual(sum(row[\"event\"] == \"attempt\" for row in before), attempts)\n                self.assertEqual(sum(row[\"event\"] == \"accepted\" for row in before), accepted)\n                resumed = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                         timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n                self.assertEqual(resumed.returncode, 0, resumed.stderr)\n                self.assertEqual(json.loads(resumed.stdout)[\"deadline\"], 130)\n                after = rows(directory / \"writes.jsonl\")\n                expected = 1 if phase in {\"opened\", \"before_reserve\", \"reserved\"} else attempts\n                self.assertEqual(sum(row[\"event\"] == \"attempt\" for row in after), expected)\n                with AcceptanceJournal(directory / \"run.sqlite\", journal_binding(plan()), clock=lambda: 129) as journal:\n                    guard = AcceptanceGuard(plan(), SHA, PROFILE_HASH, journal=journal)\n                    self.assertEqual(journal.deadline, 130)\n                    unknown = phase in {\"dispatching\", \"before_accept\", \"accepted\"}\n                    self.assertEqual(guard.unresolved, [\"own-1\"] if unknown else [])\n                    self.assertEqual(journal.binding[\"plan\"], plan())"
+        }
+      ]
+    },
+    {
+      "issueId": "2c926e77a9d02b1937a620dfe3b8cd96",
+      "rule": "PyLintPython3_W0221",
+      "path": "exchange_executor/tests/test_cancel_recovery.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 26,
+        "sourceSha256": "ca634bd23df34c8024d0f31f844ab14aff282f4d387d6d20f02879de8eef0753",
+        "lineSha256": "0fba48358c6d8a544e1f4130632e8d7ce43866e28c52fe0617c09e8a4548f2e3",
+        "text": "    async def fetch_open_orders(self, symbol=None, since=None, limit=None, params=None):"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 26,
+        "sourceSha256": "ca634bd23df34c8024d0f31f844ab14aff282f4d387d6d20f02879de8eef0753",
+        "lineSha256": "0fba48358c6d8a544e1f4130632e8d7ce43866e28c52fe0617c09e8a4548f2e3",
+        "text": "    async def fetch_open_orders(self, symbol=None, since=None, limit=None, params=None):"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "CancelRest overrides the minimal FakeProtectedRest variadic fixture method with optional SDK-shaped symbol/since/limit/params arguments. This supports the actual cancel-recovery call shape and records arguments for assertions; local active/terminal rows are returned and no SDK transport exists. The tests assert exact ownership, correct lookup selection and one-or-zero local cancel calls, so the parameter difference is deliberate test-double specialization.",
+      "evidence": [
+        {
+          "start": 11,
+          "end": 42,
+          "source": "class CancelRest(FakeProtectedRest):\n    def __init__(self, exchange=\"bybit\"):\n        super().__init__([[]])\n        self.has[\"fetchOrder\"] = True\n        self.exchange = exchange\n        self.status = \"open\"\n        self.lookups = []\n        self.cancels = []\n        self.override = {}\n        self.acknowledged_quantity = \"0\"\n\n    def order(self):\n        return {\"id\": \"remote-owned\", \"clientOrderId\": None, \"symbol\": next(iter(self.markets.values()))['symbol'], \"side\": \"buy\",\n                \"status\": self.status, \"amount\": \"1\", \"filled\": \"0\", \"average\": None, **self.override}\n\n    async def fetch_open_orders(self, symbol=None, since=None, limit=None, params=None):\n        self.lookups.append((\"active\", symbol, params))\n        return [self.order()] if symbol and params and self.status == \"open\" else []\n\n    async def fetch_canceled_and_closed_orders(self, symbol, since, limit, params):\n        self.lookups.append((\"terminal\", symbol, params))\n        return [self.order()] if symbol and \"orderId\" in params and self.status != \"open\" else []\n\n    async def fetch_order(self, identifier, symbol, params=None):\n        self.lookups.append((\"generic\", symbol, params))\n        if self.exchange == \"bybit\":\n            raise AssertionError(\"UTA recent-order cache is not an authoritative cancel lookup.\")\n        return self.order()\n\n    async def cancel_order(self, identifier, symbol):\n        self.cancels.append((identifier, symbol))\n        return {**self.order(), \"status\": \"canceled\", \"filled\": self.acknowledged_quantity}"
+        },
+        {
+          "start": 45,
+          "end": 84,
+          "source": "class CancelRecoveryTests(unittest.IsolatedAsyncioTestCase):\n    async def test_bybit_cancel_uses_exact_active_or_terminal_lookup_without_uta_cache(self):\n        for status in (\"open\", \"canceled\"):\n            with self.subTest(status=status):\n                rest = CancelRest()\n                rest.status = status\n                result = await CcxtAdapter(FakeRegistry(rest)).cancel_order(\n                    bound_test_account(), \"local-owned\", \"BTCUSDT\", deadline(), \"remote-owned\", \"BTC/USDT:USDT\")\n                self.assertEqual(result[\"clientOrderId\"], \"local-owned\")\n                self.assertEqual(result[\"exchangeOrderId\"], \"remote-owned\")\n                self.assertEqual(result[\"status\"], \"cancelled\")\n                self.assertEqual(len(rest.cancels), 1 if status == \"open\" else 0)\n                self.assertFalse(any(row[0] == \"generic\" for row in rest.lookups))\n\n    async def test_all_profiles_reject_changed_identity_before_cancellation(self):\n        for exchange in (\"bybit\", \"hyperliquid\", \"krakenfutures\"):\n            for changed in ({\"id\": \"foreign\"}, {\"clientOrderId\": \"foreign\"}, {\"symbol\": \"ETH/USDT:USDT\"}):\n                with self.subTest(exchange=exchange, changed=changed):\n                    rest = CancelRest(exchange)\n                    rest.override = changed\n                    registry = FakeRegistry(rest, exchange)\n                    prepared_adapter = CcxtAdapter(registry)\n                    prepared_bound_test_account = bound_test_account(exchange)\n                    prepared_deadline = deadline()\n                    prepared_symbol = next(iter(rest.markets.values()))['symbol']\n                    with self.assertRaises(ExchangeContractError):\n                        await prepared_adapter.cancel_order(\n                            prepared_bound_test_account, \"local-owned\", \"BTCUSDT\", prepared_deadline, \"remote-owned\", prepared_symbol)\n                    self.assertEqual(rest.cancels, [])\n\n    async def test_incomplete_cancel_acknowledgement_is_unresolved_without_write_retry(self):\n        rest = CancelRest(\"hyperliquid\")\n        rest.acknowledged_quantity = None\n        prepared_adapter = CcxtAdapter(FakeRegistry(rest, \"hyperliquid\"))\n        prepared_bound_test_account = bound_test_account(\"hyperliquid\")\n        prepared_deadline = deadline()\n        with self.assertRaises(UnresolvedOrderOutcome):\n            await prepared_adapter.cancel_order(\n                prepared_bound_test_account, \"local-owned\", \"BTCUSDT\", prepared_deadline, \"remote-owned\", \"BTC/USDC:USDC\")\n        self.assertEqual(len(rest.cancels), 1)"
+        }
+      ]
+    },
+    {
+      "issueId": "2f6f114fe39a7417ec293c2419e8eb4b",
+      "rule": "Bandit_B404",
+      "path": "exchange_executor/tests/test_additional_exchange_profiles.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 49,
+        "sourceSha256": "220c7e82ce5d0aa9ee2a94c7a20252d69d7220bf29132f9af20438e0ffe92997",
+        "lineSha256": "05f291105c9694ac24e9e52783e20b69130a101d6676013324bff8c7a7a980e6",
+        "text": "        import subprocess"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 49,
+        "sourceSha256": "220c7e82ce5d0aa9ee2a94c7a20252d69d7220bf29132f9af20438e0ffe92997",
+        "lineSha256": "05f291105c9694ac24e9e52783e20b69130a101d6676013324bff8c7a7a980e6",
+        "text": "        import subprocess"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "subprocess is imported solely so Popen can be replaced by a failing mock. ExitStack simultaneously forbids sockets/DNS, SDK transport/market/credential calls and environment reads while build_inventory runs; allowed file reads are constrained to installed SDK and repository source. No process is launched at this occurrence.",
+      "evidence": [
+        {
+          "start": 46,
+          "end": 78,
+          "source": "    def test_real_installed_discovery_does_not_open_network_secrets_or_markets(self):\n        import builtins\n        import os\n        import subprocess\n        original_open = builtins.open\n        original_io_open = io.open\n        package_root = Path(ccxt.__file__).resolve().parent\n        package_metadata = package_root.parent / 'ccxt-4.5.75.dist-info/METADATA'\n        reads = []\n\n        def checked_open(delegate, name, *args, **kwargs):\n            if isinstance(name, (str, bytes, Path)):\n                pathname = Path(name).resolve()\n                self.assertTrue(pathname.is_relative_to(package_root) or pathname == package_metadata\n                                or pathname in {inventory_audit.ROOT / 'ccxt_profiles.py',\n                                                inventory_audit.ROOT / 'ccxt_capabilities.py',\n                                                inventory_audit.ROOT / 'ccxt_registry.py',\n                                                inventory_audit.ROOT / 'tools/audit_derivatives_candidates.py'}, pathname)\n                reads.append(pathname)\n            return delegate(name, *args, **kwargs)\n\n        with ExitStack() as stack:\n            for target, name in [(socket.socket, 'connect'), (socket.socket, 'connect_ex'),\n                                 (socket, 'getaddrinfo'), (socket, 'create_connection'),\n                                 (subprocess, 'Popen'), (Exchange, 'fetch'), (Exchange, 'load_markets'),\n                                 (Exchange, 'check_required_credentials')]:\n                stack.enter_context(patch.object(target, name, side_effect=AssertionError(f'offline: {name}')))\n            stack.enter_context(patch.object(os, 'getenv', side_effect=AssertionError('environment secret read')))\n            stack.enter_context(patch.object(type(os.environ), '__getitem__', side_effect=AssertionError('direct environment secret read')))\n            stack.enter_context(patch('builtins.open', side_effect=lambda *a, **k: checked_open(original_open, *a, **k)))\n            stack.enter_context(patch('io.open', side_effect=lambda *a, **k: checked_open(original_io_open, *a, **k)))\n            self.assertEqual(build_inventory(), self.inventory)\n        self.assertTrue(reads)"
+        }
+      ]
+    },
+    {
+      "issueId": "473ead8c1ca15c77587185cc98b385d0",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_leverage_tier_evidence.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 127,
+        "sourceSha256": "bf9ef697f82ca5c79049e444a9aea1e1caa74f765e92aeacf5d7b3ba319dc8c9",
+        "lineSha256": "b45a028987fa66dfe41b405404190667c7d46f61100c7ebbeba3c083e20e28bf",
+        "text": "        rest = ccxt_async.krakenfutures({'apiKey': 'public-fixture-key', 'secret': 'cHVibGljLWZpeHR1cmUtc2VjcmV0'})  # gitleaks:allow"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 127,
+        "sourceSha256": "feb162ba8b932c32519ceab3c01d5953477dd8f0fe7b6c82895ec0e3a16eb325",
+        "lineSha256": "b45a028987fa66dfe41b405404190667c7d46f61100c7ebbeba3c083e20e28bf",
+        "text": "        rest = ccxt_async.krakenfutures({'apiKey': 'public-fixture-key', 'secret': 'cHVibGljLWZpeHR1cmUtc2VjcmV0'})  # gitleaks:allow"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The base64 value decodes to public-fixture-secret. rest.fetch is immediately replaced by AsyncMock returning a local instruments envelope; the real signer request is checked for exact GET URL, fixture API key and one captured call, then closed. No provider authentication takes place.",
+      "evidence": [
+        {
+          "start": 126,
+          "end": 138,
+          "source": "    async def test_kraken_real_sdk_signs_only_reviewed_read_route(self):\n        rest = ccxt_async.krakenfutures({'apiKey': 'public-fixture-key', 'secret': 'cHVibGljLWZpeHR1cmUtc2VjcmV0'})  # gitleaks:allow\n        rest.fetch = AsyncMock(return_value={'result': 'success', 'instruments': []})\n        try:\n            await rest.request('trading/instruments', 'private', 'GET', {'contractType': 'flexible_futures'})\n            url, method, headers = rest.fetch.await_args.args[:3]\n            self.assertEqual(method, 'GET')\n            self.assertEqual(url, 'https://futures.kraken.com/derivatives/api/v3/trading/instruments?contractType=flexible_futures')\n            self.assertEqual(headers['APIKey'], 'public-fixture-key')\n            self.assertTrue(headers['Authent'])\n            self.assertEqual(rest.fetch.await_count, 1)\n        finally:\n            await rest.close()"
+        }
+      ]
+    },
+    {
+      "issueId": "e37aae7450c56d64a521aa58c17d2ed0",
+      "rule": "Semgrep_python.lang.security.audit.dangerous-subprocess-use-audit.dangerous-subprocess-use-audit",
+      "path": "exchange_executor/tests/test_implementation_runtime.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 234,
+        "sourceSha256": "ff92162ae158bcfbaac96052207c9e058e70c028a6ac8fc1cfe1dd9f23385aaf",
+        "lineSha256": "1d86f63a5e9033a846b21fb4dc4ba5f643eca9d742d56cb289d54484b9508f25",
+        "text": "        outcome = subprocess.run([sys.executable, '-E', '-B', str(cli)], cwd=fixture, capture_output=True,"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 234,
+        "sourceSha256": "ff92162ae158bcfbaac96052207c9e058e70c028a6ac8fc1cfe1dd9f23385aaf",
+        "lineSha256": "1d86f63a5e9033a846b21fb4dc4ba5f643eca9d742d56cb289d54484b9508f25",
+        "text": "        outcome = subprocess.run([sys.executable, '-E', '-B', str(cli)], cwd=fixture, capture_output=True,"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The subprocess runs this Python interpreter with -E -B and the fixed verifier filename in an isolated TemporaryDirectory copy. Each executor source is copied byte-for-byte and checked; only the disposable copy receives an empty test approval policy. cwd is the fixture, command is a list with no shell, timeout is 30 seconds, NO-GO is required, and the original policy bytes are checked unchanged. This is local verification, not provider execution.",
+      "evidence": [
+        {
+          "start": 28,
+          "end": 39,
+          "source": "    def setUp(self):\n        self.temporary = tempfile.TemporaryDirectory()\n        self.addCleanup(self.temporary.cleanup)\n        self.executor = Path(self.temporary.name) / 'executor'\n        self.sdk = Path(self.temporary.name) / 'sdk'\n        self.receipts = self.executor / 'certifications'\n        self.receipts.mkdir(parents=True)\n        (self.sdk / 'base').mkdir(parents=True)\n        for name in ('ccxt_certification.py', 'verify_implementation_runtime.py', 'adapter.py'):\n            (self.executor / name).write_text(f'# original {name}\\n', encoding='utf-8')\n        (self.sdk / '__init__.py').write_text('# original SDK\\n', encoding='utf-8')\n        (self.sdk / 'base' / 'exchange.py').write_text('# original SDK base\\n', encoding='utf-8')"
+        },
+        {
+          "start": 215,
+          "end": 241,
+          "source": "    def test_fresh_cli_with_explicitly_empty_fixture_policy_is_no_go(self):\n        # A future legitimate production approval must not break this negative\n        # test. Copy actual source bytes, but use a separate empty TEST policy.\n        source = Path(evidence.__file__).resolve().parent\n        fixture = Path(self.temporary.name) / 'unreviewed-executor'\n        fixture.mkdir()\n        authority = 'ccxt_implementation_reviews.py'\n        original_policy = (source / authority).read_bytes()\n        for file in sorted(source.glob('*.py')):\n            copied = fixture / file.name\n            shutil.copyfile(file, copied)\n            self.assertEqual(copied.read_bytes(), file.read_bytes())\n            self.assertEqual(copied.stat().st_nlink, 1)\n        (fixture / authority).write_text(\n            '# Explicit isolated TEST policy; never changes production review pins.\\n'\n            'from types import MappingProxyType\\nAPPROVED_IMPLEMENTATION_RECEIPTS = MappingProxyType({})\\n',\n            encoding='utf-8',\n        )\n        cli = fixture / 'verify_implementation_runtime.py'\n        outcome = subprocess.run([sys.executable, '-E', '-B', str(cli)], cwd=fixture, capture_output=True,\n                                 text=True, timeout=30, check=False)\n        self.assertEqual(outcome.returncode, 1)\n        self.assertEqual(outcome.stdout, '')\n        self.assertIn('NO-GO', outcome.stderr)\n        self.assertNotIn('Traceback', outcome.stderr)\n        self.assertEqual((source / authority).read_bytes(), original_policy)\n        self.assertFalse((fixture / '__pycache__').exists())"
+        }
+      ]
+    },
+    {
+      "issueId": "30e18329aae3d3b22e4107b1d5350c02",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_contracts.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 133,
+        "sourceSha256": "90a48474c0227cfc92a9b75a9adaed02540954053c3519b5eceb689ef2d2829e",
+        "lineSha256": "89cd89f8c216be07fa3ec07c9711a9fcb75235878819e5ffd25bdca3ff7bf8a3",
+        "text": "            _credential_fingerprint({**credentials, \"secret\": \"changed\"}, \"bybit\", \"testnet\"),"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 133,
+        "sourceSha256": "120d79c5d928b74596347d25a5c1e88df02c43f45ef627709397811ccab906f4",
+        "lineSha256": "89cd89f8c216be07fa3ec07c9711a9fcb75235878819e5ffd25bdca3ff7bf8a3",
+        "text": "            _credential_fingerprint({**credentials, \"secret\": \"changed\"}, \"bybit\", \"testnet\"),"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "changed is a second local HMAC test vector used to assert a changed secret produces a different credential fingerprint. It is never submitted to a provider or persisted as account credentials.",
+      "evidence": [
+        {
+          "start": 120,
+          "end": 134,
+          "source": "    def test_credential_fingerprint_uses_the_canonical_secret_as_hmac_key(self) -> None:\n        credentials = {\"secret\": \"secret-value\", \"apiKey\": \"api-key\"}\n        canonical = json.dumps(credentials, sort_keys=True, separators=(\",\", \":\"), ensure_ascii=True)\n\n        fingerprint = _credential_fingerprint(credentials, \"bybit\", \"testnet\")\n\n        self.assertEqual(\n            fingerprint,\n            external_account_cache_key(\"bybit\", \"testnet\", canonical),\n        )\n        self.assertEqual(len(fingerprint), 64)\n        self.assertNotEqual(\n            fingerprint,\n            _credential_fingerprint({**credentials, \"secret\": \"changed\"}, \"bybit\", \"testnet\"),\n        )"
+        }
+      ]
+    },
+    {
+      "issueId": "8d344fd02551847d93927c0f9fcfb52b",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_contracts.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 121,
+        "sourceSha256": "90a48474c0227cfc92a9b75a9adaed02540954053c3519b5eceb689ef2d2829e",
+        "lineSha256": "2a35f338d510e30801236d647eb2e510b26b3c5b04b615c5124f9981bc930c59",
+        "text": "        credentials = {\"secret\": \"secret-value\", \"apiKey\": \"api-key\"}"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 121,
+        "sourceSha256": "120d79c5d928b74596347d25a5c1e88df02c43f45ef627709397811ccab906f4",
+        "lineSha256": "2a35f338d510e30801236d647eb2e510b26b3c5b04b615c5124f9981bc930c59",
+        "text": "        credentials = {\"secret\": \"secret-value\", \"apiKey\": \"api-key\"}"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "secret-value and api-key are local canonical HMAC test vectors. Only serialization and _credential_fingerprint/external_account_cache_key are called; the expected 64-character fingerprint is compared, without transport or credential-store mutation.",
+      "evidence": [
+        {
+          "start": 120,
+          "end": 134,
+          "source": "    def test_credential_fingerprint_uses_the_canonical_secret_as_hmac_key(self) -> None:\n        credentials = {\"secret\": \"secret-value\", \"apiKey\": \"api-key\"}\n        canonical = json.dumps(credentials, sort_keys=True, separators=(\",\", \":\"), ensure_ascii=True)\n\n        fingerprint = _credential_fingerprint(credentials, \"bybit\", \"testnet\")\n\n        self.assertEqual(\n            fingerprint,\n            external_account_cache_key(\"bybit\", \"testnet\", canonical),\n        )\n        self.assertEqual(len(fingerprint), 64)\n        self.assertNotEqual(\n            fingerprint,\n            _credential_fingerprint({**credentials, \"secret\": \"changed\"}, \"bybit\", \"testnet\"),\n        )"
+        }
+      ]
+    },
+    {
+      "issueId": "436aabdb9de71051f2909c17ee9b2b4d",
+      "rule": "Semgrep_python.lang.security.audit.dangerous-subprocess-use-audit.dangerous-subprocess-use-audit",
+      "path": "exchange_executor/tests/test_acceptance_journal_crash.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 74,
+        "sourceSha256": "c3d4a5b599857abb680336720f1a785649eeedaea8b816ced277d7d14742784b",
+        "lineSha256": "0606537036c16ad690b2cc7ad5d5da1838de0a2806ebc6db68d6e64cb52305fd",
+        "text": "            failed = subprocess.run(arguments(directory, \"fsync_error\"), capture_output=True, text=True,"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 74,
+        "sourceSha256": "39979e53576e6212c338e8a9f93f80dfbbecd499a0bc8fd7cf24f8b559a05edd",
+        "lineSha256": "cfe3aa5a251f50fba9d711ab6b4669eb6d2cc1865e45f831129212a514600f82",
+        "text": "            failed = subprocess.run(arguments(directory, \"fsync_error\"), capture_output=True, text=True, check=False,"
+      },
+      "mapping": "pre-existing explicit check=False documents the subprocess nonzero-status assertion contract",
+      "rationale": "arguments() fixes sys.executable -B and the sibling acceptance_journal_child.py. The only variable directory is a TemporaryDirectory fixture and phase is a finite local crash-mode key or literal replay/fsync_error. The child was inspected: economic attempts are fsynced file appends and an isolated SQLite journal, with no HTTP provider transport. The fsync_error fixture must exit unsuccessfully without sending or leaking its synthetic error sentinel into output/database; its 10-second bounded replay verifies unresolved ownership without another write.",
+      "evidence": [
+        {
+          "start": 17,
+          "end": 21,
+          "source": "CHILD = Path(__file__).with_name(\"acceptance_journal_child.py\")\n\n\ndef arguments(directory, phase):\n    return [sys.executable, \"-B\", str(CHILD), str(directory), phase]"
+        },
+        {
+          "start": 71,
+          "end": 84,
+          "source": "    def test_child_fsync_error_never_sends_or_exposes_its_original_secret_cause(self):\n        with tempfile.TemporaryDirectory(prefix=\"acceptance-fsync-child-\") as location:\n            directory = Path(location)\n            failed = subprocess.run(arguments(directory, \"fsync_error\"), capture_output=True, text=True, check=False,\n                                    timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n            self.assertNotEqual(failed.returncode, 0)\n            self.assertNotIn(\"NEVER-PRINT-THIS-SECRET\", failed.stdout + failed.stderr)\n            self.assertEqual(rows(directory / \"writes.jsonl\"), [])\n            self.assertNotIn(b\"NEVER-PRINT-THIS-SECRET\", (directory / \"run.sqlite\").read_bytes())\n            resumed = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                     timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n            self.assertEqual(resumed.returncode, 0, resumed.stderr)\n            self.assertEqual(json.loads(resumed.stdout)[\"unresolved\"], [\"own-1\"])\n            self.assertEqual(rows(directory / \"writes.jsonl\"), [])"
+        }
+      ]
+    },
+    {
+      "issueId": "d3780ec458456a948cca94f4dcf10565",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_contracts.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 557,
+        "sourceSha256": "90a48474c0227cfc92a9b75a9adaed02540954053c3519b5eceb689ef2d2829e",
+        "lineSha256": "38aa4285b8d5fdedd84d7108f09deb66a1de5874efb08ccf508e3f0d97133d08",
+        "text": "    return {\"apiKey\": \"fixture-key\", \"secret\": \"fixture-secret\"} if exchange != \"hyperliquid\" else {"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 569,
+        "sourceSha256": "120d79c5d928b74596347d25a5c1e88df02c43f45ef627709397811ccab906f4",
+        "lineSha256": "38aa4285b8d5fdedd84d7108f09deb66a1de5874efb08ccf508e3f0d97133d08",
+        "text": "    return {\"apiKey\": \"fixture-key\", \"secret\": \"fixture-secret\"} if exchange != \"hyperliquid\" else {"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "test_secret returns public fixture-key/fixture-secret strings (or repeated-digit wallet fixtures). FakeRegistry uses these only to derive account identity/fingerprint and simulate binding; local FakeProtectedRest captures writes in arrays. These are intentionally shared offline vectors, not operational credentials.",
+      "evidence": [
+        {
+          "start": 514,
+          "end": 526,
+          "source": "    async def create_orders(self, orders):\n        self.created_batches.append(orders)\n        if self._failure:\n            raise self._failure\n        return self._orders\n\n    @staticmethod\n    async def fetch_open_orders(*_args):\n        return []\n\n    async def create_order(self, *args):\n        self.cleanup_orders.append(args)\n        return {\"id\": \"cleanup\"}"
+        },
+        {
+          "start": 537,
+          "end": 564,
+          "source": "class FakeRegistry:\n    def __init__(self, rest, exchange=\"bybit\") -> None:\n        for market in getattr(rest, 'markets', {}).values():\n            market.setdefault('id', 'pf_xbtusd' if exchange == 'krakenfutures' else 'BTCUSDT')\n        if isinstance(rest, FakeProtectedRest) and exchange != 'bybit':\n            market = next(iter(rest.markets.values()))\n            currency = 'USDC' if exchange == 'hyperliquid' else 'USD'\n            market.update({'symbol': f'BTC/{currency}:{currency}', 'quote': currency, 'settle': currency})\n            market.setdefault('precision', {'amount': 0.001, 'price': 0.1})\n            rest.markets = {market['symbol']: market}\n        self.clients = SimpleNamespace(\n            account=bound_test_account(exchange),\n            rest=rest,\n            account_identity=_account_identity(test_secret(exchange), exchange, \"testnet\"),\n            credential_fingerprint=_credential_fingerprint(test_secret(exchange), exchange, \"testnet\"),\n        )\n        self.credentials = SimpleNamespace(account=lambda _id, _exchange: {\"credentials\": test_secret(exchange)})\n        self.calls = 0\n\n    assert_binding = CcxtClientRegistry.assert_binding\n\n    @asynccontextmanager\n    async def mutation(self, account, _deadline):\n        self.assert_binding(account, self.clients)\n        yield SimpleNamespace(**{**vars(self.clients), \"account\": dict(account)})\n\n    async def account(self, _account):\n        self.calls += 1"
+        },
+        {
+          "start": 568,
+          "end": 582,
+          "source": "[Synthetic test fixture excerpt omitted; exact historical text is recoverable from documentationRedactions.originalRevision and its field hash.]"
+        }
+      ]
+    },
+    {
+      "issueId": "9ebccf1321c0fd9190a1a28fee74e2ef",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_bybit_account_mode.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 22,
+        "sourceSha256": "d971a1aea4ce0fcd413e4dd2cca2bb244ba450e4acd8508511bf74ab2cc4e486",
+        "lineSha256": "060f567b89c994a8ed0a91354433ce77c7696cc673defdc86504259cc4c593c9",
+        "text": "            'apiKey': 'DO-NOT-RETURN', 'secret': 'DO-NOT-RETURN', 'createdAt': 'not-account-birth'}}),"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 22,
+        "sourceSha256": "3daaf7f43381728a86a20871aebcd0a8fcf969a086b41551dbebd023d7183da0",
+        "lineSha256": "060f567b89c994a8ed0a91354433ce77c7696cc673defdc86504259cc4c593c9",
+        "text": "            'apiKey': 'DO-NOT-RETURN', 'secret': 'DO-NOT-RETURN', 'createdAt': 'not-account-birth'}}),"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "DO-NOT-RETURN is a canary in the AsyncMock API response, not a request credential. read_bybit_account_mode consumes that local response and the test explicitly rejects its presence in serialized output while checking two exact mock reads.",
+      "evidence": [
+        {
+          "start": 18,
+          "end": 25,
+          "source": "def rest(mode=5):\n    return SimpleNamespace(\n        privateGetV5UserQueryApi=AsyncMock(return_value={'retCode': 0, 'result': {\n            'userID': 9007199254740993, 'isMaster': False, 'parentUid': '42', 'uta': 1,\n            'apiKey': 'DO-NOT-RETURN', 'secret': 'DO-NOT-RETURN', 'createdAt': 'not-account-birth'}}),\n        privateGetV5AccountInfo=AsyncMock(return_value={'retCode': 0, 'result': {\n            'unifiedMarginStatus': mode, 'updatedTime': '0'}}),\n    )"
+        },
+        {
+          "start": 33,
+          "end": 48,
+          "source": "    async def test_raw_bound_observation_preserves_uid_and_no_secret_or_birth_claim(self):\n        client, budget = rest(), self.budget()\n        result = await read_bybit_account_mode(client, budget, 'a' * 64, 'b' * 64)\n        self.assertEqual(budget.calls, 2)\n        self.assertEqual(result['providerAccountUid'], '9007199254740993')\n        self.assertEqual(result['parentAccountUid'], '42')\n        self.assertEqual(result['unifiedMarginStatus'], 5)\n        self.assertEqual(result['accountUpdatedAt'], 0)\n        self.assertLessEqual(result['startedAt'], result['completedAt'])\n        self.assertNotIn('DO-NOT-RETURN', json.dumps(result))\n        self.assertNotIn('createdAt', result)\n        self.assertNotIn('upgradeTime', result)\n        digest = result.pop('evidenceHash')\n        self.assertEqual(digest, hashlib.sha256(json.dumps(result, sort_keys=True, separators=(',', ':')).encode()).hexdigest())\n        client.privateGetV5UserQueryApi.assert_awaited_once_with({})\n        client.privateGetV5AccountInfo.assert_awaited_once_with({})"
+        }
+      ]
+    },
+    {
+      "issueId": "1c7fa10f3596deb97a9679c3f91b506e",
+      "rule": "Bandit_B404",
+      "path": "exchange_executor/tests/test_acceptance_journal.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 6,
+        "sourceSha256": "8559b29f46f9f4210aa2f60ace654a76ce43855d53e5c78d4230ca200c9ca066",
+        "lineSha256": "7d8752c4c7ea34c2c6d04a15aa31a1f25f62848f8c3c82528fd62439c01a225b",
+        "text": "import subprocess"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 6,
+        "sourceSha256": "d408c9b32ec06bf7e0b76f9015caa053bb0cb5261167ccff8b73e16b98dfe15f",
+        "lineSha256": "7d8752c4c7ea34c2c6d04a15aa31a1f25f62848f8c3c82528fd62439c01a225b",
+        "text": "import subprocess"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The Windows branch explicitly invokes cmd /c mklink /J, so this is shell-mediated despite subprocess receiving an argument list. Its sole purpose is to create a test junction between two constant-named children of the generated TemporaryDirectory. No provider/request input selects command or paths. timeout=10 and check=True require bounded successful setup; the journal must then reject the alias without creating its database. This classification assumes the locally controlled test environment, and does not resolve executable-search hardening or make a general safe-shell claim.",
+      "evidence": [
+        {
+          "start": 21,
+          "end": 33,
+          "source": "class AcceptanceJournalTests(unittest.TestCase):\n    def setUp(self):\n        self.directory = tempfile.TemporaryDirectory(prefix=\"acceptance-journal-\")\n        self.addCleanup(self.directory.cleanup)\n        self.path = Path(self.directory.name) / \"run.sqlite\"\n        self.now = 100.0\n\n    def opened(self, proposed=None, origins=None):\n        original = proposed or plan()\n        journal = AcceptanceJournal(self.path, journal_binding(original, origins), clock=lambda: self.now)\n        self.addCleanup(journal.close)\n        guard = AcceptanceGuard(original, SHA, PROFILE_HASH, journal=journal, profile_origins=origins)\n        return journal, guard"
+        },
+        {
+          "start": 309,
+          "end": 330,
+          "source": "    def test_real_hardlink_and_directory_aliases_are_refused(self):\n        journal, _ = self.opened()\n        journal.close()\n        alias = self.path.with_name(\"hardlinked.sqlite\")\n        os.link(self.path, alias)\n        with self.assertRaises(JournalRefused):\n            self.opened()\n        # The alias is solely this fixture's extra link; no journal data is deleted.\n        alias.unlink()\n        alias_directory = self.path.parent / \"directory-alias\"\n        target_directory = self.path.parent / \"actual-directory\"\n        target_directory.mkdir()\n        if os.name == \"nt\":\n            subprocess.run([\"cmd\", \"/c\", \"mklink\", \"/J\", str(alias_directory), str(target_directory)],\n                           check=True, capture_output=True, timeout=10,\n                           creationflags=subprocess.CREATE_NO_WINDOW)\n        else:\n            alias_directory.symlink_to(target_directory, target_is_directory=True)\n        prepared_journal_binding = journal_binding(plan())\n        with self.assertRaises(JournalRefused):\n            AcceptanceJournal(alias_directory / \"alias.sqlite\", prepared_journal_binding, clock=lambda: 100)\n        self.assertFalse((target_directory / \"alias.sqlite\").exists())"
+        }
+      ]
+    },
+    {
+      "issueId": "d6c5281349a82d441c573c2039567f0",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_kraken_bounded_matrix.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 84,
+        "sourceSha256": "e2472c2781f767e7b03a5591bdd5b761296c352f926a4f4a50f45e6d33d4d9b3",
+        "lineSha256": "ea44873f5e2da27887c5cec8160a7a4c818f78f3404f897e816bb027b79e4815",
+        "text": "            'enableRateLimit': False, 'apiKey': 'isolated-api-key', 'secret': 'aXNvbGF0ZWQtc2VjcmV0',  # gitleaks:allow"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 84,
+        "sourceSha256": "e2472c2781f767e7b03a5591bdd5b761296c352f926a4f4a50f45e6d33d4d9b3",
+        "lineSha256": "ea44873f5e2da27887c5cec8160a7a4c818f78f3404f897e816bb027b79e4815",
+        "text": "            'enableRateLimit': False, 'apiKey': 'isolated-api-key', 'secret': 'aXNvbGF0ZWQtc2VjcmV0',  # gitleaks:allow"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The base64 value decodes to isolated-secret, used with a public isolated-api-key to inspect real SDK request signing. rest.fetch is replaced with an interceptor that consumes an explicit finite response queue; each request path/signature is checked and clients are closed. No provider order is transmitted.",
+      "evidence": [
+        {
+          "start": 82,
+          "end": 115,
+          "source": "    def sdk(self, responses):\n        rest = client_class(EXCHANGE, ccxt_async.krakenfutures)({\n            'enableRateLimit': False, 'apiKey': 'isolated-api-key', 'secret': 'aXNvbGF0ZWQtc2VjcmV0',  # gitleaks:allow\n            'options': profile_for(EXCHANGE).client_options()})\n        rest.set_markets([{'id': MARKET_ID, 'symbol': SYMBOL, 'base': 'BTC', 'quote': 'USD', 'settle': 'USD',\n            'baseId': 'BTC', 'quoteId': 'USD', 'settleId': 'USD', 'type': 'swap', 'spot': False, 'swap': True,\n            'contract': True, 'linear': True, 'inverse': False, 'active': True, 'contractSize': 1,\n            'future': False, 'option': False, 'expiry': None,\n            'precision': {'amount': .001, 'price': .1}, 'limits': {}, 'info': {}}])\n        calls = []\n\n        async def intercepted(url, method='GET', headers=None, body=None):\n            self.assertIn('Authent', headers)\n            path = urlsplit(url).path\n            calls.append({'path': path, 'method': method, 'query': parse_qs(urlsplit(url).query), 'body': body})\n            self.assertTrue(responses, 'Every transport must have an explicit isolated fixture response.')\n            expected_suffix, response = responses.pop(0)\n            self.assertTrue(path.endswith(expected_suffix), (path, expected_suffix))\n            return copy.deepcopy(response)\n\n        rest.fetch = intercepted\n        self.addAsyncCleanup(rest.close)\n        return rest, calls\n\n    async def submit_specimen(self, response, side='buy'):\n        rest, calls = self.sdk([('/batchorder', {'result': 'success', 'serverTime': STAMP, 'batchStatus': response})])\n        requests = original_requests(side)\n        original = copy.deepcopy(requests)\n        specs = diagnostic_specs(rest, requests)\n        with entry_deadline_scope(EntryDeadline(requests[0])):\n            parsed = await rest.create_orders(copy.deepcopy(specs))\n        self.assertEqual(requests, original, 'Original deadlines, caps, tags and leg requests must not change.')\n        self.assertEqual(len(calls), 1)\n        return rest, specs, parsed, calls[0]"
+        }
+      ]
+    },
+    {
+      "issueId": "a7101aa211eb0348ff3b70eca41a1e64",
+      "rule": "Bandit_B106",
+      "path": "exchange_executor/tests/test_additional_exchange_profiles.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 166,
+        "sourceSha256": "220c7e82ce5d0aa9ee2a94c7a20252d69d7220bf29132f9af20438e0ffe92997",
+        "lineSha256": "5d62c0113b9dac58d74e6942c98b7c15f273e85a1f25a288d934cd9072d10122",
+        "text": "            lambda doc: doc.update(secret='forbidden'),"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 166,
+        "sourceSha256": "220c7e82ce5d0aa9ee2a94c7a20252d69d7220bf29132f9af20438e0ffe92997",
+        "lineSha256": "5d62c0113b9dac58d74e6942c98b7c15f273e85a1f25a288d934cd9072d10122",
+        "text": "            lambda doc: doc.update(secret='forbidden'),"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The literal forbidden value is inserted under a secret key only into a deepcopy of the offline inventory. validate_inventory must raise InventoryError. It is a deliberately invalid schema field, not an operational secret or authentication value.",
+      "evidence": [
+        {
+          "start": 158,
+          "end": 178,
+          "source": "    def test_inventory_rejects_missing_duplicate_forged_alias_flag_hash_and_schema(self):\n        mutations = [\n            lambda doc: doc['inventory']['exchanges'].pop(),\n            lambda doc: doc['inventory']['exchanges'].append(copy.deepcopy(doc['inventory']['exchanges'][0])),\n            lambda doc: doc['inventory']['exchanges'][0].update(aliasOf='bybit'),\n            lambda doc: doc['inventory']['exchanges'][0]['rest']['has'].update(fetchBalance='emulated'),\n            lambda doc: doc['inventory'].update(ccxtVersion='4.5.76'),\n            lambda doc: doc['inventory'].update(sourceHash='0' * 64),\n            lambda doc: doc.update(secret='forbidden'),\n            lambda doc: doc['assessments'][0].update(decision='not_easy', evidence=[]),\n            lambda doc: doc['assessments'][0].update(implementationVerified=True),\n            lambda doc: doc['assessments'][0].update(providerAcceptanceVerified=True),\n            lambda doc: doc['assessments'][0].update(decision=[]),\n            lambda doc: doc['assessments'][0].update(evidence=[{'kind': [], 'path': 'docs/testing/proof.json', 'sha256': 'a' * 64}]),\n        ]\n        for mutate in mutations:\n            with self.subTest(mutation=mutate):\n                document = copy.deepcopy(self.inventory)\n                mutate(document)\n                with self.assertRaises(InventoryError):\n                    validate_inventory(document)"
+        }
+      ]
+    },
+    {
+      "issueId": "96d055bfc93e8d31292fa66e14490c7f",
+      "rule": "Bandit_B603",
+      "path": "exchange_executor/tests/test_acceptance_journal_crash.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 38,
+        "sourceSha256": "c3d4a5b599857abb680336720f1a785649eeedaea8b816ced277d7d14742784b",
+        "lineSha256": "19c4cb61c0c98ddf9b54f4f2b0fd3e7ee9489901581d7825490d9b2a55e8ebf7",
+        "text": "            second_owner = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True,"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 38,
+        "sourceSha256": "39979e53576e6212c338e8a9f93f80dfbbecd499a0bc8fd7cf24f8b559a05edd",
+        "lineSha256": "c67e7cd931991ba79714e0ae9440b770c4972d8078c326cffe31d0b4b422015f",
+        "text": "            second_owner = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,"
+      },
+      "mapping": "pre-existing explicit check=False documents the subprocess nonzero-status assertion contract",
+      "rationale": "arguments() fixes sys.executable -B and the sibling acceptance_journal_child.py. The only variable directory is a TemporaryDirectory fixture and phase is a finite local crash-mode key or literal replay/fsync_error. The child was inspected: economic attempts are fsynced file appends and an isolated SQLite journal, with no HTTP provider transport. This second-owner replay must fail while the first owned child holds the journal; capture_output and timeout=10 bound the subprocess and its error contract is asserted.",
+      "evidence": [
+        {
+          "start": 17,
+          "end": 21,
+          "source": "CHILD = Path(__file__).with_name(\"acceptance_journal_child.py\")\n\n\ndef arguments(directory, phase):\n    return [sys.executable, \"-B\", str(CHILD), str(directory), phase]"
+        },
+        {
+          "start": 29,
+          "end": 58,
+          "source": "    def crash_at(self, directory, phase):\n        process = subprocess.Popen(arguments(directory, phase), stdout=subprocess.PIPE, stderr=subprocess.PIPE,\n                                   text=True, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n        try:\n            deadline = time.monotonic() + 10\n            while not (directory / \"ready.jsonl\").exists():\n                self.assertIsNone(process.poll(), \"child exited before the durable checkpoint\")\n                self.assertLess(time.monotonic(), deadline, \"child checkpoint timeout\")\n                time.sleep(0.01)\n            second_owner = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                          timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))\n            self.assertNotEqual(second_owner.returncode, 0)\n            self.assertIn(\"journal refused\", second_owner.stderr)\n        finally:\n            process.kill()\n            process.communicate(timeout=10)\n        self.assertNotEqual(process.returncode, 0)\n\n    def test_actual_kills_replay_original_phase_and_never_repeat_unknown_send(self):\n        phases = {\"opened\": (0, 0), \"before_reserve\": (0, 0), \"reserved\": (0, 0),\n                  \"dispatching\": (0, 0), \"before_accept\": (1, 0), \"accepted\": (1, 1), \"acknowledged\": (1, 1)}\n        for phase, (attempts, accepted) in phases.items():\n            with self.subTest(phase=phase), tempfile.TemporaryDirectory(prefix=\"acceptance-hardkill-\") as location:\n                directory = Path(location)\n                self.crash_at(directory, phase)\n                before = rows(directory / \"writes.jsonl\")\n                self.assertEqual(sum(row[\"event\"] == \"attempt\" for row in before), attempts)\n                self.assertEqual(sum(row[\"event\"] == \"accepted\" for row in before), accepted)\n                resumed = subprocess.run(arguments(directory, \"replay\"), capture_output=True, text=True, check=False,\n                                         timeout=10, creationflags=getattr(subprocess, \"CREATE_NO_WINDOW\", 0))"
+        }
+      ]
+    },
+    {
+      "issueId": "39838b7cae10bcf54989de19e6dbaee8",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_candidate_group_b_boundaries.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 77,
+        "sourceSha256": "bc387d07c1545bb3faccecf42b3272fc7040ed94225f2f8b3d559890ada4e41d",
+        "lineSha256": "e054118bbf6c91f49116673b13d6d4f317fff31fc53a4a10d2b49bba46cd8a97",
+        "text": "        \"password\": \"local-fixture-passphrase\","
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 77,
+        "sourceSha256": "bc387d07c1545bb3faccecf42b3272fc7040ed94225f2f8b3d559890ada4e41d",
+        "lineSha256": "e054118bbf6c91f49116673b13d6d4f317fff31fc53a4a10d2b49bba46cd8a97",
+        "text": "        \"password\": \"local-fixture-passphrase\","
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The public local-fixture credential/passphrase populates a test SDK instance. _client replaces both fetch and request with failing mocks, sets a local market, and the test class independently blocks socket/DNS calls before constructors. Specific endpoint mocks exercise serialization; these strings cannot authenticate any real provider account.",
+      "evidence": [
+        {
+          "start": 72,
+          "end": 101,
+          "source": "def _client(exchange: str):\n    credentials = {\n        \"enableRateLimit\": False,\n        \"apiKey\": \"local-fixture-key\",\n        \"secret\": \"local-fixture-secret\",\n        \"password\": \"local-fixture-passphrase\",\n        \"privateKey\": \"1\",\n        \"options\": {\"adjustForTimeDifference\": False, \"uta\": False, \"defaultType\": \"swap\"},\n    }\n    client = getattr(sdk, exchange)(credentials)\n    client.fetch = AsyncMock(side_effect=AssertionError(\"Provider transport is forbidden.\"))\n    client.request = AsyncMock(side_effect=AssertionError(\"Unexpected SDK endpoint is forbidden.\"))\n    client.set_markets([_market(exchange)])\n    return client\n\n\nclass CandidateGroupBTests(unittest.IsolatedAsyncioTestCase):\n    async def asyncSetUp(self):\n        self.assertEqual(ccxt.__version__, \"4.5.75\")\n        # IsolatedAsyncioTestCase has already created its local loop socketpair.\n        # Block every later DNS/provider transport before constructing clients.\n        for target in (\n            (socket.socket, \"connect\"),\n            (socket.socket, \"connect_ex\"),\n            (socket, \"getaddrinfo\"),\n            (socket, \"create_connection\"),\n        ):\n            blocker = patch.object(*target, side_effect=AssertionError(\"Live transport is forbidden.\"))\n            blocker.start()\n            self.addCleanup(blocker.stop)"
+        },
+        {
+          "start": 109,
+          "end": 116,
+          "source": "    async def test_extended_attached_stop_ack_has_only_the_parent_identity(self):\n        client = _client(\"extended\")\n        client.fetch_extended_account = AsyncMock(return_value={\"l2Key\": \"1\", \"l2Vault\": \"1\"})\n        client.create_order_settlement_data = Mock(return_value={\"r\": \"1\", \"s\": \"2\"})\n        client.v1PrivatePostUserOrder = AsyncMock(return_value={\n            \"status\": \"OK\",\n            \"data\": {\"id\": \"2051479786538188800\", \"externalId\": \"tsx-entry\"},\n        })"
+        }
+      ]
+    },
+    {
+      "issueId": "3862f919e7cc6c6edd4d59e8a07f09de",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_kraken_response_capture.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 77,
+        "sourceSha256": "57b8ed4681d9d9414eb7e1dfecdeea355decdc9301bc608faa0772307632ec8b",
+        "lineSha256": "e618607258bd6c216f3761fcabf83d46d1edab05c39fa5d8164045da6731c6f6",
+        "text": "        'apiKey': 'isolated-fixture-key', 'secret': 'aXNvbGF0ZWQtZml4dHVyZS1zZWNyZXQ=',  # gitleaks:allow"
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 77,
+        "sourceSha256": "57b8ed4681d9d9414eb7e1dfecdeea355decdc9301bc608faa0772307632ec8b",
+        "lineSha256": "e618607258bd6c216f3761fcabf83d46d1edab05c39fa5d8164045da6731c6f6",
+        "text": "        'apiKey': 'isolated-fixture-key', 'secret': 'aXNvbGF0ZWQtZml4dHVyZS1zZWNyZXQ=',  # gitleaks:allow"
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The base64 value decodes to isolated-fixture-secret. The real SDK receives a LocalSession whose get method only pops LocalResponse objects and raises on exhausted fixtures; it has no network transport. This intentionally retains real SDK parsing/hooks while signatures use a synthetic key.",
+      "evidence": [
+        {
+          "start": 42,
+          "end": 86,
+          "source": "class LocalResponse:\n    def __init__(self, body, *, status=200, before_text=None, after_response=None):\n        self.body, self.status = body, status\n        self.headers, self.reason = {'Content-Type': 'application/json'}, 'local fixture'\n        self.before_text, self.after_response = before_text, after_response\n\n    async def __aenter__(self):\n        return self\n\n    async def __aexit__(self, *_args):\n        if self.after_response:\n            await self.after_response()\n\n    async def text(self, **_kwargs):\n        if self.before_text:\n            await self.before_text()\n        return self.body\n\n\nclass LocalSession:\n    \"\"\"The real SDK fetch/hook/parser run; only aiohttp's session is replaced.\"\"\"\n    def __init__(self, responses):\n        self.responses, self.calls = list(responses), []\n        self.headers = {}\n\n    def get(self, url, **kwargs):\n        self.calls.append((str(url), kwargs))\n        if not self.responses:\n            raise AssertionError('Unexpected HTTP request; no provider transport exists in this fixture.')\n        return self.responses.pop(0)\n\n\ndef captured_kraken_client(responses, *, sdk_class=ccxt_async.krakenfutures):\n    session = LocalSession(responses)\n    rest = client_class('krakenfutures', sdk_class)({\n        'apiKey': 'isolated-fixture-key', 'secret': 'aXNvbGF0ZWQtZml4dHVyZS1zZWNyZXQ=',  # gitleaks:allow\n        'enableRateLimit': False, 'session': session, 'timeout_on_exit': 0,\n    })\n    return rest, session\n\n\nclass KrakenResponseCaptureTests(unittest.IsolatedAsyncioTestCase):\n    async def test_pinned_sdk_preserves_the_request_original_after_float_equal_aba(self):\n        rest, session = captured_kraken_client([LocalResponse(log_body())])\n        self.addAsyncCleanup(rest.close)"
+        }
+      ]
+    },
+    {
+      "issueId": "4f2e9a5bd8e23056683cfd7d0d4a1d73",
+      "rule": "Bandit_B105",
+      "path": "exchange_executor/tests/test_kucoin_provider_sdk_boundaries.py",
+      "decision": "reviewed-false-positive",
+      "original": {
+        "revision": "be8cf5af59f60d69ad946d778973add8161b7672",
+        "line": 81,
+        "sourceSha256": "b78e1fe1567c53051764eeb388167eda00ee395e0afadb176a4cbdafd52496cb",
+        "lineSha256": "3d44bb6254fc1457790d1cd97b3f1350bff72773a226ed5a47dc75e29e56c825",
+        "text": "            \"password\": \"local-fixture-passphrase\","
+      },
+      "reviewed": {
+        "revision": "1556d2e0d749ca113e14cc1cb33ce5d103f88d18",
+        "line": 81,
+        "sourceSha256": "33968224804afe64ce12f5b1923f24fcbcb5042f01cead52ec9bb25d3e0b6869",
+        "lineSha256": "3d44bb6254fc1457790d1cd97b3f1350bff72773a226ed5a47dc75e29e56c825",
+        "text": "            \"password\": \"local-fixture-passphrase\","
+      },
+      "mapping": "unchanged reported expression; line remapped where necessary",
+      "rationale": "The credential/passphrase is the public local-fixture string supplied solely to exercise the pinned SDK signer. asyncSetUp blocks connect/connect_ex/getaddrinfo/create_connection before SDK construction, local interceptors return fixture responses, and addAsyncCleanup closes clients. No usable account credential is embedded.",
+      "evidence": [
+        {
+          "start": 67,
+          "end": 86,
+          "source": "class KucoinProviderSdkBoundaryTests(unittest.IsolatedAsyncioTestCase):\n    async def asyncSetUp(self):\n        self.assertEqual(ccxt.__version__, \"4.5.75\")\n        for target in ((socket.socket, \"connect\"), (socket.socket, \"connect_ex\"),\n                       (socket, \"getaddrinfo\"), (socket, \"create_connection\")):\n            blocker = patch.object(*target, side_effect=AssertionError(\"Live transport forbidden.\"))\n            blocker.start()\n            self.addCleanup(blocker.stop)\n\n    def client(self, exchange=\"kucoinfutures\"):\n        rest = getattr(sdk, exchange)({\n            \"enableRateLimit\": False,\n            \"apiKey\": \"local-fixture-key\",\n            \"secret\": \"local-fixture-secret\",\n            \"password\": \"local-fixture-passphrase\",\n            \"options\": {\"uta\": False, \"defaultType\": \"swap\", \"adjustForTimeDifference\": False},\n        })\n        rest.set_markets([market()])\n        self.addAsyncCleanup(rest.close)\n        return rest"
+        },
+        {
+          "start": 88,
+          "end": 118,
+          "source": "    async def test_both_sdk_ids_sign_the_five_exact_mode_and_binding_reads(self):\n        for exchange in (\"kucoin\", \"kucoinfutures\"):\n            with self.subTest(exchange=exchange):\n                rest = self.client(exchange)\n                calls = []\n\n                async def intercepted(url, method=\"GET\", headers=None, body=None, *, calls=calls):\n                    parsed = urlsplit(url)\n                    calls.append((parsed.path, parse_qs(parsed.query), method))\n                    self.assertTrue(headers.get(\"KC-API-SIGN\"))\n                    data = {\n                        \"/api/v1/user/api-key\": {\n                            \"apiVersion\": 3, \"permission\": \"General,Futures\", \"createdAt\": 1,\n                            \"uid\": UID, \"isMaster\": True, \"region\": \"PW\", \"siteType\": \"global\",\n                            \"apiKey\": \"must-not-escape\", \"remark\": \"must-not-escape\",\n                        },\n                        \"/api/ua/v1/account/mode\": {\n                            \"selfAccountMode\": \"CLASSIC\", \"unifiedSubAccount\": [],\n                            \"classicSubAccount\": [UID],\n                        },\n                        \"/api/v2/position/getPositionMode\": {\"positionMode\": 0},\n                        \"/api/v2/position/getMarginMode\": {\"symbol\": NATIVE, \"marginMode\": \"CROSS\"},\n                        \"/api/v2/getCrossUserLeverage\": {\"symbol\": NATIVE, \"leverage\": \"20\"},\n                    }[parsed.path]\n                    return {\"code\": \"200000\", \"data\": data}\n\n                rest.fetch = intercepted\n                result = await read_kucoin_classic_observation(\n                    rest, NATIVE, budget(5), account_fingerprint=FINGERPRINT,\n                    credential_generation=GENERATION,\n                )"
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "sourceBindingChecks": "50 original/current bindings verified against immutable Git blobs; 50 unique IDs, no overlap with prior90 test reviews or76 production reviews",
+    "numericLiterals": "Number.isSafeInteger and exact BigInt equality passed for 2147483647,1700000000000,86400000; fixed UTC date minus86400000 also safe",
+    "decimalSideEffect": "A standalone Python3.12 reproduction of the exact original Decimal-string multiplication at precision28 set both Inexact and Rounded flags; no repository test suite was run for this review"
+  },
+  "documentationRedactions": {
+    "amendedAt": "2026-09-13",
+    "originalRevision": "c684aafc4c43de9031c68a1a3145d0430f43f850",
+    "originalReportSha256": "cef3f42eeb24b5f450d1d1d96c7bb51da0cef0d31519b3f9c8eb9d1aebc717ae",
+    "scope": "Only repeated synthetic fixture strings in documentation; source files, source bindings, issue identities, classifications and test behavior are unchanged. Redacted excerpt fields are references, not verbatim quotes. One rationale is restated without its literal fixture value.",
+    "fields": [
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTpuZ3dkcmx5ZGU=",
+        "originalLine": 365,
+        "field": "text",
+        "originalFieldValueSha256": "d3ff8303840c7116d0acab14c40df6e020fcbe4c5fa114554f59e85aec4bc42d",
+        "reason": "Documentation original-source snapshot of the stale-process-owner test. The token field is a fixed synthetic lock marker inserted only into a mkdtemp-owned lock file. It tests refusal of automatic stale-owner recovery; it is not a provider or dashboard credential."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTpwcXduZHB5bnk=",
+        "originalLine": 372,
+        "field": "text",
+        "originalFieldValueSha256": "d3ff8303840c7116d0acab14c40df6e020fcbe4c5fa114554f59e85aec4bc42d",
+        "reason": "Documentation reviewed-source snapshot of the same synthetic stale-owner lock. The constant supports unchanged-file and ownership assertions after rejected acquire attempts; it is not an operational authentication secret."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTplYXh5ZXFreW4=",
+        "originalLine": 380,
+        "field": "source",
+        "originalFieldValueSha256": "4b4dd197555094018c6a131470517c3111901a5cc16f3eadd0da71f00122b94f",
+        "reason": "Documentation context excerpt includes the synthetic stale-lock payload and its local refusal/unchanged-byte assertions. Parent scope is a private temporary directory; the excerpt itself is non-executable JSON evidence, not credential configuration."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTprdnlkb21qZGQ=",
+        "originalLine": 394,
+        "field": "text",
+        "originalFieldValueSha256": "fdf112b9e58e9a82f08321274c8a44e0b24561b6932cb282338398868608714f",
+        "reason": "Documentation original-source snapshot of a fabricated regional SDK signing secret. Underlying test blocks socket/DNS transport, replaces fetch with a local capture callback and compares HMAC output locally. No real account or transmitted provider order is involved."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTp4cmducXB2bnI=",
+        "originalLine": 401,
+        "field": "text",
+        "originalFieldValueSha256": "fdf112b9e58e9a82f08321274c8a44e0b24561b6932cb282338398868608714f",
+        "reason": "Documentation reviewed-source snapshot of the same fabricated regional SDK secret. The current test still creates the fake value directly, runs the pinned signer, captures the request locally and checks no socket/DNS calls. This is an offline vector, not leaked provider access."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTpveWFkd25xZG0=",
+        "originalLine": 530,
+        "field": "rationale",
+        "originalFieldValueSha256": "860080b9fea291a4fb715db464cb0a13833f512cca021878cfac7eccfd593c06",
+        "reason": "Documentation rationale describes a deliberately forbidden checkpoint field/value. Underlying retention test places it among malformed variants that must raise ExchangeContractError. It is schema-adversarial data, not a credential or accepted checkpoint secret."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTp2dm1ub2x4bmU=",
+        "originalLine": 850,
+        "field": "source",
+        "originalFieldValueSha256": "bde27bd14cead772e9d371b9e7ddfaba5308c8f2698a27410643a6f4f74e0fe3",
+        "reason": "Documentation excerpt of KrakenRest.page fixture. The variable named token is a locally generated pagination continuation marker selecting array offsets and response rows, never authorization material; all fixture endpoint methods delegate to this local page function."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTptcmRud3F5bmQ=",
+        "originalLine": 864,
+        "field": "text",
+        "originalFieldValueSha256": "3991e0f762e5d34bc78045d1f03a20a10682c5dc385b0271c3c3477e98aa129c",
+        "reason": "Documentation original-source snapshot of a fabricated SDK passphrase paired with the offline signing fixture. Its only use is SDK request construction under transport-blocking guards and a captured local ACK; it does not unlock an actual account."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTpyZWtuYW9sbm0=",
+        "originalLine": 871,
+        "field": "text",
+        "originalFieldValueSha256": "3991e0f762e5d34bc78045d1f03a20a10682c5dc385b0271c3c3477e98aa129c",
+        "reason": "Documentation reviewed-source snapshot of that same fabricated signing passphrase. Current usage remains the isolated real-serializer/local-capture test with guarded socket/DNS and no provider transport. It is intentionally public fixture data."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTpnZXZkcG5vZG4=",
+        "originalLine": 1136,
+        "field": "source",
+        "originalFieldValueSha256": "95db10fb6dfb4dc5a2464af660b0588d83e2f0217828ff705f5aaec5c51731a2",
+        "reason": "Documentation context excerpt contains the local synthetic pagination continuation marker used in a missing-durable-consumer failure case. KrakenRest produces in-memory rows and checkpoint state; no authentication or external connection uses this marker."
+      },
+      {
+        "checkIssueId": "Q2hlY2tJc3N1ZTp5Z3luZGttZ3c=",
+        "originalLine": 1505,
+        "field": "source",
+        "originalFieldValueSha256": "a6099c420f29e33ec5b0e3bb1dc4b6666bb0488ec3cfb5826cb256c9bfd31a98",
+        "reason": "Documentation excerpt of test_secret and bound_test_account helpers. Values are fabricated fixed test strings or repeated-digit key/address vectors used to derive fake identity and credential fingerprints. FakeRegistry provides in-memory clients and captures writes; they are not operational provider secrets."
+      }
+    ]
+  }
+}

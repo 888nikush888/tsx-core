@@ -16,7 +16,8 @@ function useEvidence(url: string) {
 
 export function RiskAccounts() {
   const [params, setParams] = useSearchParams();
-  const query = new URLSearchParams({ kind: 'accounts' }); if (params.has('cursor')) query.set('cursor', params.get('cursor')!);
+  const query = new URLSearchParams({ kind: 'accounts' }); const cursor = params.get('cursor');
+  if (cursor !== null) query.set('cursor', cursor);
   const { data, error } = useEvidence(`/api/trading/objects?${query}`);
   return <section className="space-y-4"><h1>Risiko- und Historienbelege je Konto</h1><p>Kontomodell und Währung bleiben getrennt. Ein lesbarer oder frischer Beleg ist keine neue Entry-Freigabe.</p>
     {error && <p role="alert">{error}</p>}{data ? <><EvidenceTable caption="Konten" columns={[["name", "Kontobelege öffnen"], ["exchange", "Börse"], ["mode", "Modus"], ["status", "Status"], ["retiredAt", "Entfernt"]]} rows={data.entries.map((row: any) => ({ ...row, name: <Link to={`/risk/accounts/${encodeURIComponent(row.id)}`}>{row.name}</Link>, retiredAt: time(row.retiredAt) }))} />
@@ -25,7 +26,8 @@ export function RiskAccounts() {
 
 function AccountEvidenceRows({ accountId, kind, observationId }: Readonly<{ accountId: string; kind: 'reservations' | 'history'; observationId?: string }>) {
   const [params, setParams] = useSearchParams(); const cursorKey = `${kind}Cursor`;
-  const query = new URLSearchParams({ accountId, kind }); if (params.has(cursorKey)) query.set('cursor', params.get(cursorKey)!);
+  const query = new URLSearchParams({ accountId, kind }); const cursor = params.get(cursorKey);
+  if (cursor !== null) query.set('cursor', cursor);
   if (kind === 'reservations' && observationId) query.set('observationId', params.get('observationId') || observationId);
   const { data, error } = useEvidence(`/api/trading/accounts/evidence?${query}`);
   const go = (nextPage: boolean) => {

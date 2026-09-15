@@ -11,7 +11,7 @@ function object(value: unknown): Record<string, unknown> {
 }
 
 function token(value: unknown, maximum = 256): asserts value is string {
-  if (typeof value !== 'string' || !value || value.length > maximum || value.trim() !== value || /[\x00-\x1f]/.test(value)) throw new Error('Invalid accounting evidence identity.');
+  if (typeof value !== 'string' || invalidTokenText(value, maximum)) throw new Error('Invalid accounting evidence identity.');
 }
 
 function asset(value: unknown): asserts value is string {
@@ -24,8 +24,7 @@ function timestamp(value: unknown): asserts value is number {
 
 export function validateFillAccounting(value: unknown, providerSymbol?: string): ExchangeFillAccounting {
   const row = object(value);
-  if (row.version !== 1 || row.linear !== true || row.quantityUnit !== 'base'
-    || !isStringMember(row.source, ['ccxt-market-v1', 'paper-contract-v1'])) throw new Error('Unsupported fill accounting contract.');
+  fillAccountingContract(row);
   token(row.providerSymbol); asset(row.settlementAsset);
   if (providerSymbol !== undefined && row.providerSymbol !== providerSymbol) throw new Error('Fill accounting market differs from the provider market.');
   return { version: 1, source: row.source as ExchangeFillAccounting['source'], providerSymbol: row.providerSymbol,
@@ -36,7 +35,7 @@ function fundingEvent(value: unknown, since: number, until: number): TradingFund
   const row = object(value);
   token(row.id); timestamp(row.timestamp);
   if (row.timestamp < since || row.timestamp > until) throw new Error('Funding event is outside its evidence window.');
-  if (typeof row.amount !== 'string' || row.amount.trim() !== row.amount) throw new Error('Invalid funding amount.');
+  fundingEventAmount(row);
   if (row.asset !== null) asset(row.asset);
   return { id: row.id, timestamp: row.timestamp, amount: signedDecimal(row.amount), asset: row.asset as string | null };
 }
@@ -44,26 +43,18 @@ function fundingEvent(value: unknown, since: number, until: number): TradingFund
 export function validateFundingEvidence(value: unknown): TradingFundingEvidence {
   const row = object(value);
   if (!isStringMember(row.status, ['complete', 'incomplete', 'unsupported'])) throw new Error('Invalid funding completeness.');
-  timestamp(row.since); timestamp(row.until); timestamp(row.nextReadAt);
-  if (row.until < row.since || row.until - row.since > 86_400_000) throw new Error('Invalid bounded funding window.');
-  token(row.source);
-  if (row.cursor !== null) token(row.cursor, 4096);
-  if (row.reason !== null) token(row.reason);
-  if (row.status === 'complete' && (row.cursor !== null || row.reason !== null)) throw new Error('Complete funding evidence retains unresolved continuation.');
-  if (!Array.isArray(row.events) || row.events.length > 25_000) throw new Error('Invalid bounded funding event collection.');
-  const events = row.events.map(event => fundingEvent(event, row.since as number, row.until as number));
-  if (new Set(events.map(event => event.id)).size !== events.length) throw new Error('Duplicate funding event identity.');
+  fundingWindow(row);
+  fundingContinuation(row);
+  const events = fundingEvents(row);
   const observation = observationEnvelope(row, events.length);
   return { status: row.status as TradingFundingEvidence['status'], since: row.since, until: row.until,
     ...(observation ? { observation } : {}),
-    cursor: row.cursor as string | null, source: row.source, reason: row.reason as string | null, nextReadAt: row.nextReadAt, events };
+    cursor: row.cursor as string | null, source: row.source as string, reason: row.reason as string | null, nextReadAt: row.nextReadAt, events };
 }
 function observationEnvelope(row: Record<string, unknown>, eventCount: number): FundingObservationProof | undefined {
   if (row.observation === undefined) return undefined;
   const proof = fundingObservation(row.observation);
-  if (proof.since !== row.since || Math.max(proof.since, proof.through) !== row.until
-    || proof.namespace !== row.source || (proof.status === 'observed') !== (row.status === 'complete')
-    || eventCount !== 0) throw new Error('Funding observation contradicts its envelope.');
+  if (invalidObservationEnvelope(proof, row, eventCount)) throw new Error('Funding observation contradicts its envelope.');
   return proof;
 }
 
@@ -75,17 +66,15 @@ export function fundingTotal(evidence: TradingFundingEvidence, reportingCurrency
 export function fundingTotalValue(evidence: TradingFundingEvidence, reportingCurrency: string): MoneyValue | null {
   if (evidence.status !== 'complete') return null;
   if (evidence.observation) {
-    const proof = evidence.observation;
-    if (proof.status !== 'observed' || proof.reportingCurrency !== reportingCurrency) return null;
-    if (proof.value === undefined) return decimalFundingValue(proof.amount);
-    return proof.value;
+    return observedFundingTotal(evidence.observation, reportingCurrency);
   }
-  let total = '0';
-  for (const event of evidence.events) {
-    if (event.amount !== '0' && event.asset !== reportingCurrency) return null;
-    total = addSignedDecimal(total, event.amount);
-  }
-  return moneyValueFromDecimal(total);
+  return eventFundingTotal(evidence, reportingCurrency);
+}
+
+function observedFundingTotal(proof: FundingObservationProof, reportingCurrency: string): MoneyValue | null {
+  if (proof.status !== 'observed' || proof.reportingCurrency !== reportingCurrency) return null;
+  if (proof.value === undefined) return decimalFundingValue(proof.amount);
+  return proof.value;
 }
 
 function decimalFundingValue(value: string | null): MoneyValue | null {
@@ -95,7 +84,7 @@ function decimalFundingValue(value: string | null): MoneyValue | null {
 /** Structural validation only. A self-supplied value does not authorize funding or entry. */
 export function validateFundingValue(amount: string | null, value: unknown): MoneyValue | null | undefined {
   if (value === undefined) return undefined;
-  const result = value === null ? null : validateMoneyValue(value);
+  const result = nullableFundingValue(value);
   if (amount !== (result?.decimal ?? null)) throw new Error('Funding decimal alias contradicts its money value.');
   return result;
 }
@@ -103,13 +92,10 @@ export function validateFundingValue(amount: string | null, value: unknown): Mon
 function fundingObservation(value: unknown): FundingObservationProof {
   const row = object(value);
   observationIdentity(row);
-  timestamp(row.since); timestamp(row.through);
-  if (row.reportingCurrency !== null) asset(row.reportingCurrency);
-  if (row.reason !== null) token(row.reason);
+  observationMetadata(row);
   const amount = row.amount === null ? null : signedDecimal(row.amount as string);
   const monetary = validateFundingValue(row.amount as string | null, row.value);
-  const known = monetary === undefined ? amount !== null : monetary !== null;
-  if (row.status === 'observed' && (!known || row.reportingCurrency === null || row.reason !== null)) throw new Error('Observed funding has unresolved valuation.');
+  observationValuation(row, monetary, amount);
   return { version: 1, status: row.status as FundingObservationProof['status'], namespace: row.namespace as string,
     accountFingerprint: row.accountFingerprint as string, credentialGeneration: row.credentialGeneration as string,
     revisionHash: row.revisionHash as string, since: row.since as number, through: row.through as number,
@@ -118,9 +104,11 @@ function fundingObservation(value: unknown): FundingObservationProof {
     sourceScope: 'source_account', finality: 'provider_as_observed', delivery: 'may_be_delayed' };
 }
 function observationIdentity(row: Record<string, unknown>): void {
-  if (row.version !== 1 || !isStringMember(row.status, ['observed', 'incomplete']) || row.sourceScope !== 'source_account'
-    || row.finality !== 'provider_as_observed' || row.delivery !== 'may_be_delayed') throw new Error('Invalid observed funding proof.');
+  if (row.version !== 1 || !isStringMember(row.status, ['observed', 'incomplete']) || invalidObservationProvenance(row)) throw new Error('Invalid observed funding proof.');
   token(row.namespace);
+  observationBindings(row);
+}
+function observationBindings(row: Record<string, unknown>): void {
   for (const field of ['accountFingerprint', 'credentialGeneration', 'revisionHash']) {
     if (typeof row[field] !== 'string' || !/^[a-f0-9]{64}$/.test(row[field])) throw new Error('Invalid funding observation binding.');
   }
@@ -129,20 +117,106 @@ function observationIdentity(row: Record<string, unknown>): void {
 export function validateAccountingEvidence(value: unknown, fundingPnlToday: string | null, fundingPnlTodayValue?: unknown): TradingAccountingEvidence {
   const row = object(value);
   token(row.accountFingerprint); token(row.source); asset(row.reportingCurrency); timestamp(row.observedAt);
-  if (!Array.isArray(row.settlementAssets) || row.settlementAssets.length > 1000) throw new Error('Invalid accounting settlement metadata.');
-  row.settlementAssets.forEach(asset);
-  if (new Set(row.settlementAssets).size !== row.settlementAssets.length) throw new Error('Duplicate accounting settlement asset.');
+  accountingSettlementAssets(row);
   if (!isStringMember(row.unrealizedPnlSemantics, ['price_only', 'unverified'])) throw new Error('Missing unrealized PnL semantics.');
   const funding = validateFundingEvidence(row.funding);
-  if (funding.observation && (funding.observation.accountFingerprint !== row.accountFingerprint
-    || funding.observation.reportingCurrency !== row.reportingCurrency)) throw new Error('Funding observation accounting binding differs.');
-  const reported = fundingPnlToday === null ? null : signedDecimal(fundingPnlToday);
-  if (fundingTotal(funding, row.reportingCurrency) !== reported) throw new Error('Funding total contradicts its currency/completeness evidence.');
-  const monetary = validateFundingValue(fundingPnlToday, fundingPnlTodayValue);
-  if (monetary !== undefined && !isDeepStrictEqual(monetary, fundingTotalValue(funding, row.reportingCurrency))) {
-    throw new Error('Funding money value contradicts its accounting evidence.');
-  }
+  fundingAccountingBinding(funding, row);
+  accountingFundingTotals(row, funding, fundingPnlToday, fundingPnlTodayValue);
   return { accountFingerprint: row.accountFingerprint, reportingCurrency: row.reportingCurrency,
     settlementAssets: row.settlementAssets as string[], source: row.source, observedAt: row.observedAt,
     unrealizedPnlSemantics: row.unrealizedPnlSemantics as TradingAccountingEvidence['unrealizedPnlSemantics'], funding };
+}
+
+function accountingSettlementAssets(row: Record<string, unknown>): void {
+  if (!Array.isArray(row.settlementAssets) || row.settlementAssets.length > 1000) throw new Error('Invalid accounting settlement metadata.');
+  row.settlementAssets.forEach(asset);
+  if (new Set(row.settlementAssets).size !== row.settlementAssets.length) throw new Error('Duplicate accounting settlement asset.');
+}
+
+function fundingAccountingBinding(funding: TradingFundingEvidence, row: Record<string, unknown>): void {
+  if (funding.observation && (funding.observation.accountFingerprint !== row.accountFingerprint
+    || funding.observation.reportingCurrency !== row.reportingCurrency)) throw new Error('Funding observation accounting binding differs.');
+}
+
+function invalidTokenText(value: string, maximum: number): boolean {
+  return !value || value.length > maximum || value.trim() !== value || /[\x00-\x1f]/.test(value);
+}
+
+function fillAccountingContract(row: Record<string, unknown>): void {
+  if (row.version !== 1 || row.linear !== true || row.quantityUnit !== 'base'
+    || !isStringMember(row.source, ['ccxt-market-v1', 'paper-contract-v1'])) throw new Error('Unsupported fill accounting contract.');
+}
+
+function fundingEventAmount(row: Record<string, unknown>): asserts row is Record<string, unknown> & { amount: string } {
+  if (typeof row.amount !== 'string' || row.amount.trim() !== row.amount) throw new Error('Invalid funding amount.');
+}
+
+function fundingWindow(row: Record<string, unknown>): asserts row is Record<string, unknown> & { since: number; until: number; nextReadAt: number } {
+  timestamp(row.since); timestamp(row.until); timestamp(row.nextReadAt);
+  if (row.until < row.since || row.until - row.since > 86_400_000) throw new Error('Invalid bounded funding window.');
+}
+
+function fundingContinuation(row: Record<string, unknown>): void {
+  token(row.source);
+  if (row.cursor !== null) token(row.cursor, 4096);
+  if (row.reason !== null) token(row.reason);
+  completeFundingContinuation(row);
+}
+
+function fundingEvents(row: Record<string, unknown> & { since: number; until: number }): TradingFundingEvidence['events'] {
+  if (!Array.isArray(row.events) || row.events.length > 25_000) throw new Error('Invalid bounded funding event collection.');
+  const events = row.events.map(event => fundingEvent(event, row.since, row.until));
+  if (new Set(events.map(event => event.id)).size !== events.length) throw new Error('Duplicate funding event identity.');
+  return events;
+}
+
+function invalidObservationEnvelope(proof: FundingObservationProof, row: Record<string, unknown>, eventCount: number): boolean {
+  return proof.since !== row.since || Math.max(proof.since, proof.through) !== row.until
+    || proof.namespace !== row.source || (proof.status === 'observed') !== (row.status === 'complete')
+    || eventCount !== 0;
+}
+
+function eventFundingTotal(evidence: TradingFundingEvidence, reportingCurrency: string): MoneyValue | null {
+  let total = '0';
+  for (const event of evidence.events) {
+    if (event.amount !== '0' && event.asset !== reportingCurrency) return null;
+    total = addSignedDecimal(total, event.amount);
+  }
+  return moneyValueFromDecimal(total);
+}
+
+function nullableFundingValue(value: unknown): MoneyValue | null {
+  return value === null ? null : validateMoneyValue(value);
+}
+
+function observationMetadata(row: Record<string, unknown>): void {
+  timestamp(row.since); timestamp(row.through);
+  if (row.reportingCurrency !== null) asset(row.reportingCurrency);
+  if (row.reason !== null) token(row.reason);
+}
+
+function observationValuation(row: Record<string, unknown>, monetary: MoneyValue | null | undefined, amount: string | null): void {
+  const known = observedFundingValueKnown(monetary, amount);
+  if (row.status === 'observed' && (!known || row.reportingCurrency === null || row.reason !== null)) throw new Error('Observed funding has unresolved valuation.');
+}
+
+function invalidObservationProvenance(row: Record<string, unknown>): boolean {
+  return row.sourceScope !== 'source_account' || row.finality !== 'provider_as_observed' || row.delivery !== 'may_be_delayed';
+}
+
+function accountingFundingTotals(row: Record<string, unknown>, funding: TradingFundingEvidence, fundingPnlToday: string | null, fundingPnlTodayValue: unknown): void {
+  const reported = fundingPnlToday === null ? null : signedDecimal(fundingPnlToday);
+  if (fundingTotal(funding, row.reportingCurrency as string) !== reported) throw new Error('Funding total contradicts its currency/completeness evidence.');
+  const monetary = validateFundingValue(fundingPnlToday, fundingPnlTodayValue);
+  if (monetary !== undefined && !isDeepStrictEqual(monetary, fundingTotalValue(funding, row.reportingCurrency as string))) {
+    throw new Error('Funding money value contradicts its accounting evidence.');
+  }
+}
+
+function completeFundingContinuation(row: Record<string, unknown>): void {
+  if (row.status === 'complete' && (row.cursor !== null || row.reason !== null)) throw new Error('Complete funding evidence retains unresolved continuation.');
+}
+
+function observedFundingValueKnown(monetary: MoneyValue | null | undefined, amount: string | null): boolean {
+  return monetary === undefined ? amount !== null : monetary !== null;
 }

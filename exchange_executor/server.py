@@ -214,7 +214,7 @@ def create_web_application(application: Application) -> web.Application:
 
 
 def main() -> None:
-    host = os.environ.get("EXECUTOR_HOST", "0.0.0.0")
+    host = os.environ.get("EXECUTOR_HOST", "127.0.0.1")
     port = int(os.environ.get("EXECUTOR_PORT", "8090"))
     application = Application(os.environ.get("MANAGED_SECRET_DIR", "/app/secrets"))
     print(f"executor_listening host={host} port={port} integration=ccxt ccxt_pro=true", flush=True)

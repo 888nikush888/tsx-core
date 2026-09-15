@@ -139,6 +139,30 @@ function storedCredentials(
   return { version: 2, accountId, ...normalized, updatedAt: now };
 }
 
+function normalizeLegacyStored(accountId: string, input: object): { stored: StoredCredentialsV2; migrated: boolean } {
+  const legacy = input as StoredCredentialsV1;
+  if (!['hyperliquid', 'bybit', 'krakenfutures'].includes(legacy.exchange)) {
+    throw new Error('Trading credential file is invalid.');
+  }
+  const allowed = legacy.exchange === 'hyperliquid'
+    ? new Set(['version', 'accountId', 'exchange', 'privateKey', 'walletAddress', 'updatedAt'])
+    : new Set(['version', 'accountId', 'exchange', 'apiKey', 'apiSecret', 'updatedAt']);
+  if (Object.keys(input).some(key => !allowed.has(key))) throw new Error('Trading credential file is invalid.');
+  if (legacy.exchange === 'hyperliquid') {
+    if (!legacy.privateKey || !legacy.walletAddress) throw new Error('Trading credential file is invalid.');
+    return {
+      stored: storedCredentials(accountId, { exchange: 'hyperliquid', privateKey: legacy.privateKey, walletAddress: legacy.walletAddress }, legacy.updatedAt),
+      migrated: true,
+    };
+  }
+  if (legacy.exchange !== 'bybit' && legacy.exchange !== 'krakenfutures') throw new Error('Trading credential file is invalid.');
+  if (!legacy.apiKey || !legacy.apiSecret) throw new Error('Trading credential file is invalid.');
+  return {
+    stored: storedCredentials(accountId, { exchange: legacy.exchange, apiKey: legacy.apiKey, apiSecret: legacy.apiSecret }, legacy.updatedAt),
+    migrated: true,
+  };
+}
+
 function normalizeStored(accountId: string, value: unknown): {
   stored: StoredCredentialsV2;
   migrated: boolean;
@@ -150,22 +174,7 @@ function normalizeStored(accountId: string, value: unknown): {
   if (input.accountId !== accountId || !Number.isSafeInteger(input.updatedAt) || input.updatedAt < 0) {
     throw new Error('Trading credential file is invalid.');
   }
-  if (input.version === 1) {
-    const legacy = input as StoredCredentialsV1;
-    if (!['hyperliquid', 'bybit', 'krakenfutures'].includes(legacy.exchange)) {
-      throw new Error('Trading credential file is invalid.');
-    }
-    const allowed = legacy.exchange === 'hyperliquid'
-      ? new Set(['version', 'accountId', 'exchange', 'privateKey', 'walletAddress', 'updatedAt'])
-      : new Set(['version', 'accountId', 'exchange', 'apiKey', 'apiSecret', 'updatedAt']);
-    if (Object.keys(input).some(key => !allowed.has(key))) throw new Error('Trading credential file is invalid.');
-    return {
-      stored: storedCredentials(accountId, legacy.exchange === 'hyperliquid'
-        ? { exchange: 'hyperliquid', privateKey: legacy.privateKey!, walletAddress: legacy.walletAddress! }
-        : { exchange: legacy.exchange as 'bybit' | 'krakenfutures', apiKey: legacy.apiKey!, apiSecret: legacy.apiSecret! }, legacy.updatedAt),
-      migrated: true,
-    };
-  }
+  if (input.version === 1) return normalizeLegacyStored(accountId, input);
   if (input.version !== 2
     || Object.keys(input).some(key => !['version', 'accountId', 'exchange', 'credentials', 'updatedAt'].includes(key))
     || Object.keys(input).length !== 5) {

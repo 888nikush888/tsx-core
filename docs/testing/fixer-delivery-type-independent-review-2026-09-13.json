@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-delivery-tracker-type-delta-review",
+  "reviewedRevision": "c684aafc4c43de9031c68a1a3145d0430f43f850",
+  "path": "src/delivery_tracker.ts",
+  "baselineGitBlobSha256": "e4bb8d176876f5e42e9e0ce2684c4dedd7939e787b439f3c1e205612020d8c64",
+  "reviewedWorkingFileSha256": "bd8ee825675eeb4535b4de0f3419d9c8f0f77be2ac1b4ea686128365afc45abd",
+  "transpilerVersion": "6.0.3",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "removeComments": true
+  },
+  "emittedJavaScriptByteIdentical": true,
+  "emittedJavaScriptSha256": "47ce98c6e67518a1848141c9b1cddd32fdb6f426e7c4972f461e9db6dfcfff10",
+  "rationale": "Complete diff adds4structural interfaces and replaces4any-typed parameter/local annotations with optional fields and unknown scalar/message collections. Runtime statements are unchanged. In particular Promise.all retains the async per-message callback, missing/null message IDs still reject, pending waits attach rejection handling immediately, and failure/success publication/cancellation/cleanup paths are untouched. Independent transpilation produced byte-identical emitted JavaScript.",
+  "limits": [
+    "This proves runtime equivalence for this exact type-only delta, not general validity of arbitrary Telegram payloads. Type declarations intentionally make consumed optional fields explicit; root reports whole-project typecheck and existing delivery tests passed. This reviewer did not repeat those executions because emitted runtime bytes are unchanged."
+  ],
+  "sourceChangedByReviewer": false
+}

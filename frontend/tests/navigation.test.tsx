@@ -56,4 +56,26 @@ describe("dashboard navigation", () => {
 
     expect(screen.getByText("/dashboard?tab=system")).toBeInTheDocument()
   })
+
+  it.each(["//outside.example/path", "///outside.example/path"])(
+    "preserves the dashboard origin when an absolute same-origin URL has pathname %s", (pathname) => {
+      const origin = window.location.origin
+      const to = `${origin}${pathname}?tab=logs`
+      render(<NavigationProvider>
+        <Link to={to} target="_blank">Open separate tab</Link>
+        <Link to={to}>Open current tab</Link>
+      </NavigationProvider>)
+
+      const separate = screen.getByRole("link", { name: "Open separate tab" })
+      const href = separate.getAttribute("href")
+      expect(href).toBe(to)
+      expect(new URL(String(href), origin).origin).toBe(origin)
+      expect(new URL(String(href), origin).pathname).toBe(pathname)
+
+      fireEvent.click(screen.getByRole("link", { name: "Open current tab" }))
+      expect(window.location.origin).toBe(origin)
+      expect(window.location.pathname).toBe(pathname)
+      expect(window.location.search).toBe("?tab=logs")
+    },
+  )
 })

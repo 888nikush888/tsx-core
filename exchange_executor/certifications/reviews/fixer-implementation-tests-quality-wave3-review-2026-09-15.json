@@ -1,0 +1,788 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-full-historical-test-quality-review-wave3",
+  "originRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+  "selection": "Exact next40still-open changed test paths fromce4d23aindex, disjoint completed wave1/2. All historical hunks read; no unchanged files credited.",
+  "entries": [
+    {
+      "path": "tests/test_channel_risk_type_guards.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": null,
+      "currentSha256": "c70283b5ab736f3ad1fbc61c19d8ac82128ef3ad0eaeca4a7074c985615e5425",
+      "deltaSha256": "7bd58909fd298af2ed9232883641ebba7426e426691599fa5f2ae9d531514362",
+      "completeDeltaReviewed": true,
+      "rationale": "New isolated SQLite regression uses real workflow resource/strategy and policy APIs. Rejects object-supplied tier conversion without toString calls, preserves numeric/string tier normalization, and refuses empty persisted tier lists. Targeted db.get interception returns fulfilled undefined only at exact create/update readback SQL; original receiver/other calls preserved and restored in finally. Row absence and full-row equality verify transaction rollback. No production database touched.",
+      "assertionAstEvidence": {
+        "before": 0,
+        "after": 9,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_complexity_budget.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "cb589107400afe8e79def497648bb9d8abdc5b650f03759d0f282848bcb70667",
+      "currentSha256": "0b58f937ef312378a84bd6234331237d58d45373ae9f57cb7468a41bf1ddc63c",
+      "deltaSha256": "de265bdad5bc7e04f27a3bd903fdcbfc940bac5ff7fd556dbf4c21d284d94cf3",
+      "completeDeltaReviewed": true,
+      "rationale": "Adds one complete ordered violation-array assertion for simultaneous ESLint error, warning/cyclomatic regressions and max-depth/worst-complexity improvements. Existing structural metrics assertions preserved; improved budgets are still reported for ratcheting, not silently accepted as fresh baselines.",
+      "assertionAstEvidence": {
+        "before": 4,
+        "after": 5,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_crash_guard.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "00601d8237656c61e314c8b8473696c20a5dec27679fdd042b15ca16efb86ebc",
+      "currentSha256": "710960ce990bb9137f12dcb312fa23bff288afa6d2d7b2fdcca22729a4f93a06",
+      "deltaSha256": "fbb63e76f750cdd443a03178d775e68d607d9b6522759c7a1d1945311b2ce259",
+      "completeDeltaReviewed": true,
+      "rationale": "Only optional process owner initialization becomes null. Subsequent acquire/ownership rejection and finally optional release paths preserve truthiness and cleanup; all34 assertions unchanged.",
+      "assertionAstEvidence": {
+        "before": 34,
+        "after": 34,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_database_maintenance.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "abdd729104a2863281c5f2ecf040e9497d4ccbb646b67d778c9fc142cc25afe9",
+      "currentSha256": "10d68fc2bafb1c3e5a4eb036eca7af7852cb121ac6f28085d679bb6ea58c14fd",
+      "deltaSha256": "a7368e48732facd550a1e3e54e649758312b2f91e41e6da244a95c76c6f3e09d",
+      "completeDeltaReviewed": true,
+      "rationale": "Only unassigned lease/native/originalClose values become null. Read actual finally guard native&&originalClose plus optional lease release: both behave identically before acquisition. Fake native callback remains queued microtask; failure receipt, quiescence deadline, retained-handle prohibition and recovery assertions unchanged.",
+      "assertionAstEvidence": {
+        "before": 10,
+        "after": 10,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_declaration_artifacts.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": null,
+      "currentSha256": "d31697a715dd6c21101a96e91b55ed25122af30be47416d6a109f167eea1bd15",
+      "deltaSha256": "27266b337ca6d9430dcf1572298096bd92fc46f7b44c87b432f3c103e635f321",
+      "completeDeltaReviewed": true,
+      "rationale": "New temporary-tree test invokes real copyDeclarations, checks root/nested declaration bytes, excludes runtime.ts, preserves existing runtime.js and propagates a later changed declaration. Root-local cleanup in finally. This checks artifact copying rather than pretending to run emitted application code.",
+      "assertionAstEvidence": {
+        "before": 0,
+        "after": 5,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_deepsource_export.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": null,
+      "currentSha256": "dc231198cc2a6d59e294008eff1baf9bbb4f1ac1c68bb4834529a7769b663a3f",
+      "deltaSha256": "071d288b4f1615d68531c970530174d196dbad0a00879975864c134e546eeaba",
+      "completeDeltaReviewed": true,
+      "rationale": "New exporter test injects finite response queue, observes cursor sequence including final first-page reread, validates count/unique IDs/revision, and ensures token absent from returned export. Cases individually reject partial GraphQL errors, missing/repeated cursor, early end, duplicates, count/revision drift, changed final first page and HTTP/network failure; no real API call or scanner-zero claim.",
+      "assertionAstEvidence": {
+        "before": 0,
+        "after": 11,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_delivery_tracker.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "efa303da2ce28d313f9b7188e81350be800b9a5f3e3781e61af5f2a5507559cb",
+      "currentSha256": "084681adc36eba6466f0079023abb90d20c86ce1cc10c695202c9927aba4993c",
+      "deltaSha256": "2cb12486a237041ad03b203bc30437e1fcd739cdc9797cfdca7b147afe163cb6",
+      "completeDeltaReviewed": true,
+      "rationale": "Adds malformed second batch member after pending first delivery. Real tracker wait rejects for missing id; close rejects earlier pending promise; setImmediate crosses unhandled-rejection observation boundary, then asserts none were emitted. Listener/close cleanup in finally. Existing17 assertions retained. Later uncommitted root/agent delivery changes explicitly outside this committed review.",
+      "assertionAstEvidence": {
+        "before": 17,
+        "after": 19,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": true,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_dependency_policy.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": null,
+      "currentSha256": "7cd2d7418be325643f6f94730522b81dfeca840f2229c1f5c904e11b18e92861",
+      "deltaSha256": "dd0820edbb20af723f286d80096da8143f920e91555d82c4d938ce92234475f4",
+      "completeDeltaReviewed": true,
+      "rationale": "New policy tests exercise exact npm artifact version, malformed null metadata, required integrity/registry origin and explicit linked workspace exception. Real Python runtime lock is read; direct range, removed universal-generation marker and added hashless artifact must return exact blocking violations. No dependency installed or lock changed.",
+      "assertionAstEvidence": {
+        "before": 0,
+        "after": 9,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_dupe_blocker.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "4e3e928eed89432cf57f144e8072532050772acce1708039cae27c0e1cc41bc1",
+      "currentSha256": "4923849ccce0ac04830e68881ff13cc5275f641b22f4ff09c76ed1e744bd2f9c",
+      "deltaSha256": "93f0497752065ca2356ff5253a7bf313339e5cac5ab0ceb61040052731ca197d",
+      "completeDeltaReviewed": true,
+      "rationale": "Only constant XML/string and SQL literal representations change. Escaped newlines preserve actual XML bytes and whitespace-dedup corpus; SQL placeholders/order unaffected. Existing19 assertions, individual testFail accounting and final nonzero failure exit remain; no test exception swallowed into success.",
+      "assertionAstEvidence": {
+        "before": 19,
+        "after": 19,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_dynamic_exchange_registry.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "d6bf84de55ab17ee71ddb0b4c5fcaea201624952c0455e879f8da7f289759720",
+      "currentSha256": "bed7e38613068438e390b97ffdd73be242384d4df4a278e761fe038647a8d1bf",
+      "deltaSha256": "f4bd8e76884ccb605655ff699d42681a3dd4db787a0ad71e12446f8c13cdf511",
+      "completeDeltaReviewed": true,
+      "rationale": "Constant token/JSON/account/catalog fakes return fulfilled Promises instead of no-await async functions; same payload objects and request counters. URL is actual string at json callback; genuinely awaited deferred catalog fetch remains async. Promise.withResolvers replaces equivalent externally resolved gate. Adapter registrations, invalid catalog corpus, cache/coalescing and all52 assertions remain; no new provider transport.",
+      "assertionAstEvidence": {
+        "before": 52,
+        "after": 52,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_entry_deadline_transport.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "65ea476a61e31ec7ea1e99dde71bba119a14427951e2c44737629d323091439d",
+      "currentSha256": "f1084e8f318c32833e52c9bc346008590e7cea3d75d39256cdb283a37b05da8e",
+      "deltaSha256": "b65ed02a25324ddc35020f7ea851e247774724187bcf7fa0dcef332bbb3a240d",
+      "completeDeltaReviewed": true,
+      "rationale": "Empty token wait explicitly returns undefined and is still awaited; added ignored request-body parameters match existing callback invocation without use. Regex now escapes remote error code text before matching; finite three uppercase underscore codes have no metacharacters, so assertions select same messages. sideEffects uncertainty and exactly one remote submission assertions preserved.",
+      "assertionAstEvidence": {
+        "before": 20,
+        "after": 20,
+        "syntaxChangedCallsRequiringManualReview": 2
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_env.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "faea5b359e10367ca65fc2442e83ccfb369c9bfc4197ba5f92c293a05d2d354d",
+      "currentSha256": "bf0f720511fa200122ddbcc59ef7a28af30600fcdbdb615139b37a961becec48",
+      "deltaSha256": "3c48f64b61cc3747b1d4e1b9bc543a441edc99ddb17e7b876781ca6754a6a5c1",
+      "completeDeltaReviewed": true,
+      "rationale": "Adds nonconfigurable secret-file reference fixture. Real resolver must throw TypeError on deletion, preserve reference and previously assigned secret value, asserting historical mutation order. Existing11 success/conflicting-input/permissions checks unchanged; isolated env object and temporary fixture file only.",
+      "assertionAstEvidence": {
+        "before": 11,
+        "after": 14,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_exchange_implementation_bridge.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "7e145edace76b9910d427b3c2f32385d3464b574d3d53a497069b0394b3ebd61",
+      "currentSha256": "d1a39e322f80fe27fdc1d4e4c1c663e7adf7ec9878ca970ecaa2f427a306692e",
+      "deltaSha256": "42c448a1dc23c06aff2dd7d3792531bdaddd4a286463c255581727e011bae7b0",
+      "completeDeltaReviewed": true,
+      "rationale": "Only revision initial null and generated synthetic Python mapping string assembly change. Array.join empty separator preserves concatenation/newlines and pin order. Fake review context remains under owned temporary repository; exact receipt digests produced from its own fixture bytes, not production approvals. All97 verification assertions unchanged.",
+      "assertionAstEvidence": {
+        "before": 97,
+        "after": 97,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_fill_identity_contract_guards.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": null,
+      "currentSha256": "2d404fa6fea9f09f9cd5ad63fa44d02e6c788c27809811ecee1b4b90ee36898b",
+      "deltaSha256": "e2710bff54a29d4da49fa904fb18ad6b7a16fbd096f760b57b76afeb24424951",
+      "completeDeltaReviewed": true,
+      "rationale": "New isolated legacy-fill tests corrupt actual stored metadata for three exchanges and assert no synthesized binding, unresolved count1 and exact original row preservation. Missing order identity also remains unresolved. Restoring original metadata/order permits genuine binding and count0; all direct SQL writes confined to temporary test DB.",
+      "assertionAstEvidence": {
+        "before": 0,
+        "after": 7,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_filters.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "743f90e31fa3e1333264ef3ab7bb5e854e2e028f863f157a59e2b4d6a6c96666",
+      "currentSha256": "46f771d4d7cf1c6d6627502f058b19500a65b451f7028a15fa43dd9a2c32ce7b",
+      "deltaSha256": "9f116e225c4882959e92ba951a675620baae1c985b6bcbc65e3001bb46ebbb9f",
+      "completeDeltaReviewed": true,
+      "rationale": "Timeout assertion now exercises parser-accepted regex rather than prohibited nested-plus fixture, checks exact timeout message plus original ERR_SCRIPT_EXECUTION_TIMEOUT cause. Existing parser rejection of nested quantifiers remains. Adds inherited-property message types and ensures they are not treated as text/forwarded. Six no-op loggers return explicit undefined; same filtering decisions. Real10ms timeout remains machine-timing dependent, not enlarged or removed.",
+      "assertionAstEvidence": {
+        "before": 62,
+        "after": 66,
+        "syntaxChangedCallsRequiringManualReview": 7
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_forwarder_error_types.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": null,
+      "currentSha256": "4088dfd9de15f64760bd598550d43b7f4ca048bfdcb8a27cf921052dc1f8ac5f",
+      "deltaSha256": "e21b930374c558234a808ee3fc8fa7ef2f75df5c2b4f44813eebbd5055775288",
+      "completeDeltaReviewed": true,
+      "rationale": "New TDLibError/native-error/code tests reject arbitrary object conversion and preserve three forward-restricted signals. Actual forwarding function declarations are extracted from source via TypeScript AST, with names/count asserted; only data-processing/side-effect dependencies are fake. Matrix covers no/active workflow, missing/empty/whitespace text and enabled/disabled/unspecified forwarding, plus handled/original/policy-blocked cases. Does not start live forwarder; no claim full ingestion integration tested here.",
+      "assertionAstEvidence": {
+        "before": 0,
+        "after": 24,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_frontend_quality.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "8f7fd3e1f80f5a38ab87d63a2c0dedb406c267b729d9e58ad8a303cacdc39623",
+      "currentSha256": "4d7fb2f3a5e14feed57e24f5206270740faeb9573a3878952db87bc7956d62ba",
+      "deltaSha256": "0df5410aea045ada0257b77db73355189c4b1345a711936f1edc0d1020e2b780",
+      "completeDeltaReviewed": true,
+      "rationale": "Adds actual import parser dependency expectations: import/reexport/dynamic import and relative new URL are discovered, comments/string lookalikes and HTTP/root-asset URL constructors excluded, true HTTP module import retained for dependency policy. Existing analyzeFrontend whole-tree reachability checks unchanged.",
+      "assertionAstEvidence": {
+        "before": 6,
+        "after": 8,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_ingress_contract_guards.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": null,
+      "currentSha256": "9d2c21e5f025fd41cca07cd2ca6e2113f6cf020c24108d35a376956fad27dc58",
+      "deltaSha256": "b6a8fb1a317f63602b9781b30c71f75a8b6ffabc3fab5df2481ebec53725737b",
+      "completeDeltaReviewed": true,
+      "rationale": "New SQLite ingress tests retain complete unconsumed payload; invalid identity/content rejected before rows inserted. Corrupt persisted work becomes needs_review while unrelated item produces one outbox task. Valid service-action message keeps non-text routing, survives actual DB close/reopen and is routed both from legacy persisted and fresh paths. No duplicate replay effects or deleted guard asserted away.",
+      "assertionAstEvidence": {
+        "before": 0,
+        "after": 13,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_license_policy.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": null,
+      "currentSha256": "f89ca4861e3f9cde2291ecb08a1d9c3a34dc74fc3ddfd06246f8b311f3cb8c7a",
+      "deltaSha256": "38a52768e8737fb7ee7a538b7fc25b158287c457cb8136a29f963d2f157af1b3",
+      "completeDeltaReviewed": true,
+      "rationale": "New npm license tests reject malformed lock/package/artifact values, distinguish links, require declared production license and permit documented dev-only license. Actual Python lock remains valid; malformed pinned versions produce violations without admission to inventory, unreviewed artifact gets null license and violation. No blanket missing-license success or network lookup.",
+      "assertionAstEvidence": {
+        "before": 0,
+        "after": 13,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_mcp_control_plane.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "e3d4d863590b20c339230baf4b7cd6d5bd3b3e3068cb79c664aa290f0b846bc8",
+      "currentSha256": "a6ac6352a88ac0d9d2d62beec2321e60ca5128bef96c6d5924fe5b7630eb6e2d",
+      "deltaSha256": "2928e81dcf734835c0cdacf7f49071e9a916da02b2769881a0a86b9191259b9a",
+      "completeDeltaReviewed": true,
+      "rationale": "Former empty unrelated control methods now record unexpected calls and final assertion requires none. Audit record still pushes before returning fulfilled Promise. Adds public-domain blocker equality to internal preflight; existing publication/proposal/failed-delete audit assertions remain. Stronger dispatch isolation, no control path removed.",
+      "assertionAstEvidence": {
+        "before": 102,
+        "after": 104,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_mcp_maintenance.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "f593e9cbc7ce43f386cf1e647409c7a0f29739ae982cc651f84a627237b5dd27",
+      "currentSha256": "6470e98c5b8d2e66cf6b2175dee365ceb83baf2a0c4fab09fe96c24eafcdb245",
+      "deltaSha256": "f60d7629058d970e70a634327d17b70ff29fcd1f43617606fc25941b5adc0c07",
+      "completeDeltaReviewed": true,
+      "rationale": "Forged lease and blocked/new work callbacks still return Promises; fulfilled Promise factories preserve rejection guard paths. Lease and resolver null initialization is overwritten before use (after event-loop delay where required), optional release equivalent. Real child participant, drain timeout, block-new-work and49 assertions unchanged.",
+      "assertionAstEvidence": {
+        "before": 49,
+        "after": 49,
+        "syntaxChangedCallsRequiringManualReview": 3
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_mcp_server.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "50e99e3da3f263b6d905dda2aebdb05775dc20ef7e43595e5c3b25e2a73bba11",
+      "currentSha256": "74dca7375acef38ff013a400b5ac50f79b55938adeda12c99dfe0b7ddbbde984",
+      "deltaSha256": "cd6f0fa9eef337ae24de5cbac8faffc4f29bb147357db38ed7894205cf3b34ad",
+      "completeDeltaReviewed": true,
+      "rationale": "availablePort returns its Promise directly; server creation/listen live inside constructor executor, so synchronous failures still reject via Promise construction. Only wrapper adoption microtask disappears, and caller always awaits before use. Child/client/bridge null values preserve optional cleanup; audit no-op still fulfilled Promise. Existing36 MCP client/process assertions retained; port selection race not newly introduced.",
+      "assertionAstEvidence": {
+        "before": 36,
+        "after": 36,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_metrics.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "8e22a39ee0aa881736458730bfef3086cff2c9f7e926d95e0b48069409039f5b",
+      "currentSha256": "3917b97a0ed979bea26d3c5bc224f7754c51749788ce87563c493d68110d5302",
+      "deltaSha256": "1515fe316a39787170fba26dc3465a203338cab3291847dd46b0f5f8351f1878",
+      "completeDeltaReviewed": true,
+      "rationale": "Adds real isolated HTTP404 plaintext/body assertions. Operational callback can now reject object/string values: readiness and metrics return503 with only permitted message or unavailable status, never arbitrary context. Original counters/readiness/metrics bodies and58 assertions preserved; callback remains async to exercise rejection. Final cleanup catch returns same undefined.",
+      "assertionAstEvidence": {
+        "before": 58,
+        "after": 65,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_migration_recovery.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "434dd51fe4cd53b31267c6eae7f00b3fb95aa7763e444b89636a2462971decdb",
+      "currentSha256": "dc98b0bcdae16179b71b31e8f5699105f91268127154e4603c1d95a5e0409830",
+      "deltaSha256": "e470be8210801ad4b1d4dffcc19bbd879cc864ea559058fe1824a0dcc32dde8a",
+      "completeDeltaReviewed": true,
+      "rationale": "Only maintenance lease initial value becomes null; actual acquire/wait/restore paths and optional finally release unchanged. All17 migration recovery assertions retained.",
+      "assertionAstEvidence": {
+        "before": 17,
+        "after": 17,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_module_coverage.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "cc32c8b4d5c42405296a27c4c02362caf0345ccc10bfaf93bda8ca3c6e70901a",
+      "currentSha256": "48722458fbad27bb439f11572c03890660c1510c1c62521c04ed5f836a918004",
+      "deltaSha256": "ba3695394e57bd335b4528b167a640a27c4416f3d5b5b35c3ce90eca13e234b2",
+      "completeDeltaReviewed": true,
+      "rationale": "Expected repository baseline increases all four metrics from historical96.21/86.23/99.19/96.21 to96.49/86.45/99.2/96.49, matching reviewed cross-platform baseline rather than accepting lower coverage. New CLI tests copy real runner into temporary root, use bounded fake c8 child, and assert nonzero7 survives without parsing stale reports, success0 emits pass, regression1 never emits pass. Synthetic runner is exclusively a CLI-control-flow fixture, not full coverage evidence.",
+      "assertionAstEvidence": {
+        "before": 6,
+        "after": 17,
+        "syntaxChangedCallsRequiringManualReview": 1
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_mutation_shards.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "ca5d4ade4bab627d893842cdf0209e835a636b6b1141318fcfb7c331541d1794",
+      "currentSha256": "79e49de473590e03530a08d2d1973d0288e2853949f0a871f542120923725bae",
+      "deltaSha256": "121e535c575fc4ffb579b53a3653c663b4ceabf6993774353eb596bdbfa982e4",
+      "completeDeltaReviewed": true,
+      "rationale": "Schema shard now expected concurrency2 and40-minute process/50-minute CI budgets, others remain1/20/30. Actual configuration and command strings are loaded/asserted, including both schema suites. Mutation score thresholds80/70/70, per-test timeout10000, force-no-history, shard set and no cache evidence remain. Increased execution budget supports work completion; it does not lower mutation acceptance score.",
+      "assertionAstEvidence": {
+        "before": 47,
+        "after": 49,
+        "syntaxChangedCallsRequiringManualReview": 2
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_outbox.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "b7d9112722cf5092f1abb10244f298b4bb01e19e71c2880985bdc8f86a97aa0b",
+      "currentSha256": "181c364a0f6aeef6d1852471e1bbc47dfcba2574758e74dac4b4981d8cd211a3",
+      "deltaSha256": "b0c7d1e9405dad055e07126d55f4c4eb16282924d4709ccae626a0c93ffdf69e",
+      "completeDeltaReviewed": true,
+      "rationale": "Only restored result initial value null. Assigned awaited restore occurs before all later forensic previousDatabase/legacy snapshot/migration assertions; errors still exit via surrounding failure path. No fallback result or weakened ownership.",
+      "assertionAstEvidence": {
+        "before": 55,
+        "after": 55,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_outbox_scheduler.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "a903a134226accc2ceae1e93b452fd04c26ef11edf62ba731b7fd3d6e508f9ef",
+      "currentSha256": "a2e4d551239223d9fb17207e2a48b798ad62baa63f87a140e1cfaab58114de7c",
+      "deltaSha256": "8dff2df689f1989239475b7cfadb0d6d592cbcb1a368f2af019767e20983577f",
+      "completeDeltaReviewed": true,
+      "rationale": "Two scheduler execute callbacks retain synchronous counters/Set deletion/array pushes then return fulfilled Promise; originally async pre-await bodies did same actions. Stateful pending datasets and queue/scheduledCount memory-bound observations untouched, all9 assertions preserved.",
+      "assertionAstEvidence": {
+        "before": 9,
+        "after": 9,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_queue.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "a90fb4d2731f3e32a052a83c5363ea83d29800bef0988669c1a5613ac7f8298d",
+      "currentSha256": "13d273b2d492011d6ec6510a526a72b8c6f0c831e3358ca5ff0ec6dbf9ae7e02",
+      "deltaSha256": "2cc07f4da63458b84f3069d6be32a1c35b5afba51b5951f5fd2d0ca6f3df4acb",
+      "completeDeltaReviewed": true,
+      "rationale": "Nonthrowing success/fast/dummy/queued jobs become fulfilled-Promise factories; counters remain before settlement. Throwing async job and awaited timeout/abort fixtures remain async. Queue-capacity rejection argument still promises and hostile timeout catch still returns undefined. No concurrency, capacity, pause/drain or timeout assertions removed.",
+      "assertionAstEvidence": {
+        "before": 39,
+        "after": 39,
+        "syntaxChangedCallsRequiringManualReview": 1
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_release_artifacts.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "15cf0af0f5604922313b105cb2d1da797b5964e3c4867c34ffb02bcadc080f9d",
+      "currentSha256": "ea1bc056fb29dc27ac5323daef0ebc5df7547004750b0d2637f4cc76c223bdf0",
+      "deltaSha256": "d7419eb561c65e73143f7812bc4d45f836b023499bbdb76e6a8661bf37da91e1",
+      "completeDeltaReviewed": true,
+      "rationale": "Adds positive aligned-lock release case; rejects absent/incomplete/mismatched top/root lock versions and aggregates exact invalid manifest/license/changelog/frontend/lock failures. Original four governance assertions retained, no production version bypass.",
+      "assertionAstEvidence": {
+        "before": 4,
+        "after": 7,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_repository_governance.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "54eceff0294f6e6731f11c7bce411186190f8036011c2bcc0969b86cc6436aeb",
+      "currentSha256": "3821182f0605e80ffd3d418f8ae01321a0a0cf48c75260cb8ce72fb6c2c0b32e",
+      "deltaSha256": "133fdb4ab2f13bb2242f544b452a61371bd7b98d03c4564b62923dca71c16d94",
+      "completeDeltaReviewed": true,
+      "rationale": "Adds Unicode flag only to nonanchored damaged-text detection regex. Alternatives contain fixed BMP prefixes; wildcard still means any non-line-terminator, now whole codepoint, with same existence-of-match result for this no-capture test. Fatal UTF8 decoding, traversal, assertion and all other governance checks unchanged.",
+      "assertionAstEvidence": {
+        "before": 57,
+        "after": 57,
+        "syntaxChangedCallsRequiringManualReview": 1
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_retention.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "220ace819a4dd3bc006d8c860af20332f571b1083459f1b3ce414e4e79ef13c2",
+      "currentSha256": "08812e176f8c3148be643bbf566a2e3e15b6f3183fc7d77c86995d6e8de047b4",
+      "deltaSha256": "27573c10571155fd03aee9bbd11abc3d0d1188a4bad3f27581aaa5d80b936a08",
+      "completeDeltaReviewed": true,
+      "rationale": "Only two externally assigned transaction resolvers initialize null; Promise constructors synchronously overwrite before transaction wait/release. Rollback/isolation ordering and20 assertions unchanged.",
+      "assertionAstEvidence": {
+        "before": 20,
+        "after": 20,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_retention_accounting.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "38db0c5db64f5b20c0d94a2d4f8de224e7e593bff6474104d2746d8be2d7a3a4",
+      "currentSha256": "fa20209cb083bee1d524d8f1614d2369516aac52b7f3003957dd0adfb1ee73bf",
+      "deltaSha256": "ae3fd139cd084d5d9d04029fb6b39e32406ae077f0b33f71a82cb8461c3dc0eb",
+      "completeDeltaReviewed": true,
+      "rationale": "Only result initial value null. Actual awaited prune call must succeed before result counts are read, and evidence snapshots retain immutable accounting rows. No default success result or deletion-scope change.",
+      "assertionAstEvidence": {
+        "before": 10,
+        "after": 10,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_risk_acceptances.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "d843d4e8f9d6d545e1ed166a3bdf25637035949df40e68a1be0237f43bd11060",
+      "currentSha256": "d85b245a62257c75a5babb448dfa1cdb1e1bc0bb74eb9bfc0a130bdb8f0d2b30",
+      "deltaSha256": "7944a0754aafa5148c3e7686970cc40f628de42af352985cabd0b7c858871103",
+      "completeDeltaReviewed": true,
+      "rationale": "Repository risk acceptance check now uses actual gate date instead of frozen pre-record date and explicitly expects the owner-approved internal HTTP file. Separate fixed-date validator unit cases retained. Expiry2026-10-08 intentionally causes future gate failure unless legitimately renewed; no perpetual acceptance or scope expansion.",
+      "assertionAstEvidence": {
+        "before": 12,
+        "after": 12,
+        "syntaxChangedCallsRequiringManualReview": 1
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_runtime_settings.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "0c27383cd781d1ef53668bf1bf6970f73f6ae7124ceeaf19f49febf4eb4bdf77",
+      "currentSha256": "daefe6d4f37151d61f7859b3eac880ba7ca81b1091b4405c04cbb42d0fee2ede",
+      "deltaSha256": "e68ef293bb0eddb95b4f18294b49fe40c85bd1ed4d7e2bb4f60f610239bae162",
+      "completeDeltaReviewed": true,
+      "rationale": "Adds nonconfigurable environment property test. applyToEnvironment must throw before reporting active settings; retained property and active=null asserted. Store rooted in separate temp file; existing60 settings/persistence/version assertions unchanged.",
+      "assertionAstEvidence": {
+        "before": 60,
+        "after": 63,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_secret_store.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "b2392c99e4a9aa267a638fa4883555b525966715cd288746f5f93741dcbd504f",
+      "currentSha256": "7bfde471127c29506e21db9624547216d7fc4973e8b2fad97ec0f34717e70aaf",
+      "deltaSha256": "4842a5aec2ed3cbb9162ef67f337e464f193d9dd4df74739298c6dac1bbdf1ad",
+      "completeDeltaReviewed": true,
+      "rationale": "Adds separate managed secret store with nonconfigurable env property. Real rotate produces managed token; attempted removal rejects and original token/source/configured status stay honest. Existing49 secret behaviors retained; raw generated token not logged.",
+      "assertionAstEvidence": {
+        "before": 49,
+        "after": 53,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_signal_contract_validation.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "48b2b4e4735882479dc8258d10cae3ee8242b6d67b98f3fb04233d25bf2a80a7",
+      "currentSha256": "e7c65e92ec9ccbc9288c87a5f8ac17e851828e05b0d6b886ea458fd2cefe6e7e",
+      "deltaSha256": "f97a72be111c6f1b2c05729a784cba136ce9905d5fe53d48f617b83f06395cc9",
+      "completeDeltaReviewed": true,
+      "rationale": "Adds valid complex/Unicode/literal regex compatibility, mismatch rejection,30 independent text fields and shared aggregate budget exhaustion with restored performance object. Three hostile patterns run real validation in bounded child fixture; child requires SignalValidationError budget reason, outer requires no timeout/status0/marker. Existing41 assertions preserved; no source pattern grammar narrowed by test fiat.",
+      "assertionAstEvidence": {
+        "before": 41,
+        "after": 48,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_signal_parser.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "77f1a840fa916467a5012e58c9cf4bef67d538da4cfcd540466548e1e7de69bc",
+      "currentSha256": "5e91c00dcb89ef2bcf98fe2794f5fc5dbe978eff2dde321b743695959d739425",
+      "deltaSha256": "0a1b1e5c0a2bd806f276123526c22cc056886eb131c4de59b4bdc38e13256105",
+      "completeDeltaReviewed": true,
+      "rationale": "In-memory budget reserve/commit and nonthrowing completion fakes return explicit fulfilled Promises, recording same inputs/usage; captured null values assigned before assertions. Real retry/error/abort async fixtures retained. Immutable prompt indentation changes no AST execution; all82 assertions retained after accounting for Promise-returning callback syntax. No provider requests, quota counters, usage totals or grounding outputs removed.",
+      "assertionAstEvidence": {
+        "before": 82,
+        "after": 82,
+        "syntaxChangedCallsRequiringManualReview": 8
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_snyk_code_review.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": null,
+      "currentSha256": "f68f6def1bff396a0dc02127f43ee3f7d5d061198a45a5e95d283097a9f204bf",
+      "deltaSha256": "3c740df24f8517f0de335fd8997fcdeb2cb169df81ca21d3a22ac292cf96edc3",
+      "completeDeltaReviewed": true,
+      "rationale": "Entire new scanner review gate suite read. Synthetic SARIF/independent review positive case retains raw finding, while source/helper/flow/fingerprint/path/rule drift, suppressions-only, duplicates, truncated evidence and scanner failure reject. Real pinned owner acceptance is separately loaded and cannot waive source drift, unrelated identity/path/rule, forgery or expiry. Explicit zero-results/zero-exit case remains distinct from failed empty scan. No production disposition change; temporary forged-expiry document only.",
+      "assertionAstEvidence": {
+        "before": 0,
+        "after": 29,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "tests/test_soak_window.js",
+      "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+      "currentRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "beforeGitBlobSha256": "690535e51025c2ffca35ac2a775eb2ae5243917523d41691e39789045dcbb1bb",
+      "currentSha256": "971e8fd7877d10775c629cf21e13b2e1d7b6721abdf88ebb02b6be8067ce8bb3",
+      "deltaSha256": "84d944b42c95dd873b1a838d1b86d8d8e34c48e63a9006d2e557059b2c7a7c9d",
+      "completeDeltaReviewed": true,
+      "rationale": "Adds exact Prometheus URL/response validation and isolated CLI tests using copied real script, fixed fake fetch and stub loadEnv. Exit/report evidence checked for healthy, unknown-delivery andHTTP503 cases; failures never print PASSED and query error carries no response secret. One evidence document required; default30d window and all existing8 soak evaluation assertions remain. Synthetic values are test inputs, not actual30-day operational evidence.",
+      "assertionAstEvidence": {
+        "before": 8,
+        "after": 33,
+        "syntaxChangedCallsRequiringManualReview": 0
+      },
+      "workingTreeDiffersFromCommittedReview": false,
+      "remainingFileDeltaGap": null
+    }
+  ],
+  "counts": {
+    "selected": 40,
+    "completeDeltaReviewed": 40,
+    "concreteRegressions": 0,
+    "remainingSelectedFileDeltaGaps": 0,
+    "baselineRemaining107MinusThisWaveOnly": 67
+  },
+  "remainingPathsRelativeToBaseline": [
+    "tests/test_sonar_branch.js",
+    "tests/test_sonar_review_decisions.js",
+    "tests/test_sonarcloud_export.js",
+    "tests/test_startup_authority.js",
+    "tests/test_startup_trading.js",
+    "tests/test_startup_web.js",
+    "tests/test_supply_chain.js",
+    "tests/test_take_profit_contract_guards.js",
+    "tests/test_tdlib_retry.js",
+    "tests/test_telegram_viewer_api.js",
+    "tests/test_telegram_viewer_contracts.js",
+    "tests/test_telegram_viewer_runtime.js",
+    "tests/test_telegram_viewer_service.js",
+    "tests/test_test_scheduler.js",
+    "tests/test_trading_account_baseline.js",
+    "tests/test_trading_account_log_audit.js",
+    "tests/test_trading_cancel_budget.js",
+    "tests/test_trading_control_error_types.js",
+    "tests/test_trading_control_races.js",
+    "tests/test_trading_core.js",
+    "tests/test_trading_dispatch_fence.js",
+    "tests/test_trading_emergency.js",
+    "tests/test_trading_engine_type_guards.js",
+    "tests/test_trading_entry_commitment.js",
+    "tests/test_trading_entry_price_engine.js",
+    "tests/test_trading_execution_constraints.js",
+    "tests/test_trading_execution_mode_fence.js",
+    "tests/test_trading_failures.js",
+    "tests/test_trading_fill_accounting.js",
+    "tests/test_trading_fill_identity_migration.js",
+    "tests/test_trading_fx_analytics.js",
+    "tests/test_trading_fx_channel_risk.js",
+    "tests/test_trading_fx_fill_accounting.js",
+    "tests/test_trading_fx_journal_viewer.js",
+    "tests/test_trading_fx_money_reporting.js",
+    "tests/test_trading_fx_repository.js",
+    "tests/test_trading_fx_risk_reservations.js",
+    "tests/test_trading_fx_sizing_admission.js",
+    "tests/test_trading_fx_sizing_python.js",
+    "tests/test_trading_global_release.js",
+    "tests/test_trading_history.js",
+    "tests/test_trading_kraken_cashleg_failures.js",
+    "tests/test_trading_lifecycle_safety.js",
+    "tests/test_trading_money_ledger.js",
+    "tests/test_trading_money_risk.js",
+    "tests/test_trading_money_value.js",
+    "tests/test_trading_mutation_coordinator.js",
+    "tests/test_trading_pending_fairness.js",
+    "tests/test_trading_protection_receipt.js",
+    "tests/test_trading_rational.js",
+    "tests/test_trading_recovery.js",
+    "tests/test_trading_risk_repository.js",
+    "tests/test_trading_safety_proof.js",
+    "tests/test_trading_tier_fence.js",
+    "tests/test_trading_web_control.js",
+    "tests/test_ui_adaptive_risk.js",
+    "tests/test_ui_change_reviews.js",
+    "tests/test_ui_next_reads.js",
+    "tests/test_ui_operation_store.js",
+    "tests/test_ui_operator_commands.js",
+    "tests/test_ui_register.js",
+    "tests/test_ui_restart_process.js",
+    "tests/test_ui_restart_recovery.js",
+    "tests/test_web_server.js",
+    "tests/test_workflow_fallback.js",
+    "tests/test_workflow_input_types.js",
+    "tests/test_workflow_migration.js"
+  ],
+  "validation": {
+    "method": "Read-only full Git diff and changed caller/cleanup/gate context examination; lightweight TypeScript AST parsing of committed sources, no compiler/build/test run.",
+    "assertionEvidence": {
+      "path": "reports/security-services/tests-quality-wave3-assertion-ast.json",
+      "sha256": "5f16112b48418d3fa10371c160298a7b93c1cc6ac9a4b37ad1c795cecaf635c5"
+    },
+    "assertionInterpretation": "Changed AST calls individually explained in rationale, including regex flag/escaping, stronger timeout cause assertion, raised baseline, shard budgets, risk record expectation and fulfilled-Promise fixture bodies. Counts alone are not approval.",
+    "checkedContexts": [
+      "Actual maintenance cleanup guards and restoration order",
+      "Actual MCP availablePort Promise executor/caller",
+      "Actual mutation configuration thresholds and per-shard budgets",
+      "Actual hostile-regex child asserts typed budget error before success marker",
+      "Actual risk record expiry and live-date test",
+      "Actual dupe testFail counters and process exit"
+    ]
+  },
+  "limits": [
+    "Committedce4d23a only. Later delivery/test working changes require separate review; working drift flags exclude them.",
+    "No CPU-heavy suite run while root full module run active; no new test PASS attributed.",
+    "No scanner zero-findings claim, platform mutation or automated test-path exemption.",
+    "Container implementation receipt/provider execution approvals remain open.",
+    "67remaining is baseline107minus this wave only; concurrent later source changes must be reconciled separately."
+  ]
+}

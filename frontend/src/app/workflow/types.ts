@@ -217,6 +217,46 @@ export type TradingAccount = {
   credentials?: { configured: boolean };
 };
 
+/** Display projections of trading_telemetry and trading_channel_risk responses.
+ * Monetary evidence stays unknown for the existing MoneyAmount validation.
+ * Optional fields preserve partial/legacy dashboard snapshots. */
+export type PerformanceRow = Record<string, unknown> & {
+  id?: string; exchange?: string; closedTrades?: number; wins?: number; losses?: number;
+  winRatePercent?: number | null; averageEntrySlippageBps?: number | null;
+  completedIntents?: number; intents?: number;
+  reportingCurrency?: unknown; accountingStatus?: unknown; realizedPnlValue?: unknown;
+};
+export type EquityObservation = Record<string, unknown> & {
+  reportingCurrency?: unknown; accountingSource?: unknown; mode?: unknown;
+  observedAt?: unknown; equity?: unknown; accountId?: unknown; drawdownPercent?: unknown;
+};
+export type ExecutionAnalytics = {
+  funnel?: Record<string, number>;
+  latencyMs?: { signalToSubmit?: { p95?: number | null } };
+  coverage?: { complete?: boolean };
+};
+export type AdaptiveRiskState = Record<string, unknown> & {
+  stateKey?: string; channelId?: string; accountId?: string; resourceName?: string;
+  updatedAt?: number; blocked?: boolean; lockedTier?: number | null; currentTier?: number;
+};
+export type AdaptiveRiskEvaluation = Record<string, unknown> & {
+  id?: string; channelId?: string; accountId?: string; action?: string; reason?: string;
+  closedTrades?: number; previousTier?: number; appliedTier?: number;
+};
+export type AnalyticsResponse = {
+  performance?: {
+    total?: Record<string, unknown>; channels?: PerformanceRow[];
+    exchanges?: PerformanceRow[]; equity?: EquityObservation[];
+  };
+  execution?: ExecutionAnalytics;
+  fallback?: {
+    runs?: number; selected?: number; exhausted?: number;
+    skippedByReason?: Record<string, number>;
+    byAccount?: Array<{ accountId: string; exchange: string; mode: string;
+      selected: number; unavailable: number; attempts: number }>;
+  };
+};
+
 export type TradingSnapshot = {
   overview: {
     runtime: {
@@ -270,28 +310,28 @@ export type TradingSnapshot = {
   intents: Array<Record<string, unknown>>;
   activity: {
     positions: Array<Record<string, unknown>>;
-    orders: Array<Record<string, any>>;
-    paperMarkets: Array<Record<string, any>>;
+    orders: Array<Record<string, unknown>>;
+    paperMarkets: Array<Record<string, unknown>>;
     riskEvents: Array<Record<string, unknown>>;
     reconciliations: Array<Record<string, unknown>>;
   };
   analytics: {
     generatedAt: number;
-    accounts: Array<Record<string, any>>;
+    accounts: Array<Record<string, unknown>>;
   };
-  executionAnalytics: Record<string, any>;
+  executionAnalytics: ExecutionAnalytics;
   channelAnalytics: {
     generatedAt: number;
-    channels: Array<Record<string, any>>;
-    exchanges: Array<Record<string, any>>;
-    equity: Array<Record<string, any>>;
+    channels: PerformanceRow[];
+    exchanges: PerformanceRow[];
+    equity: EquityObservation[];
   };
-  channelRiskEvaluations: Array<Record<string, any>>;
+  channelRiskEvaluations: Array<Record<string, unknown>>;
   workflowAdaptiveRisk: {
-    states: Array<Record<string, any>>;
-    evaluations: Array<Record<string, any>>;
+    states: AdaptiveRiskState[];
+    evaluations: AdaptiveRiskEvaluation[];
   };
-  equityHistory: Array<Record<string, any>>;
+  equityHistory: EquityObservation[];
   exchangeStreams: Array<Record<string, unknown>>;
   interpretation?: string;
   coverage?: Record<string, boolean>;

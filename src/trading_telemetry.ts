@@ -3,13 +3,30 @@ import { randomUUID } from 'node:crypto';
 import { getDatabase } from './db.js';
 import { decimal, signedDecimal } from './trading_decimal.js';
 import { projectAllFillAccounting } from './trading_fill_accounting.js';
-import { closedMoneyStatistics, moneyPerformanceRows, summarizeMoneyRows, type ClosedMoneyRow, type ClosedMoneyStatistics } from './trading_money_reporting.js';
+import { closedMoneyStatistics, moneyPerformanceRows, summarizeMoneyRows, type MoneyPerformanceRow, type ClosedMoneyRow, type ClosedMoneyStatistics } from './trading_money_reporting.js';
 import { moneyValueFromRational, validateMoneyValue, type MoneyValue } from './trading_money_value.js';
 import { addRational, compareRational, divideRational, multiplyRational, rationalFromDecimal } from './trading_rational.js';
 import { JOURNAL_INTENT_STATUSES } from './ui_contracts.js';
 import type { TradingAccountSnapshot, TradingEquityPoint } from './trading_types.js';
 import { tradingExchangeId } from './trading_types.js';
 import { recordExecutionNotificationBestEffort } from './trading_notifications.js';
+
+// Query aliases describe persisted fields; filtering keeps unvalidated dimensions unknown.
+type AnalyticsRow = {
+  occurredAt?: unknown; closedAt?: unknown; createdAt?: unknown; filledAt?: unknown;
+  channelId?: unknown; accountId?: unknown; exchange?: unknown; mode?: unknown;
+  intentStatus?: unknown; status?: unknown;
+};
+type EquityQueryRow = Pick<TradingEquityPoint, 'reportingCurrency' | 'accountingSource' | 'mode'> &
+  Record<'accountId' | 'equity' | 'availableBalance' | 'unrealizedPnl' | 'marginUsed' | 'observedAt', unknown>;
+type FallbackQueryRow = Record<'runId' | 'channelId' | 'fallbackStatus' | 'currentRank' | 'createdAt' |
+  'rank' | 'candidateStatus' | 'errorCode' | 'accountId' | 'intentStatus' | 'exchange' | 'mode', unknown>;
+type PositionMoneyInput = ClosedMoneyRow & { realizedPnlValueJson?: string | null };
+type PositionQueryRow = PositionMoneyInput &
+  Record<'channelId' | 'accountId' | 'exchange' | 'mode' | 'intentStatus' | 'closedAt', unknown>;
+type IntentQueryRow = { status: string } & Record<'channelId' | 'accountId' | 'exchange' | 'mode' | 'createdAt', unknown>;
+type FillQueryRow = { planJson: string | null } &
+  Record<'channelId' | 'accountId' | 'exchange' | 'mode' | 'intentStatus' | 'fillPrice' | 'quantity' | 'plannedPrice' | 'filledAt', unknown>;
 
 export const TRADING_EVENT_TYPES = [
   'signal_received',
@@ -40,7 +57,8 @@ export async function recordTradingEquitySnapshot(
   snapshot: TradingAccountSnapshot,
   observedAt = Date.now(),
 ): Promise<void> {
-  const id = identifier(accountId, 'Trading account identifier', 64)!;
+  const id = identifier(accountId, 'Trading account identifier', 64);
+  if (!id) throw new Error('Trading account identifier is invalid.');
   if (!Number.isSafeInteger(observedAt) || observedAt <= 0) throw new Error('Equity observation timestamp is invalid.');
   const bucketMinute = Math.floor(observedAt / 60_000);
   const accountMode = (await getDatabase().get('SELECT mode FROM trading_accounts WHERE id = ?', [id]))?.mode ?? null;
@@ -87,7 +105,7 @@ export async function listTradingEquityPoints(
     parameters.push(identifier(accountId, 'Trading account identifier', 64));
   }
   parameters.push(limit);
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<EquityQueryRow[]>(
     `SELECT account_id AS accountId, equity, available_balance AS availableBalance,
             unrealized_pnl AS unrealizedPnl, margin_used AS marginUsed, observed_at AS observedAt,
             reporting_currency AS reportingCurrency, accounting_source AS accountingSource, account_mode AS mode
@@ -159,7 +177,9 @@ function percentile(values: number[], quantile: number): number | null {
   if (values.length === 0) return null;
   const sorted = [...values].sort((left, right) => left - right);
   const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * quantile) - 1));
-  return sorted[index]!;
+  const value = sorted[index];
+  if (value === undefined) return null;
+  return value;
 }
 
 type ExecutionEventRow = {
@@ -273,7 +293,7 @@ export interface TradingAnalyticsFilters {
   statuses: string[];
 }
 
-function analyticsTimestamp(row: any): number {
+function analyticsTimestamp(row: AnalyticsRow): number {
   const values = [row.occurredAt, row.closedAt, row.createdAt, row.filledAt];
   const selected = values.find(value => value !== undefined && value !== null);
   return Number(selected ?? 0);
@@ -290,7 +310,7 @@ function analyticsDimensionMatches(allowed: string[], value: unknown): boolean {
   return isStringMember(value, allowed);
 }
 
-function analyticsRowMatches(row: any, filters: TradingAnalyticsFilters): boolean {
+function analyticsRowMatches(row: AnalyticsRow, filters: TradingAnalyticsFilters): boolean {
   const dimensions: Array<[string[], unknown]> = [
     [filters.channelIds, row.channelId],
     [filters.accountIds, row.accountId],
@@ -342,7 +362,7 @@ function executionFilterSql(filters: TradingAnalyticsFilters) {
     if (!allowed.length) continue;
     clauses.push(`${column} IN (${allowed.map(() => '?').join(',')})`); values.push(...allowed);
   }
-  return { sql: clauses.length ? ' AND ' + clauses.join(' AND ') : '', values };
+  return { sql: clauses.length ? ` AND ${clauses.join(' AND ')}` : '', values };
 }
 
 async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Promise<{
@@ -358,7 +378,7 @@ async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Prom
   averageSelectedRank: number | null;
   byAccount: Array<Record<string, unknown>>;
 }> {
-  const rows = (await getDatabase().all<any[]>(
+  const rows = (await getDatabase().all<FallbackQueryRow[]>(
     `SELECT run.id AS runId, run.channel_id AS channelId, run.status AS fallbackStatus,
             run.current_rank AS currentRank, run.created_at AS createdAt,
             candidate.rank, candidate.status AS candidateStatus, candidate.error_code AS errorCode,
@@ -372,7 +392,7 @@ async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Prom
      ORDER BY run.created_at, run.id, candidate.rank`,
     [filters.since, filters.until],
   )).filter(row => analyticsRowMatches(row, filters));
-  const runs = new Map<string, any[]>();
+  const runs = new Map<string, FallbackQueryRow[]>();
   const accounts = new Map<string, {
     accountId: string;
     exchange: string;
@@ -396,8 +416,11 @@ async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Prom
     candidates.some(candidate => candidate.candidateStatus === 'selected'));
   const exhausted = [...runs.values()].filter(candidates => candidates[0]?.fallbackStatus === 'exhausted').length;
   const stopped = [...runs.values()].filter(candidates => candidates[0]?.fallbackStatus === 'stopped').length;
-  const selectedRanks = selectedRuns.map(candidates =>
-    Number(candidates.find(candidate => candidate.candidateStatus === 'selected')!.rank));
+  const selectedRanks = selectedRuns.map(candidates => {
+    const selected = candidates.find(candidate => candidate.candidateStatus === 'selected');
+    if (!selected) throw new Error('Selected fallback candidate is missing.');
+    return Number(selected.rank);
+  });
   const runCount = runs.size;
   const skippedByReason = Object.fromEntries([
     'SYMBOL_UNAVAILABLE', 'MAX_CONCURRENT_POSITIONS', 'SYMBOL_ALREADY_OWNED',
@@ -475,13 +498,13 @@ function exchangeAggregate(
 }
 
 /** Both analytics endpoints read the same additive persisted projection contract. */
-export function analyticsPositionMoneyRow(row: any): any {
+export function analyticsPositionMoneyRow<T extends PositionMoneyInput>(row: T): Omit<T, 'realizedPnlValue' | 'accountingStatus'> & { [Key in keyof ClosedMoneyRow]: ClosedMoneyRow[Key] } {
   if (row.realizedPnlValueJson === null || row.realizedPnlValueJson === undefined) return row;
   try { return { ...row, realizedPnlValue: validateMoneyValue(JSON.parse(row.realizedPnlValueJson)) }; }
   catch { return { ...row, realizedPnlValue: null, accountingStatus: 'unresolved' }; }
 }
 
-function aggregatePositions(rows: any[], channels: Map<string, PerformanceAggregate>, exchanges: Map<string, PerformanceAggregate>): void {
+function aggregatePositions(rows: PositionQueryRow[], channels: Map<string, PerformanceAggregate>, exchanges: Map<string, PerformanceAggregate>): void {
   for (const row of rows) {
     const valued = analyticsPositionMoneyRow(row);
     channelAggregate(channels, row.channelId).closedRows.push(valued);
@@ -489,7 +512,7 @@ function aggregatePositions(rows: any[], channels: Map<string, PerformanceAggreg
   }
 }
 
-function aggregateMoney(rows: any[], channels: Map<string, PerformanceAggregate>, exchanges: Map<string, PerformanceAggregate>): void {
+function aggregateMoney(rows: MoneyPerformanceRow[], channels: Map<string, PerformanceAggregate>, exchanges: Map<string, PerformanceAggregate>): void {
   for (const row of rows) {
     const targets = [exchangeAggregate(exchanges, row.exchange, row.mode)];
     if (row.channelId !== null) targets.push(channelAggregate(channels, row.channelId));
@@ -498,7 +521,7 @@ function aggregateMoney(rows: any[], channels: Map<string, PerformanceAggregate>
 }
 
 function aggregateIntents(
-  rows: any[],
+  rows: IntentQueryRow[],
   channels: Map<string, PerformanceAggregate>,
   exchanges: Map<string, PerformanceAggregate>,
 ): void {
@@ -515,7 +538,7 @@ function aggregateIntents(
   }
 }
 
-function plannedFillPrice(row: any): number {
+function plannedFillPrice(row: FillQueryRow): number {
   const stored = finite(row.plannedPrice);
   if (stored > 0 || !row.planJson) return stored;
   try {
@@ -526,7 +549,7 @@ function plannedFillPrice(row: any): number {
 }
 
 function aggregateFills(
-  rows: any[],
+  rows: FillQueryRow[],
   channels: Map<string, PerformanceAggregate>,
   exchanges: Map<string, PerformanceAggregate>,
 ): void {
@@ -590,9 +613,9 @@ function presentedAggregate(value: PerformanceAggregate): Record<string, unknown
 function compareAnalyticsPnl(left: Record<string, unknown>, right: Record<string, unknown>): number {
   const currency = dimensionValue(left.reportingCurrency).localeCompare(dimensionValue(right.reportingCurrency));
   if (currency) return currency;
-  const a = left.realizedPnlValue as MoneyValue | null, b = right.realizedPnlValue as MoneyValue | null;
-  if (a?.exact && b?.exact) return -compareRational(a.exact, b.exact) || dimensionValue(left.id).localeCompare(dimensionValue(right.id));
-  if (Boolean(a?.exact) !== Boolean(b?.exact)) return a?.exact ? -1 : 1;
+  const leftPnl = left.realizedPnlValue as MoneyValue | null, rightPnl = right.realizedPnlValue as MoneyValue | null;
+  if (leftPnl?.exact && rightPnl?.exact) return -compareRational(leftPnl.exact, rightPnl.exact) || dimensionValue(left.id).localeCompare(dimensionValue(right.id));
+  if (Boolean(leftPnl?.exact) !== Boolean(rightPnl?.exact)) return leftPnl?.exact ? -1 : 1;
   return dimensionValue(left.id).localeCompare(dimensionValue(right.id));
 }
 
@@ -610,9 +633,9 @@ function equityPerformance(points: TradingEquityPoint[]): Array<Record<string, u
   });
 }
 
-async function performanceRows(since: number): Promise<[any[], any[], any[], TradingEquityPoint[]]> {
+async function performanceRows(since: number): Promise<[PositionQueryRow[], IntentQueryRow[], FillQueryRow[], TradingEquityPoint[]]> {
   return Promise.all([
-    getDatabase().all<any[]>(
+    getDatabase().all<PositionQueryRow[]>(
       `SELECT position.channel_id AS channelId, position.account_id AS accountId,
               account.exchange, account.mode, intent.status AS intentStatus,
               position.ledger_realized_pnl AS realizedPnl, position.reporting_currency AS reportingCurrency,
@@ -627,12 +650,12 @@ async function performanceRows(since: number): Promise<[any[], any[], any[], Tra
        ORDER BY position.closed_at`,
       [since],
     ),
-    getDatabase().all<any[]>(
+    getDatabase().all<IntentQueryRow[]>(
       `SELECT channel_id AS channelId, account_id AS accountId, exchange, mode, status, created_at AS createdAt
        FROM trading_trade_intents WHERE created_at >= ?`,
       [since],
     ),
-    getDatabase().all<any[]>(
+    getDatabase().all<FillQueryRow[]>(
       `SELECT intent.channel_id AS channelId, intent.account_id AS accountId,
               intent.exchange, intent.mode, intent.status AS intentStatus,
               fill.price AS fillPrice, fill.quantity, order_row.price AS plannedPrice,

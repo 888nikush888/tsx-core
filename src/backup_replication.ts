@@ -245,7 +245,7 @@ async function decryptArtifact(bundlePath: string, destination: string, key: Buf
   if (!header.subarray(0, ENCRYPTED_MAGIC.length).equals(ENCRYPTED_MAGIC)) {
     throw new Error('Encrypted backup object has an invalid header.');
   }
-  const decipher = createDecipheriv('aes-256-gcm', key, header.subarray(ENCRYPTED_MAGIC.length));
+  const decipher = createDecipheriv('aes-256-gcm', key, header.subarray(ENCRYPTED_MAGIC.length), { authTagLength: TAG_BYTES });
   decipher.setAAD(header);
   decipher.setAuthTag(tag);
   const archivePath = `${destination}.archive`;
@@ -356,7 +356,7 @@ export class HttpsBackupReplicator implements BackupReplicator {
   private readonly minRetentionDays: number | undefined;
 
   constructor(private readonly options: HttpsBackupReplicatorOptions) {
-    validateUrlTemplate(options.urlTemplate, !!options.allowInsecureLoopback);
+    validateUrlTemplate(options.urlTemplate, Boolean(options.allowInsecureLoopback));
     if (!options.bearerToken || options.bearerToken.length < 32 || /[\r\n]/.test(options.bearerToken)) {
       throw new Error('BACKUP_OFFSITE_TOKEN must contain at least 32 characters without line breaks.');
     }
@@ -501,6 +501,16 @@ function optionalBoundedInteger(value: string | undefined, name: string, minimum
   return parsed;
 }
 
+function offsiteCredentials(env: NodeJS.ProcessEnv): { urlTemplate: string; bearerToken: string; encryptionKeyValue: string } {
+  const urlTemplate = env.BACKUP_OFFSITE_URL_TEMPLATE;
+  const bearerToken = env.BACKUP_OFFSITE_TOKEN;
+  const encryptionKeyValue = env.BACKUP_ENCRYPTION_KEY;
+  if (!urlTemplate?.trim() || !bearerToken?.trim() || !encryptionKeyValue?.trim()) {
+    throw new Error('Off-site backup requires BACKUP_OFFSITE_URL_TEMPLATE, BACKUP_OFFSITE_TOKEN and BACKUP_ENCRYPTION_KEY.');
+  }
+  return { urlTemplate, bearerToken, encryptionKeyValue };
+}
+
 export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.env): {
   required: boolean;
   replicator: BackupReplicator | null;
@@ -511,7 +521,7 @@ export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.en
   }
   const required = strictBoolean(env.BACKUP_OFFSITE_REQUIRED, enterprise);
   const values = [env.BACKUP_OFFSITE_URL_TEMPLATE, env.BACKUP_OFFSITE_TOKEN, env.BACKUP_ENCRYPTION_KEY];
-  const configured = values.some(value => !!value?.trim());
+  const configured = values.some(value => Boolean(value?.trim()));
   if (!configured && !required) return { required, replicator: null };
   if (values.some(value => !value?.trim())) {
     throw new Error('Off-site backup requires BACKUP_OFFSITE_URL_TEMPLATE, BACKUP_OFFSITE_TOKEN and BACKUP_ENCRYPTION_KEY.');
@@ -529,12 +539,13 @@ export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.en
     0,
     3650
   );
+  const { urlTemplate, bearerToken, encryptionKeyValue } = offsiteCredentials(env);
   return {
     required,
     replicator: new HttpsBackupReplicator({
-      urlTemplate: env.BACKUP_OFFSITE_URL_TEMPLATE!,
-      bearerToken: env.BACKUP_OFFSITE_TOKEN!,
-      encryptionKey: parseBackupEncryptionKey(env.BACKUP_ENCRYPTION_KEY!),
+      urlTemplate,
+      bearerToken,
+      encryptionKey: parseBackupEncryptionKey(encryptionKeyValue),
       timeoutMs: timeout,
       maxRecoveryBytes: configuredRecoveryLimit,
       minRetentionDays: configuredRetentionDays || (enterprise ? 30 : undefined)

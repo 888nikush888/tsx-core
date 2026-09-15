@@ -175,7 +175,8 @@ class FillQuantityProvenanceTests(unittest.IsolatedAsyncioTestCase):
         with localcontext() as context:
             context.prec = 28
             context.clear_flags()
-            Decimal("12345678901234567890.12345679") * Decimal("0.25")
+            # Exercise Decimal arithmetic to populate ambient flags for the comparison.
+            _rounded_product = Decimal("12345678901234567890.12345679") * Decimal("0.25")
             expected_flags = dict(context.flags)
             context.clear_flags()
             self.normalized("12345678901234567890.12345679")

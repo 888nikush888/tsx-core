@@ -9,7 +9,7 @@ import copy
 import hashlib
 import json
 from importlib.metadata import version as package_version
-from typing import Any
+from typing import Any, TypeGuard
 
 from ccxt.base.errors import BadRequest, InvalidOrder, NetworkError, NotSupported, RateLimitExceeded
 
@@ -80,7 +80,7 @@ def fx_hash(domain: str, value: Any) -> str:
     return hashlib.sha256((domain + '\n' + _canonical(value)).encode('utf-8')).hexdigest()
 
 
-def _safe_time(value: Any) -> bool:
+def _safe_time(value: Any) -> TypeGuard[int]:
     return type(value) is int and 0 <= value <= SAFE_INTEGER
 
 

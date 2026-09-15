@@ -1,0 +1,800 @@
+{
+  "reviewedRevision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+  "priorReport": {
+    "path": "exchange_executor/certifications/reviews/snyk-code-environment-stability-review-2026-09-13.json",
+    "sha256": "5854a5c55ea8d6799c375baf24e54c13efa45ae26a542bde3f19b8a33e6b8980"
+  },
+  "scan": {
+    "path": "reports/security-services/fixer-e58bd77-snyk.sarif.json",
+    "sha256": "cd057b27c336a05c262e9872119e34ece85498206845a3699b0f74a7538cd485",
+    "same85Ids": true,
+    "allFingerprintsUnchanged": true,
+    "targetFlowShiftReviewed": true
+  },
+  "executionEvidence": {
+    "path": "reports/security-services/fixer-e58bd77-snyk-execution.json",
+    "sha256": "f44c911fc81d0854a243ea68c0b426af02a8c7a58644b54e053c4169882086b4",
+    "scannerExit": 1,
+    "finishedAt": "2026-09-14T07:10:38.9256552Z",
+    "revision": "e58bd776154948d765c0d7ceff44e7498af2f620"
+  },
+  "updatedEntries": [
+    {
+      "findingId": "d3f09f66-f994-4652-86bf-651b0262e797",
+      "ruleId": "javascript/reDOS",
+      "path": "src/incoming_work_repository.ts",
+      "line": 179,
+      "reviewedSourceSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b",
+      "disposition": "false-positive",
+      "rationale": "Re-read the actual pending-row -> readIngressMessage -> acceptsLegacySource -> shouldForward -> matchesAllRegexPatterns -> parseRegex chain. Database input is JSON-decoded and message identity/text fields are checked before filtering; invalid classification remains needs_review. Configured regular expressions are intentional filter input, not HTML/code execution. The new helper extraction preserves nested-quantifier rejection, the 150-character compiled-pattern cap, removal of stateful g/y flags and 100-entry cache. Every production match in this flow truncates text to 8000 characters and calls safeRegexTest with a 100-ms VM CPU timeout; VM exceptions reject the filter. This bound is not inferred solely from the heuristic: the actual vm.runInContext call still executes regex.test with timeout, and the existing test exercised a matching-engine timeout and verified its native timeout cause during this review. The reported source-to-RegExp construction trace omits the bounded match boundary. No unlimited match execution was found in this reported flow. Independently re-read complete e58bd77 filters/ingress delta and persisted ingress caller. Plain string content.text is now permitted solely for messageCustomServiceAction, not messageText; caption validation remains formatted-only. MESSAGE_TYPES does not map this service action, so getMessageTextAndType returns empty text and the service type. The helper also explicitly returns empty text for a primitive string instead of consuming it as ordinary signal text. Normal formatted text is unchanged. Regex compile cap, heuristic, flag/cache logic, 8000-character truncation and actual 100-ms VM timeout remain byte-identical. New persisted-restart and ordinary-message rejection tests independently passed. No additional unbounded matching path is introduced by admitting the non-text service envelope.",
+      "contextPaths": [
+        {
+          "path": "src/filters.ts",
+          "sha256": "9135f07539b9582c98ec48fb116e243b4b1dd215fd6440743adc057bac5fdb0f"
+        },
+        {
+          "path": "src/ingress_contracts.ts",
+          "sha256": "5419ee6e96ab6685aabd5b2f388fae430c2ef483de1af3225f2ad23531674b98"
+        },
+        {
+          "path": "src/contract_values.ts",
+          "sha256": "871e1ef8c09fed21648fb385c02c6c79f76b19289e8eea4970d43e984c82f613"
+        },
+        {
+          "path": "tests/test_filters.js",
+          "sha256": "46f771d4d7cf1c6d6627502f058b19500a65b451f7028a15fa43dd9a2c32ce7b"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 220
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 221
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 194
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 196
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 202
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 173
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 179
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 179
+        },
+        {
+          "path": "src/incoming_work_repository.ts",
+          "line": 179
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 280
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 286
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 300
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 303
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 293
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 305
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 249
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 255
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 255
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 255
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 305
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 306
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 260
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 264
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 266
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 125
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 126
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 126
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 126
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 132
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 132
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 144
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 150
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 145
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 162
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 164
+        },
+        {
+          "path": "src/filters.ts",
+          "line": 164
+        }
+      ],
+      "fingerprints": {
+        "0": "b43f9879c4c47a37f1a7a3c288adc5e49058518e2bed49b3a37e9d49d7ca218e",
+        "1": "2d06e3d6.93dc32e3.607187b5.b62a4246.ef9f7d82.8020cfdf.29e74e17.3357ef26.6bb676bb.b6e32c83.df10db2d.3fe041cc.8695fa9e.5fce695c.55818220.e6930396",
+        "snyk/asset/finding/v1": "d3f09f66-f994-4652-86bf-651b0262e797",
+        "identity": "d3f09f66-f994-4652-86bf-651b0262e797"
+      },
+      "evidenceSha256": "c464f99ad641abfbb34942542f1c66c2c01975a9fb09652b17940545ac2bb939",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-environment-stability-review-2026-09-13.json",
+        "rationale": "Re-read the actual pending-row -> readIngressMessage -> acceptsLegacySource -> shouldForward -> matchesAllRegexPatterns -> parseRegex chain. Database input is JSON-decoded and message identity/text fields are checked before filtering; invalid classification remains needs_review. Configured regular expressions are intentional filter input, not HTML/code execution. The new helper extraction preserves nested-quantifier rejection, the 150-character compiled-pattern cap, removal of stateful g/y flags and 100-entry cache. Every production match in this flow truncates text to 8000 characters and calls safeRegexTest with a 100-ms VM CPU timeout; VM exceptions reject the filter. This bound is not inferred solely from the heuristic: the actual vm.runInContext call still executes regex.test with timeout, and the existing test exercised a matching-engine timeout and verified its native timeout cause during this review. The reported source-to-RegExp construction trace omits the bounded match boundary. No unlimited match execution was found in this reported flow."
+      },
+      "changedBindings": [
+        {
+          "path": "src/filters.ts",
+          "oldSha256": "ee3f295e61fef83344e59c71cc2c748b904a9714efd7a05ff7a0b924b9eeea79",
+          "newSha256": "9135f07539b9582c98ec48fb116e243b4b1dd215fd6440743adc057bac5fdb0f"
+        },
+        {
+          "path": "src/ingress_contracts.ts",
+          "oldSha256": "b9b53a9beb2124f65cadbf41269302456386f5d9106e8994fcba002b9b75d8d1",
+          "newSha256": "5419ee6e96ab6685aabd5b2f388fae430c2ef483de1af3225f2ad23531674b98"
+        }
+      ]
+    }
+  ],
+  "unchangedIds": [
+    "2450255f-e697-4aae-ae63-736ad651be82",
+    "98bcc36f-5e43-4d4b-9dc9-2b23b5bb5b77",
+    "ca8d4075-1f15-40f9-9432-667e0a033660",
+    "88fce105-6148-4b77-904c-f82f35a3d8d9",
+    "164aa45d-3766-4932-9dd7-4f2729603758",
+    "142dd478-3551-4536-9562-b365bf50d287",
+    "9c50b436-5043-4541-a5c5-14a432cae733",
+    "6914aa0e-59d7-4481-9e11-2f13f86d60f4",
+    "497d44e9-fe5f-4767-a66f-325c51e5dc95",
+    "9886fba1-1186-4e41-b1fa-6a6877440237",
+    "bc179edb-989f-4eee-b6f0-4e0403e76fa0",
+    "436da650-a34e-44b8-a133-bdad1b5788d7",
+    "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+    "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+    "4763ab6d-7279-4288-a467-5dbccf673f01",
+    "8c0f552c-7615-4368-8f6a-6689679b611c",
+    "32304334-8c66-4f4a-b4fa-26033d0ab225",
+    "eebfa362-b2bf-4b0f-a9a3-4199084f5f44",
+    "6747340c-e7a2-460b-87c7-e2e6c3802226",
+    "a3737d56-de9a-41e7-b30b-fb374b214f91",
+    "a1ed4a9a-f08f-4f3b-b73b-87630d94a0c9",
+    "9b50cbda-ded3-4582-a09b-87e659bcbca8",
+    "efe2fbab-8939-42b3-acf3-d6f219f541f4",
+    "3fd501f8-60d2-4533-84c1-0f8135a93b85",
+    "aee14560-3ac3-41fd-9b53-37a838268421",
+    "55b8a65d-ce8d-4e3d-9039-678277b8ee68",
+    "06e9dbdb-8290-450a-95cc-25b789bcdde2",
+    "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4",
+    "e6282f6d-4f71-47ff-befa-7369873e4557",
+    "1498a7a1-5346-49c7-b0b0-52ec594b5b0c",
+    "e0d3690e-5911-4fa5-96ab-c0893d808e7f",
+    "33137bb2-42a6-4b20-8cfb-c4a953d91b6e",
+    "95e532db-4651-47f3-b9da-40e0da5e0fcc",
+    "4d819ebc-b7ba-4de3-a71e-5daea6c942e7",
+    "82e95abb-7def-48e9-9e03-f12ddb87396e",
+    "68016b09-7ac9-40c1-8640-8412bc77d91e",
+    "f1107dfb-8004-470e-ae80-5b3230735eea",
+    "67212bb4-5c74-4ec1-a6f6-6404626cdc02",
+    "68a1f53d-6f82-4221-baf2-f9f213aab9f2",
+    "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737",
+    "9481f398-aa6b-4990-a250-a4ef4297442e",
+    "3aa7677b-1f71-466e-9cd9-f08e3382c0c0",
+    "75e4084d-676d-47b5-a497-7b0b5d3a6d2c",
+    "86777f7f-c030-435e-9086-f29fcbffcb58",
+    "35c81c03-fadd-4a16-a0e3-8e81108e18c4",
+    "d2853e9a-03af-4436-8200-1c45936744c5",
+    "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee",
+    "d1163842-b198-4156-ab79-efd0cd8da57d",
+    "2585237f-36d5-4607-9e5c-3f4b73b518da",
+    "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8",
+    "0b078f4b-85ab-487e-8951-7a4f6ec03335",
+    "f62614bc-117e-48c1-8267-e866c507367a",
+    "d724e3e9-b7ca-4eec-ac14-037f58090f2a",
+    "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14",
+    "367a2dd3-ef73-4e71-8066-f992a958af8a",
+    "24d61af9-11c9-4687-9dff-3e2b1b30670d",
+    "5da511d6-c50f-42ce-a617-e5650025b7c2",
+    "703c021a-6966-44a3-a93c-1405ac1a891b",
+    "285f0b22-9dea-413f-b89e-1d183d4f1f84",
+    "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34",
+    "2e366098-cb83-4d7f-961a-1fea7a162a44",
+    "62138ff6-d19f-4588-80f1-62274219af01",
+    "661f9264-b2a0-4f46-8f75-c629b1c80f36",
+    "40ffaf95-f7bb-43b9-a3d7-2e1edf90464c",
+    "70cd754b-0fc7-4cc2-b484-1e2c90036277",
+    "34a2fb72-f24d-4687-b513-e791a4ab2632",
+    "3823fd00-85ed-47e6-b085-8b3b2655febc",
+    "15b62184-5d10-4c9f-8c45-36cebd259223",
+    "d75bc03c-19a7-4475-809c-525e9240e836",
+    "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+    "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+    "bd4b655d-7094-41a4-8532-ca8faca295a0",
+    "0e0cc32d-e62a-494f-b96a-0871ca8206b0",
+    "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb",
+    "dbeab5ab-3bb3-4484-b2a3-3d56187dd885",
+    "a42d6e8a-142f-4310-951e-4781a06c3fa5",
+    "c18a03f4-6ea4-45f2-8cc7-2f2e45325bbf",
+    "38bece03-53dc-4566-a862-e4d59a573c82",
+    "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
+    "4494650c-4f77-4efc-9956-2a491467ddaf",
+    "4bd5af47-516b-4885-9a70-71b7fa515f95",
+    "ce402f84-0ed8-4cb8-9f26-60e05779e11f",
+    "8bf5572e-a361-4a6c-b7e6-54793f17bcc0",
+    "7039073d-34a6-4901-9897-4c0a40ca7b0a"
+  ],
+  "committedBindingChecks": 182,
+  "verification": {
+    "resultCount": 85,
+    "reviewedFalsePositives": 81,
+    "acceptedRisks": 4,
+    "remaining": 0,
+    "disposition": "clean",
+    "findings": [
+      {
+        "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
+        "ruleId": "javascript/DOMXSS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "98bcc36f-5e43-4d4b-9dc9-2b23b5bb5b77",
+        "ruleId": "javascript/HardcodedNonCryptoSecret",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "88fce105-6148-4b77-904c-f82f35a3d8d9",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "164aa45d-3766-4932-9dd7-4f2729603758",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "142dd478-3551-4536-9562-b365bf50d287",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9c50b436-5043-4541-a5c5-14a432cae733",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "6914aa0e-59d7-4481-9e11-2f13f86d60f4",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "497d44e9-fe5f-4767-a66f-325c51e5dc95",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9886fba1-1186-4e41-b1fa-6a6877440237",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "bc179edb-989f-4eee-b6f0-4e0403e76fa0",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "436da650-a34e-44b8-a133-bdad1b5788d7",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+        "ruleId": "javascript/Sqli/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+        "ruleId": "javascript/Sqli/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4763ab6d-7279-4288-a467-5dbccf673f01",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "8c0f552c-7615-4368-8f6a-6689679b611c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "32304334-8c66-4f4a-b4fa-26033d0ab225",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "6747340c-e7a2-460b-87c7-e2e6c3802226",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a3737d56-de9a-41e7-b30b-fb374b214f91",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a1ed4a9a-f08f-4f3b-b73b-87630d94a0c9",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9b50cbda-ded3-4582-a09b-87e659bcbca8",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "efe2fbab-8939-42b3-acf3-d6f219f541f4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3fd501f8-60d2-4533-84c1-0f8135a93b85",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "aee14560-3ac3-41fd-9b53-37a838268421",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "55b8a65d-ce8d-4e3d-9039-678277b8ee68",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "06e9dbdb-8290-450a-95cc-25b789bcdde2",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "e6282f6d-4f71-47ff-befa-7369873e4557",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "1498a7a1-5346-49c7-b0b0-52ec594b5b0c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "e0d3690e-5911-4fa5-96ab-c0893d808e7f",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "95e532db-4651-47f3-b9da-40e0da5e0fcc",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4d819ebc-b7ba-4de3-a71e-5daea6c942e7",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "82e95abb-7def-48e9-9e03-f12ddb87396e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "68016b09-7ac9-40c1-8640-8412bc77d91e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f1107dfb-8004-470e-ae80-5b3230735eea",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "67212bb4-5c74-4ec1-a6f6-6404626cdc02",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "68a1f53d-6f82-4221-baf2-f9f213aab9f2",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9481f398-aa6b-4990-a250-a4ef4297442e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "75e4084d-676d-47b5-a497-7b0b5d3a6d2c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "86777f7f-c030-435e-9086-f29fcbffcb58",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "35c81c03-fadd-4a16-a0e3-8e81108e18c4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d2853e9a-03af-4436-8200-1c45936744c5",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d1163842-b198-4156-ab79-efd0cd8da57d",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "2585237f-36d5-4607-9e5c-3f4b73b518da",
+        "ruleId": "javascript/XSS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8",
+        "ruleId": "javascript/XSS/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0b078f4b-85ab-487e-8951-7a4f6ec03335",
+        "ruleId": "javascript/reDOS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d3f09f66-f994-4652-86bf-651b0262e797",
+        "ruleId": "javascript/reDOS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f62614bc-117e-48c1-8267-e866c507367a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d724e3e9-b7ca-4eec-ac14-037f58090f2a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "367a2dd3-ef73-4e71-8066-f992a958af8a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "24d61af9-11c9-4687-9dff-3e2b1b30670d",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "5da511d6-c50f-42ce-a617-e5650025b7c2",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "703c021a-6966-44a3-a93c-1405ac1a891b",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "285f0b22-9dea-413f-b89e-1d183d4f1f84",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "2e366098-cb83-4d7f-961a-1fea7a162a44",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "62138ff6-d19f-4588-80f1-62274219af01",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "661f9264-b2a0-4f46-8f75-c629b1c80f36",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "40ffaf95-f7bb-43b9-a3d7-2e1edf90464c",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "70cd754b-0fc7-4cc2-b484-1e2c90036277",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "34a2fb72-f24d-4687-b513-e791a4ab2632",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3823fd00-85ed-47e6-b085-8b3b2655febc",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "15b62184-5d10-4c9f-8c45-36cebd259223",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "d75bc03c-19a7-4475-809c-525e9240e836",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "bd4b655d-7094-41a4-8532-ca8faca295a0",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0e0cc32d-e62a-494f-b96a-0871ca8206b0",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "dbeab5ab-3bb3-4484-b2a3-3d56187dd885",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a42d6e8a-142f-4310-951e-4781a06c3fa5",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "c18a03f4-6ea4-45f2-8cc7-2f2e45325bbf",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "38bece03-53dc-4566-a862-e4d59a573c82",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "ruleId": "javascript/IndirectCommandInjection",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4bd5af47-516b-4885-9a70-71b7fa515f95",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "ce402f84-0ed8-4cb8-9f26-60e05779e11f",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      }
+    ]
+  },
+  "test": {
+    "path": "tests/test_ingress_contract_guards.js",
+    "exitCode": 0,
+    "log": "reports/security-services/fixer-e58-ingress-independent.log",
+    "logSha256": "b3555efa9826dbc95339e546f729dd99eb27782eea8e2dd63285053756950b38"
+  },
+  "limits": [
+    "No workflow/source/platform mutation.",
+    "No aggregate coverage claim; root is running full module measurement.",
+    "Owner acceptance scope and expiry unchanged; four HTTP findings remain risks, not fixes.",
+    "Tests changed by this commit are not direct source/context bindings in this active Snyk85 record.",
+    "Evaluation used committed Git LF blobs. Raw local CRLF source differs in two files; official filesystem CLI checker requires post-coverage normalization or LF checkout. No source normalization performed."
+  ],
+  "flowDelta": "Every flow location identical except filters.ts lines after181 shift+1 from helper extraction;44 locations verified",
+  "lineEndingEvidence": [
+    {
+      "path": "src/filters.ts",
+      "rawSha256": "1bafcfe0ff3d669072bc3c42647fa600caf322adf4797cb6996312ace51382bc",
+      "rawCRLF": 316,
+      "normalizedLFBound": true
+    },
+    {
+      "path": "src/ingress_contracts.ts",
+      "rawSha256": "3b5b1ea4f8eb9e185507e5fab3ecc03a552547b012ab3d7a9defbd8b8f4d6f26",
+      "rawCRLF": 58,
+      "normalizedLFBound": true
+    }
+  ]
+}

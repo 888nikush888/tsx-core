@@ -1,0 +1,50 @@
+{
+  "sourceRevision": "2f16fc25f9c248b20749cd0e1b24a650d8f94dde",
+  "report": "fixer-quality-verification-2026-09-13.md",
+  "logs": [
+    {
+      "name": "fixer-full-coverage.log",
+      "sha256": "1460d060ede3f73b2eed7173cbdbc52ec724c7332c0d7f92fdc966d54dfd7bdc",
+      "bytes": 72119
+    },
+    {
+      "name": "fixer-module-coverage-final.log",
+      "sha256": "e54ca1e30ee735af6a97fb8c65c93f8f0a62577a08fc019c0ef5918c419a6ebb",
+      "bytes": 92178
+    },
+    {
+      "name": "fixer-complexity-final.log",
+      "sha256": "0fc0f145c26d59df0dd3be6a3778c0b4d8de0bfb864d703d93477cc05a19747a",
+      "bytes": 252
+    },
+    {
+      "name": "fixer-typecheck-post-complexity.log",
+      "sha256": "0f77cf5c5793fa7775c3788752e4340bd346e4611e0e2631773e072255b4ddd4",
+      "bytes": 48
+    },
+    {
+      "name": "fixer-build-final.log",
+      "sha256": "c161d2d09614c1ad6dd459a9ec813a77dbde013e435cba7d21d3828ec79cd442",
+      "bytes": 1592
+    },
+    {
+      "name": "fixer-snyk-final.sarif.json",
+      "sha256": "a9549599c06efc5bb61f44634fddd23830ad09696b6e2f91450c9d31ad0e8df1",
+      "bytes": 277360
+    },
+    {
+      "name": "fixer-snyk-final-cli-verification.json",
+      "sha256": "990b1085da9ec8f4e48c620c059d9de4b4ca350f27863d30401996de63c8e14c",
+      "bytes": 14623
+    }
+  ],
+  "sourceReviews": [
+    "fixer-complexity-independent-review-2026-09-13.md",
+    "fixer-metrics-coverage-review-2026-09-13.md"
+  ],
+  "remaining": [
+    "Publish combined candidate and validate current CI coverage, browser, mutation and scanner results.",
+    "Independently review and renew existing-profile implementation receipt after final gate evidence; container/release approval remains open.",
+    "Complete all-finding remediation and source-bound dispositions on fresh full scanner inventories. Aikido excluded; four documented HTTP risks retain user acceptance."
+  ]
+}

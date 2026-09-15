@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-root-quality-script-delta-review",
+  "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+  "reviewedAt": "2026-09-13T08:35:24.886Z",
+  "entries": [
+    {
+      "path": "scripts/build_ui_route_inventory.js",
+      "sourceSha256": "a1e73d8f6f48f7dce5acbdc87585e54c17233e18caf8afd91d4c19d787a2fb2c",
+      "baselineSha256": "b885cf2bef5bc6faf774dff5adf53486b32f60d477c43e13cd0b7822de4447af",
+      "diffSha256": "efcf35040838cf15e28de92eec4f74f8b6f0dc7cd37bcfd7244e0e85038f30a3",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta reviewed: named function/identifier collection is extracted without changing traversal or map assignment conditions. String concatenations become equivalent templates on known strings; generated JSON, newlines, route role/confirmation mappings, --check comparison and output destinations remain. This review covers the generator delta, not all web route implementations.",
+      "scope": "This file delta only; no whole application or provider approval."
+    },
+    {
+      "path": "scripts/check_architecture.js",
+      "sourceSha256": "64dbfc1c25fe4ebfd6f28ff2fec6c85abdf4f362e19dc586cdd867123af589f5",
+      "baselineSha256": "6424e2b84a8feabfda1908d0e73a608f38a35d7103f254c9e4ed96cf7a45beed",
+      "diffSha256": "7208f32cc123956b3f3d6b079d7596cea4b6e2b5d0cab6a211026431b53e5642",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta reviewed: declaration files are now candidates after ordinary .ts and before directory entries. Missing-file-only handling retains propagation of other errors. DFS helper preserves visited/active/stack state and cycle return; layer checks retain all three original predicates and messages. Named exports allow direct regression checks. Runtime imports and entry/core/outer sets are not relaxed.",
+      "scope": "This file delta only; no whole application or provider approval."
+    },
+    {
+      "path": "scripts/check_complexity_budget.js",
+      "sourceSha256": "6196b9c7c1695ce7a70fa35c03ab25a90f0dc1aa2517a921865d9b6eee2be8e6",
+      "baselineSha256": "bdd1ffb54180e3f0d2498be035fe3c852c2c443d6e9a4312c7146720839b17cd",
+      "diffSha256": "09a737c99bf3ac86cc2c7e9ac567fb970b693ef4119fc946f3d0f4fa4101a7d5",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta reviewed: budgetDifference keeps strict equality, direction selection and exact messages; spreading preserves error, warning, rule iteration and worst-complexity order. Improvements still require ratchet updates and errors still fail. No threshold or scan scope changes in this file.",
+      "scope": "This file delta only; no whole application or provider approval."
+    },
+    {
+      "path": "scripts/check_dependency_policy.js",
+      "sourceSha256": "cac467f658cae0b95af6aec177202a1eb9f4c3f1a49105798d83275e16265349",
+      "baselineSha256": "f55379574721f91f6bebb7e029b7f5bd91ea08c8bcc1a2e2ae1f6ee37e243cbe",
+      "diffSha256": "4b389d876fd07f7ab57b40f14168b086960fc6a18a82f0592a0d8cfa03405b70",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta reviewed: helper extraction retains exact declared/locked versions, registry check, sha512 integrity and Python lock generator/marker/direct/hash conditions. Null/non-object artifact metadata now produces a violation instead of an exception. packages is reused with the existing falsey fallback; no dependency exemption or registry expansion is introduced. Malformed data remains non-passing.",
+      "scope": "This file delta only; no whole application or provider approval."
+    },
+    {
+      "path": "scripts/check_frontend_reachability.js",
+      "sourceSha256": "fc271f2ad250571be459134c730f595cf2f9b9586430b9ddf28d82bdbf641cfa",
+      "baselineSha256": "bc6c352ac8ec8011eefd571a39648d7b5324b81604e096a23bd91814cb9c4058",
+      "diffSha256": "c2032dec7f6b500779c67777688def4cd47cd7ac53e7303b3fd25baab072f382",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta reviewed: TypeScript syntax traversal replaces text regex to collect static import/export declarations, literal dynamic imports and relative/alias URL constructors. Comments, ordinary text and network URLs no longer create spurious package dependencies. Unresolved locals, forbidden non-browser imports, graph reachability and declared/unused package checks remain. Computed dynamic specifiers are not statically resolved; this is a static dependency inventory, not a runtime import sandbox.",
+      "scope": "This file delta only; no whole application or provider approval."
+    },
+    {
+      "path": "scripts/check_licenses.js",
+      "sourceSha256": "fe06bf42ea33fc1e111d8006aebfd27b5d27840026aec6eacaab15d0ce214fdd",
+      "baselineSha256": "f1c6cf5ebb7d598289bc8be3081514166f9cd505870f8423ed140689762df574",
+      "diffSha256": "8913f0e8b83f923537e75c715c15e524516386fb01fcc0bfb6025d3e2b5ce7ab",
+      "reviewedRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+      "deltaCoverage": "complete historical-to-current file delta reviewed",
+      "rationale": "Full delta reviewed: null and array package maps now fail closed; invalid artifact metadata yields violations. License helpers preserve production/build allowlists, missing license errors, linked artifact behavior and inventory order. Python exact direct pins, locked membership, explicit policy and unused policy detection remain; invalid locked requirement formats now produce a violation instead of dereferencing a failed regex. No license allowance is added.",
+      "scope": "This file delta only; no whole application or provider approval."
+    }
+  ],
+  "testEvidence": {
+    "executedAtRevision": "e97d0cf6ae0aca088a4627c943ee37dcc071271d",
+    "node": "22.23.2",
+    "files": [
+      {
+        "path": "tests/test_architecture.js",
+        "sha256": "c4e1518d54f638bf50e1593aa08ea85214f4fe5fc9d60d95e218473d798b7698"
+      },
+      {
+        "path": "tests/test_complexity_budget.js",
+        "sha256": "0b58f937ef312378a84bd6234331237d58d45373ae9f57cb7468a41bf1ddc63c"
+      },
+      {
+        "path": "tests/test_dependency_policy.js",
+        "sha256": "7cd2d7418be325643f6f94730522b81dfeca840f2229c1f5c904e11b18e92861"
+      },
+      {
+        "path": "tests/test_frontend_quality.js",
+        "sha256": "4d7fb2f3a5e14feed57e24f5206270740faeb9573a3878952db87bc7956d62ba"
+      },
+      {
+        "path": "tests/test_license_policy.js",
+        "sha256": "f89ca4861e3f9cde2291ecb08a1d9c3a34dc74fc3ddfd06246f8b311f3cb8c7a"
+      },
+      {
+        "path": "tests/test_ui_register.js",
+        "sha256": "cee84799adbbdb9d16add3256dccc23453394fa71177ab0d573a327c854e064c"
+      }
+    ],
+    "allSixPassed": true,
+    "log": "reports/security-services/fixer-implementation-root-scripts-wave1-tests.log",
+    "logSha256": "e600b416be35de5b6fe097931d6db8eead46fbe6ca0d771557826065d92a02a3"
+  },
+  "limits": [
+    "No receipt/pin/provider acceptance changed.",
+    "Offline targeted execution is not current full CI or immutable container verification."
+  ]
+}

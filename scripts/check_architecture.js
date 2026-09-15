@@ -19,23 +19,36 @@ function moduleName(filePath) {
   return path.relative(sourceRoot, filePath).replaceAll(path.sep, '/');
 }
 
+async function isExistingFile(candidate) {
+  try {
+    return (await stat(candidate)).isFile();
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+    return false;
+  }
+}
+
 async function resolveLocalImport(importer, specifier) {
   const base = path.resolve(path.dirname(importer), specifier.replace(/\.js$/, ''));
-  const candidates = [`${base}.ts`, path.join(base, 'index.ts')];
+  const candidates = [`${base}.ts`, `${base}.d.ts`, path.join(base, 'index.ts'), path.join(base, 'index.d.ts')];
   for (const candidate of candidates) {
-    try {
-      if ((await stat(candidate)).isFile()) return candidate;
-    } catch (error) {
-      if (error?.code !== 'ENOENT') throw error;
-    }
+    if (await isExistingFile(candidate)) return candidate;
   }
   return undefined;
 }
 
-function findCycle(graph) {
+export function findCycle(graph) {
   const visited = new Set();
   const active = new Set();
   const stack = [];
+
+  function visitDependencies(module) {
+    for (const dependency of graph.get(module) ?? []) {
+      const cycle = visit(dependency);
+      if (cycle) return cycle;
+    }
+    return undefined;
+  }
 
   function visit(module) {
     if (active.has(module)) return [...stack.slice(stack.indexOf(module)), module];
@@ -43,10 +56,8 @@ function findCycle(graph) {
     visited.add(module);
     active.add(module);
     stack.push(module);
-    for (const dependency of graph.get(module) ?? []) {
-      const cycle = visit(dependency);
-      if (cycle) return cycle;
-    }
+    const cycle = visitDependencies(module);
+    if (cycle) return cycle;
     stack.pop();
     active.delete(module);
     return undefined;
@@ -83,7 +94,23 @@ async function buildImportGraph(files) {
   return { graph, violations };
 }
 
-function architectureLayerViolations(graph) {
+function importsEntryPoint(module, dependency, entryPoints) {
+  return !entryPoints.has(module) && entryPoints.has(dependency);
+}
+
+function importLayerViolations(module, dependency, { entryPoints, coreModules, outerModules }) {
+  const violations = [];
+  if (importsEntryPoint(module, dependency, entryPoints)) {
+    violations.push(`${module} must not import entry point ${dependency}`);
+  }
+  if (coreModules.has(module) && outerModules.has(dependency)) {
+    violations.push(`core module ${module} must not import outer module ${dependency}`);
+  }
+  if (module === 'db.ts') violations.push(`db.ts must not import internal module ${dependency}`);
+  return violations;
+}
+
+export function architectureLayerViolations(graph) {
   const violations = [];
 
   const entryPoints = new Set([
@@ -128,16 +155,10 @@ function architectureLayerViolations(graph) {
     'trading_web_control.ts',
   ]);
 
+  const layers = { entryPoints, coreModules, outerModules };
   for (const [module, dependencies] of graph) {
     for (const dependency of dependencies) {
-      if (!entryPoints.has(module) && entryPoints.has(dependency)) {
-        violations.push(`${module} must not import entry point ${dependency}`);
-      }
-      if (coreModules.has(module) && outerModules.has(dependency)) {
-        violations.push(`core module ${module} must not import outer module ${dependency}`);
-      }
-      if (module === 'db.ts')
-        violations.push(`db.ts must not import internal module ${dependency}`);
+      violations.push(...importLayerViolations(module, dependency, layers));
     }
   }
   return violations;

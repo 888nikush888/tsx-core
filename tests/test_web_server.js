@@ -10,6 +10,8 @@ import { ManagedSecretStore } from '../src/secret_store.js';
 import { ManagedRuntimeSettingsStore } from '../src/runtime_settings.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
 import { UiOperationStore } from '../src/ui_operation_store.js';
+import { exportPortableSetupBundle } from '../src/setup_bundle.js';
+import { getActiveWorkflow } from '../src/workflow_repository.js';
 
 const ADMIN_TOKEN = 'admin-token-0123456789abcdef0123456789abcdef';
 const VIEWER_TOKEN = 'viewer-token-0123456789abcdef0123456789abcdef';
@@ -181,8 +183,8 @@ async function testOperatorReadContracts(baseUrl, appState) {
     '-1003',
   ];
   appState.tradingControl = {
-    snapshot: async () => ({ strategies: [], positions: [] }),
-    portfolioSnapshot: async refresh => ({ refresh, positions: [] }),
+    snapshot: () => Promise.resolve(({ strategies: [], positions: [] })),
+    portfolioSnapshot: refresh => Promise.resolve({ refresh, positions: [] }),
   };
   try {
     response = await fetch(`${baseUrl}/api/trading`, { headers: headers(VIEWER_TOKEN) });
@@ -291,10 +293,10 @@ async function testTradingAnalyticsApi(baseUrl) {
 }
 
 async function testExchangeCatalogApi(baseUrl, appState) {
-  let response;
+  let response = null;
   const originalTradingControl = appState.tradingControl;
   appState.tradingControl = {
-    exchangeCatalog: async () => ({
+    exchangeCatalog: () => Promise.resolve(({
       implementation: {
         library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest',
       },
@@ -305,8 +307,8 @@ async function testExchangeCatalogApi(baseUrl, appState) {
         markets: { linearSwap: true }, credentialFields: [],
         modes: id === 'paper' ? ['paper'] : ['testnet', 'live'], capabilities: {},
       })),
-    }),
-    probeExchange: async exchange => ({ id: exchange, status: 'candidate' }),
+    })),
+    probeExchange: exchange => Promise.resolve({ id: exchange, status: 'candidate' }),
   };
   try {
     response = await fetch(`${baseUrl}/api/exchanges/catalog`, { headers: headers(VIEWER_TOKEN) });
@@ -328,6 +330,12 @@ async function testExchangeCatalogApi(baseUrl, appState) {
   } finally {
     appState.tradingControl = originalTradingControl;
   }
+}
+
+async function testEmptyWorkflowDetailId(baseUrl) {
+  const response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=`, { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 400, 'An explicitly empty detail identifier must not become a list request.');
+  assert.equal((await response.json()).error, 'Invalid workflow object identifier.');
 }
 
 async function testWorkflowResourceApi(baseUrl) {
@@ -352,6 +360,7 @@ async function testWorkflowResourceApi(baseUrl) {
   response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&resourceId=${encodeURIComponent(draft.resourceId)}&limit=1`, { headers: headers(VIEWER_TOKEN) });
   assert.equal(response.status, 200); assert.equal((await response.json()).entries[0].id, draft.id);
   response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);
+  await testEmptyWorkflowDetailId(baseUrl);
   response = await fetch(`${baseUrl}/api/workflow/models?kind=schema`, { headers: headers(VIEWER_TOKEN) });
   assert.equal(response.status, 200); assert.ok(Array.isArray((await response.json()).entries));
   response = await fetch(`${baseUrl}/api/workflow/models?kind=strategy&id=missing`, { headers: headers(VIEWER_TOKEN) }); assert.equal(response.status, 404);
@@ -691,8 +700,8 @@ async function testSetupReviewPage(baseUrl, preview) {
   assert.equal((await fetch(`${baseUrl}/api/setup-bundle/review?key=missing`, { headers: headers(ADMIN_TOKEN) })).status, 409);
 }
 
-async function testSetupBundleApi(baseUrl, controls, appState) {
-  let response = await fetch(`${baseUrl}/api/setup-bundle/export`, { headers: headers(VIEWER_TOKEN) });
+async function exportSetupTestConfiguration(baseUrl, appState) {
+  const response = await fetch(`${baseUrl}/api/setup-bundle/export`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200, 'Authenticated viewers may export the redacted portable setup.');
   assert.match(response.headers.get('content-disposition') || '', /tsx-core-setup-/);
   const bundle = await response.json();
@@ -701,10 +710,47 @@ async function testSetupBundleApi(baseUrl, controls, appState) {
   assert.equal(bundle.mode, 'replace');
   assert.match(bundle.checksum, /^[a-f0-9]{64}$/);
   assert.doesNotMatch(JSON.stringify(bundle), /must-never-be-returned|must-also-be-redacted/);
+  // The nested object above intentionally tests redaction of foreign fields.
+  // Real persisted configurations reject that unknown root key.
+  delete appState.config.nested;
+  return (await fetch(`${baseUrl}/api/setup-bundle/export`, { headers: headers(VIEWER_TOKEN) })).json();
+}
+
+async function testInvalidSetupConfiguration(baseUrl, appState) {
+  const bundle = await exportPortableSetupBundle({ ...structuredClone(DEFAULT_CONFIG), sourceChannels: 'invalid' });
+  const previewResponse = await fetch(`${baseUrl}/api/setup-bundle/preview`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ bundle }),
+  });
+  assert.equal(previewResponse.status, 200, 'Portable object validation alone does not validate runtime configuration.');
+  const preview = await previewResponse.json();
+  const before = { config: structuredClone(appState.config), workflow: await getActiveWorkflow() };
+  const original = { persist: appState.persistConfig, apply: appState.applyRuntimeConfig };
+  let writes = 0;
+  appState.persistConfig = () => { writes += 1; };
+  appState.applyRuntimeConfig = () => { writes += 1; };
+  try {
+    const response = await fetch(`${baseUrl}/api/setup-bundle/apply`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ previewKey: preview.previewKey, confirmation: preview.confirmation, accountMappings: {} }),
+    });
+    assert.equal(response.status, 409);
+    assert.match((await response.json()).error, /sourceChannels/);
+    assert.equal(writes, 0, 'Malformed configuration must stop before persistence or runtime activation.');
+    assert.deepEqual(appState.config, before.config);
+    assert.deepEqual(await getActiveWorkflow(), before.workflow);
+  } finally {
+    appState.persistConfig = original.persist;
+    appState.applyRuntimeConfig = original.apply;
+  }
+}
+
+async function testSetupBundleApi(baseUrl, controls, appState) {
+  const bundle = await exportSetupTestConfiguration(baseUrl, appState);
+  await testInvalidSetupConfiguration(baseUrl, appState);
 
   const tampered = structuredClone(bundle);
   tampered.systemConfig.targetChannel = 'tampered';
-  response = await fetch(`${baseUrl}/api/setup-bundle/preview`, {
+  let response = await fetch(`${baseUrl}/api/setup-bundle/preview`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ bundle: tampered }),
@@ -855,9 +901,9 @@ async function testTradingStrategyDeletion(baseUrl, appState) {
   const removed = [];
   const original = appState.tradingControl;
   appState.tradingControl = {
-    removeStrategy: async id => {
+    removeStrategy: id => {
       removed.push(id);
-      return true;
+      return Promise.resolve(true);
     }
   };
   try {
@@ -883,7 +929,7 @@ async function testTradingSignalSchemaControl(baseUrl, appState) {
   appState.tradingControl = {
     createSignalSchema: async payload => { calls.push(['create', payload.id]); return payload; },
     updateSignalSchema: async payload => { calls.push(['update', payload.id]); return payload; },
-    removeSignalSchema: async id => { calls.push(['delete', id]); return true; },
+    removeSignalSchema: id => { calls.push(['delete', id]); return Promise.resolve(true); },
   };
   try {
     let response = await fetch(`${baseUrl}/api/trading/signal-schemas`, {
@@ -919,9 +965,9 @@ async function testPublishedSignalContractDeletion(baseUrl, appState) {
   const removed = [];
   const original = appState.tradingControl;
   appState.tradingControl = {
-    removeSignalContractVersion: async versionId => {
+    removeSignalContractVersion: versionId => {
       removed.push(versionId);
-      return true;
+      return Promise.resolve(true);
     },
   };
   try {
@@ -1362,7 +1408,7 @@ async function testOperationsControl(baseUrl, controls) {
 }
 
 async function testMutationSerialization(baseUrl, controls) {
-  let releaseBackup;
+  let releaseBackup = null;
   controls.backupBarrier = new Promise(resolve => { releaseBackup = resolve; });
   const backupRequest = fetch(`${baseUrl}/api/operations/backup`, { method: 'POST', headers: mutationHeaders() });
   const deadline = Date.now() + 1000;
@@ -1530,6 +1576,12 @@ async function testBrowserAndDestructiveContracts(baseUrl, appState) {
   assert.strictEqual(appState.controls.restartCalls, 2);
   response = await fetch(`${baseUrl}/api/does-not-exist`, { headers: headers(ADMIN_TOKEN) });
   assert.strictEqual(response.status, 404, 'Unknown API routes must not fall through to the SPA');
+  response = await fetch(`${baseUrl}/..%2foutside.txt`, { signal: AbortSignal.timeout(2000) });
+  assert.equal(response.status, 403, 'A validly encoded path outside the static root remains forbidden.');
+  assert.equal((await response.json()).error, 'Invalid static file path.');
+  response = await fetch(`${baseUrl}/%ZZ`, { signal: AbortSignal.timeout(2000) });
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, 'Invalid URL encoding.');
   response = await fetch(`${baseUrl}/.directory-response-test`, { signal: AbortSignal.timeout(2000) });
   assert.strictEqual(response.status, 200, 'A static directory path must receive a bounded SPA response');
   assert.ok(Number(response.headers.get('content-length')) > 0, 'SPA responses must declare their exact size');
@@ -1576,15 +1628,15 @@ async function createAppState(testDir, controls) {
       startupTime: Math.floor(Date.now() / 1000)
     },
     getQueueState: () => ({ running: 0, queued: 0, maxConcurrency: 2, paused: false }),
-    startForwarding: async () => {},
-    stopForwarding: async () => { controls.stopCalls += 1; appState.state.isRunning = false; },
-    reloadConfig: () => {},
-    applyRuntimeConfig: () => {},
-    persistConfig: () => {},
+    startForwarding: () => Promise.resolve(),
+    stopForwarding: () => { controls.stopCalls += 1; appState.state.isRunning = false; return Promise.resolve(); },
+    reloadConfig: () => undefined,
+    applyRuntimeConfig: () => undefined,
+    persistConfig: () => undefined,
     getMetricsHistory: () => [],
     getOutboxTasks: async statuses => [{ id: 'unknown-task', status: statuses?.[0] || 'unknown' }],
-    retryOutboxTask: async id => { controls.retryCalls += 1; return id === 'unknown-task'; },
-    acknowledgeOutboxTask: async id => { controls.acknowledgeCalls += 1; return id === 'unknown-task'; },
+    retryOutboxTask: id => { controls.retryCalls += 1; return Promise.resolve(id === 'unknown-task'); },
+    acknowledgeOutboxTask: id => { controls.acknowledgeCalls += 1; return Promise.resolve(id === 'unknown-task'); },
     getTelegramLoginState: () => ({
       state: 'waiting',
       prompt: { kind: 'authCode', label: 'Telegram verification code' }
@@ -1599,7 +1651,7 @@ async function createAppState(testDir, controls) {
         if (controls.auditShouldFail) throw new Error('audit unavailable');
       },
       snapshot: () => ({ healthy: true, remoteRequired: false, lastRemoteSuccessAt: null, recordCount: controls.auditEvents.length }),
-      replayRemote: async () => { controls.auditReplayCalls += 1; return controls.auditEvents.length; }
+      replayRemote: () => { controls.auditReplayCalls += 1; return Promise.resolve(controls.auditEvents.length); }
     },
     secretStore: new ManagedSecretStore(path.join(testDir, 'secrets')),
     getOperationsStatus: () => ({ backup: fixtureBackupProof(), audit: { healthy: true } }),
@@ -1608,15 +1660,15 @@ async function createAppState(testDir, controls) {
       if (controls.backupBarrier) await controls.backupBarrier;
       return path.join(testDir, 'backups', 'backup-test');
     },
-    listBackups: async () => ['backup-2026-test'],
-    verifyBackup: async () => fixtureBackupProof(),
-    recoverOffsiteBackup: async () => {
+    listBackups: () => Promise.resolve(['backup-2026-test']),
+    verifyBackup: () => Promise.resolve(fixtureBackupProof()),
+    recoverOffsiteBackup: () => {
       controls.offsiteRecoveryCalls += 1;
-      return 'backup-2026-recovered';
+      return Promise.resolve('backup-2026-recovered');
     },
-    restoreBackup: async () => {
+    restoreBackup: () => {
       controls.restoreCalls += 1;
-      return { previousDatabase: path.join(testDir, 'previous.db'), previousConfig: null };
+      return Promise.resolve({ previousDatabase: path.join(testDir, 'previous.db'), previousConfig: null });
     },
     performFactoryReset: async () => {
       controls.factoryResetCalls += 1;
@@ -1630,7 +1682,7 @@ async function createAppState(testDir, controls) {
 }
 
 async function testBootstrap(baseUrl) {
-  let disabledLocal = await fetch(`${baseUrl}/api/local-session`, {
+  const disabledLocal = await fetch(`${baseUrl}/api/local-session`, {
     method: 'POST', headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
   });
   assert.strictEqual(disabledLocal.status, 409, 'Integrated startup must be explicitly enabled by the standalone runtime profile');
@@ -1774,7 +1826,7 @@ async function testRecoveryLocalStartup(testDir, appState) {
   const previousAuthMode = process.env.DASHBOARD_AUTH_MODE;
   const previousAllowedOrigin = process.env.DASHBOARD_ALLOWED_ORIGIN;
   const secretStore = new ManagedSecretStore(path.join(testDir, 'recovery-secrets'));
-  let recoveryServer;
+  let recoveryServer = null;
   try {
     delete process.env.DASHBOARD_ADMIN_TOKEN;
     delete process.env.DASHBOARD_VIEWER_TOKEN;

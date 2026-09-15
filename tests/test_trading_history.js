@@ -98,7 +98,13 @@ try {
   assert.ok(rewound.every(row => row.baselineSince === older && row.windowSince === older && row.cursor === null && row.scannedThrough === null));
   assert.ok(rewound.every(row => row.revision === 3 && row.completeness === 'unknown'));
   await assert.rejects(recordAcquisitionEvidence(account, evidence(afterCooldown.map(checkpoint => progress(checkpoint)))), /checkpoint/);
-  assert.deepEqual(await historyCheckpoints(account, since), rewound, 'Later query windows cannot erase an older unresolved obligation.');
+  // The repository schedules by updated_at; rewinding can give both sources the
+  // same millisecond and legitimately change their next read order.
+  const bySource = rows => rows.toSorted((left, right) => left.source.localeCompare(right.source));
+  await getDatabase().run('UPDATE trading_history_checkpoints SET updated_at = 1 WHERE account_id = ? AND account_fingerprint = ?',
+    [account.id, account.externalAccountId]);
+  assert.deepEqual(bySource(await historyCheckpoints(account, since)), bySource(rewound),
+    'Later query windows cannot erase any field of an older unresolved obligation, regardless of scheduling order.');
   const fillCheckpoint = rewound.find(row => row.source === 'fills');
   const end = older + 7 * 86_400_000;
   const coveredUpdate = { baseRevision: fillCheckpoint.revision, pages: 1, checkpoint: { ...fillCheckpoint,

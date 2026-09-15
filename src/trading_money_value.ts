@@ -115,11 +115,11 @@ function gcd(left: bigint, right: bigint): bigint {
 }
 
 function exceedsRationalLimit(left: ExactRational, right: ExactRational): boolean {
-  const a = BigInt(left.numerator), b = BigInt(left.denominator);
-  const c = BigInt(right.numerator), d = BigInt(right.denominator);
-  const common = gcd(b, d);
-  const numerator = a * (d / common) + c * (b / common);
-  const denominator = b * (d / common);
+  const leftNumerator = BigInt(left.numerator), leftDenominator = BigInt(left.denominator);
+  const rightNumerator = BigInt(right.numerator), rightDenominator = BigInt(right.denominator);
+  const common = gcd(leftDenominator, rightDenominator);
+  const numerator = leftNumerator * (rightDenominator / common) + rightNumerator * (leftDenominator / common);
+  const denominator = leftDenominator * (rightDenominator / common);
   const divisor = gcd(numerator, denominator);
   const magnitude = numerator < 0n ? -numerator : numerator;
   // Prove the normalized result limit, not an oversized intermediate or an unrelated thrown error.
@@ -129,13 +129,13 @@ function exceedsRationalLimit(left: ExactRational, right: ExactRational): boolea
 
 /** Exact addition first; only proven rational-result overflow loses correlation into outward bounds. */
 export function addMoneyValues(left: MoneyValue, right: MoneyValue): MoneyValue {
-  const a = validateMoneyValue(left), b = validateMoneyValue(right);
-  const terms = checkedTerms(a.terms + b.terms);
-  if (a.exact && b.exact && !exceedsRationalLimit(a.exact, b.exact)) {
-    return exactValue(addRational(a.exact, b.exact), terms);
+  const validatedLeft = validateMoneyValue(left), validatedRight = validateMoneyValue(right);
+  const terms = checkedTerms(validatedLeft.terms + validatedRight.terms);
+  if (validatedLeft.exact && validatedRight.exact && !exceedsRationalLimit(validatedLeft.exact, validatedRight.exact)) {
+    return exactValue(addRational(validatedLeft.exact, validatedRight.exact), terms);
   }
   return validateMoneyValue({
-    lower: addSignedDecimal(a.lower, b.lower), upper: addSignedDecimal(a.upper, b.upper),
+    lower: addSignedDecimal(validatedLeft.lower, validatedRight.lower), upper: addSignedDecimal(validatedLeft.upper, validatedRight.upper),
     exact: null, decimal: null, precision: 'bounded', terms,
   });
 }

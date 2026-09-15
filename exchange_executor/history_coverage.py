@@ -38,6 +38,12 @@ def covered_window(state: dict[str, Any]) -> bool:
     return bool(value and value['since'] == state['baselineSince'] and value['through'] >= state['windowUntil'])
 
 
+def _retention_covers(probe: dict[str, Any] | None, exchange: str, started: int, through: int) -> bool:
+    return not (probe and (exchange != 'hyperliquid' or probe['phase'] != 'proved'
+                          or probe['validatedAt'] < started
+                          or through > min(probe['fixedUntil'], probe['originalUntil'])))
+
+
 def fresh_fill_source(source: dict[str, Any], progress: list[dict[str, Any]], exchange: str,
                       since: int, started: int) -> dict[str, Any]:
     if exchange == 'bybit':
@@ -50,8 +56,6 @@ def fresh_fill_source(source: dict[str, Any], progress: list[dict[str, Any]], ex
     if (not coverage or coverage['profile'] != PROFILES.get(exchange) or coverage['since'] > since
             or coverage['through'] < started or state['completeness'] != 'complete' or update['pages'] == 0):
         return source
-    probe = state.get('retention')
-    if probe and (exchange != 'hyperliquid' or probe['phase'] != 'proved' or probe['validatedAt'] < started
-                  or coverage['through'] > min(probe['fixedUntil'], probe['originalUntil'])):
+    if not _retention_covers(state.get('retention'), exchange, started, coverage['through']):
         return source
     return {**source, 'completeness': 'complete', 'reason': None, 'since': coverage['since']}

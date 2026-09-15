@@ -23,10 +23,10 @@ function SourceEvidence({ id, channelId }: Readonly<{ id: string; channelId?: st
   if (channelId) { query.set('channelId', channelId); } if (cursor) { query.set('cursor', cursor); }
   const { data, error } = useAdaptive(query.toString());
   return <section className="space-y-3"><h3>Originale Datenbasis</h3>{error && <p role="alert">{error}</p>}
-    {data && <>{data.sourceAvailable ? <><p>Originalhash geprüft: {data.sourceHash}. Das prüft die gespeicherte Herkunft; nachträgliche Änderungen an Geldereignissen werden von der Engine gesondert geprüft.</p>
+    {data && (data.sourceAvailable ? <><p>Originalhash geprüft: {data.sourceHash}. Das prüft die gespeicherte Herkunft; nachträgliche Änderungen an Geldereignissen werden von der Engine gesondert geprüft.</p>
       <ChangeReview label="Kapitalbasis und Auswertungszeitraum" after={{ capital: data.capital, scope: data.scope }} />
       <EvidenceTable caption={`Ursprüngliche Positionsquellen (${data.sourceCount})`} columns={[['intentId', 'Trade'], ['closedAt', 'Abgeschlossen'], ['projectionHash', 'Abrechnungshash'], ['valuationHash', 'Bewertungshash']]} rows={data.entries.map((row: any) => ({ ...row, intentId: <Link to={`/trading/trades/${encodeURIComponent(row.intentId)}`}>{row.intentId}</Link>, closedAt: time(row.closedAt) }))} />
-      <div className="flex gap-3"><button className="secondary-button" disabled={!cursor} onClick={() => setCursor('')}>Erste Quellen</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => setCursor(data.nextCursor)}>Weitere Quellen</button></div></> : <p>{data.reason}</p>}</>}
+      <div className="flex gap-3"><button className="secondary-button" disabled={!cursor} onClick={() => setCursor('')}>Erste Quellen</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => setCursor(data.nextCursor)}>Weitere Quellen</button></div></> : <p>{data.reason}</p>)}
   </section>;
 }
 function ActivePolicyPaths({ stateKey }: Readonly<{ stateKey: string }>) {
@@ -71,7 +71,7 @@ function LegacyCard({ entry }: Readonly<{ entry: any }>) {
     <EvidenceFields fields={[['Modus', policy.mode], ['Aktuelle Stufe', tier(policy.currentTier)], ['Feste Stufe', tier(policy.lockedTier)], ['Gesperrt', policy.blocked], ['Sperrgrund', policy.blockReason], ['Version', policy.policyVersion], ['Geändert', time(policy.updatedAt)]]} />
     <ChangeReview label="Geprüfte Werte des neuen Workflowentwurfs" after={configuration} />
     <Link to={href({ kind: 'legacy-evaluations', channelId: policy.channelId })}>Historische Legacy-Auswertungen</Link>
-    <div><button className="primary-button" disabled={readOnly || busy} onClick={() => void copy()}>Als Workflowentwurf übernehmen</button></div>
+    <div><button className="primary-button" disabled={readOnly || busy} onClick={() => { copy(); }}>Als Workflowentwurf übernehmen</button></div>
     {entry.copiedVersionId && <Link to={resourceUrl({ resourceId: entry.copiedResourceId, id: entry.copiedVersionId })}>Bereits gespeicherte Kopie prüfen</Link>}
     {receipt && <p><output>Entwurf {receipt.alreadyCopied ? 'bereits vorhanden' : 'gespeichert'}; nicht aktiviert. <Link to={resourceUrl(receipt.resource)}>Ressourcenentwurf öffnen</Link></output></p>}
     {error && <p role="alert">{error}</p>}
@@ -91,7 +91,7 @@ export function AdaptiveRiskPage() {
           return <LegacyCard key={row.policy.channelId} entry={row} />;
         }
         if (kind.includes('evaluations')) {
-          return <EvaluationCard key={row.id} row={row} legacyChannel={kind === 'legacy-evaluations' ? params.get('channelId')! : undefined} />;
+          return <EvaluationCard key={row.id} row={row} legacyChannel={kind === 'legacy-evaluations' ? params.get('channelId') ?? undefined : undefined} />;
         }
         return <article key={row.stateKey} className="operations-card space-y-4"><h2>{row.accountName} · {row.mode} · {row.channelId}</h2>
           <EvidenceFields fields={[['Ressource', row.resourceId], ['Aktuelle Stufe', tier(row.currentTier)], ['Feste Stufe', tier(row.lockedTier)], ['Gesperrt', row.blocked], ['Sperrgrund', row.blockReason], ['Policyhash des Zustands', row.policySha256], ['Aktualisiert', time(row.updatedAt)]]} />

@@ -1,0 +1,30 @@
+{
+  "kind": "independent-incident-row-types-review",
+  "baseRevision": "7472587c9480c74fd20d4f42300c9e18dd06d650",
+  "path": "src/trading_incidents.ts",
+  "priorGitBlobSha256": "73fb2f405d86c00c392465e95c19bfb28a262af180560e50c838085a7dc136db",
+  "currentLfSha256": "d67611f0b9fbbf7d96e9b0a84ab38ff32032b383593867b0a5ff56524766d7db",
+  "schemaBinding": {
+    "path": "src/db.ts",
+    "currentLfSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8"
+  },
+  "verdict": "Accept bounded type-only change. No runtime regression found.",
+  "checks": [
+    "IncidentRow field names and nullable resolved_at match the explicit schema and sole production INSERT in recordTradingAccountIncident. SELECT * uses the full row; resolve projection uses Pick matching exactly id/category/severity/message/occurrence_count.",
+    "Read complete diff and all incident module bodies. SQL text, placeholder order, dedupe fingerprint, count increment, notification ordering, fallback JSON parsing, conversions, status filtering and limits are unchanged.",
+    "Independent transpilation with identical options produces exactly identical full JavaScript bytes. The local row annotation prevents future drift in the insert object without adding runtime trust."
+  ],
+  "typeContractLimits": [
+    "category is TEXT NOT NULL with no enum SQL CHECK. TradingIncidentCategory binding relies on the existing typed recordTradingAccountIncident writer; this is not validation of arbitrary imported/corrupt/manual database rows.",
+    "Severity and status do have SQL CHECKs. Other schema integer/text affinities do not constitute a universal hostile-database parser. Existing Number/String conversions remain unchanged.",
+    "The existing exported DTO already promised the category union before this refactor; the new row interface documents that same producer contract rather than enforcing a new one."
+  ],
+  "verification": {
+    "independentFullEmittedJsByteEquality": true,
+    "emittedJsSha256": "2558354694bb05e804e02b882666c2266543e70e22c9e755fd9c6e2797c5eada",
+    "compilerVersion": "6.0.3",
+    "rootTargetSession": 30212,
+    "targetStatus": "Owned by root; completion not asserted in this report."
+  },
+  "mutations": "Only this ignored review report written; no source, tests or commits."
+}

@@ -80,6 +80,6 @@ describe("workflow fallback simulation", () => {
     expect(screen.getAllByText("BLOCK")).toHaveLength(2);
     expect(screen.getByText("Konto nicht bereit")).toBeVisible();
     expect(screen.getByText("Risikoprüfung fehlgeschlagen")).toBeVisible();
-    expect(screen.queryByText(/A→B:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/A→B:/u)).not.toBeInTheDocument();
   });
 });

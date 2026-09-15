@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-historical-ingress-contract-followup-with-regression-restoration",
+  "generatedAt": "2026-09-14T07:11:43.188219+00:00",
+  "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedBeforeRevision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+  "fixedRevision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+  "priorReview": {
+    "path": "reports/security-services/fixer-implementation-src-wave2-review.json",
+    "sha256": "d215b0661ffd5f4485761d273a6f0ca00a35d0749b6779d012e5af837d0e0b11"
+  },
+  "entries": [
+    {
+      "path": "src/incoming_work_repository.ts",
+      "baseline": {
+        "path": "src/incoming_work_repository.ts",
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "c781a4bfec4ef3ce5410f77eb75be6a89ab72708",
+        "gitBlobSha256": "ce2023d69b50d51557f5a2592df836407223392ab2c39b6b4a74fccbe7b56383"
+      },
+      "before": {
+        "path": "src/incoming_work_repository.ts",
+        "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+        "gitBlobOid": "fd2b09f7b79f23f074d3265d61b0806be27aa5af",
+        "gitBlobSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b"
+      },
+      "current": {
+        "path": "src/incoming_work_repository.ts",
+        "revision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+        "gitBlobOid": "fd2b09f7b79f23f074d3265d61b0806be27aa5af",
+        "gitBlobSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b"
+      },
+      "fullHistoricalDeltaSha256": "7d7974d47cf28a0dcdd4e4cd4fa706426f78ad59f95ddc8dc60cdf334ea67688",
+      "completeHistoricalDeltaCoverageAfterFollowup": true,
+      "basis": "Prior wave2 full delta review plus producer/migration/persisted-variant followup here closes its specific unresolved compatibility gap. One confirmed SDK service-text regression was corrected and tested; no blanket promotion of unrelated scoped findings."
+    },
+    {
+      "path": "src/ingress_contracts.ts",
+      "baseline": null,
+      "before": {
+        "path": "src/ingress_contracts.ts",
+        "revision": "03fa9623a15a537d1e2c53f94bc4555878752cae",
+        "gitBlobOid": "95dd4e4c696ddfe8d21868798d5d9d336d592c34",
+        "gitBlobSha256": "b9b53a9beb2124f65cadbf41269302456386f5d9106e8994fcba002b9b75d8d1"
+      },
+      "current": {
+        "path": "src/ingress_contracts.ts",
+        "revision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+        "gitBlobOid": "013d9ab9f3703e127c1f41a02305d25210fa886c",
+        "gitBlobSha256": "5419ee6e96ab6685aabd5b2f388fae430c2ef483de1af3225f2ad23531674b98"
+      },
+      "fullHistoricalDeltaSha256": "47bbcecd23dcc4852f9dde7586f012cac144edab279c7220ec7ca28cfd4d0e31",
+      "completeHistoricalDeltaCoverageAfterFollowup": true,
+      "basis": "Prior wave2 full delta review plus producer/migration/persisted-variant followup here closes its specific unresolved compatibility gap. One confirmed SDK service-text regression was corrected and tested; no blanket promotion of unrelated scoped findings."
+    }
+  ],
+  "regression": {
+    "classification": "confirmed-valid-SDK-message-ingress-and-restart-regression",
+    "trigger": "TDLib messageCustomServiceAction has content.text:string. Generic formattedText check added since baseline rejects it. Historical accept stores complete message and classifier handles content type as service with empty extracted text. New admission rejected before inbox insert; pending historical row was marked needs_review on restart.",
+    "beforeEvidence": "Actual baseline accept/process functions, with imports rebound to current offline dependencies, accepted/routed13of13 representative shapes; current classifier routed12of13 and marked custom service action needs_review. Existing test extended with pre-upgrade persisted service row failed before fix: expected routed, got needs_review.",
+    "fix": "Only permit string content.text when content._ is exactly messageCustomServiceAction; other text and caption checks unchanged. FilterMessage text union now includes string and consumer explicitly returns empty text for string. No service type added to MESSAGE_TYPES, no parser/trading/provider action enabled.",
+    "afterEvidence": "Guard test proves both resumed and fresh service messages route again while malformed messageText string and photo caption string still reject; round-trip preserves full source payload. Baseline/current filter projections identical across100installed SDK MessageContent variants.",
+    "limitations": "Restores durable admission/classification; does not assert Telegram permits forwarding every service type. No Telegram service/provider call performed. Existing downstream dispatch and rejection remains unchanged."
+  },
+  "producerAndMigrationTrace": [
+    "forwarder.handleUpdate updateNewMessage -> routeIncomingMessage excludes outgoing and unauthorized source before accept; TDLib payload remains unprojected, JSON.stringify(message) stores full source object.",
+    "acceptIncomingMessage still pins active workflow/parser resources before source inbox and incoming_work insertion inside database transaction; new guard executes before transaction. Historical pending rows created under same durable schema retain complete message_json.",
+    "processIncomingWork reads pending rows and isolates parse/validation exceptions as needs_review; closeAlbum reads retained message_json for album members. Existing atomicity test verifies persisted text and album replay after process death and dedupe.",
+    "db durable_ingress_pinned_workflow_ai_reservations migration explicitly puts legacy inbox rows without full provenance into needs_review and blocks legacy pending outbox replay; these null message_json rows are not admitted by automatic pending-row classification.",
+    "forwarder legacy-media-buffer migration retains messages in separate media_group_buffer, not incoming_work.message_json; unrelated historical buffer replay provenance is not widened.",
+    "Installed SDK uses media_album_id:string. Existing application media_group_id optional routing field and fixtures are retained unchanged; absence of media_group_id is accepted, media_album_id remains in persisted opaque payload. This review makes no new assertion about historical album field naming."
+  ],
+  "sdkEvidence": {
+    "installedTypes": {
+      "path": "node_modules/@prebuilt-tdlib/types/tdlib-types.d.ts",
+      "sha256": "d57a0ee7793512ee8f6e29e1c46ac165f36d70c887bf23a7a6805665eb6a024c"
+    },
+    "package": {
+      "path": "node_modules/@prebuilt-tdlib/types/package.json",
+      "sha256": "2f4e6bc87f538bc650398cd9047aacf2e1a9f382eefc1fd401b707e26eae0563"
+    },
+    "version": "0.1008064.0",
+    "tdlibVersion": "1.8.64",
+    "tdlibCommit": "49b3bcbb6bfebf2ed44dd9f25102d2e1a94a58c4",
+    "sourceContext": "type messageCustomServiceAction lines13698-13703; MessageContent union lines43368-43468",
+    "upstreamReference": "https://github.com/tdlib/td/blob/49b3bcbb6bfebf2ed44dd9f25102d2e1a94a58c4/td/generate/scheme/td_api.tl",
+    "variantCount": 100,
+    "textOrCaptionDefinitions": 14,
+    "uniquePlainStringTextVariant": "messageCustomServiceAction",
+    "probeBoundary": "Generated only consumed content discriminant/text/caption plus valid numeric identity, boolean outgoing and SDK media_album_id string. Unconsumed required SDK fields omitted deliberately: this proves boundary compatibility of all100type variants, not100fully valid provider message objects or SDK certification. Full payload retention separately checked with opaque nested fields."
+  },
+  "tests": {
+    "freshExecutions": [
+      "test_ingress_contract_guards.js",
+      "test_ingress_atomicity.js",
+      "test_ingress_workflow_pinning.js",
+      "test_filters.js",
+      "tsc --noEmit",
+      "ESLint src/ingress_contracts.ts src/filters.ts tests/test_ingress_contract_guards.js"
+    ],
+    "results": "All passed; regression red-before recorded separately; 100-variant historical admission/current restart/filter comparison passed.",
+    "executionArtifacts": [
+      {
+        "path": "reports/security-services/probe-ingress-historical-restart.log",
+        "sha256": "8835c52850bbdba9938cbe5468c99f9dc2403807e01690d61414aad406a57aae"
+      },
+      {
+        "path": "reports/security-services/fixer-ingress-service-before.log",
+        "sha256": "af626b11477c25deef259529309db21955f304c35c9547882ab719d559ccb997"
+      },
+      {
+        "path": "reports/security-services/fixer-ingress-service-after.log",
+        "sha256": "b3555efa9826dbc95339e546f729dd99eb27782eea8e2dd63285053756950b38"
+      },
+      {
+        "path": "reports/security-services/fixer-ingress-service-test_ingress_contract_guards.js.log",
+        "sha256": "b3555efa9826dbc95339e546f729dd99eb27782eea8e2dd63285053756950b38"
+      },
+      {
+        "path": "reports/security-services/fixer-ingress-service-test_ingress_atomicity.js.log",
+        "sha256": "2266c0a0092e3cbf69885e8377981fa48e47b0ebcd3bb3f43d74af2559de1b3d"
+      },
+      {
+        "path": "reports/security-services/fixer-ingress-service-test_ingress_workflow_pinning.js.log",
+        "sha256": "4ab5c306ee63c01e552812ffad7213edc564a2f86b3cc3dc01855df16eb66875"
+      },
+      {
+        "path": "reports/security-services/fixer-ingress-service-test_filters.js.log",
+        "sha256": "e833e21a6e747b2de3b48be1ce3677873111579bd2138e64d1fa6c689d4060b2"
+      },
+      {
+        "path": "reports/security-services/fixer-ingress-service-eslint.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/security-services/fixer-ingress-service-typecheck.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/security-services/probe-ingress-historical-restart-after.log",
+        "sha256": "c97796badf80b02a5b39c963490260dac630afe30cb977daf9de95e616c12ddd"
+      },
+      {
+        "path": "reports/security-services/probe-ingress-sdk-variants.log",
+        "sha256": "45a1fd931995fbc86bdb151e298dd7be1b18385418f76eb4099dae3e97b1d2f2"
+      }
+    ]
+  },
+  "sourceBindings": [
+    {
+      "path": "src/incoming_work_repository.ts",
+      "revision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+      "gitBlobOid": "fd2b09f7b79f23f074d3265d61b0806be27aa5af",
+      "gitBlobSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b"
+    },
+    {
+      "path": "src/ingress_contracts.ts",
+      "revision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+      "gitBlobOid": "013d9ab9f3703e127c1f41a02305d25210fa886c",
+      "gitBlobSha256": "5419ee6e96ab6685aabd5b2f388fae430c2ef483de1af3225f2ad23531674b98"
+    },
+    {
+      "path": "src/filters.ts",
+      "revision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+      "gitBlobOid": "ad494fef71216c9ab4f2c0d53ae5773b88dec18c",
+      "gitBlobSha256": "9135f07539b9582c98ec48fb116e243b4b1dd215fd6440743adc057bac5fdb0f"
+    },
+    {
+      "path": "src/forwarder.ts",
+      "revision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+      "gitBlobOid": "79247f59ebcfffef06437a2dabc534cc5752fb17",
+      "gitBlobSha256": "71537e7d74b2b9d9ea00176b16779e90cbceb79628676cf7008cf22bfa31c62c"
+    },
+    {
+      "path": "src/db.ts",
+      "revision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+      "gitBlobOid": "64ac91b806dac2cc1934deb2ae812fdfa3db3562",
+      "gitBlobSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8"
+    },
+    {
+      "path": "tests/test_ingress_contract_guards.js",
+      "revision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+      "gitBlobOid": "59c6adc102425d1d6c08a27df5c0e7f8abec091e",
+      "gitBlobSha256": "9d2c21e5f025fd41cca07cd2ca6e2113f6cf020c24108d35a376956fad27dc58"
+    },
+    {
+      "path": "tests/test_ingress_atomicity.js",
+      "revision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+      "gitBlobOid": "e092ffa726f657493b730d0decadfdffb33bdde4",
+      "gitBlobSha256": "2c601c8df47c86896e2091125dabeb8ca6fbdcaaf9636b9ab28f9433bb268816"
+    },
+    {
+      "path": "tests/fixtures/ingress_crash.js",
+      "revision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+      "gitBlobOid": "da109ad4ca0eec481c04067a720dd69ae4593225",
+      "gitBlobSha256": "3a3a90a3dd9855fee2433b157a560621fed9802409336d774f901d40f1126dd7"
+    },
+    {
+      "path": "tests/test_ingress_workflow_pinning.js",
+      "revision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+      "gitBlobOid": "fbf135330af50913c06d628a59c30b12eef928e0",
+      "gitBlobSha256": "3c76b0e628b47efe57abd85fc88d32bb965d2157e24d033bec411279908012a7"
+    },
+    {
+      "path": "tests/fixtures/legacy_ingress_schema.js",
+      "revision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+      "gitBlobOid": "e18a507a1a754eccca23009f002cf4260fedba18",
+      "gitBlobSha256": "b26e3f287faec3969f08e2071aaab5a2a29568b4e295ad2883978bd95a5e31ef"
+    },
+    {
+      "path": "package-lock.json",
+      "revision": "e58bd776154948d765c0d7ceff44e7498af2f620",
+      "gitBlobOid": "3071559795730d2884dd6e29fa7057d2095047f8",
+      "gitBlobSha256": "86f4c2706a029c7672cda1849370b4ea5f70060fd66eac74c4bec5b6313724fa"
+    }
+  ],
+  "probeBindings": [
+    {
+      "path": "reports/security-services/probe-historical-incoming-work.ts",
+      "sha256": "2535e8039b9b2a837c17353dd6ff6d7b07893d397b6966276d4decc2727db8b5"
+    },
+    {
+      "path": "reports/security-services/probe-historical-filters.ts",
+      "sha256": "6edf626bd2bb3a4dae07e8e8d696bfb3ac9d2b94b9ca585b8c418063bbc2e59d"
+    },
+    {
+      "path": "reports/security-services/probe-ingress-historical-restart.mjs",
+      "sha256": "ce4884f09c527e74cc7adf13efc972efbd424a9709b6688c5ffa366f5d05af7d"
+    },
+    {
+      "path": "reports/security-services/probe-ingress-historical-restart-after.mjs",
+      "sha256": "d6a499e1797f62b6c445d7739cb990aadcc0cc05cebdbfc617cde0fa2b742605"
+    },
+    {
+      "path": "reports/security-services/probe-ingress-sdk-variants.mjs",
+      "sha256": "daf993195e26557ec9bfca0fdce9ac4909f04934ef250b5dd8ab32ff8a26efbf"
+    },
+    {
+      "path": "reports/security-services/probe-ingress-sdk-variants-definitions.json",
+      "sha256": "516e5bd38664d8167707dc73f6f78fdf6ad47f58b52edb7e695ccd145b1c01f5"
+    }
+  ],
+  "implementationReceiptApproval": false,
+  "providerAcceptance": false
+}

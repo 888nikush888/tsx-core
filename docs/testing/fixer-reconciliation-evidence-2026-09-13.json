@@ -1,0 +1,56 @@
+{
+  "date": "2026-09-13",
+  "base": "d47ee411a762bbb9a222b197c126b89f0fb977f7",
+  "merging": "3cf589b69b52bc66d2690e7cf62dc4e49f605dca",
+  "summary": "fixer-reconciliation-verification-2026-09-13.md",
+  "routeMetadataUnchanged": true,
+  "changedHandlerHashes": 16,
+  "evidence": [
+    {
+      "name": "backend-final.log",
+      "sha256": "829aef21a748eff6a3ff6b047d70e79586fcd5a166539990404dd62002d2df7f",
+      "bytes": 70643
+    },
+    {
+      "name": "final-contract-regressions.log",
+      "sha256": "7c6a9ead5059981b8ca988ec21440bb105e475deac7b872d7fd3dfd241707555",
+      "bytes": 23017
+    },
+    {
+      "name": "python-tests-renewed.log",
+      "sha256": "9c69aa164f33ec06c493ed9ede0933eb4f645ae22b9839aaf2a20c5e7915b8e6",
+      "bytes": 4809
+    },
+    {
+      "name": "frontend-tests.log",
+      "sha256": "cc83522c36366bcfdc592caf8738ffede3732d763b6b3ee1705b66c2af7adbbe",
+      "bytes": 464
+    },
+    {
+      "name": "typecheck-post-review.log",
+      "sha256": "0f77cf5c5793fa7775c3788752e4340bd346e4611e0e2631773e072255b4ddd4",
+      "bytes": 48
+    },
+    {
+      "name": "lint-post-review.log",
+      "sha256": "17c46ce4f99e25faf34224d1d9f838f3fa6b20ba648b08b9d8d0bd2c23b25ed2",
+      "bytes": 100
+    },
+    {
+      "name": "build-post-review.log",
+      "sha256": "d82a09f747871f3499ebbe98141c61dff8a5a544cf68fb64a80fb8dd3e615d4b",
+      "bytes": 1592
+    },
+    {
+      "name": "frontend-lint-final.log",
+      "sha256": "cecde757fd7b73ca306d4240db99361b4c0037aa860e8dcf466331e66387f25e",
+      "bytes": 116
+    },
+    {
+      "name": "python-lint-final.log",
+      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0",
+      "bytes": 20
+    }
+  ],
+  "limitation": "Full backend run preceded three final source restorations; nine affected suites and static/build checks passed afterward. See summary for scope. Not scanner or release approval."
+}
