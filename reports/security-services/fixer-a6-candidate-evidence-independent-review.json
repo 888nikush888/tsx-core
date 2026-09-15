@@ -1,0 +1,196 @@
+{
+  "kind": "independent-candidate-evidence-incremental-renewal-review",
+  "revision": "a6a1ee3f93ee0c6247be39fe8a709fa45bdf25a9",
+  "rootCause": "CI stops while verifying exact candidate evidence because a referenced shared test file gained a Hyperliquid-only regression after its prior binding. The Hyperliquid receipt itself is not an assessment evidence reference and is not this drift.",
+  "counts": {
+    "assessments": 103,
+    "references": 84,
+    "uniqueEvidencePaths": 21,
+    "driftedPaths": 1,
+    "otherExactEvidencePaths": 20
+  },
+  "requiredChanges": [
+    {
+      "path": "docs/testing/ccxt-expansion-matrix.json",
+      "jsonPointer": "/assessments/33/evidence/1/sha256",
+      "old": "03f0a27217751ab0f180e2659cedcc04898290788f753c3655581d92d7b98ad8",
+      "new": "596a288992226649153b9884ed2f873a9c80f578f591a622bb7f99832313ce39"
+    },
+    {
+      "path": "exchange_executor/ccxt_candidate_reviews.py",
+      "constant": "APPROVED_ASSESSMENTS_HASH",
+      "old": "75c17ba5fda13f5df677e33f7dc2e43e64df8e228cf5564081bf2fde14b74c04",
+      "new": "30a6dc1405342b1c9359f4e8bce5fc7ad192a3d98ed40db1c061590faa133052"
+    }
+  ],
+  "canonicalAlgorithm": "SHA256(json.dumps(assessments, ensure_ascii=True, sort_keys=True, separators=(comma,colon), allow_nan=False).encode(UTF-8))",
+  "reviewedAssessment": {
+    "decision": "not_easy",
+    "evidence": [
+      {
+        "kind": "exclusion",
+        "path": "plans/002-BYBIT-UTA-RESEARCH.md",
+        "sha256": "65262a28fa66d88bdcff9469d6a703376042c2b8be2584aaa76b0f94e1283df0"
+      },
+      {
+        "kind": "exclusion",
+        "path": "exchange_executor/tests/test_history_coverage.py",
+        "sha256": "03f0a27217751ab0f180e2659cedcc04898290788f753c3655581d92d7b98ad8"
+      }
+    ],
+    "id": "bybit",
+    "implementationVerified": false,
+    "providerAcceptanceVerified": false,
+    "reasonCodes": [
+      "accountwide_option_and_preupgrade_history_not_complete",
+      "provider_delivery_finality_not_proven",
+      "local_profile_remains_quarantined"
+    ]
+  },
+  "verification": {
+    "entire103AssessmentSetUnchangedSincePreAddition": true,
+    "allExistingTestAndHelperAstBodiesUnchanged": true,
+    "existingMethodOrFunctionCount": 17,
+    "addedFunctions": [
+      "HistoryCoverageTests.test_hyperliquid_accountwide_history_preserves_allowed_and_blocks_foreign_scopes",
+      "hyperliquid_scope_client",
+      "hyperliquid_scope_transport"
+    ],
+    "inventoryHashUnchanged": "5a76c0381e97811ce155f2eaa523570cabdd0bc0d8e81b72c8950f0d8f0dd69f",
+    "onlyProposedAssessmentValueChange": "One exact evidence hash; all decisions, reason codes, flags, IDs, paths, kinds and ordering retained."
+  },
+  "semanticReview": [
+    "Bybit remains not_easy, implementationVerified false and providerAcceptanceVerified false, with accountwide option/preupgrade history incompleteness, unproven delivery finality and local quarantine reasons unchanged.",
+    "Unchanged Bybit tests continue to assert option_history_scope_unproved despite traversed linear coverage, scan all linear/inverse/spot/option categories without execType filtering, refuse uncovered old retention gaps and reject unmanaged foreign spot activity.",
+    "The added Hyperliquid helpers construct actual pinned SDK parsers using only mocked provider transport. client.fetch rejects any attempted network and cleanup asserts it was not called; closure clients are scoped per subtest and closed asynchronously.",
+    "New accountwide-history test checks ETH/BTC preservation, no narrowing coin/dex/symbol request filters, aggregateByTime false, wallet binding, explicit unresolved evidence for foreign HIP3/spot, and BadSymbol rejection for unknown markets. It neither changes Bybit helper behavior nor approves Bybit provider access.",
+    "Candidate verifier still requires a fixed inventory commitment and complete assessment digest before every referenced byte check. not_easy remains a reviewed negative candidate verdict; existing profiles additionally require certification_result. Provider/account acceptance remains outside this local verifier."
+  ],
+  "evidenceBindings": [
+    {
+      "path": "plans/009-ADDITIONAL-CANDIDATE-BOUNDARIES.md",
+      "expectedSha256": "f8725fc8e49e088c739cd946bbe829e43c7c94c005ceafd7b580e24a2056e051",
+      "gitBlobSha256": "f8725fc8e49e088c739cd946bbe829e43c7c94c005ceafd7b580e24a2056e051"
+    },
+    {
+      "path": "plans/009-CANDIDATE-GROUP-A.md",
+      "expectedSha256": "802205c2d2126403e8f038544c363df0d7269d5e70f8cad6600e28584fae26f9",
+      "gitBlobSha256": "802205c2d2126403e8f038544c363df0d7269d5e70f8cad6600e28584fae26f9"
+    },
+    {
+      "path": "exchange_executor/tests/test_candidate_group_a_boundaries.py",
+      "expectedSha256": "597b3099fe228a9ac6721ab28e0e76ad556718e8261bcff22eee8f0a4bb73848",
+      "gitBlobSha256": "597b3099fe228a9ac6721ab28e0e76ad556718e8261bcff22eee8f0a4bb73848"
+    },
+    {
+      "path": "plans/009-PINNED-CAPABILITY-BOUNDARIES.md",
+      "expectedSha256": "b3aa2feb736a3ff270e8d7a7e1abdff0ab1ce5b501dcafadb15f95ca4a6bf559",
+      "gitBlobSha256": "b3aa2feb736a3ff270e8d7a7e1abdff0ab1ce5b501dcafadb15f95ca4a6bf559"
+    },
+    {
+      "path": "plans/009-BINANCE-OKX-RESEARCH.md",
+      "expectedSha256": "63cfe88af856d9a06b39aa7fdf280b090cf16286d5c78652823b631fe13c158c",
+      "gitBlobSha256": "63cfe88af856d9a06b39aa7fdf280b090cf16286d5c78652823b631fe13c158c"
+    },
+    {
+      "path": "plans/009-ASTER-BITMEX-RESEARCH.md",
+      "expectedSha256": "37abb83afa69c65db1427a0cc403cd4ea63ff04292a1dbcfcdded964a3d11ef8",
+      "gitBlobSha256": "37abb83afa69c65db1427a0cc403cd4ea63ff04292a1dbcfcdded964a3d11ef8"
+    },
+    {
+      "path": "plans/002-BYBIT-UTA-RESEARCH.md",
+      "expectedSha256": "65262a28fa66d88bdcff9469d6a703376042c2b8be2584aaa76b0f94e1283df0",
+      "gitBlobSha256": "65262a28fa66d88bdcff9469d6a703376042c2b8be2584aaa76b0f94e1283df0"
+    },
+    {
+      "path": "exchange_executor/tests/test_history_coverage.py",
+      "expectedSha256": "03f0a27217751ab0f180e2659cedcc04898290788f753c3655581d92d7b98ad8",
+      "gitBlobSha256": "596a288992226649153b9884ed2f873a9c80f578f591a622bb7f99832313ce39"
+    },
+    {
+      "path": "plans/009-CANDIDATE-GROUP-B.md",
+      "expectedSha256": "df9174d8d004ca3b0a525f4fc9c7c576837d89078a1492ac6fd0402fb3fcb26f",
+      "gitBlobSha256": "df9174d8d004ca3b0a525f4fc9c7c576837d89078a1492ac6fd0402fb3fcb26f"
+    },
+    {
+      "path": "exchange_executor/tests/test_candidate_group_b_boundaries.py",
+      "expectedSha256": "bc387d07c1545bb3faccecf42b3272fc7040ed94225f2f8b3d559890ada4e41d",
+      "gitBlobSha256": "bc387d07c1545bb3faccecf42b3272fc7040ed94225f2f8b3d559890ada4e41d"
+    },
+    {
+      "path": "plans/009-HYPERLIQUID-IMPLEMENTATION-REVIEW.md",
+      "expectedSha256": "d03775cd54ba38403a58ab649d13998153330ff7eba26d85397cd11d5deb106e",
+      "gitBlobSha256": "d03775cd54ba38403a58ab649d13998153330ff7eba26d85397cd11d5deb106e"
+    },
+    {
+      "path": "exchange_executor/tests/test_mutation_identity.py",
+      "expectedSha256": "4603e8f835f705e621b6e71c1cfbc775dfb37be60593010f19d8567fa127adc0",
+      "gitBlobSha256": "4603e8f835f705e621b6e71c1cfbc775dfb37be60593010f19d8567fa127adc0"
+    },
+    {
+      "path": "plans/004-KRAKEN-BATCH-RESEARCH.md",
+      "expectedSha256": "fac3117682ba9d91ba665705afa1be835e235fa2cd8da3d7ac340b379ef83f72",
+      "gitBlobSha256": "fac3117682ba9d91ba665705afa1be835e235fa2cd8da3d7ac340b379ef83f72"
+    },
+    {
+      "path": "exchange_executor/tests/test_entry_price_sdk.py",
+      "expectedSha256": "9e6919a1fede26cb469ff67f2587973d012327532ff6ed5b6d6b8033bab236d7",
+      "gitBlobSha256": "9e6919a1fede26cb469ff67f2587973d012327532ff6ed5b6d6b8033bab236d7"
+    },
+    {
+      "path": "plans/009-KUCOIN-INTEGRATION-REVIEW.md",
+      "expectedSha256": "a0ab2926cd8b7a0169165fecf89142706050bb5ea734d765f8b533d24f0983e4",
+      "gitBlobSha256": "a0ab2926cd8b7a0169165fecf89142706050bb5ea734d765f8b533d24f0983e4"
+    },
+    {
+      "path": "plans/009-KUCOINFUTURES-INDEPENDENT-FINAL-REVIEW.md",
+      "expectedSha256": "d514aa67b637dd0fb1171a0dd9d38b159a5ee137320b987e8f3734835821363a",
+      "gitBlobSha256": "d514aa67b637dd0fb1171a0dd9d38b159a5ee137320b987e8f3734835821363a"
+    },
+    {
+      "path": "exchange_executor/tests/test_kucoin_provider_data.py",
+      "expectedSha256": "f48ddb0f2e4b4495ca8d1f371eb70de505ad8d5e5fad1571184dafa94d5a1d74",
+      "gitBlobSha256": "f48ddb0f2e4b4495ca8d1f371eb70de505ad8d5e5fad1571184dafa94d5a1d74"
+    },
+    {
+      "path": "plans/009-CANDIDATE-GROUP-C.md",
+      "expectedSha256": "4022873c666dd0fc5272c4f787b1d3b92f4effc570973c4b24b4b705640337fe",
+      "gitBlobSha256": "4022873c666dd0fc5272c4f787b1d3b92f4effc570973c4b24b4b705640337fe"
+    },
+    {
+      "path": "exchange_executor/tests/test_candidate_group_c_boundaries.py",
+      "expectedSha256": "904f3dfa25712f7bab71902b5f5a0d86492e44ee3d7debcf34ba93ef2f6a65bd",
+      "gitBlobSha256": "904f3dfa25712f7bab71902b5f5a0d86492e44ee3d7debcf34ba93ef2f6a65bd"
+    },
+    {
+      "path": "plans/009-MYOKX-ASTER-FOLLOWUP.md",
+      "expectedSha256": "de64fbbcc00ac4acd1574ea3b91511e43842cb12a6ce02d8a3b87156f72fb904",
+      "gitBlobSha256": "de64fbbcc00ac4acd1574ea3b91511e43842cb12a6ce02d8a3b87156f72fb904"
+    },
+    {
+      "path": "exchange_executor/tests/test_additional_myokx_boundaries.py",
+      "expectedSha256": "db9be578b896ea588d95085bd5605735c228f133fbdc10293e7ddc595da4d46c",
+      "gitBlobSha256": "db9be578b896ea588d95085bd5605735c228f133fbdc10293e7ddc595da4d46c"
+    }
+  ],
+  "sourceBindings": [
+    {
+      "path": "docs/testing/ccxt-expansion-matrix.json",
+      "gitBlobSha256": "ebe0790edb321b5a5a97e7294e9199ffadee888a1b157da90f707308983f08c8"
+    },
+    {
+      "path": "exchange_executor/ccxt_candidate_reviews.py",
+      "gitBlobSha256": "cb7b2fb229c71adf288df06c2bfc961050695748972eed62cafc10b5521a916b"
+    },
+    {
+      "path": "plans/002-BYBIT-UTA-RESEARCH.md",
+      "gitBlobSha256": "65262a28fa66d88bdcff9469d6a703376042c2b8be2584aaa76b0f94e1283df0"
+    }
+  ],
+  "approvalScope": "The exact single-reference update and corresponding full-assessment digest may be renewed for this independently reviewed incremental evidence delta. This is not a new full review of unchanged evidence content or implementation/provider acceptance.",
+  "limits": [
+    "Read-only source/AST/hash review; no files other than this ignored report changed and no tests executed by this reviewer.",
+    "20 unaffected references and all 103 assessments are retained through exact byte/value equality to their previous committed bindings, not a claimed new end-to-end review of every provider.",
+    "Root must run relevant canonical LF candidate-policy tests after applying the two exact proposed changes."
+  ]
+}
