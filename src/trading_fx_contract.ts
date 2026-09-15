@@ -78,7 +78,7 @@ function validateTimes(row: Record<string, any>): void {
     || row.completedAt > Date.now() + 1000 || row.providerResponseAt < row.startedAt - 1000
     || row.providerResponseAt > row.completedAt + 1000) invalidFx();
 }
-function validateProfile(row: Record<string, any>, context: FxContext): void {
+function validateProfile(row: Record<string, any>, context: { mode: unknown; profileHash: unknown }): void {
   if (row.version !== 1 || row.provider !== 'bybit' || row.source !== 'bybit-v5-rest-index-snapshot-v1'
     || row.endpoint !== '/v5/market/tickers' || row.ccxtVersion !== '4.5.75' || row.profileVersion !== 1) invalidFx();
   if (!['live', 'testnet'].includes(row.mode) || row.mode !== context.mode || row.profileHash !== context.profileHash
@@ -100,7 +100,7 @@ function validateEnvelope(row: Record<string, any>): void {
   if (ticker.symbol !== row.symbol || ticker[row.field] !== row.value) invalidFx();
   if (row.envelopeHash !== fxEvidenceDigest('bybit-fx-envelope-v1', envelope)) invalidFx();
 }
-export function validateFxLegReceipt(value: unknown, context: FxContext): FxLegReceipt {
+export function validateFxLegReceipt(value: unknown, context: { mode: unknown; profileHash: unknown }): FxLegReceipt {
   const row = object(value);
   if (Object.keys(row).sort(codeUnitOrder).join(',') !== SHAPE) invalidFx();
   validateProfile(row, context);

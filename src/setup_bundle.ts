@@ -47,7 +47,7 @@ const ROOT_KEYS = new Set([
   'schemaVersion', 'mode', 'exportedAt', 'applicationVersion', 'systemConfig',
   'workflow', 'models', 'accountReferences', 'checksum',
 ]);
-const WORKFLOW_KINDS = new Set<WorkflowResourceKind>([
+const WORKFLOW_KINDS = new Set<unknown>([
   'channel', 'content_filter', 'keyword_filter', 'regex', 'parser', 'schema', 'contract',
   'dedupe', 'strategy', 'sizing', 'adaptive_risk', 'account', 'output',
 ]);
@@ -147,8 +147,8 @@ export interface PortableSetupBundle {
   checksum: string;
 }
 
-function checksumPayload(bundle: Omit<PortableSetupBundle, 'checksum'> | PortableSetupBundle): Omit<PortableSetupBundle, 'checksum'> {
-  const copy = structuredClone(bundle) as any;
+function checksumPayload<T extends object>(bundle: T): Omit<T, 'checksum'> {
+  const copy: T & { checksum?: unknown } = structuredClone(bundle);
   delete copy.checksum;
   return copy;
 }
@@ -243,9 +243,9 @@ export async function exportPortableSetupBundle(systemConfig: Record<string, unk
   return { ...body, checksum: bundleHash(body) };
 }
 
-function object(value: unknown, label: string): Record<string, any> {
+function object(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object.`);
-  return value as Record<string, any>;
+  return value as Record<string, unknown>;
 }
 
 function boundedString(value: unknown, label: string, maximum = 256, allowEmpty = false): string {
@@ -269,7 +269,7 @@ function validateGraphNode(nodeValue: unknown, nodeIds: Set<string>): void {
   }
 }
 
-function setupBundleEdgeKind(edge: Record<string, any>, schemaVersion: number): unknown {
+function setupBundleEdgeKind(edge: Record<string, unknown>, schemaVersion: number): unknown {
   const kind = edge.kind === undefined && schemaVersion === 1 ? undefined : edge.kind;
   const valid = schemaVersion === 2 || schemaVersion === 3
     ? kind === 'flow' || kind === 'account_fallback'
@@ -279,7 +279,7 @@ function setupBundleEdgeKind(edge: Record<string, any>, schemaVersion: number): 
 }
 
 function validateSetupBundleFallbackPolicy(
-  edge: Record<string, any>,
+  edge: Record<string, unknown>,
   kind: unknown,
   schemaVersion: number,
 ): void {
@@ -307,8 +307,8 @@ function validateSetupBundleFallbackPolicy(
 }
 
 function setupBundleChannelScope(
-  edge: Record<string, any>,
-  nodeKinds: Map<string, WorkflowResourceKind>,
+  edge: Record<string, unknown>,
+  nodeKinds: Map<unknown, unknown>,
 ): unknown[] | undefined {
   if (edge.channelNodeIds === undefined) return undefined;
   if (!Array.isArray(edge.channelNodeIds)
@@ -322,7 +322,7 @@ function setupBundleChannelScope(
 function validateGraphEdge(
   edgeValue: unknown,
   edgeIds: Set<string>,
-  nodeKinds: Map<string, WorkflowResourceKind>,
+  nodeKinds: Map<unknown, unknown>,
   schemaVersion: number,
 ): void {
   const edge = object(edgeValue, 'Setup bundle graph edge');
@@ -342,28 +342,28 @@ function validateGraphEdge(
 
 function validateBundleGraph(value: unknown): WorkflowGraph {
   const graph = object(value, 'Setup bundle graph');
-  if (![1, 2, 3].includes(graph.schemaVersion) || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)
+  if (!([1, 2, 3] as readonly unknown[]).includes(graph.schemaVersion) || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)
     || graph.nodes.length > 1_000 || graph.edges.length > 4_000) {
     throw new Error('Setup bundle graph structure is invalid.');
   }
   const nodeIds = new Set<string>();
   for (const nodeValue of graph.nodes) validateGraphNode(nodeValue, nodeIds);
-  const nodeKinds = new Map<string, WorkflowResourceKind>(
-    graph.nodes.map((node: any) => [String(node.id), node.kind as WorkflowResourceKind]),
+  const nodeKinds = new Map<unknown, unknown>(
+    graph.nodes.map((node: { id: unknown; kind: unknown }) => [String(node.id), node.kind as WorkflowResourceKind]),
   );
   const edgeIds = new Set<string>();
-  for (const edgeValue of graph.edges) validateGraphEdge(edgeValue, edgeIds, nodeKinds, graph.schemaVersion);
-  return graph as WorkflowGraph;
+  for (const edgeValue of graph.edges) validateGraphEdge(edgeValue, edgeIds, nodeKinds, graph.schemaVersion as number);
+  return graph as unknown as WorkflowGraph;
 }
 
-function validateBundleHeader(candidate: Record<string, any>): void {
+function validateBundleHeader(candidate: Record<string, unknown>): void {
   const unexpected = Object.keys(candidate).filter(key => !ROOT_KEYS.has(key));
   if (unexpected.length > 0) throw new Error(`Setup bundle contains unsupported root field '${unexpected[0]}'.`);
-  const supported = [1, 2, SETUP_BUNDLE_VERSION].includes(candidate.schemaVersion)
+  const supported = ([1, 2, SETUP_BUNDLE_VERSION] as readonly unknown[]).includes(candidate.schemaVersion)
     && candidate.mode === 'replace'
-    && ['3.1.0', '3.2.0', '3.3.0'].includes(candidate.applicationVersion);
+    && (['3.1.0', '3.2.0', '3.3.0'] as readonly unknown[]).includes(candidate.applicationVersion);
   if (!supported) throw new Error('Setup bundle schema or version is unsupported.');
-  if (!Number.isSafeInteger(candidate.exportedAt) || candidate.exportedAt < 0) {
+  if (!Number.isSafeInteger(candidate.exportedAt) || (candidate.exportedAt as number) < 0) {
     throw new Error('Setup bundle timestamp is invalid.');
   }
   object(candidate.systemConfig, 'Setup bundle system configuration');
@@ -438,21 +438,21 @@ function validateBundleModels(value: unknown, bundleVersion: number): void {
   if (!collectionNames.every(key => Array.isArray(models[key]))) {
     throw new Error('Setup bundle model collections are invalid.');
   }
-  if (collectionNames.some(key => models[key].length > 1_000)) {
+  if (collectionNames.some(key => (models[key] as unknown[]).length > 1_000)) {
     throw new Error('Setup bundle model collections exceed the safety limit.');
   }
-  models.contracts.forEach(validateBundleContract);
-  models.schemas.forEach((schema: unknown) => validateBundleSchema(schema, bundleVersion));
-  models.strategies.forEach(validateBundleStrategy);
-  models.channelRiskPolicies.forEach(validateChannelRiskPolicyInput);
-  const contractIds = uniqueModelIdentifiers(models.contracts, 'sourceVersionId', 'contract');
-  const schemaIds = uniqueModelIdentifiers(models.schemas, 'sourceId', 'schema');
-  uniqueModelIdentifiers(models.strategies, 'sourceVersionId', 'strategy');
-  if (models.schemas.some((schema: any) => schema.sourceContractVersionId
+  (models.contracts as unknown[]).forEach(validateBundleContract);
+  (models.schemas as unknown[]).forEach((schema: unknown) => validateBundleSchema(schema, bundleVersion));
+  (models.strategies as unknown[]).forEach(validateBundleStrategy);
+  (models.channelRiskPolicies as unknown[]).forEach(validateChannelRiskPolicyInput);
+  const contractIds = uniqueModelIdentifiers(models.contracts as Array<Record<string, unknown>>, 'sourceVersionId', 'contract');
+  const schemaIds = uniqueModelIdentifiers(models.schemas as Array<Record<string, unknown>>, 'sourceId', 'schema');
+  uniqueModelIdentifiers(models.strategies as Array<Record<string, unknown>>, 'sourceVersionId', 'strategy');
+  if ((models.schemas as Array<{ sourceContractVersionId?: string }>).some((schema) => schema.sourceContractVersionId
     && !contractIds.has(schema.sourceContractVersionId))) {
     throw new Error('Setup bundle schema references a missing contract.');
   }
-  const missingStrategySchema = models.strategies.some((strategy: any) =>
+  const missingStrategySchema = (models.strategies as Array<{ configuration: { allowedSignalSchemas: string[] } }>).some((strategy) =>
     strategy.configuration.allowedSignalSchemas.some((schemaId: string) => !schemaIds.has(schemaId)));
   if (missingStrategySchema) throw new Error('Setup bundle strategy references a missing parser schema.');
 }
@@ -470,11 +470,11 @@ function validateBundleAccountReferences(value: unknown): void {
   value.forEach(validateBundleAccountReference);
 }
 
-function validateBundleChecksum(candidate: Record<string, any>): void {
+function validateBundleChecksum(candidate: Record<string, unknown>): void {
   if (typeof candidate.checksum !== 'string' || !/^[a-f0-9]{64}$/.test(candidate.checksum)) {
     throw new Error('Setup bundle checksum is invalid.');
   }
-  const payload = checksumPayload(candidate as PortableSetupBundle);
+  const payload = checksumPayload(candidate);
   assertSetupBundleContainsNoSecrets(payload);
   if (bundleHash(payload) !== candidate.checksum) throw new Error('Setup bundle checksum verification failed.');
 }
@@ -483,10 +483,10 @@ export function validatePortableSetupBundle(value: unknown): PortableSetupBundle
   const candidate = object(value, 'Setup bundle');
   validateBundleHeader(candidate);
   validateBundleWorkflow(candidate.workflow);
-  validateBundleModels(candidate.models, candidate.schemaVersion);
+  validateBundleModels(candidate.models, candidate.schemaVersion as number);
   validateBundleAccountReferences(candidate.accountReferences);
   validateBundleChecksum(candidate);
-  return structuredClone(candidate) as PortableSetupBundle;
+  return structuredClone(candidate) as unknown as PortableSetupBundle;
 }
 
 export async function suggestPortableAccountMappings(bundle: PortableSetupBundle): Promise<{
@@ -618,7 +618,7 @@ function remapResourceConfiguration(
   accountMappings: Record<string, string>,
   maps: ImportMaps,
 ): Record<string, unknown> {
-  const configuration: Record<string, any> = structuredClone(resource.configuration);
+  const configuration: Record<string, unknown> = structuredClone(resource.configuration);
   if (resource.kind === 'account') {
     const accountId = accountMappings[String(configuration.accountId)];
     if (!accountId) throw new Error(`Workflow account '${resource.name}' has no local mapping.`);

@@ -5,6 +5,40 @@ import { mkdir, rename, stat, lstat, open as openFile, readFile, readdir, realpa
 import { createHash, randomUUID } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
+interface SqliteBackupOperation {
+  readonly completed: boolean;
+  step(pages: number, callback: (error: Error | null, completed?: boolean) => void): this;
+}
+
+declare module 'sqlite3' {
+  interface Database {
+    backup(filename: string, callback?: (error: Error | null) => void): SqliteBackupOperation;
+    backup(filename: string, destinationName: string, sourceName: string, filenameIsDestination: boolean,
+      callback?: (error: Error | null) => void): SqliteBackupOperation;
+  }
+}
+
+interface SignalStorageRow {
+  id: string | null; chat_id: string | null; message_id: number | null;
+  xml_content: string | null; normalized_content: string | null; created_at: number | null;
+  template_name: string | null; schema_name: string | null; prompt_sha256: string | null;
+  model: string | null; provider_request_id: string | null; prompt_tokens: number | null;
+  completion_tokens: number | null; parser_version: string | null; workflow_revision_id: string | null;
+}
+interface IncomingMessageStorageRow {
+  id: number; chat_id: string | null; message_id: number | null; sender: string | null;
+  text: string | null; type: string | null; status: string | null; created_at: number | null;
+}
+interface OutboxStorageRow {
+  id: string | null; type: OutboxTask['type'] | null; chat_id: string | null; message_id: number | null;
+  message_ids: string | null; media_group_id: string | null; added_at: number | null;
+  status: OutboxStatus; attempts: number | null; claimed_at: number | null;
+  updated_at: number | null; completed_at: number | null; last_error: string | null;
+  config_json: string | null; result_json: string | null;
+  workflow_revision_id: string | null; ingress_work_id: string | null;
+}
+interface StoredMediaGroup { messages: unknown; fromChatId: number }
+
 const MARKER_NAME = '.mcp-maintenance';
 const PARTICIPANTS = '.mcp-participants';
 const ACKS = '.mcp-maintenance-acks';
@@ -58,7 +92,7 @@ export function mcpMaintenanceMarkerPath(databasePath = operationalDatabasePath(
 }
 
 async function exists(file: string): Promise<boolean> {
-  try { await lstat(file); return true; } catch (error: any) { if (error?.code === 'ENOENT') return false;
+  try { await lstat(file); return true; } catch (error: unknown) { if ((error as { code?: unknown } | null | undefined)?.code === 'ENOENT') return false;
     throw error; }
 }
 
@@ -86,7 +120,7 @@ async function assertDatabaseAbsent(databasePath: string): Promise<void> {
 
 async function databaseTargetEvidence(databasePath: string, allowAbsent: boolean): Promise<MaintenanceDatabaseEvidence> {
   try { return { databaseState: 'present', databaseIdentity: await databaseFileIdentity(databasePath) }; }
-  catch (error: any) { if (error?.code !== 'ENOENT' || !allowAbsent) throw error; }
+  catch (error: unknown) { if ((error as { code?: unknown } | null | undefined)?.code !== 'ENOENT' || !allowAbsent) throw error; }
   await assertDatabaseAbsent(databasePath);
   return { databaseState: 'absent', databaseIdentity: null };
 }
@@ -323,12 +357,12 @@ let databaseMaintenanceReason: string | null = null;
 const GUARDED_DATABASE_METHODS = new Set(['all', 'each', 'exec', 'get', 'run']);
 
 function createGuardedDatabase(database: Database): Database {
-  return new Proxy(database as any, {
+  return new Proxy(database, {
     get(target, property, receiver) {
       const value = Reflect.get(target, property, receiver);
       if (typeof value !== 'function') return value;
       if (!GUARDED_DATABASE_METHODS.has(String(property))) return value.bind(target);
-      return (...parameters: any[]) => {
+      return (...parameters: unknown[]) => {
         if (databaseMaintenanceReason && !serializedDatabaseAccess.isOwnedByCurrentOperation()) {
           return Promise.reject(new Error(`Database maintenance is active: ${databaseMaintenanceReason}`));
         }
@@ -500,8 +534,8 @@ export interface OutboxTask {
   updatedAt: number;
   completedAt?: number;
   lastError?: string;
-  config?: any;
-  result?: any;
+  config?: unknown;
+  result?: unknown;
   workflowRevisionId?: string | null;
   ingressWorkId?: string;
 }
@@ -2890,13 +2924,13 @@ async function migrateDatabase(database: Database, beforeApply?: (fromVersion: n
 async function copyDatabase(database: Database, destinationPath: string): Promise<void> {
   const resolvedDestination = path.resolve(destinationPath);
   await mkdir(path.dirname(resolvedDestination), { recursive: true });
-  const destinationExists = await stat(resolvedDestination).then(() => true).catch((error: any) => {
-    if (error.code === 'ENOENT') return false;
+  const destinationExists = await stat(resolvedDestination).then(() => true).catch((error: unknown) => {
+    if ((error as { code?: unknown }).code === 'ENOENT') return false;
     throw error;
   });
   if (destinationExists) throw new Error(`Database copy destination already exists: ${resolvedDestination}`);
-  const nativeDatabase: any = database.getDatabaseInstance();
-  const backup: any = await new Promise((resolve, reject) => {
+  const nativeDatabase = database.getDatabaseInstance();
+  const backup = await new Promise<SqliteBackupOperation>((resolve, reject) => {
     const operation = nativeDatabase.backup(resolvedDestination, (error: Error | null) => {
       if (error) reject(error);
       else resolve(operation);
@@ -2950,8 +2984,8 @@ async function initializeDatabase(dbPath: string): Promise<void> {
   await databaseParticipant?.closeSucceeded();
   databaseParticipant = null;
   const resolvedDbPath = path.resolve(dbPath);
-  const databaseExisted = await stat(resolvedDbPath).then(stats => stats.isFile() && stats.size > 0).catch((error: any) => {
-    if (error.code === 'ENOENT') return false;
+  const databaseExisted = await stat(resolvedDbPath).then(stats => stats.isFile() && stats.size > 0).catch((error: unknown) => {
+    if ((error as { code?: unknown }).code === 'ENOENT') return false;
     throw error;
   });
   await mkdir(path.dirname(resolvedDbPath), { recursive: true });
@@ -3140,7 +3174,7 @@ export async function saveSignal(
   xmlContent: string,
   normalizedContent: string,
   provenance?: SignalProvenance
-): Promise<any> {
+): Promise<SignalStorageRow> {
   return withDatabaseTransaction(async database => {
     await database.run(
     `INSERT INTO signals (
@@ -3153,7 +3187,7 @@ export async function saveSignal(
       ...signalProvenanceParameters(provenance), provenance?.workflowRevisionId ?? null
     ]
     );
-    const existing = await database.get<any>('SELECT * FROM signals WHERE id = ?', [id]);
+    const existing = await database.get<SignalStorageRow>('SELECT * FROM signals WHERE id = ?', [id]);
     if (existing.chat_id !== chatId || existing.message_id !== messageId
       || existing.normalized_content !== normalizedContent
       || existing.workflow_revision_id !== (provenance?.workflowRevisionId ?? null)) {
@@ -3168,6 +3202,13 @@ export async function saveSignal(
     }
     return existing;
   });
+}
+
+interface AiUsageReservationRow {
+  usage_day: string;
+  allowance: number;
+  status: 'reserved' | 'settled_known' | 'settled_unknown';
+  actual_tokens: number | null;
 }
 
 export interface AiUsageReservation {
@@ -3209,7 +3250,7 @@ export async function commitAiUsage(reservationId: string, allowance: number, ac
   const actual = known ? actualTokens : allowance;
   const status = known ? 'settled_known' : 'settled_unknown';
   await withDatabaseTransaction(async database => {
-    const row = await database.get<any>('SELECT * FROM ai_usage_reservations WHERE id = ?', [reservationId]);
+    const row = await database.get<AiUsageReservationRow>('SELECT * FROM ai_usage_reservations WHERE id = ?', [reservationId]);
     if (!row) throw new Error(`No AI usage reservation exists for ${reservationId}.`);
     if (row.allowance !== allowance) throw new Error('AI settlement conflict: allowance differs.');
     if (row.status !== 'reserved') {
@@ -3231,7 +3272,7 @@ export async function commitAiUsage(reservationId: string, allowance: number, ac
 }
 
 export async function getAiUsage(usageDay: string): Promise<{ requestCount: number; usedTokens: number; reservedTokens: number }> {
-  const row = await getDb().get<any>(
+  const row = await getDb().get<Record<'request_count' | 'used_tokens' | 'reserved_tokens', number>>(
     'SELECT request_count, used_tokens, reserved_tokens FROM ai_usage_daily WHERE usage_day = ?',
     [usageDay]
   );
@@ -3590,12 +3631,12 @@ function parseJsonField(value: unknown, field: string, taskId: string): any {
   if (typeof value !== 'string') throw new TypeError(`Outbox task ${taskId} has non-string ${field}.`);
   try {
     return JSON.parse(value);
-  } catch (error: any) {
-    throw new Error(`Outbox task ${taskId} has invalid ${field}: ${error.message}`, { cause: error });
+  } catch (error: unknown) {
+    throw new Error(`Outbox task ${taskId} has invalid ${field}: ${(error as { message?: unknown }).message}`, { cause: error });
   }
 }
 
-function mapOutboxRow(row: any): OutboxTask {
+function mapOutboxRow(row: OutboxStorageRow): OutboxTask {
   return {
     id: String(row.id),
     type: row.type,
@@ -3626,7 +3667,7 @@ export interface EnqueueOutboxTaskInput {
   messageIds?: number[];
   mediaGroupId?: string;
   addedAt: number;
-  config?: any;
+  config?: unknown;
   workflowRevisionId?: string | null;
   ingressWorkId?: string;
   needsReview?: boolean;
@@ -3698,7 +3739,7 @@ export async function markOutboxSending(id: string): Promise<void> {
   }
 }
 
-export async function completeOutboxTask(id: string, result?: any): Promise<void> {
+export async function completeOutboxTask(id: string, result?: unknown): Promise<void> {
   const database = getDb();
   const now = Date.now();
   const update = await database.run(
@@ -3757,7 +3798,7 @@ export async function getOutboxTask(id: string): Promise<OutboxTask | null> {
 
 export async function listOutboxTasks(statuses?: OutboxStatus[], limit = 100): Promise<OutboxTask[]> {
   const safeLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(limit, 1000)) : 100;
-  let rows: any[];
+  let rows: OutboxStorageRow[];
   if (statuses && statuses.length > 0) {
     rows = await getDb().all(
       'SELECT * FROM pending_tasks WHERE status IN (SELECT value FROM json_each(?)) ORDER BY added_at ASC LIMIT ?',
@@ -3809,7 +3850,7 @@ export async function acknowledgeOutboxTask(id: string, reason: string): Promise
 }
 
 // Media Group Buffer API
-export async function saveMediaGroupBuffer(groupId: string, fromChatId: string, messages: any[]): Promise<void> {
+export async function saveMediaGroupBuffer(groupId: string, fromChatId: string, messages: unknown[]): Promise<void> {
   const database = getDb();
   await database.run(
     `INSERT OR REPLACE INTO media_group_buffer (group_id, from_chat_id, messages_json, added_at) 
@@ -3823,10 +3864,10 @@ export async function removeMediaGroupBuffer(groupId: string): Promise<void> {
   await database.run('DELETE FROM media_group_buffer WHERE group_id = ?', [groupId]);
 }
 
-export async function getMediaGroupBuffers(): Promise<Record<string, any>> {
+export async function getMediaGroupBuffers(): Promise<Record<string, StoredMediaGroup>> {
   const database = getDb();
-  const rows = await database.all('SELECT * FROM media_group_buffer');
-  const result: Record<string, any> = {};
+  const rows = await database.all<Array<{ group_id: string | null; from_chat_id: string | null; messages_json: string | null }>>('SELECT * FROM media_group_buffer');
+  const result: Record<string, StoredMediaGroup> = {};
   for (const r of rows) {
     result[r.group_id] = {
       messages: JSON.parse(r.messages_json),
@@ -3866,17 +3907,17 @@ export async function updateIncomingMessageStatus(
   );
 }
 
-export async function getIncomingMessages(limit = 100): Promise<any[]> {
+export async function getIncomingMessages(limit = 100): Promise<IncomingMessageStorageRow[]> {
   const database = getDb();
-  return await database.all(
+  return await database.all<IncomingMessageStorageRow[]>(
     'SELECT * FROM incoming_messages ORDER BY created_at DESC LIMIT ?',
     [limit]
   );
 }
 
-export async function getProcessedSignals(limit = 100): Promise<any[]> {
+export async function getProcessedSignals(limit = 100): Promise<SignalStorageRow[]> {
   const database = getDb();
-  return await database.all(
+  return await database.all<SignalStorageRow[]>(
     'SELECT * FROM signals ORDER BY created_at DESC LIMIT ?',
     [limit]
   );

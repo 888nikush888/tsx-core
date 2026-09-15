@@ -35,9 +35,9 @@ type LaneEvidence = { calls: number; reasons: unknown[]; cooldown: number };
 const PROFILE = 'bybit-usd-fx-recovery-v1';
 const CAPS: Record<RecoveryLane, number[]> = { targeted: [0, 2], mode: [0, 2], logs: [0, 1], history: [0, 4], fx: [0, 1, 2, 3] };
 const PHASE_LANES: RecoveryLane[][] = [['fx', 'targeted'], ['history', 'logs'], ['fx', 'targeted'], ['mode', 'logs', 'targeted']];
-const DEFERRED = new Set(['phase_deferred', 'not_due', 'not_needed', 'cooldown']);
-const FAILURES = new Set(['budget_exhausted', 'transient', 'unsupported', 'invalid_evidence']);
-const LEGS = new Set(['bybit:btc-usd-index:v1', 'bybit:btc-usdt-index:v1', 'bybit:usdc-usd-index:v1']);
+const DEFERRED = new Set<unknown>(['phase_deferred', 'not_due', 'not_needed', 'cooldown']);
+const FAILURES = new Set<unknown>(['budget_exhausted', 'transient', 'unsupported', 'invalid_evidence']);
+const LEGS = new Set<unknown>(['bybit:btc-usd-index:v1', 'bybit:btc-usdt-index:v1', 'bybit:usdc-usd-index:v1']);
 const BINDING_KEYS = 'accountId accountFingerprint credentialGeneration mode executionProfileHash';
 
 function codeUnitOrder(left: string, right: string): number {
@@ -47,34 +47,34 @@ function codeUnitOrder(left: string, right: string): number {
 }
 
 function invalid(): never { throw new Error('RECOVERY_SCHEDULE_INVALID'); }
-function object(value: unknown, keys?: string): Record<string, any> {
+function object(value: unknown, keys?: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) invalid();
   const prototype = Object.getPrototypeOf(value);
   if (prototype !== Object.prototype && prototype !== null) invalid();
   const own = Reflect.ownKeys(value), descriptors = Object.getOwnPropertyDescriptors(value);
   if (own.some(key => typeof key !== 'string' || !descriptors[key].enumerable || !('value' in descriptors[key]))) invalid();
   if (keys && own.map(String).sort(codeUnitOrder).join(' ') !== keys.split(' ').sort(codeUnitOrder).join(' ')) invalid();
-  return value as Record<string, any>;
+  return value as Record<string, unknown>;
 }
 function integer(value: unknown, maximum = Number.MAX_SAFE_INTEGER): number {
   if (!Number.isSafeInteger(value) || Number(value) < 0 || Number(value) > maximum) invalid();
   return Number(value);
 }
-function array(value: unknown, maximum: number): any[] {
+function array(value: unknown, maximum: number): unknown[] {
   if (!Array.isArray(value) || value.length > maximum || Reflect.ownKeys(value).length !== value.length + 1) invalid();
   for (let index = 0; index < value.length; index++) if (!Object.hasOwn(value, index)) invalid();
   return value;
 }
-function binding(value: unknown, expected: RecoveryScheduleBinding): void {
+function binding(value: unknown, expected: unknown): void {
   const row = object(value, BINDING_KEYS), context = object(expected, BINDING_KEYS);
   if (typeof row.accountId !== 'string' || [...row.accountId].length > 256 || row.accountId.length === 0
     || row.accountId.trim() !== row.accountId || /[\x00-\x1f\x7f-\x9f\uD800-\uDFFF]/u.test(row.accountId)) invalid();
   for (const field of ['accountFingerprint', 'credentialGeneration', 'executionProfileHash']) {
     if (typeof row[field] !== 'string' || !/^[a-f0-9]{64}$/.test(row[field])) invalid();
   }
-  if (!['live', 'testnet'].includes(row.mode) || BINDING_KEYS.split(' ').some(key => row[key] !== context[key])) invalid();
+  if (!(['live', 'testnet'] as unknown[]).includes(row.mode) || BINDING_KEYS.split(' ').some(key => row[key] !== context[key])) invalid();
 }
-function header(row: Record<string, any>, expected: RecoveryScheduleBinding): void {
+function header(row: Record<string, unknown>, expected: unknown): void {
   if (row.version !== 1 || row.profile !== PROFILE || typeof row.attemptId !== 'string'
     || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(row.attemptId)) invalid();
   integer(row.phase, 3); integer(row.cooldownUntil); binding(row.binding, expected);
@@ -97,21 +97,21 @@ function grants(value: unknown, phase: number): RecoveryScheduleRequest['grants'
 }
 export function validateRecoveryScheduleRequest(value: unknown, expected: RecoveryScheduleBinding): RecoveryScheduleRequest {
   const row = object(value, 'version profile attemptId revision phase binding cooldownUntil grants');
-  integer(row.revision); integer(row.phase, 3); grants(row.grants, row.phase); header(row, expected);
-  return structuredClone(row) as RecoveryScheduleRequest;
+  integer(row.revision); integer(row.phase, 3); grants(row.grants, row.phase as number); header(row, expected);
+  return structuredClone(row) as RecoveryScheduleRequest & Record<string, unknown>;
 }
 function fxRequest(value: unknown, maximum: number): FxEvidenceRequest {
   const row = object(value, 'version legIds'), legs = array(row.legIds, 3);
   if (row.version !== 1 || legs.length !== maximum || legs.length === 0 || new Set(legs).size !== legs.length
     || legs.some(leg => !LEGS.has(leg))) invalid();
-  return structuredClone(row) as FxEvidenceRequest;
+  return structuredClone(row) as FxEvidenceRequest & Record<string, unknown>;
 }
 function laneGrant(request: RecoveryScheduleRequest, lane: RecoveryLane): number {
   const grant = request.grants.find(row => row.lane === lane);
   if (!grant) invalid();
   return grant.maxCalls;
 }
-function requestedSourcePresence(recovery: Record<string, any>, request: RecoveryScheduleRequest, expected: RecoveryScheduleBinding): void {
+function requestedSourcePresence(recovery: Record<string, unknown>, request: RecoveryScheduleRequest, expected: RecoveryScheduleBinding): void {
   if (recovery.readAccountMode !== undefined && typeof recovery.readAccountMode !== 'boolean') invalid();
   if (laneGrant(request, 'mode') > 0 && recovery.readAccountMode !== true) invalid();
   if ((laneGrant(request, 'logs') > 0) !== (recovery.accountLogs !== undefined)) invalid();
@@ -136,17 +136,18 @@ export function validateRecoveryScheduleInputs(value: RecoveryScheduleInputs, ex
   if ((maximum > 0) !== (recovery.fxEvidence !== undefined)) invalid();
   return { recoverySchedule: request, ...(maximum ? { fxEvidence: fxRequest(recovery.fxEvidence, maximum) } : {}) };
 }
-function readWindow(value: ReadWindow): void {
+function readWindow(value: ReadWindow | Record<string, unknown>): asserts value is ReadWindow & Record<string, unknown> {
   integer(value.startedAt); integer(value.completedAt);
-  if (value.completedAt < value.startedAt || value.completedAt - value.startedAt > 35000 || value.completedAt > Date.now() + 1000) invalid();
+  if ((value.completedAt as number) < (value.startedAt as number) || (value.completedAt as number) - (value.startedAt as number) > 35000 || (value.completedAt as number) > Date.now() + 1000) invalid();
 }
-function fxProgressShape(value: unknown): Record<string, any> {
+type FxProgressShape = Omit<FxEvidenceProgress, 'receipts'> & { receipts: unknown[] };
+function fxProgressShape(value: unknown): FxProgressShape {
   const row = object(value, 'version calls receipts reason nextReadAt');
   const receipts = array(row.receipts, 3), calls = integer(row.calls, 3);
   integer(row.nextReadAt);
   if (row.version !== 1 || ![null, ...FAILURES].includes(row.reason) || receipts.length > calls || calls > receipts.length + 1) invalid();
   if (row.reason === null && (calls !== receipts.length || calls === 0)) invalid();
-  return row;
+  return row as FxProgressShape & Record<string, unknown>;
 }
 export function validateFxEvidenceProgress(value: unknown, requested: FxEvidenceRequest,
   expected: RecoveryScheduleBinding, read: ReadWindow): FxEvidenceProgress {
@@ -163,7 +164,7 @@ export function validateFxEvidenceProgress(value: unknown, requested: FxEvidence
 }
 function modeObservation(value: unknown, acquisition: RecoveryScheduleAcquisition, expected: RecoveryScheduleBinding): void {
   const proof = object(value);
-  readWindow(proof as ReadWindow);
+  readWindow(proof);
   if (proof.accountFingerprint !== expected.accountFingerprint || proof.credentialGeneration !== expected.credentialGeneration
     || proof.startedAt < acquisition.startedAt || proof.completedAt > acquisition.completedAt) invalid();
 }
@@ -174,7 +175,7 @@ function modeEvidence(recovery: RecoveryScheduleInputs, acquisition: RecoverySch
     return { calls: 0, reasons: [], cooldown: 0 };
   }
   const row = object(acquisition.accountMode), calls = integer(row.calls, 2);
-  if (![null, 'budget_exhausted', 'transient', 'unsupported'].includes(row.reason)) invalid();
+  if (!([null, 'budget_exhausted', 'transient', 'unsupported'] as unknown[]).includes(row.reason)) invalid();
   if (row.observation === null ? row.reason === null : calls !== 2 || row.reason !== null) invalid();
   if (laneGrant(request, 'mode') === 0 && (calls !== 0 || row.observation !== null || row.reason !== 'budget_exhausted')) invalid();
   if (row.observation !== null) modeObservation(row.observation, acquisition, expected);
@@ -184,13 +185,13 @@ function checkpointCollection(acquisition: RecoveryScheduleAcquisition, historic
   if (historical) return array(acquisition.history === undefined ? [] : acquisition.history, 1);
   return acquisition.accountLogs === undefined ? [] : [acquisition.accountLogs];
 }
-function checkpointBinding(previous: Record<string, any>, next: Record<string, any>, historical: boolean,
+function checkpointBinding(previous: Record<string, unknown>, next: Record<string, unknown>, historical: boolean,
   expected: RecoveryScheduleBinding): void {
   const fields = historical ? ['source', 'providerSymbol', 'baselineSince'] : ['namespace', 'filterHash', 'accountFingerprint', 'credentialGeneration'];
   if (fields.some(field => previous[field] !== next[field])) invalid();
   if (!historical && (next.accountFingerprint !== expected.accountFingerprint || next.credentialGeneration !== expected.credentialGeneration)) invalid();
 }
-function skippedLogEvidence(progress: Record<string, any>, previous: Record<string, any>): LaneEvidence {
+function skippedLogEvidence(progress: Record<string, unknown>, previous: Record<string, unknown>): LaneEvidence {
   if (!FAILURES.has(progress.readSkipped) || progress.calls !== 0 || array(progress.receipts, 0).length !== 0
     || progress.baseRevision !== previous.revision || !isDeepStrictEqual(progress.checkpoint, previous)) invalid();
   return { calls: 0, reasons: [progress.readSkipped], cooldown: 0 };
@@ -205,12 +206,12 @@ function checkpointEvidence(recovery: RecoveryScheduleInputs, acquisition: Recov
   const progress = object(results[0]), next = object(progress.checkpoint), calls = integer(historical ? progress.pages : progress.calls, 5);
   if (!historical && calls === 0) return skippedLogEvidence(progress, previous);
   if (progress.readSkipped !== undefined) invalid();
-  if (integer(progress.baseRevision) !== integer(previous.revision) || integer(next.revision) !== progress.baseRevision + 1) invalid();
+  if (integer(progress.baseRevision) !== integer(previous.revision) || integer(next.revision) !== (progress.baseRevision as number) + 1) invalid();
   checkpointBinding(previous, next, historical, expected);
-  const cooldown = ['transient', 'history_transient'].includes(next.reason) ? integer(next.nextReadAt) : 0;
+  const cooldown = (['transient', 'history_transient'] as unknown[]).includes(next.reason) ? integer(next.nextReadAt) : 0;
   return { calls, reasons: [next.reason], cooldown };
 }
-function progressShape(value: unknown): Record<string, any> {
+function progressShape(value: unknown): RecoveryScheduleProgress {
   const row = object(value, 'version profile attemptId baseRevision phase binding calls cooldownUntil lanes');
   const lanes = array(row.lanes, 5), seen = new Set<string>();
   integer(row.baseRevision); integer(row.phase, 3); integer(row.calls, 5);
@@ -220,13 +221,13 @@ function progressShape(value: unknown): Record<string, any> {
     if (typeof lane.lane !== 'string' || !Object.hasOwn(CAPS, lane.lane) || seen.has(lane.lane)) invalid();
     const name = lane.lane as RecoveryLane, calls = integer(lane.calls, Math.max(...CAPS[name]));
     if (![null, ...DEFERRED, ...FAILURES].includes(lane.reason)
-      || (calls > 0 && (DEFERRED.has(lane.reason) || !PHASE_LANES[row.phase].includes(name)))) invalid();
+      || (calls > 0 && (DEFERRED.has(lane.reason) || !PHASE_LANES[row.phase as number].includes(name)))) invalid();
     seen.add(name); total += calls;
   }
   if (lanes.length !== 5 || total !== row.calls || total > 5) invalid();
   // Self-consistency only. This parser has no authority to select an account/profile.
   header(row, row.binding);
-  return row;
+  return row as RecoveryScheduleProgress & Record<string, unknown>;
 }
 /** Structural decoding only; NEVER replaces request/current-account authorization before persistence. */
 export function parseRecoveryScheduleAcquisitionFields(result: { recoverySchedule?: unknown; fxEvidence?: unknown }):
@@ -265,7 +266,7 @@ function sourceReason(reasons: unknown[]): string | null {
   const normalized = new Set(reasons.map(reason => typeof reason === 'string' && Object.hasOwn(aliases, reason) ? aliases[reason] : reason));
   return ['transient', 'invalid_evidence', 'unsupported', 'budget_exhausted'].find(reason => normalized.has(reason)) ?? null;
 }
-function responseLane(progress: Record<string, any>, value: unknown,
+function responseLane(progress: RecoveryScheduleProgress, value: unknown,
   grant: RecoveryScheduleRequest['grants'][number], proof: LaneEvidence, read: ReadWindow): number {
   const lane = object(value, 'lane calls reason'), calls = integer(lane.calls, grant.maxCalls);
   if (lane.lane !== grant.lane || calls !== proof.calls) invalid();
@@ -278,7 +279,7 @@ function responseLane(progress: Record<string, any>, value: unknown,
   if (progress.cooldownUntil < proof.cooldown) invalid();
   return calls;
 }
-function responseLanes(row: Record<string, any>, request: RecoveryScheduleRequest,
+function responseLanes(row: RecoveryScheduleProgress, request: RecoveryScheduleRequest,
   evidence: Record<RecoveryLane, LaneEvidence>, read: ReadWindow): void {
   const rows = array(row.lanes, 5);
   if (rows.length !== request.grants.length) invalid();
