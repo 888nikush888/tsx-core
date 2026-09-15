@@ -94,11 +94,15 @@ async function verifyLegacyMediaMigration(source) {
   function fixture(data, saveError, readError) {
     const events = [];
     const fs = {
-      async readFile() {
-        if (readError) throw readError;
-        return JSON.stringify(data);
+      readFile() {
+        return new Promise((resolve, reject) => {
+          if (readError) reject(readError);
+          else resolve(JSON.stringify(data));
+        });
       },
-      async unlink() { events.push(['unlink']); },
+      unlink() {
+        return new Promise(resolve => { events.push(['unlink']); resolve(); });
+      },
     };
     const save = async (groupId, chatId, messages) => {
       events.push(['save', groupId, chatId, messages]);
@@ -107,8 +111,8 @@ async function verifyLegacyMediaMigration(source) {
       events.push(['saved', groupId]);
     };
     const functions = new Function('fsPromises', 'LEGACY_MEDIA_BUFFER_FILE', 'saveMediaGroupBuffer', 'addLog',
-      'forwarderErrorCode', 'unknownErrorMessage', executable + '\nreturn { migrate: migrateLegacyMediaGroupBuffer, chatId: legacyMediaChatId };')(
-      fs, 'fixture-only.json', save, () => {}, forwarderErrorCode, unknownErrorMessage);
+      'forwarderErrorCode', 'unknownErrorMessage', `${executable}\nreturn { migrate: migrateLegacyMediaGroupBuffer, chatId: legacyMediaChatId };`)(
+      fs, 'fixture-only.json', save, () => undefined, forwarderErrorCode, unknownErrorMessage);
     return { ...functions, events };
   }
   const validIds = [-100123, 0, 123, Number.MAX_SAFE_INTEGER, '-100123', '001', '', ' 123 '];

@@ -1,0 +1,34 @@
+{
+  "baseRevision": "599cc5524bb760f5600b480eabcea34effcb07db",
+  "path": "tests/test_forwarder_error_types.js",
+  "beforeSha256": "ce6e2d6041a547238d40c2438ad25c9458c19bd6f8b41a0c32b507caa52acfc3",
+  "workingRawSha256": "343d3f1bc156d995c4d616e81da3f8f1e8b5b86f1331623628b9e037813b6c77",
+  "workingLfSha256": "343d3f1bc156d995c4d616e81da3f8f1e8b5b86f1331623628b9e037813b6c77",
+  "changes": [
+    "readFile async fixture replaced by immediate Promise executor preserving synchronous serialization and rejected error capture.",
+    "unlink async fixture replaced by immediate Promise executor preserving synchronous event push and undefined fulfillment; thrown push failure still becomes rejection.",
+    "Fixed transpiled executable concatenation replaced by byte-equivalent template string.",
+    "Logging noop now explicitly returns undefined."
+  ],
+  "assertionsIdentical": true,
+  "assertionCount": 38,
+  "validation": [
+    {
+      "command": "node --import tsx tests/test_forwarder_error_types.js",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-next-forwarder-fixture-target.log",
+      "sha256": "e5d4fa2698c478dd6eb06022d3635a85e0bc24a2eff72eaf6de3f474caa3afcd"
+    },
+    {
+      "command": "eslint tests/test_forwarder_error_types.js --max-warnings 0",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-next-forwarder-fixture-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "limits": [
+    "Tests run only after separate agent confirmed fresh root npm ci success.",
+    "Only the named test file edited; Symbol boundary input, production code and services worktree unchanged.",
+    "No remote scanner closure, commit, push or receipt pin change claimed."
+  ]
+}
