@@ -68,7 +68,9 @@ function array(value: unknown, maximum: number): unknown[] {
 function binding(value: unknown, expected: unknown): void {
   const row = object(value, BINDING_KEYS), context = object(expected, BINDING_KEYS);
   if (typeof row.accountId !== 'string' || [...row.accountId].length > 256 || row.accountId.length === 0
-    || row.accountId.trim() !== row.accountId || /[\x00-\x1f\x7f-\x9f\uD800-\uDFFF]/u.test(row.accountId)) invalid();
+    || row.accountId.trim() !== row.accountId
+    // Match control characters (Unicode Cc) and surrogate code units (Unicode Cs)
+    || /[\p{Cc}\p{Cs}]/u.test(row.accountId)) invalid();
   for (const field of ['accountFingerprint', 'credentialGeneration', 'executionProfileHash']) {
     if (typeof row[field] !== 'string' || !/^[a-f0-9]{64}$/.test(row[field])) invalid();
   }
