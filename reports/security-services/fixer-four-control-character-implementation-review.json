@@ -1,0 +1,139 @@
+{
+  "kind": "four-ascii-control-check-implementation",
+  "baseRevision": "599cc55",
+  "currentHeadBeforeCommit": "aeab6f24f8d791921ccbf894151698369aff98ef",
+  "worktree": "C:\\Users\\nikla\\Documents\\ChatGPT\\TSX CORE SERVER INSTALLATION\\tmp\\tsx-core-fixer-next-599cc55",
+  "scope": "Exactly4JS-0004 predicate replacements across3source files and direct3test additions. Active security-services worktree not changed. Root already committed the separate Forwarder fixture follow-up in this next worktree.",
+  "implementation": [
+    "OrderIdentity storedClientOrderId/assertLocalLegs: C0+space preserved by single-character <= ASCII space.",
+    "FillIdentity.identifier and OrderRepository.providerOrderKey: C0 only preserved by single-character < ASCII space.",
+    "Existing primitive type guards, empty/trim/256-length checks precede predicate; error classes/messages, source identity bytes, namespace equality and DB ordering remain unchanged. No async callbacks or Promise changes."
+  ],
+  "files": [
+    {
+      "path": "src/trading_order_identity.ts",
+      "lfSha256": "d4a260a4ab33ab27c638b82d935cc566c3be578c3a57477537b6e12acb5a3112",
+      "rawSha256": "d4a260a4ab33ab27c638b82d935cc566c3be578c3a57477537b6e12acb5a3112",
+      "diffSha256": "2a61ff1a22623a95031ff27fd4ee9230607c1630b825971aceebbd92f01a44a4"
+    },
+    {
+      "path": "src/trading_fill_identity.ts",
+      "lfSha256": "313f72162502ca16af2c30512c7d0b17e9c02c5a802f6131f4bb90a4cf4af87c",
+      "rawSha256": "313f72162502ca16af2c30512c7d0b17e9c02c5a802f6131f4bb90a4cf4af87c",
+      "diffSha256": "64bbd36b1eea13f9d5d958b3da8f377aef8cdd823ac1b7b57b311ab6317b1527"
+    },
+    {
+      "path": "src/trading_order_repository.ts",
+      "lfSha256": "c189ac44373af00aa9fb846145e50bdd1584e01cfe7e5296e9e4a6538b65b6eb",
+      "rawSha256": "c189ac44373af00aa9fb846145e50bdd1584e01cfe7e5296e9e4a6538b65b6eb",
+      "diffSha256": "ccf280b803590665edfeba76c1e0f827fdfc0687391506966f163d932856ca9d"
+    },
+    {
+      "path": "tests/test_exchange_fill_identity.js",
+      "lfSha256": "e2312c6545410bc64978b84d0e3d080c9f3cdd8054e316ad2c89177bcf731bd7",
+      "rawSha256": "e2312c6545410bc64978b84d0e3d080c9f3cdd8054e316ad2c89177bcf731bd7",
+      "diffSha256": "82a49551f59f3184e879118f03029af1589f3084a506324fbf03416b3cd5812c"
+    },
+    {
+      "path": "tests/test_trading_order_identity_requests.js",
+      "lfSha256": "1724f542140d183253cacc43b65943d4488d0de9fbc69dfaadb65039569f85f1",
+      "rawSha256": "1724f542140d183253cacc43b65943d4488d0de9fbc69dfaadb65039569f85f1",
+      "diffSha256": "e35f2e0695ff8c6b6991591f141036486973d45207fea9dd6652860e4e29b91c"
+    },
+    {
+      "path": "tests/test_trading_order_identity_bindings.js",
+      "lfSha256": "6c6a18f0d594d7f6589b13e8940cebe357cfd8d95ecc76f4b034855cd833cac9",
+      "rawSha256": "6c6a18f0d594d7f6589b13e8940cebe357cfd8d95ecc76f4b034855cd833cac9",
+      "diffSha256": "b5e7fe0feaf20d9d443374939ed31e86b5167a8a8cbd2ae1baa16c84b437fde4"
+    }
+  ],
+  "verification": {
+    "rootNpmCi": {
+      "exitCode": 0,
+      "packagesInstalled": 402,
+      "rootManifestsChanged": false,
+      "node": "22.23.2",
+      "python": "tmp/tsx-security-python-env/Scripts/python.exe",
+      "environment": "Node22PATH and TSX_TEST_PYTHON/PYTHON/npm_config_python explicitly set during install; extraction agent notified after successful install."
+    },
+    "targetTests": [
+      {
+        "path": "tests/test_exchange_fill_identity.js",
+        "exitCode": 0
+      },
+      {
+        "path": "tests/test_trading_order_identity_requests.js",
+        "exitCode": 0
+      },
+      {
+        "path": "tests/test_trading_order_identity_bindings.js",
+        "exitCode": 0
+      }
+    ],
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "exitCode": 0
+    },
+    "lint": {
+      "scope": [
+        "src/trading_order_identity.ts",
+        "src/trading_fill_identity.ts",
+        "src/trading_order_repository.ts",
+        "tests/test_exchange_fill_identity.js",
+        "tests/test_trading_order_identity_requests.js",
+        "tests/test_trading_order_identity_bindings.js"
+      ],
+      "maxWarnings": 0,
+      "exitCode": 0
+    },
+    "regressionDetails": [
+      "Fill native fixture tests all32C0 units in each of3identity fields and asserts exact preservation of internal space, DEL,C1,NBSP,astral and lone surrogate values.",
+      "Request tests all33C0+space units through actual new-request ID validation and actual stored expected-leg validation with exact error class/code/message. Original journal and order rows remain unchanged after rejection; temporary injected journal field is restored in finally.",
+      "Request tests additionally persist/re-read exact non-C0/space IDs containing DEL,C1,NBSP and astral Unicode using real journal/identity APIs.",
+      "Provider order test uses stored-symbol fallback with absent result.providerSymbol and identityEvidence so the earlier exchange-envelope guard does not mask the changed predicate. All32C0 units reject before order mutation or binding creation; stored field restored in finally. Existing positive binding, native-provider, immutable source, repeated-ACK and restart assertions continue to pass."
+    ],
+    "priorReadOnlyEquivalence": "Services plan documented131094 old-regex/new-predicate comparisons. No full-suite execution claimed for this follow-up."
+  },
+  "logs": [
+    {
+      "path": "reports/security-services/fixer-next-root-npm-ci.log",
+      "sha256": "dfa16101054f792712dba80e353eb06bc1aeb364fe8c15c9daa1b314786c8e21"
+    },
+    {
+      "path": "reports/security-services/test_exchange_fill_identity-control-characters.log",
+      "sha256": "6d4b418454fb7a8e81fb54d6a6cbc9949fd5e45b410d5ad22657c3bd6e821c82"
+    },
+    {
+      "path": "reports/security-services/test_trading_order_identity_requests-control-characters.log",
+      "sha256": "1dc5d86fab751a115dd6edcc6ac1932070038d7d9c954c2a4c38ebee2a3fecbc"
+    },
+    {
+      "path": "reports/security-services/test_trading_order_identity_bindings-control-characters.log",
+      "sha256": "26802ca0772894aa9aaa4c5594c981e40f0b70af5a17ead95c4ce53f4111abdf"
+    },
+    {
+      "path": "reports/security-services/fixer-control-character-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reports/security-services/fixer-control-character-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "limits": [
+    "No scanner rerun, provider disposition, receipt-pin changes, commit or push by this agent.",
+    "Only changed-code targeted tests plus backend compiler/lint run; full suite remains root responsibility.",
+    "The character iterator allocation is bounded by existing256-unit cap. Unicode Cc/whitespace classes deliberately not substituted because they change policy."
+  ],
+  "finalTestSpellingAddendum": {
+    "change": "Exactly three test-only String.fromCharCode(unit) calls replaced with String.fromCodePoint(unit).",
+    "equivalence": "All unit values are bounded loop integers0..31 or0..32. Both APIs yield exactly the same single UTF16 code unit throughout that range. No surrogate or out-of-range inputs occur.",
+    "afterChangeValidation": {
+      "allThreeTargetsExitCode": 0,
+      "sixFileLintExitCode": 0,
+      "toolChunkId": "6ca851"
+    },
+    "typecheckScope": "Prior backend compiler PASS remains applicable to unchanged production TypeScript; these three edits are JS fixture spelling only.",
+    "status": "Frozen after updating this report; no more source/test edits by agent."
+  }
+}

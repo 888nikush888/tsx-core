@@ -51,6 +51,22 @@ try {
     raw: { id: 'remote-stop', clientOrderId: null, info: { order_tag: batch.protectiveStop.clientOrderId, order_id: 'remote-stop' } },
     identityEvidence: { version: 1, profile: 'kraken_batch_tag_v1', tag: batch.protectiveStop.clientOrderId,
       clientOrderId: batch.protectiveStop.clientOrderId, exchangeOrderId: 'remote-stop', providerSymbol: 'BTC/USD:USD' } };
+  const originalLocal = await getDatabase().get('SELECT * FROM trading_orders WHERE id=?', [ack.clientOrderId]);
+  for (let unit = 0; unit < 32; unit += 1) {
+    // Exercise the stored-symbol fallback; malformed supplied symbols fail the earlier envelope validator.
+    await getDatabase().run('UPDATE trading_orders SET provider_symbol=? WHERE id=?', [`a${String.fromCodePoint(unit)}b`, ack.clientOrderId]);
+    const injected = await getDatabase().get('SELECT * FROM trading_orders WHERE id=?', [ack.clientOrderId]);
+    try {
+      await assert.rejects(persistTradingOrderResult(batch.intentId, ack.clientOrderId,
+        { ...ack, providerSymbol: undefined, identityEvidence: undefined }),
+      { message: 'Invalid provider symbol for remote order identity.' });
+      assert.deepEqual(await getDatabase().get('SELECT * FROM trading_orders WHERE id=?', [ack.clientOrderId]), injected,
+        'Control-bearing stored namespace must fail before acknowledgement writes.');
+      assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM trading_order_identity_bindings')).count, 0);
+    } finally {
+      await getDatabase().run('UPDATE trading_orders SET provider_symbol=? WHERE id=?', [originalLocal.provider_symbol, ack.clientOrderId]);
+    }
+  }
   const before = await protectionSourceDigest(kraken.id);
   await persistTradingOrderResult(batch.intentId, ack.clientOrderId, ack);
   const binding = await getDatabase().get('SELECT * FROM trading_order_identity_bindings WHERE order_id=?', [ack.clientOrderId]);
