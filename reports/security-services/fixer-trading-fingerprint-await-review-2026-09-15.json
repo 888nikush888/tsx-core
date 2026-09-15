@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "kind": "trading-fingerprint-await-implementation-review",
+  "date": "2026-09-15",
+  "scope": "Only invalid-fingerprint control-flow spelling in trading_engine.ts and added cases in the existing trading-failures identity fixture. Author implementation report; independent approval belongs to root review.",
+  "currentHeadAtReport": "5878430573300a54a9b2f323d262b05a1ac83d4e",
+  "files": [
+    {
+      "path": "src/trading_engine.ts",
+      "lfSha256": "99531ae5985e4e4eb07ee65342c9f9206d140b5e408d74abe8da3878b51c0cc5",
+      "workingRawSha256": "99531ae5985e4e4eb07ee65342c9f9206d140b5e408d74abe8da3878b51c0cc5"
+    },
+    {
+      "path": "tests/test_trading_failures.js",
+      "lfSha256": "1699796b3d3e0fa889bb1d9e68959dd80246e911d8a0e8f2ed188cea65a66e3e",
+      "workingRawSha256": "1699796b3d3e0fa889bb1d9e68959dd80246e911d8a0e8f2ed188cea65a66e3e"
+    }
+  ],
+  "implementation": {
+    "before": "return this.failRemoteAccountIdentity(account, fixedMessage);",
+    "after": "await this.failRemoteAccountIdentity(account, fixedMessage); return;",
+    "contract": "The Promise<never> helper first records a critical risk event, then activates the account kill switch, then throws ReconciliationMismatchError with remote_identity category. Await preserves rejection propagation; the explicit return prevents fallthrough if a future helper unexpectedly resolves. No historical identity lookup, state application, or success publication follows malformed identity. The helper, error classifier, persistence, and downstream calls are unchanged."
+  },
+  "regression": {
+    "fixture": "Existing testRemoteAccountIdentityBinding using the real TradingEngine and temporary SQLite persistence; initial valid bound fingerprint establishes exactly one successful reconciliation.",
+    "inputs": [
+      "undefined",
+      "null",
+      "empty string",
+      "non-fingerprint string",
+      "64 uppercase hexadecimal characters"
+    ],
+    "assertions": [
+      "Original ReconciliationMismatchError name, fixed message and remote_identity category.",
+      "Observe database.get while each actual reconciliation runs; zero SELECT remote_snapshot_json FROM trading_reconciliation_runs calls, with original method restored in finally.",
+      "Account kill switch active; global kill switch remains inactive.",
+      "Critical risk record persists with the expected message.",
+      "Exactly five mismatch reconciliation runs; initial successful run list unchanged.",
+      "Existing later valid-but-mismatched bound-identity case remains and runs."
+    ]
+  },
+  "testCorrection": {
+    "initialRun": "Failed one newly added assertion expecting five critical risk rows: actual count was one.",
+    "rootCause": "The existing riskEvent helper deduplicates unacknowledged critical records by severity, code, account and intent, returning when one exists. The test expectation was wrong; no production regression or product fix was inferred.",
+    "correction": "Assert one retained unacknowledged critical risk record while independently asserting five persisted mismatch runs and each rejection/account-isolation result. This preserves existing deduplication rather than weakening it.",
+    "initialFailureEvidence": {
+      "toolChunkId": "827622",
+      "exitCode": 1,
+      "assertion": "Every malformed observation persists its own risk event before rejection.",
+      "actual": 1,
+      "expected": 5
+    }
+  },
+  "validation": {
+    "existingLogPaths": [],
+    "logAvailability": "These executions returned output directly through exec_command/write_stdin; they were not redirected into filesystem log files. No existing log path is claimed. Exact available execution IDs, outputs and exit codes are recorded below.",
+    "executions": [
+      {
+        "check": "Actual targeted trading-failure suite after corrected assertion",
+        "command": "C:/Users/nikla/AppData/Local/Programs/node22/node-v22.23.2-win-x64/node.exe --import tsx tests/test_trading_failures.js",
+        "startToolChunkId": "8308db",
+        "sessionId": 74589,
+        "completionToolChunkId": "b5eab7",
+        "exitCode": 0,
+        "output": "Trading failure-policy tests passed.\n"
+      },
+      {
+        "check": "Backend typecheck",
+        "command": "C:/Users/nikla/AppData/Local/Programs/node22/node-v22.23.2-win-x64/node.exe node_modules/typescript/bin/tsc --noEmit",
+        "toolChunkId": "0e6c6f",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "check": "ESLint changed source and direct test",
+        "command": "C:/Users/nikla/AppData/Local/Programs/node22/node-v22.23.2-win-x64/node.exe node_modules/eslint/bin/eslint.js src/trading_engine.ts tests/test_trading_failures.js --max-warnings 0",
+        "toolChunkId": "3a0ba8",
+        "exitCode": 0,
+        "output": ""
+      }
+    ]
+  },
+  "limits": [
+    "No complete suite was run for this bounded change by this agent.",
+    "No new executions performed to create this report.",
+    "No source changes, commit, scanner mutation or receipt approval performed during documentation.",
+    "All own execution sessions had completed before this report."
+  ]
+}

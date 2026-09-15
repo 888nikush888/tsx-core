@@ -1844,7 +1844,8 @@ export class TradingEngine {
     if (account.exchange === 'paper') return;
     const current = remote.accountFingerprint;
     if (typeof current !== 'string' || !/^[a-f0-9]{64}$/.test(current)) {
-      return this.failRemoteAccountIdentity(account, 'Exchange snapshot omitted a valid account fingerprint.');
+      await this.failRemoteAccountIdentity(account, 'Exchange snapshot omitted a valid account fingerprint.');
+      return;
     }
     if (account.externalAccountId && account.externalAccountId !== current) {
       await this.failRemoteAccountIdentity(account, 'Exchange snapshot does not match the bound external account identity.', {

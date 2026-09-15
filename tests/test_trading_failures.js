@@ -1094,6 +1094,47 @@ async function testRemoteAccountIdentityBinding(directory) {
   };
   const engine = new TradingEngine([adapter]);
   await engine.reconcileAccount(account.id);
+  const database = getDatabase();
+  const successfulRuns = await database.all(
+    "SELECT id FROM trading_reconciliation_runs WHERE account_id = ? AND status = 'succeeded'", [account.id],
+  );
+  assert.equal(successfulRuns.length, 1);
+  for (const invalidIdentity of [undefined, null, '', 'not-a-fingerprint', 'A'.repeat(64)]) {
+    observedIdentity = invalidIdentity;
+    let priorSnapshotReads = 0;
+    const originalGet = database.get;
+    database.get = function (sql, ...parameters) {
+      if (/SELECT remote_snapshot_json FROM trading_reconciliation_runs/u.test(sql)) priorSnapshotReads += 1;
+      return originalGet.call(this, sql, ...parameters);
+    };
+    try {
+      await assert.rejects(engine.reconcileAccount(account.id), error => {
+        assert.equal(error.name, 'ReconciliationMismatchError');
+        assert.equal(error.incidentCategory, 'remote_identity');
+        assert.equal(error.message, 'Exchange snapshot omitted a valid account fingerprint.');
+        return true;
+      });
+    } finally {
+      database.get = originalGet;
+    }
+    assert.equal(priorSnapshotReads, 0, 'Invalid fingerprint must reject before historical identity lookup.');
+    assert.equal((await getTradingAccount(account.id)).killSwitchActive, true);
+    const risk = await database.get(
+      "SELECT severity, details_json FROM trading_risk_events WHERE account_id = ? AND code = 'REMOTE_ACCOUNT_IDENTITY_MISMATCH' ORDER BY created_at DESC LIMIT 1", [account.id],
+    );
+    assert.equal(risk.severity, 'critical');
+    assert.equal(JSON.parse(risk.details_json).message, 'Exchange snapshot omitted a valid account fingerprint.');
+    assert.deepEqual(await database.all(
+      "SELECT id FROM trading_reconciliation_runs WHERE account_id = ? AND status = 'succeeded'", [account.id],
+    ), successfulRuns, 'Malformed identity cannot publish a successful reconciliation.');
+    assert.equal((await getTradingRuntimeState()).killSwitchActive, false, 'Identity failure remains isolated to its account.');
+  }
+  assert.equal((await database.get(
+    "SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ? AND status = 'mismatch'", [account.id],
+  )).count, 5);
+  assert.equal((await database.get(
+    "SELECT COUNT(*) AS count FROM trading_risk_events WHERE account_id = ? AND code = 'REMOTE_ACCOUNT_IDENTITY_MISMATCH'", [account.id],
+  )).count, 1, 'Repeated malformed observations retain the existing unacknowledged critical-risk deduplication.');
   observedIdentity = 'b'.repeat(64);
   await assert.rejects(
     engine.reconcileAccount(account.id),
