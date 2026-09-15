@@ -5,7 +5,8 @@ import type {
   SignalContractDefinition,
 } from './trading_types.js';
 import { validateSignalContractDefinition, composeSignalSchemaContract } from './signal_contract.js';
-import { safeRegexTest } from './filters.js';
+import vm from 'node:vm';
+import { types } from 'node:util';
 
 export interface ExecutableSignalSchemaSelection {
   id: string;
@@ -42,8 +43,8 @@ export interface GroundingField {
 }
 
 export class SignalValidationError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = 'SignalValidationError';
   }
 }
@@ -565,9 +566,10 @@ function validateAdditionalFieldText(field: SignalContractAdditionalField, value
     try {
       const remainingMs = Math.floor(patternDeadline - performance.now());
       if (remainingMs < 1) throw new Error('Pattern budget exhausted.');
-      matches = safeRegexTest(new RegExp(field.pattern, 'u'), value, remainingMs);
-    } catch {
-      throw new SignalValidationError(`Contract path '${field.path}' pattern evaluation exceeded its execution budget or failed.`);
+      // This helper is reached only within validateAdditionalFields' shared VM boundary.
+      matches = new RegExp(field.pattern, 'u').test(value);
+    } catch (cause) {
+      throw new SignalValidationError(`Contract path '${field.path}' pattern evaluation exceeded its execution budget or failed.`, { cause });
     }
     if (!matches) throw new SignalValidationError(`Contract path '${field.path}' does not match its required pattern.`);
   }
@@ -598,6 +600,29 @@ function validateAdditionalField(root: XmlNode, field: SignalContractAdditionalF
   validateAdditionalFieldText(field, value, patternDeadline);
   validateAdditionalFieldType(field, value);
   if (field.type === 'decimal') validateAdditionalDecimal(root, field);
+}
+
+function validateAdditionalFields(root: XmlNode, fields: SignalContractAdditionalField[]): void {
+  if (fields.length === 0) return;
+  let currentPath = '';
+  let patternDeadline = 0;
+  const context = vm.createContext({ validate: () => {
+    for (const field of fields) {
+      currentPath = field.path;
+      validateAdditionalField(root, field, patternDeadline);
+    }
+  } });
+  // One context and one execution boundary avoid charging 30 VM startups to the match budget.
+  patternDeadline = performance.now() + 100;
+  try {
+    vm.runInContext('validate()', context, { timeout: 100 });
+  } catch (cause) {
+    if (types.isNativeError(cause)
+      && Object.getOwnPropertyDescriptor(cause, 'code')?.value === 'ERR_SCRIPT_EXECUTION_TIMEOUT') {
+      throw new SignalValidationError(`Contract path '${currentPath}' pattern evaluation exceeded its execution budget or failed.`, { cause });
+    }
+    throw cause;
+  }
 }
 
 function contractEntry(
@@ -797,9 +822,7 @@ function validateDynamicContract(
   const stopLoss = contractDecimal(root, definition.stopLossPath, true);
   if (stopLoss === undefined) throw new SignalValidationError('Required contract path is missing.');
   const optional = dynamicOptionalValues(root, definition);
-  // One deadline for all fields prevents multiplying the CPU budget by 30.
-  const patternDeadline = performance.now() + 100;
-  for (const field of definition.additionalFields) validateAdditionalField(root, field, patternDeadline);
+  validateAdditionalFields(root, definition.additionalFields);
   assertContractGeometry(definition, action, entry, stopLoss, targets);
   return {
     action,

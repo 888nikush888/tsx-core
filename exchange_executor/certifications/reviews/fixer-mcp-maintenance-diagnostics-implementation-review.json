@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "kind": "maintenance-fixture-error-preservation-verification",
+  "baseRevision": "7f3bc34f8817a1cb0fe3a8b3e70cc711fa7e2adc",
+  "path": "tests/test_mcp_maintenance.js",
+  "baseGitSha256": "6470e98c5b8d2e66cf6b2175dee365ceb83baf2a0c4fab09fe96c24eafcdb245",
+  "workingRawSha256": "fafdc427e88ad596ceb389e0084ca9c5f7d8f15bc821c3f71ca36d323d37f95c",
+  "workingLfSha256": "c6b9bf76959b09fe366fcea3703204867e019b03c54a23eb9dd68a161727120a",
+  "deltaSha256": "3de8fab4f608ec324d619347bcb266a263bc61a9be0b4a880c3460c283517df5",
+  "changes": [
+    "Twohandlefixture preserves originalbodyerror and each close/wait/releaseerror in AggregateErrorwithstageandcause.",
+    "waitForQuiescence rejection observedimmediately onseparatecatch without replacingoriginalpromise; finallyawait stillrecordsrejection.",
+    "Bothcloses andwaitingcleanupattempted individually;lease.release attempted afterwardevenif earliersteps fail.",
+    "Participantandackfixturefilecontents plusrequestprinted tostderr onfailure beforelease release/outerfixture rm.",
+    "Firstclose movedinsidetry forerrorcapture. Nativeclose bookkeeping unchanged; no blindreclosing alreadyclosedSQLitehandle."
+  ],
+  "validation": {
+    "targeted": {
+      "exitCode": 0,
+      "log": "fixer-mcp-maintenance-diagnostics-target.log"
+    },
+    "lint": {
+      "exitCode": 0,
+      "maxWarnings": 0,
+      "log": "fixer-mcp-maintenance-diagnostics-lint.log"
+    },
+    "fourWorkerCoveragePrefix": {
+      "exitCode": 0,
+      "log": "fixer-mcp-maintenance-four-worker-prefix.log",
+      "tests": [
+        "test_queue.js",
+        "test_outbox_scheduler.js",
+        "test_filters.js",
+        "test_config.js",
+        "test_env.js",
+        "test_secret_store.js",
+        "test_factory_reset_paths.js",
+        "test_mcp_maintenance.js"
+      ],
+      "configuration": "Existingc8.modules.json withisolatedreport/tempdirs;TSX_MODULE_COVERAGE_WORKERS4. Not fullmodulebaselineevaluation."
+    },
+    "failureInjection": {
+      "exitCode": 0,
+      "script": "reports/security-services/_maintenance_diagnostics_injection.mjs",
+      "log": "fixer-mcp-maintenance-diagnostics-injection.log",
+      "method": "Actualfixture/member/snapshot code copiedintoignoredscript. Firstclose reallycloses then throwsINJECTED_ORIGINAL_CLOSE; cleanupfirstclose throwsINJECTED_CLEANUP_CLOSE. AggregateErrorcauses checked individually; reallease.release thenmcpMaintenanceActivefalse checked. Productiondefaultdeadlineunchanged."
+    }
+  },
+  "logHashes": {
+    "fixer-mcp-maintenance-diagnostics-target.log": "26de40c30c4b46d4f1ee2b8deaa95c121409a6caca7a7a4b9a2a0cd613fe0058",
+    "fixer-mcp-maintenance-diagnostics-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "fixer-mcp-maintenance-four-worker-prefix.log": "596092f794532ce7d1a6c0faf32cc4b83bf5229252afb15b2113ea30eabd574a",
+    "fixer-mcp-maintenance-diagnostics-injection.log": "a1a6826be77d3f2cb3e6a3bfb5b70dcce474b7b3e796267676e2372026a17284"
+  },
+  "limits": [
+    "No productioncode, timeout or assertionsweakened.",
+    "Originalfullsuite30sdeadlinefailure not reproducedorrootcaused; targeted/prefixsuccesscannotdismissit.",
+    "Initialprefixattempt used unregisteredtest_factory_reset.js andfailedpreflight exit2; correctedregisteredtest_factory_reset_paths.js eightfileprefixpassed.",
+    "No promise that closeackfailedwillberepaired;diagnostics exposeoriginalfailure ratherthanretrying nativeclose unsafely.",
+    "No commit,push orworkflowchange."
+  ]
+}

@@ -173,9 +173,9 @@ async function verifyHealthServer(requests, activeBotToken) {
   let currentStatus = { healthy: true, ready: true, enabled: false, lastError: null };
   let tokenUnavailable = false;
   const health = startTelegramViewerHealthServer({
-    port: 0, serviceToken: async () => {
-      if (tokenUnavailable) throw new Error('Synthetic token provider failure');
-      return SERVICE_TOKEN;
+    port: 0, serviceToken: () => {
+      if (tokenUnavailable) return Promise.reject(new Error('Synthetic token provider failure'));
+      return Promise.resolve(SERVICE_TOKEN);
     },
     status: () => currentStatus,
   });

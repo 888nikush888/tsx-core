@@ -1,0 +1,26 @@
+{
+  "kind": "completed-module-verification",
+  "baseRevision": "7f3bc34f8817a1cb0fe3a8b3e70cc711fa7e2adc",
+  "session": 43874,
+  "exitCode": 0,
+  "testFilesPassed": 226,
+  "coverage": [
+    96.51,
+    86.5,
+    99.2,
+    96.51
+  ],
+  "log": "reports/security-services/fixer-maintenance-diagnostics-module.log",
+  "logSha256": "b637521a6caac87b45adb9f9b384fc950e63dad6f8a0d0403373d78288009267",
+  "sourceChanges": [
+    "src/signal_schema.ts",
+    "tests/fixtures/signal_contract_regex_child.js",
+    "tests/test_mcp_maintenance.js",
+    "tests/test_signal_contract_validation.js",
+    "tests/test_telegram_viewer_runtime.js"
+  ],
+  "limits": [
+    "Prior61369maintenancefailure cause remains unproven; improved diagnostic cleanup preserves causes on recurrence.",
+    "Fresh published Linux/Sonar/container checks pending."
+  ]
+}

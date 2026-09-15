@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-maintenance-timeout-investigation-initial",
+  "revision": "9d699b51c778a483cd5f6e75f1679bdf0cb8b58c",
+  "bindings": [
+    {
+      "path": "src/mcp_maintenance.ts",
+      "gitSha256": "a5006fde7855214bd22049ee45131294c65f07d2d0afc94c22f491a6798c9ef6",
+      "workingLfSha256": "a5006fde7855214bd22049ee45131294c65f07d2d0afc94c22f491a6798c9ef6"
+    },
+    {
+      "path": "src/db.ts",
+      "gitSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8",
+      "workingLfSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8"
+    },
+    {
+      "path": "tests/test_mcp_maintenance.js",
+      "gitSha256": "6470e98c5b8d2e66cf6b2175dee365ceb83baf2a0c4fab09fe96c24eafcdb245",
+      "workingLfSha256": "6470e98c5b8d2e66cf6b2175dee365ceb83baf2a0c4fab09fe96c24eafcdb245"
+    }
+  ],
+  "observedFailure": {
+    "log": "reports/security-services/fixer-single-regex-boundary-module.log",
+    "stack": "Maintenance deadlineexpired check mcp_maintenance.ts63, testfinallyline176 in twohandles-samePIDfixture159.",
+    "defaultTimeoutMs": 30000,
+    "conclusion": "Real fullsuite failure; generic deadlineatfinally does not identify firstfailure. Not dismissed as short scheduling contention."
+  },
+  "targetedReproduction": {
+    "command": "Node22 --import tsx tests/test_mcp_maintenance.js",
+    "exitCode": 0,
+    "log": "reports/security-services/fixer-mcp-maintenance-independent-repro.log",
+    "logSha256": "26de40c30c4b46d4f1ee2b8deaa95c121409a6caca7a7a4b9a2a0cd613fe0058",
+    "conclusion": "Single targeted fullfile passed, failure not yet reproduced."
+  },
+  "productionInspection": [
+    "Each participant has ownUUID+incrementinghandleGeneration, lease targets keyedbyUUID ratherthanPID. Sameprocessclosure cannotauthorizeothergeneration.",
+    "Check refreshes participantrecords and accepts only closed state plus exact acknonce,generation,ownerinstance,DBidentity,participantidentity/PID and validack timestamps; or definitelydeadESRCHprocess.",
+    "Participant closeSucceeded writesclosedstate thenack. Temporary registryreplacementfiles are ignored; fullywrittenrenamedJSON expected. Lateack is rejected afterdeadline.",
+    "No production change in current regexwave."
+  ],
+  "concreteMaskingMechanism": {
+    "path": "tests/test_mcp_maintenance.js member.close andtwohandlefinally",
+    "steps": [
+      "member.close awaitscloseStarted and realSQLiteclose, then sets this.closed=true before awaitparticipant.closeSucceeded.",
+      "If closing-state/acknowledgement write throws afterrealclose, testfinally callsclose again, but this.closed prevents retry.",
+      "Finally awaits samewaitingpromise beforelease.release. A rejectionfromtry (includingfilesystemcloseAckfailure) canbe replacedbydeadline rejection after30seconds; lease.release also skipped."
+    ],
+    "status": "Statically proven potential diagnosticmasking; not proof thiscausedobservedfailure."
+  },
+  "recommendedNextEvidence": [
+    "Capture originaltryerror beforecleanup, independentlycapture eachcleanup/waitingerror; attach rejectionhandler to waiting immediately.",
+    "Beforefixture rm snapshot marker,participant andackJSON pluserrors/state,timestamps andelapsedtime, preservingnonce/ID/generation links.",
+    "If ackmissing inspect originalfsclose/write/rename/sync failure; if present compare each expectedfield+timestamps torequest, avoid guessing race.",
+    "Keep default30secondbound andclosed-generationchecks unchanged; no timeoutincrease or accepted-on-timeout recovery."
+  ],
+  "sourceEdits": false,
+  "limits": [
+    "No rootcauseconfirmed; targetedsuccesscannotclosefailure.",
+    "No broadtests or provideractions."
+  ]
+}

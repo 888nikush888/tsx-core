@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
@@ -407,7 +408,18 @@ function testContractPatternExecution() {
   const checkMultiple = () => validateSignalXml(multiXml, undefined, {
     id: 'shared-pattern-budget', parserSchema: 'standard', contractDefinition: definition,
   });
-  assert.doesNotThrow(checkMultiple, 'All 30 ordinary field patterns must remain supported.');
+  const originalRunInContext = vm.runInContext;
+  const boundaries = [];
+  try {
+    vm.runInContext = function (code, context, options) {
+      boundaries.push(options?.timeout);
+      return originalRunInContext.call(this, code, context, options);
+    };
+    assert.doesNotThrow(checkMultiple, 'All 30 ordinary field patterns must remain supported.');
+  } finally {
+    vm.runInContext = originalRunInContext;
+  }
+  assert.deepEqual(boundaries, [100], 'All fields share one real VM execution boundary; never one allowance per field.');
   const originalPerformance = globalThis.performance;
   let elapsed = 0;
   try {
@@ -422,12 +434,14 @@ function testContractPatternExecution() {
   // The outer process owns the deadline even if the runtime guard regresses.
   const fixture = fileURLToPath(new URL('./fixtures/signal_contract_regex_child.js', import.meta.url));
   for (const pattern of ['^(a+)+$', '^(a|aa)+$', '^((a+))+$']) {
-    const result = spawnSync(process.execPath, ['--import', 'tsx', fixture, pattern], {
-      encoding: 'utf8', timeout: 5_000,
-    });
-    assert.equal(result.error, undefined, 'Untrusted pattern must not hang its subprocess.');
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /bounded-pattern-rejected/u);
+    for (const placement of ['first', 'late']) {
+      const result = spawnSync(process.execPath, ['--import', 'tsx', fixture, pattern, placement], {
+        encoding: 'utf8', timeout: 5_000,
+      });
+      assert.equal(result.error, undefined, 'Untrusted pattern must not hang its subprocess.');
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /bounded-pattern-rejected/u);
+    }
   }
 }
 testContractPatternExecution();

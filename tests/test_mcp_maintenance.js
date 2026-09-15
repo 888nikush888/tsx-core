@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
@@ -156,14 +156,31 @@ await fixture(async ({ databasePath, owner }) => {
   } finally { process.kill = originalKill; await active.close(); await lease.release(); }
 });
 
+async function maintenanceFixtureSnapshot(directory, request) {
+  const snapshot = { request, records: {} };
+  for (const registry of ['.mcp-participants', '.mcp-maintenance-acks']) {
+    try {
+      const files = await readdir(path.join(directory, registry));
+      snapshot.records[registry] = await Promise.all(files.map(async file => {
+        try { return { file, content: await readFile(path.join(directory, registry, file), 'utf8') }; }
+        catch (error) { return { file, error: error.message }; }
+      }));
+    } catch (error) { snapshot.records[registry] = { error: error.message }; }
+  }
+  return snapshot;
+}
+
 await fixture(async ({ databasePath, owner, directory }) => {
   const first = await member(databasePath);
   const second = await member(databasePath);
   const lease = await beginMcpSharedMaintenance('two native handles in the same process', databasePath, owner);
-  await first.close();
   let quiescent = false;
-  const waiting = lease.waitForQuiescence().then(() => { quiescent = true; });
+  let waiting = Promise.resolve();
+  const failures = [];
   try {
+    await first.close();
+    waiting = lease.waitForQuiescence().then(() => { quiescent = true; });
+    waiting.catch(() => undefined); // Preserve the original promise while observing early rejection.
     await delay(100);
     assert.equal(quiescent, false, 'One closed handle must not acknowledge another generation in the same PID.');
     await second.close();
@@ -173,7 +190,26 @@ await fixture(async ({ databasePath, owner, directory }) => {
     assert.equal(firstAck.pid, secondAck.pid);
     assert.notEqual(firstAck.participantGeneration, secondAck.participantGeneration);
     await lease.assertQuiescent();
-  } finally { await first.close(); await second.close(); await waiting; await lease.release(); }
+  } catch (error) {
+    failures.push({ stage: 'test body', error });
+  } finally {
+    for (const [stage, cleanup] of [
+      ['first close', () => first.close()], ['second close', () => second.close()],
+      ['quiescence', () => waiting],
+    ]) {
+      try { await cleanup(); }
+      catch (error) { failures.push({ stage, error }); }
+    }
+    if (failures.length) {
+      console.error('Maintenance fixture evidence:', JSON.stringify(await maintenanceFixtureSnapshot(directory, lease.request)));
+    }
+    try { await lease.release(); }
+    catch (error) { failures.push({ stage: 'lease release', error }); }
+  }
+  if (failures.length) {
+    throw new AggregateError(failures.map(({ stage, error }) => new Error(stage, { cause: error })),
+      'Two-handle maintenance fixture failed; original and cleanup errors retained.');
+  }
 });
 
 await fixture(async ({ databasePath, owner }) => {

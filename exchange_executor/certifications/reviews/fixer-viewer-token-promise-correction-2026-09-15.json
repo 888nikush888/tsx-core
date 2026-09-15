@@ -1,0 +1,9 @@
+{
+  "kind": "test-fixture-async-no-await-correction",
+  "path": "tests/test_telegram_viewer_runtime.js",
+  "change": "Health token fixture now returns Promise.resolve(token) or Promise.reject(Error) explicitly, preserving asynchronous provider success and failure coverage. Non-Error resilient loop fixture remains unchanged.",
+  "targetTestExit": 0,
+  "eslintExit": 0,
+  "sourceRawSha256": "0178d5bf92f8e4430b93f2d49e9ea81f1de02faff24a6ca9e8bbe480e4bd9654",
+  "remoteFindingClosure": "pending next DeepSource scan"
+}
