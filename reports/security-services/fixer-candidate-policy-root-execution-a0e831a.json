@@ -1,0 +1,24 @@
+{
+  "kind": "candidate-review-policy-root-execution",
+  "revision": "a0e831ac7bc5e10404d516723fd6d750860ff300",
+  "checkout": "tmp/tsx-core-candidate-proof-20260915",
+  "checkoutAutocrlf": false,
+  "python": "3.12.14 locked workspace environment",
+  "command": [
+    "python",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "exchange_executor/tests",
+    "-p",
+    "test_candidate_review_policy.py",
+    "-v"
+  ],
+  "exitCode": 0,
+  "testsRun": 3,
+  "seconds": 4.425,
+  "toolEvidence": "f64f03",
+  "result": "All three tests PASS on final history-helper extraction and renewed evidence commitment.",
+  "limits": "Execution captured in tool output; no separate raw log was saved, no log hash claimed. Not a full suite or renewed implementation receipt."
+}
