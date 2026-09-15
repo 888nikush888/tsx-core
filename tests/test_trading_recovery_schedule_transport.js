@@ -200,7 +200,7 @@ async function assertFailedRead(fixture, expectedError) {
   await assert.rejects(adapter.openState(account), expectedError);
   assert.equal(requests.length - beforeRequests, 1, 'A scheduled read has exactly one HTTP attempt, even without accountLogs.');
   const sent = lastRequest(account.id).payload.recovery;
-  assert.equal(sent.accountLogs, undefined);
+  assert.equal(sent.accountLogs);
   const failed = await attempt(sent.recoverySchedule.attemptId);
   assert.equal(failed.status, 'failed'); assert.equal(failed.calls, null, 'An invalid or lost response never proves zero provider calls.');
   assert.equal(failed.response_json, null);

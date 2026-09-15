@@ -406,8 +406,8 @@ for (const exchange of ['hyperliquid', 'bybit', 'krakenfutures']) {
   } else {
     // Historical shape is permitted on disk, but runtime approval is tested
     // separately against the fixed review pin and the actual source trees.
-    assert.equal(evidence.schemaVersion, undefined);
-    assert.equal(evidence.implementationVerified, undefined);
+    assert.equal(evidence.schemaVersion);
+    assert.equal(evidence.implementationVerified);
   }
 }
 assert.match(ccxtAdapter, /clients\.rest\.create_orders/);
@@ -428,7 +428,7 @@ const mcpService = dockerCompose.slice(
 assert.doesNotMatch(mcpService, /profiles:/, 'MCP must start with the default stack and be gated by its runtime mode');
 assert.match(mcpService, /condition:\s*service_healthy/);
 assert.match(mcpService, /MCP_RUNTIME_POLL_MS:/);
-assert.match(mcpService, /"127\.0\.0\.1:\$\{HOST_MCP_PORT:-8091\}:8091"/);
+assert.match(mcpService, /"127\\.0\\.0\\.1:\$\{HOST_MCP_PORT:-8091\}:8091"/);
 assert.match(dockerCompose, /forwarder_secrets:\/app\/secrets:ro/);
 
 const alertmanagerGoImage = alertmanagerDockerfile.match(/^ARG GO_IMAGE=([^\s]+)$/m)?.[1];

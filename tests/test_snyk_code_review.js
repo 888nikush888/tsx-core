@@ -192,7 +192,7 @@ test('acceptance cannot be extended, forged, silently omitted or reused after ex
   await assert.rejects(loadHttpRiskAcceptance(root, new Date('2026-10-09T00:00:00Z')), /expired/u);
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'tsx-snyk-acceptance-'));
   try {
-    assert.equal(await loadHttpRiskAcceptance(temporary), undefined);
+    assert.equal(await loadHttpRiskAcceptance(temporary));
     const relative = 'docs/risk-acceptances/RA-2026-09-08-internal-http.md';
     await mkdir(path.dirname(path.join(temporary, relative)), { recursive: true });
     const authorized = await readFile(path.join(root, relative), 'utf8');

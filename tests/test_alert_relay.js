@@ -77,7 +77,6 @@ try {
   });
   assert.equal(response.status, 502, 'Alertmanager must retry when the incident endpoint fails');
   await new Promise(resolve => activeRelay.close(resolve));
-
   assert.throws(
     () => createAlertRelay({ incomingToken, webhookUrl: 'http://example.com', webhookToken: outgoingToken }),
     /must use HTTPS/
@@ -102,7 +101,7 @@ try {
     };
     await applyManagedRuntimeSettings(explicitEnvironment);
     assert.equal(explicitEnvironment.ALERT_WEBHOOK_URL, 'https://override.example/alerts');
-    assert.equal(explicitEnvironment.ALERT_WEBHOOK_TIMEOUT_MS, undefined);
+    assert.equal(explicitEnvironment.ALERT_WEBHOOK_TIMEOUT_MS);
   } finally {
     await rm(settingsDirectory, { recursive: true, force: true });
   }

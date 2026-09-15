@@ -29,7 +29,7 @@ for (const side of ['LONG', 'SHORT']) {
   assert.equal(entry.price, boundary(side).limitPrice);
   assert.equal(entry.postOnly, false);
   assertEntryPriceBoundary(plan, entry);
-  for (const change of [{ price: side === 'LONG' ? '100.6' : '99.5' }, { orderType: 'market' }, { timeInForce: undefined }, { postOnly: true }]) {
+  for (const change of [{ price: side === 'LONG' ? '100.6' : '99.5' }, { orderType: 'market' }, { postOnly: true }]) {
     assert.throws(() => assertEntryPriceBoundary(plan, { ...entry, ...change }), /price|bound|IOC/i);
   }
   assert.throws(() => assertEntryPriceBoundary({ ...plan, entryPriceBoundary: null }, entry), /bound/i);

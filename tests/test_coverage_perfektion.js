@@ -8,7 +8,7 @@ async function runTests() {
 
   console.log("1. isForeignKeyConstraint branches...");
   assert.strictEqual(isForeignKeyConstraint(null), false);
-  assert.strictEqual(isForeignKeyConstraint(undefined), false);
+  assert.strictEqual(isForeignKeyConstraint(), false);
   assert.strictEqual(isForeignKeyConstraint("string"), false);
   assert.strictEqual(isForeignKeyConstraint(123), false);
   assert.strictEqual(isForeignKeyConstraint({}), false);

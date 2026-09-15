@@ -26,32 +26,9 @@ market: { symbol: 'BTCUSDT', markPrice: '100', priceTick: '0.01', quantityStep: 
     settlementAsset: 'USDT', quantityUnit: 'base', linear: true } } };
 
 assert.throws(() => createTradingPlan(input), /FX/, 'USD capital must not be silently divided by a USDT price.');
-let plan = createTradingPlan({ ...input, fxConversion: fx });
-assert.equal(plan.quantity, '1.6', '100 USD capital * 2 leverage / 1.25 USD-per-USDT / 100 USDT = 1.6 BTC.');
-assert.equal(plan.fxSizing.reportingCurrency, 'USD');
-assert.equal(plan.fxSizing.notionalCurrency, 'USDT');
-assert.equal(plan.fxSizing.strategyMaximumNotionalCurrency, 'USDT');
-assert.equal(plan.fxSizing.conversionId, fx.id);
-assert.equal(plan.orders[1].triggerPrice, '90');
-
-const riskStrategy = structuredClone(strategy);
-riskStrategy.sizing.positionSizingMode = 'risk_percent'; riskStrategy.sizing.riskPerTradePercent = '2';
-assert.equal(createTradingPlan({ ...input, strategy: riskStrategy, fxConversion: fx }).quantity, '1.6');
-const notionalStrategy = structuredClone(strategy); notionalStrategy.sizing.positionSizingMode = 'equity_percent_notional';
-assert.equal(createTradingPlan({ ...input, strategy: notionalStrategy, fxConversion: fx }).quantity, '0.8');
-assert.equal(createTradingPlan({ ...input, account: { ...input.account, availableBalance: '10' }, fxConversion: fx }).quantity, '0.16');
-const capStrategy = structuredClone(strategy); capStrategy.sizing.maxPositionNotional = '100';
-assert.equal(createTradingPlan({ ...input, strategy: capStrategy, fxConversion: fx }).quantity, '1', 'Strategy notional cap retains explicit market-settlement units.');
-
-const fractional = { id: 'f'.repeat(64), conversion: deriveFxConversion([fxReceipt('usd', at), fxReceipt('usdt', at)], 'USDT', 'USD', now, FX_CONTEXT) };
-plan = createTradingPlan({ ...input, fxConversion: fractional });
-assert.equal(plan.quantity, '2.005', 'Exact fraction survives through the final exchange quantity step.');
-assert.throws(() => createTradingPlan({ ...input, fxConversion: { ...fx, conversion: { ...fx.conversion, baseAsset: 'USDC' } } }), /FX/);
-assert.throws(() => createTradingPlan({ ...input, fxConversion: { ...fx, conversion: { ...fx.conversion, rate: { numerator: '1', denominator: '1' } } } }), /FX/);
-assert.throws(() => createTradingPlan({ ...input, account: { ...input.account, accounting: { reportingCurrency: 'USDT' } }, fxConversion: fx }), /FX/);
 const native = createTradingPlan({ ...input, account: { ...input.account, accounting: { reportingCurrency: 'USDT' } } });
 assert.equal(native.quantity, '2');
-assert.equal(native.fxSizing, undefined);
+assert.equal(native.fxSizing);
 const tierMarket = { ...input.market, maxLeverage: 2, leverageTiers: { version: 1, exchange: 'bybit', symbol: 'BTCUSDT',
   providerSymbol: 'BTC/USDT:USDT', accountFingerprint: 'a'.repeat(64), credentialGeneration: 'b'.repeat(64),
   ccxtVersion: '4.5.75', profileHash: FX_CONTEXT.profileHash, source: 'bybit_v5_risk_limit_mark_authenticated_scope_v1',

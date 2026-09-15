@@ -126,15 +126,15 @@ function testRequestBoundary() {
       assert.throws(() => validate(row), /RECOVERY_SCHEDULE/);
     }
   }
-  assert.equal(validateRecoveryScheduleInputs({ history: [] }, expected), undefined);
-  assert.equal(validateRecoveryScheduleProgress(undefined, {}, read, expected), undefined);
+  assert.equal(validateRecoveryScheduleInputs({ history: [] }, expected));
+  assert.equal(validateRecoveryScheduleProgress(undefined, {}, read, expected));
   assert.throws(() => validateRecoveryScheduleProgress({}, {}, read, expected), /RECOVERY_SCHEDULE/);
   assert.throws(() => validateRecoveryScheduleProgress(undefined, {}, { ...read, fxEvidence: {} }, expected), /RECOVERY_SCHEDULE/);
 }
 
 function testEveryPhaseAndOmission() {
   for (const [phase, allocation] of [[0, { targeted: 2, fx: 3 }], [1, { history: 4, logs: 1 }],
-    [2, { targeted: 2, fx: 1 }], [3, { mode: 2, logs: 1, targeted: 2 }]]) {
+    [2, { targeted: 2, fx: 1 }], [3, { mode: 2, logs: 1, targeted: 2 }]]]) {
     const row = phaseFixture(phase, allocation);
     assert.deepEqual(check(row), row.progress);
     row.recovery.recoverySchedule.grants.reverse(); row.progress.lanes.reverse();
