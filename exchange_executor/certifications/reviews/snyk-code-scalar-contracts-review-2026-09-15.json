@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "reviewedRevision": "95bd43913d56299d55e4651dc74d791bb9cd7a7b",
+  "reviewedRevision": "95d6666c5348b9151985f59a53df2e12d366d7cd",
   "scannerVersion": "1.1307.1",
-  "sarifSha256": "dcffea65cf2fc10ce803e401690761b692feb4da95bced67bed83d442376dcc4",
-  "reviewKind": "independent-5a532f-adopted-receipt-three-context-review",
+  "sarifSha256": "6bb0a6dffc85d1e3b382112362716fffaf4216b6f308cde1a8db87b0eb7f8e75",
+  "reviewKind": "independent-1fd38d6a-adopted-source-nine-context-review",
   "reviewedCount": 85,
   "counts": {
     "false-positive": 81,
     "open": 4
   },
-  "priorReviewRevision": "dc0adb60fc3c268677d58441de1d40bfccd9b233",
-  "scopeNote": "Fresh Snyk Code1.1307.1 on frozen95bd439:85 IDs, fingerprints and flow digests unchanged versus adopted b425 review. Of182 source/context bindings,179 are unchanged;3 authority-pin contexts across3 verifier findings were individually re-reviewed. Receipt478e4bac1387ce1a1dc775461729607a7c0a0a71ddc68a288e0149f2c7bc8634 and authority pin were already adopted before the scan. Viewer82, telemetry12, runtime diagnostic fallback and three Sonar source/test fixes were present in the scanned revision.81 findings remain individually reviewed false positives;4 HTTP findings remain open under the unchanged owner acceptance expiring2026-10-08. No provider acceptance, container verification or cross-service finding closure is asserted.",
+  "priorReviewRevision": "95bd43913d56299d55e4651dc74d791bb9cd7a7b",
+  "scopeNote": "Fresh Snyk Code 1.1307.1 on frozen95d6666c:85 finding identities and fingerprints unchanged,84 exact flow digests unchanged. Maintenance finding9886 has48 line coordinates shifted+34 in db.ts; all24 affected source locations retain identical text and all other flow fields match. Of182 primary/context bindings,173 are unchanged and9 contexts across9 findings were individually reviewed (3db,3forwarder,3authority). Receipt9d56f6946102b339acce02ac2ccc5c0388b44402f60a5de1cd461309626d4c8b and pin were adopted before scanning.81 scoped false positives and4 still-open internal HTTP risks under unchanged owner acceptance expiring2026-10-08. No provider/container/cross-service closure claim.",
   "entries": [
     {
       "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
@@ -131,7 +131,7 @@
       "line": 93,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "Individually re-reviewed at 95bd439 against the 5a532f adopted receipt: the sole changed context is the authority mapping digest literal e0e8285c... to 478e4bac1387ce1a1dc775461729607a7c0a0a71ddc68a288e0149f2c7bc8634. The profile key and one-element immutable approval tuple are unchanged. This digest is not used as a path. The unchanged verifier requires a canonical parent, ordinary non-symlink single-link file, bounded size and read-only/no-follow open; opened identity and post-read metadata are rechecked. The exact scanner flow and primary bytes are unchanged, so this path traversal result remains a false positive for these bound bytes.",
+      "rationale": "Individually re-reviewed authority-dependent path flow at95d6666c: the sole authority change is the exact approved receipt digest478e4bac... to9d56f6946102b339acce02ac2ccc5c0388b44402f60a5de1cd461309626d4c8b in the same immutable single-profile mapping. A digest is not a pathname. Canonical parent, ordinary non-symlink/single-link file, bounded read-only/no-follow open, and pre/post-read identity checks remain unchanged. Primary bytes and exact flow digest are unchanged, supporting the same narrowly bound false-positive decision.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -143,7 +143,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "70bb515ae99fbc7c782626c381ac9570bc64ce7e0d7b53955edfdd38d904de36"
+          "sha256": "522eaf6073d91ebb3c0ecba5a4d00e035af742d40e3cd53413f3ef7dc1202f73"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -1227,11 +1227,11 @@
       "line": 6,
       "reviewedSourceSha256": "5e69f00fdb09992d9d392566d4e5e071e003636ddcc7f2ca7047f3111be87672",
       "disposition": "false-positive",
-      "rationale": "test_mcp_maintenance creates a temporary directory, initializes its fixed forwarder.db/proof table, and passes that exact databasePath to this participant child via separate spawn argument. registerDatabaseMaintenanceParticipant canonicalizes the database parent, validates private registry directories, and creates participant JSON exclusively with wx/0600. This trace models intentional local fixture registration; it has no untrusted request-selected destination. The current parent fixture additionally captures failures and reads its own fixed participant/ack directories for diagnostics before cleanup. Its mkdtemp-derived databasePath and separate child spawn argument remain unchanged; these diagnostics introduce no request-controlled path or provider input. Original errors remain in AggregateError causes and the lease release is attempted after close/wait cleanup. Final f1b7 review: All 18 SARIF delta leaves are start/end line coordinates shifted by21 in src/db.ts; corresponding source lines were byte-compared equal. No flow step, source, sink, column, finding ID or fingerprint changes. Parent still creates a private mkdtemp forwarder.db and passes its fixed path as a separate child argument. New maintenance fixture injections target only the fixed participant closed-state JSON, restore fs.rename in finally, and introduce no external source. Production rename retry keeps exactly the same source/destination and exclusive wx/0600 write; bounded Windows Error codes control delay, not path selection. Re-reviewed both changed contexts individually: src/db.ts changes only an error annotation from any to unknown plus an erased structural assertion before the existing optional code read; emitted path handling is unchanged. The maintenance test consolidates named and default imports of the same node:fs/promises module without changing values. The child receives a fixed forwarder.db filename within the parent test-created private temporary directory as a separate process argument; no remote request chooses this fixture path.",
+      "rationale": "Maintenance child still receives the fixed forwarder.db created under parent mkdtemp as a separate spawn argument. db.ts native path handling, marker/registry canonicalization, exclusive writes and backup destinations have identical emitted statements. Its changed path-adjacent catch annotations are erased structural views retaining exactly the prior optional/nonoptional code access. New outbox review SQL does not choose any filesystem path. Existing fixture-specific path-traversal reasoning remains supported, now confirmed against the fresh scanner trace; only the documented +34 line-coordinate shift differs.",
       "contextPaths": [
         {
           "path": "src/db.ts",
-          "sha256": "3ba2f7320d08793d0855769fa769d7306491ea88c1aeb5378147119828335b9e"
+          "sha256": "b7e15ccc469f2bd6d3be7f78738d6f13f66730ac5d4aa86dba6bcb5489d610a1"
         },
         {
           "path": "src/mcp_maintenance.ts",
@@ -1374,7 +1374,7 @@
         "identity": "9886fba1-1186-4e41-b1fa-6a6877440237",
         "snyk/asset/finding/v1": "9886fba1-1186-4e41-b1fa-6a6877440237"
       },
-      "evidenceSha256": "fa7c8210d2c9a45d022cbfb8d1b335af758a4cefba41da0585729f5def1e5a04"
+      "evidenceSha256": "22c9e859c1ddf045cad508137c3e64a4cc3e0013aa5eb77e9d0631f37f6b1b61"
     },
     {
       "findingId": "bc179edb-989f-4eee-b6f0-4e0403e76fa0",
@@ -1511,11 +1511,11 @@
       "line": 45,
       "reviewedSourceSha256": "4b6928acfb9563c755d3b0ec5f170734918273e5d88b887c03917d60121e0c54",
       "disposition": "false-positive",
-      "rationale": "PRAGMA index_xinfo interpolates index.name read from PRAGMA index_list over two literal table names. The database is created by this test under mkdtemp, initialized from the bound local migration schema, and modified only by fixed fixture DDL and parameterized rows. No supplied database file or request populates the identifier source. This metadata inspection verifies retained indexes rather than executing attacker-derived SQL. Final f1b7 review: Reported index metadata query and temporary fixture source are unchanged. Entire db.ts delta only wraps maintenance JSON rename with bounded Windows retries. It adds no SQL, schema, identifier construction or externally supplied database source. Re-reviewed line 45 PRAGMA index_xinfo: the interpolated index name comes from index_list of fixed fixture tables in the freshly created local test database. Database context changed only an erased catch error annotation/assertion; it adds no SQL interpolation or external input. The existing locally generated index-name provenance and SQL bytes are unchanged.",
+      "rationale": "Inspected index_xinfo sink: index.name still comes from index_list over the two literal fixture table names in a private newly created database. Schema/migration emitted statements are unchanged. New outbox SQL uses fixed table/column names and bound placeholders for IDs, status, diagnostics, limits and JSON arrays; no dynamic SQL identifier is introduced. Existing fixture-specific SQL finding rationale remains supported, not a blanket SQL safety classification.",
       "contextPaths": [
         {
           "path": "src/db.ts",
-          "sha256": "3ba2f7320d08793d0855769fa769d7306491ea88c1aeb5378147119828335b9e"
+          "sha256": "b7e15ccc469f2bd6d3be7f78738d6f13f66730ac5d4aa86dba6bcb5489d610a1"
         },
         {
           "path": "tests/fixtures/fx_schema.js",
@@ -1591,11 +1591,11 @@
       "line": 51,
       "reviewedSourceSha256": "4b6928acfb9563c755d3b0ec5f170734918273e5d88b887c03917d60121e0c54",
       "disposition": "false-positive",
-      "rationale": "The separate foreign_key_list query reads table names from sqlite_master of the same exclusively created temporary migration fixture; names are also JSON-stringified before interpolation. Only fixed schema and fixture DDL create tables. Neither application data nor an externally provided database determines this metadata sink in the reported invocation. Final f1b7 review: Reported foreign-key metadata query and fixed fixture schema source are unchanged. New maintenance rename retry has no SQL or identifier input and does not alter this source/sink. Re-reviewed line 51 PRAGMA foreign_key_list: names come from sqlite_master in the same private test-created schema, with JSON.stringify retained at the existing boundary. No request-supplied database or identifier enters this fixture. The db.ts change is an erased error type annotation/assertion unrelated to schema names or SQL execution; the original finding remains scoped to this controlled test flow.",
+      "rationale": "Inspected foreign_key_list sink: table names still come from sqlite_master in the same private fixed-schema migration fixture, passed through existing JSON.stringify. Migration/schema declarations and fixture bytes are unchanged. New outbox reads and updates cannot populate schema identifiers and use parameters; no request-selected database or identifier enters this test flow.",
       "contextPaths": [
         {
           "path": "src/db.ts",
-          "sha256": "3ba2f7320d08793d0855769fa769d7306491ea88c1aeb5378147119828335b9e"
+          "sha256": "b7e15ccc469f2bd6d3be7f78738d6f13f66730ac5d4aa86dba6bcb5489d610a1"
         },
         {
           "path": "tests/fixtures/fx_schema.js",
@@ -3734,11 +3734,11 @@
       "line": 297,
       "reviewedSourceSha256": "f4fc67a296b6e96a11c7c6430e86481bca19cc3ef9d62efb73a89ff6458d4fdb",
       "disposition": "open",
-      "rationale": "Actual plaintext HTTP remains at startMetricsServer line 297. Host defaults to METRICS_HOST or 127.0.0.1; forwarder invokes this listener without overriding host. Compose uses 0.0.0.0 only within its network and publishes 9100 exclusively on host loopback. Prometheus targets forwarder:9100 internally. GET /metrics and /readyz remain unauthenticated by design; network boundaries, not credentials, are the compensating control. Helper extraction and caught callback rejection preserve this transport scope. Metrics/default-bind assertions were inspected, not re-executed in this review. Current flow/source are freshly bound. Internal metrics remain sniffable: open, covered only by the separate unchanged acceptance. Subsequent complexity corrections were independently reviewed as a complete ten-file delta: helper extractions retain checks/order/errors, MCP restores its original allowlisted typed dispatch table, unused bindings are removed without removing calls, and the same HTTP assertions move into an awaited helper. Current scanner fingerprints and complete location/flow digests are identical. Only inspected source/context byte commitments are renewed; this does not broaden the disposition. The later independently inspected metrics-test addition makes one real unknown-path request and checks 404, plain-text content type and exact Not Found body; existing tests and production behavior are unchanged. Current scalar-contract source reassessment: Re-read current metrics startup caller: startMetricsServer still receives port and callbacks with no host override. The sole forwarder delta validates the legacy album source chat ID before SQLite save; it changes no listener, metrics callback, network scope or deployment setting. This remains actual plaintext HTTP under the unchanged owner acceptance.",
+      "rationale": "Re-read metrics startup in forwarder: same port and callbacks, no host override. Complete forwarder delta only imports requireOutboxMessageIds and checks album IDs before provider execution. Listener, loopback/container deployment settings and unauthenticated internal metrics scope are unchanged. Actual plaintext risk stays open under the four-ID owner acceptance.",
       "contextPaths": [
         {
           "path": "src/forwarder.ts",
-          "sha256": "0a6ed01d53a0968ae0202259a32e65461e144b8812b750b34f615930c3cc2a59"
+          "sha256": "4e9c22a3c68e16a22fb256f9907a6eb525f447af6886b39985460d97f52ac112"
         },
         {
           "path": "docker-compose.yml",
@@ -3786,7 +3786,7 @@
       "line": 55,
       "reviewedSourceSha256": "34f8c841e22275f97d537366c47cff93c5a88ca144f0d9567a2cdb801bc67484",
       "disposition": "open",
-      "rationale": "Actual plaintext HTTP remains at startTelegramViewerHealthServer line 55. Runtime and direct listener default to 127.0.0.1. Compose explicitly uses 0.0.0.0 inside the container without a viewer host port publication. Health/readiness expose boolean-only probe responses; detailed /status still requires the same bounded Bearer syntax and constant-time comparison against the service token. The forwarder status caller restricts plaintext endpoints to configured internal/loopback host names and sends the service token. Extracted response/authentication helpers retain awaited token lookup and rejection handling. No wider listener/deployment boundary was introduced. Token and detailed status remain cleartext on the internal hop: open under the unchanged separate acceptance, not false-positive. Independent current-source reassessment: Rechecked sole private status caller receives native Node request.headers.authorization string|undefined. Narrowed parameter and removal of redundant String preserve bounded Bearer match, awaited expected token, constant-time comparison,401 challenge and200 result for supported header values. GET/probe routes, default loopback bind and HTTP transport unchanged. Plaintext remains open under identical four-ID owner acceptance, expiry 2026-10-08; this is not a fixed vulnerability. Current scalar-contract source reassessment: Re-read getTelegramViewerServiceStatus: requireTrustedServiceUrl retains its four internal/loopback hosts, exact service-token Bearer header, GET, JSON accept and three-second abort timeout. The unrelated legacy album scalar validation changes no endpoint, authentication, viewer listener or transport. The internal plaintext token hop remains open under the unchanged acceptance.",
+      "rationale": "Re-read viewer status request: requireTrustedServiceUrl, internal allowed hosts, service-token Bearer header, GET, JSON accept and 3-second abort timeout are unchanged. The unrelated album guard changes no service token, destination or transport. Internal plaintext remains open under the exact owner acceptance.",
       "contextPaths": [
         {
           "path": "src/telegram_viewer/runtime.ts",
@@ -3798,7 +3798,7 @@
         },
         {
           "path": "src/forwarder.ts",
-          "sha256": "0a6ed01d53a0968ae0202259a32e65461e144b8812b750b34f615930c3cc2a59"
+          "sha256": "4e9c22a3c68e16a22fb256f9907a6eb525f447af6886b39985460d97f52ac112"
         },
         {
           "path": "src/secure_compare.ts",
@@ -3849,11 +3849,11 @@
       "line": 3258,
       "reviewedSourceSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653",
       "disposition": "open",
-      "rationale": "Independently re-read complete dashboard_auth delta and current awaited authenticate caller before HTTP authorization. EnvironmentTokenAuthenticator and TailscaleServeAuthenticator retain async Promise contracts, same token/header checks, constant-time token equality, local session expiry/revocation, role selection and actor fields. Only Promise.resolve wrappers are removed, restoring eight exact historical direct returns from 5b025; thrown errors remain rejected Promises. Adoption microtasks are intentionally removed, not claimed identical to wrapper timing. Auth tests and typecheck passed in the bound restoration review. HTTP listener/bind/transport and all other context files are unchanged. Actual internal plaintext remains OPEN under the exact unchanged owner acceptance, not a fixed vulnerability or broader acceptance. Current scalar-contract source reassessment: Re-read startWebServer caller and complete forwarder delta: dashboard startup still passes the same port and options, including awaited startup listener. New legacyMediaChatId only rejects non-string/non-safe-integer legacy album identifiers before persistence. Dashboard HTTP/authentication and deployment boundaries are unchanged; the existing accepted plaintext risk remains open.",
+      "rationale": "Re-read dashboard startup options and full forwarder delta. Listener and awaited startup, authentication options and network scope remain unchanged. Outbox inspection now safely quarantines malformed stored JSON but neither bypasses web authorization nor adds an endpoint. Internal HTTP remains open under unchanged owner acceptance.",
       "contextPaths": [
         {
           "path": "src/forwarder.ts",
-          "sha256": "0a6ed01d53a0968ae0202259a32e65461e144b8812b750b34f615930c3cc2a59"
+          "sha256": "4e9c22a3c68e16a22fb256f9907a6eb525f447af6886b39985460d97f52ac112"
         },
         {
           "path": "src/dashboard_auth.ts",
@@ -4164,7 +4164,7 @@
       "line": 292,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "Individually re-reviewed command flow at 95bd439: only the independent authority receipt digest changed to the exact approved 478e4bac receipt. The executable must still be an absolute canonical ordinary file selected by the operator. spawnSync retains separate fixed -I/-B/-c Python bridge arguments, shell:false, timeout and output bound. The fixed bridge imports the immutable approval mapping; receipt contents cannot create authority entries or command arguments. No shell/path interpretation is introduced by the pin replacement; the unchanged primary bytes and scanner flow support the same scoped false-positive decision.",
+      "rationale": "Individually re-reviewed authority-dependent command flow at95d6666c: approved digest changes to exact9d56 receipt only. Executable remains an absolute canonical operator-selected ordinary file; spawnSync still separates fixed -I/-B/-c bridge arguments with shell:false and bounded timeout/output. Fixed bridge imports immutable approval mapping; receipt content cannot choose shell arguments or create approval entries. Primary source and exact flow digest are unchanged; scoped false-positive classification retained.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -4176,7 +4176,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "70bb515ae99fbc7c782626c381ac9570bc64ce7e0d7b53955edfdd38d904de36"
+          "sha256": "522eaf6073d91ebb3c0ecba5a4d00e035af742d40e3cd53413f3ef7dc1202f73"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -4348,7 +4348,7 @@
       "line": 85,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "Individually re-reviewed line85 open flow at 95bd439: before open, stableBytes checks canonical parent, ordinary file, no symlink, nlink1 and bounded length; open is read-only with no-follow where supported, then fstat identities and final read metadata must match. These primary bytes and the complete scanner flow are unchanged. The only updated context replaces the receipt approval digest with the exact independently reviewed 478e4bac hash in the same profile mapping, without changing path selection or weakening any read fence. False positive remains limited to this exact flow and context.",
+      "rationale": "Individually re-reviewed line85 file-open flow at95d6666c. stableBytes checks canonical directory, ordinary non-symlink/single-link file and size before read-only/no-follow open, then verifies opened identity and post-read metadata. Receipt authority changes only from478e to independently approved9d56 digest at the same mapping key. No new path source or weakened read fence; primary bytes and flow unchanged, retaining the scoped false-positive decision.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -4360,7 +4360,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "70bb515ae99fbc7c782626c381ac9570bc64ce7e0d7b53955edfdd38d904de36"
+          "sha256": "522eaf6073d91ebb3c0ecba5a4d00e035af742d40e3cd53413f3ef7dc1202f73"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -4550,12 +4550,12 @@
     }
   ],
   "independentReviewEvidence": {
-    "path": "exchange_executor/certifications/reviews/fixer-95bd439-adopted-snyk-independent-review.json",
-    "sha256": "a58e3bc5331e4cdf8c519c745ddd398bb830c89168f5aa09cdbae4271109c0b9"
+    "path": "exchange_executor/certifications/reviews/fixer-95d6666c-adopted-snyk-independent-review.json",
+    "sha256": "f96d82c09df26c57d7d91b665a72a0e485f5483eb054779e57cb9a42ef22c119"
   },
   "priorIndependentReviewEvidence": {
-    "path": "exchange_executor/certifications/reviews/fixer-b425-adopted-snyk-independent-review.json",
-    "sha256": "f69340db3412bf550afad16e5b73e635ab317dbcb5486a601bb54d21787d703c"
+    "path": "exchange_executor/certifications/reviews/fixer-95bd439-adopted-snyk-independent-review.json",
+    "sha256": "a58e3bc5331e4cdf8c519c745ddd398bb830c89168f5aa09cdbae4271109c0b9"
   },
   "previousAdoptedAuthorityReviewEvidence": {
     "path": "exchange_executor/certifications/reviews/fixer-adopted-f1b7-snyk-independent-review.json",
