@@ -1,0 +1,25 @@
+{
+  "buildInputsMatch": true,
+  "runtimeReceiptsVerified": true,
+  "checkoutRevision": "3e41cf9514149f625c6fd8fdb19473df46db93df",
+  "sourceTreeHash": "76e72c48075bfb14514d9eaccd45b5f108ad4dc631143404bb084db46bac75ac",
+  "receipts": [
+    {
+      "exchange": "hyperliquid",
+      "receiptSha256": "49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17",
+      "reviewedSourceRevision": "a0e831ac7bc5e10404d516723fd6d750860ff300"
+    }
+  ],
+  "quarantinedProfiles": [
+    "bybit",
+    "krakenfutures"
+  ],
+  "providerAcceptanceVerified": false,
+  "performedGateExecution": false,
+  "rootExecution": {
+    "exitCode": 0,
+    "toolChunk": "7dad71",
+    "receiptRegressionTests": 24,
+    "receiptRegressionToolChunk": "5b9c83"
+  }
+}

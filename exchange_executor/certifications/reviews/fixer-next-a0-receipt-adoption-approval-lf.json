@@ -1,0 +1,65 @@
+{
+  "kind": "independent-exact-lf-receipt-adoption-approval",
+  "revision": "a0e831ac7bc5e10404d516723fd6d750860ff300",
+  "candidate": {
+    "path": "reports/security-services/hyperliquid-a0e831a-receipt-candidate-lf.json",
+    "sha256": "49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17"
+  },
+  "implementationEvidenceApprovedForExactReceiptAdoption": true,
+  "providerAcceptanceVerified": false,
+  "containerRuntimeVerified": false,
+  "review": {
+    "path": "reports/security-services/fixer-next-a0-independent-supplement-review.json",
+    "sha256": "498b81a543c8867abf2a13c066cc440d1d69627aa49d51ef74e491387755944b"
+  },
+  "parity": {
+    "path": "reports/security-services/fixer-next-a0-parity-supplement.json",
+    "sha256": "03ad220287c340dc25efa3ed45d957f561f191054a2331f44cc74422011f09e2"
+  },
+  "execution": {
+    "path": "reports/security-services/fixer-next-a0-execution-supplement.json",
+    "sha256": "7be841bae665137df8decccf4b2209849782fa0eb72fd602a62d684cb980415b"
+  },
+  "completeCoverage": {
+    "path": "reports/security-services/fixer-next-a0-complete-source-coverage.json",
+    "sha256": "41ec2ca2a35a939ad83086f9904834e9ee72702be72b585c7871b3ba871454ce"
+  },
+  "requirements": {
+    "required": 62,
+    "coveredOffline": 62,
+    "open": 0,
+    "individuallySupplemented": 16
+  },
+  "sourceInputs": {
+    "total": 967,
+    "unchangedFromReviewed44": 954,
+    "fullReviewedDeltas": 13,
+    "actualLFCollectorAndIndependentRawByteCheck": true
+  },
+  "actualCandidateValidation": {
+    "function": "ccxt_certification_evidence.validate_receipt",
+    "python": "3.12.14",
+    "ccxt": "4.5.75",
+    "immutableLFExecutor": "tmp/tsx-core-candidate-proof-20260915/exchange_executor",
+    "exitCode": 0,
+    "toolChunk": "e2b82d",
+    "syntheticPinInjected": false
+  },
+  "evidenceLimitations": [
+    "Candidate-policy3 PASS is actual root toolf64f03 with a revision-bound execution report; standalone raw log was not saved. No invented log hash.",
+    "Full101Node226/Python547 plus final44history20 and explicit subsequent target executions are inherited honestly; no fullcurrenta0suite claim."
+  ],
+  "conditions": [
+    "Adopt only exact LF candidate bytes and matching reviewed pin; changed byte commitments require fresh comparison.",
+    "Preserve original44 evidence archive unchanged and archive only new raw evidence, retaining exact hashes.",
+    "Run official root build/runtime verification after adoption and finished nonroot container gates; these future actions are not asserted passed.",
+    "Other profiles remain quarantined, providerAcceptanceVerified=false."
+  ],
+  "pinsOrActiveReceiptChangedByReviewer": false,
+  "artifactFreezeConfirmed": true,
+  "supersedes": {
+    "candidateSha256": "a9f6f5beb430367132d8bb01846de73bd46fef0aeee13ba730618a9800a0b6b9",
+    "approvalSha256": "7520347ff84821ddcddaeec4291c8fe9332ea5c7ff31143a9715db10bb93b93a",
+    "reason": "Stale inherited CURRENT history-scope sentence corrected to historical101 limitation followed by actual44 closure and currenta0 evidence. Old candidate/approval must not be adopted."
+  }
+}

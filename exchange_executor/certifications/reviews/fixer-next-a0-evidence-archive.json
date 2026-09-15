@@ -1,0 +1,26 @@
+{
+  "kind": "verified-lossless-new-evidence-archive",
+  "revision": "a0e831ac7bc5e10404d516723fd6d750860ff300",
+  "archive": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+  "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+  "archiveBytes": 184270,
+  "manifest": "reports\\security-services\\fixer-next-a0-evidence-manifest.json",
+  "manifestSha256": "653b6fd331430b3b1692d3d5e95b9f09a143a4f9b6cf42787cead3d5b5bcb597",
+  "rawFiles": 53,
+  "rawBytes": 683931,
+  "allMembersRoundtripSha256Verified": true,
+  "allSourceEvidenceStillMatches": true,
+  "inheritedAssetsNotDuplicated": [
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-current-review-coverage-8465469.json.gz",
+      "sha256": "b5c042f31070437eaceb48f04b7d125b7cdea7fa840406da376c4a6817a4ded5"
+    }
+  ],
+  "finalCandidateSha256": "49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17",
+  "finalApprovalSha256": "9b89b43f5768e8b8c7eea35a6559086304c02c37cb83ae9c437750c37239608f",
+  "rootRoundtripVerifiedFiles": 53
+}
