@@ -1,0 +1,30 @@
+{
+  "archiveRootVerification": {
+    "rawFiles": 112,
+    "unresolved": 0,
+    "inheritedExactFiles": 25,
+    "toolChunk": "eb8a8d"
+  },
+  "limits": [
+    "Offline implementation verification only; no live provider acceptance.",
+    "Fresh external scans and container verification for followup remain pending."
+  ],
+  "actualGate": {
+    "buildInputsMatch": true,
+    "runtimeReceiptsVerified": true,
+    "toolChunk": "588139",
+    "exitCode": 0,
+    "providerAcceptanceVerified": false,
+    "sourceTreeHash": "398db5d1ef627fff5f57912374b4eb9dd464a7c56ceb08b9febe7e870471e735",
+    "performedGateExecution": false
+  },
+  "sourceRevision": "1fd38d6af1bd51ac8b8f232d7142a90419123ef9",
+  "receiptSha256": "9d56f6946102b339acce02ac2ccc5c0388b44402f60a5de1cd461309626d4c8b",
+  "regressionTests": {
+    "implementationRuntime": 12,
+    "certificationEvidence": 12,
+    "bothPassed": true,
+    "toolChunk": "deafdc"
+  },
+  "kind": "actual-post-adoption-runtime-verification"
+}
