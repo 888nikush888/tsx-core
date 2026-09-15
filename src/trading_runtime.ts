@@ -18,7 +18,9 @@ interface PendingEntryCursor { id: string; created_at: number }
 function runtimeFailureMessage(error: unknown): string {
   const message: unknown = error === null || error === undefined
     ? undefined : Reflect.get(Object(error), 'message', error);
-  return `${message || String(error)}`;
+  const text = `${message || String(error)}`;
+  return text === '[object Object]' && typeof (message || error) === 'object'
+    ? 'Non-Error object thrown without a useful message' : text;
 }
 
 export class TradingRuntime {

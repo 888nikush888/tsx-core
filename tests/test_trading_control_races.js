@@ -75,9 +75,10 @@ try {
 }
 
 // Exercise the actual expiry catch without starting a runtime or opening a database.
+const uninformativeObjects = [{ message: '' }, { message: 0 }, { message: false }, { message: null }, {}, { message: {} }];
 const thrownValues = [undefined, null, false, 0, 1, '', 'failure', 1n, Symbol('failure'),
   new Error('native'), { message: 'text' }, { message: 42 }, { message: true },
-  { message: '' }, { message: 0 }, { message: false }, { message: null },
+  ...uninformativeObjects, '[object Object]', { message: '[object Object]' },
   { message: { toString() { return 'nested'; } } }, { message: Symbol('nested') },
   Object.assign(() => undefined, { message: 'callable' })];
 const getterFailure = new Error('getter failure');
@@ -87,7 +88,11 @@ thrownValues.push({ get message() { throw getterFailure; } },
 for (const thrown of thrownValues) {
   let expected = undefined;
   let expectedError = undefined;
-  try { expected = `entry-expiry: ${thrown?.message || String(thrown)}`; }
+  try {
+    expected = uninformativeObjects.includes(thrown)
+      ? 'entry-expiry: Non-Error object thrown without a useful message'
+      : `entry-expiry: ${thrown?.message || String(thrown)}`;
+  }
   catch (error) { expectedError = error; }
   const fixtureRuntime = new TradingRuntime({ cancelExpiredEntries: () => Promise.reject(thrown) });
   const failures = [];
