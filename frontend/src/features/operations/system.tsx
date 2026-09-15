@@ -95,7 +95,7 @@ export function System({
     setMessage("");
     try {
       const { result, refreshError } = await mutateAndObserve(operation, (value) => {
-        accepted(value);
+        accepted();
         setMessage(success);
       }, () => Promise.all([load(), onRefresh()]));
       if (refreshError) setMessage(`${success} Nachladen fehlgeschlagen; Anzeige möglicherweise veraltet: ${refreshError}`);
