@@ -94,7 +94,7 @@ async function persistedCrashState(fixture, phase) {
   assert.equal(economicCount.count, expectedEntries,
     'The child marker distinguishes actual durable Paper acceptance from intent/journal state.');
   if (phase === 'plan-before-commit') {
-    assert.equal(intent.plan, null); assert.equal(intent.status, 'pending'); assert.equal(orders.length, 0); assert.equal(position, undefined);
+    assert.equal(intent.plan, null); assert.equal(intent.status, 'pending'); assert.equal(orders.length, 0); assert.equal(position);
   } else {
     assert.equal(intent.plan.entryExpiresAt, fixture.origin + intent.plan.entryOrderTtlSeconds * 1_000);
     assert.equal(position.status, 'opening'); assert.equal(position.quantity, '0'); assert.equal(position.opened_at, null);

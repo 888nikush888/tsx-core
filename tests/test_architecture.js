@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { analyzeArchitecture, architectureLayerViolations, findCycle } from '../scripts/check_architecture.js';
 
-assert.equal(findCycle(new Map()), undefined);
+assert.equal(findCycle(new Map()));
 assert.equal(findCycle(new Map([
   ['a', ['b', 'c']], ['b', ['d']], ['c', ['d']], ['d', []],
 ])), undefined, 'Shared dependencies are not cycles.');
@@ -9,7 +9,7 @@ assert.deepEqual(findCycle(new Map([
   ['a', ['b']], ['b', ['c']], ['c', ['b']],
 ])), ['b', 'c', 'b'], 'A cycle reports the repeated active path only.');
 assert.deepEqual(findCycle(new Map([['a', ['a']]])), ['a', 'a']);
-assert.equal(findCycle(new Map([['a', ['unlisted']]])), undefined);
+assert.equal(findCycle(new Map([['a', ['unlisted']]])));
 assert.deepEqual(architectureLayerViolations(new Map([
   ['db.ts', ['forwarder.ts', 'queue.ts']], ['queue.ts', ['web_server.ts']],
 ])), [

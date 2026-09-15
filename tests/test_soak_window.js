@@ -72,7 +72,7 @@ async function runSoakCli(queryValues, httpStatus) {
       cwd: directory, encoding: 'utf8', timeout: 15_000, shell: false,
       env: { ...process.env, PROMETHEUS_URL: 'https://prometheus.fixture.invalid', PROMETHEUS_TOKEN: '' },
     });
-    assert.equal(result.error, undefined);
+    assert.equal(result.error);
     assert.equal(result.signal, null);
     const evidenceDirectory = path.join(directory, 'reports/soak');
     const files = await readdir(evidenceDirectory);
