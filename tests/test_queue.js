@@ -288,3 +288,23 @@ await runTests().catch(err => {
   console.error("ConcurrencyQueue test execution failed:", err);
   process.exit(1);
 });
+
+// Heterogeneous queued results retain their matching caller and rejection identity.
+const mixedQueue = new ConcurrencyQueue(1, 0);
+mixedQueue.pause();
+const reference = { preserved: true };
+const rejection = { rejected: true };
+const trace = [];
+const textResult = mixedQueue.add(() => { trace.push('text-task'); return Promise.resolve('text'); });
+const objectResult = mixedQueue.add(() => { trace.push('object-task'); return Promise.resolve(reference); });
+const failedResult = mixedQueue.add(() => Promise.reject(rejection));
+const failedAssertion = assert.rejects(failedResult, error => error === rejection);
+textResult.then(() => trace.push('text-caller'));
+mixedQueue.resume();
+trace.push('after-resume');
+assert.deepStrictEqual(trace, ['after-resume'], 'Resuming schedules tasks without invoking them synchronously.');
+assert.strictEqual(await textResult, 'text');
+assert.strictEqual(await objectResult, reference);
+await failedAssertion;
+assert.deepStrictEqual(trace, ['after-resume', 'text-task', 'object-task', 'text-caller']);
+assert.strictEqual(await mixedQueue.waitForIdle(), true);

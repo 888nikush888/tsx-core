@@ -75,10 +75,7 @@ export function fundingTotal(evidence: TradingFundingEvidence, reportingCurrency
 export function fundingTotalValue(evidence: TradingFundingEvidence, reportingCurrency: string): MoneyValue | null {
   if (evidence.status !== 'complete') return null;
   if (evidence.observation) {
-    const proof = evidence.observation;
-    if (proof.status !== 'observed' || proof.reportingCurrency !== reportingCurrency) return null;
-    if (proof.value === undefined) return decimalFundingValue(proof.amount);
-    return proof.value;
+    return observedFundingTotal(evidence.observation, reportingCurrency);
   }
   let total = '0';
   for (const event of evidence.events) {
@@ -86,6 +83,12 @@ export function fundingTotalValue(evidence: TradingFundingEvidence, reportingCur
     total = addSignedDecimal(total, event.amount);
   }
   return moneyValueFromDecimal(total);
+}
+
+function observedFundingTotal(proof: FundingObservationProof, reportingCurrency: string): MoneyValue | null {
+  if (proof.status !== 'observed' || proof.reportingCurrency !== reportingCurrency) return null;
+  if (proof.value === undefined) return decimalFundingValue(proof.amount);
+  return proof.value;
 }
 
 function decimalFundingValue(value: string | null): MoneyValue | null {
@@ -121,6 +124,9 @@ function observationIdentity(row: Record<string, unknown>): void {
   if (row.version !== 1 || !isStringMember(row.status, ['observed', 'incomplete']) || row.sourceScope !== 'source_account'
     || row.finality !== 'provider_as_observed' || row.delivery !== 'may_be_delayed') throw new Error('Invalid observed funding proof.');
   token(row.namespace);
+  observationBindings(row);
+}
+function observationBindings(row: Record<string, unknown>): void {
   for (const field of ['accountFingerprint', 'credentialGeneration', 'revisionHash']) {
     if (typeof row[field] !== 'string' || !/^[a-f0-9]{64}$/.test(row[field])) throw new Error('Invalid funding observation binding.');
   }
@@ -129,13 +135,10 @@ function observationIdentity(row: Record<string, unknown>): void {
 export function validateAccountingEvidence(value: unknown, fundingPnlToday: string | null, fundingPnlTodayValue?: unknown): TradingAccountingEvidence {
   const row = object(value);
   token(row.accountFingerprint); token(row.source); asset(row.reportingCurrency); timestamp(row.observedAt);
-  if (!Array.isArray(row.settlementAssets) || row.settlementAssets.length > 1000) throw new Error('Invalid accounting settlement metadata.');
-  row.settlementAssets.forEach(asset);
-  if (new Set(row.settlementAssets).size !== row.settlementAssets.length) throw new Error('Duplicate accounting settlement asset.');
+  accountingSettlementAssets(row);
   if (!isStringMember(row.unrealizedPnlSemantics, ['price_only', 'unverified'])) throw new Error('Missing unrealized PnL semantics.');
   const funding = validateFundingEvidence(row.funding);
-  if (funding.observation && (funding.observation.accountFingerprint !== row.accountFingerprint
-    || funding.observation.reportingCurrency !== row.reportingCurrency)) throw new Error('Funding observation accounting binding differs.');
+  fundingAccountingBinding(funding, row);
   const reported = fundingPnlToday === null ? null : signedDecimal(fundingPnlToday);
   if (fundingTotal(funding, row.reportingCurrency) !== reported) throw new Error('Funding total contradicts its currency/completeness evidence.');
   const monetary = validateFundingValue(fundingPnlToday, fundingPnlTodayValue);
@@ -145,4 +148,15 @@ export function validateAccountingEvidence(value: unknown, fundingPnlToday: stri
   return { accountFingerprint: row.accountFingerprint, reportingCurrency: row.reportingCurrency,
     settlementAssets: row.settlementAssets as string[], source: row.source, observedAt: row.observedAt,
     unrealizedPnlSemantics: row.unrealizedPnlSemantics as TradingAccountingEvidence['unrealizedPnlSemantics'], funding };
+}
+
+function accountingSettlementAssets(row: Record<string, unknown>): void {
+  if (!Array.isArray(row.settlementAssets) || row.settlementAssets.length > 1000) throw new Error('Invalid accounting settlement metadata.');
+  row.settlementAssets.forEach(asset);
+  if (new Set(row.settlementAssets).size !== row.settlementAssets.length) throw new Error('Duplicate accounting settlement asset.');
+}
+
+function fundingAccountingBinding(funding: TradingFundingEvidence, row: Record<string, unknown>): void {
+  if (funding.observation && (funding.observation.accountFingerprint !== row.accountFingerprint
+    || funding.observation.reportingCurrency !== row.reportingCurrency)) throw new Error('Funding observation accounting binding differs.');
 }
