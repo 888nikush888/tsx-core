@@ -22,7 +22,8 @@ function primitiveErrorMessage(error: unknown): string | null {
 }
 
 function nonNumericPrimitiveErrorMessage(error: unknown): string | null {
-  if (typeof error === 'string' || typeof error === 'boolean' || typeof error === 'symbol' || error === undefined) {
+  if (error === undefined) return 'undefined';
+  if (typeof error === 'string' || typeof error === 'boolean' || typeof error === 'symbol') {
     return String(error);
   }
   return null;

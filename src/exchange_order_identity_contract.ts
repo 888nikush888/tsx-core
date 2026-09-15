@@ -77,8 +77,16 @@ function invalidLookupIdentifiers(proof: Record<string, unknown>): boolean {
     || typeof proof.clientOrderId !== 'string' || !/^0x[0-9a-fA-F]{32}$/.test(proof.clientOrderId);
 }
 function nativeLookupMismatch(proof: Record<string, unknown>, native: Record<string, unknown>, raw: Record<string, unknown>): boolean {
-  return String(native.oid) !== proof.exchangeOrderId || native.coin !== proof.providerMarketId || raw.symbol !== proof.providerSymbol
+  return nativeOrderId(native.oid) !== proof.exchangeOrderId || native.coin !== proof.providerMarketId || raw.symbol !== proof.providerSymbol
     || (native.cloid != null && native.cloid !== proof.clientOrderId);
+}
+function nativeOrderId(value: unknown): string | null {
+  if (typeof value === 'string') return /^[0-9]{1,256}$/.test(value) && value.trim() === value ? value : null;
+  if (isSafeNativeOrderNumber(value)) return String(value);
+  return null;
+}
+function isSafeNativeOrderNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 }
 function assertLookupReadInterval(proof: Record<string, unknown>): void {
   // The range comparisons run only after both values pass Number.isSafeInteger.

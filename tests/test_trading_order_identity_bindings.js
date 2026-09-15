@@ -116,6 +116,32 @@ try {
     identityEvidence: { version: 1, profile: 'hyperliquid_cloid_lookup_v1', clientOrderId: cloid, exchangeOrderId: '1234',
       providerSymbol: 'BTC/USDC:USDC', providerMarketId: 'BTC', user, startedAt: now - 1, completedAt: now } };
   assert.equal(validateOrderIdentityEvidence(remote), remote.identityEvidence);
+  const nativeIdRemote = (oid, exchangeOrderId) => ({ ...remote, exchangeOrderId,
+    raw: { ...remote.raw, id: exchangeOrderId, info: { order: { ...remote.raw.info.order, oid } } },
+    identityEvidence: { ...remote.identityEvidence, exchangeOrderId } });
+  for (const oid of [0, 1234, Number.MAX_SAFE_INTEGER, '0', '0002', '9007199254740993', '9'.repeat(256)]) {
+    const valid = nativeIdRemote(oid, String(oid));
+    assert.equal(validateOrderIdentityEvidence(valid), valid.identityEvidence, 'Preserve exact primitive order identifiers.');
+  }
+  let nativeIdCoercions = 0;
+  const coercibleId = Object.defineProperty({}, Symbol.toPrimitive, { get() {
+    nativeIdCoercions += 1;
+    throw new Error('Native identity must not read coercion hooks.');
+  } });
+  const malformedIds = [[coercibleId, '1234'], [[1234], '1234'], [Object(1234), '1234'],
+    [true, 'true'], [false, 'false'], [null, 'null'], [undefined, 'undefined'],
+    [-1, '-1'], [1.5, '1.5'], [NaN, 'NaN'], [Infinity, 'Infinity'], [-Infinity, '-Infinity'],
+    [Number.MAX_SAFE_INTEGER + 1, '9007199254740992'], ['', '1234'], ['12x', '12x'], ['1234\n', '1234'],
+    ['9'.repeat(257), '1234']];
+  for (const [oid, exchangeOrderId] of malformedIds) {
+    const invalid = nativeIdRemote(oid, exchangeOrderId);
+    const scopeError = { name: 'Error', message: 'Hyperliquid lookup scope contradicts its original order.' };
+    assert.throws(() => validateOrderIdentityEvidence(invalid), scopeError);
+    await assert.rejects(correlateNativeOrderEvidence(hl, [invalid]), scopeError);
+  }
+  assert.equal(nativeIdCoercions, 0, 'Malformed native identity must not execute or read coercion hooks.');
+  assert.equal((await getDatabase().get('SELECT exchange_order_id FROM trading_orders WHERE id=?', [cloid])).exchange_order_id, null);
+  assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM trading_order_identity_bindings WHERE account_id=?', [hl.id])).count, 0);
   let walletCoercions = 0;
   const malformedWallet = { toString() { walletCoercions += 1; return user; } };
   const invalidWalletRemote = { ...remote, identityEvidence: { ...remote.identityEvidence, user: malformedWallet } };

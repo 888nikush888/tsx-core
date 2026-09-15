@@ -126,8 +126,9 @@ class HistoryCoverageTests(unittest.IsolatedAsyncioTestCase):
                 adapter = CcxtAdapter(SimpleNamespace(account=account))
                 request = {'id': 'scope-fixture', 'exchange': 'hyperliquid', 'mode': 'testnet'}
                 if foreign == 'unknown:ASSET':
+                    deadline = RequestDeadline(int(time.time() * 1000) + 30_000)
                     with self.assertRaises(BadSymbol):
-                        await adapter.open_state(request, RequestDeadline(int(time.time() * 1000) + 30_000),
+                        await adapter.open_state(request, deadline,
                                                  {'since': initial['baselineSince'], 'orders': [], 'history': [initial]})
                     self.assertTrue(any(call['type'] == 'userFillsByTime' for call in calls))
                     continue
