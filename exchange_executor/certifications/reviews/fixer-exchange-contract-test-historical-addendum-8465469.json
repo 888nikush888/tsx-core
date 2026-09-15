@@ -1,0 +1,16 @@
+{
+  "kind": "independent-full-historical-diagnostic-test-delta",
+  "originRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "revision": "8465469158745db718d4c7a50fca4b37a6774a04",
+  "path": "tests/test_exchange_contract_validation.js",
+  "beforeGitBlobSha256": "a76d3c7fb41e757069600bce5f4eabb73fcc4f069b3e96404ffe262ea3df1fde",
+  "currentSha256": "b792cf23f24b2ea24e4bc2bfdd38a36a74ee3aa39d1f767ec8530486419ff459",
+  "deltaSha256": "0a5ce66e017f6ba5ec544a5685f5290b2fe288493101c3d59669610ff2e2a1e0",
+  "completeDeltaReviewed": true,
+  "rationale": "Entire single hunk inspected: existing primitive equality assertion extends its fixed corpus with NaN/Infinity/Symbol, adds function/object non-Error diagnostic assertion with throwing Symbol.toPrimitive. Existing supported primitive/nativeError/no-coercion checks retained. Actual committed primitiveErrorMessage accepts listed primitives and rejects object/function without coercion. No test body or assertion removed. Later uncommitted negative guard is outside this review.",
+  "context": {
+    "path": "src/contract_values.ts",
+    "revision": "8465469158745db718d4c7a50fca4b37a6774a04",
+    "gitBlobSha256": "81a3497fe7474e808ae1515d088cf9b0faa188d50e2372cab46d4c82b5336374"
+  }
+}

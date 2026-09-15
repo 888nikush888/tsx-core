@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-primitive-exclusion-semantic-review",
+  "baseRevision": "8465469158745db718d4c7a50fca4b37a6774a04",
+  "path": "src/contract_values.ts",
+  "baseGitSha256": "81a3497fe7474e808ae1515d088cf9b0faa188d50e2372cab46d4c82b5336374",
+  "workingRawSha256": "b56516782dbc13bdac7bb1066d33d14b358ae51f69dfe73e26869b1561f6ef27",
+  "workingLfSha256": "b56516782dbc13bdac7bb1066d33d14b358ae51f69dfe73e26869b1561f6ef27",
+  "deltaSha256": "155f689da9a4c8488793d4e2017c1a8823fda050934b4f2a1255b15de902bc6f",
+  "typescriptVersion": "6.0.3",
+  "inferredStringArgumentType": "{} | undefined",
+  "disposition": "semantically-equivalent-for-standard-node-types",
+  "independentValidation": {
+    "actualBeforeAfterFunctionsTranspiled": true,
+    "cases": 25,
+    "comparisons": [
+      {
+        "type": "undefined",
+        "primitiveResult": "undefined",
+        "outerResult": "undefined"
+      },
+      {
+        "type": "object",
+        "primitiveResult": null,
+        "outerResult": "null"
+      },
+      {
+        "type": "string",
+        "primitiveResult": "",
+        "outerResult": ""
+      },
+      {
+        "type": "string",
+        "primitiveResult": "hello",
+        "outerResult": "hello"
+      },
+      {
+        "type": "string",
+        "primitiveResult": "  ",
+        "outerResult": "  "
+      },
+      {
+        "type": "number",
+        "primitiveResult": "0",
+        "outerResult": "0"
+      },
+      {
+        "type": "number",
+        "primitiveResult": "0",
+        "outerResult": "0"
+      },
+      {
+        "type": "number",
+        "primitiveResult": "1",
+        "outerResult": "1"
+      },
+      {
+        "type": "number",
+        "primitiveResult": "-1",
+        "outerResult": "-1"
+      },
+      {
+        "type": "number",
+        "primitiveResult": "NaN",
+        "outerResult": "NaN"
+      },
+      {
+        "type": "number",
+        "primitiveResult": "Infinity",
+        "outerResult": "Infinity"
+      },
+      {
+        "type": "number",
+        "primitiveResult": "-Infinity",
+        "outerResult": "-Infinity"
+      },
+      {
+        "type": "boolean",
+        "primitiveResult": "true",
+        "outerResult": "true"
+      },
+      {
+        "type": "boolean",
+        "primitiveResult": "false",
+        "outerResult": "false"
+      },
+      {
+        "type": "bigint",
+        "primitiveResult": "0",
+        "outerResult": "0"
+      },
+      {
+        "type": "bigint",
+        "primitiveResult": "12345678901234567890",
+        "outerResult": "12345678901234567890"
+      },
+      {
+        "type": "symbol",
+        "primitiveResult": "Symbol()",
+        "outerResult": "Symbol()"
+      },
+      {
+        "type": "symbol",
+        "primitiveResult": "Symbol(diagnostic)",
+        "outerResult": "Symbol(diagnostic)"
+      },
+      {
+        "type": "object",
+        "primitiveResult": null,
+        "outerResult": "A non-Error value was thrown; inspect the operation receipt for context."
+      },
+      {
+        "type": "object",
+        "primitiveResult": null,
+        "outerResult": "A non-Error value was thrown; inspect the operation receipt for context."
+      },
+      {
+        "type": "function",
+        "primitiveResult": null,
+        "outerResult": "A non-Error value was thrown; inspect the operation receipt for context."
+      },
+      {
+        "type": "object",
+        "primitiveResult": null,
+        "outerResult": "A non-Error value was thrown; inspect the operation receipt for context."
+      },
+      {
+        "type": "object",
+        "primitiveResult": null,
+        "outerResult": "A non-Error value was thrown; inspect the operation receipt for context."
+      },
+      {
+        "type": "object",
+        "primitiveResult": null,
+        "outerResult": "A non-Error value was thrown; inspect the operation receipt for context."
+      },
+      {
+        "type": "object",
+        "primitiveResult": null,
+        "outerResult": "preserved"
+      }
+    ],
+    "coercionHooksInvoked": 0
+  },
+  "rationale": "Excluding object and function before String leaves exactly standard primitive categories in Node. Primitive helper returns null for null/objects/functions as before. Outer Error.message and null string handling remain unchanged. String(primitive string) returns same string; explicit String(symbol) supported and matches previous positive guard. Numeric,BigInt,boolean andundefined behavior retained. Actual TS checker type at String call is recorded rather than inferred from syntax alone.",
+  "rootEvidence": [
+    {
+      "path": "reports/security-services/fixer-primitive-exclusion-tests.log",
+      "sha256": "308f800a1be867f4981e270cf75d7d45e651eef09000a03964faed6f35324fcd"
+    },
+    {
+      "path": "reports/security-services/fixer-primitive-exclusion-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "limits": [
+    "No source edit or scanner disposition.",
+    "No new DeepSource/Sonar scan passed. TypeScript still displays {} | undefined; static scanner acceptance remains unverified.",
+    "Global built-ins assumed unmodified. If String is monkeypatched, new string case invokes it where old direct string return did not; production uses standard global String.",
+    "Host exotic document.all does not exist in Node22; not a browser-host-exotic equivalence claim.",
+    "Error subclasses or hostile proxies may trigger preexisting outer instanceof/message side effects; unchanged outer operations are not newly hardened."
+  ],
+  "typescriptFinding": "Actual TypeScript6.0.3 strict checker leaves {} | undefined at String(error), not explicit string|number|bigint|boolean|symbol|undefined. Runtime exclusion is exhaustive in Node but this is not static proof that SonarS6551 will disappear. Fresh scanner needed or a different explicit type guard if scanner still flags it."
+}

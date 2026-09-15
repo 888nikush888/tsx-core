@@ -1,0 +1,26 @@
+{
+  "attemptedAt": "2026-09-15T08:20:09.493Z",
+  "issueId": "8154c19466937062e73e833fd1c1e83f",
+  "path": "tests/test_workflow_input_types.js",
+  "line": 67,
+  "ruleId": "Semgrep_javascript_eval_rule-eval-with-expression",
+  "reviewedRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+  "review": {
+    "path": "reports/security-services/fixer-codacy-workflow-function-independent-review.json",
+    "sha256": "024c6acdf22f2794c23a7c81cee7dcace616b74dcc410bc288b38275f7a51a39"
+  },
+  "reason": "FalsePositive",
+  "comment": "The Function body is transpiled from exactly four fixed top-level functions (signalPlanForPath, object, normalizedJson, sha256) in ../src/workflow_repository.ts resolved relative to import.meta.url, plus a constant return statement. This repository module is already statically imported by the same test. Neither file path, function-name selection nor generated body contains request, environment, SQLite or fixture values. The only injected dependencies are imported node:crypto createHash and repository requireString. Published paper-workflow SQLite fixture values and malformed variants are passed only later as consume arguments, never interpolated into executable code. Source/context and exact AST body hashes were independently verified at ce4d23a. This is trusted test-source execution, not a sandbox or a general exemption for Function constructors; changes to source origin/interpolation require renewed review.",
+  "state": "ignored-disposition-confirmed-active-removal-pending-rescan",
+  "mutated": true,
+  "readbackConfirmed": false,
+  "httpStatus": 204,
+  "ignoredDispositionConfirmed": true,
+  "targetStillActive": true,
+  "noOtherIgnoredIdsChanged": true,
+  "noOtherActiveIdsChanged": true,
+  "analysisRevisionUnchanged": true,
+  "activeCount": 1,
+  "ignoredCount": 345,
+  "fullListReadbackAt": "2026-09-15T08:20:10.916Z"
+}

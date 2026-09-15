@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "kind": "source-review-index-archive-reference",
+  "revision": "8465469158745db718d4c7a50fca4b37a6774a04",
+  "receiptOrigin": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "counts": {
+    "total": 967,
+    "changed": 561,
+    "historicalGitUnchanged": 406,
+    "changedWithCompleteDeltaCoverage": 561,
+    "changedNeedingCompleteDeltaReconciliation": 0,
+    "remainingCoreSrcPaths": 0,
+    "deletedHistoricalInputsSeparatelyReviewed": 1,
+    "historicalUnionPaths": 968
+  },
+  "archive": {
+    "path": "exchange_executor/certifications/reviews/fixer-implementation-current-review-coverage-8465469.json.gz",
+    "sha256": "b5c042f31070437eaceb48f04b7d125b7cdea7fa840406da376c4a6817a4ded5",
+    "bytes": 2796533,
+    "format": "gzip",
+    "mtime": 0,
+    "uncompressedSha256": "945839e5abd14c7e8f15e10aa33cb23bfa54f025c0b66630ec19adb9eb44a9f2",
+    "uncompressedBytes": 81757450
+  },
+  "verification": {
+    "decompressedBytesExactlyEqualOriginal": true,
+    "decompressedJsonExactlyEqualOriginal": true,
+    "deterministicCompressionVerified": true
+  },
+  "readInstructions": "Read the archive path, verify its SHA-256, decompress using standard gzip, verify uncompressed SHA-256, then parse the complete original JSON index. Python gzip.decompress and Node zlib.gunzipSync are sufficient.",
+  "limits": [
+    "Lossless archival representation only. All embedded evidence and external-reference obligations retain their original scope.",
+    "No new source review, scanner closure, receipt approval or later-revision assurance is added."
+  ]
+}

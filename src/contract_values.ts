@@ -17,8 +17,6 @@ export function unknownErrorMessage(error: unknown): string {
 }
 
 function primitiveErrorMessage(error: unknown): string | null {
-  if (typeof error === 'string') return error;
-  if (typeof error === 'number' || typeof error === 'boolean' || typeof error === 'bigint'
-    || typeof error === 'symbol' || typeof error === 'undefined') return String(error);
-  return null;
+  if (typeof error === 'object' || typeof error === 'function') return null;
+  return String(error);
 }

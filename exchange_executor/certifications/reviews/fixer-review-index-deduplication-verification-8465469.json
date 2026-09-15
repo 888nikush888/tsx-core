@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "kind": "review-index-lossless-gzip-archive-verification",
+  "reviewedRevision": "8465469158745db718d4c7a50fca4b37a6774a04",
+  "indexWrapper": {
+    "path": "exchange_executor/certifications/reviews/fixer-implementation-current-review-coverage-8465469.json",
+    "sha256": "d447a66a1ea76bcc1bcf30a26db69aee3b427c6ddf2b69bfdc38560c12096a4e",
+    "bytes": 1569
+  },
+  "archive": {
+    "path": "exchange_executor/certifications/reviews/fixer-implementation-current-review-coverage-8465469.json.gz",
+    "sha256": "b5c042f31070437eaceb48f04b7d125b7cdea7fa840406da376c4a6817a4ded5",
+    "bytes": 2796533,
+    "format": "gzip",
+    "mtime": 0,
+    "uncompressedSha256": "945839e5abd14c7e8f15e10aa33cb23bfa54f025c0b66630ec19adb9eb44a9f2",
+    "uncompressedBytes": 81757450
+  },
+  "originalIndex": {
+    "ignoredPath": "reports/security-services/fixer-implementation-current-review-coverage-8465469.json",
+    "sha256": "945839e5abd14c7e8f15e10aa33cb23bfa54f025c0b66630ec19adb9eb44a9f2",
+    "bytes": 81757450
+  },
+  "manifest": {
+    "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-manifest-8465469.json",
+    "sha256": "e8558ed1a63505ac89c258fe9196d9241dc16c6a6a855217f3c4d090bb7fddcf",
+    "onlySemanticChange": "index wrapper and archive references; every other field exactly equals original HEAD manifest"
+  },
+  "verification": {
+    "decompressedJsonEqual": true,
+    "decompressedOriginalBytesEqual": true,
+    "deterministicMtimeZeroCompressionEqual": true,
+    "originalIgnoredReportUnmodified": true,
+    "sourceInventoryAndAllEvidencePreserved": true,
+    "sizeReductionPercent": 96.58
+  },
+  "counts": {
+    "total": 967,
+    "changed": 561,
+    "historicalGitUnchanged": 406,
+    "changedWithCompleteDeltaCoverage": 561,
+    "changedNeedingCompleteDeltaReconciliation": 0,
+    "remainingCoreSrcPaths": 0,
+    "deletedHistoricalInputsSeparatelyReviewed": 1,
+    "historicalUnionPaths": 968
+  },
+  "limits": [
+    "Lossless archival representation only. All embedded evidence and external-reference obligations retain their original scope.",
+    "No new source review, scanner closure, receipt approval or later-revision assurance is added."
+  ]
+}
