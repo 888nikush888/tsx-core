@@ -7,5 +7,5 @@ commitment. An empty map grants no V2 approval; account/history data are untouch
 from types import MappingProxyType
 
 APPROVED_IMPLEMENTATION_RECEIPTS = MappingProxyType({
-    ('hyperliquid', 1): ('2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264',),
+    ('hyperliquid', 1): ('e0e8285c975107a2cfb8fad02f4bc608096260c80c9593aa0ce916b90609cac3',),
 })

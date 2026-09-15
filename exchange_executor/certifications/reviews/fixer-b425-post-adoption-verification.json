@@ -1,0 +1,33 @@
+{
+  "kind": "actual-post-adoption-runtime-verification",
+  "sourceRevision": "b42583fcd9063666da673e1b243f6268cd9c530e",
+  "receiptSha256": "e0e8285c975107a2cfb8fad02f4bc608096260c80c9593aa0ce916b90609cac3",
+  "archiveRootVerification": {
+    "toolChunk": "76e225",
+    "rawFiles": 71,
+    "inheritedExactFiles": 23,
+    "unresolvedReferences": 0
+  },
+  "actualGate": {
+    "toolChunk": "4ce968",
+    "exitCode": 0,
+    "buildInputsMatch": true,
+    "runtimeReceiptsVerified": true,
+    "sourceTreeHash": "42cce9a1f57f0696c121b45c85eb481d929f4d61d1bfe6a8e510ec713d2622b3",
+    "quarantinedProfiles": [
+      "bybit",
+      "krakenfutures"
+    ],
+    "providerAcceptanceVerified": false,
+    "performedGateExecution": false
+  },
+  "regressionTests": {
+    "toolChunk": "1bb6e2",
+    "certificationEvidence": 12,
+    "implementationRuntime": 12,
+    "bothPassed": true
+  },
+  "limits": [
+    "Offline runtime verification only. New local source not yet externally CI/container/scanner verified. Published PR30 unchanged."
+  ]
+}
