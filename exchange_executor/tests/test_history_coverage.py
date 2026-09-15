@@ -131,35 +131,41 @@ class HistoryCoverageTests(unittest.IsolatedAsyncioTestCase):
                                                  {'since': initial['baselineSince'], 'orders': [], 'history': [initial]})
                     self.assertTrue(any(call['type'] == 'userFillsByTime' for call in calls))
                     continue
-                saved = initial
-                seen = {}
-                unresolved = []
-                for _ in range(4):
-                    snapshot = await adapter.open_state(request, RequestDeadline(int(time.time() * 1000) + 30_000),
-                                                        {'since': initial['baselineSince'], 'orders': [], 'history': [saved]})
-                    seen.update({fill['exchangeFillId']: fill for fill in snapshot['fills']})
-                    unresolved.extend(snapshot['unresolvedEvents'])
-                    saved = checkpoint(snapshot['acquisition']['history'][0]['checkpoint'])
-                    if saved['coverage'] is not None:
-                        break
-                self.assertIsNotNone(saved['coverage'], 'Fixture retention witness must prove the whole traversed window.')
-                self.assertEqual({fill['identity']['providerMarketId'] for fill in seen.values()}, {'ETH', 'BTC'})
-                self.assertEqual({fill['providerSymbol'] for fill in seen.values()},
-                                 {client.markets_by_id['0'][0]['symbol'], client.markets_by_id['1'][0]['symbol']})
-                self.assertEqual(len(seen), 2)
-                history_calls = [call for call in calls if call['type'] in {'userFillsByTime', 'userFills'}]
-                self.assertTrue(history_calls)
-                self.assertTrue(all(call['user'] == '0x' + '1' * 40 for call in history_calls))
-                self.assertTrue(all('coin' not in call and 'dex' not in call and 'symbol' not in call for call in history_calls))
-                self.assertTrue(all(call.get('aggregateByTime') is False for call in history_calls))
-                if foreign:
-                    self.assertTrue(unresolved, 'Foreign history must remain explicit blocking evidence, not disappear.')
-                    self.assertTrue(all(row['providerId'] == '3' for row in unresolved))
-                    expected_symbol = client.parse_trade(hl_original(foreign))['symbol']
-                    self.assertTrue(all(row['providerSymbol'] == expected_symbol for row in unresolved))
-                    self.assertTrue(all(row['reason'] == 'incomplete_fill_identity_or_economics' for row in unresolved))
-                else:
-                    self.assertEqual(unresolved, [])
+                await self.assert_hyperliquid_history_scope(adapter, request, initial, client, calls, foreign)
+
+    async def assert_hyperliquid_history_scope(self, adapter, request, initial, client, calls, foreign):
+        saved = initial
+        seen = {}
+        unresolved = []
+        for _ in range(4):
+            snapshot = await adapter.open_state(request, RequestDeadline(int(time.time() * 1000) + 30_000),
+                                                {'since': initial['baselineSince'], 'orders': [], 'history': [saved]})
+            seen.update({fill['exchangeFillId']: fill for fill in snapshot['fills']})
+            unresolved.extend(snapshot['unresolvedEvents'])
+            saved = checkpoint(snapshot['acquisition']['history'][0]['checkpoint'])
+            if saved['coverage'] is not None:
+                break
+        self.assertIsNotNone(saved['coverage'], 'Fixture retention witness must prove the whole traversed window.')
+        self.assertEqual({fill['identity']['providerMarketId'] for fill in seen.values()}, {'ETH', 'BTC'})
+        self.assertEqual({fill['providerSymbol'] for fill in seen.values()},
+                         {client.markets_by_id['0'][0]['symbol'], client.markets_by_id['1'][0]['symbol']})
+        self.assertEqual(len(seen), 2)
+        history_calls = [call for call in calls if call['type'] in {'userFillsByTime', 'userFills'}]
+        self.assertTrue(history_calls)
+        self.assertTrue(all(call['user'] == '0x' + '1' * 40 for call in history_calls))
+        self.assertTrue(all('coin' not in call and 'dex' not in call and 'symbol' not in call for call in history_calls))
+        self.assertTrue(all(call.get('aggregateByTime') is False for call in history_calls))
+        self.assert_hyperliquid_unresolved_scope(client, foreign, unresolved)
+
+    def assert_hyperliquid_unresolved_scope(self, client, foreign, unresolved):
+        if foreign:
+            self.assertTrue(unresolved, 'Foreign history must remain explicit blocking evidence, not disappear.')
+            self.assertTrue(all(row['providerId'] == '3' for row in unresolved))
+            expected_symbol = client.parse_trade(hl_original(foreign))['symbol']
+            self.assertTrue(all(row['providerSymbol'] == expected_symbol for row in unresolved))
+            self.assertTrue(all(row['reason'] == 'incomplete_fill_identity_or_economics' for row in unresolved))
+        else:
+            self.assertEqual(unresolved, [])
 
     async def test_real_open_state_path_projects_only_new_proven_history(self):
         for exchange in ('krakenfutures', 'hyperliquid'):

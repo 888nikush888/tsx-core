@@ -1,0 +1,8 @@
+{
+  "kind": "root-inline-ast-equivalence-review",
+  "path": "exchange_executor/tests/test_history_coverage.py",
+  "base": "49e7de1",
+  "helperBodiesInlinedMatchOriginalClassExactly": true,
+  "sourceLfSha256": "13ec759ea2e06d47d6c953b23a0b22d3684f5b0d365e4b227d7915e23372e823",
+  "limits": "Static structural equivalence after recursive AST body inlining; executed tests recorded separately. Initial probe had nested-list expansion bug, corrected in this probe. No production or authority edit."
+}
