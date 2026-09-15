@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "reviewedRevision": "c2617205eadfb755a1258a87a08c625ae3b43d3b",
+  "reviewedRevision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
   "scannerVersion": "1.1307.1",
-  "sarifSha256": "e4e2a4856d305873e46b01b4ec239d3ffdc57a29ea2854ab519144aea53e3821",
-  "reviewKind": "independent-scalar-contracts-frozen-working-source-review",
+  "sarifSha256": "cf9ed16d406b5646d42e19b142c7c9679ca8d6219ce870d7573c3b29f6edccd8",
+  "reviewKind": "independent-primitive-and-fingerprint-current-git-review",
   "reviewedCount": 85,
   "counts": {
     "false-positive": 81,
     "open": 4
   },
-  "priorReviewRevision": "9dd587e3094dcaed38ccb490d09ea9134d3509bb",
-  "scopeNote": "85 fresh IDs, fingerprints and evidence flow digests identical. Three individually reviewed forwarder context bindings changed; 179 bindings unchanged. All four HTTP entries retain open status and the exact separate acceptance.",
+  "priorReviewRevision": "c2617205eadfb755a1258a87a08c625ae3b43d3b",
+  "scopeNote": "85 fresh finding identities, fingerprints and evidence digests unchanged; four individually reassessed source bindings renewed and 178 unchanged. Four HTTP risks retain their original acceptance.",
   "entries": [
     {
       "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
@@ -1778,9 +1778,9 @@
       "ruleId": "javascript/HardcodedNonCryptoSecret/test",
       "path": "tests/test_exchange_contract_validation.js",
       "line": 31,
-      "reviewedSourceSha256": "b792cf23f24b2ea24e4bc2bfdd38a36a74ee3aa39d1f767ec8530486419ff459",
+      "reviewedSourceSha256": "e4cb2a8bcd7490dae31f9cdd7c708f3dc46c64de2ff472559cd2fc521125caf2",
       "disposition": "false-positive",
-      "rationale": "Line 31: Acquisition-evidence redaction sentinel is deliberately present in untrusted input; the following assertion forbids it in validated output. Independent current-source reassessment: Full test delta solely extends primitive diagnostic cases with NaN, Infinity, Symbol and rejects foreign function/object coercion. Acquisition-evidence input sentinel and the assertion forbidding it in validated output remain byte-identical. Sentinel is still deliberate isolated test data, not a credential.",
+      "rationale": "Line 31: Acquisition-evidence redaction sentinel is deliberately present in untrusted input; the following assertion forbids it in validated output. Independent current-source reassessment: Full test delta solely extends primitive diagnostic cases with NaN, Infinity, Symbol and rejects foreign function/object coercion. Acquisition-evidence input sentinel and the assertion forbidding it in validated output remain byte-identical. Sentinel is still deliberate isolated test data, not a credential. Independent 462445a reassessment: re-read the acquisition-evidence input and output redaction assertion; this sentinel remains isolated synthetic input. The complete delta only expands primitive diagnostics and boxed/foreign-object coercion regression cases in testRawScalarContracts. Neither authentication nor the acquisition fixture changed; the targeted contract suite passed.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -1816,9 +1816,9 @@
       "ruleId": "javascript/HardcodedNonCryptoSecret/test",
       "path": "tests/test_exchange_contract_validation.js",
       "line": 31,
-      "reviewedSourceSha256": "b792cf23f24b2ea24e4bc2bfdd38a36a74ee3aa39d1f767ec8530486419ff459",
+      "reviewedSourceSha256": "e4cb2a8bcd7490dae31f9cdd7c708f3dc46c64de2ff472559cd2fc521125caf2",
       "disposition": "false-positive",
-      "rationale": "Line 31: Acquisition-evidence redaction sentinel is deliberately present in untrusted input; the following assertion forbids it in validated output. Independent current-source reassessment: Separately verified second occurrence remains in the same acquisition-evidence redaction fixture and unchanged output exclusion assertion. New diagnostic edge assertions neither use the sentinel for authentication nor expose a provider secret; prior individual fixture rationale remains valid.",
+      "rationale": "Line 31: Acquisition-evidence redaction sentinel is deliberately present in untrusted input; the following assertion forbids it in validated output. Independent current-source reassessment: Separately verified second occurrence remains in the same acquisition-evidence redaction fixture and unchanged output exclusion assertion. New diagnostic edge assertions neither use the sentinel for authentication nor expose a provider secret; prior individual fixture rationale remains valid. Independent 462445a reassessment: separately re-read this second sentinel occurrence in the acquisition-evidence fixture and its output exclusion check. It is intentionally forbidden in normalized evidence and is not a provider credential. The later diagnostic assertion expansion leaves this fixture and assertion byte-identical; the actual targeted suite passed.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2459,9 +2459,9 @@
       "ruleId": "javascript/HardcodedNonCryptoSecret/test",
       "path": "tests/test_trading_failures.js",
       "line": 187,
-      "reviewedSourceSha256": "8d57ee7da354b8db9acacf2e7f83d6f8c29e0af7b5d547d3105ebc495bb3c7bb",
+      "reviewedSourceSha256": "1699796b3d3e0fa889bb1d9e68959dd80246e911d8a0e8f2ed188cea65a66e3e",
       "disposition": "false-positive",
-      "rationale": "MUST_NOT_BE_SAVED is intentionally recognizable fake raw fill data from a wrapped Paper adapter. The local test runs reconciliation twice and explicitly asserts durable evidence excludes marker, authorization and apiKey, with zero accepted fills. It is not used for provider authentication and is not a leaked credential.",
+      "rationale": "MUST_NOT_BE_SAVED is intentionally recognizable fake raw fill data from a wrapped Paper adapter. The local test runs reconciliation twice and explicitly asserts durable evidence excludes marker, authorization and apiKey, with zero accepted fills. It is not used for provider authentication and is not a leaked credential. Independent 462445a reassessment: the sole test delta adds malformed remote-fingerprint reconciliation cases after the existing valid binding. It changes no raw fill fixture or authentication. Re-read the reported MUST_NOT_BE_SAVED marker at the wrapped Paper adapter and durable payload assertions: it remains intentionally fake input that must be removed before persistence. Added real SQLite cases verify account-only kill switch, five mismatch runs, zero historical lookup and retained risk deduplication; targeted suite passed. No credential or provider access introduced.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -3007,7 +3007,7 @@
       "line": 179,
       "reviewedSourceSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b",
       "disposition": "false-positive",
-      "rationale": "Re-read the actual pending-row -> readIngressMessage -> acceptsLegacySource -> shouldForward -> matchesAllRegexPatterns -> parseRegex chain. Database input is JSON-decoded and message identity/text fields are checked before filtering; invalid classification remains needs_review. Configured regular expressions are intentional filter input, not HTML/code execution. The new helper extraction preserves nested-quantifier rejection, the 150-character compiled-pattern cap, removal of stateful g/y flags and 100-entry cache. Every production match in this flow truncates text to 8000 characters and calls safeRegexTest with a 100-ms VM CPU timeout; VM exceptions reject the filter. This bound is not inferred solely from the heuristic: the actual vm.runInContext call still executes regex.test with timeout, and the existing test exercised a matching-engine timeout and verified its native timeout cause during this review. The reported source-to-RegExp construction trace omits the bounded match boundary. No unlimited match execution was found in this reported flow. Independently re-read complete e58bd77 filters/ingress delta and persisted ingress caller. Plain string content.text is now permitted solely for messageCustomServiceAction, not messageText; caption validation remains formatted-only. MESSAGE_TYPES does not map this service action, so getMessageTextAndType returns empty text and the service type. The helper also explicitly returns empty text for a primitive string instead of consuming it as ordinary signal text. Normal formatted text is unchanged. Regex compile cap, heuristic, flag/cache logic, 8000-character truncation and actual 100-ms VM timeout remain byte-identical. New persisted-restart and ordinary-message rejection tests independently passed. No additional unbounded matching path is introduced by admitting the non-text service envelope. Independent current-source reassessment: Complete contract_values delta replaces typeof Set membership by explicit primitive typeof checks only. Error.message/null and foreign object/function fallback remain unchanged, including no arbitrary object coercion. filters uses unknownErrorMessage solely for caught diagnostic text; pattern parser, cache, 8000-char match bound and VM100ms timeout remain unchanged. No new regex evaluator or bypass arises. Final independent reassessment: primitiveErrorMessage now excludes object/function before String instead of enumerating primitive typeof cases. Actual old/new functions compared over25primitive/object/function cases, including Symbol,BigInt,NaN and throwing coercion hooks: same outputs and zero coercion. Outer Error/null paths unchanged. Re-read filters.regexErrorMessage caller: native cross-realm timeout errors still use own string message; unknownErrorMessage is only fallback diagnostic text. vm.runInContext timeout, thrown wrapper/cause, downstream rejection, regex compilation cap and8000text cap remain byte-identical. No unbounded matcher or accepted-on-error path introduced. TypeScript shows {}|undefined at the String call, so separate SonarS6551 acceptance remains unverified; that does not alter this runtime ReDoS determination.",
+      "rationale": "Re-read the actual pending-row -> readIngressMessage -> acceptsLegacySource -> shouldForward -> matchesAllRegexPatterns -> parseRegex chain. Database input is JSON-decoded and message identity/text fields are checked before filtering; invalid classification remains needs_review. Configured regular expressions are intentional filter input, not HTML/code execution. The new helper extraction preserves nested-quantifier rejection, the 150-character compiled-pattern cap, removal of stateful g/y flags and 100-entry cache. Every production match in this flow truncates text to 8000 characters and calls safeRegexTest with a 100-ms VM CPU timeout; VM exceptions reject the filter. This bound is not inferred solely from the heuristic: the actual vm.runInContext call still executes regex.test with timeout, and the existing test exercised a matching-engine timeout and verified its native timeout cause during this review. The reported source-to-RegExp construction trace omits the bounded match boundary. No unlimited match execution was found in this reported flow. Independently re-read complete e58bd77 filters/ingress delta and persisted ingress caller. Plain string content.text is now permitted solely for messageCustomServiceAction, not messageText; caption validation remains formatted-only. MESSAGE_TYPES does not map this service action, so getMessageTextAndType returns empty text and the service type. The helper also explicitly returns empty text for a primitive string instead of consuming it as ordinary signal text. Normal formatted text is unchanged. Regex compile cap, heuristic, flag/cache logic, 8000-character truncation and actual 100-ms VM timeout remain byte-identical. New persisted-restart and ordinary-message rejection tests independently passed. No additional unbounded matching path is introduced by admitting the non-text service envelope. Independent current-source reassessment: Complete contract_values delta replaces typeof Set membership by explicit primitive typeof checks only. Error.message/null and foreign object/function fallback remain unchanged, including no arbitrary object coercion. filters uses unknownErrorMessage solely for caught diagnostic text; pattern parser, cache, 8000-char match bound and VM100ms timeout remain unchanged. No new regex evaluator or bypass arises. Final independent reassessment: primitiveErrorMessage now excludes object/function before String instead of enumerating primitive typeof cases. Actual old/new functions compared over25primitive/object/function cases, including Symbol,BigInt,NaN and throwing coercion hooks: same outputs and zero coercion. Outer Error/null paths unchanged. Re-read filters.regexErrorMessage caller: native cross-realm timeout errors still use own string message; unknownErrorMessage is only fallback diagnostic text. vm.runInContext timeout, thrown wrapper/cause, downstream rejection, regex compilation cap and8000text cap remain byte-identical. No unbounded matcher or accepted-on-error path introduced. TypeScript shows {}|undefined at the String call, so separate SonarS6551 acceptance remains unverified; that does not alter this runtime ReDoS determination. Independent 462445a reassessment: complete helper delta now positively narrows number/bigint and string/boolean/symbol/undefined in two typed branches. Neither branch accepts objects or functions; Error.message/null and diagnostic fallback stay unchanged. Tests cover primitives, boxed values, arrays, null-prototype objects and throwing coercion hooks. Re-read actual filters compileRegex and regexErrorMessage callers: only diagnostic formatting uses this helper; native cross-realm timeout errors retain own string message. Pattern compilation cap, 8000-character matching cap, safeRegexTest VM100ms timeout, cause and rejection behavior are byte-identical. No unbounded matcher or accept-on-error path added.",
       "contextPaths": [
         {
           "path": "src/filters.ts",
@@ -3019,7 +3019,7 @@
         },
         {
           "path": "src/contract_values.ts",
-          "sha256": "b56516782dbc13bdac7bb1066d33d14b358ae51f69dfe73e26869b1561f6ef27"
+          "sha256": "f6306c6e970ddb06a8b8d9a7bec919cbc5e83351c6db621b886906d9f21f5dd1"
         },
         {
           "path": "tests/test_filters.js",
@@ -4547,111 +4547,6 @@
           "newSha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
         }
       ]
-    }
-  ],
-  "independentReviewEvidence": {
-    "path": "exchange_executor/certifications/reviews/fixer-ad11761-snyk-independent-review-2026-09-14.json",
-    "sha256": "0ab2ded49d8f72c3977cee0b946600313da0cbc1a8ba19bde9b22bf55eae32ea"
-  },
-  "reviewedState": "Git 20aea4b plus twelve explicitly bound frozen working delta files; no future commit claimed.",
-  "uncommittedSource": [
-    "src/workflow_repository.ts",
-    "frontend/src/features/risk-analytics/equity-chart.tsx",
-    "tests/test_workflow_input_types.js"
-  ],
-  "additionalReviewedTestEvidence": {
-    "path": "reports/security-services/fixer-viewer-health-test-independent-review.json",
-    "sha256": "60b4ab0da2254c423de03eed6677bb5980cf34c79d5b0c00794a4eb7a57ad4e2",
-    "findingBindingsChanged": 0
-  },
-  "workingDeltaBindings": [
-    {
-      "path": "frontend/src/shared/components/evidence.tsx",
-      "gitBaseSha256": "14f56733d051a7946db3b480f992aa70adc9758c275b9880fe1f462a4a33ce98",
-      "currentLfSha256": "52ee7e24e3bcbb4285a0e78441d407c62ef011a6cd3ee6f643b48391bdcf3310",
-      "currentRawSha256": "52ee7e24e3bcbb4285a0e78441d407c62ef011a6cd3ee6f643b48391bdcf3310",
-      "affectedFindingIds": []
-    },
-    {
-      "path": "frontend/tests/runtime-evidence-regressions.test.tsx",
-      "gitBaseSha256": "f12a7cba350cd060f4fe8e2c29d71cd1a1975311b86dbca2f2f429ccc3575d5a",
-      "currentLfSha256": "cc1ddffb3981ce300a821ff29dc26598103d7ec20e2e8f7374910ebd4f93be35",
-      "currentRawSha256": "cc1ddffb3981ce300a821ff29dc26598103d7ec20e2e8f7374910ebd4f93be35",
-      "affectedFindingIds": []
-    },
-    {
-      "path": "src/forwarder.ts",
-      "gitBaseSha256": "71537e7d74b2b9d9ea00176b16779e90cbceb79628676cf7008cf22bfa31c62c",
-      "currentLfSha256": "0a6ed01d53a0968ae0202259a32e65461e144b8812b750b34f615930c3cc2a59",
-      "currentRawSha256": "0a6ed01d53a0968ae0202259a32e65461e144b8812b750b34f615930c3cc2a59",
-      "affectedFindingIds": [
-        "d75bc03c-19a7-4475-809c-525e9240e836",
-        "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
-        "438c84b9-ea83-4e9d-8bdc-d2032e31ae59"
-      ]
-    },
-    {
-      "path": "src/migration_cli.ts",
-      "gitBaseSha256": "5314eaffed3f0fa4f8a14bb729792563f202e438275a9af8b7976a06b9d4e3f9",
-      "currentLfSha256": "1e5047ba218e047d557f285bec84d84d663f3bbcdd463fdd45632338661bdacb",
-      "currentRawSha256": "1e5047ba218e047d557f285bec84d84d663f3bbcdd463fdd45632338661bdacb",
-      "affectedFindingIds": []
-    },
-    {
-      "path": "src/setup_bundle.ts",
-      "gitBaseSha256": "92f77eb1ea8f17df10b698a4734d23f14d0cda0f3fb56b04a3988a89d4f79d27",
-      "currentLfSha256": "0cc5da47a972e043fb705e48bd642362497574af8d2b24a288572169b504b3c3",
-      "currentRawSha256": "0cc5da47a972e043fb705e48bd642362497574af8d2b24a288572169b504b3c3",
-      "affectedFindingIds": []
-    },
-    {
-      "path": "src/telegram_viewer/service.ts",
-      "gitBaseSha256": "d20fe15cf337f22f40dbb5962f2513dfa0590184009a074bbf1b62586c7bfdae",
-      "currentLfSha256": "34a727cb4b41de698e4315db435492b0d9e9792a21ef8b79cba5f3b182a1dd16",
-      "currentRawSha256": "34a727cb4b41de698e4315db435492b0d9e9792a21ef8b79cba5f3b182a1dd16",
-      "affectedFindingIds": []
-    },
-    {
-      "path": "src/workflow_repository.ts",
-      "gitBaseSha256": "8382e600d42f058c5352d8778121c9c45a43e10e760e84dc9c963f248f9c4c04",
-      "currentLfSha256": "c78567972bf9635dd64653cc88083b0b2dfaf57997aa48ad0c5487fc8084f088",
-      "currentRawSha256": "c78567972bf9635dd64653cc88083b0b2dfaf57997aa48ad0c5487fc8084f088",
-      "affectedFindingIds": []
-    },
-    {
-      "path": "tests/test_forwarder_error_types.js",
-      "gitBaseSha256": "4088dfd9de15f64760bd598550d43b7f4ca048bfdcb8a27cf921052dc1f8ac5f",
-      "currentLfSha256": "ce6e2d6041a547238d40c2438ad25c9458c19bd6f8b41a0c32b507caa52acfc3",
-      "currentRawSha256": "ce6e2d6041a547238d40c2438ad25c9458c19bd6f8b41a0c32b507caa52acfc3",
-      "affectedFindingIds": []
-    },
-    {
-      "path": "tests/test_migration_cli.js",
-      "gitBaseSha256": "599553a90447301aa5a783d469df2bf35d411cc055b102866b46a758a1680063",
-      "currentLfSha256": "bace9295d37ca34efa48c70e61d0f42f36d9766257558e90416ff849a0a52ba2",
-      "currentRawSha256": "bace9295d37ca34efa48c70e61d0f42f36d9766257558e90416ff849a0a52ba2",
-      "affectedFindingIds": []
-    },
-    {
-      "path": "tests/test_setup_bundle.js",
-      "gitBaseSha256": "dcb90c3b650f307c13b2799566ad3cf8169a1af63758f8e9c502a76dd4b36bc0",
-      "currentLfSha256": "e6dda41434678f12c4e39fae06675a1461d02799bd0eef75a30c02b774ff5f15",
-      "currentRawSha256": "e6dda41434678f12c4e39fae06675a1461d02799bd0eef75a30c02b774ff5f15",
-      "affectedFindingIds": []
-    },
-    {
-      "path": "tests/test_telegram_viewer_service.js",
-      "gitBaseSha256": "9fc48fa3feb85256d34cf5781b4baedf9d6d565f2508de870431e32260b2eac0",
-      "currentLfSha256": "016bbfeff90d78a16df42235dba07faa9a903d20eaa8859bdc51b2337804b877",
-      "currentRawSha256": "016bbfeff90d78a16df42235dba07faa9a903d20eaa8859bdc51b2337804b877",
-      "affectedFindingIds": []
-    },
-    {
-      "path": "tests/test_workflow_input_types.js",
-      "gitBaseSha256": "1d0195356dde588346148bb41bf5502a53bdfe917213afcbf48f137cc60755e6",
-      "currentLfSha256": "ba78d2347949fd51571027de2bd81f51c125ecdf777ea913ef8638991319d625",
-      "currentRawSha256": "ba78d2347949fd51571027de2bd81f51c125ecdf777ea913ef8638991319d625",
-      "affectedFindingIds": []
     }
   ]
 }

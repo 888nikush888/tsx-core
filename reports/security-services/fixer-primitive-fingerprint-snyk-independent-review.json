@@ -1,0 +1,82 @@
+{
+  "kind": "independent-snyk-four-renewal-verification",
+  "reviewedRevision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+  "scope": "Fresh85-result Snyk SARIF structural/flow/binding verification and independent current-context assessment of exactly4changed finding entries. Remaining81 entries compared unchanged; not newly re-reviewed full implementation.",
+  "artifacts": [
+    {
+      "path": "exchange_executor/certifications/reviews/snyk-code-scalar-contracts-review-2026-09-15.json",
+      "sha256": "13038f739701c0744021dd1cc21749cdf2544ccbbd8932c71e5b70044a56156e"
+    },
+    {
+      "path": "reports/security-services/fixer-primitive-fingerprint-snyk-execution.json",
+      "sha256": "e5d98dc5ae193a242a7746b32919795156a1019741880caca975cec7ac117f93"
+    },
+    {
+      "path": "reports/security-services/fixer-primitive-fingerprint-snyk.sarif.json",
+      "sha256": "cf9ed16d406b5646d42e19b142c7c9679ca8d6219ce870d7573c3b29f6edccd8"
+    },
+    {
+      "path": "reports/security-services/fixer-primitive-fingerprint-snyk-review-prepared.json",
+      "sha256": "048c71b2650e90d1da3cf1bf30ce133bb48bcf392aa55134e5b047d0f88358fc"
+    },
+    {
+      "path": "reports/security-services/fixer-primitive-fingerprint-snyk-cli-review.json",
+      "sha256": "990b1085da9ec8f4e48c620c059d9de4b4ca350f27863d30401996de63c8e14c"
+    }
+  ],
+  "verification": {
+    "results": 85,
+    "reviewedFalsePositives": 81,
+    "ownerAcceptedOpenHttpRisks": 4,
+    "remainingByExistingGate": 0,
+    "exactGitSourceBindingsChecked": 182,
+    "uniqueSourcePaths": 96,
+    "all85FingerprintsAndEvidenceDigestsMatchCurrentSarif": true,
+    "all85FingerprintAndEvidenceCommitmentsUnchangedFromPrior": true,
+    "all85DispositionsUnchanged": true,
+    "changedEntryIds": [
+      "6747340c-e7a2-460b-87c7-e2e6c3802226",
+      "a3737d56-de9a-41e7-b30b-fb374b214f91",
+      "9481f398-aa6b-4990-a250-a4ef4297442e",
+      "d3f09f66-f994-4652-86bf-651b0262e797"
+    ],
+    "fourHttpAcceptanceEntriesExactlyUnchanged": true
+  },
+  "findings": [
+    {
+      "findingId": "6747340c-e7a2-460b-87c7-e2e6c3802226",
+      "changedPath": "tests/test_exchange_contract_validation.js",
+      "currentGitBlobSha256": "e4cb2a8bcd7490dae31f9cdd7c708f3dc46c64de2ff472559cd2fc521125caf2",
+      "verdict": "Current individual renewal supported",
+      "rationale": "Separately re-read this exact acquisition-evidence sentinel occurrence and normalized output exclusion assertion. Complete later file delta only expands primitive/boxed coercion tests; no authentication or fixture-source change."
+    },
+    {
+      "findingId": "a3737d56-de9a-41e7-b30b-fb374b214f91",
+      "changedPath": "tests/test_exchange_contract_validation.js",
+      "currentGitBlobSha256": "e4cb2a8bcd7490dae31f9cdd7c708f3dc46c64de2ff472559cd2fc521125caf2",
+      "verdict": "Current individual renewal supported",
+      "rationale": "Separately re-read this exact acquisition-evidence sentinel occurrence and normalized output exclusion assertion. Complete later file delta only expands primitive/boxed coercion tests; no authentication or fixture-source change."
+    },
+    {
+      "findingId": "9481f398-aa6b-4990-a250-a4ef4297442e",
+      "changedPath": "tests/test_trading_failures.js",
+      "currentGitBlobSha256": "1699796b3d3e0fa889bb1d9e68959dd80246e911d8a0e8f2ed188cea65a66e3e",
+      "verdict": "Current individual renewal supported",
+      "rationale": "Re-read actual synthetic fill.raw fixture -> wrapped Paper adapter -> real reconciliation -> durable redaction assertion. The unrelated malformed-fingerprint additions leave this fixture and assertion intact; no external credential or request introduced."
+    },
+    {
+      "findingId": "d3f09f66-f994-4652-86bf-651b0262e797",
+      "changedPath": "src/contract_values.ts",
+      "currentGitBlobSha256": "f6306c6e970ddb06a8b8d9a7bec919cbc5e83351c6db621b886906d9f21f5dd1",
+      "verdict": "Current individual renewal supported",
+      "rationale": "Actual positive typeof branches accept only primitive diagnostics; Error/null handling and foreign-object rejection remain. Re-read filters diagnostic callers plus 150-char compile, 8000-char input and100ms VM match bound. No evaluator, cap or failure path changed."
+    }
+  ],
+  "metadataReview": "Old historical independentReviewEvidence, stale uncommittedSource/reviewedState and workingDeltaBindings were removed from current head-specific document. Prior review remains available at Git462445a and all original entry rationales persist with appended individual reassessment. No disposition or source binding silently removed.",
+  "validationLimits": [
+    "Scanner exit1 means it found85results, not a scan error or zero findings. Four accepted HTTP risks remain open.",
+    "Existing CLI gate PASS inspected; no scanner rerun or platform mutation.",
+    "Trading fingerprint test implementation was authored by this reviewer earlier; this task independently assesses its unrelated pre-existing synthetic Snyk fixture and renewal, not self-certification of implementation.",
+    "No source/policy edits. Exact commitments valid only for specified revision and artifact hashes."
+  ]
+}
