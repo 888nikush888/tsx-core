@@ -1,0 +1,608 @@
+{
+  "kind": "independent-three-snyk-context-drift-review",
+  "revision": "599cc5524bb760f5600b480eabcea34effcb07db",
+  "scope": "Read-only independent source/flow and receipt-authority review; no source, platform disposition, or review-authority mutation.",
+  "scanner": {
+    "command": "snyk code test --include-ignores --sarif --json-file-output=<prefix>.json",
+    "finishedAt": "2026-09-15T11:00:07.6500241Z",
+    "scannerExit": 1,
+    "revision": "599cc5524bb760f5600b480eabcea34effcb07db",
+    "version": "1.1307.1",
+    "startedAt": "2026-09-15T10:59:38.4024374Z"
+  },
+  "sarif": {
+    "path": "reports/security-services/fixer-receipt599-snyk.sarif.json",
+    "sha256": "7684ed39de5cdb66c267a87c9e1ed1f1e19aaff5e155161fadf805db1cbf8444"
+  },
+  "verification": {
+    "results": 85,
+    "bindingCount": 182,
+    "exactFingerprintAndFlowMatches": 85,
+    "drifts": [
+      {
+        "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "path": "exchange_executor/ccxt_implementation_reviews.py",
+        "sha256": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289",
+        "currentSha256": "b2d7e8f3b649e6dc5c8a2ea516d029aa8a5f212029039777951c80696673c341"
+      },
+      {
+        "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "path": "exchange_executor/ccxt_implementation_reviews.py",
+        "sha256": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289",
+        "currentSha256": "b2d7e8f3b649e6dc5c8a2ea516d029aa8a5f212029039777951c80696673c341"
+      },
+      {
+        "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "path": "exchange_executor/ccxt_implementation_reviews.py",
+        "sha256": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289",
+        "currentSha256": "b2d7e8f3b649e6dc5c8a2ea516d029aa8a5f212029039777951c80696673c341"
+      }
+    ],
+    "otherBindingsUnchanged": true,
+    "allDispositionsRetained": true,
+    "httpAcceptanceUnchanged": true
+  },
+  "entries": [
+    {
+      "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+      "ruleId": "javascript/PT",
+      "path": "scripts/verify_exchange_implementation.js",
+      "line": 93,
+      "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
+      "disposition": "false-positive",
+      "rationale": "False positive for traversal at readSync: the reported flow starts with the explicit local --python option and follows fixed-bridge stdout into the receipt read. The trusted local interpreter executes fixed isolated Python code, returns only certified fixed-profile exchange names, and cannot obtain pins from receipt data. readSync consumes the previously opened descriptor, not a path string. stableBytes enforces canonical parent, ordinary single-link file, bounded size, no-follow read-only open, descriptor identity and before/after identity checks. Arbitrary operator-selected malicious executable is outside this trusted local invocation contract. The sole authority delta replaces one exact Hyperliquid receipt digest in the immutable MappingProxyType. The current receipt Git bytes hash to the independently approved LF candidate 7bb3df93bd03bb02dbf41e3165467072d80d07d6f7d5495cc45bdc32b65ad1fa. The tracked independent adoption review approves implementation evidence only; the separate root gate records the subsequent successful byte/runtime comparison. Neither receipt JSON nor CLI arguments supplies an approval pin. Python obtains pins only from the imported authority, validates exchange against the fixed profile ID and identifier grammar, and verifies pinned bytes plus runtime schema before returning rows. Other profiles remain quarantined. This review verifies these boundaries and recorded approval, not a new full implementation or container/provider approval.",
+      "contextPaths": [
+        {
+          "path": "exchange_executor/ccxt_certification.py",
+          "sha256": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2"
+        },
+        {
+          "path": "exchange_executor/ccxt_certification_evidence.py",
+          "sha256": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8"
+        },
+        {
+          "path": "exchange_executor/ccxt_implementation_reviews.py",
+          "sha256": "b2d7e8f3b649e6dc5c8a2ea516d029aa8a5f212029039777951c80696673c341"
+        },
+        {
+          "path": "exchange_executor/ccxt_profiles.py",
+          "sha256": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd"
+        },
+        {
+          "path": "package.json",
+          "sha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 310
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 285
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 298
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 298
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 321
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 321
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 81
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 93
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 93
+        }
+      ],
+      "fingerprints": {
+        "0": "9c63133ec86a0b7dccd7902fd601b73f3781845fe63b366f34b16eec1729ecd5",
+        "1": "f3d714f2.4773f344.eec2c252.d7919eeb.4a62e1e5.292a53dc.c08dd55c.eb397db7.214d3e14.b6e32c83.96e35b6b.c8688b2b.6c287ca9.5fce695c.f0256597.62f49dc2",
+        "identity": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "snyk/asset/finding/v1": "ca8d4075-1f15-40f9-9432-667e0a033660"
+      },
+      "evidenceSha256": "d70371c49aeb96057c8ea6367095a4d8038226599f2efa6a5d9f69b0cd1bb653",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-async-restoration-review-2026-09-14.json",
+        "rationale": "The current CLI accepts exactly --python and one explicit absolute local interpreter path. Re-read its full runtimeReceipts -> verifyImplementationBuild -> stableBytes flow. The Python bridge text, repository root and certification directory are fixed by this script; the bridge enumerates repository PROFILES and certification_result validates exchange identifiers against [a-z][a-z0-9_]{1,63}, profile identity, pinned SDK and independently trusted receipt hashes before returning rows. The later receipt path is therefore not a remotely chosen archive member. stableBytes validates canonical parents, an ordinary non-symlink single-link file, O_RDONLY/O_NOFOLLOW where available, and matching identities before/during/after the bounded read. The reported readSync argument is an opened descriptor rather than an unvalidated path string. A user selecting a malicious local Python executable already exercises the explicit local execution capability; this CLI is not an untrusted runtime selector exposed by the application. False positive for this exact reported path-traversal flow, not a claim that arbitrary interpreters are trusted."
+      },
+      "changedBindings": [
+        {
+          "path": "package.json",
+          "priorSha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00",
+          "newSha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+        }
+      ]
+    },
+    {
+      "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+      "ruleId": "javascript/IndirectCommandInjection",
+      "path": "scripts/verify_exchange_implementation.js",
+      "line": 292,
+      "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
+      "disposition": "false-positive",
+      "rationale": "False positive for indirect command injection in this local CLI contract: the operator deliberately selects the absolute Python executable through the only accepted --python option. absolutePython, realpath, ordinary-file and canonical-parent checks precede spawnSync. The executable receives a fixed argument array with isolated -I, no-bytecode -B, literal bridge code and fixed repository root; shell is false, with timeout and output limits. No application request, receipt field or pin selects executable/code/import names. These checks do not certify an arbitrary malicious executable as safe; local executable selection remains operator authority. The sole authority delta replaces one exact Hyperliquid receipt digest in the immutable MappingProxyType. The current receipt Git bytes hash to the independently approved LF candidate 7bb3df93bd03bb02dbf41e3165467072d80d07d6f7d5495cc45bdc32b65ad1fa. The tracked independent adoption review approves implementation evidence only; the separate root gate records the subsequent successful byte/runtime comparison. Neither receipt JSON nor CLI arguments supplies an approval pin. Python obtains pins only from the imported authority, validates exchange against the fixed profile ID and identifier grammar, and verifies pinned bytes plus runtime schema before returning rows. Other profiles remain quarantined. This review verifies these boundaries and recorded approval, not a new full implementation or container/provider approval.",
+      "contextPaths": [
+        {
+          "path": "exchange_executor/ccxt_certification.py",
+          "sha256": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2"
+        },
+        {
+          "path": "exchange_executor/ccxt_certification_evidence.py",
+          "sha256": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8"
+        },
+        {
+          "path": "exchange_executor/ccxt_implementation_reviews.py",
+          "sha256": "b2d7e8f3b649e6dc5c8a2ea516d029aa8a5f212029039777951c80696673c341"
+        },
+        {
+          "path": "exchange_executor/ccxt_profiles.py",
+          "sha256": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd"
+        },
+        {
+          "path": "package.json",
+          "sha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 310
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 285
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        }
+      ],
+      "fingerprints": {
+        "0": "e1d3eb3719a30ed49544043e6e83f3cd5f632c014aef3fafd3dd09c3fa1546a5",
+        "1": "bbc827ce.4773f344.8b18f948.d7919eeb.ef9f7d82.d4a8c500.83265159.3e55546e.bbc827ce.3df76230.2736cee9.c8688b2b.3f452f8c.93224842.83265159.62f49dc2",
+        "identity": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "snyk/asset/finding/v1": "4494650c-4f77-4efc-9956-2a491467ddaf"
+      },
+      "evidenceSha256": "066a1a42a40d523a48378883ddbda6edd2cd0d4e6d18d42f5feded9279f4cc05",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-async-restoration-review-2026-09-14.json",
+        "rationale": "Re-read CLI arity/flag guard, runtimeReceipts and the complete Python bridge. Only --python plus one absolute executable path is permitted. The selected executable is canonicalized with realpath and checked as an ordinary file under a canonical parent. spawnSync receives an argument array containing fixed -I, -B, -c, fixed bridge code and the fixed repository root; shell:false, windowsHide, a 30-second timeout and a 2-MiB output limit remain explicit. Shell metacharacters in the selected path do not become shell syntax. Running the operator-selected local Python interpreter is the intended capability, not an attacker-supplied shell command. The service does not provide a remote route to this CLI selector. This is an individual false-positive determination for indirect command injection, not an assertion that malicious local executables would be safe."
+      },
+      "changedBindings": [
+        {
+          "path": "package.json",
+          "priorSha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00",
+          "newSha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+        }
+      ]
+    },
+    {
+      "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+      "ruleId": "javascript/PT",
+      "path": "scripts/verify_exchange_implementation.js",
+      "line": 85,
+      "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
+      "disposition": "false-positive",
+      "rationale": "False positive for traversal at openSync: the reported stdout-derived exchange originates from fixed PROFILES via certification_result, which enforces a lowercase identifier grammar and equality to profile.id before looking up source-owned pins and validating receipt bytes/schema. The CLI constructs only the fixed certifications directory plus that certified exchange and .json. stableBytes canonical-parent and ordinary-file checks precede read-only/no-follow open; descriptor identity, link count, bounded reads and after-read identity checks reject link or concurrent replacement. Pins remain code-owned and have now been explicitly independently approved for the exact installed receipt. The sole authority delta replaces one exact Hyperliquid receipt digest in the immutable MappingProxyType. The current receipt Git bytes hash to the independently approved LF candidate 7bb3df93bd03bb02dbf41e3165467072d80d07d6f7d5495cc45bdc32b65ad1fa. The tracked independent adoption review approves implementation evidence only; the separate root gate records the subsequent successful byte/runtime comparison. Neither receipt JSON nor CLI arguments supplies an approval pin. Python obtains pins only from the imported authority, validates exchange against the fixed profile ID and identifier grammar, and verifies pinned bytes plus runtime schema before returning rows. Other profiles remain quarantined. This review verifies these boundaries and recorded approval, not a new full implementation or container/provider approval.",
+      "contextPaths": [
+        {
+          "path": "exchange_executor/ccxt_certification.py",
+          "sha256": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2"
+        },
+        {
+          "path": "exchange_executor/ccxt_certification_evidence.py",
+          "sha256": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8"
+        },
+        {
+          "path": "exchange_executor/ccxt_implementation_reviews.py",
+          "sha256": "b2d7e8f3b649e6dc5c8a2ea516d029aa8a5f212029039777951c80696673c341"
+        },
+        {
+          "path": "exchange_executor/ccxt_profiles.py",
+          "sha256": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd"
+        },
+        {
+          "path": "package.json",
+          "sha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+        }
+      ],
+      "codeFlowLocations": [
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 339
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 341
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 310
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 285
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 289
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 292
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 296
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 298
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 298
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 303
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 315
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 320
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 321
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 321
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 327
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 81
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        },
+        {
+          "path": "scripts/verify_exchange_implementation.js",
+          "line": 85
+        }
+      ],
+      "fingerprints": {
+        "0": "31976754b939a4ac1c87edf980b2fcafb931a2ece19265229dad845dba590806",
+        "1": "b6950d85.4773f344.4dd76406.d7919eeb.3a121ca8.d4a8c500.c08dd55c.eb397db7.bbc827ce.277c621c.cf0dc3a8.5e127924.3f452f8c.93224842.f43bf3be.bd73fe9f",
+        "identity": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "snyk/asset/finding/v1": "7039073d-34a6-4901-9897-4c0a40ca7b0a"
+      },
+      "evidenceSha256": "24dc6e7c46113a1c28cc3c6cd24209f6e4245d0b65c6448a32b382c624d13545",
+      "priorReview": {
+        "path": "exchange_executor/certifications/reviews/snyk-code-async-restoration-review-2026-09-14.json",
+        "rationale": "Independently inspected the distinct stableBytes openSync sink in the reported CLI -> interpreter output -> receipt exchange flow. The script derives repositoryRoot from its own module location and the certification directory is constant. Its fixed Python bridge obtains exchanges only from local PROFILES and accepts certification_result success, whose strict identifier/profile checks and approved receipt pins precede output. Receipt schema/hash comparison precedes the final local receipt read. openSync uses read-only flags with no-follow support, after canonical-parent and lstat regular-file/single-link checks, then verifies descriptor identity. It does not grant arbitrary write access as suggested by the generic finding. Explicit selection of the local Python executable is operator authority; no HTTP or signal input chooses it. This assessment covers the particular flagged open path, not all possible filesystem attacks."
+      },
+      "changedBindings": [
+        {
+          "path": "package.json",
+          "priorSha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00",
+          "newSha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+        }
+      ]
+    }
+  ],
+  "approvalEvidence": [
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-receipt-lf-adoption-review-44b8cfd.json",
+      "gitBlobSha256": "a7f25cd34b87250ed05566b8eda8281ba6ee4739d0d29e78d6b74c4432854c53"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-root-gate-26e44bc.json",
+      "gitBlobSha256": "83a6580e895a1e3c8f852cc024b2a7e7d06996175691afe3fb149db94b4332e7"
+    },
+    {
+      "path": "exchange_executor/certifications/hyperliquid.json",
+      "gitBlobSha256": "7bb3df93bd03bb02dbf41e3165467072d80d07d6f7d5495cc45bdc32b65ad1fa"
+    },
+    {
+      "path": "tests/test_exchange_implementation_bridge.js",
+      "gitBlobSha256": "d1a39e322f80fe27fdc1d4e4c1c663e7adf7ec9878ca970ecaa2f427a306692e"
+    }
+  ],
+  "limits": [
+    "No tests or scanner were executed by this reviewer; scanner completion and recorded gates are attributed to their existing execution records.",
+    "Only three findings individually rereviewed. Fingerprint, evidence digest and source-binding comparison of the other 82 is mechanical and does not constitute their new independent full review.",
+    "Four explicitly owner-accepted internal HTTP findings remain accepted risks; no scanner-zero claim.",
+    "The recorded adoption review explicitly leaves container runtime/provider acceptance unverified; this report does not expand that approval."
+  ]
+}
