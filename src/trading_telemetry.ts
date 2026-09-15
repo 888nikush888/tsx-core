@@ -3,13 +3,30 @@ import { randomUUID } from 'node:crypto';
 import { getDatabase } from './db.js';
 import { decimal, signedDecimal } from './trading_decimal.js';
 import { projectAllFillAccounting } from './trading_fill_accounting.js';
-import { closedMoneyStatistics, moneyPerformanceRows, summarizeMoneyRows, type ClosedMoneyRow, type ClosedMoneyStatistics } from './trading_money_reporting.js';
+import { closedMoneyStatistics, moneyPerformanceRows, summarizeMoneyRows, type MoneyPerformanceRow, type ClosedMoneyRow, type ClosedMoneyStatistics } from './trading_money_reporting.js';
 import { moneyValueFromRational, validateMoneyValue, type MoneyValue } from './trading_money_value.js';
 import { addRational, compareRational, divideRational, multiplyRational, rationalFromDecimal } from './trading_rational.js';
 import { JOURNAL_INTENT_STATUSES } from './ui_contracts.js';
 import type { TradingAccountSnapshot, TradingEquityPoint } from './trading_types.js';
 import { tradingExchangeId } from './trading_types.js';
 import { recordExecutionNotificationBestEffort } from './trading_notifications.js';
+
+// Query aliases describe persisted fields; filtering keeps unvalidated dimensions unknown.
+type AnalyticsRow = {
+  occurredAt?: unknown; closedAt?: unknown; createdAt?: unknown; filledAt?: unknown;
+  channelId?: unknown; accountId?: unknown; exchange?: unknown; mode?: unknown;
+  intentStatus?: unknown; status?: unknown;
+};
+type EquityQueryRow = Pick<TradingEquityPoint, 'reportingCurrency' | 'accountingSource' | 'mode'> &
+  Record<'accountId' | 'equity' | 'availableBalance' | 'unrealizedPnl' | 'marginUsed' | 'observedAt', unknown>;
+type FallbackQueryRow = Record<'runId' | 'channelId' | 'fallbackStatus' | 'currentRank' | 'createdAt' |
+  'rank' | 'candidateStatus' | 'errorCode' | 'accountId' | 'intentStatus' | 'exchange' | 'mode', unknown>;
+type PositionMoneyInput = ClosedMoneyRow & { realizedPnlValueJson?: string | null };
+type PositionQueryRow = PositionMoneyInput &
+  Record<'channelId' | 'accountId' | 'exchange' | 'mode' | 'intentStatus' | 'closedAt', unknown>;
+type IntentQueryRow = { status: string } & Record<'channelId' | 'accountId' | 'exchange' | 'mode' | 'createdAt', unknown>;
+type FillQueryRow = { planJson: string | null } &
+  Record<'channelId' | 'accountId' | 'exchange' | 'mode' | 'intentStatus' | 'fillPrice' | 'quantity' | 'plannedPrice' | 'filledAt', unknown>;
 
 export const TRADING_EVENT_TYPES = [
   'signal_received',
@@ -88,7 +105,7 @@ export async function listTradingEquityPoints(
     parameters.push(identifier(accountId, 'Trading account identifier', 64));
   }
   parameters.push(limit);
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<EquityQueryRow[]>(
     `SELECT account_id AS accountId, equity, available_balance AS availableBalance,
             unrealized_pnl AS unrealizedPnl, margin_used AS marginUsed, observed_at AS observedAt,
             reporting_currency AS reportingCurrency, accounting_source AS accountingSource, account_mode AS mode
@@ -276,7 +293,7 @@ export interface TradingAnalyticsFilters {
   statuses: string[];
 }
 
-function analyticsTimestamp(row: any): number {
+function analyticsTimestamp(row: AnalyticsRow): number {
   const values = [row.occurredAt, row.closedAt, row.createdAt, row.filledAt];
   const selected = values.find(value => value !== undefined && value !== null);
   return Number(selected ?? 0);
@@ -293,7 +310,7 @@ function analyticsDimensionMatches(allowed: string[], value: unknown): boolean {
   return isStringMember(value, allowed);
 }
 
-function analyticsRowMatches(row: any, filters: TradingAnalyticsFilters): boolean {
+function analyticsRowMatches(row: AnalyticsRow, filters: TradingAnalyticsFilters): boolean {
   const dimensions: Array<[string[], unknown]> = [
     [filters.channelIds, row.channelId],
     [filters.accountIds, row.accountId],
@@ -361,7 +378,7 @@ async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Prom
   averageSelectedRank: number | null;
   byAccount: Array<Record<string, unknown>>;
 }> {
-  const rows = (await getDatabase().all<any[]>(
+  const rows = (await getDatabase().all<FallbackQueryRow[]>(
     `SELECT run.id AS runId, run.channel_id AS channelId, run.status AS fallbackStatus,
             run.current_rank AS currentRank, run.created_at AS createdAt,
             candidate.rank, candidate.status AS candidateStatus, candidate.error_code AS errorCode,
@@ -375,7 +392,7 @@ async function filteredFallbackAnalytics(filters: TradingAnalyticsFilters): Prom
      ORDER BY run.created_at, run.id, candidate.rank`,
     [filters.since, filters.until],
   )).filter(row => analyticsRowMatches(row, filters));
-  const runs = new Map<string, any[]>();
+  const runs = new Map<string, FallbackQueryRow[]>();
   const accounts = new Map<string, {
     accountId: string;
     exchange: string;
@@ -481,13 +498,13 @@ function exchangeAggregate(
 }
 
 /** Both analytics endpoints read the same additive persisted projection contract. */
-export function analyticsPositionMoneyRow(row: any): any {
+export function analyticsPositionMoneyRow<T extends PositionMoneyInput>(row: T): Omit<T, 'realizedPnlValue' | 'accountingStatus'> & { [Key in keyof ClosedMoneyRow]: ClosedMoneyRow[Key] } {
   if (row.realizedPnlValueJson === null || row.realizedPnlValueJson === undefined) return row;
   try { return { ...row, realizedPnlValue: validateMoneyValue(JSON.parse(row.realizedPnlValueJson)) }; }
   catch { return { ...row, realizedPnlValue: null, accountingStatus: 'unresolved' }; }
 }
 
-function aggregatePositions(rows: any[], channels: Map<string, PerformanceAggregate>, exchanges: Map<string, PerformanceAggregate>): void {
+function aggregatePositions(rows: PositionQueryRow[], channels: Map<string, PerformanceAggregate>, exchanges: Map<string, PerformanceAggregate>): void {
   for (const row of rows) {
     const valued = analyticsPositionMoneyRow(row);
     channelAggregate(channels, row.channelId).closedRows.push(valued);
@@ -495,7 +512,7 @@ function aggregatePositions(rows: any[], channels: Map<string, PerformanceAggreg
   }
 }
 
-function aggregateMoney(rows: any[], channels: Map<string, PerformanceAggregate>, exchanges: Map<string, PerformanceAggregate>): void {
+function aggregateMoney(rows: MoneyPerformanceRow[], channels: Map<string, PerformanceAggregate>, exchanges: Map<string, PerformanceAggregate>): void {
   for (const row of rows) {
     const targets = [exchangeAggregate(exchanges, row.exchange, row.mode)];
     if (row.channelId !== null) targets.push(channelAggregate(channels, row.channelId));
@@ -504,7 +521,7 @@ function aggregateMoney(rows: any[], channels: Map<string, PerformanceAggregate>
 }
 
 function aggregateIntents(
-  rows: any[],
+  rows: IntentQueryRow[],
   channels: Map<string, PerformanceAggregate>,
   exchanges: Map<string, PerformanceAggregate>,
 ): void {
@@ -521,7 +538,7 @@ function aggregateIntents(
   }
 }
 
-function plannedFillPrice(row: any): number {
+function plannedFillPrice(row: FillQueryRow): number {
   const stored = finite(row.plannedPrice);
   if (stored > 0 || !row.planJson) return stored;
   try {
@@ -532,7 +549,7 @@ function plannedFillPrice(row: any): number {
 }
 
 function aggregateFills(
-  rows: any[],
+  rows: FillQueryRow[],
   channels: Map<string, PerformanceAggregate>,
   exchanges: Map<string, PerformanceAggregate>,
 ): void {
@@ -616,9 +633,9 @@ function equityPerformance(points: TradingEquityPoint[]): Array<Record<string, u
   });
 }
 
-async function performanceRows(since: number): Promise<[any[], any[], any[], TradingEquityPoint[]]> {
+async function performanceRows(since: number): Promise<[PositionQueryRow[], IntentQueryRow[], FillQueryRow[], TradingEquityPoint[]]> {
   return Promise.all([
-    getDatabase().all<any[]>(
+    getDatabase().all<PositionQueryRow[]>(
       `SELECT position.channel_id AS channelId, position.account_id AS accountId,
               account.exchange, account.mode, intent.status AS intentStatus,
               position.ledger_realized_pnl AS realizedPnl, position.reporting_currency AS reportingCurrency,
@@ -633,12 +650,12 @@ async function performanceRows(since: number): Promise<[any[], any[], any[], Tra
        ORDER BY position.closed_at`,
       [since],
     ),
-    getDatabase().all<any[]>(
+    getDatabase().all<IntentQueryRow[]>(
       `SELECT channel_id AS channelId, account_id AS accountId, exchange, mode, status, created_at AS createdAt
        FROM trading_trade_intents WHERE created_at >= ?`,
       [since],
     ),
-    getDatabase().all<any[]>(
+    getDatabase().all<FillQueryRow[]>(
       `SELECT intent.channel_id AS channelId, intent.account_id AS accountId,
               intent.exchange, intent.mode, intent.status AS intentStatus,
               fill.price AS fillPrice, fill.quantity, order_row.price AS plannedPrice,
