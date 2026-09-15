@@ -118,7 +118,28 @@ async function exclusiveJson(file: string, value: object): Promise<void> {
 async function replaceJson(file: string, value: object): Promise<void> {
   const temporary = `${file}.${randomUUID()}.tmp`;
   await exclusiveJson(temporary, value);
-  try { await rename(temporary, file); } finally { await unlink(temporary).catch((error: any) => { if (error?.code !== 'ENOENT') throw error; }); }
+  try { await renameMaintenanceEvidence(temporary, file); } finally { await unlink(temporary).catch((error: any) => { if (error?.code !== 'ENOENT') throw error; }); }
+}
+
+async function renameMaintenanceEvidence(temporary: string, file: string): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    try { await rename(temporary, file); return; }
+    catch (error) {
+      if (!shouldRetryMaintenanceRename(error, attempt)) throw error;
+      // Keep the existing record authoritative while a short-lived Windows lock clears.
+      await new Promise(resolve => setTimeout(resolve, 10 * 2 ** attempt));
+    }
+  }
+}
+
+function shouldRetryMaintenanceRename(error: unknown, attempt: number): boolean {
+  return process.platform === 'win32' && attempt < 4 && hasRetryableRenameCode(error);
+}
+
+function hasRetryableRenameCode(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const code: unknown = Object.getOwnPropertyDescriptor(error, 'code')?.value;
+  return typeof code === 'string' && ['EPERM', 'EACCES', 'EBUSY'].includes(code);
 }
 
 function natural(value: unknown, minimum = 0): boolean { return Number.isSafeInteger(value) && Number(value) >= minimum; }

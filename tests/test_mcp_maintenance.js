@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fsPromises from 'node:fs/promises';
+import { syncBuiltinESMExports } from 'node:module';
 import { mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
@@ -28,14 +30,85 @@ async function member(databasePath) {
   const participant = await registerDatabaseMaintenanceParticipant(databasePath);
   const database = await open({ filename: databasePath, driver: sqlite3.Database });
   await participant.afterOpen();
-  return { participant, database, closed: false, async close() {
-    if (this.closed) return;
-    await participant.closeStarted();
-    await database.close();
-    this.closed = true;
+  return { participant, database, closed: false, acknowledged: false, async close() {
+    if (this.acknowledged) return;
+    if (!this.closed) {
+      await participant.closeStarted();
+      await database.close();
+      this.closed = true;
+    }
     await participant.closeSucceeded();
+    this.acknowledged = true;
   } };
 }
+
+async function injectClosedRecordRename(file, code, failures, operation) {
+  const originalRename = fsPromises.rename;
+  const injected = Object.assign(new Error('Controlled maintenance rename failure'), { code });
+  const attempts = [];
+  fsPromises.rename = async (temporary, destination) => {
+    if (destination !== file || JSON.parse(await readFile(temporary, 'utf8')).state !== 'closed') {
+      return originalRename(temporary, destination);
+    }
+    attempts.push(temporary);
+    assert.equal(JSON.parse(await readFile(destination, 'utf8')).state, 'closing', 'Failed replacement preserves the old complete record.');
+    assert.equal(temporary, attempts[0], 'Retries reuse the same fully written evidence.');
+    if (attempts.length <= failures) throw injected;
+    return originalRename(temporary, destination);
+  };
+  syncBuiltinESMExports();
+  try { await operation({ injected, attempts }); }
+  finally { fsPromises.rename = originalRename; syncBuiltinESMExports(); }
+}
+
+const uncoercibleCode = { toString() { throw new Error('Unknown error codes must not be coerced.'); } };
+for (const code of ['EPERM', 'EACCES', 'EBUSY', 'EIO', 'ACCESSOR', uncoercibleCode]) {
+  await fixture(async ({ directory, databasePath, owner }) => {
+    const handle = await member(databasePath);
+    const lease = await beginMcpSharedMaintenance('bounded atomic evidence retry', databasePath, owner);
+    const file = path.join(directory, '.mcp-participants', `${handle.participant.id}.json`);
+    const retryable = process.platform === 'win32' && ['EPERM', 'EACCES', 'EBUSY'].includes(code);
+    try {
+      await injectClosedRecordRename(file, code, 2, async ({ injected, attempts }) => {
+        if (code === 'ACCESSOR') Object.defineProperty(injected, 'code', { get() { throw new Error('Error code getters must not execute.'); } });
+        if (retryable) {
+          await handle.close();
+          assert.equal(attempts.length, 3);
+        } else {
+          await assert.rejects(handle.close(), error => error === injected);
+          assert.equal(attempts.length, 1, 'Other failures are propagated immediately.');
+          await assert.rejects(lease.assertQuiescent(), /not acknowledged/);
+        }
+      });
+      await handle.close(); // A failed publication retries without closing SQLite twice.
+      await lease.waitForQuiescence();
+      await lease.assertQuiescent();
+      assert.equal((await readdir(path.join(directory, '.mcp-participants'))).some(name => name.endsWith('.tmp')), false);
+    } finally { await handle.close(); await lease.release(); }
+  });
+}
+
+await fixture(async ({ directory, databasePath, owner }) => {
+  const handle = await member(databasePath);
+  const lease = await beginMcpSharedMaintenance('persistent evidence lock remains a failure', databasePath, owner);
+  const file = path.join(directory, '.mcp-participants', `${handle.participant.id}.json`);
+  try {
+    await injectClosedRecordRename(file, 'EPERM', Infinity, async ({ injected, attempts }) => {
+      await assert.rejects(handle.close(), error => error === injected);
+      assert.equal(attempts.length, process.platform === 'win32' ? 5 : 1);
+      assert.equal(handle.closed, true);
+      assert.equal(handle.acknowledged, false);
+      await assert.rejects(lease.assertQuiescent(), /not acknowledged/);
+      assert.equal((await readdir(path.join(directory, '.mcp-maintenance-acks')).catch(error => {
+        if (error.code === 'ENOENT') return [];
+        throw error;
+      })).length, 0, 'No acknowledgement is published after a failed state replacement.');
+    });
+    await handle.close();
+    await lease.waitForQuiescence();
+    await lease.assertQuiescent();
+  } finally { await handle.close(); await lease.release(); }
+});
 
 await fixture(async ({ databasePath, owner }) => {
   assert.equal(await mcpMaintenanceActive(databasePath), false);
