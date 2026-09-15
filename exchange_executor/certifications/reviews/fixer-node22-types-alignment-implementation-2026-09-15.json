@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "kind": "node22-types-minimal-alignment-implementation",
+  "baseRevision": "c37a3563b0412b248b1391c8ecce6ca4a0b287f1",
+  "changes": [
+    {
+      "path": "package.json",
+      "beforeGitBlobSha256": "fb4f3cebfe9efe8851fdf9b16a44dfae364dc210348551bfde1c1831bb971f00",
+      "workingRawSha256": "8e9ce40eb2fbe14bc3b55faf6d5349b277e669216ae194ec6ff1649865e9782f",
+      "workingLfSha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432",
+      "changedFieldsOrPackageRecords": [
+        "devDependencies.@types/node"
+      ]
+    },
+    {
+      "path": "package-lock.json",
+      "beforeGitBlobSha256": "86f4c2706a029c7672cda1849370b4ea5f70060fd66eac74c4bec5b6313724fa",
+      "workingRawSha256": "baf8bd023901d07378319b858d0153cf3366e619962f5a5f4a5b8763628745d0",
+      "workingLfSha256": "f0edb2d81137ffe06035691b8989b3f0687d6c7e59d55e8a87c62fbce42543d1",
+      "changedFieldsOrPackageRecords": [
+        "",
+        "node_modules/@types/node",
+        "node_modules/undici-types"
+      ]
+    },
+    {
+      "path": "frontend/package.json",
+      "beforeGitBlobSha256": "fb5adc39a0253c85ae5d2dc484095e5309e96138991928e01e3a670300e453af",
+      "workingRawSha256": "3a3c6a7f4f53f4c3c0d4e8ab5c1b679980677dac1f3cf5d22f5d57cd55afd999",
+      "workingLfSha256": "d2107bc7700ecda09a778a56df4ded46883cd5d4d590655d2ae8fc4b74f0be0b",
+      "changedFieldsOrPackageRecords": [
+        "devDependencies.@types/node"
+      ]
+    },
+    {
+      "path": "frontend/package-lock.json",
+      "beforeGitBlobSha256": "216225670c129422c30657b73963a7fc69a9a9dbd7035b2241c9122d64b189bb",
+      "workingRawSha256": "8b62205c7dacdb64ceed505ca548b26ebbd8d0af3b7e666ae75a70b5c9a8a54f",
+      "workingLfSha256": "b611697ab763af1b82d0cad3dfc89b7d0c50a44a4cdae36e4168ccd5deeb7872",
+      "changedFieldsOrPackageRecords": [
+        "",
+        "node_modules/@types/node",
+        "node_modules/undici-types"
+      ]
+    }
+  ],
+  "installation": {
+    "method": "Only4existing package directories replaced with exact integrity-verified registry tarball extraction; their local hidden installed-lock records updated. No other package installation or update.",
+    "packages": [
+      {
+        "path": "node_modules/@types/node",
+        "version": "22.20.2",
+        "allInstalledFilesMatchVerifiedTarballExtraction": true,
+        "files": 74,
+        "fileSetHash": "3556b1c37cdd063bd790d1d9c1230b85f92b1d0668106e882f332d2eb6dc2d64"
+      },
+      {
+        "path": "node_modules/undici-types",
+        "version": "6.21.0",
+        "allInstalledFilesMatchVerifiedTarballExtraction": true,
+        "files": 41,
+        "fileSetHash": "e30378fbd6a723d033984fc04c034cd091a75937b950bb5b751a25797015a7cc"
+      },
+      {
+        "path": "frontend/node_modules/@types/node",
+        "version": "22.20.2",
+        "allInstalledFilesMatchVerifiedTarballExtraction": true,
+        "files": 74,
+        "fileSetHash": "3556b1c37cdd063bd790d1d9c1230b85f92b1d0668106e882f332d2eb6dc2d64"
+      },
+      {
+        "path": "frontend/node_modules/undici-types",
+        "version": "6.21.0",
+        "allInstalledFilesMatchVerifiedTarballExtraction": true,
+        "files": 41,
+        "fileSetHash": "e30378fbd6a723d033984fc04c034cd091a75937b950bb5b751a25797015a7cc"
+      }
+    ],
+    "registryVerification": [
+      {
+        "name": "@types/node",
+        "version": "22.20.2",
+        "integrity": "sha512-xlvWf4Vs9n1PEVYwP1n4vvG07M6y8WgvJ2t0vbrWTmijsIHp1cS+uJ2kMIRdY3nHZK0nCYKrPeD171+SzF4/zw==",
+        "tarball": "https://registry.npmjs.org/@types/node/-/node-22.20.2.tgz",
+        "sha256": "64921eb9b6caae379f2f3a6f00b6e42b21bde747f167d386d3b25c10bd6ba5c5"
+      },
+      {
+        "name": "undici-types",
+        "version": "6.21.0",
+        "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==",
+        "tarball": "https://registry.npmjs.org/undici-types/-/undici-types-6.21.0.tgz",
+        "sha256": "cfa1a9a5e18988850e548f4f6b629c58da32dc32bebb116e58ea301e516fd16d"
+      }
+    ]
+  },
+  "validation": {
+    "backendTypecheck": "PASS actual command exit0 captured immediately",
+    "frontendProductionBuild": "PASS npm run build --prefix frontend actual command exit0 captured immediately; Vite output built9.09s",
+    "actualCompilerLoadedTypes": [
+      {
+        "config": "tsconfig.json",
+        "compilerVersion": "6.0.3",
+        "diagnostics": 0,
+        "loadedNodeDefinitions": [
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/compatibility/disposable.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/compatibility/indexable.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/compatibility/iterators.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/compatibility/index.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/globals.typedarray.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/buffer.buffer.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/globals.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/web-globals/abortcontroller.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/web-globals/domexception.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/web-globals/events.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/web-globals/fetch.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/web-globals/navigator.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/web-globals/storage.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/web-globals/streams.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/assert.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/assert/strict.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/async_hooks.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/buffer.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/child_process.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/cluster.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/console.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/constants.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/crypto.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/dgram.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/diagnostics_channel.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/dns.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/dns/promises.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/domain.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/events.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/fs.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/fs/promises.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/http.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/http2.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/https.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/inspector.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/inspector.generated.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/module.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/net.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/os.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/path.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/perf_hooks.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/process.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/punycode.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/querystring.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/readline.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/readline/promises.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/repl.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/sea.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/sqlite.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/stream.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/stream/promises.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/stream/consumers.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/stream/web.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/string_decoder.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/test.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/timers.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/timers/promises.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/tls.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/trace_events.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/tty.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/url.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/util.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/v8.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/vm.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/wasi.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/worker_threads.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/zlib.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/node_modules/@types/node/index.d.ts"
+        ]
+      },
+      {
+        "config": "frontend/tsconfig.app.json",
+        "compilerVersion": "5.9.3",
+        "diagnostics": 0,
+        "loadedNodeDefinitions": []
+      },
+      {
+        "config": "frontend/tsconfig.node.json",
+        "compilerVersion": "5.9.3",
+        "diagnostics": 0,
+        "loadedNodeDefinitions": [
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/compatibility/disposable.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/compatibility/indexable.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/compatibility/iterators.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/compatibility/index.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/globals.typedarray.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/buffer.buffer.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/globals.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/web-globals/abortcontroller.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/web-globals/domexception.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/web-globals/events.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/web-globals/fetch.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/web-globals/navigator.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/web-globals/storage.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/web-globals/streams.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/assert.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/assert/strict.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/async_hooks.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/buffer.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/child_process.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/cluster.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/console.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/constants.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/crypto.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/dgram.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/diagnostics_channel.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/dns.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/dns/promises.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/domain.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/events.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/fs.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/fs/promises.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/http.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/http2.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/https.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/inspector.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/inspector.generated.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/module.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/net.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/os.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/path.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/perf_hooks.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/process.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/punycode.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/querystring.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/readline.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/readline/promises.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/repl.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/sea.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/sqlite.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/stream.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/stream/promises.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/stream/consumers.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/stream/web.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/string_decoder.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/test.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/timers.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/timers/promises.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/tls.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/trace_events.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/tty.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/url.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/util.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/v8.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/vm.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/wasi.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/worker_threads.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/zlib.d.ts",
+          "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-security-services/frontend/node_modules/@types/node/index.d.ts"
+        ]
+      }
+    ],
+    "logs": [
+      {
+        "path": "reports/security-services/fixer-node22-types-backend-typecheck.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/security-services/fixer-node22-types-frontend-production-build.log",
+        "sha256": "46ffa56c3d5269ab66dab36f2cfd31bf34b24413d53a362e80df08157edf8acd"
+      },
+      {
+        "path": "reports/security-services/fixer-node22-types-active-compiler-proof.json",
+        "sha256": "a9ef77c58cc4de3d7351ec049a55f4e45144c36d3fe4d2a7b11ac0781e016630"
+      }
+    ]
+  },
+  "compatibility": "Node22runtime unchanged; backendTS6.0.3/frontendTS5.9.3 unchanged; isNativeError source remains. Both installed type trees22.20.2/undici6.21.0. Frontend app loads0Node declarations by design; backend and frontend config each load68actual localNode22files with0diagnostics.",
+  "restrictions": [
+    "Exactly4trackedpackage/lockfiles changed by this task. No libc metadata removed and no unrelated lock records changed.",
+    "No commit/push or full suite. Existing unrelated other-agent source edits excluded from ownership.",
+    "Sonar must rescan effective typings before S1874 closure; no platform disposition mutation."
+  ]
+}
