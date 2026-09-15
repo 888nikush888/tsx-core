@@ -16,11 +16,15 @@ interface PendingEntryCursor { id: string; created_at: number }
 
 // Preserve legacy diagnostic coercion, including primitive prototype getters and truthy messages.
 function runtimeFailureMessage(error: unknown): string {
-  const message: unknown = error === null || error === undefined
-    ? undefined : Reflect.get(Object(error), 'message', error);
-  const text = `${message || String(error)}`;
-  return text === '[object Object]' && typeof (message || error) === 'object'
-    ? 'Non-Error object thrown without a useful message' : text;
+  try {
+    const message: unknown = error === null || error === undefined
+      ? undefined : Reflect.get(Object(error), 'message', error);
+    const text = `${message || String(error)}`;
+    return text === '[object Object]' && typeof (message || error) === 'object'
+      ? 'Non-Error object thrown without a useful message' : text;
+  } catch {
+    return 'Runtime failure could not be formatted safely.';
+  }
 }
 
 export class TradingRuntime {

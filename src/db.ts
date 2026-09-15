@@ -525,7 +525,7 @@ export interface OutboxTask {
   type: 'single' | 'mediaGroup';
   chatId: string;
   messageId?: number;
-  messageIds?: number[];
+  messageIds?: unknown;
   mediaGroupId?: string;
   addedAt: number;
   status: OutboxStatus;
@@ -3626,7 +3626,7 @@ async function findPermanentDuplicate(database: Awaited<ReturnType<typeof getDat
   return { isDupe: true, matchFile: match.id };
 }
 
-function parseJsonField(value: unknown, field: string, taskId: string): any {
+function parseJsonField(value: unknown, field: string, taskId: string): unknown {
   if (value === null || value === undefined || value === '') return undefined;
   if (typeof value !== 'string') throw new TypeError(`Outbox task ${taskId} has non-string ${field}.`);
   try {
@@ -3634,6 +3634,27 @@ function parseJsonField(value: unknown, field: string, taskId: string): any {
   } catch (error: unknown) {
     throw new Error(`Outbox task ${taskId} has invalid ${field}: ${(error as { message?: unknown }).message}`, { cause: error });
   }
+}
+
+export class OutboxMessageIdsError extends Error {
+  constructor(taskId: string) {
+    super(`Media-group outbox task ${taskId} has malformed messageIds; explicit review required.`);
+    this.name = 'OutboxMessageIdsError';
+  }
+}
+
+function isSafeOutboxMessageIds(value: unknown): value is number[] {
+  if (!Array.isArray(value) || value.length === 0) return false;
+  for (let index = 0; index < value.length; index++) {
+    if (!Number.isSafeInteger(value[index])) return false;
+  }
+  return true;
+}
+
+export function requireOutboxMessageIds(task: Pick<OutboxTask, 'id' | 'messageIds'>): number[] {
+  const messageIds = task.messageIds;
+  if (!isSafeOutboxMessageIds(messageIds)) throw new OutboxMessageIdsError(task.id);
+  return messageIds;
 }
 
 function mapOutboxRow(row: OutboxStorageRow): OutboxTask {
@@ -3765,7 +3786,8 @@ export async function failOutboxTask(id: string, error: unknown): Promise<Outbox
          updated_at = ?, last_error = ?, completed_at = NULL, result_json = NULL
      WHERE id = ? AND status IN ('preparing', 'sending')
      RETURNING status`,
-    [error instanceof SignalConflictError || (error instanceof Error && error.name === 'AiUsageSettlementError') ? 1 : 0, Date.now(), message, id]
+    [error instanceof SignalConflictError || error instanceof OutboxMessageIdsError
+      || (error instanceof Error && error.name === 'AiUsageSettlementError') ? 1 : 0, Date.now(), message, id]
   );
   if (!row) throw new Error(`Outbox task ${id} cannot be failed from its current state.`);
   return row.status;

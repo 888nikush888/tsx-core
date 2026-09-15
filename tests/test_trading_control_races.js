@@ -1,3 +1,4 @@
+import { tradingAccountTargetIds } from '../src/trading_account_targets.js';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
@@ -8,7 +9,7 @@ import { TradingCredentialStore } from '../src/trading_credentials.js';
 import { TradingEngine } from '../src/trading_engine.js';
 import { TradingRuntime } from '../src/trading_runtime.js';
 import { TradingWebControl } from '../src/trading_web_control.js';
-import { getTradingAccount, getTradingRuntimeState, listTradingAccounts, listTradingStrategies, setTradingRoute } from '../src/trading_repository.js';
+import { createTradingAccount, getTradingAccount, getTradingRuntimeState, listTradingAccounts, listTradingStrategies, setTradingRoute } from '../src/trading_repository.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
 
 function deferred() {
@@ -96,14 +97,8 @@ for (const thrown of thrownValues) {
   catch (error) { expectedError = error; }
   const fixtureRuntime = new TradingRuntime({ cancelExpiredEntries: () => Promise.reject(thrown) });
   const failures = [];
-  if (expectedError) {
-    await assert.rejects(fixtureRuntime.captureEntryExpiryFailure(failures), error =>
-      error === expectedError || (error.constructor === expectedError.constructor && error.message === expectedError.message));
-    assert.deepEqual(failures, []);
-  } else {
-    await fixtureRuntime.captureEntryExpiryFailure(failures);
-    assert.deepEqual(failures, [expected]);
-  }
+  await fixtureRuntime.captureEntryExpiryFailure(failures);
+  assert.deepEqual(failures, [expectedError ? 'entry-expiry: Runtime failure could not be formatted safely.' : expected]);
 }
 const oldNumberMessage = Object.getOwnPropertyDescriptor(Number.prototype, 'message');
 try {
@@ -126,3 +121,48 @@ try {
   else delete Number.prototype.message;
 }
 console.log('Runtime failure diagnostics retain primitive, getter and coercion behavior.');
+
+// Diagnostic formatting must never prevent protection of an independent targeted account.
+const isolationDirectory = await mkdtemp(path.join(os.tmpdir(), 'runtime-diagnostic-isolation-'));
+try {
+  await initDb(path.join(isolationDirectory, 'isolation.db'));
+  await createTradingAccount({ name: 'Diagnostic first', exchange: 'paper', mode: 'paper', initialBalance: '1000' });
+  await createTradingAccount({ name: 'Diagnostic independent', exchange: 'paper', mode: 'paper', initialBalance: '1000' });
+  const targets = await tradingAccountTargetIds();
+  assert.ok(targets.length >= 2);
+  const malformedFactories = [
+    () => ({ message: Symbol('unrenderable') }),
+    () => ({ get message() { throw new Error('private getter payload'); } }),
+    () => ({ message: { [Symbol.toPrimitive]() { throw new Error('private coercion payload'); } } }),
+    () => ({ message: { toString() { throw new Error('private string payload'); } } }),
+  ];
+  for (const phase of ['preparation', 'reconciliation']) {
+    for (const makeMalformed of malformedFactories) {
+      const calls = [];
+      const engine = {
+        retireUnauthorizedPreparations: async id => {
+          calls.push('prepare:' + id);
+          if (id === targets[0] && phase === 'preparation') throw makeMalformed();
+        },
+        reconcileAccount: async id => {
+          calls.push('reconcile:' + id);
+          if (id === targets[0] && phase === 'reconciliation') throw makeMalformed();
+        },
+        cancelExpiredEntries: async () => { throw makeMalformed(); },
+      };
+      const fixture = new TradingRuntime(engine);
+      const failures = await fixture.reconcileAccounts(false);
+      assert.deepEqual(calls, targets.flatMap(id => ['prepare:' + id, 'reconcile:' + id]));
+      const prefix = phase === 'preparation' ? targets[0] + ' preparation-recovery: ' : targets[0] + ': ';
+      assert.deepEqual(failures, [prefix + 'Runtime failure could not be formatted safely.']);
+      await fixture.captureEntryExpiryFailure(failures);
+      assert.deepEqual(failures, [prefix + 'Runtime failure could not be formatted safely.',
+        'entry-expiry: Runtime failure could not be formatted safely.']);
+      assert.equal(fixture.isProtectionScanComplete(), false, 'Direct diagnostics must not grant scan completion.');
+    }
+  }
+} finally {
+  await closeDb();
+  await rm(isolationDirectory, { recursive: true, force: true });
+}
+console.log('Diagnostic failures retain all targeted-account protection and expiry failure collection.');

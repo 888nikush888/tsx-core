@@ -1,3 +1,8 @@
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+import { ConcurrencyQueue } from '../src/queue.js';
+import { DurableOutboxScheduler } from '../src/outbox_scheduler.js';
 import assert from 'assert';
 import { mkdtemp, readdir, rm } from 'fs/promises';
 import os from 'os';
@@ -15,6 +20,9 @@ import {
   enqueueOutboxTask,
   failOutboxTask,
   getIncomingMessages,
+  getDatabase,
+  requireOutboxMessageIds,
+  OutboxMessageIdsError,
   getAiUsage,
   getLastForwardedAt,
   getMediaGroupBuffers,
@@ -260,6 +268,90 @@ async function testSignalProvenance(dbPath) {
     await inspectionDb.close();
 }
 
+async function testPersistedMessageIdBoundary() {
+  const database = getDatabase();
+  const malformed = [null, '12', {}, { length: 2 }, [], [1, '2'], [1, null], [1, 1.5], [9007199254740992]];
+  for (const [index, value] of malformed.entries()) {
+    const id = `shape-media-${index}`;
+    await enqueueOutboxTask({ id, type: 'mediaGroup', chatId: '-1001', mediaGroupId: id,
+      messageIds: [1, 2], addedAt: Date.now(), config: { preserved: true } });
+    await database.run('UPDATE pending_tasks SET message_ids = ? WHERE id = ?', [JSON.stringify(value), id]);
+    const listed = (await listOutboxTasks()).find(row => row.id === id);
+    assert.deepStrictEqual(listed.messageIds, value, 'Valid JSON with wrong shape stays visible for inspection.');
+    assert.deepStrictEqual(listed.config, { preserved: true }, 'Unrelated JSON stays opaque and unchanged.');
+    const claimed = await claimOutboxTask(id);
+    assert.strictEqual(claimed.status, 'preparing');
+    let failure;
+    try { requireOutboxMessageIds(claimed); } catch (error) { failure = error; }
+    assert(failure instanceof OutboxMessageIdsError);
+    assert.strictEqual(await failOutboxTask(id, failure), 'needs_review');
+    assert.strictEqual((await getOutboxTask(id)).status, 'needs_review');
+    assert(!(await listPendingOutboxTasksForScheduling()).some(row => row.id === id),
+      'Malformed historical metadata must not enter automatic retry scheduling.');
+  }
+  const accepted = [0, -1, 2, 2, Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER];
+  await enqueueOutboxTask({ id: 'shape-valid', type: 'mediaGroup', chatId: '-1001', mediaGroupId: 'shape-valid',
+    messageIds: accepted, addedAt: Date.now() });
+  const valid = await claimOutboxTask('shape-valid');
+  assert.deepStrictEqual(requireOutboxMessageIds(valid), accepted, 'Order, duplicates and existing signed-safe domain survive.');
+  await markOutboxSending(valid.id);
+  assert.strictEqual(await failOutboxTask(valid.id, new OutboxMessageIdsError(valid.id)), 'unknown',
+    'Sending always remains unknown; a metadata error must not downgrade possible provider side effects.');
+  await database.run("DELETE FROM pending_tasks WHERE id LIKE 'shape-media-%' OR id = 'shape-valid'");
+}
+
+async function testMalformedMessageIdsSchedulerBoundary() {
+  const database = getDatabase();
+  const source = readFileSync(new URL('../src/forwarder.ts', import.meta.url), 'utf8');
+  const parsed = ts.createSourceFile('forwarder.ts', source, ts.ScriptTarget.Latest, true);
+  const names = ['executePersistedOutboxTask', 'executeScheduledOutboxTask'];
+  const functions = parsed.statements.filter(node => ts.isFunctionDeclaration(node) && names.includes(node.name?.text));
+  assert.strictEqual(functions.length, 2, 'Exercise the actual persisted/scheduled execution bodies.');
+  const sending = [], provider = [], scheduled = [], schedulerErrors = [];
+  const executable = ts.transpileModule(functions.map(node => node.getText(parsed)).join('\n'),
+    { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const execute = vm.runInNewContext(`${executable}\nexecuteScheduledOutboxTask`, {
+    Error, claimOutboxTask, completeOutboxTask, failOutboxTask, requireOutboxMessageIds,
+    mergeConfigDefaults: value => value,
+    markOutboxSending: async id => { sending.push(id); await markOutboxSending(id); },
+    addLog: () => {}, unknownErrorMessage: error => error.message, forwarderErrorCode: () => undefined,
+    deliverySlo: { recordAttempt() {}, recordConfirmed() {}, recordFailure() {} },
+    forwardMediaGroup: async (_id, _config, _group, context) => {
+      await context.markSending(); provider.push(context.taskId); return { delivered: true };
+    },
+  });
+  for (const id of ['schedule-shape-bad', 'schedule-shape-good']) {
+    await enqueueOutboxTask({ id, type: 'mediaGroup', chatId: '-1001', mediaGroupId: id,
+      messageIds: [1, 2], ingressWorkId: 'pinned-boundary-fixture', addedAt: Date.now(),
+      config: { durableIngress: { albumMessages: [{ id: 1 }, { id: 2 }] } } });
+  }
+  await database.run('UPDATE pending_tasks SET message_ids = ? WHERE id = ?',
+    [JSON.stringify({ length: 2 }), 'schedule-shape-bad']);
+  assert((await listOutboxTasks()).some(row => row.id === 'schedule-shape-good'), 'Another task stays listable.');
+  const queue = new ConcurrencyQueue(1, 0, 2);
+  const scheduler = new DurableOutboxScheduler({ queue,
+    listPending: async (excluded, limit) => (await listPendingOutboxTasksForScheduling(excluded, 1000))
+      .filter(row => row.id.startsWith('schedule-shape-')).slice(0, limit),
+    execute: (id, signal) => { scheduled.push(id); return execute(id, null, signal); },
+    logError: message => schedulerErrors.push(message),
+  });
+  await scheduler.resume();
+  const deadline = Date.now() + 5000;
+  while ((await getOutboxTask('schedule-shape-good')).status !== 'completed') {
+    assert(Date.now() < deadline, 'The next valid durable task must complete.');
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
+  assert(await queue.waitForIdle(5000), 'Both real scheduler tasks must settle.');
+  assert.strictEqual((await getOutboxTask('schedule-shape-bad')).status, 'needs_review');
+  assert.strictEqual((await getOutboxTask('schedule-shape-good')).status, 'completed');
+  assert.deepStrictEqual(sending, ['schedule-shape-good'], 'Malformed metadata must never reach sending.');
+  assert.deepStrictEqual(provider, ['schedule-shape-good'], 'Only the valid task reaches the provider seam.');
+  assert.strictEqual(scheduled.filter(id => id === 'schedule-shape-bad').length, 1, 'No automatic malformed retry.');
+  assert.strictEqual(schedulerErrors.length, 1);
+  assert.match(schedulerErrors[0], /schedule-shape-bad.*malformed messageIds/);
+  await database.run("DELETE FROM pending_tasks WHERE id LIKE 'schedule-shape-%'");
+}
+
 async function testMigrationRecovery(testDir, dbPath) {
     await closeDb();
     const migrationBackupDirectory = path.join(testDir, '.migration-backups');
@@ -300,6 +392,8 @@ async function runTests() {
     await testOutboxLifecycle();
     await testAuxiliaryPersistence();
     await testSignalProvenance(dbPath);
+    await testPersistedMessageIdBoundary();
+    await testMalformedMessageIdsSchedulerBoundary();
     await testMigrationRecovery(testDir, dbPath);
     console.log('ALL DURABLE OUTBOX TESTS PASSED!');
   } finally {
