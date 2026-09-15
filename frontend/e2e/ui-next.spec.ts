@@ -6,6 +6,7 @@ const NEW_TOKEN = 'b'.repeat(32);
 
 test('account pages retain their cursor on reload and do not fetch the legacy aggregate', async ({ page }) => {
   let aggregateReads = 0;
+  const trading = { overview: {} };
   const requests = await api(page, url => {
     if (url.pathname !== '/api/trading') return;
     if (url.searchParams.get('view') === 'overview') return { body: { overview: trading.overview } };

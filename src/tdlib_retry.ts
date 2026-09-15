@@ -19,12 +19,14 @@ async function abortableDelay(milliseconds: number, signal?: AbortSignal | null)
   if (signal?.aborted) throw abortError(signal);
   if (milliseconds <= 0) return;
   await new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new Error('Aborted'));
+    };
     const timer = setTimeout(() => {
       signal?.removeEventListener('abort', onAbort);
       resolve();
     }, milliseconds);
-    const onAbort = () => {
-      clearTimeout(timer);
       if (signal) reject(abortError(signal));
       else reject(new Error('Aborted.'));
     };
