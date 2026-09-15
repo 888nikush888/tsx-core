@@ -36,6 +36,22 @@ interface DeliveryResult extends DeliveryMessage {
   messages?: unknown;
 }
 
+function deliveryMessageId(value: unknown): string | null {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' && Number.isSafeInteger(value)) return String(value);
+  if (typeof value === 'bigint') return String(value);
+  return null;
+}
+
+function deliveryErrorDetail(value: unknown): string | undefined {
+  return typeof value === 'string' && value ? value : undefined;
+}
+
+function deliveryFailureDetail(update: DeliveryUpdate): string {
+  return deliveryErrorDetail(update.error?.message)
+    ?? deliveryErrorDetail(update.message?.sending_state?.error?.message) ?? 'Telegram send failed.';
+}
+
 export class TelegramDeliveryTracker {
   private readonly waiters = new Map<string, DeliveryWaiter>();
   private readonly recentOutcomes = new Map<string, DeliveryOutcome>();
@@ -52,15 +68,18 @@ export class TelegramDeliveryTracker {
 
   public handleUpdate(update: DeliveryUpdate): boolean {
     if (update?._ === 'updateMessageSendSucceeded') {
-      const oldMessageId = String(update.old_message_id);
-      const destinationMessageId = String(update.message?.id ?? update.old_message_id);
+      const oldMessageId = deliveryMessageId(update.old_message_id);
+      if (oldMessageId === null) return false;
+      const destinationMessageId = deliveryMessageId(update.message?.id ?? update.old_message_id);
+      if (destinationMessageId === null) return false;
       this.publish(oldMessageId, { destinationMessageId, expiresAt: Date.now() + this.outcomeTtlMs });
       return true;
     }
 
     if (update?._ === 'updateMessageSendFailed') {
-      const oldMessageId = String(update.old_message_id);
-      const detail = update.error?.message || update.message?.sending_state?.error?.message || 'Telegram send failed.';
+      const oldMessageId = deliveryMessageId(update.old_message_id);
+      if (oldMessageId === null) return false;
+      const detail = deliveryFailureDetail(update);
       this.publish(oldMessageId, {
         error: new Error(`Telegram delivery failed for local message ${oldMessageId}: ${detail}`),
         expiresAt: Date.now() + this.outcomeTtlMs
@@ -84,13 +103,15 @@ export class TelegramDeliveryTracker {
         throw new Error('Telegram send returned a message without an id.');
       }
 
+      const messageId = deliveryMessageId(message.id);
+      if (messageId === null) throw new Error('Telegram send returned an invalid message id.');
       const sendingState = message.sending_state;
-      if (!sendingState) return String(message.id);
+      if (!sendingState) return messageId;
       if (sendingState._ === 'messageSendingStateFailed') {
-        const detail = sendingState.error?.message || 'Telegram reported a failed sending state.';
-        throw new Error(String(detail));
+        const detail = deliveryErrorDetail(sendingState.error?.message) ?? 'Telegram reported a failed sending state.';
+        throw new Error(detail);
       }
-      return this.waitForMessage(String(message.id), signal);
+      return this.waitForMessage(messageId, signal);
     }));
 
     return { destinationMessageIds };

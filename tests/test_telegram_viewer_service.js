@@ -316,7 +316,38 @@ async function run() {
   }
 }
 
-run().catch(error => {
+async function verifyStoredStringContracts() {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-viewer-string-rows-'));
+  const state = new TelegramViewerStateRepository(path.join(directory, 'viewer.db'));
+  try {
+    await state.initialize();
+    await state.queueDeliveries({ kind: 'test', sourceSeq: 1, sourceId: 'fixture', userIds: ['1001'], payload: { message: 'hello' }, now: 1 });
+    const database = state.db();
+    const original = (await state.pendingDeliveries(1))[0];
+    for (const column of ['user_id', 'payload_json']) {
+      const saved = (await database.get(`SELECT ${column} AS value FROM viewer_deliveries WHERE id = ?`, [original.id])).value;
+      await database.run(`UPDATE viewer_deliveries SET ${column} = ? WHERE id = ?`, [Buffer.from(column === 'user_id' ? '1001' : '{"message":"hello"}'), original.id]);
+      await assert.rejects(state.pendingDeliveries(1), /must be a string/);
+      await database.run(`UPDATE viewer_deliveries SET ${column} = ? WHERE id = ?`, [saved, original.id]);
+    }
+    assert.deepStrictEqual((await state.pendingDeliveries(1))[0], original);
+    await state.setLastTest({ sourceSeq: 1, status: 'failed', attemptedAt: 1, error: 'fixture failure' });
+    const lastTest = await state.lastTest();
+    for (const column of ['status', 'error']) {
+      await database.run(`UPDATE viewer_last_test SET ${column} = ? WHERE singleton_id = 1`, [Buffer.from(lastTest[column])]);
+      await assert.rejects(state.lastTest(), /must be a string/);
+      await database.run(`UPDATE viewer_last_test SET ${column} = ? WHERE singleton_id = 1`, [lastTest[column]]);
+    }
+    assert.deepStrictEqual(await state.lastTest(), lastTest);
+    await state.setLastTest({ sourceSeq: 1, status: 'delivered', attemptedAt: 1, deliveredAt: 2 });
+    assert.strictEqual((await state.lastTest()).error, null);
+  } finally {
+    await state.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+verifyStoredStringContracts().then(run).catch(error => {
   console.error(error);
   process.exit(1);
 });

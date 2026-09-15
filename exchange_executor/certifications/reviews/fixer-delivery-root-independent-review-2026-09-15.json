@@ -1,0 +1,14 @@
+{
+  "limits": "Review targets current diff and known producer domain; malformed numeric values now rejected intentionally. Not full historical receipt approval or actual provider delivery.",
+  "kind": "root-independent-delivery-scalar-diff-review",
+  "validation": "Implementer red/green tests and type/lint0 reviewed; fullsuite39573running separately.",
+  "assessment": [
+    "All actual diff hunks inspected. MessageIDs accept string unchanged, safe integer Number or bigint canonical String, rejecting foreign coercible objects. Original null/undefined result rejection and nullable update destination fallback retained.",
+    "Success invalid destination returnsfalse before publish so pending waiter remains for later genuine confirmation. Invalid old ID cannot address cache/waiter.",
+    "Error detail selection keeps nonempty direct string before nested string before default. Whitespace strings preserved. Unsupported objects/numbers no longer coerced.",
+    "Async message map and Promise.all are retained; mixed batch rejects while already-started pending rejections stay handled. Tests cover missing and malformed ID members plus later close."
+  ],
+  "source": "src/delivery_tracker.ts",
+  "baseRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+  "sourceRawSha256": "805af91c16599f80c145e8347f383ee5a8dcf6c4bbddcb65936f0f3692c6cb30"
+}

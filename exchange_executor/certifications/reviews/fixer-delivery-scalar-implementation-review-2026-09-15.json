@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "kind": "implementing-agent-delivery-scalar-contract-verification",
+  "baseRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+  "sourceBindings": [
+    {
+      "path": "src/delivery_tracker.ts",
+      "baseGitBlobSha256": "bd8ee825675eeb4535b4de0f3419d9c8f0f77be2ac1b4ea686128365afc45abd",
+      "workingSha256": "805af91c16599f80c145e8347f383ee5a8dcf6c4bbddcb65936f0f3692c6cb30",
+      "deltaSha256": "4ae0daaadc6d462dcda49baec292d9e400e5f81261bdcbc4aec0ec4a6ee948f4"
+    },
+    {
+      "path": "tests/test_delivery_tracker.js",
+      "baseGitBlobSha256": "084681adc36eba6466f0079023abb90d20c86ce1cc10c695202c9927aba4993c",
+      "workingSha256": "46a5f749213f00de29aada06ef4103b103b3ab87be2bd4f08ee29826f5859e7f",
+      "deltaSha256": "6e2ec093c6842f319bc7668bfda31780db8e585603910a81bc686f390fcca66b"
+    }
+  ],
+  "changes": [
+    "Message IDs explicitly accept unchanged strings, safe integer numbers and bigint; unsupported values cannot execute coercion hooks or create shared object-derived keys.",
+    "Recognized updates with invalid old/destination IDs returnfalse before publish; nullish success destination retains old-ID fallback.",
+    "Nonempty string error detail priority direct/nested/default preserved; malformed object/array/number detail falls back without serialization. Whitespace strings retained.",
+    "Existing async map and Promise.all retained; tests cover both missing-ID and object-ID mixed batches with pending waiter cleanup and zero unhandled rejections.",
+    "Small deliveryFailureDetail helper keeps complexity within unchanged15limit; no cache/timer/abort/close logic modified."
+  ],
+  "validation": {
+    "red": {
+      "exitCode": 1,
+      "log": "fixer-delivery-scalar-before.log",
+      "reason": "New malformed object ID rejection assertion failed with Missing expected rejection before source correction."
+    },
+    "green": {
+      "exitCode": 0,
+      "log": "fixer-delivery-scalar-after.log"
+    },
+    "backendTypecheck": {
+      "exitCode": 0,
+      "log": "fixer-delivery-scalar-typecheck.log"
+    },
+    "targetedLint": {
+      "exitCode": 0,
+      "maxWarnings": 0,
+      "log": "fixer-delivery-scalar-lint.log"
+    },
+    "cases": "All existing delivery tests plus numeric/string/bigint and zero/negative IDs, malformed ID scalar/object matrix, unconsumed waiter after malformed success, null destination fallback, string/nested/default diagnostics and throwing Symbol.toPrimitive hooks."
+  },
+  "limits": [
+    "Intentional contract hardening for malformed inputs; not byte-identical behavior.",
+    "No commit, workflow, Snyk or platform mutation.",
+    "Initial ESLint had complexity16warning despite exit0; extracted error fallback helper and final --max-warnings0 check passed.",
+    "Malformed update is ignored; it does not claim immediate rejection of a matching pending waiter."
+  ],
+  "logHashes": {
+    "fixer-delivery-scalar-before.log": "5ce1a0c50c06ebeacf0bcffa914efae720ef438ccdcc818aee0efa3ba7d915f5",
+    "fixer-delivery-scalar-after.log": "ac98f77ddf4a50066dc2e72f860b92d5299f39de1f2be8065a3ee36529c13fb9",
+    "fixer-delivery-scalar-typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "fixer-delivery-scalar-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

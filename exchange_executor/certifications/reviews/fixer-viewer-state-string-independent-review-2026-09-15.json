@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-viewer-stored-string-correction-review",
+  "reviewedAt": "2026-09-15T08:13:12.912022+00:00",
+  "baselineRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+  "status": "passed",
+  "sourceBindings": [
+    {
+      "path": "src/telegram_viewer/state_repository.ts",
+      "baselineRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "baselineGitBlobOid": "9eb24256011d9e656681ee6dfa20c3a4130696f4",
+      "baselineGitBlobSha256": "d6f23aedf3e4c145253161e212a238d36b6be3e98e80f438383d68849aff6df2",
+      "workingRawSha256": "8fdbd47fd1806ddce15e6e9f1a036c33477ff9f5e8cc0559db707f3949f2d076",
+      "workingLfSha256": "8fdbd47fd1806ddce15e6e9f1a036c33477ff9f5e8cc0559db707f3949f2d076",
+      "diffFromBaselineSha256": "74fd3e9fe74043b2e0245798d11c24ac8118a94734231687f3e86839acfe6223"
+    },
+    {
+      "path": "tests/test_telegram_viewer_service.js",
+      "baselineRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "baselineGitBlobOid": "efd5f4af9fe61e2926a5af60adeb2f039b19bc2f",
+      "baselineGitBlobSha256": "bce7d8926a048286d5ad64fcee43c16f95e4329a4eee6e8995b3eb46a6bfda9c",
+      "workingRawSha256": "9fc48fa3feb85256d34cf5781b4baedf9d6d565f2508de870431e32260b2eac0",
+      "workingLfSha256": "9fc48fa3feb85256d34cf5781b4baedf9d6d565f2508de870431e32260b2eac0",
+      "diffFromBaselineSha256": "e45d05a04b5ca4378d92391889d856c9f1bcf12fb054ef4a0e9cbb1d02223703"
+    },
+    {
+      "path": "src/contract_values.ts",
+      "baselineRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "baselineGitBlobOid": "4919a74bb0f5cfa8d3dfa05a0ac52ba34bf9610a",
+      "baselineGitBlobSha256": "81a3497fe7474e808ae1515d088cf9b0faa188d50e2372cab46d4c82b5336374",
+      "workingRawSha256": "81a3497fe7474e808ae1515d088cf9b0faa188d50e2372cab46d4c82b5336374",
+      "workingLfSha256": "81a3497fe7474e808ae1515d088cf9b0faa188d50e2372cab46d4c82b5336374",
+      "diffFromBaselineSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/telegram_viewer/service.ts",
+      "baselineRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "baselineGitBlobOid": "9f3aa095983d53958a05d2b3c2dac9cfdff91c30",
+      "baselineGitBlobSha256": "d20fe15cf337f22f40dbb5962f2513dfa0590184009a074bbf1b62586c7bfdae",
+      "workingRawSha256": "d20fe15cf337f22f40dbb5962f2513dfa0590184009a074bbf1b62586c7bfdae",
+      "workingLfSha256": "d20fe15cf337f22f40dbb5962f2513dfa0590184009a074bbf1b62586c7bfdae",
+      "diffFromBaselineSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/telegram_viewer/runtime.ts",
+      "baselineRevision": "ce4d23ab0aaf135b9ea9c8ebe857d82676ee2803",
+      "baselineGitBlobOid": "6546028f5ab1973a41a55bbc52d1bfa8780f912b",
+      "baselineGitBlobSha256": "ca9a7ba2e7a1acd182aad501aed653b66ac4e83ac37edb7d8010e61e3fa5c7f7",
+      "workingRawSha256": "ca9a7ba2e7a1acd182aad501aed653b66ac4e83ac37edb7d8010e61e3fa5c7f7",
+      "workingLfSha256": "ca9a7ba2e7a1acd182aad501aed653b66ac4e83ac37edb7d8010e61e3fa5c7f7",
+      "diffFromBaselineSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "scope": "Exactly four String-to-requireString reader substitutions, import and existing service-suite extension. No other repository coercions or broader persisted schema approval.",
+  "individualChanges": [
+    {
+      "field": "viewer_deliveries.user_id",
+      "rationale": "queueDeliveries persists allowedUserIds as strings; TEXT affinity also converts SQL numeric values to text. BLOB remains Buffer and previously String(Buffer) silently produced a destination ID. requireString rejects it without calling toString and before any delivery loop receives the array. Valid string bytes including empty/whitespace are unchanged; no new identity-format rule claimed."
+    },
+    {
+      "field": "viewer_deliveries.payload_json",
+      "rationale": "Producer JSON.stringify emits TEXT. Guard precedes JSON.parse, so BLOB containing valid JSON no longer becomes accepted payload. Actual string parsing/results and malformed-string SyntaxError remain unchanged. Parsed JSON shape validation is outside this four-guard change."
+    },
+    {
+      "field": "viewer_last_test.status",
+      "rationale": "setLastTest callers use delivered/retrying string status; stored TEXT returns same value. BLOB status previously coerced into apparently normal status; now rejects before returning projection. Reader does not add enum validation."
+    },
+    {
+      "field": "viewer_last_test.error",
+      "rationale": "Exact null branch retained, so omitted producer error and success error:null remain null. Non-null strings (including empty) are returned byte-for-byte without trimming. BLOB/object no longer serializes. SQLite SELECT returns actual nullable column, not absent undefined; undefined indicates malformed driver data and now rejects."
+    }
+  ],
+  "callerReview": [
+    "deliverPendingOnce awaits full pendingDeliveries result before invoking any bot.sendMessage; new read error prevents dispatch of the batch and does not acknowledge/discard any row. Retry scheduling and cursors unchanged.",
+    "refreshSettings loads stored lastTest and resilient runtime loop records failures; startup initialization may reject malformed persisted status instead of displaying coerced success. No failure-atomic state claim: settings assignment precedes lastTest read as before.",
+    "Existing run() closes real SQLite, creates new repository, initializes schema, creates new service and verifies stored last test event id, no redelivery, and Telegram offset23. After-suite PASS log therefore includes actual reopen, not merely a reused object."
+  ],
+  "testReview": [
+    "Four fixed-column variants use parameterized Buffer values in private mkdtemp SQLite database; dynamic column interpolation is limited to local literal arrays, not external input. Each failure followed by restoring original text, and full public readback deep-equality proves restoration.",
+    "Each BLOB loop is reached before original service run via verifyStoredStringContracts().then(run); await assert.rejects captures async read error. New finally closes database before removing unique temporary directory.",
+    "Nullable error explicitly checked after success input omits error. Existing test sequence/catch failure exit remain, only prepended validation.",
+    "Root before log proves first BLOB user-ID fixture lacked expected rejection; after log reports entire existing suite completion. This reviewer inspected logs, not a fresh rerun of the CPU-heavy suite."
+  ],
+  "independentProbe": {
+    "command": "node --import tsx reports/security-services/probe-viewer-sqlite-affinity.mjs",
+    "exitCode": 0,
+    "scope": "7 in-memory SQLite TEXT-affinity cases: text, numeric SQL input, JSON text, BLOB ID, BLOB JSON, empty string, nullable value; actual requireString tested; object toString counter remains false.",
+    "scriptSha256": "8875081856a4f77d1c70719f8e89f7718306137b70d73a822e298e9939329296"
+  },
+  "rootValidationAttribution": {
+    "beforeExit": 1,
+    "afterSuiteExit": 0,
+    "typecheckExit": 0,
+    "eslintExit": 0,
+    "rootReport": "reports/security-services/fixer-viewer-state-string-correction.json",
+    "rootReportSha256": "ee0c520fb69858b93ba2959f677436e583a43a796508d1534ee58191b313b553",
+    "currentSourceHashesMatchRootExecutionReport": true
+  },
+  "logBindings": [
+    {
+      "path": "reports/security-services/fixer-viewer-state-strings-before.log",
+      "sha256": "4a2d1666e7040078e0045624f19d1c1c06bdef406abb9b5555f40d8cae1dc111"
+    },
+    {
+      "path": "reports/security-services/fixer-viewer-state-strings-after.log",
+      "sha256": "591574577d94c36142321c3299ba1dcde94c8f2eef6a91c65be0f90b5b8002c1"
+    },
+    {
+      "path": "reports/security-services/fixer-viewer-state-strings-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reports/security-services/fixer-viewer-state-strings-eslint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reports/security-services/fixer-viewer-sqlite-affinity-independent.log",
+      "sha256": "7cece7cf9b9f8b278b8d7eeb611dcebf85cccbb4ad984c57c8e7e0ab3930d7e3"
+    }
+  ],
+  "findings": [],
+  "limits": [
+    "No source/test changes by independent reviewer; no live provider/container action or production database access.",
+    "No scanner closure, whole implementation receipt, trust pin or provider approval.",
+    "Only in-memory independent probe executed; root full test suite may run separately."
+  ]
+}
