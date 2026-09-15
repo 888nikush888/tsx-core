@@ -447,7 +447,7 @@ async function recordForwardedMessages(amount = 1) {
   try {
     await incrementForwardedCount(amount, forwardedAt);
   } catch (error: unknown) {
-    addLog(`[WARN] WeiterleitungszÃ¤hler konnte nicht gespeichert werden: ${unknownErrorMessage(error)}`);
+    addLog(`[WARN] Weiterleitungszähler konnte nicht gespeichert werden: ${unknownErrorMessage(error)}`);
   }
 }
 
@@ -679,7 +679,7 @@ async function supergroupFallback(idStr: string): Promise<string | null> {
     const chat = await invokeWithRetry(client, { _: 'createSupergroupChat', supergroup_id: supergroupId, force: false });
     return String(chat.id);
   } catch (error_) {
-    addLog(`[DEBUG] Supergroup-Fallback fÃ¼r ${idStr} fehlgeschlagen: ${error_.message}`);
+    addLog(`[DEBUG] Supergroup-Fallback für ${idStr} fehlgeschlagen: ${error_.message}`);
     return null;
   }
 }
@@ -697,7 +697,7 @@ async function resolveChatId(identifier) {
     const chat = await invokeWithRetry(client, { _: 'getChat', chat_id: Number(idStr) });
     return String(chat.id);
   } catch (e) {
-    addLog(`[DEBUG] getChat fÃ¼r ${idStr} fehlgeschlagen: ${e.message}`);
+    addLog(`[DEBUG] getChat für ${idStr} fehlgeschlagen: ${e.message}`);
     const fallback = await supergroupFallback(idStr);
     if (fallback) return fallback;
   }
@@ -716,7 +716,7 @@ async function resolveConfiguredSources(config) {
   if (canonicalized.changed) {
     Object.assign(config, canonicalized.config);
     writeConfigSync(config);
-    addLog('[INFO] QuellenidentitÃ¤ten, Filter und KI-Templates wurden atomar auf numerische Telegram-IDs migriert.');
+    addLog('[INFO] Quellenidentitäten, Filter und KI-Templates wurden atomar auf numerische Telegram-IDs migriert.');
   }
 
   state.resolvedSourceChatIds.clear();
@@ -737,7 +737,7 @@ async function tryManualCopyFallback(message, context: OutboxExecutionContext) {
   }
   
   if (formattedText?.text?.trim()) {
-    addLog('[Forward Fallback] Kanal geschÃ¼tzt. Versuche Text manuell zu kopieren und zu senden...');
+    addLog('[Forward Fallback] Kanal geschützt. Versuche Text manuell zu kopieren und zu senden...');
     if (context.signal.aborted) throw new Error('Task aborted before manual-copy fallback.');
     const response = await invokeWithRetry(client, {
       _: 'sendMessage', chat_id: pinnedTargetChatId(context),
@@ -748,7 +748,7 @@ async function tryManualCopyFallback(message, context: OutboxExecutionContext) {
       }
     }, context.signal);
     const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
-    addLog(`[SUCCESS] Paket ${message.id} manuell als Text kopiert und bestÃ¤tigt.`);
+    addLog(`[SUCCESS] Paket ${message.id} manuell als Text kopiert und bestätigt.`);
     await recordForwardedMessages();
     return { mode: 'manual-copy', ...confirmation };
   }
@@ -766,13 +766,13 @@ async function forwardRawMessage(message, config, context: OutboxExecutionContex
       send_copy: Boolean(config.forwardOptions?.sendCopy), remove_caption: Boolean(config.forwardOptions?.removeCaption)
     }, context.signal);
     const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
-    addLog(`[SUCCESS] Paket ${message.id} erfolgreich Ã¼bertragen und bestÃ¤tigt.`);
+    addLog(`[SUCCESS] Paket ${message.id} erfolgreich übertragen und bestätigt.`);
     await recordForwardedMessages();
     updateIncomingMessageStatus(String(message.chat_id), message.id, 'processed')
       .catch(error => addLog(`[WARN] Inbox status update failed for ${message.id}: ${unknownErrorMessage(error)}`));
     return { mode: 'telegram-forward', ...confirmation };
   } catch (error: unknown) {
-    addLog(`[ERROR] Ãœbertragungsfehler bei Paket ${message.id}: ${unknownErrorMessage(error)}`);
+    addLog(`[ERROR] Übertragungsfehler bei Paket ${message.id}: ${unknownErrorMessage(error)}`);
     updateIncomingMessageStatus(String(message.chat_id), message.id, 'failed')
       .catch(statusError => addLog(`[WARN] Inbox failure status update failed for ${message.id}: ${statusError.message}`));
     if (config.forwardOptions?.sendCopy && isForwardRestrictedError(error)) {
@@ -837,7 +837,7 @@ async function parseWorkflowPlan(
   const schemaSelection = pinnedWorkflowParserSelection(context.config, plan);
   const existing = await persistedParsedSignal(`signal_${message.chat_id}_${message.id}_${plan.key}`, plan.templateName, schemaSelection, plan.workflowRevisionId);
   if (existing) return existing;
-  addLog(`[XML-Parser] Analysiere Paket ${message.id} Ã¼ber Workflow-Pfadgruppe ${plan.key.slice(0, 12)}...`);
+  addLog(`[XML-Parser] Analysiere Paket ${message.id} über Workflow-Pfadgruppe ${plan.key.slice(0, 12)}...`);
   const parsedSignal = await parseSignalNative(
     text,
     plan.timeoutMs,
@@ -877,7 +877,7 @@ async function processWorkflowSignal(
   const plans = (await getWorkflowSignalPlans({ channelId: sourceId, text, contentType, workflowRevisionId: pinned.workflowRevisionId }))
     .filter(plan => plan.key === pinned.planKey);
   if (plans.length === 0) {
-    addLog(`[WORKFLOW] Paket ${message.id} hat keinen aktiven, filterkonformen AusfÃ¼hrungspfad.`);
+    addLog(`[WORKFLOW] Paket ${message.id} hat keinen aktiven, filterkonformen Ausführungspfad.`);
     await updateIncomingMessageStatus(sourceId, message.id, 'filtered');
     return { handled: true, result: { mode: 'workflow-filtered' } };
   }
@@ -1027,7 +1027,7 @@ async function finishLegacySignalOutput(input: {
 }
 
 async function processXmlSignal(message, text, contentType, xmlParsing, dupeBlocker, shouldForwardToTelegram, context: OutboxExecutionContext) {
-  addLog(`[XML-Parser] Analysiere Signal-Text fÃ¼r Paket ${message.id}...`);
+  addLog(`[XML-Parser] Analysiere Signal-Text für Paket ${message.id}...`);
   const forwardXml = shouldForwardToTelegram && xmlParsing.forwardXmlToTarget;
   try {
     const sourceId = String(message.chat_id);
@@ -1146,7 +1146,7 @@ async function loadAndResumeMediaGroupBuffer(config) {
 
 
 
-// Gruppen-Objekt wird jetzt direkt als Parameter Ã¼bergeben statt aus der Map gelesen
+// Gruppen-Objekt wird jetzt direkt als Parameter übergeben statt aus der Map gelesen
 async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext) {
   if (context.signal.aborted) throw new Error('Task aborted');
   if (!g || !Array.isArray(g.messages) || g.messages.length === 0) throw new Error(`Album ${gId} is empty.`);
@@ -1161,7 +1161,7 @@ async function forwardMediaGroup(gId, config, g, context: OutboxExecutionContext
       send_copy: Boolean(config.forwardOptions?.sendCopy), remove_caption: Boolean(config.forwardOptions?.removeCaption)
     }, context.signal);
     const confirmation = await requireDeliveryTracker().waitForResult(response, context.signal);
-    addLog(`[SUCCESS] Album-Paketgruppe ${gId} erfolgreich Ã¼bertragen und bestÃ¤tigt.`);
+    addLog(`[SUCCESS] Album-Paketgruppe ${gId} erfolgreich übertragen und bestätigt.`);
     await recordForwardedMessages(ids.length);
     for (const msg of g.messages) {
       updateIncomingMessageStatus(String(msg.chat_id), msg.id, 'processed')
@@ -1193,7 +1193,7 @@ async function routeIncomingMessage(message: TelegramMessageIdentity, config: Co
 async function handleUpdate(update: { _: string; state?: { _?: string }; message?: TelegramMessageIdentity }, config: Config): Promise<void> {
   deliveryTracker?.handleUpdate(update);
   if (update._ === 'updateConnectionState') {
-    addLog(`[TDLib Status] Verbindungszustand geÃ¤ndert: ${update.state?._ || 'unknown'}`);
+    addLog(`[TDLib Status] Verbindungszustand geändert: ${update.state?._ || 'unknown'}`);
   }
   if (update._ === 'updateNewMessage') await routeIncomingMessage(update.message, config);
 }
@@ -1387,7 +1387,7 @@ async function startForwardingNonInteractive(config) {
   routingStopRequested = false;
   const { apiId, apiHash } = routingCredentials(effectiveConfig);
   if (!routingConfigurationIsComplete(effectiveConfig, apiId, apiHash, requiresTelegramTarget)) {
-    addLog("[ERROR] Konfiguration unvollstÃ¤ndig! Bitte apiId, TELEGRAM_API_HASH, sourceChannels und targetChannel prÃ¼fen.");
+    addLog("[ERROR] Konfiguration unvollständig! Bitte apiId, TELEGRAM_API_HASH, sourceChannels und targetChannel prüfen.");
     throw new Error('Non-interactive routing configuration is incomplete.');
   }
 
@@ -1492,7 +1492,7 @@ async function stopRuntimeServices(): Promise<void> {
   try {
     await client.close();
   } catch (error: unknown) {
-    console.warn(`[WARN] Fehler beim SchlieÃŸen des TDLib Clients: ${unknownErrorMessage(error)}`);
+    console.warn(`[WARN] Fehler beim Schließen des TDLib Clients: ${unknownErrorMessage(error)}`);
   }
   client = null;
 }
@@ -1503,7 +1503,7 @@ async function closeDatabaseAfterDrain(drained: boolean): Promise<boolean> {
     await closeDb();
     return true;
   } catch (error: unknown) {
-    console.warn(`[WARN] Fehler beim SchlieÃŸen der SQLite-Datenbank: ${unknownErrorMessage(error)}`);
+    console.warn(`[WARN] Fehler beim Schließen der SQLite-Datenbank: ${unknownErrorMessage(error)}`);
     return false;
   }
 }
