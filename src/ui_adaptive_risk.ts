@@ -130,6 +130,7 @@ export async function uiAdaptiveRisk(query: URLSearchParams) {
     case 'sources': return evaluationSources(page);
     case 'legacy': return legacy(page);
     case 'legacy-evaluations': return legacyEvaluations(page);
+    default: throw new Error('Unsupported adaptive evidence kind.');
   }
 }
 export async function copyLegacyRiskPolicy(input: { channelId: unknown; copyHash: unknown }) {
