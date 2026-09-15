@@ -16,12 +16,9 @@ export function unknownErrorMessage(error: unknown): string {
     ?? 'A non-Error value was thrown; inspect the operation receipt for context.';
 }
 
-const STRINGIFIABLE_PRIMITIVE_TYPES: ReadonlySet<string> = new Set([
-  'string', 'number', 'boolean', 'bigint', 'symbol', 'undefined',
-]);
-
 function primitiveErrorMessage(error: unknown): string | null {
   if (typeof error === 'string') return error;
-  if (!STRINGIFIABLE_PRIMITIVE_TYPES.has(typeof error)) return null;
-  return String(error);
+  if (typeof error === 'number' || typeof error === 'boolean' || typeof error === 'bigint'
+    || typeof error === 'symbol' || typeof error === 'undefined') return String(error);
+  return null;
 }

@@ -186,6 +186,11 @@ async function verifyHealthServer(requests, activeBotToken) {
   assert.strictEqual(response.status, 200);
   response = await fetch(`${base}/status`);
   assert.strictEqual(response.status, 401);
+  for (const authorization of ['', 'Basic invalid', `Bearer ${'wrong-token-'.repeat(3)}`]) {
+    response = await fetch(`${base}/status`, { headers: { Authorization: authorization } });
+    assert.strictEqual(response.status, 401);
+    assert.strictEqual(response.headers.get('www-authenticate'), 'Bearer realm="tsx-telegram-viewer"');
+  }
   response = await fetch(`${base}/status`, { headers: { Authorization: `Bearer ${SERVICE_TOKEN}` } });
   assert.strictEqual(response.status, 200);
   assert.strictEqual(JSON.stringify(await response.json()).includes(SERVICE_TOKEN), false);

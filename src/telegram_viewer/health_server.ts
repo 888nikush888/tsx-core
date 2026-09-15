@@ -34,9 +34,9 @@ async function serveViewerStatus(
   response: http.ServerResponse,
   status: Record<string, unknown>,
   serviceToken: TokenProvider,
-  authorization: unknown,
+  authorization: http.IncomingHttpHeaders['authorization'],
 ): Promise<void> {
-  const match = /^Bearer ([A-Za-z0-9_-]{20,256})$/.exec(String(authorization || ''));
+  const match = /^Bearer ([A-Za-z0-9_-]{20,256})$/.exec(authorization || '');
   const expected = await expectedToken(serviceToken);
   if (!constantTimeStringEqual(expected, match?.[1])) {
     response.setHeader('WWW-Authenticate', 'Bearer realm="tsx-telegram-viewer"');

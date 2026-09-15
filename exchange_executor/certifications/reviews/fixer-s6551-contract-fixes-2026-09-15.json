@@ -1,0 +1,83 @@
+{
+  "reviewKind": "implementation-self-review-with-prior-independent-contract-review",
+  "baseRevision": "1aead48508ef2123a516dd774f0f62152039814b",
+  "priorIndependentReview": "reports/security-services/fixer-sonar-stringification-contract-review.json",
+  "entries": [
+    {
+      "issueId": "AaCaApb7Qzi-Va3r5Y_4",
+      "path": "src/contract_values.ts",
+      "rationale": "Explicit typeof disjunction narrows number/boolean/bigint/symbol/undefined before String. String remains early-return; all other objects/functions return null so unknownErrorMessage retains safe fallback. Error/null outer cases unchanged; arbitrary object coercion still impossible through this helper. Removed now-unused Set only."
+    },
+    {
+      "issueId": "AaCaApbFQzi-Va3r5Y_1",
+      "path": "src/telegram_viewer/health_server.ts",
+      "rationale": "Private authorization parameter now derives exact IncomingHttpHeaders authorization string|undefined type. Sole call receives native request.headers.authorization. Regex receives same string-or-empty value without redundant String; expectedToken await, constant-time equality,401 challenge/200 payload and outer500catch unchanged."
+    }
+  ],
+  "bindings": [
+    {
+      "path": "src/contract_values.ts",
+      "sourceSha256": "81a3497fe7474e808ae1515d088cf9b0faa188d50e2372cab46d4c82b5336374",
+      "priorGitBlobSha256": "871e1ef8c09fed21648fb385c02c6c79f76b19289e8eea4970d43e984c82f613"
+    },
+    {
+      "path": "src/telegram_viewer/health_server.ts",
+      "sourceSha256": "34f8c841e22275f97d537366c47cff93c5a88ca144f0d9567a2cdb801bc67484",
+      "priorGitBlobSha256": "3b15d6b702fcfad33d17606e2a49feefc88b1b0a4be3f2a68c759f0bbebb5177"
+    },
+    {
+      "path": "tests/test_exchange_contract_validation.js",
+      "sourceSha256": "b792cf23f24b2ea24e4bc2bfdd38a36a74ee3aa39d1f767ec8530486419ff459",
+      "priorGitBlobSha256": "a76d3c7fb41e757069600bce5f4eabb73fcc4f069b3e96404ffe262ea3df1fde"
+    },
+    {
+      "path": "tests/test_telegram_viewer_runtime.js",
+      "sourceSha256": "a91b8a90a26964e6c28e904362cce8f473b2c82da884b1b8bac77bb2a78840ca",
+      "priorGitBlobSha256": "a0612940ff1470eea25d5c30c9145ba396bbe6acd3a9d4de7cb0deecf93a50bf"
+    }
+  ],
+  "completeDiff": "diff --git a/src/contract_values.ts b/src/contract_values.ts\nindex c04100c..4919a74 100644\n--- a/src/contract_values.ts\n+++ b/src/contract_values.ts\n@@ -16,12 +16,9 @@ export function unknownErrorMessage(error: unknown): string {\n     ?? 'A non-Error value was thrown; inspect the operation receipt for context.';\n }\n \n-const STRINGIFIABLE_PRIMITIVE_TYPES: ReadonlySet<string> = new Set([\n-  'string', 'number', 'boolean', 'bigint', 'symbol', 'undefined',\n-]);\n-\n function primitiveErrorMessage(error: unknown): string | null {\n   if (typeof error === 'string') return error;\n-  if (!STRINGIFIABLE_PRIMITIVE_TYPES.has(typeof error)) return null;\n-  return String(error);\n+  if (typeof error === 'number' || typeof error === 'boolean' || typeof error === 'bigint'\n+    || typeof error === 'symbol' || typeof error === 'undefined') return String(error);\n+  return null;\n }\ndiff --git a/src/telegram_viewer/health_server.ts b/src/telegram_viewer/health_server.ts\nindex af70f39..7555a95 100644\n--- a/src/telegram_viewer/health_server.ts\n+++ b/src/telegram_viewer/health_server.ts\n@@ -34,9 +34,9 @@ async function serveViewerStatus(\n   response: http.ServerResponse,\n   status: Record<string, unknown>,\n   serviceToken: TokenProvider,\n-  authorization: unknown,\n+  authorization: http.IncomingHttpHeaders['authorization'],\n ): Promise<void> {\n-  const match = /^Bearer ([A-Za-z0-9_-]{20,256})$/.exec(String(authorization || ''));\n+  const match = /^Bearer ([A-Za-z0-9_-]{20,256})$/.exec(authorization || '');\n   const expected = await expectedToken(serviceToken);\n   if (!constantTimeStringEqual(expected, match?.[1])) {\n     response.setHeader('WWW-Authenticate', 'Bearer realm=\"tsx-telegram-viewer\"');\ndiff --git a/tests/test_exchange_contract_validation.js b/tests/test_exchange_contract_validation.js\nindex 3b56baf..1cc9d5a 100644\n--- a/tests/test_exchange_contract_validation.js\n+++ b/tests/test_exchange_contract_validation.js\n@@ -78,7 +78,10 @@ function testRawScalarContracts() {\n   assert.equal(isStringMember('stop_loss', ['stop_loss']), true);\n   assert.equal(coercions, 0, 'Raw provider contracts must never invoke object stringification.');\n   assert.doesNotMatch(unknownErrorMessage(object), /PRIVATE_TEST_VALUE|\\[object Object\\]/);\n-  for (const value of [0, false, '', null, undefined, 123n]) assert.equal(unknownErrorMessage(value), String(value));\n+  for (const value of [0, false, '', null, undefined, 123n, NaN, Infinity, Symbol('diagnostic')]) assert.equal(unknownErrorMessage(value), String(value));\n+  const foreignFunction = () => undefined;\n+  const foreignObject = { [Symbol.toPrimitive]() { throw new Error('Must not coerce foreign objects.'); } };\n+  for (const value of [foreignFunction, foreignObject]) assert.match(unknownErrorMessage(value), /non-Error value/);\n   assert.equal(unknownErrorMessage(new Error('bounded failure')), 'bounded failure');\n   assert.equal(coercions, 0, 'Diagnostics must not execute foreign coercion hooks.');\n }\ndiff --git a/tests/test_telegram_viewer_runtime.js b/tests/test_telegram_viewer_runtime.js\nindex d1d6103..b523509 100644\n--- a/tests/test_telegram_viewer_runtime.js\n+++ b/tests/test_telegram_viewer_runtime.js\n@@ -186,6 +186,11 @@ async function verifyHealthServer(requests, activeBotToken) {\n   assert.strictEqual(response.status, 200);\n   response = await fetch(`${base}/status`);\n   assert.strictEqual(response.status, 401);\n+  for (const authorization of ['', 'Basic invalid', `Bearer ${'wrong-token-'.repeat(3)}`]) {\n+    response = await fetch(`${base}/status`, { headers: { Authorization: authorization } });\n+    assert.strictEqual(response.status, 401);\n+    assert.strictEqual(response.headers.get('www-authenticate'), 'Bearer realm=\"tsx-telegram-viewer\"');\n+  }\n   response = await fetch(`${base}/status`, { headers: { Authorization: `Bearer ${SERVICE_TOKEN}` } });\n   assert.strictEqual(response.status, 200);\n   assert.strictEqual(JSON.stringify(await response.json()).includes(SERVICE_TOKEN), false);\n",
+  "tests": [
+    {
+      "name": "exchange_contract_validation",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-s6551-exchange_contract_validation.log",
+      "sha256": "dede4eed716023f613655264568b7a81041cb5ab78cdcf3bc9def0a057477714"
+    },
+    {
+      "name": "forwarder_error_types",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-s6551-forwarder_error_types.log",
+      "sha256": "b6613d5b4f9c73b86ddc3e1e6cb520c4251bf0dfbc8778540275f063e344cc4d"
+    },
+    {
+      "name": "telegram_viewer_runtime",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-s6551-telegram_viewer_runtime.log",
+      "sha256": "33b097a9733651bd774955d40e5e949c88bd64068843df3d1076925b93da75ea"
+    },
+    {
+      "name": "typecheck",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-s6551-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-s6551-eslint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "edgeEvidence": [
+    "Primitive diagnostic fixtures cover0,false,empty,null,undefined,bigint,NaN,Infinity,Symbol.",
+    "Function and throwing Symbol.toPrimitive object receive safe fallback without coercion. Existing synthetic-secret object remains unrevealed.",
+    "Real HTTP fixture checks missing/empty/malformed/wrong bearer401 plus challenge and existing valid bearer200."
+  ],
+  "limits": [
+    "This is implementing-agent verification, not a second independent reviewer approval.",
+    "No commit/push, workflow change or Snyk review mutation.",
+    "No live providers used; status server remains loopback fixture.",
+    "No exact behavior claim for direct non-string invocation of private helper outside its native Node caller contract."
+  ]
+}

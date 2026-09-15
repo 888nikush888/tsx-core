@@ -78,7 +78,10 @@ function testRawScalarContracts() {
   assert.equal(isStringMember('stop_loss', ['stop_loss']), true);
   assert.equal(coercions, 0, 'Raw provider contracts must never invoke object stringification.');
   assert.doesNotMatch(unknownErrorMessage(object), /PRIVATE_TEST_VALUE|\[object Object\]/);
-  for (const value of [0, false, '', null, undefined, 123n]) assert.equal(unknownErrorMessage(value), String(value));
+  for (const value of [0, false, '', null, undefined, 123n, NaN, Infinity, Symbol('diagnostic')]) assert.equal(unknownErrorMessage(value), String(value));
+  const foreignFunction = () => undefined;
+  const foreignObject = { [Symbol.toPrimitive]() { throw new Error('Must not coerce foreign objects.'); } };
+  for (const value of [foreignFunction, foreignObject]) assert.match(unknownErrorMessage(value), /non-Error value/);
   assert.equal(unknownErrorMessage(new Error('bounded failure')), 'bounded failure');
   assert.equal(coercions, 0, 'Diagnostics must not execute foreign coercion hooks.');
 }
