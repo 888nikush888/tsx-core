@@ -1,0 +1,28 @@
+{
+  "kind": "independent-exact-receipt-adoption-approval",
+  "revision": "5a532f0230d52e1169cb60311e4f9f726a86d003",
+  "candidate": {
+    "path": "reports/security-services/hyperliquid-5a532f-receipt-candidate-lf.json",
+    "sha256": "478e4bac1387ce1a1dc775461729607a7c0a0a71ddc68a288e0149f2c7bc8634"
+  },
+  "independentReview": {
+    "path": "reports/security-services/fixer-5a532f-independent-receipt-review.json",
+    "sha256": "693a912729a97a04815e16a77abcdb368c6fd4a3729f7cf800f513cb2770c9e4"
+  },
+  "implementationEvidenceApprovedForExactReceiptAdoption": true,
+  "actualRootValidation": {
+    "pythonReceiptValidation": "passedbfb8cf",
+    "nodeFourCommitments": "passedab738a",
+    "syntheticPinInjected": false
+  },
+  "providerAcceptanceVerified": false,
+  "containerRuntimeVerified": false,
+  "conditions": [
+    "Archive exact reviewed raw evidence before adoption, inherit existing archives without duplication.",
+    "Adopt only exact approved receipt bytes and matching independent pin.",
+    "Run actual operative gate and receipt/runtime regressions after adoption.",
+    "Current external scans/container gates for this new local source remain open.",
+    "Published PR30 remains unchanged while main merge is prioritized."
+  ],
+  "operativeReceiptChanged": false
+}
