@@ -4,7 +4,10 @@ import unittest
 import time
 from datetime import datetime, timezone
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
+
+import ccxt.async_support as ccxt_async
+from ccxt.base.errors import BadSymbol
 
 from test_history_pagination import PagedBybit, budget, state
 from common import ExchangeContractError
@@ -14,6 +17,58 @@ from test_kraken_history import KrakenRest, UID
 from test_history_reader import HistoryRest
 from ccxt_adapter import CcxtAdapter
 from common import RequestDeadline
+from test_fill_identity_producer import hl_original
+
+
+async def hyperliquid_scope_client(test):
+    client = ccxt_async.hyperliquid({'walletAddress': '0x' + '1' * 40})
+    client.fetch = AsyncMock(side_effect=AssertionError('Provider network forbidden'))
+    test.addAsyncCleanup(client.close)
+    test.addCleanup(client.fetch.assert_not_called)
+    perps = [client.parse_market({'name': coin, 'baseId': index, 'szDecimals': 3, 'markPx': '100'})
+             for index, coin in enumerate(('ETH', 'BTC'))]
+    client.options['cachedCurrenciesById'] = {}
+    client.parse_currency({'index': 0, 'name': 'USDC', 'weiDecimals': 8})
+    client.publicPostInfo = AsyncMock(side_effect=[
+        [None, {'name': 'xyz'}],
+        [{'collateralToken': 0, 'universe': [{'name': 'xyz:XYZ100', 'szDecimals': 3, 'maxLeverage': 20}]},
+         [{'markPx': '100'}]],
+    ])
+    perps.extend(await client.fetch_hip3_markets())
+    client.publicPostInfo = AsyncMock(return_value=[{
+        'tokens': [{'name': 'USDC', 'szDecimals': 8}, {'name': 'PURR', 'szDecimals': 0}],
+        'universe': [{'name': 'PURR/USDC', 'tokens': [1, 0], 'index': 0}],
+    }, [{'midPx': '0.2'}]])
+    spots = await client.fetch_spot_markets()
+    client.set_markets([*perps, *spots])
+    client.fetch_orders = AsyncMock(return_value=[])
+    client.fetch_my_trades = AsyncMock(return_value=[])
+    return client
+
+
+def hyperliquid_scope_transport(client, initial, coins):
+    calls = []
+    rows = [{**hl_original(coin), 'tid': index + 1, 'oid': index + 11,
+             'time': initial['baselineSince'] + index + 10} for index, coin in enumerate(coins)]
+    retained = {**hl_original('ETH'), 'tid': 99, 'time': initial['baselineSince'] - 1}
+
+    async def info(params):
+        calls.append(dict(params))
+        if params['type'] == 'perpDexs':
+            return [None, {'name': 'xyz'}]
+        if params['type'] == 'clearinghouseState':
+            return {'assetPositions': [], 'time': int(time.time() * 1000)}
+        if params['type'] == 'frontendOpenOrders':
+            return []
+        if params['type'] == 'userFills':
+            return [retained, *rows]
+        if params['type'] == 'userFillsByTime':
+            return [row for row in [retained, *rows]
+                    if params['startTime'] <= row['time'] <= params.get('endTime', 2**53 - 1)]
+        raise AssertionError(f'Unexpected fixture request: {params["type"]}')
+
+    client.publicPostInfo = info
+    return calls
 
 
 class CoverageBybit(PagedBybit):
@@ -57,6 +112,55 @@ class RetainedHyperliquid:
 
 
 class HistoryCoverageTests(unittest.IsolatedAsyncioTestCase):
+    async def test_hyperliquid_accountwide_history_preserves_allowed_and_blocks_foreign_scopes(self):
+        for foreign in (None, 'xyz:XYZ100', 'PURR/USDC', 'unknown:ASSET'):
+            with self.subTest(foreign=foreign):
+                client = await hyperliquid_scope_client(self)
+                initial = state()
+                coins = ['ETH', 'BTC'] + ([foreign] if foreign else [])
+                calls = hyperliquid_scope_transport(client, initial, coins)
+
+                async def account(value, *, client=client):
+                    return SimpleNamespace(rest=client, account=value, account_identity=value['id'])
+
+                adapter = CcxtAdapter(SimpleNamespace(account=account))
+                request = {'id': 'scope-fixture', 'exchange': 'hyperliquid', 'mode': 'testnet'}
+                if foreign == 'unknown:ASSET':
+                    with self.assertRaises(BadSymbol):
+                        await adapter.open_state(request, RequestDeadline(int(time.time() * 1000) + 30_000),
+                                                 {'since': initial['baselineSince'], 'orders': [], 'history': [initial]})
+                    self.assertTrue(any(call['type'] == 'userFillsByTime' for call in calls))
+                    continue
+                saved = initial
+                seen = {}
+                unresolved = []
+                for _ in range(4):
+                    snapshot = await adapter.open_state(request, RequestDeadline(int(time.time() * 1000) + 30_000),
+                                                        {'since': initial['baselineSince'], 'orders': [], 'history': [saved]})
+                    seen.update({fill['exchangeFillId']: fill for fill in snapshot['fills']})
+                    unresolved.extend(snapshot['unresolvedEvents'])
+                    saved = checkpoint(snapshot['acquisition']['history'][0]['checkpoint'])
+                    if saved['coverage'] is not None:
+                        break
+                self.assertIsNotNone(saved['coverage'], 'Fixture retention witness must prove the whole traversed window.')
+                self.assertEqual({fill['identity']['providerMarketId'] for fill in seen.values()}, {'ETH', 'BTC'})
+                self.assertEqual({fill['providerSymbol'] for fill in seen.values()},
+                                 {client.markets_by_id['0'][0]['symbol'], client.markets_by_id['1'][0]['symbol']})
+                self.assertEqual(len(seen), 2)
+                history_calls = [call for call in calls if call['type'] in {'userFillsByTime', 'userFills'}]
+                self.assertTrue(history_calls)
+                self.assertTrue(all(call['user'] == '0x' + '1' * 40 for call in history_calls))
+                self.assertTrue(all('coin' not in call and 'dex' not in call and 'symbol' not in call for call in history_calls))
+                self.assertTrue(all(call.get('aggregateByTime') is False for call in history_calls))
+                if foreign:
+                    self.assertTrue(unresolved, 'Foreign history must remain explicit blocking evidence, not disappear.')
+                    self.assertTrue(all(row['providerId'] == '3' for row in unresolved))
+                    expected_symbol = client.parse_trade(hl_original(foreign))['symbol']
+                    self.assertTrue(all(row['providerSymbol'] == expected_symbol for row in unresolved))
+                    self.assertTrue(all(row['reason'] == 'incomplete_fill_identity_or_economics' for row in unresolved))
+                else:
+                    self.assertEqual(unresolved, [])
+
     async def test_real_open_state_path_projects_only_new_proven_history(self):
         for exchange in ('krakenfutures', 'hyperliquid'):
             rest = HistoryRest()

@@ -1,0 +1,81 @@
+{
+  "kind": "new-offline-hyperliquid-history-product-scope-evidence-not-101-renewal",
+  "baseRevision": "d4cf0d835fde0216f5b6443b642b983290108866",
+  "changedPath": "exchange_executor/tests/test_history_coverage.py",
+  "testMethod": "HistoryCoverageTests.test_hyperliquid_accountwide_history_preserves_allowed_and_blocks_foreign_scopes",
+  "requirements": [
+    "history.completeProductScope"
+  ],
+  "bindings": [
+    {
+      "path": "exchange_executor/tests/test_history_coverage.py",
+      "gitSha256": "03f0a27217751ab0f180e2659cedcc04898290788f753c3655581d92d7b98ad8",
+      "workingLfSha256": "596a288992226649153b9884ed2f873a9c80f578f591a622bb7f99832313ce39"
+    },
+    {
+      "path": "exchange_executor/history_pagination.py",
+      "gitSha256": "4df767693a2135918a84052295bdec7da08f76756b58063f0d8ec1f1a43c2d7b",
+      "workingLfSha256": "4df767693a2135918a84052295bdec7da08f76756b58063f0d8ec1f1a43c2d7b"
+    },
+    {
+      "path": "exchange_executor/history_coverage.py",
+      "gitSha256": "8ad501f9157f59a23a9fcd2b1ca9625c59999f90b585ad197a5642e47780a4e7",
+      "workingLfSha256": "8ad501f9157f59a23a9fcd2b1ca9625c59999f90b585ad197a5642e47780a4e7"
+    },
+    {
+      "path": "exchange_executor/hyperliquid_retention.py",
+      "gitSha256": "6dae125ecebf3976e95302dcc9568e630cbc1c8505bf265ce6766f12ae5ef973",
+      "workingLfSha256": "6dae125ecebf3976e95302dcc9568e630cbc1c8505bf265ce6766f12ae5ef973"
+    },
+    {
+      "path": "exchange_executor/ccxt_adapter.py",
+      "gitSha256": "db5bcb0a5a96b61e4b1647d9b081a26821c1398b3c029c6a14442ed9b29a1c1a",
+      "workingLfSha256": "db5bcb0a5a96b61e4b1647d9b081a26821c1398b3c029c6a14442ed9b29a1c1a"
+    },
+    {
+      "path": "exchange_executor/remote_evidence.py",
+      "gitSha256": "fffedca6b462abd6b1bf1f248d67fa14e03860bc8fdeda71907540f35846635a",
+      "workingLfSha256": "fffedca6b462abd6b1bf1f248d67fa14e03860bc8fdeda71907540f35846635a"
+    },
+    {
+      "path": "src/trading_engine.ts",
+      "gitSha256": "99531ae5985e4e4eb07ee65342c9f9206d140b5e408d74abe8da3878b51c0cc5",
+      "workingLfSha256": "99531ae5985e4e4eb07ee65342c9f9206d140b5e408d74abe8da3878b51c0cc5"
+    }
+  ],
+  "evidence": [
+    "Actual CcxtAdapter.open_state traverses accountwide userFillsByTime pages and retained-history witness using installed CCXT4.5.75 trade/market parsers. Both ETH and BTC default perpetual history records are normalized with native IDs and exact provider symbols. Recent-trade and current-state fixtures are empty, so the only fill evidence comes from historical traversal.",
+    "All captured history requests bind the wallet and contain neither coin, dex nor symbol filters; aggregateByTime remains false. Retention traversal reaches coverage in the bounded fixture.",
+    "Actual HIP3 SDK market parser produces a DEX-prefixed base outside the existing canonical execution contract. Both HIP3 and actual SDK spot-market fill survive as explicit unresolvedEvents with original provider fill ID and parsed providerSymbol; they cannot become accepted fills or vanish.",
+    "Unknown market namespace raises actual CCXT BadSymbol from full open_state rather than returning a clean snapshot.",
+    "Node production consumer persists every unresolvedEvent via recordRemoteEvidence; unresolvedEvidenceCount blocks reconciliation/closure with unresolved_fill. Existing LF101 test_trading_failures separately confirms unresolved execution evidence blocks reconciliation. This followup adds producer/history-scope evidence, not a new live end-to-end provider test."
+  ],
+  "diagnosticAttempts": [
+    "First two draft attempts incorrectly expected HIP3 to be an accepted canonical execution market; failures exposed the existing fail-closed canonical base contract. Corrected expected outcome is preserved unresolved evidence; no production guard was weakened.",
+    "Initial quoted shell replacement failed parsing before any edit; subsequent patch applied only intended test changes."
+  ],
+  "validation": [
+    {
+      "command": "locked Python -m unittest test_history_coverage test_history_pagination -v",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-hyperliquid-history-scope-final.log",
+      "logSha256": "a57ab2cf5c081f13766929e7ca8cdccafee9578153a7a36440ec7df584ee6378"
+    },
+    {
+      "command": "locked Python -m ruff check exchange_executor/tests/test_history_coverage.py",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-hyperliquid-history-scope-lint.log",
+      "logSha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    }
+  ],
+  "documentation": {
+    "url": "https://hyperliquid.gitbook.io/Hyperliquid-docs/for-developers/api/info-endpoint",
+    "support": "Official userFills/userFillsByTime schemas have account/time/aggregation parameters and examples include both perp and spot fills. Local actual SDK fixtures additionally exercise DEX parsing; no assertion that a live account was queried."
+  },
+  "limits": [
+    "Only test_history_coverage.py edited; no production source, dependencies, receipt, authority pin or live provider action.",
+    "New evidence postdates101d8fa and must not be attributed to its successful historic suite.",
+    "Provider mocks cannot independently prove completeness of a live provider response; this is implementation handling of permitted and foreign historical scopes.",
+    "Root independent review and any final complete-source execution required before receipt adoption."
+  ]
+}
