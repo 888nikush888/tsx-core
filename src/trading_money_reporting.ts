@@ -132,7 +132,8 @@ export interface MoneyPerformanceRow extends MoneyEventQueryRow, ClosedMoneyRow 
 }
 
 function mismatchedMoneyEvent(row: MoneyEventQueryRow, event: Awaited<ReturnType<typeof getMoneyEvent>>): boolean {
-  return !event || event.accountId !== row.accountId || event.occurredAt !== row.occurredAt || event.kind !== row.kind;
+  if (!event) return true;
+  return event.accountId !== row.accountId || event.occurredAt !== row.occurredAt || event.kind !== row.kind;
 }
 
 function presentedMoneyEvent(row: MoneyEventQueryRow, event: Awaited<ReturnType<typeof getMoneyEvent>>, accountReady: boolean): MoneyPerformanceRow {

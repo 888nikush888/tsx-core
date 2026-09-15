@@ -81,7 +81,7 @@ function nativeLookupMismatch(proof: Record<string, unknown>, native: Record<str
     || (native.cloid != null && native.cloid !== proof.clientOrderId);
 }
 function nativeOrderId(value: unknown): string | null {
-  if (typeof value === 'string') return /^[0-9]{1,256}$/.test(value) && value.trim() === value ? value : null;
+  if (typeof value === 'string') return /^\d{1,256}$/.test(value) && value.trim() === value ? value : null;
   if (isSafeNativeOrderNumber(value)) return String(value);
   return null;
 }
