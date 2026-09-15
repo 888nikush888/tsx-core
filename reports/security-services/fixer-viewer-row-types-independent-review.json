@@ -1,0 +1,44 @@
+{
+  "kind": "independent-viewer-row-types-review",
+  "baseRevision": "72e7d5a612ddf407af09dcf328a5a6c19e07f206",
+  "bindings": [
+    {
+      "path": "src/viewer_projection.ts",
+      "oldGitBlobSha256": "b907ea161dba31172cb2646bacb1dbf5fd7b0cd750800d0fc8a6f12b51c46740",
+      "currentLfSha256": "b23543a04c7978cb6f3d355af36cc04b596dd23a092cd8d9f5e9244fa28858f5",
+      "identicalRuntimeEmission": true,
+      "emittedSha256": "8c2b79b93e0a491d1422ab009be895cb76ab84441aaf9a3cbfb71e17e8106587"
+    },
+    {
+      "path": "src/trading_money_reporting.ts",
+      "oldGitBlobSha256": "ac099971089ed8af7e5a5dd072146a6f3dfd815b0b531db4b6914e84bb52cd6e",
+      "currentLfSha256": "428fa0b6e247574931c738b426250f8142e64c06dfca56f0786a6a6d63f251e7",
+      "identicalRuntimeEmission": true,
+      "emittedSha256": "a1e793b1b3bacc081284fbc2e64a18a59ce223c13941ba095d637f064d53ded1"
+    }
+  ],
+  "verdict": "Bounded type-only two-file change accepted; no runtime regression identified.",
+  "review": [
+    "SelectedRow dictionaries retain unknown values, including null and undefined, until existing String/Number/Boolean and safeJson conversions. Account, position, order, trade, runtime, equity, risk and incident column names match the inspected SELECT clauses and aliases. No database corruption validation is claimed.",
+    "PositionRow intersects the actual journalProjectedMoney input contract rather than inventing a complete money DTO. CASE-generated realized_pnl remains nullable; value_json and reporting currency use the existing nullable contract. journalProjectedMoney still parses and validates money JSON with unresolved fallback.",
+    "MoneyEventQueryRow matches all selected aliases. channelId and intentStatus are nullable for the LEFT JOIN; account identity/exchange/mode come from the required account JOIN. COUNT is numeric, MAX and SUM aggregates explicitly permit null.",
+    "presentedMoneyEvent still requires account/time/kind identity match; missing or inconsistent event produces unresolved null fields. Account ledger valuation readiness and event valuationStatus both remain required for complete. getMoneyEvent supplies the existing validated reportingValue boundary; no new cast fabricates MoneyValue.",
+    "MoneyPerformanceRow propagates actual queried event identity plus existing ClosedMoneyRow presentation. PerformanceGroup preserves account/channel/exchange/mode JSON key, per-kind partitioning, event-time window, signed fees/funding and separate currencies. Empty components only become zero where total accounting is already complete.",
+    "All SQL strings, parameters, order/limits/pagination, pre-read await projectAllFillAccounting, transaction, row loop and notification-independent behavior are unchanged. Full independent transpilation confirms identical runtime output for both files."
+  ],
+  "limits": [
+    "Typed SQL generics document controlled schema/producer contracts, not a new hostile-storage decoder. Unknown selected values remain unknown where presentation historically coerces.",
+    "Source/SQL/validation review performed independently; implementer target-suite results are not claimed as new reviewer executions.",
+    "No whole receipt/scanner closure approval or source mutation."
+  ],
+  "contextBindings": [
+    {
+      "path": "src/trade_journal.ts",
+      "currentLfSha256": "f2d85845b436caae56712c0253bd47fdcc2390c770a9f254a92d90c06fcc2413"
+    },
+    {
+      "path": "src/trading_money_ledger.ts",
+      "currentLfSha256": "426aa130dfdd0ddbc6f1478843dedd5002ede29760b74c9c1694f4b42047de67"
+    }
+  ]
+}

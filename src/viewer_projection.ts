@@ -1,8 +1,35 @@
 import { getDatabase } from './db.js';
 import { projectAllFillAccounting } from './trading_fill_accounting.js';
-import { moneyPerformanceRows, summarizeMoneyRows, type MoneySummary } from './trading_money_reporting.js';
+import { moneyPerformanceRows, summarizeMoneyRows, type MoneySummary, type MoneyPerformanceRow } from './trading_money_reporting.js';
 import { journalMoneyDetails, journalProjectedMoney } from './trade_journal.js';
 import { moneyValueFromDecimal, negateMoneyValue } from './trading_money_value.js';
+
+// Selected SQLite fields retain unknown values until the existing presentation conversion.
+// These row types constrain column names without pretending to validate persisted contents.
+type SelectedRow<Column extends string> = Record<Column, unknown>;
+type AccountRow = SelectedRow<'id' | 'name' | 'exchange' | 'mode' | 'status' | 'enabled'
+  | 'max_concurrent_positions' | 'kill_switch_active' | 'kill_switch_reason' | 'capabilities_json'
+  | 'last_verified_at' | 'last_reconciled_at' | 'last_error' | 'equity' | 'available_balance'
+  | 'unrealized_pnl' | 'margin_used' | 'observed_at'>;
+type PositionRow = SelectedRow<'id' | 'intent_id' | 'account_id' | 'account_name' | 'exchange' | 'mode'
+  | 'channel_id' | 'symbol' | 'side' | 'status' | 'quantity' | 'average_entry_price' | 'stop_price'
+  | 'opened_at' | 'closed_at' | 'updated_at' | 'plan_json'> & Parameters<typeof journalProjectedMoney>[0];
+type OrderRow = SelectedRow<'id' | 'intent_id' | 'account_id' | 'account_name' | 'exchange' | 'mode'
+  | 'exchange_order_id' | 'role' | 'side' | 'order_type' | 'status' | 'price' | 'trigger_price'
+  | 'quantity' | 'filled_quantity' | 'reduce_only' | 'last_error' | 'created_at' | 'updated_at'>;
+type TradeRow = SelectedRow<'id' | 'channel_id' | 'account_id' | 'account_name' | 'exchange' | 'mode'
+  | 'symbol' | 'side' | 'status' | 'block_reason' | 'last_error' | 'created_at' | 'updated_at' | 'plan_json'>;
+type RuntimeRow = SelectedRow<'execution_enabled' | 'live_trading_enabled' | 'kill_switch_active'
+  | 'kill_switch_reason' | 'updated_at'>;
+type EquityRow = SelectedRow<'account_id' | 'equity' | 'available_balance' | 'unrealized_pnl' | 'margin_used' | 'observed_at'>;
+type RiskRow = SelectedRow<'id' | 'severity' | 'code' | 'account_id' | 'intent_id' | 'created_at' | 'acknowledged_at'>;
+type IncidentRow = SelectedRow<'id' | 'account_id' | 'category' | 'severity' | 'message' | 'status'
+  | 'occurrence_count' | 'first_seen_at' | 'last_seen_at' | 'resolved_at'>;
+interface PerformanceTradeRow {
+  channel_id: string | null; account_id: string; exchange: string; mode: string; trades: number;
+}
+type PerformanceGroupKey = Pick<MoneyPerformanceRow, 'channelId' | 'accountId' | 'exchange' | 'mode'>;
+interface PerformanceGroup extends PerformanceGroupKey { trades: number; money: MoneyPerformanceRow[] }
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
@@ -39,7 +66,7 @@ function optionalIdentifier(value: unknown): string | null {
   return value;
 }
 
-function safeJson(value: unknown): Record<string, any> {
+function safeJson(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string') return {};
   try {
     const parsed = JSON.parse(value);
@@ -99,7 +126,7 @@ function leveragePresentation(planJson: unknown): Record<string, unknown> | null
     : null;
 }
 
-function accountFromRow(row: any): Record<string, unknown> {
+function accountFromRow(row: AccountRow): Record<string, unknown> {
   return {
     id: String(row.id),
     name: String(row.name),
@@ -138,19 +165,19 @@ const ACCOUNT_SELECT = `
 export async function viewerAccounts(input: { id?: unknown; limit?: unknown; offset?: unknown } = {}): Promise<Record<string, unknown>> {
   const id = optionalIdentifier(input.id);
   if (id) {
-    const rows = await getDatabase().all<any[]>(`${ACCOUNT_SELECT} WHERE account.id = ? LIMIT 1`, [id]);
+    const rows = await getDatabase().all<AccountRow[]>(`${ACCOUNT_SELECT} WHERE account.id = ? LIMIT 1`, [id]);
     return { account: rows[0] ? accountFromRow(rows[0]) : null };
   }
   const limit = boundedLimit(input.limit);
   const offset = boundedOffset(input.offset);
-  const page = paginated(await getDatabase().all<any[]>(
+  const page = paginated(await getDatabase().all<AccountRow[]>(
     `${ACCOUNT_SELECT} ORDER BY account.created_at DESC, account.id LIMIT ? OFFSET ?`,
     [limit + 1, offset],
   ), limit, offset);
   return { accounts: page.rows.map(accountFromRow), pagination: page.pagination };
 }
 
-function positionFromRow(row: any): Record<string, unknown> {
+function positionFromRow(row: PositionRow): Record<string, unknown> {
   return {
     id: String(row.id), intentId: String(row.intent_id), accountId: String(row.account_id),
     accountName: String(row.account_name), exchange: String(row.exchange), mode: String(row.mode),
@@ -180,18 +207,18 @@ export async function viewerPositions(input: { id?: unknown; limit?: unknown; of
   await projectAllFillAccounting();
   const id = optionalIdentifier(input.id);
   if (id) {
-    const rows = await getDatabase().all<any[]>(`${POSITION_SELECT} WHERE position.id = ? LIMIT 1`, [id]);
+    const rows = await getDatabase().all<PositionRow[]>(`${POSITION_SELECT} WHERE position.id = ? LIMIT 1`, [id]);
     return { position: rows[0] ? positionFromRow(rows[0]) : null };
   }
   const limit = boundedLimit(input.limit);
   const offset = boundedOffset(input.offset);
-  const page = paginated(await getDatabase().all<any[]>(
+  const page = paginated(await getDatabase().all<PositionRow[]>(
     `${POSITION_SELECT} ORDER BY position.updated_at DESC, position.id LIMIT ? OFFSET ?`, [limit + 1, offset],
   ), limit, offset);
   return { positions: page.rows.map(positionFromRow), pagination: page.pagination };
 }
 
-function orderFromRow(row: any): Record<string, unknown> {
+function orderFromRow(row: OrderRow): Record<string, unknown> {
   return {
     id: String(row.id), intentId: String(row.intent_id), accountId: String(row.account_id),
     accountName: String(row.account_name), exchange: String(row.exchange), mode: String(row.mode),
@@ -213,18 +240,18 @@ const ORDER_SELECT = `
 export async function viewerOrders(input: { id?: unknown; limit?: unknown; offset?: unknown } = {}): Promise<Record<string, unknown>> {
   const id = optionalIdentifier(input.id);
   if (id) {
-    const rows = await getDatabase().all<any[]>(`${ORDER_SELECT} WHERE orders.id = ? LIMIT 1`, [id]);
+    const rows = await getDatabase().all<OrderRow[]>(`${ORDER_SELECT} WHERE orders.id = ? LIMIT 1`, [id]);
     return { order: rows[0] ? orderFromRow(rows[0]) : null };
   }
   const limit = boundedLimit(input.limit);
   const offset = boundedOffset(input.offset);
-  const page = paginated(await getDatabase().all<any[]>(
+  const page = paginated(await getDatabase().all<OrderRow[]>(
     `${ORDER_SELECT} ORDER BY orders.updated_at DESC, orders.id LIMIT ? OFFSET ?`, [limit + 1, offset],
   ), limit, offset);
   return { orders: page.rows.map(orderFromRow), pagination: page.pagination };
 }
 
-async function tradeFromRow(row: any): Promise<Record<string, unknown>> {
+async function tradeFromRow(row: TradeRow): Promise<Record<string, unknown>> {
   const { events: _events, ...money } = await journalMoneyDetails(String(row.id));
   const feeValue = money.signedFees.realizedPnlValue ? negateMoneyValue(money.signedFees.realizedPnlValue) : null;
   return {
@@ -252,21 +279,21 @@ export async function viewerTrades(input: { id?: unknown; limit?: unknown; offse
   await projectAllFillAccounting();
   const id = optionalIdentifier(input.id);
   if (id) {
-    const rows = await getDatabase().all<any[]>(`${TRADE_SELECT} WHERE intent.id = ? LIMIT 1`, [id]);
+    const rows = await getDatabase().all<TradeRow[]>(`${TRADE_SELECT} WHERE intent.id = ? LIMIT 1`, [id]);
     return { trade: rows[0] ? await tradeFromRow(rows[0]) : null };
   }
   const limit = boundedLimit(input.limit);
   const offset = boundedOffset(input.offset);
-  const page = paginated(await getDatabase().all<any[]>(
+  const page = paginated(await getDatabase().all<TradeRow[]>(
     `${TRADE_SELECT} ORDER BY intent.updated_at DESC, intent.id LIMIT ? OFFSET ?`, [limit + 1, offset],
   ), limit, offset);
   return { trades: await Promise.all(page.rows.map(tradeFromRow)), pagination: page.pagination };
 }
 
 export async function viewerSystem(): Promise<Record<string, unknown>> {
-  const runtime = await getDatabase().get<any>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');
-  const incidents = await getDatabase().get<any>("SELECT COUNT(*) AS count FROM trading_account_incidents WHERE status = 'open'");
-  const lastEvent = await getDatabase().get<any>('SELECT MAX(seq) AS seq FROM trading_notification_events');
+  const runtime = await getDatabase().get<RuntimeRow>('SELECT * FROM trading_runtime_state WHERE singleton_id = 1');
+  const incidents = await getDatabase().get<{ count: number }>("SELECT COUNT(*) AS count FROM trading_account_incidents WHERE status = 'open'");
+  const lastEvent = await getDatabase().get<{ seq: number | null }>('SELECT MAX(seq) AS seq FROM trading_notification_events');
   return {
     generatedAt: Date.now(),
     executionEnabled: Boolean(runtime?.execution_enabled), liveTradingEnabled: Boolean(runtime?.live_trading_enabled),
@@ -280,11 +307,11 @@ export async function viewerSystem(): Promise<Record<string, unknown>> {
 
 export async function viewerSummary(): Promise<Record<string, unknown>> {
   const [accounts, positions, intents, risk, incidents, system] = await Promise.all([
-    getDatabase().get<any>('SELECT COUNT(*) AS total, SUM(enabled) AS enabled FROM trading_accounts'),
-    getDatabase().get<any>("SELECT COUNT(*) AS total FROM trading_positions WHERE status <> 'closed'"),
-    getDatabase().get<any>("SELECT COUNT(*) AS total FROM trading_trade_intents WHERE status IN ('pending','planned','submitting','monitoring','unknown')"),
-    getDatabase().get<any>('SELECT COUNT(*) AS total FROM trading_risk_events WHERE acknowledged_at IS NULL'),
-    getDatabase().get<any>("SELECT COUNT(*) AS total FROM trading_account_incidents WHERE status = 'open'"),
+    getDatabase().get<{ total: number; enabled: number | null }>('SELECT COUNT(*) AS total, SUM(enabled) AS enabled FROM trading_accounts'),
+    getDatabase().get<{ total: number }>("SELECT COUNT(*) AS total FROM trading_positions WHERE status <> 'closed'"),
+    getDatabase().get<{ total: number }>("SELECT COUNT(*) AS total FROM trading_trade_intents WHERE status IN ('pending','planned','submitting','monitoring','unknown')"),
+    getDatabase().get<{ total: number }>('SELECT COUNT(*) AS total FROM trading_risk_events WHERE acknowledged_at IS NULL'),
+    getDatabase().get<{ total: number }>("SELECT COUNT(*) AS total FROM trading_account_incidents WHERE status = 'open'"),
     viewerSystem(),
   ]);
   return {
@@ -295,7 +322,7 @@ export async function viewerSummary(): Promise<Record<string, unknown>> {
   };
 }
 
-function performanceComponent(events: any[], kind: string, total: MoneySummary): MoneySummary {
+function performanceComponent(events: MoneyPerformanceRow[], kind: string, total: MoneySummary): MoneySummary {
   const rows = events.filter(event => event.kind === kind);
   if (rows.length === 0 && total.accountingStatus === 'complete') {
     return summarizeMoneyRows([{ realizedPnl: '0', realizedPnlValue: { ...moneyValueFromDecimal('0'), terms: 0 },
@@ -304,7 +331,7 @@ function performanceComponent(events: any[], kind: string, total: MoneySummary):
   return summarizeMoneyRows(rows);
 }
 
-function performanceMoney(events: any[]) {
+function performanceMoney(events: MoneyPerformanceRow[]) {
   const total = summarizeMoneyRows(events);
   return { ...total, pricePnl: performanceComponent(events, 'realized_price_pnl', total),
     signedFees: performanceComponent(events, 'fee', total), funding: performanceComponent(events, 'funding', total) };
@@ -316,11 +343,11 @@ export async function viewerPerformance(input: { days?: unknown } = {}): Promise
   const since = Date.now() - days * 86_400_000;
   const money = await moneyPerformanceRows(since, Date.now() + 1);
   const [equity, trades] = await Promise.all([
-    getDatabase().all<any[]>(
+    getDatabase().all<EquityRow[]>(
       `SELECT account_id, equity, available_balance, unrealized_pnl, margin_used, observed_at
        FROM trading_equity_snapshots WHERE observed_at >= ? ORDER BY observed_at LIMIT 100`, [since],
     ),
-    getDatabase().all<any[]>(
+    getDatabase().all<PerformanceTradeRow[]>(
       `SELECT intent.channel_id, intent.account_id, intent.exchange, intent.mode,
               COUNT(*) AS trades
        FROM trading_trade_intents AS intent LEFT JOIN trading_positions AS position ON position.intent_id = intent.id
@@ -328,14 +355,14 @@ export async function viewerPerformance(input: { days?: unknown } = {}): Promise
        GROUP BY intent.channel_id, intent.account_id, intent.exchange, intent.mode ORDER BY trades DESC LIMIT 100`, [since],
     ),
   ]);
-  const groups = new Map<string, any>();
-  const key = (row: any) => JSON.stringify([row.channelId, row.accountId, row.exchange, row.mode]);
+  const groups = new Map<string, PerformanceGroup>();
+  const key = (row: PerformanceGroupKey) => JSON.stringify([row.channelId, row.accountId, row.exchange, row.mode]);
   for (const row of trades) {
-    const group = { channelId: row.channel_id, accountId: row.account_id, exchange: row.exchange, mode: row.mode, trades: Number(row.trades), money: [] };
+    const group: PerformanceGroup = { channelId: row.channel_id, accountId: row.account_id, exchange: row.exchange, mode: row.mode, trades: Number(row.trades), money: [] };
     groups.set(key(group), group);
   }
   for (const row of money) {
-    const group = groups.get(key(row)) ?? { channelId: row.channelId, accountId: row.accountId, exchange: row.exchange, mode: row.mode, trades: 0, money: [] };
+    const group: PerformanceGroup = groups.get(key(row)) ?? { channelId: row.channelId, accountId: row.accountId, exchange: row.exchange, mode: row.mode, trades: 0, money: [] };
     group.money.push(row);
     groups.set(key(row), group);
   }
@@ -352,7 +379,7 @@ export async function viewerPerformance(input: { days?: unknown } = {}): Promise
 export async function viewerRisk(input: { limit?: unknown; offset?: unknown } = {}): Promise<Record<string, unknown>> {
   const limit = boundedLimit(input.limit);
   const offset = boundedOffset(input.offset);
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<RiskRow[]>(
     `SELECT id, severity, code, account_id, intent_id, created_at, acknowledged_at
      FROM trading_risk_events ORDER BY created_at DESC, id LIMIT ? OFFSET ?`, [limit + 1, offset],
   );
@@ -368,7 +395,7 @@ export async function viewerRisk(input: { limit?: unknown; offset?: unknown } = 
 export async function viewerIncidents(input: { limit?: unknown; offset?: unknown } = {}): Promise<Record<string, unknown>> {
   const limit = boundedLimit(input.limit);
   const offset = boundedOffset(input.offset);
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<IncidentRow[]>(
     `SELECT id, account_id, category, severity, message, status, occurrence_count,
             first_seen_at, last_seen_at, resolved_at
      FROM trading_account_incidents ORDER BY last_seen_at DESC, id LIMIT ? OFFSET ?`, [limit + 1, offset],

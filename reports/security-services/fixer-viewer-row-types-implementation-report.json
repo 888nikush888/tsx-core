@@ -1,0 +1,342 @@
+{
+  "kind": "viewer-projection-and-money-query-type-only-batch",
+  "baseRevision": "babf3aab18f5603f92b29296c933203e2cba60bc",
+  "scope": [
+    "src/trading_money_reporting.ts",
+    "src/viewer_projection.ts"
+  ],
+  "baselineOccurrenceReferences": [
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlhcGU=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 371,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VkcmU=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 355,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmF4dm8=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 332,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1yYXI=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 331,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG95cWs=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 323,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmx3bXA=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 319,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhycWc=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 307,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFleHY=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 298,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZkbGU=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 287,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpheW0=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 286,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtkeGc=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 285,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlrd3c=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 284,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29xcms=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 283,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlwd2c=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 269,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTphbmF3dmRxYXY=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 268,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHlhcWU=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 267,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmF4ZW8=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 260,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp5Z3lxbm1yeXI=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 255,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpnZXZhZG95dms=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 227,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpyZWt2bmx3a3A=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 221,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTptcmRwbnlhZHc=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 216,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp2dm15bnhybWc=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 194,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpveWFrZHFlYXY=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 188,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp4cmd5bnZkZ2U=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 183,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTprdnlxZGpheG0=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 153,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTplYXhteWtkd2c=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 146,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpwcXd4bnlrZ3c=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 141,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTp3bXJ5d29xa2s=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 102,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpuZ3dlZHlwbWc=",
+      "path": "src/viewer_projection.ts",
+      "baselineLine": 42,
+      "rule": "JS-0323",
+      "baselineCategory": "unchanged-git-bytes-baseline-candidate"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpsbXFuZHl2eHY=",
+      "path": "src/trading_money_reporting.ts",
+      "baselineLine": 136,
+      "rule": "JS-0323",
+      "baselineCategory": "changed-file-requires-current-review"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpkYWt2d2VtanA=",
+      "path": "src/trading_money_reporting.ts",
+      "baselineLine": 133,
+      "rule": "JS-0323",
+      "baselineCategory": "changed-file-requires-current-review"
+    },
+    {
+      "id": "T2NjdXJyZW5jZTpxcGVvbmFsZ3I=",
+      "path": "src/trading_money_reporting.ts",
+      "baselineLine": 123,
+      "rule": "JS-0323",
+      "baselineCategory": "changed-file-requires-current-review"
+    }
+  ],
+  "baselineInventory": {
+    "path": "..\\tsx-core-security-services\\reports\\security-services\\fixer-deepsource-full-baseline-candidate-mapping-599cc55.json",
+    "sha256": "f5e0ae983b878ed4e43c38763fd26276236d2267b6523686f674cacb382020cb",
+    "mainRevision": "be8cf5af59f60d69ad946d778973add8161b7672",
+    "limitation": "Original main occurrence IDs/lines retained. Any changed-file baseline entry is not asserted to be a current scan occurrence; closure requires rescan."
+  },
+  "implementation": [
+    "Viewer SQL row aliases explicitly named. Nonmonetary raw presentation values remain unknown until the existing String/Number/Boolean conversions; no fabricated validation of database contents.",
+    "PositionRow includes exactly the four established journalProjectedMoney input fields, including nullable realized_pnl/value_json/reporting_currency; existing SQL CASE pending/unresolved behavior unchanged.",
+    "MoneyPerformanceRow names all event query aliases and presentation outputs. LEFT JOIN intent-derived channelId and intentStatus remain nullable. Monetary presentation still validates actual event account/time/kind and current ledger valuation readiness.",
+    "Performance groups use explicit event arrays and keys rather than any; empty money groups remain empty, zero only when existing total accountingStatus is complete.",
+    "No SQL, aliases, query parameters, evaluation order, money validation, currency grouping, signed values or existing fallback changed. No new casts or runtime guards introduced."
+  ],
+  "verification": {
+    "revision": "babf3aab18f5603f92b29296c933203e2cba60bc",
+    "node": "v22.23.2",
+    "results": [
+      {
+        "path": "src/viewer_projection.ts",
+        "beforeGitSha256": "b907ea161dba31172cb2646bacb1dbf5fd7b0cd750800d0fc8a6f12b51c46740",
+        "afterRawSha256": "b23543a04c7978cb6f3d355af36cc04b596dd23a092cd8d9f5e9244fa28858f5",
+        "emittedJavaScriptExactlyIdentical": true,
+        "emittedSha256": "7737eb1e1be89bd865ab3eb60c5b09e4ac6c282d601aa49455c9b112aae56de2"
+      },
+      {
+        "path": "src/trading_money_reporting.ts",
+        "beforeGitSha256": "ac099971089ed8af7e5a5dd072146a6f3dfd815b0b531db4b6914e84bb52cd6e",
+        "afterRawSha256": "428fa0b6e247574931c738b426250f8142e64c06dfca56f0786a6a6d63f251e7",
+        "emittedJavaScriptExactlyIdentical": true,
+        "emittedSha256": "e42518f3faa631c1d86925c89ebc57badebf22f0192c71415de5ec4afb1adda9"
+      }
+    ],
+    "executions": [
+      {
+        "name": "typecheck",
+        "args": [
+          "node_modules/typescript/bin/tsc",
+          "--noEmit"
+        ],
+        "exitCode": 0,
+        "log": "reports/security-services/fixer-viewer-row-types-typecheck.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "lint",
+        "args": [
+          "node_modules/eslint/bin/eslint.js",
+          "src/viewer_projection.ts",
+          "src/trading_money_reporting.ts",
+          "--max-warnings",
+          "0"
+        ],
+        "exitCode": 0,
+        "log": "reports/security-services/fixer-viewer-row-types-lint.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "viewer-contracts",
+        "args": [
+          "--import",
+          "tsx",
+          "tests/test_telegram_viewer_contracts.js"
+        ],
+        "exitCode": 0,
+        "log": "reports/security-services/fixer-viewer-row-types-viewer-contracts.log",
+        "sha256": "4b3ce468b3461672bcc4f603ced0d6adb03cca389f8f2e8f292bc4b7e4d87396"
+      },
+      {
+        "name": "fx-journal-viewer",
+        "args": [
+          "--import",
+          "tsx",
+          "tests/test_trading_fx_journal_viewer.js"
+        ],
+        "exitCode": 0,
+        "log": "reports/security-services/fixer-viewer-row-types-fx-journal-viewer.log",
+        "sha256": "c259132310f9843004b245272ca48d56a7dcc6787597199ee754ab65370622da"
+      },
+      {
+        "name": "money-reporting",
+        "args": [
+          "--import",
+          "tsx",
+          "tests/test_trading_fx_money_reporting.js"
+        ],
+        "exitCode": 0,
+        "log": "reports/security-services/fixer-viewer-row-types-money-reporting.log",
+        "sha256": "862168ccd4966a26b89075c7b3afea40843cf11991bbe2fb309142b080b74eb2"
+      }
+    ]
+  },
+  "diffSha256": "712ffe7dbb82936d24c67368b4a7e82027cfc95b23f43cecab2a6407a32ca712",
+  "typeOnlyProof": "For BOTH files, complete TypeScript transpileModule output with comments removed is byte-for-byte identical to HEAD; no AST normalization or helper-inlining equivalence substituted.",
+  "testCoverageNotes": [
+    "Viewer contracts validate normal projection and Telegram API surfaces.",
+    "FX journal/viewer target exercises still-open position realized money, signed fee/funding, exact rational values and split USD/USDT groups.",
+    "Money reporting target exercises occurredAt window query at [at,at+1), account valuation conflict turning complete result unresolved, rational/decimal consistency and empty-report no-inferred-currency semantics."
+  ],
+  "remainingRisks": [
+    "Types document selected columns and established persisted money contract; they do not introduce a corruption detector. Existing malformed-value handling is intentionally untouched.",
+    "Formatter file is owned by another agent; no edits here. Backend typecheck/tests may observe concurrent formatter work, while exact two-file emitted-JS equality isolates this batch."
+  ],
+  "mutations": {
+    "commits": false,
+    "pushes": false,
+    "pins": false,
+    "platformDispositions": false
+  }
+}
