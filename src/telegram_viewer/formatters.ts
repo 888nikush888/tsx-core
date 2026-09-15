@@ -50,7 +50,7 @@ function exactMoneyText(value: MoneyValue): string {
   return `[${value.lower}, ${value.upper}] (konservative Grenzen)`;
 }
 
-function moneyText(summary: Record<string, any>): string | null {
+function moneyText(summary: Record<string, unknown>): string | null {
   if (summary.accountingStatus !== undefined && summary.accountingStatus !== 'complete') return null;
   const currency = currencyUnit(summary.reportingCurrency);
   try {
@@ -68,7 +68,7 @@ function moneyText(summary: Record<string, any>): string | null {
   } catch { return null; }
 }
 
-function subtotalLines(label: string, summary: Record<string, any>): string[] {
+function subtotalLines(label: string, summary: Record<string, unknown>): string[] {
   const values = summary.valuedSubtotalValuesByCurrency;
   if (!values || typeof values !== 'object' || Array.isArray(values)) return [];
   return Object.entries(values).flatMap(([currency, input]) => {
@@ -78,7 +78,7 @@ function subtotalLines(label: string, summary: Record<string, any>): string[] {
   });
 }
 
-function moneyLines(label: string, summary: Record<string, any>): string[] {
+function moneyLines(label: string, summary: Record<string, unknown>): string[] {
   if (!('realizedPnl' in summary) && !('realizedPnlValue' in summary)) return [];
   const text = moneyText(summary);
   return text ? [`${label} ${text}`] : [`${label} ungeklärt`, ...subtotalLines(label, summary)];
