@@ -1,0 +1,40 @@
+{
+  "kind": "single-undefined-comparison-cleanup",
+  "baseRevision": "3b31d40fb285b62b93003117b1b8d42367b6d733",
+  "path": "src/contract_values.ts",
+  "priorGitBlobSha256": "f6306c6e970ddb06a8b8d9a7bec919cbc5e83351c6db621b886906d9f21f5dd1",
+  "currentLfSha256": "72d202a727fa714c760a1083b24c5f5723777f526c6d1c1672208326d1ed47a8",
+  "delta": "Only typeof error === 'undefined' becomes error === undefined.",
+  "behavior": "The function parameter error is always declared; undefined is not shadowed. Both predicates therefore select exactly the same input. All primitive formatting and object-coercion rejection branches remain unchanged.",
+  "compilerNarrowingAtStringArgument": "string | boolean | symbol | undefined",
+  "execution": {
+    "typeExit": 0,
+    "lintExit": 0,
+    "forwarderExit": 0,
+    "contractExit": 0
+  },
+  "logs": [
+    {
+      "path": "reports/security-services/fixer-contract-undefined-target.log",
+      "sha256": "dede4eed716023f613655264568b7a81041cb5ab78cdcf3bc9def0a057477714"
+    },
+    {
+      "path": "reports/security-services/fixer-contract-undefined-forwarder.log",
+      "sha256": "e5d4fa2698c478dd6eb06022d3635a85e0bc24a2eff72eaf6de3f474caa3afcd"
+    },
+    {
+      "path": "reports/security-services/fixer-contract-undefined-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reports/security-services/fixer-contract-undefined-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "limits": [
+    "Only the requested source line changed; existing Symbol and malformed-object tests retained without modifications.",
+    "Backend typecheck sees simultaneous unrelated agent source edits; own exact one-line delta verified separately.",
+    "Original supplied Sonar export path was unavailable locally; remediation scope determined from the explicit assigned source expression.",
+    "No commit, Services edit, scanner disposition or full-suite claim."
+  ]
+}
