@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "reviewedRevision": "dc0adb60fc3c268677d58441de1d40bfccd9b233",
+  "reviewedRevision": "95bd43913d56299d55e4651dc74d791bb9cd7a7b",
   "scannerVersion": "1.1307.1",
-  "sarifSha256": "834c23d1eb440d809437a911a040a8dc54dff9aaa79c786c8166ca450e1a67ba",
-  "reviewKind": "independent-b425-adopted-receipt-seven-context-review",
+  "sarifSha256": "dcffea65cf2fc10ce803e401690761b692feb4da95bced67bed83d442376dcc4",
+  "reviewKind": "independent-5a532f-adopted-receipt-three-context-review",
   "reviewedCount": 85,
   "counts": {
     "false-positive": 81,
     "open": 4
   },
-  "priorReviewRevision": "5b9e1f34b154c3db156f3b52884bdea7f4b3bc25",
-  "scopeNote": "Fresh Snyk Code 1.1307.1 scan: all 85 finding IDs, fingerprints and flow evidence digests match the prior review. Of 182 primary/context bindings, 175 remain unchanged and seven changed context bindings across six findings were individually re-reviewed. The scan began at b42583fcd9063666da673e1b243f6268cd9c530e with the already-adopted receipt and authority pin; dc0adb60fc3c268677d58441de1d40bfccd9b233 records those same bytes. The adopted receipt SHA256 is e0e8285c975107a2cfb8fad02f4bc608096260c80c9593aa0ce916b90609cac3. Four internal HTTP findings remain open under the unchanged separate owner acceptance expiring 2026-10-08. This Snyk flow review does not assert provider acceptance or container verification.",
+  "priorReviewRevision": "dc0adb60fc3c268677d58441de1d40bfccd9b233",
+  "scopeNote": "Fresh Snyk Code1.1307.1 on frozen95bd439:85 IDs, fingerprints and flow digests unchanged versus adopted b425 review. Of182 source/context bindings,179 are unchanged;3 authority-pin contexts across3 verifier findings were individually re-reviewed. Receipt478e4bac1387ce1a1dc775461729607a7c0a0a71ddc68a288e0149f2c7bc8634 and authority pin were already adopted before the scan. Viewer82, telemetry12, runtime diagnostic fallback and three Sonar source/test fixes were present in the scanned revision.81 findings remain individually reviewed false positives;4 HTTP findings remain open under the unchanged owner acceptance expiring2026-10-08. No provider acceptance, container verification or cross-service finding closure is asserted.",
   "entries": [
     {
       "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
@@ -131,7 +131,7 @@
       "line": 93,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "False positive for traversal at readSync: the reported flow starts with the explicit local --python option and follows fixed-bridge stdout into the receipt read. The trusted local interpreter executes fixed isolated Python code, returns only certified fixed-profile exchange names, and cannot obtain pins from receipt data. readSync consumes the previously opened descriptor, not a path string. stableBytes enforces canonical parent, ordinary single-link file, bounded size, no-follow read-only open, descriptor identity and before/after identity checks. Arbitrary operator-selected malicious executable is outside this trusted local invocation contract. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification. Independent source142 review at5b9e1f3: Complete package.json delta adds only exact devDependency @types/express5.0.6. Lock addition is nine dev-only @types packages; production dependencies, scripts, local CLI arguments, interpreter selection, fixed bridge and parser --file block remain unchanged. This development declaration package creates no runtime path/executable/code selector. Re-reviewed for b425 receipt adoption: the authority module changes only the exact approved receipt SHA literal. The verifier still reads bounded ordinary files through canonical-parent and symlink/link-count checks, then compares opened file metadata before and after reading. The new receipt digest does not supply a pathname and cannot relax these checks.",
+      "rationale": "Individually re-reviewed at 95bd439 against the 5a532f adopted receipt: the sole changed context is the authority mapping digest literal e0e8285c... to 478e4bac1387ce1a1dc775461729607a7c0a0a71ddc68a288e0149f2c7bc8634. The profile key and one-element immutable approval tuple are unchanged. This digest is not used as a path. The unchanged verifier requires a canonical parent, ordinary non-symlink single-link file, bounded size and read-only/no-follow open; opened identity and post-read metadata are rechecked. The exact scanner flow and primary bytes are unchanged, so this path traversal result remains a false positive for these bound bytes.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -143,7 +143,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "8953e0e238f2320b8b6077ff925caf2dc9899c6ac34d518c1cef196ab97d1fa5"
+          "sha256": "70bb515ae99fbc7c782626c381ac9570bc64ce7e0d7b53955edfdd38d904de36"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -4164,7 +4164,7 @@
       "line": 292,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "False positive for indirect command injection in this local CLI contract: the operator deliberately selects the absolute Python executable through the only accepted --python option. absolutePython, realpath, ordinary-file and canonical-parent checks precede spawnSync. The executable receives a fixed argument array with isolated -I, no-bytecode -B, literal bridge code and fixed repository root; shell is false, with timeout and output limits. No application request, receipt field or pin selects executable/code/import names. These checks do not certify an arbitrary malicious executable as safe; local executable selection remains operator authority. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification. Independent source142 review at5b9e1f3: Complete package.json delta adds only exact devDependency @types/express5.0.6. Lock addition is nine dev-only @types packages; production dependencies, scripts, local CLI arguments, interpreter selection, fixed bridge and parser --file block remain unchanged. This development declaration package creates no runtime path/executable/code selector. Re-reviewed command execution against the adopted authority digest: only the approved receipt SHA literal changed. The operator-selected Python executable remains absolute, canonical and an ordinary file; spawnSync still uses separate fixed -I/-B/-c bridge arguments, shell:false, timeout and bounded output. Receipt content cannot become a shell command or create its own approval entry. No command boundary changed.",
+      "rationale": "Individually re-reviewed command flow at 95bd439: only the independent authority receipt digest changed to the exact approved 478e4bac receipt. The executable must still be an absolute canonical ordinary file selected by the operator. spawnSync retains separate fixed -I/-B/-c Python bridge arguments, shell:false, timeout and output bound. The fixed bridge imports the immutable approval mapping; receipt contents cannot create authority entries or command arguments. No shell/path interpretation is introduced by the pin replacement; the unchanged primary bytes and scanner flow support the same scoped false-positive decision.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -4176,7 +4176,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "8953e0e238f2320b8b6077ff925caf2dc9899c6ac34d518c1cef196ab97d1fa5"
+          "sha256": "70bb515ae99fbc7c782626c381ac9570bc64ce7e0d7b53955edfdd38d904de36"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -4348,7 +4348,7 @@
       "line": 85,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "False positive for traversal at openSync: the reported stdout-derived exchange originates from fixed PROFILES via certification_result, which enforces a lowercase identifier grammar and equality to profile.id before looking up source-owned pins and validating receipt bytes/schema. The CLI constructs only the fixed certifications directory plus that certified exchange and .json. stableBytes canonical-parent and ordinary-file checks precede read-only/no-follow open; descriptor identity, link count, bounded reads and after-read identity checks reject link or concurrent replacement. Pins remain code-owned and have now been explicitly independently approved for the exact installed receipt. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification. Independent source142 review at5b9e1f3: Complete package.json delta adds only exact devDependency @types/express5.0.6. Lock addition is nine dev-only @types packages; production dependencies, scripts, local CLI arguments, interpreter selection, fixed bridge and parser --file block remain unchanged. This development declaration package creates no runtime path/executable/code selector. Re-reviewed the line 85 file flow: canonical parent, ordinary file, no symlink, nlink=1, bounded size, read-only/no-follow open and pre/post-read identity checks remain unchanged. The authority change only replaces the independently approved exact digest in the same read-only mapping/profile key. It cannot select a new path or bypass file checks.",
+      "rationale": "Individually re-reviewed line85 open flow at 95bd439: before open, stableBytes checks canonical parent, ordinary file, no symlink, nlink1 and bounded length; open is read-only with no-follow where supported, then fstat identities and final read metadata must match. These primary bytes and the complete scanner flow are unchanged. The only updated context replaces the receipt approval digest with the exact independently reviewed 478e4bac hash in the same profile mapping, without changing path selection or weakening any read fence. False positive remains limited to this exact flow and context.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -4360,7 +4360,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "8953e0e238f2320b8b6077ff925caf2dc9899c6ac34d518c1cef196ab97d1fa5"
+          "sha256": "70bb515ae99fbc7c782626c381ac9570bc64ce7e0d7b53955edfdd38d904de36"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -4550,12 +4550,12 @@
     }
   ],
   "independentReviewEvidence": {
-    "path": "exchange_executor/certifications/reviews/fixer-b425-adopted-snyk-independent-review.json",
-    "sha256": "f69340db3412bf550afad16e5b73e635ab317dbcb5486a601bb54d21787d703c"
+    "path": "exchange_executor/certifications/reviews/fixer-95bd439-adopted-snyk-independent-review.json",
+    "sha256": "a58e3bc5331e4cdf8c519c745ddd398bb830c89168f5aa09cdbae4271109c0b9"
   },
   "priorIndependentReviewEvidence": {
-    "path": "exchange_executor/certifications/reviews/fixer-source142-snyk-independent-review.json",
-    "sha256": "2a05fd96c15ad72356259fbe4289e6a40414c32b6d2411176859ec58f8383beb"
+    "path": "exchange_executor/certifications/reviews/fixer-b425-adopted-snyk-independent-review.json",
+    "sha256": "f69340db3412bf550afad16e5b73e635ab317dbcb5486a601bb54d21787d703c"
   },
   "previousAdoptedAuthorityReviewEvidence": {
     "path": "exchange_executor/certifications/reviews/fixer-adopted-f1b7-snyk-independent-review.json",
