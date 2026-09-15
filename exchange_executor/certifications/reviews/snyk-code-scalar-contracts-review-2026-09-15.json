@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "reviewedRevision": "0ebbc480196b0d47a1c474493abc738a711d46d2",
+  "reviewedRevision": "5b9e1f34b154c3db156f3b52884bdea7f4b3bc25",
   "scannerVersion": "1.1307.1",
-  "sarifSha256": "4d30ad909ea6af46ae2f5c67e7cff1df902a71cf3ce46dde6c7164f49d6cabf9",
-  "reviewKind": "independent-three-post-adoption-authority-context-review",
+  "sarifSha256": "1d43128e2ef6749751282848402985a6d04d4d1d2b87ac230902aa6cb80af5db",
+  "reviewKind": "independent-five-source142-context-review",
   "reviewedCount": 85,
   "counts": {
     "false-positive": 81,
     "open": 4
   },
-  "priorReviewRevision": "f1b7b9dcec419cb7b055b8e718076b0fbb414e97",
-  "scopeNote": "85 IDs/fingerprints/evidence digests unchanged;179bindings unchanged,3fixed-authority bindings independently reviewed. Scan worktree includes exact uncommitted receipt/pin adoption over recorded revision.",
+  "priorReviewRevision": "0ebbc480196b0d47a1c474493abc738a711d46d2",
+  "scopeNote": "85 IDs/fingerprints/evidence digests unchanged;177sourcebindings unchanged,5 individually reviewed config/package bindings. Receipt authority2304 unchanged; no renewed receipt validity claimed for changed source tree.",
   "entries": [
     {
       "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
@@ -131,7 +131,7 @@
       "line": 93,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "False positive for traversal at readSync: the reported flow starts with the explicit local --python option and follows fixed-bridge stdout into the receipt read. The trusted local interpreter executes fixed isolated Python code, returns only certified fixed-profile exchange names, and cannot obtain pins from receipt data. readSync consumes the previously opened descriptor, not a path string. stableBytes enforces canonical parent, ordinary single-link file, bounded size, no-follow read-only open, descriptor identity and before/after identity checks. Arbitrary operator-selected malicious executable is outside this trusted local invocation contract. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification.",
+      "rationale": "False positive for traversal at readSync: the reported flow starts with the explicit local --python option and follows fixed-bridge stdout into the receipt read. The trusted local interpreter executes fixed isolated Python code, returns only certified fixed-profile exchange names, and cannot obtain pins from receipt data. readSync consumes the previously opened descriptor, not a path string. stableBytes enforces canonical parent, ordinary single-link file, bounded size, no-follow read-only open, descriptor identity and before/after identity checks. Arbitrary operator-selected malicious executable is outside this trusted local invocation contract. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification. Independent source142 review at5b9e1f3: Complete package.json delta adds only exact devDependency @types/express5.0.6. Lock addition is nine dev-only @types packages; production dependencies, scripts, local CLI arguments, interpreter selection, fixed bridge and parser --file block remain unchanged. This development declaration package creates no runtime path/executable/code selector.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -151,7 +151,7 @@
         },
         {
           "path": "package.json",
-          "sha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+          "sha256": "a0f34131226b8d60bd580dfcfec3d66bbaa8cf487c3921ec9b53f36c16c1e984"
         }
       ],
       "codeFlowLocations": [
@@ -350,7 +350,7 @@
       "line": 29,
       "reviewedSourceSha256": "d0fd89cea0779ef15598a6d07d1ce7930ee2c9df815c71a2036ed0ef17c8fd7d",
       "disposition": "false-positive",
-      "rationale": "Independently re-read changed env.secretFileReference and backup_cli loadEnv/restore call chain. Complete env delta replaces fileReference ? fileReference : null with fileReference || null. Both evaluate the same already-trimmed local env value once and yield that truthy value or null; file reads, operator-selected artifact/config/database destinations, lease acquisition and restore-plan paths are unchanged. No secret-file value or remote payload becomes a new restore target. The original local operator-authority PT rationale remains valid, including that statSync symlink handling is not claimed as a new confinement defense. Final env delta additionally checks Reflect.deleteProperty false and throws TypeError after secret assignment at historical strict-delete position. Independent red/green fixture and re-run confirm retained secret/reference with failure, not successful continuation. loadEnv cannot silently accept an undeletable reference; artifact/config/database path authority is unchanged. No atomicity claim.",
+      "rationale": "Independently re-read changed env.secretFileReference and backup_cli loadEnv/restore call chain. Complete env delta replaces fileReference ? fileReference : null with fileReference || null. Both evaluate the same already-trimmed local env value once and yield that truthy value or null; file reads, operator-selected artifact/config/database destinations, lease acquisition and restore-plan paths are unchanged. No secret-file value or remote payload becomes a new restore target. The original local operator-authority PT rationale remains valid, including that statSync symlink handling is not claimed as a new confinement defense. Final env delta additionally checks Reflect.deleteProperty false and throws TypeError after secret assignment at historical strict-delete position. Independent red/green fixture and re-run confirm retained secret/reference with failure, not successful continuation. loadEnv cannot silently accept an undeletable reference; artifact/config/database path authority is unchanged. No atomicity claim. Independent source142 review at5b9e1f3: Complete config.ts delta replaces erased type declarations/views only; independent executable emission is byte-identical. Configuration path from environment, merge property/spread operations, caught-error property reads, managed backup lease/write coordination, destination selection and all filesystem operations are unchanged. The bound backup_cli remains a deliberate local-operator destination invocation; no new external path input or confinement assertion.",
       "contextPaths": [
         {
           "path": "src/backup.ts",
@@ -358,7 +358,7 @@
         },
         {
           "path": "src/config.ts",
-          "sha256": "835d6fb83af653ea6d239170e451eaade10299fa7a9bbe6287c6f383f5ff0b53"
+          "sha256": "d60e4b3f768108c613ca560d698744b3f6ef9206783eab02ba3f380f0a0bc6ab"
         },
         {
           "path": "src/env.ts",
@@ -551,11 +551,11 @@
       "line": 596,
       "reviewedSourceSha256": "606910e2de5b08cf5925a12909500027b9ec1bbebbd408710c4fee47a9ceb515",
       "disposition": "false-positive",
-      "rationale": "Re-read the entire current isMain/argv/runCli block: block-local filePath still comes exclusively from local --file argument, readFile now at line596, while exported parser input is messageText. Complete source delta extracts retry classification/delay into nextAttemptDelay: nonretryable still throws original error, exhausted attempts return null, zero delay remains a real awaited delay, logging stays before abortableDelay and lastError assignment stays in catch. The helper creates no filesystem selector and CLI branch itself is unchanged after ten-line shift. No remote signal path reaches filePath; intended local operator file read remains a false-positive for this exact trace. Exact parser source is identical to independently reviewed e3a5857; fresh final SARIF identity, path and flow rechecked. Independent current-source reassessment: Complete package.json delta only changes devDependency @types/node 26.1.1 to 22.20.2. Parser CLI script and --file argument loop remain unchanged; readFile remains inside isMain local CLI block. Type declarations do not add a remote file selector.",
+      "rationale": "Re-read the entire current isMain/argv/runCli block: block-local filePath still comes exclusively from local --file argument, readFile now at line596, while exported parser input is messageText. Complete source delta extracts retry classification/delay into nextAttemptDelay: nonretryable still throws original error, exhausted attempts return null, zero delay remains a real awaited delay, logging stays before abortableDelay and lastError assignment stays in catch. The helper creates no filesystem selector and CLI branch itself is unchanged after ten-line shift. No remote signal path reaches filePath; intended local operator file read remains a false-positive for this exact trace. Exact parser source is identical to independently reviewed e3a5857; fresh final SARIF identity, path and flow rechecked. Independent current-source reassessment: Complete package.json delta only changes devDependency @types/node 26.1.1 to 22.20.2. Parser CLI script and --file argument loop remain unchanged; readFile remains inside isMain local CLI block. Type declarations do not add a remote file selector. Independent source142 review at5b9e1f3: Complete package.json delta adds only exact devDependency @types/express5.0.6. Lock addition is nine dev-only @types packages; production dependencies, scripts, local CLI arguments, interpreter selection, fixed bridge and parser --file block remain unchanged. This development declaration package creates no runtime path/executable/code selector.",
       "contextPaths": [
         {
           "path": "package.json",
-          "sha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+          "sha256": "a0f34131226b8d60bd580dfcfec3d66bbaa8cf487c3921ec9b53f36c16c1e984"
         }
       ],
       "codeFlowLocations": [
@@ -4164,7 +4164,7 @@
       "line": 292,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "False positive for indirect command injection in this local CLI contract: the operator deliberately selects the absolute Python executable through the only accepted --python option. absolutePython, realpath, ordinary-file and canonical-parent checks precede spawnSync. The executable receives a fixed argument array with isolated -I, no-bytecode -B, literal bridge code and fixed repository root; shell is false, with timeout and output limits. No application request, receipt field or pin selects executable/code/import names. These checks do not certify an arbitrary malicious executable as safe; local executable selection remains operator authority. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification.",
+      "rationale": "False positive for indirect command injection in this local CLI contract: the operator deliberately selects the absolute Python executable through the only accepted --python option. absolutePython, realpath, ordinary-file and canonical-parent checks precede spawnSync. The executable receives a fixed argument array with isolated -I, no-bytecode -B, literal bridge code and fixed repository root; shell is false, with timeout and output limits. No application request, receipt field or pin selects executable/code/import names. These checks do not certify an arbitrary malicious executable as safe; local executable selection remains operator authority. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification. Independent source142 review at5b9e1f3: Complete package.json delta adds only exact devDependency @types/express5.0.6. Lock addition is nine dev-only @types packages; production dependencies, scripts, local CLI arguments, interpreter selection, fixed bridge and parser --file block remain unchanged. This development declaration package creates no runtime path/executable/code selector.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -4184,7 +4184,7 @@
         },
         {
           "path": "package.json",
-          "sha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+          "sha256": "a0f34131226b8d60bd580dfcfec3d66bbaa8cf487c3921ec9b53f36c16c1e984"
         }
       ],
       "codeFlowLocations": [
@@ -4348,7 +4348,7 @@
       "line": 85,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "False positive for traversal at openSync: the reported stdout-derived exchange originates from fixed PROFILES via certification_result, which enforces a lowercase identifier grammar and equality to profile.id before looking up source-owned pins and validating receipt bytes/schema. The CLI constructs only the fixed certifications directory plus that certified exchange and .json. stableBytes canonical-parent and ordinary-file checks precede read-only/no-follow open; descriptor identity, link count, bounded reads and after-read identity checks reject link or concurrent replacement. Pins remain code-owned and have now been explicitly independently approved for the exact installed receipt. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification.",
+      "rationale": "False positive for traversal at openSync: the reported stdout-derived exchange originates from fixed PROFILES via certification_result, which enforces a lowercase identifier grammar and equality to profile.id before looking up source-owned pins and validating receipt bytes/schema. The CLI constructs only the fixed certifications directory plus that certified exchange and .json. stableBytes canonical-parent and ordinary-file checks precede read-only/no-follow open; descriptor identity, link count, bounded reads and after-read identity checks reject link or concurrent replacement. Pins remain code-owned and have now been explicitly independently approved for the exact installed receipt. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification. Independent source142 review at5b9e1f3: Complete package.json delta adds only exact devDependency @types/express5.0.6. Lock addition is nine dev-only @types packages; production dependencies, scripts, local CLI arguments, interpreter selection, fixed bridge and parser --file block remain unchanged. This development declaration package creates no runtime path/executable/code selector.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -4368,7 +4368,7 @@
         },
         {
           "path": "package.json",
-          "sha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
+          "sha256": "a0f34131226b8d60bd580dfcfec3d66bbaa8cf487c3921ec9b53f36c16c1e984"
         }
       ],
       "codeFlowLocations": [
@@ -4550,12 +4550,15 @@
     }
   ],
   "independentReviewEvidence": {
-    "path": "exchange_executor/certifications/reviews/fixer-adopted-f1b7-snyk-independent-review.json",
-    "sha256": "a6a7dbb0fe09600ec9f089c54a2dec1c11c422dd0f37a7e67c543e95a61d547c"
+    "path": "exchange_executor/certifications/reviews/fixer-source142-snyk-independent-review.json",
+    "sha256": "2a05fd96c15ad72356259fbe4289e6a40414c32b6d2411176859ec58f8383beb"
   },
-  "scanWorktreeAuthoritySha256": "67ad88963f984cf3682c5bc28f066945c897aa1ca083c1e5da9ff2c0844a1035",
   "priorIndependentReviewEvidence": {
     "path": "exchange_executor/certifications/reviews/fixer-final-f1b7-snyk-individual-context-review.json",
     "sha256": "0e6f7b162fb9bfaf5f2d357919398a3b930cf1707a3f1c8ce9efc04efb27aecf"
+  },
+  "previousAdoptedAuthorityReviewEvidence": {
+    "path": "exchange_executor/certifications/reviews/fixer-adopted-f1b7-snyk-independent-review.json",
+    "sha256": "a6a7dbb0fe09600ec9f089c54a2dec1c11c422dd0f37a7e67c543e95a61d547c"
   }
 }
