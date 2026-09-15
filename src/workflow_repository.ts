@@ -121,7 +121,7 @@ interface WorkflowHistoryState {
 function workflowHistoryLabel(value: unknown): string {
   const label = value ?? DEFAULT_WORKFLOW_HISTORY_LABEL;
   if (typeof label !== 'string' || !label.trim() || label.trim().length > 160
-    || /[\u0000-\u001f\u007f]/u.test(label)) {
+    || /\p{Cc}/u.test(label)) {
     throw new Error('Workflow history label is invalid.');
   }
   return label.trim();
