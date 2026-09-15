@@ -1,0 +1,29 @@
+{
+  "baseRevision": "c1bdf542e70ee54e04e2b45e5795317552107c31",
+  "kind": "root-review-of-compatible-first-utf16-unit-hash",
+  "path": "frontend/src/app/workflow/workflow-edge.tsx",
+  "sourceLfSha256": "258609c6b7f02e4d392e136c3edd00c72dc0b906ca58dcd8320d03be88ebfc7f",
+  "change": "Use codePointAt on explicit single UTF-16 unit, retaining the first-unit hash for every Unicode character yielded by string iteration.",
+  "proof": "Root read complete single-line diff. slice(0,1) of nonempty iterator characters yields exactly the unit read by charCodeAt(0), including supplementary characters and lone surrogates. Empty ID performs no reduce step. Nullish fallback is defensive and cannot replace a yielded character unit. Existing geometry fixtures unchanged.",
+  "priorIndependentReview": "reports/security-services/fixer-sonar-three-contextual-issues-review-2026-09-15.json",
+  "verification": [
+    {
+      "check": "Existing five actual curve-geometry tests",
+      "exit": 0,
+      "toolChunk": "2f8b84"
+    },
+    {
+      "check": "Oxlint changed source",
+      "exit": 0,
+      "toolChunk": "4ef59f"
+    },
+    {
+      "check": "Actual frontend build (tsc -b and Vite)",
+      "exit": 0,
+      "startChunk": "d73749",
+      "session": 29079,
+      "completionChunk": "484870"
+    }
+  ],
+  "limits": "Direct tool outputs; no separate execution log files claimed. Fresh platform closure remains pending."
+}
