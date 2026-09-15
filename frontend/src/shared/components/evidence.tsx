@@ -11,7 +11,13 @@ function evidenceCellValue(value: unknown): ReactNode {
   if (value == null) return "nicht verfügbar";
   if (typeof value === "boolean") return value ? "ja" : "nein";
   if (isValidElement(value)) return value;
-  return String(value);
+  return evidenceScalarValue(value);
+}
+
+function evidenceScalarValue(value: unknown): ReactNode {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "bigint" || typeof value === "symbol") return String(value);
+  return "Ungültiger Wert";
 }
 
 export function EvidenceFields({ fields }: Readonly<{ fields: Array<[string, ReactNode]> }>) {

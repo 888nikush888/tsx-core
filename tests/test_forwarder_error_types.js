@@ -82,3 +82,69 @@ async function verifyRawForwardingPolicy(source) {
 
 await verifyRawForwardingPolicy(await readFile(new URL('../src/forwarder.ts', import.meta.url), 'utf8'));
 console.log('Workflow and raw forwarding authorization contracts passed.');
+
+async function verifyLegacyMediaMigration(source) {
+  const parsed = ts.createSourceFile('forwarder.ts', source, ts.ScriptTarget.Latest, true);
+  const names = ['legacyMediaChatId', 'migrateLegacyMediaGroupBuffer'];
+  const functions = parsed.statements.filter(node => ts.isFunctionDeclaration(node) && names.includes(node.name?.text));
+  assert.equal(functions.length, names.length, 'Exercise the actual migration and ID validation functions.');
+  const executable = ts.transpileModule(functions.map(node => node.getText(parsed)).join('\n'), {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+  }).outputText;
+  function fixture(data, saveError, readError) {
+    const events = [];
+    const fs = {
+      async readFile() {
+        if (readError) throw readError;
+        return JSON.stringify(data);
+      },
+      async unlink() { events.push(['unlink']); },
+    };
+    const save = async (groupId, chatId, messages) => {
+      events.push(['save', groupId, chatId, messages]);
+      await Promise.resolve();
+      if (saveError) throw saveError;
+      events.push(['saved', groupId]);
+    };
+    const functions = new Function('fsPromises', 'LEGACY_MEDIA_BUFFER_FILE', 'saveMediaGroupBuffer', 'addLog',
+      'forwarderErrorCode', 'unknownErrorMessage', executable + '\nreturn { migrate: migrateLegacyMediaGroupBuffer, chatId: legacyMediaChatId };')(
+      fs, 'fixture-only.json', save, () => {}, forwarderErrorCode, unknownErrorMessage);
+    return { ...functions, events };
+  }
+  const validIds = [-100123, 0, 123, Number.MAX_SAFE_INTEGER, '-100123', '001', '', ' 123 '];
+  const valid = fixture(Object.fromEntries(validIds.map((fromChatId, index) => [`group-${index}`, { fromChatId, messages: [{ id: index }] }])));
+  await valid.migrate();
+  assert.deepEqual(valid.events, validIds.flatMap((id, index) => [
+    ['save', `group-${index}`, String(id), [{ id: index }]], ['saved', `group-${index}`],
+  ]).concat([['unlink']]));
+  for (const fromChatId of [{}, [], null, undefined, true, 1.5, Number.MAX_SAFE_INTEGER + 1, NaN, Infinity]) {
+    const invalid = fixture({ bad: { fromChatId, messages: [{ id: 1 }] } });
+    await assert.rejects(invalid.migrate(), error => {
+      assert.match(error.message, /Legacy media-buffer migration failed/);
+      assert.match(error.cause.message, /source chat ID is invalid/);
+      return true;
+    });
+    assert.deepEqual(invalid.events, [], 'Invalid IDs cannot be saved or delete the legacy file.');
+  }
+  let coerced = false;
+  const hostile = { [Symbol.toPrimitive]() { coerced = true; return '123'; } };
+  assert.throws(() => valid.chatId(hostile), /source chat ID is invalid/);
+  assert.equal(coerced, false);
+  for (const nonJsonId of [NaN, Infinity, -Infinity, 1n, Symbol('chat')]) {
+    assert.throws(() => valid.chatId(nonJsonId), /source chat ID is invalid/);
+  }
+  const partial = fixture({ first: { fromChatId: 1, messages: [1] }, second: { messages: [2] } });
+  await assert.rejects(partial.migrate(), /source chat ID is invalid/);
+  assert.deepEqual(partial.events, [['save', 'first', '1', [1]], ['saved', 'first']],
+    'A later invalid group retains the file; earlier sequential writes are not rolled back.');
+  const saveError = new Error('fixture SQLite failure');
+  const failedSave = fixture({ first: { fromChatId: 1, messages: [1] } }, saveError);
+  await assert.rejects(failedSave.migrate(), error => error.cause === saveError);
+  assert.deepEqual(failedSave.events, [['save', 'first', '1', [1]]]);
+  const missing = fixture(undefined, undefined, Object.assign(new Error('missing fixture'), { code: 'ENOENT' }));
+  await missing.migrate();
+  assert.deepEqual(missing.events, []);
+}
+
+await verifyLegacyMediaMigration(await readFile(new URL('../src/forwarder.ts', import.meta.url), 'utf8'));
+console.log('Legacy media migration scalar IDs, retained files and sequential writes passed.');

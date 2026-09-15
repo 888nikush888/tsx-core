@@ -347,7 +347,75 @@ async function verifyStoredStringContracts() {
   }
 }
 
-verifyStoredStringContracts().then(run).catch(error => {
+async function verifyDeliveryMessageContracts() {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-viewer-message-contracts-'));
+  const state = new TelegramViewerStateRepository(path.join(directory, 'viewer.db'));
+  const bot = fakeBot();
+  const sendMessage = bot.sendMessage.bind(bot);
+  let botCalls = 0;
+  bot.sendMessage = (...args) => { botCalls += 1; return sendMessage(...args); };
+  const now = 1_700_000_010_000;
+  const service = new TelegramViewerService({ core: fakeCore(), bot, state, now: () => now });
+  let sourceSeq = 0;
+  const queue = async message => {
+    sourceSeq += 1;
+    await state.queueDeliveries({ kind: 'test', sourceSeq, sourceId: `message-${sourceSeq}`,
+      userIds: ['1001'], payload: { test: { message } }, now });
+    return sourceSeq;
+  };
+  try {
+    await state.initialize();
+    await service.refreshSettings();
+    for (const message of [undefined, null, '', ' \t ', 'Viewer test', 'x'.repeat(6_000)]) {
+      await queue(message);
+      const callsBefore = botCalls;
+      await service.deliverPendingOnce(now);
+      assert.strictEqual(botCalls, callsBefore + 1);
+      assert.strictEqual(bot.sent.at(-1).text, `TSX Core \u00b7 Test\n${message ?? 'Testnachricht'}`.slice(0, 4096));
+      assertNoInlineMenu(bot.sent.at(-1), 'Validated test messages retain the existing delivery options.');
+      assert.strictEqual((await state.lastTest()).status, 'delivered');
+    }
+    const invalidSequences = [];
+    for (const message of [{}, { privateField: 'must not be sent' }, [], ['array text'], false, 0, 42]) {
+      invalidSequences.push(await queue(message));
+      const callsBefore = botCalls;
+      await service.deliverPendingOnce(now);
+      assert.strictEqual(botCalls, callsBefore, 'Malformed message values must not invoke the bot.');
+      assert.deepStrictEqual(await state.lastTest(), {
+        sourceSeq, status: 'retrying', attemptedAt: now, deliveredAt: null,
+        error: 'Viewer test message must be a string.',
+      });
+      assert.strictEqual((await state.pendingDeliveries(now)).length, 0, 'Malformed deliveries retain bounded backoff.');
+    }
+    const pending = await state.pendingDeliveries(now + 1_000);
+    assert.deepStrictEqual(pending.map(delivery => delivery.sourceSeq), invalidSequences);
+    assert.ok(pending.every(delivery => delivery.attempts === 1));
+
+    const retrySequence = await queue('Retry after a real bot failure');
+    const callsBeforeFailure = botCalls;
+    bot.failNext = true;
+    await service.deliverPendingOnce(now);
+    assert.strictEqual(botCalls, callsBeforeFailure + 1, 'Valid text must still reach the real failure branch.');
+    assert.strictEqual((await state.lastTest()).error, 'temporary telegram failure');
+    assert.strictEqual((await state.lastTest()).status, 'retrying');
+    assert.strictEqual((await state.pendingDeliveries(now + 999)).length, 0);
+    await service.deliverPendingOnce(now + 1_000);
+    assert.strictEqual(botCalls, callsBeforeFailure + 2, 'Malformed retries never call the bot; the valid retry does.');
+    assert.strictEqual(bot.sent.at(-1).text, 'TSX Core \u00b7 Test\nRetry after a real bot failure');
+    assert.deepStrictEqual(await state.lastTest(), {
+      sourceSeq: retrySequence, status: 'delivered', attemptedAt: now + 1_000,
+      deliveredAt: now + 1_000, error: null,
+    });
+    const malformedRetries = await state.pendingDeliveries(now + 3_000);
+    assert.deepStrictEqual(malformedRetries.map(delivery => delivery.sourceSeq), invalidSequences);
+    assert.ok(malformedRetries.every(delivery => delivery.attempts === 2));
+  } finally {
+    await state.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+verifyStoredStringContracts().then(verifyDeliveryMessageContracts).then(run).catch(error => {
   console.error(error);
   process.exit(1);
 });

@@ -83,6 +83,17 @@ describe('runtime field and evidence value contracts', () => {
     expect(screen.getByRole('link', { name: 'Original proof' })).toHaveAttribute('href', '/proof');
   });
 
+  it('marks invalid cell values without invoking object coercion and preserves scalar representations', () => {
+    const coerce = vi.fn(() => { throw new Error('Object coercion must not run'); });
+    const values = [{ toString: coerce }, ['unexpected'], () => 'function', 12n, Symbol('proof'), Number.NaN, Number.POSITIVE_INFINITY];
+    render(<EvidenceTable caption="Typed evidence" rows={values.map((value, index) => ({ id: `row-${index}`, value }))}
+      columns={[["value", "Value"]]} />);
+    expect(screen.getAllByRole('cell').map(cell => cell.textContent)).toEqual([
+      'Ungültiger Wert', 'Ungültiger Wert', 'Ungültiger Wert', '12', 'Symbol(proof)', 'NaN', 'Infinity',
+    ]);
+    expect(coerce).not.toHaveBeenCalled();
+  });
+
   it('shows the absence of table evidence and supports rows without an external identifier', () => {
     const { rerender } = render(<EvidenceTable caption="Empty observations" rows={[]} columns={[["state", "State"]]} />);
     expect(screen.getByText('Keine belegten Einträge.')).toBeVisible();

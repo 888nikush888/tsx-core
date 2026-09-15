@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { unknownErrorMessage } from './contract_values.js';
 import { loadEnv } from './env.js';
 import { restorePreMigrationSnapshot } from './migration_recovery.js';
 import { acquireProcessLock } from './process_lock.js';
@@ -48,6 +49,6 @@ async function main(): Promise<void> {
 try {
   await main();
 } catch (error: unknown) {
-  console.error(error instanceof Error ? error.message : String(error));
+  console.error(unknownErrorMessage(error));
   process.exitCode = 1;
 }

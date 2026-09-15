@@ -81,6 +81,21 @@ try {
     const plan = consume(changed, first.id);
     for (const field of ['prompt', 'primaryModel', 'fallbackModel']) assert.equal(plan[field], undefined);
   }
+  for (const value of [{ toString() { throw new Error('Must not coerce output mode'); } }, [], 17, false]) {
+    const changed = structuredClone(publishedPath);
+    changed.effectiveConfiguration.resources.output = { mode: value };
+    assert.throws(() => consume(changed, first.id), /Compiled output mode must be a string/);
+  }
+  for (const mode of ['audit_only', 'telegram_xml', 'telegram_original', 'none', '']) {
+    const changed = structuredClone(publishedPath);
+    changed.effectiveConfiguration.resources.output = { mode };
+    assert.deepEqual(consume(changed, first.id).outputModes, [mode], 'Consumer preserves stored string bytes.');
+  }
+  for (const output of [undefined, null, {}, { mode: undefined }, { mode: null }]) {
+    const changed = structuredClone(publishedPath);
+    changed.effectiveConfiguration.resources.output = output;
+    assert.deepEqual(consume(changed, first.id).outputModes, ['audit_only'], 'Missing output mode keeps the nullish fallback.');
+  }
   const changed = structuredClone(publishedPath);
   changed.effectiveConfiguration.resources.parser.prompt = '  preserved prompt  ';
   assert.equal(consume(changed, first.id).prompt, '  preserved prompt  ', 'Consumer does not normalize stored strings.');

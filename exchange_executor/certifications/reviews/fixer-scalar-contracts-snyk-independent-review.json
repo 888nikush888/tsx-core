@@ -1,0 +1,605 @@
+{
+  "schemaVersion": 1,
+  "baseRevision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+  "execution": {
+    "workingDelta": [
+      "frontend/src/shared/components/evidence.tsx",
+      "frontend/tests/runtime-evidence-regressions.test.tsx",
+      "src/forwarder.ts",
+      "src/migration_cli.ts",
+      "src/setup_bundle.ts",
+      "src/telegram_viewer/service.ts",
+      "src/workflow_repository.ts",
+      "tests/test_forwarder_error_types.js",
+      "tests/test_migration_cli.js",
+      "tests/test_setup_bundle.js",
+      "tests/test_telegram_viewer_service.js",
+      "tests/test_workflow_input_types.js"
+    ],
+    "revision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+    "scannerExit": 1,
+    "finishedAt": "2026-09-15T09:00:23.9800297Z"
+  },
+  "priorReview": {
+    "path": "exchange_executor/certifications/reviews/snyk-code-mcp-diagnostics-review-2026-09-15.json",
+    "sha256": "ffa14fd1ff772429c084c418dd5716432b592eff194f52c1fb1f4e8c4f012aed",
+    "reviewedRevision": "9dd587e3094dcaed38ccb490d09ea9134d3509bb"
+  },
+  "scan": {
+    "path": "reports/security-services/fixer-scalar-contracts-snyk.sarif.json",
+    "sha256": "e4e2a4856d305873e46b01b4ec239d3ffdc57a29ea2854ab519144aea53e3821",
+    "count": 85,
+    "allIdentitiesFingerprintsAndFlowDigestsUnchanged": true
+  },
+  "bindingCount": 182,
+  "unchangedBindingCount": 179,
+  "individuallyReassessedEntryCount": 3,
+  "unchangedEntryCount": 82,
+  "drifts": [
+    {
+      "findingId": "d75bc03c-19a7-4475-809c-525e9240e836",
+      "path": "src/forwarder.ts",
+      "beforeSha256": "71537e7d74b2b9d9ea00176b16779e90cbceb79628676cf7008cf22bfa31c62c",
+      "afterSha256": "0a6ed01d53a0968ae0202259a32e65461e144b8812b750b34f615930c3cc2a59",
+      "rationale": "Re-read current metrics startup caller: startMetricsServer still receives port and callbacks with no host override. The sole forwarder delta validates the legacy album source chat ID before SQLite save; it changes no listener, metrics callback, network scope or deployment setting. This remains actual plaintext HTTP under the unchanged owner acceptance."
+    },
+    {
+      "findingId": "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+      "path": "src/forwarder.ts",
+      "beforeSha256": "71537e7d74b2b9d9ea00176b16779e90cbceb79628676cf7008cf22bfa31c62c",
+      "afterSha256": "0a6ed01d53a0968ae0202259a32e65461e144b8812b750b34f615930c3cc2a59",
+      "rationale": "Re-read getTelegramViewerServiceStatus: requireTrustedServiceUrl retains its four internal/loopback hosts, exact service-token Bearer header, GET, JSON accept and three-second abort timeout. The unrelated legacy album scalar validation changes no endpoint, authentication, viewer listener or transport. The internal plaintext token hop remains open under the unchanged acceptance."
+    },
+    {
+      "findingId": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+      "path": "src/forwarder.ts",
+      "beforeSha256": "71537e7d74b2b9d9ea00176b16779e90cbceb79628676cf7008cf22bfa31c62c",
+      "afterSha256": "0a6ed01d53a0968ae0202259a32e65461e144b8812b750b34f615930c3cc2a59",
+      "rationale": "Re-read startWebServer caller and complete forwarder delta: dashboard startup still passes the same port and options, including awaited startup listener. New legacyMediaChatId only rejects non-string/non-safe-integer legacy album identifiers before persistence. Dashboard HTTP/authentication and deployment boundaries are unchanged; the existing accepted plaintext risk remains open."
+    }
+  ],
+  "workingDeltaBindings": [
+    {
+      "path": "frontend/src/shared/components/evidence.tsx",
+      "gitBaseSha256": "14f56733d051a7946db3b480f992aa70adc9758c275b9880fe1f462a4a33ce98",
+      "currentLfSha256": "52ee7e24e3bcbb4285a0e78441d407c62ef011a6cd3ee6f643b48391bdcf3310",
+      "currentRawSha256": "52ee7e24e3bcbb4285a0e78441d407c62ef011a6cd3ee6f643b48391bdcf3310",
+      "affectedFindingIds": []
+    },
+    {
+      "path": "frontend/tests/runtime-evidence-regressions.test.tsx",
+      "gitBaseSha256": "f12a7cba350cd060f4fe8e2c29d71cd1a1975311b86dbca2f2f429ccc3575d5a",
+      "currentLfSha256": "cc1ddffb3981ce300a821ff29dc26598103d7ec20e2e8f7374910ebd4f93be35",
+      "currentRawSha256": "cc1ddffb3981ce300a821ff29dc26598103d7ec20e2e8f7374910ebd4f93be35",
+      "affectedFindingIds": []
+    },
+    {
+      "path": "src/forwarder.ts",
+      "gitBaseSha256": "71537e7d74b2b9d9ea00176b16779e90cbceb79628676cf7008cf22bfa31c62c",
+      "currentLfSha256": "0a6ed01d53a0968ae0202259a32e65461e144b8812b750b34f615930c3cc2a59",
+      "currentRawSha256": "0a6ed01d53a0968ae0202259a32e65461e144b8812b750b34f615930c3cc2a59",
+      "affectedFindingIds": [
+        "d75bc03c-19a7-4475-809c-525e9240e836",
+        "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+        "438c84b9-ea83-4e9d-8bdc-d2032e31ae59"
+      ]
+    },
+    {
+      "path": "src/migration_cli.ts",
+      "gitBaseSha256": "5314eaffed3f0fa4f8a14bb729792563f202e438275a9af8b7976a06b9d4e3f9",
+      "currentLfSha256": "1e5047ba218e047d557f285bec84d84d663f3bbcdd463fdd45632338661bdacb",
+      "currentRawSha256": "1e5047ba218e047d557f285bec84d84d663f3bbcdd463fdd45632338661bdacb",
+      "affectedFindingIds": []
+    },
+    {
+      "path": "src/setup_bundle.ts",
+      "gitBaseSha256": "92f77eb1ea8f17df10b698a4734d23f14d0cda0f3fb56b04a3988a89d4f79d27",
+      "currentLfSha256": "0cc5da47a972e043fb705e48bd642362497574af8d2b24a288572169b504b3c3",
+      "currentRawSha256": "0cc5da47a972e043fb705e48bd642362497574af8d2b24a288572169b504b3c3",
+      "affectedFindingIds": []
+    },
+    {
+      "path": "src/telegram_viewer/service.ts",
+      "gitBaseSha256": "d20fe15cf337f22f40dbb5962f2513dfa0590184009a074bbf1b62586c7bfdae",
+      "currentLfSha256": "34a727cb4b41de698e4315db435492b0d9e9792a21ef8b79cba5f3b182a1dd16",
+      "currentRawSha256": "34a727cb4b41de698e4315db435492b0d9e9792a21ef8b79cba5f3b182a1dd16",
+      "affectedFindingIds": []
+    },
+    {
+      "path": "src/workflow_repository.ts",
+      "gitBaseSha256": "8382e600d42f058c5352d8778121c9c45a43e10e760e84dc9c963f248f9c4c04",
+      "currentLfSha256": "c78567972bf9635dd64653cc88083b0b2dfaf57997aa48ad0c5487fc8084f088",
+      "currentRawSha256": "c78567972bf9635dd64653cc88083b0b2dfaf57997aa48ad0c5487fc8084f088",
+      "affectedFindingIds": []
+    },
+    {
+      "path": "tests/test_forwarder_error_types.js",
+      "gitBaseSha256": "4088dfd9de15f64760bd598550d43b7f4ca048bfdcb8a27cf921052dc1f8ac5f",
+      "currentLfSha256": "ce6e2d6041a547238d40c2438ad25c9458c19bd6f8b41a0c32b507caa52acfc3",
+      "currentRawSha256": "ce6e2d6041a547238d40c2438ad25c9458c19bd6f8b41a0c32b507caa52acfc3",
+      "affectedFindingIds": []
+    },
+    {
+      "path": "tests/test_migration_cli.js",
+      "gitBaseSha256": "599553a90447301aa5a783d469df2bf35d411cc055b102866b46a758a1680063",
+      "currentLfSha256": "bace9295d37ca34efa48c70e61d0f42f36d9766257558e90416ff849a0a52ba2",
+      "currentRawSha256": "bace9295d37ca34efa48c70e61d0f42f36d9766257558e90416ff849a0a52ba2",
+      "affectedFindingIds": []
+    },
+    {
+      "path": "tests/test_setup_bundle.js",
+      "gitBaseSha256": "dcb90c3b650f307c13b2799566ad3cf8169a1af63758f8e9c502a76dd4b36bc0",
+      "currentLfSha256": "e6dda41434678f12c4e39fae06675a1461d02799bd0eef75a30c02b774ff5f15",
+      "currentRawSha256": "e6dda41434678f12c4e39fae06675a1461d02799bd0eef75a30c02b774ff5f15",
+      "affectedFindingIds": []
+    },
+    {
+      "path": "tests/test_telegram_viewer_service.js",
+      "gitBaseSha256": "9fc48fa3feb85256d34cf5781b4baedf9d6d565f2508de870431e32260b2eac0",
+      "currentLfSha256": "016bbfeff90d78a16df42235dba07faa9a903d20eaa8859bdc51b2337804b877",
+      "currentRawSha256": "016bbfeff90d78a16df42235dba07faa9a903d20eaa8859bdc51b2337804b877",
+      "affectedFindingIds": []
+    },
+    {
+      "path": "tests/test_workflow_input_types.js",
+      "gitBaseSha256": "1d0195356dde588346148bb41bf5502a53bdfe917213afcbf48f137cc60755e6",
+      "currentLfSha256": "ba78d2347949fd51571027de2bd81f51c125ecdf777ea913ef8638991319d625",
+      "currentRawSha256": "ba78d2347949fd51571027de2bd81f51c125ecdf777ea913ef8638991319d625",
+      "affectedFindingIds": []
+    }
+  ],
+  "rawLfDifferences": [],
+  "semanticEvidence": [
+    "Read entire forwarder diff plus affected metrics, dashboard and viewer-status caller bodies. Only legacy album source ID validation changed in this bound context file.",
+    "The helper preserves exact strings and safe integer numbers, rejects missing/object/array/boolean/fractional/unsafe values without coercion before save. Existing sequential writes and retained file on later failure remain; this is not atomic migration.",
+    "Read accompanying actual migration AST-extraction tests: valid ID preservation, rejection without save/unlink, hostile coercion prevention, partial progress, original save-error cause and ENOENT behavior.",
+    "Other eleven changed files have no source/context overlap with the existing 182 bindings. Fresh scanner results contain no added identities or changed flows; this does not replace their separate implementation reviews.",
+    "MCP diagnostic test bytes match their already reviewed Git binding; no renewal needed for stat-cache-only status."
+  ],
+  "verification": {
+    "resultCount": 85,
+    "reviewedFalsePositives": 81,
+    "acceptedRisks": 4,
+    "remaining": 0,
+    "disposition": "clean",
+    "findings": [
+      {
+        "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
+        "ruleId": "javascript/DOMXSS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "98bcc36f-5e43-4d4b-9dc9-2b23b5bb5b77",
+        "ruleId": "javascript/HardcodedNonCryptoSecret",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "88fce105-6148-4b77-904c-f82f35a3d8d9",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "164aa45d-3766-4932-9dd7-4f2729603758",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "142dd478-3551-4536-9562-b365bf50d287",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9c50b436-5043-4541-a5c5-14a432cae733",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "6914aa0e-59d7-4481-9e11-2f13f86d60f4",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "497d44e9-fe5f-4767-a66f-325c51e5dc95",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9886fba1-1186-4e41-b1fa-6a6877440237",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "bc179edb-989f-4eee-b6f0-4e0403e76fa0",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "436da650-a34e-44b8-a133-bdad1b5788d7",
+        "ruleId": "javascript/PT/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+        "ruleId": "javascript/Sqli/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+        "ruleId": "javascript/Sqli/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4763ab6d-7279-4288-a467-5dbccf673f01",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "8c0f552c-7615-4368-8f6a-6689679b611c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "32304334-8c66-4f4a-b4fa-26033d0ab225",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "6747340c-e7a2-460b-87c7-e2e6c3802226",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a3737d56-de9a-41e7-b30b-fb374b214f91",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a1ed4a9a-f08f-4f3b-b73b-87630d94a0c9",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9b50cbda-ded3-4582-a09b-87e659bcbca8",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "efe2fbab-8939-42b3-acf3-d6f219f541f4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3fd501f8-60d2-4533-84c1-0f8135a93b85",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "aee14560-3ac3-41fd-9b53-37a838268421",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "55b8a65d-ce8d-4e3d-9039-678277b8ee68",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "06e9dbdb-8290-450a-95cc-25b789bcdde2",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "e6282f6d-4f71-47ff-befa-7369873e4557",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "1498a7a1-5346-49c7-b0b0-52ec594b5b0c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "e0d3690e-5911-4fa5-96ab-c0893d808e7f",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "95e532db-4651-47f3-b9da-40e0da5e0fcc",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4d819ebc-b7ba-4de3-a71e-5daea6c942e7",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "82e95abb-7def-48e9-9e03-f12ddb87396e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "68016b09-7ac9-40c1-8640-8412bc77d91e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f1107dfb-8004-470e-ae80-5b3230735eea",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "67212bb4-5c74-4ec1-a6f6-6404626cdc02",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "68a1f53d-6f82-4221-baf2-f9f213aab9f2",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "9481f398-aa6b-4990-a250-a4ef4297442e",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "75e4084d-676d-47b5-a497-7b0b5d3a6d2c",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "86777f7f-c030-435e-9086-f29fcbffcb58",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "35c81c03-fadd-4a16-a0e3-8e81108e18c4",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d2853e9a-03af-4436-8200-1c45936744c5",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d1163842-b198-4156-ab79-efd0cd8da57d",
+        "ruleId": "javascript/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "2585237f-36d5-4607-9e5c-3f4b73b518da",
+        "ruleId": "javascript/XSS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8",
+        "ruleId": "javascript/XSS/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0b078f4b-85ab-487e-8951-7a4f6ec03335",
+        "ruleId": "javascript/reDOS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d3f09f66-f994-4652-86bf-651b0262e797",
+        "ruleId": "javascript/reDOS",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "f62614bc-117e-48c1-8267-e866c507367a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "d724e3e9-b7ca-4eec-ac14-037f58090f2a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "367a2dd3-ef73-4e71-8066-f992a958af8a",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "24d61af9-11c9-4687-9dff-3e2b1b30670d",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "5da511d6-c50f-42ce-a617-e5650025b7c2",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "703c021a-6966-44a3-a93c-1405ac1a891b",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "285f0b22-9dea-413f-b89e-1d183d4f1f84",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "2e366098-cb83-4d7f-961a-1fea7a162a44",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "62138ff6-d19f-4588-80f1-62274219af01",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "661f9264-b2a0-4f46-8f75-c629b1c80f36",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "40ffaf95-f7bb-43b9-a3d7-2e1edf90464c",
+        "ruleId": "python/HardcodedNonCryptoSecret/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "70cd754b-0fc7-4cc2-b484-1e2c90036277",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "34a2fb72-f24d-4687-b513-e791a4ab2632",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "3823fd00-85ed-47e6-b085-8b3b2655febc",
+        "ruleId": "python/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "15b62184-5d10-4c9f-8c45-36cebd259223",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "d75bc03c-19a7-4475-809c-525e9240e836",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "75310963-3f26-40a8-b6da-3e8ab4d6c57b",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+        "ruleId": "javascript/HttpToHttps",
+        "disposition": "accepted-risk"
+      },
+      {
+        "findingId": "bd4b655d-7094-41a4-8532-ca8faca295a0",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0e0cc32d-e62a-494f-b96a-0871ca8206b0",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "dbeab5ab-3bb3-4484-b2a3-3d56187dd885",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "a42d6e8a-142f-4310-951e-4781a06c3fa5",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "c18a03f4-6ea4-45f2-8cc7-2f2e45325bbf",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "38bece03-53dc-4566-a862-e4d59a573c82",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
+        "ruleId": "javascript/HttpToHttps/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "ruleId": "javascript/IndirectCommandInjection",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "4bd5af47-516b-4885-9a70-71b7fa515f95",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "ce402f84-0ed8-4cb8-9f26-60e05779e11f",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0",
+        "ruleId": "javascript/NoHardcodedPasswords/test",
+        "disposition": "reviewed-false-positive"
+      },
+      {
+        "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-false-positive"
+      }
+    ]
+  },
+  "riskAcceptance": {
+    "path": "docs/risk-acceptances/RA-2026-09-08-internal-http.md",
+    "sha256": "7b5076bdd1d9e4dd40ddf44d5096310f0fd0ccb6466c32a602a48d68b76634ff",
+    "expiry": "2026-10-08",
+    "unchangedFourHttpRisks": true
+  },
+  "limits": [
+    "No source/workflow/platform changes.",
+    "Prepared against frozen working bytes. Final adoption must verify final commit blobs match these bindings before recording its revision.",
+    "Fresh scan still has 85 findings: 81 reviewed false positives and four accepted open HTTP risks.",
+    "Full suite is owned by root and was still running during this review; no full-suite outcome claimed."
+  ]
+}

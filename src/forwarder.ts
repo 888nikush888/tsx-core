@@ -1104,6 +1104,12 @@ function pinnedTargetChatId(context: OutboxExecutionContext): number {
   return target;
 }
 
+function legacyMediaChatId(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' && Number.isSafeInteger(value)) return String(value);
+  throw new Error('Legacy media group source chat ID is invalid.');
+}
+
 async function migrateLegacyMediaGroupBuffer(): Promise<void> {
   try {
     const raw = await fsPromises.readFile(LEGACY_MEDIA_BUFFER_FILE, 'utf-8');
@@ -1115,7 +1121,7 @@ async function migrateLegacyMediaGroupBuffer(): Promise<void> {
       if (!group || typeof group !== 'object' || !('messages' in group) || !Array.isArray(group.messages) || group.messages.length === 0) {
         throw new Error(`Legacy media group ${groupId} is invalid.`);
       }
-      await saveMediaGroupBuffer(groupId, String('fromChatId' in group ? group.fromChatId : undefined), group.messages);
+      await saveMediaGroupBuffer(groupId, legacyMediaChatId('fromChatId' in group ? group.fromChatId : undefined), group.messages);
     }
     await fsPromises.unlink(LEGACY_MEDIA_BUFFER_FILE);
     addLog(`[INFO] ${Object.keys(data).length} legacy media buffer group(s) migrated to SQLite.`);

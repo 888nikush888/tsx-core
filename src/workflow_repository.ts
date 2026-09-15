@@ -809,7 +809,7 @@ function normalizeWorkflowEdge(input: {
 }
 
 function isWorkflowResourceKind(value: unknown): value is WorkflowResourceKind {
-  return WORKFLOW_RESOURCE_KINDS.some(kind => kind === value);
+  return isStringMember(value, WORKFLOW_RESOURCE_KINDS);
 }
 
 export function validateGraph(input: unknown): WorkflowGraph {
@@ -1889,7 +1889,7 @@ function signalPlanForPath(path: WorkflowExecutionPath, workflowRevisionId: stri
     schemaId: definition.schemaId,
     contractVersionId: definition.contractVersionId,
     dedupe: definition.dedupe,
-    outputModes: [String(output?.mode ?? 'audit_only') as WorkflowSignalPlan['outputModes'][number]],
+    outputModes: [requireString(output?.mode ?? 'audit_only', 'Compiled output mode') as WorkflowSignalPlan['outputModes'][number]],
   };
 }
 

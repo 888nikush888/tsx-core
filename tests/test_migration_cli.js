@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import ts from 'typescript';
+import { Script } from 'node:vm';
+import { unknownErrorMessage } from '../src/contract_values.js';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
@@ -18,6 +21,32 @@ const result = spawnSync(
 
 assert.equal(result.status, 1, 'Migration restore CLI must fail without the exact confirmation flag.');
 assert.match(result.stderr, /Usage: node dist\/migration_cli\.js restore/);
+
+// Exercise the actual top-level diagnostic catch without running a restore or changing process state.
+// Only this fixed repository file supplies code; injected rejection values are separate VM data.
+const cliSource = await readFile(new URL('../src/migration_cli.ts', import.meta.url), 'utf8');
+const cliSyntax = ts.createSourceFile('migration_cli.ts', cliSource, ts.ScriptTarget.Latest, true);
+const catches = cliSyntax.statements.filter(node => ts.isTryStatement(node) && node.catchClause);
+assert.equal(catches.length, 1);
+assert.equal(catches[0].catchClause.variableDeclaration.name.getText(cliSyntax), 'error');
+const diagnostic = new Script(ts.transpileModule(catches[0].catchClause.block.getText(cliSyntax), {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+}).outputText, { filename: 'migration-cli-diagnostic-fixture.js' });
+let diagnosticCoercions = 0;
+for (const [error, expected] of [
+  [new Error('restore failed'), 'restore failed'], ['text rejection', 'text rejection'],
+  [17, '17'], [false, 'false'], [null, 'null'], [undefined, 'undefined'],
+  [{ toString() { diagnosticCoercions += 1; throw new Error('Must not coerce rejection'); } },
+    'A non-Error value was thrown; inspect the operation receipt for context.'],
+]) {
+  const messages = [];
+  const fixtureProcess = { exitCode: 0 };
+  diagnostic.runInNewContext({ error, Error, unknownErrorMessage, process: fixtureProcess,
+    console: { error(message) { messages.push(message); } } }, { timeout: 1000 });
+  assert.deepEqual(messages, [expected]);
+  assert.equal(fixtureProcess.exitCode, 1, 'Diagnostic handling retains failure exit status.');
+}
+assert.equal(diagnosticCoercions, 0);
 
 async function seed(file, value) {
   const database = await open({ filename: file, driver: sqlite3.Database });

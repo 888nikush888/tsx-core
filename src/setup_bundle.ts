@@ -427,7 +427,7 @@ function validateBundleStrategy(strategyValue: unknown): void {
 }
 
 function uniqueModelIdentifiers(values: Array<Record<string, unknown>>, key: string, label: string): Set<string> {
-  const identifiers = new Set(values.map(value => String(value[key])));
+  const identifiers = new Set(values.map(value => requireString(value[key], `Setup bundle ${label} identifier`)));
   if (identifiers.size !== values.length) throw new Error(`Setup bundle ${label} identifiers are duplicated.`);
   return identifiers;
 }

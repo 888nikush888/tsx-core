@@ -1,0 +1,53 @@
+{
+  "reviewedRevision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+  "disposition": "retain Error; TypeError changes position failure isolation",
+  "rule": "Sonar S7786",
+  "location": "src/trading_take_profit.ts:28",
+  "sourceAndCallerBindings": [
+    {
+      "path": "src/trading_take_profit.ts",
+      "workingLfSha256": "24e989141748771d05c15d170eb2be66bf84826df03f2af33ea4962fada79212",
+      "gitSha256": "24e989141748771d05c15d170eb2be66bf84826df03f2af33ea4962fada79212"
+    },
+    {
+      "path": "src/trading_engine.ts",
+      "workingLfSha256": "313a8f1f6fdced67333c367cb1660c3ddcf7cd07d11fc5494ca9b2a22bd44e05",
+      "gitSha256": "313a8f1f6fdced67333c367cb1660c3ddcf7cd07d11fc5494ca9b2a22bd44e05"
+    },
+    {
+      "path": "tests/test_trading_take_profit.js",
+      "workingLfSha256": "9ab8475127df430662e8efe98669f954c7db602bf574e8908092d9fb0f212d7c",
+      "gitSha256": "9ab8475127df430662e8efe98669f954c7db602bf574e8908092d9fb0f212d7c"
+    },
+    {
+      "path": "tests/test_trading_emergency.js",
+      "workingLfSha256": "4dae1e532ec7d9ffbe12436f8edb789d779638384934bcb670cbd36eea90d902",
+      "gitSha256": "4dae1e532ec7d9ffbe12436f8edb789d779638384934bcb670cbd36eea90d902"
+    },
+    {
+      "path": "tests/test_trading_money_value.js",
+      "workingLfSha256": "7eb03daa5da030089f454431a320cb73667ac63f61d2c8fa591efcba6168bcee",
+      "gitSha256": "7eb03daa5da030089f454431a320cb73667ac63f61d2c8fa591efcba6168bcee"
+    }
+  ],
+  "evidence": [
+    "Only production caller of requireTakeProfitAllocation is ensureTakeProfitCoverage at trading_engine.ts:1551. This call precedes that method catch block; its error propagates unwrapped.",
+    "reconcileOpenRemotePosition calls ensureTakeProfitCoverage after independent protective stop work (line 2312). applyRemoteState catches propagated errors separately for each owned position (lines 1993-1998).",
+    "isAccountWidePositionFailure explicitly returns true for TypeError, RangeError and SyntaxError. Ordinary Error without SQLITE code returns false. The proposed class substitution therefore changes routing for precisely the guarded malformed allocation condition.",
+    "An ordinary allocation Error is collected and subsequent owned positions can receive protective work. TypeError immediately exits the loop and skips later positions. Retaining Error preserves current failure isolation.",
+    "Existing test_trading_emergency asserts independent positions attempted before aggregation; test_trading_money_value explicitly rejects accidental TypeError classification for analogous malformed monetary evidence."
+  ],
+  "validation": {
+    "executed": "Isolated actual classifier AST extraction and transpilation, with unrelated error classes injected as distinct Error subclasses.",
+    "ordinaryErrorAccountWide": false,
+    "proposedTypeErrorAccountWide": true,
+    "assertionExit": 0,
+    "targetSuite": "Not run: no source/test edits warranted.",
+    "typecheckAndLint": "Not run: no source/test edits."
+  },
+  "limits": [
+    "This establishes concrete error classification behavior, not a claim that ordinary validated plans routinely generate missing allocation slots.",
+    "No source or tests changed. No scanner/platform disposition applied.",
+    "A TypeError conversion would require an explicitly designed classification change beyond this bounded task; do not apply mechanically."
+  ]
+}

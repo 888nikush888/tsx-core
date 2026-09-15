@@ -1,0 +1,16 @@
+{
+  "kind": "completed-scalar-contract-module-verification",
+  "baseRevision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+  "session": 35365,
+  "exitCode": 0,
+  "testFilesPassed": 226,
+  "coverage": [
+    96.51,
+    86.53,
+    99.2,
+    96.51
+  ],
+  "log": "reports/security-services/fixer-sonar-remaining-boundaries-module.log",
+  "logSha256": "2d9b7f5312c7ac78c62df6dba844c3b4aafd4362c53daef7711e973ec0f8e256",
+  "remaining": "Fresh remote source scan and dependency proxy-addr2.0.7 finding correction required. No all-findings completion claim."
+}
