@@ -245,7 +245,7 @@ assert.match(
 );
 assert.match(workflow, /upload:\s*never/);
 assert.ok(
-  workflow.includes("jq --slurp --exit-status '[.[].runs[]?.results[]?] | length == 0' codeql-results/*.sarif")
+  workflow.includes("jq --slurp --exit-status '[.[].runs[]?.results[]?] | length == 0' codeql-results/*.sarif");
 );
 assert.match(workflow, /name:\s*codeql-evidence-\$\{\{ github\.sha \}\}/);
 assert.doesNotMatch(workflow, /ignore-unfixed:\s*true/);
@@ -270,38 +270,38 @@ assert.doesNotMatch(nodeImage, /:latest(?:@|$)/, 'NODE_IMAGE must not use latest
 assert.doesNotMatch(runtimeImage, /:latest(?:@|$)/, 'RUNTIME_IMAGE must not use latest');
 assert.match(runtimeImage, /^gcr\.io\/distroless\/nodejs22-debian13@sha256:/);
 assert.equal(runtimeImage, 'gcr.io/distroless/nodejs22-debian13@sha256:bde4c459719d1101d0ed962bb1eec9cbf58bbbaca3560ac143c8ca02ab02e099');
-assert.equal(baseImages[0], '${NODE_IMAGE}', 'base stage must use the pinned NODE_IMAGE argument');
+assert.equal(baseImages[0], `${nodeImage}`, 'base stage must use the pinned NODE_IMAGE argument');
 assert.ok(
   baseImages.slice(1, -1).every((image) => image === 'base'),
   'all build stages must inherit the pinned build base'
 );
-assert.equal(baseImages.at(-1), '${RUNTIME_IMAGE}', 'runner must use the pinned distroless image');
+assert.equal(baseImages.at(-1), `${runtimeImage}`, 'runner must use the pinned distroless image');
 assert.match(dockerfile, /^ARG DEBIAN_SNAPSHOT=\d{8}T\d{6}Z$/m);
 assert.match(dockerfile, /snapshot\.debian\.org\/archive\/debian\/\$\{DEBIAN_SNAPSHOT\}/);
 assert.match(dockerfile, /snapshot\.debian\.org\/archive\/debian-security\/\$\{DEBIAN_SNAPSHOT\}/);
 const runtimeStage = dockerfile.slice(dockerfile.indexOf('FROM ${RUNTIME_IMAGE} AS runner'));
 assert.doesNotMatch(runtimeStage, /^RUN\s/m, 'distroless runtime must not install packages');
 assert.match(runtimeStage, /^USER 65532:65532$/m);
-assert.match(runtimeStage, /^CMD \["dist\/forwarder\.js"\]$/m);
+assert.match(runtimeStage, /^CMD \["dist\/forwarder\\.js"\]$/m);
 assert.doesNotMatch(dockerCompose, /^\s*env_file:/m, 'default Docker runtime must not import workspace .env secrets');
 assert.match(dockerCompose, /^\s*restart:\s*unless-stopped\s*$/m);
 assert.match(dockerCompose, /^\s*stop_grace_period:\s*8m\s*$/m);
-assert.match(dockerCompose, /RUNTIME_SETTINGS_PATH:\s*"\/app\/config\/runtime-settings\.json"/);
-assert.match(dockerCompose, /"127\.0\.0\.1:\$\{HOST_WEB_PORT:-8080\}:8080"/);
+assert.match(dockerCompose, /RUNTIME_SETTINGS_PATH:\s*"\/app\/config\/runtime-settings\\.json"/);
+assert.match(dockerCompose, /"127\\.0\\.0\\.1:\$\{HOST_WEB_PORT:-8080\}:8080"/);
 assert.match(
   executorDockerfile,
   /^ARG PYTHON_IMAGE=python@sha256:31a768b01976652c222e318fe5bd6e7c252f056cbf489c88fa256f1bf0af58e3$/m,
 );
-assert.match(executorDockerfile, /"libcrypto3=3\.5\.8-r0"/);
-assert.match(executorDockerfile, /"libssl3=3\.5\.8-r0"/);
-assert.match(executorDockerfile, /"libuuid=2\.41\.6-r1"/, 'executor libuuid must include the reviewed util-linux security fixes');
-assert.match(executorDockerfile, /apk add --no-cache "sqlite-libs=3\.53\.4-r0"/);
+assert.match(executorDockerfile, /"libcrypto3=3\\.5\\.8-r0"/);
+assert.match(executorDockerfile, /"libssl3=3\\.5\\.8-r0"/);
+assert.match(executorDockerfile, /"libuuid=2\\.41\\.6-r1"/, 'executor libuuid must include the reviewed util-linux security fixes');
+assert.match(executorDockerfile, /apk add --no-cache "sqlite-libs=3\\.53\\.4-r0"/);
 assert.match(executorDockerfile, /^USER 65532:65532$/m);
 assert.match(executorDockerfile, /pip install --require-hashes/);
-assert.match(executorLock, /^#\s+uv pip compile requirements\.in --universal --python-version 3\.12 --generate-hashes --output-file requirements\.lock$/m);
-assert.match(executorLock, /^ccxt==4\.5\.75 \\/m);
-assert.match(executorLock, /^uvloop==0\.22\.1 ; implementation_name == 'cpython' and sys_platform != 'win32' \\/m);
-assert.match(executorLock, /^winloop==0\.6\.3 ; .*sys_platform == 'win32' \\/m);
+assert.match(executorLock, /^#\s+uv pip compile requirements\\.in --universal --python-version 3\\.12 --generate-hashes --output-file requirements\\.lock$/m);
+assert.match(executorLock, /^ccxt==4\\.5\\.75 \\/m);
+assert.match(executorLock, /^uvloop==0\\.22\\.1 ; implementation_name == 'cpython' and sys_platform != 'win32' \\/m);
+assert.match(executorLock, /^winloop==0\\.6\\.3 ; .*sys_platform == 'win32' \\/m);
 assert.match(executorLock, /05815e6e7fdf8c8e28602150d7d6f8a9a98050dac3fc133ffff182444e4e6545/);
 assert.match(executorLock, /5509c2659e4bfad6f4f5a9cea5c15ad244121263b423ae92f7ccbc4c04cfd8d9/);
 const pinnedCcxtVersion = executorLock.match(/^ccxt==([^\s]+) \\/m)?.[1];
@@ -358,12 +358,12 @@ assert.doesNotMatch(implementationBlock, /continue-on-error|\|\|\s*true|--exchan
   'The packaging gate cannot skip profiles, inject approvals, or disregard a NO-GO.');
 const runtimeGateCommand = containerJob.split('\n').find(line => line.includes('/app/verify_implementation_runtime.py'));
 assert.equal(runtimeGateCommand?.trim(),
-  'docker run --rm --network none --read-only --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -E -B /app/verify_implementation_runtime.py',
+  `docker run --rm --network none --read-only --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -E -B /app/verify_implementation_runtime.py`,
   'The final baked image must verify every real implementation receipt offline without mounts, env approvals, or user overrides.');
 const runtimeGatePosition = containerJob.indexOf(runtimeGateCommand);
 const executorUserCheck = containerJob.indexOf('test "$(docker image inspect tsx-core-exchange-executor:');
 assert.equal(containerJob.slice(executorUserCheck, containerJob.indexOf('\n', executorUserCheck)).trim(),
-  'test "$(docker image inspect tsx-core-exchange-executor:${{ github.sha }} --format \'{{.Config.User}}\')" = 65532:65532',
+  `test "$(docker image inspect tsx-core-exchange-executor:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532`,
   'The baked receipt gate must retain the explicit UID/GID 65532 image identity check.');
 assert.ok(executorUserCheck > executorBuildStep && runtimeGatePosition > executorUserCheck,
   'The installed-byte receipt gate must use the already verified non-root image user.');
