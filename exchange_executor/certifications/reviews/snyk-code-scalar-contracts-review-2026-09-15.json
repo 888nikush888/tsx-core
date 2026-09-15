@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "reviewedRevision": "5b9e1f34b154c3db156f3b52884bdea7f4b3bc25",
+  "reviewedRevision": "dc0adb60fc3c268677d58441de1d40bfccd9b233",
   "scannerVersion": "1.1307.1",
-  "sarifSha256": "1d43128e2ef6749751282848402985a6d04d4d1d2b87ac230902aa6cb80af5db",
-  "reviewKind": "independent-five-source142-context-review",
+  "sarifSha256": "834c23d1eb440d809437a911a040a8dc54dff9aaa79c786c8166ca450e1a67ba",
+  "reviewKind": "independent-b425-adopted-receipt-seven-context-review",
   "reviewedCount": 85,
   "counts": {
     "false-positive": 81,
     "open": 4
   },
-  "priorReviewRevision": "0ebbc480196b0d47a1c474493abc738a711d46d2",
-  "scopeNote": "85 IDs/fingerprints/evidence digests unchanged;177sourcebindings unchanged,5 individually reviewed config/package bindings. Receipt authority2304 unchanged; no renewed receipt validity claimed for changed source tree.",
+  "priorReviewRevision": "5b9e1f34b154c3db156f3b52884bdea7f4b3bc25",
+  "scopeNote": "Fresh Snyk Code 1.1307.1 scan: all 85 finding IDs, fingerprints and flow evidence digests match the prior review. Of 182 primary/context bindings, 175 remain unchanged and seven changed context bindings across six findings were individually re-reviewed. The scan began at b42583fcd9063666da673e1b243f6268cd9c530e with the already-adopted receipt and authority pin; dc0adb60fc3c268677d58441de1d40bfccd9b233 records those same bytes. The adopted receipt SHA256 is e0e8285c975107a2cfb8fad02f4bc608096260c80c9593aa0ce916b90609cac3. Four internal HTTP findings remain open under the unchanged separate owner acceptance expiring 2026-10-08. This Snyk flow review does not assert provider acceptance or container verification.",
   "entries": [
     {
       "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
@@ -131,7 +131,7 @@
       "line": 93,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "False positive for traversal at readSync: the reported flow starts with the explicit local --python option and follows fixed-bridge stdout into the receipt read. The trusted local interpreter executes fixed isolated Python code, returns only certified fixed-profile exchange names, and cannot obtain pins from receipt data. readSync consumes the previously opened descriptor, not a path string. stableBytes enforces canonical parent, ordinary single-link file, bounded size, no-follow read-only open, descriptor identity and before/after identity checks. Arbitrary operator-selected malicious executable is outside this trusted local invocation contract. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification. Independent source142 review at5b9e1f3: Complete package.json delta adds only exact devDependency @types/express5.0.6. Lock addition is nine dev-only @types packages; production dependencies, scripts, local CLI arguments, interpreter selection, fixed bridge and parser --file block remain unchanged. This development declaration package creates no runtime path/executable/code selector.",
+      "rationale": "False positive for traversal at readSync: the reported flow starts with the explicit local --python option and follows fixed-bridge stdout into the receipt read. The trusted local interpreter executes fixed isolated Python code, returns only certified fixed-profile exchange names, and cannot obtain pins from receipt data. readSync consumes the previously opened descriptor, not a path string. stableBytes enforces canonical parent, ordinary single-link file, bounded size, no-follow read-only open, descriptor identity and before/after identity checks. Arbitrary operator-selected malicious executable is outside this trusted local invocation contract. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification. Independent source142 review at5b9e1f3: Complete package.json delta adds only exact devDependency @types/express5.0.6. Lock addition is nine dev-only @types packages; production dependencies, scripts, local CLI arguments, interpreter selection, fixed bridge and parser --file block remain unchanged. This development declaration package creates no runtime path/executable/code selector. Re-reviewed for b425 receipt adoption: the authority module changes only the exact approved receipt SHA literal. The verifier still reads bounded ordinary files through canonical-parent and symlink/link-count checks, then compares opened file metadata before and after reading. The new receipt digest does not supply a pathname and cannot relax these checks.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -143,7 +143,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "67ad88963f984cf3682c5bc28f066945c897aa1ca083c1e5da9ff2c0844a1035"
+          "sha256": "8953e0e238f2320b8b6077ff925caf2dc9899c6ac34d518c1cef196ab97d1fa5"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -1227,11 +1227,11 @@
       "line": 6,
       "reviewedSourceSha256": "5e69f00fdb09992d9d392566d4e5e071e003636ddcc7f2ca7047f3111be87672",
       "disposition": "false-positive",
-      "rationale": "test_mcp_maintenance creates a temporary directory, initializes its fixed forwarder.db/proof table, and passes that exact databasePath to this participant child via separate spawn argument. registerDatabaseMaintenanceParticipant canonicalizes the database parent, validates private registry directories, and creates participant JSON exclusively with wx/0600. This trace models intentional local fixture registration; it has no untrusted request-selected destination. The current parent fixture additionally captures failures and reads its own fixed participant/ack directories for diagnostics before cleanup. Its mkdtemp-derived databasePath and separate child spawn argument remain unchanged; these diagnostics introduce no request-controlled path or provider input. Original errors remain in AggregateError causes and the lease release is attempted after close/wait cleanup. Final f1b7 review: All 18 SARIF delta leaves are start/end line coordinates shifted by21 in src/db.ts; corresponding source lines were byte-compared equal. No flow step, source, sink, column, finding ID or fingerprint changes. Parent still creates a private mkdtemp forwarder.db and passes its fixed path as a separate child argument. New maintenance fixture injections target only the fixed participant closed-state JSON, restore fs.rename in finally, and introduce no external source. Production rename retry keeps exactly the same source/destination and exclusive wx/0600 write; bounded Windows Error codes control delay, not path selection.",
+      "rationale": "test_mcp_maintenance creates a temporary directory, initializes its fixed forwarder.db/proof table, and passes that exact databasePath to this participant child via separate spawn argument. registerDatabaseMaintenanceParticipant canonicalizes the database parent, validates private registry directories, and creates participant JSON exclusively with wx/0600. This trace models intentional local fixture registration; it has no untrusted request-selected destination. The current parent fixture additionally captures failures and reads its own fixed participant/ack directories for diagnostics before cleanup. Its mkdtemp-derived databasePath and separate child spawn argument remain unchanged; these diagnostics introduce no request-controlled path or provider input. Original errors remain in AggregateError causes and the lease release is attempted after close/wait cleanup. Final f1b7 review: All 18 SARIF delta leaves are start/end line coordinates shifted by21 in src/db.ts; corresponding source lines were byte-compared equal. No flow step, source, sink, column, finding ID or fingerprint changes. Parent still creates a private mkdtemp forwarder.db and passes its fixed path as a separate child argument. New maintenance fixture injections target only the fixed participant closed-state JSON, restore fs.rename in finally, and introduce no external source. Production rename retry keeps exactly the same source/destination and exclusive wx/0600 write; bounded Windows Error codes control delay, not path selection. Re-reviewed both changed contexts individually: src/db.ts changes only an error annotation from any to unknown plus an erased structural assertion before the existing optional code read; emitted path handling is unchanged. The maintenance test consolidates named and default imports of the same node:fs/promises module without changing values. The child receives a fixed forwarder.db filename within the parent test-created private temporary directory as a separate process argument; no remote request chooses this fixture path.",
       "contextPaths": [
         {
           "path": "src/db.ts",
-          "sha256": "6ab58e9780c36d6e0008d40e7608d8107af7c4ff654f61891bad2557279bc702"
+          "sha256": "3ba2f7320d08793d0855769fa769d7306491ea88c1aeb5378147119828335b9e"
         },
         {
           "path": "src/mcp_maintenance.ts",
@@ -1239,7 +1239,7 @@
         },
         {
           "path": "tests/test_mcp_maintenance.js",
-          "sha256": "c145b5dfc8057df38a8aa365f5e38b7f0a13dc32339ded02205227d8ccc0f49f"
+          "sha256": "0c6ce2f6491dbe0d04f551eb5d6d98c3da06cce42af4241ba75f330b7b37cedc"
         }
       ],
       "codeFlowLocations": [
@@ -1511,11 +1511,11 @@
       "line": 45,
       "reviewedSourceSha256": "4b6928acfb9563c755d3b0ec5f170734918273e5d88b887c03917d60121e0c54",
       "disposition": "false-positive",
-      "rationale": "PRAGMA index_xinfo interpolates index.name read from PRAGMA index_list over two literal table names. The database is created by this test under mkdtemp, initialized from the bound local migration schema, and modified only by fixed fixture DDL and parameterized rows. No supplied database file or request populates the identifier source. This metadata inspection verifies retained indexes rather than executing attacker-derived SQL. Final f1b7 review: Reported index metadata query and temporary fixture source are unchanged. Entire db.ts delta only wraps maintenance JSON rename with bounded Windows retries. It adds no SQL, schema, identifier construction or externally supplied database source.",
+      "rationale": "PRAGMA index_xinfo interpolates index.name read from PRAGMA index_list over two literal table names. The database is created by this test under mkdtemp, initialized from the bound local migration schema, and modified only by fixed fixture DDL and parameterized rows. No supplied database file or request populates the identifier source. This metadata inspection verifies retained indexes rather than executing attacker-derived SQL. Final f1b7 review: Reported index metadata query and temporary fixture source are unchanged. Entire db.ts delta only wraps maintenance JSON rename with bounded Windows retries. It adds no SQL, schema, identifier construction or externally supplied database source. Re-reviewed line 45 PRAGMA index_xinfo: the interpolated index name comes from index_list of fixed fixture tables in the freshly created local test database. Database context changed only an erased catch error annotation/assertion; it adds no SQL interpolation or external input. The existing locally generated index-name provenance and SQL bytes are unchanged.",
       "contextPaths": [
         {
           "path": "src/db.ts",
-          "sha256": "6ab58e9780c36d6e0008d40e7608d8107af7c4ff654f61891bad2557279bc702"
+          "sha256": "3ba2f7320d08793d0855769fa769d7306491ea88c1aeb5378147119828335b9e"
         },
         {
           "path": "tests/fixtures/fx_schema.js",
@@ -1591,11 +1591,11 @@
       "line": 51,
       "reviewedSourceSha256": "4b6928acfb9563c755d3b0ec5f170734918273e5d88b887c03917d60121e0c54",
       "disposition": "false-positive",
-      "rationale": "The separate foreign_key_list query reads table names from sqlite_master of the same exclusively created temporary migration fixture; names are also JSON-stringified before interpolation. Only fixed schema and fixture DDL create tables. Neither application data nor an externally provided database determines this metadata sink in the reported invocation. Final f1b7 review: Reported foreign-key metadata query and fixed fixture schema source are unchanged. New maintenance rename retry has no SQL or identifier input and does not alter this source/sink.",
+      "rationale": "The separate foreign_key_list query reads table names from sqlite_master of the same exclusively created temporary migration fixture; names are also JSON-stringified before interpolation. Only fixed schema and fixture DDL create tables. Neither application data nor an externally provided database determines this metadata sink in the reported invocation. Final f1b7 review: Reported foreign-key metadata query and fixed fixture schema source are unchanged. New maintenance rename retry has no SQL or identifier input and does not alter this source/sink. Re-reviewed line 51 PRAGMA foreign_key_list: names come from sqlite_master in the same private test-created schema, with JSON.stringify retained at the existing boundary. No request-supplied database or identifier enters this fixture. The db.ts change is an erased error type annotation/assertion unrelated to schema names or SQL execution; the original finding remains scoped to this controlled test flow.",
       "contextPaths": [
         {
           "path": "src/db.ts",
-          "sha256": "6ab58e9780c36d6e0008d40e7608d8107af7c4ff654f61891bad2557279bc702"
+          "sha256": "3ba2f7320d08793d0855769fa769d7306491ea88c1aeb5378147119828335b9e"
         },
         {
           "path": "tests/fixtures/fx_schema.js",
@@ -4164,7 +4164,7 @@
       "line": 292,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "False positive for indirect command injection in this local CLI contract: the operator deliberately selects the absolute Python executable through the only accepted --python option. absolutePython, realpath, ordinary-file and canonical-parent checks precede spawnSync. The executable receives a fixed argument array with isolated -I, no-bytecode -B, literal bridge code and fixed repository root; shell is false, with timeout and output limits. No application request, receipt field or pin selects executable/code/import names. These checks do not certify an arbitrary malicious executable as safe; local executable selection remains operator authority. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification. Independent source142 review at5b9e1f3: Complete package.json delta adds only exact devDependency @types/express5.0.6. Lock addition is nine dev-only @types packages; production dependencies, scripts, local CLI arguments, interpreter selection, fixed bridge and parser --file block remain unchanged. This development declaration package creates no runtime path/executable/code selector.",
+      "rationale": "False positive for indirect command injection in this local CLI contract: the operator deliberately selects the absolute Python executable through the only accepted --python option. absolutePython, realpath, ordinary-file and canonical-parent checks precede spawnSync. The executable receives a fixed argument array with isolated -I, no-bytecode -B, literal bridge code and fixed repository root; shell is false, with timeout and output limits. No application request, receipt field or pin selects executable/code/import names. These checks do not certify an arbitrary malicious executable as safe; local executable selection remains operator authority. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification. Independent source142 review at5b9e1f3: Complete package.json delta adds only exact devDependency @types/express5.0.6. Lock addition is nine dev-only @types packages; production dependencies, scripts, local CLI arguments, interpreter selection, fixed bridge and parser --file block remain unchanged. This development declaration package creates no runtime path/executable/code selector. Re-reviewed command execution against the adopted authority digest: only the approved receipt SHA literal changed. The operator-selected Python executable remains absolute, canonical and an ordinary file; spawnSync still uses separate fixed -I/-B/-c bridge arguments, shell:false, timeout and bounded output. Receipt content cannot become a shell command or create its own approval entry. No command boundary changed.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -4176,7 +4176,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "67ad88963f984cf3682c5bc28f066945c897aa1ca083c1e5da9ff2c0844a1035"
+          "sha256": "8953e0e238f2320b8b6077ff925caf2dc9899c6ac34d518c1cef196ab97d1fa5"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -4348,7 +4348,7 @@
       "line": 85,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "False positive for traversal at openSync: the reported stdout-derived exchange originates from fixed PROFILES via certification_result, which enforces a lowercase identifier grammar and equality to profile.id before looking up source-owned pins and validating receipt bytes/schema. The CLI constructs only the fixed certifications directory plus that certified exchange and .json. stableBytes canonical-parent and ordinary-file checks precede read-only/no-follow open; descriptor identity, link count, bounded reads and after-read identity checks reject link or concurrent replacement. Pins remain code-owned and have now been explicitly independently approved for the exact installed receipt. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification. Independent source142 review at5b9e1f3: Complete package.json delta adds only exact devDependency @types/express5.0.6. Lock addition is nine dev-only @types packages; production dependencies, scripts, local CLI arguments, interpreter selection, fixed bridge and parser --file block remain unchanged. This development declaration package creates no runtime path/executable/code selector.",
+      "rationale": "False positive for traversal at openSync: the reported stdout-derived exchange originates from fixed PROFILES via certification_result, which enforces a lowercase identifier grammar and equality to profile.id before looking up source-owned pins and validating receipt bytes/schema. The CLI constructs only the fixed certifications directory plus that certified exchange and .json. stableBytes canonical-parent and ordinary-file checks precede read-only/no-follow open; descriptor identity, link count, bounded reads and after-read identity checks reject link or concurrent replacement. Pins remain code-owned and have now been explicitly independently approved for the exact installed receipt. Independent post-adoption review: the complete authority delta replaces only the fixed Hyperliquid v1 receipt digest 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17 with 2304b4e1837925f546f7fdd3871a125a342a7f56ffeae4effbb66ac0219d7264; MappingProxyType key/profile/cardinality, imports, fixed-path construction, executable selection, no-shell spawn arguments and file-handle checks are unchanged. Actual installed receipt bytes in both scan and LF proof worktrees equal the new digest and exact independent62-requirement/968-input adoption approval. Pins still originate only from imported source authority; receipt JSON and CLI output cannot introduce a pin. This reaffirms the existing individually scoped local CLI finding, grants no provider acceptance and does not assert monitoring-container verification. Independent source142 review at5b9e1f3: Complete package.json delta adds only exact devDependency @types/express5.0.6. Lock addition is nine dev-only @types packages; production dependencies, scripts, local CLI arguments, interpreter selection, fixed bridge and parser --file block remain unchanged. This development declaration package creates no runtime path/executable/code selector. Re-reviewed the line 85 file flow: canonical parent, ordinary file, no symlink, nlink=1, bounded size, read-only/no-follow open and pre/post-read identity checks remain unchanged. The authority change only replaces the independently approved exact digest in the same read-only mapping/profile key. It cannot select a new path or bypass file checks.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -4360,7 +4360,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "67ad88963f984cf3682c5bc28f066945c897aa1ca083c1e5da9ff2c0844a1035"
+          "sha256": "8953e0e238f2320b8b6077ff925caf2dc9899c6ac34d518c1cef196ab97d1fa5"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -4550,12 +4550,12 @@
     }
   ],
   "independentReviewEvidence": {
-    "path": "exchange_executor/certifications/reviews/fixer-source142-snyk-independent-review.json",
-    "sha256": "2a05fd96c15ad72356259fbe4289e6a40414c32b6d2411176859ec58f8383beb"
+    "path": "exchange_executor/certifications/reviews/fixer-b425-adopted-snyk-independent-review.json",
+    "sha256": "f69340db3412bf550afad16e5b73e635ab317dbcb5486a601bb54d21787d703c"
   },
   "priorIndependentReviewEvidence": {
-    "path": "exchange_executor/certifications/reviews/fixer-final-f1b7-snyk-individual-context-review.json",
-    "sha256": "0e6f7b162fb9bfaf5f2d357919398a3b930cf1707a3f1c8ce9efc04efb27aecf"
+    "path": "exchange_executor/certifications/reviews/fixer-source142-snyk-independent-review.json",
+    "sha256": "2a05fd96c15ad72356259fbe4289e6a40414c32b6d2411176859ec58f8383beb"
   },
   "previousAdoptedAuthorityReviewEvidence": {
     "path": "exchange_executor/certifications/reviews/fixer-adopted-f1b7-snyk-independent-review.json",
