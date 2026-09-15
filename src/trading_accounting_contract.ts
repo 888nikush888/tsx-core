@@ -139,7 +139,7 @@ function fundingAccountingBinding(funding: TradingFundingEvidence, row: Record<s
 }
 
 function invalidTokenText(value: string, maximum: number): boolean {
-  return !value || value.length > maximum || value.trim() !== value || /[\x00-\x1f]/.test(value);
+  return !value || value.length > maximum || value.trim() !== value || [...value].some(character => character < ' ');
 }
 
 function fillAccountingContract(row: Record<string, unknown>): void {

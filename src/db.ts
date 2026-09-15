@@ -118,7 +118,7 @@ async function exclusiveJson(file: string, value: object): Promise<void> {
 async function replaceJson(file: string, value: object): Promise<void> {
   const temporary = `${file}.${randomUUID()}.tmp`;
   await exclusiveJson(temporary, value);
-  try { await renameMaintenanceEvidence(temporary, file); } finally { await unlink(temporary).catch((error: any) => { if (error?.code !== 'ENOENT') throw error; }); }
+  try { await renameMaintenanceEvidence(temporary, file); } finally { await unlink(temporary).catch((error: unknown) => { if ((error as { code?: unknown })?.code !== 'ENOENT') throw error; }); }
 }
 
 async function renameMaintenanceEvidence(temporary: string, file: string): Promise<void> {

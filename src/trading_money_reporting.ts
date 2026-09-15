@@ -131,8 +131,12 @@ export interface MoneyPerformanceRow extends MoneyEventQueryRow, ClosedMoneyRow 
   realizedPnlValue: MoneyValue | null;
 }
 
+function mismatchedMoneyEvent(row: MoneyEventQueryRow, event: Awaited<ReturnType<typeof getMoneyEvent>>): boolean {
+  return !event || event.accountId !== row.accountId || event.occurredAt !== row.occurredAt || event.kind !== row.kind;
+}
+
 function presentedMoneyEvent(row: MoneyEventQueryRow, event: Awaited<ReturnType<typeof getMoneyEvent>>, accountReady: boolean): MoneyPerformanceRow {
-  if (!event || event.accountId !== row.accountId || event.occurredAt !== row.occurredAt || event.kind !== row.kind) {
+  if (mismatchedMoneyEvent(row, event)) {
     return { ...row, realizedPnl: null, realizedPnlValue: null, reportingCurrency: null, accountingStatus: 'unresolved' };
   }
   return { ...row, realizedPnl: event.reportingAmount, realizedPnlValue: event.reportingValue,

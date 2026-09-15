@@ -85,8 +85,8 @@ const coercionFailure = new Error('coercion failure');
 thrownValues.push({ get message() { throw getterFailure; } },
   { message: { toString() { throw coercionFailure; } } });
 for (const thrown of thrownValues) {
-  let expected;
-  let expectedError;
+  let expected = undefined;
+  let expectedError = undefined;
   try { expected = `entry-expiry: ${thrown?.message || String(thrown)}`; }
   catch (error) { expectedError = error; }
   const fixtureRuntime = new TradingRuntime({ cancelExpiredEntries: () => Promise.reject(thrown) });
@@ -102,15 +102,21 @@ for (const thrown of thrownValues) {
 }
 const oldNumberMessage = Object.getOwnPropertyDescriptor(Number.prototype, 'message');
 try {
+  // Test the legacy primitive getter receiver; the original descriptor is restored in finally.
+  // skipcq: JS-0061
   Object.defineProperty(Number.prototype, 'message', { configurable: true, get() {
     assert.equal(typeof this, 'number', 'Primitive message getters retain their original receiver.');
     return 'primitive receiver';
   } });
+  // An Error would not exercise the numeric rejection and primitive receiver regression.
+  // skipcq: JS-0114
   const fixtureRuntime = new TradingRuntime({ cancelExpiredEntries: () => Promise.reject(7) });
   const failures = [];
   await fixtureRuntime.captureEntryExpiryFailure(failures);
   assert.deepEqual(failures, ['entry-expiry: primitive receiver']);
 } finally {
+  // Restore exactly the pre-test descriptor, including its getter and flags.
+  // skipcq: JS-0061
   if (oldNumberMessage) Object.defineProperty(Number.prototype, 'message', oldNumberMessage);
   else delete Number.prototype.message;
 }

@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
-import fsPromises from 'node:fs/promises';
+import fsPromises, { mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { syncBuiltinESMExports } from 'node:module';
-import { mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
