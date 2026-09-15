@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "reviewedRevision": "6409c840aa3d20ce6691a0eb1c994cc3c893c054",
+  "reviewedRevision": "f1b7b9dcec419cb7b055b8e718076b0fbb414e97",
   "scannerVersion": "1.1307.1",
-  "sarifSha256": "d695e38dd6c66c0f7a5d75d2beccc4a986381048df6da8676dc11ce47f569035",
+  "sarifSha256": "6e66a31b23d95f872d7db25ca73c968696810b7b5b20610a75a2a3b2ad734148",
   "reviewKind": "independent-three-receipt-authority-context-review",
   "reviewedCount": 85,
   "counts": {
     "false-positive": 81,
     "open": 4
   },
-  "priorReviewRevision": "a0e831ac7bc5e10404d516723fd6d750860ff300",
-  "scopeNote": "85 canonical IDs/fingerprints/evidence digests unchanged;179 bindings unchanged,3 authority contexts individually reviewed. Existing81 false positives and4 accepted HTTP risks unchanged.",
+  "priorReviewRevision": "6409c840aa3d20ce6691a0eb1c994cc3c893c054",
+  "scopeNote": "85 unchanged finding identities/fingerprints;177 unchanged bindings and5 individually re-reviewed bindings. One evidence digest changes only by18 verified line offsets. Existing81 false positives and4 accepted HTTP risks unchanged.",
   "entries": [
     {
       "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
@@ -1227,11 +1227,11 @@
       "line": 6,
       "reviewedSourceSha256": "5e69f00fdb09992d9d392566d4e5e071e003636ddcc7f2ca7047f3111be87672",
       "disposition": "false-positive",
-      "rationale": "test_mcp_maintenance creates a temporary directory, initializes its fixed forwarder.db/proof table, and passes that exact databasePath to this participant child via separate spawn argument. registerDatabaseMaintenanceParticipant canonicalizes the database parent, validates private registry directories, and creates participant JSON exclusively with wx/0600. This trace models intentional local fixture registration; it has no untrusted request-selected destination. The current parent fixture additionally captures failures and reads its own fixed participant/ack directories for diagnostics before cleanup. Its mkdtemp-derived databasePath and separate child spawn argument remain unchanged; these diagnostics introduce no request-controlled path or provider input. Original errors remain in AggregateError causes and the lease release is attempted after close/wait cleanup.",
+      "rationale": "test_mcp_maintenance creates a temporary directory, initializes its fixed forwarder.db/proof table, and passes that exact databasePath to this participant child via separate spawn argument. registerDatabaseMaintenanceParticipant canonicalizes the database parent, validates private registry directories, and creates participant JSON exclusively with wx/0600. This trace models intentional local fixture registration; it has no untrusted request-selected destination. The current parent fixture additionally captures failures and reads its own fixed participant/ack directories for diagnostics before cleanup. Its mkdtemp-derived databasePath and separate child spawn argument remain unchanged; these diagnostics introduce no request-controlled path or provider input. Original errors remain in AggregateError causes and the lease release is attempted after close/wait cleanup. Final f1b7 review: All 18 SARIF delta leaves are start/end line coordinates shifted by21 in src/db.ts; corresponding source lines were byte-compared equal. No flow step, source, sink, column, finding ID or fingerprint changes. Parent still creates a private mkdtemp forwarder.db and passes its fixed path as a separate child argument. New maintenance fixture injections target only the fixed participant closed-state JSON, restore fs.rename in finally, and introduce no external source. Production rename retry keeps exactly the same source/destination and exclusive wx/0600 write; bounded Windows Error codes control delay, not path selection.",
       "contextPaths": [
         {
           "path": "src/db.ts",
-          "sha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8"
+          "sha256": "6ab58e9780c36d6e0008d40e7608d8107af7c4ff654f61891bad2557279bc702"
         },
         {
           "path": "src/mcp_maintenance.ts",
@@ -1239,7 +1239,7 @@
         },
         {
           "path": "tests/test_mcp_maintenance.js",
-          "sha256": "c6b9bf76959b09fe366fcea3703204867e019b03c54a23eb9dd68a161727120a"
+          "sha256": "c145b5dfc8057df38a8aa365f5e38b7f0a13dc32339ded02205227d8ccc0f49f"
         }
       ],
       "codeFlowLocations": [
@@ -1273,47 +1273,11 @@
         },
         {
           "path": "src/db.ts",
-          "line": 205
+          "line": 226
         },
         {
           "path": "src/db.ts",
-          "line": 207
-        },
-        {
-          "path": "src/db.ts",
-          "line": 70
-        },
-        {
-          "path": "src/db.ts",
-          "line": 71
-        },
-        {
-          "path": "src/db.ts",
-          "line": 71
-        },
-        {
-          "path": "src/db.ts",
-          "line": 71
-        },
-        {
-          "path": "src/db.ts",
-          "line": 72
-        },
-        {
-          "path": "src/db.ts",
-          "line": 72
-        },
-        {
-          "path": "src/db.ts",
-          "line": 72
-        },
-        {
-          "path": "src/db.ts",
-          "line": 72
-        },
-        {
-          "path": "src/db.ts",
-          "line": 72
+          "line": 228
         },
         {
           "path": "src/db.ts",
@@ -1321,31 +1285,67 @@
         },
         {
           "path": "src/db.ts",
-          "line": 207
+          "line": 71
         },
         {
           "path": "src/db.ts",
-          "line": 207
+          "line": 71
         },
         {
           "path": "src/db.ts",
-          "line": 207
+          "line": 71
         },
         {
           "path": "src/db.ts",
-          "line": 212
+          "line": 72
         },
         {
           "path": "src/db.ts",
-          "line": 211
+          "line": 72
         },
         {
           "path": "src/db.ts",
-          "line": 211
+          "line": 72
         },
         {
           "path": "src/db.ts",
-          "line": 214
+          "line": 72
+        },
+        {
+          "path": "src/db.ts",
+          "line": 72
+        },
+        {
+          "path": "src/db.ts",
+          "line": 70
+        },
+        {
+          "path": "src/db.ts",
+          "line": 228
+        },
+        {
+          "path": "src/db.ts",
+          "line": 228
+        },
+        {
+          "path": "src/db.ts",
+          "line": 228
+        },
+        {
+          "path": "src/db.ts",
+          "line": 233
+        },
+        {
+          "path": "src/db.ts",
+          "line": 232
+        },
+        {
+          "path": "src/db.ts",
+          "line": 232
+        },
+        {
+          "path": "src/db.ts",
+          "line": 235
         },
         {
           "path": "src/db.ts",
@@ -1374,7 +1374,7 @@
         "identity": "9886fba1-1186-4e41-b1fa-6a6877440237",
         "snyk/asset/finding/v1": "9886fba1-1186-4e41-b1fa-6a6877440237"
       },
-      "evidenceSha256": "0039f05fe0598255ae7c65f1c3cd460ce7d58af3c3a6ddb523647bc95948cccb"
+      "evidenceSha256": "fa7c8210d2c9a45d022cbfb8d1b335af758a4cefba41da0585729f5def1e5a04"
     },
     {
       "findingId": "bc179edb-989f-4eee-b6f0-4e0403e76fa0",
@@ -1511,11 +1511,11 @@
       "line": 45,
       "reviewedSourceSha256": "4b6928acfb9563c755d3b0ec5f170734918273e5d88b887c03917d60121e0c54",
       "disposition": "false-positive",
-      "rationale": "PRAGMA index_xinfo interpolates index.name read from PRAGMA index_list over two literal table names. The database is created by this test under mkdtemp, initialized from the bound local migration schema, and modified only by fixed fixture DDL and parameterized rows. No supplied database file or request populates the identifier source. This metadata inspection verifies retained indexes rather than executing attacker-derived SQL.",
+      "rationale": "PRAGMA index_xinfo interpolates index.name read from PRAGMA index_list over two literal table names. The database is created by this test under mkdtemp, initialized from the bound local migration schema, and modified only by fixed fixture DDL and parameterized rows. No supplied database file or request populates the identifier source. This metadata inspection verifies retained indexes rather than executing attacker-derived SQL. Final f1b7 review: Reported index metadata query and temporary fixture source are unchanged. Entire db.ts delta only wraps maintenance JSON rename with bounded Windows retries. It adds no SQL, schema, identifier construction or externally supplied database source.",
       "contextPaths": [
         {
           "path": "src/db.ts",
-          "sha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8"
+          "sha256": "6ab58e9780c36d6e0008d40e7608d8107af7c4ff654f61891bad2557279bc702"
         },
         {
           "path": "tests/fixtures/fx_schema.js",
@@ -1591,11 +1591,11 @@
       "line": 51,
       "reviewedSourceSha256": "4b6928acfb9563c755d3b0ec5f170734918273e5d88b887c03917d60121e0c54",
       "disposition": "false-positive",
-      "rationale": "The separate foreign_key_list query reads table names from sqlite_master of the same exclusively created temporary migration fixture; names are also JSON-stringified before interpolation. Only fixed schema and fixture DDL create tables. Neither application data nor an externally provided database determines this metadata sink in the reported invocation.",
+      "rationale": "The separate foreign_key_list query reads table names from sqlite_master of the same exclusively created temporary migration fixture; names are also JSON-stringified before interpolation. Only fixed schema and fixture DDL create tables. Neither application data nor an externally provided database determines this metadata sink in the reported invocation. Final f1b7 review: Reported foreign-key metadata query and fixed fixture schema source are unchanged. New maintenance rename retry has no SQL or identifier input and does not alter this source/sink.",
       "contextPaths": [
         {
           "path": "src/db.ts",
-          "sha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8"
+          "sha256": "6ab58e9780c36d6e0008d40e7608d8107af7c4ff654f61891bad2557279bc702"
         },
         {
           "path": "tests/fixtures/fx_schema.js",
@@ -3007,7 +3007,7 @@
       "line": 179,
       "reviewedSourceSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b",
       "disposition": "false-positive",
-      "rationale": "Re-read the actual pending-row -> readIngressMessage -> acceptsLegacySource -> shouldForward -> matchesAllRegexPatterns -> parseRegex chain. Database input is JSON-decoded and message identity/text fields are checked before filtering; invalid classification remains needs_review. Configured regular expressions are intentional filter input, not HTML/code execution. The new helper extraction preserves nested-quantifier rejection, the 150-character compiled-pattern cap, removal of stateful g/y flags and 100-entry cache. Every production match in this flow truncates text to 8000 characters and calls safeRegexTest with a 100-ms VM CPU timeout; VM exceptions reject the filter. This bound is not inferred solely from the heuristic: the actual vm.runInContext call still executes regex.test with timeout, and the existing test exercised a matching-engine timeout and verified its native timeout cause during this review. The reported source-to-RegExp construction trace omits the bounded match boundary. No unlimited match execution was found in this reported flow. Independently re-read complete e58bd77 filters/ingress delta and persisted ingress caller. Plain string content.text is now permitted solely for messageCustomServiceAction, not messageText; caption validation remains formatted-only. MESSAGE_TYPES does not map this service action, so getMessageTextAndType returns empty text and the service type. The helper also explicitly returns empty text for a primitive string instead of consuming it as ordinary signal text. Normal formatted text is unchanged. Regex compile cap, heuristic, flag/cache logic, 8000-character truncation and actual 100-ms VM timeout remain byte-identical. New persisted-restart and ordinary-message rejection tests independently passed. No additional unbounded matching path is introduced by admitting the non-text service envelope. Independent current-source reassessment: Complete contract_values delta replaces typeof Set membership by explicit primitive typeof checks only. Error.message/null and foreign object/function fallback remain unchanged, including no arbitrary object coercion. filters uses unknownErrorMessage solely for caught diagnostic text; pattern parser, cache, 8000-char match bound and VM100ms timeout remain unchanged. No new regex evaluator or bypass arises. Final independent reassessment: primitiveErrorMessage now excludes object/function before String instead of enumerating primitive typeof cases. Actual old/new functions compared over25primitive/object/function cases, including Symbol,BigInt,NaN and throwing coercion hooks: same outputs and zero coercion. Outer Error/null paths unchanged. Re-read filters.regexErrorMessage caller: native cross-realm timeout errors still use own string message; unknownErrorMessage is only fallback diagnostic text. vm.runInContext timeout, thrown wrapper/cause, downstream rejection, regex compilation cap and8000text cap remain byte-identical. No unbounded matcher or accepted-on-error path introduced. TypeScript shows {}|undefined at the String call, so separate SonarS6551 acceptance remains unverified; that does not alter this runtime ReDoS determination. Independent 462445a reassessment: complete helper delta now positively narrows number/bigint and string/boolean/symbol/undefined in two typed branches. Neither branch accepts objects or functions; Error.message/null and diagnostic fallback stay unchanged. Tests cover primitives, boxed values, arrays, null-prototype objects and throwing coercion hooks. Re-read actual filters compileRegex and regexErrorMessage callers: only diagnostic formatting uses this helper; native cross-realm timeout errors retain own string message. Pattern compilation cap, 8000-character matching cap, safeRegexTest VM100ms timeout, cause and rejection behavior are byte-identical. No unbounded matcher or accept-on-error path added. Root review of a0e831a: the declared error parameter uses direct undefined equality instead of typeof equality. Accepted primitives and rejection of object coercion are unchanged. Regex inputs, compile limits and timed VM evaluation remain unchanged; this context delta changes diagnostic code only.",
+      "rationale": "Re-read the actual pending-row -> readIngressMessage -> acceptsLegacySource -> shouldForward -> matchesAllRegexPatterns -> parseRegex chain. Database input is JSON-decoded and message identity/text fields are checked before filtering; invalid classification remains needs_review. Configured regular expressions are intentional filter input, not HTML/code execution. The new helper extraction preserves nested-quantifier rejection, the 150-character compiled-pattern cap, removal of stateful g/y flags and 100-entry cache. Every production match in this flow truncates text to 8000 characters and calls safeRegexTest with a 100-ms VM CPU timeout; VM exceptions reject the filter. This bound is not inferred solely from the heuristic: the actual vm.runInContext call still executes regex.test with timeout, and the existing test exercised a matching-engine timeout and verified its native timeout cause during this review. The reported source-to-RegExp construction trace omits the bounded match boundary. No unlimited match execution was found in this reported flow. Independently re-read complete e58bd77 filters/ingress delta and persisted ingress caller. Plain string content.text is now permitted solely for messageCustomServiceAction, not messageText; caption validation remains formatted-only. MESSAGE_TYPES does not map this service action, so getMessageTextAndType returns empty text and the service type. The helper also explicitly returns empty text for a primitive string instead of consuming it as ordinary signal text. Normal formatted text is unchanged. Regex compile cap, heuristic, flag/cache logic, 8000-character truncation and actual 100-ms VM timeout remain byte-identical. New persisted-restart and ordinary-message rejection tests independently passed. No additional unbounded matching path is introduced by admitting the non-text service envelope. Independent current-source reassessment: Complete contract_values delta replaces typeof Set membership by explicit primitive typeof checks only. Error.message/null and foreign object/function fallback remain unchanged, including no arbitrary object coercion. filters uses unknownErrorMessage solely for caught diagnostic text; pattern parser, cache, 8000-char match bound and VM100ms timeout remain unchanged. No new regex evaluator or bypass arises. Final independent reassessment: primitiveErrorMessage now excludes object/function before String instead of enumerating primitive typeof cases. Actual old/new functions compared over25primitive/object/function cases, including Symbol,BigInt,NaN and throwing coercion hooks: same outputs and zero coercion. Outer Error/null paths unchanged. Re-read filters.regexErrorMessage caller: native cross-realm timeout errors still use own string message; unknownErrorMessage is only fallback diagnostic text. vm.runInContext timeout, thrown wrapper/cause, downstream rejection, regex compilation cap and8000text cap remain byte-identical. No unbounded matcher or accepted-on-error path introduced. TypeScript shows {}|undefined at the String call, so separate SonarS6551 acceptance remains unverified; that does not alter this runtime ReDoS determination. Independent 462445a reassessment: complete helper delta now positively narrows number/bigint and string/boolean/symbol/undefined in two typed branches. Neither branch accepts objects or functions; Error.message/null and diagnostic fallback stay unchanged. Tests cover primitives, boxed values, arrays, null-prototype objects and throwing coercion hooks. Re-read actual filters compileRegex and regexErrorMessage callers: only diagnostic formatting uses this helper; native cross-realm timeout errors retain own string message. Pattern compilation cap, 8000-character matching cap, safeRegexTest VM100ms timeout, cause and rejection behavior are byte-identical. No unbounded matcher or accept-on-error path added. Root review of a0e831a: the declared error parameter uses direct undefined equality instead of typeof equality. Accepted primitives and rejection of object coercion are unchanged. Regex inputs, compile limits and timed VM evaluation remain unchanged; this context delta changes diagnostic code only. Final f1b7 review: Only contract_values delta is explicit undefined diagnostic return before positively narrowed string/boolean/symbol conversion.24 emitted-JS differential cases matched and coercion hooks remained unread. filters uses the helper for diagnostic text; no regex input, compile limit, text cap or timed VM boundary changed.",
       "contextPaths": [
         {
           "path": "src/filters.ts",
@@ -3019,7 +3019,7 @@
         },
         {
           "path": "src/contract_values.ts",
-          "sha256": "72d202a727fa714c760a1083b24c5f5723777f526c6d1c1672208326d1ed47a8"
+          "sha256": "fafb0a4342b0430278764c9fd27a5e9aef85de597edfd0e4bbd2c03be859fd41"
         },
         {
           "path": "tests/test_filters.js",
@@ -4550,7 +4550,7 @@
     }
   ],
   "independentReviewEvidence": {
-    "path": "reports/security-services/fixer-receipt599-snyk-independent-review.json",
-    "sha256": "102f2758e786bdb70b109b596ec6a42a23580cd55721788b1829510db7327cf2"
+    "path": "exchange_executor/certifications/reviews/fixer-final-f1b7-snyk-individual-context-review.json",
+    "sha256": "0e6f7b162fb9bfaf5f2d357919398a3b930cf1707a3f1c8ce9efc04efb27aecf"
   }
 }

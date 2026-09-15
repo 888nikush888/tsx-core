@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "revision": "f1b7b9dcec419cb7b055b8e718076b0fbb414e97",
+  "execution": {
+    "nodeVersion": "v22.23.2",
+    "revision": "f1b7b9dcec419cb7b055b8e718076b0fbb414e97",
+    "scannerExit": 1,
+    "finishedAt": "2026-09-15T16:29:03.7420752Z",
+    "rawLogSha256": "bea0f1818b09a2b5856fdfadce13bbd71e5313fc292e7f5898642fd793bc6f45",
+    "version": "1.1307.1",
+    "sarifSha256": "6e66a31b23d95f872d7db25ca73c968696810b7b5b20610a75a2a3b2ad734148",
+    "startedAt": "2026-09-15T16:28:26.2086488Z"
+  },
+  "counts": {
+    "findings": 85,
+    "idsAndFingerprintsUnchanged": 85,
+    "evidenceDigestsUnchanged": 84,
+    "evidenceDigestsChanged": 1,
+    "bindings": 182,
+    "unchangedBindings": 177,
+    "changedBindings": 5
+  },
+  "changedBindings": [
+    {
+      "findingId": "9886fba1-1186-4e41-b1fa-6a6877440237",
+      "path": "src/db.ts",
+      "priorSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8",
+      "sha256": "6ab58e9780c36d6e0008d40e7608d8107af7c4ff654f61891bad2557279bc702",
+      "unchanged": false
+    },
+    {
+      "findingId": "9886fba1-1186-4e41-b1fa-6a6877440237",
+      "path": "tests/test_mcp_maintenance.js",
+      "priorSha256": "c6b9bf76959b09fe366fcea3703204867e019b03c54a23eb9dd68a161727120a",
+      "sha256": "c145b5dfc8057df38a8aa365f5e38b7f0a13dc32339ded02205227d8ccc0f49f",
+      "unchanged": false
+    },
+    {
+      "findingId": "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+      "path": "src/db.ts",
+      "priorSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8",
+      "sha256": "6ab58e9780c36d6e0008d40e7608d8107af7c4ff654f61891bad2557279bc702",
+      "unchanged": false
+    },
+    {
+      "findingId": "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+      "path": "src/db.ts",
+      "priorSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8",
+      "sha256": "6ab58e9780c36d6e0008d40e7608d8107af7c4ff654f61891bad2557279bc702",
+      "unchanged": false
+    },
+    {
+      "findingId": "d3f09f66-f994-4652-86bf-651b0262e797",
+      "path": "src/contract_values.ts",
+      "priorSha256": "72d202a727fa714c760a1083b24c5f5723777f526c6d1c1672208326d1ed47a8",
+      "sha256": "fafb0a4342b0430278764c9fd27a5e9aef85de597edfd0e4bbd2c03be859fd41",
+      "unchanged": false
+    }
+  ],
+  "flowDelta": {
+    "findingId": "9886fba1-1186-4e41-b1fa-6a6877440237",
+    "leaves": 18,
+    "kind": "Only21-line coordinate offsets; corresponding old/new source lines compared equal.",
+    "detailPath": "reports/security-services/fixer-final-f1b7-snyk-flow-delta.json"
+  },
+  "perFinding": [
+    {
+      "findingId": "9886fba1-1186-4e41-b1fa-6a6877440237",
+      "recommendation": "Reaffirm individual false positive after root review; update exact evidence digest and two changed context bindings.",
+      "review": "All 18 SARIF delta leaves are start/end line coordinates shifted by21 in src/db.ts; corresponding source lines were byte-compared equal. No flow step, source, sink, column, finding ID or fingerprint changes. Parent still creates a private mkdtemp forwarder.db and passes its fixed path as a separate child argument. New maintenance fixture injections target only the fixed participant closed-state JSON, restore fs.rename in finally, and introduce no external source. Production rename retry keeps exactly the same source/destination and exclusive wx/0600 write; bounded Windows Error codes control delay, not path selection."
+    },
+    {
+      "findingId": "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+      "recommendation": "Reaffirm individual false positive after root review; update src/db.ts binding.",
+      "review": "Reported index metadata query and temporary fixture source are unchanged. Entire db.ts delta only wraps maintenance JSON rename with bounded Windows retries. It adds no SQL, schema, identifier construction or externally supplied database source."
+    },
+    {
+      "findingId": "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+      "recommendation": "Reaffirm individual false positive after root review; update src/db.ts binding.",
+      "review": "Reported foreign-key metadata query and fixed fixture schema source are unchanged. New maintenance rename retry has no SQL or identifier input and does not alter this source/sink."
+    },
+    {
+      "findingId": "d3f09f66-f994-4652-86bf-651b0262e797",
+      "recommendation": "Reaffirm individual false positive after root review; update contract_values.ts binding.",
+      "review": "Only contract_values delta is explicit undefined diagnostic return before positively narrowed string/boolean/symbol conversion.24 emitted-JS differential cases matched and coercion hooks remained unread. filters uses the helper for diagnostic text; no regex input, compile limit, text cap or timed VM boundary changed."
+    }
+  ],
+  "additionalContext": {
+    "path": "exchange_executor/ccxt_candidate_reviews.py",
+    "delta": "Only APPROVED_ASSESSMENTS_HASH literal changed; this file is not among the182 Snyk source/context bindings. No Snyk disposition binding update applicable; certification review remains separately required."
+  },
+  "dispositionState": "No review entries, suppressions, platform dispositions or source files changed. Committed review is stale for four finding IDs until root adoption; do not claim current zero unresolved yet.",
+  "riskAcceptance": "Four authorized internal HTTP exceptions unchanged; expiry2026-10-08 unchanged."
+}
