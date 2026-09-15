@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "reviewedRevision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+  "reviewedRevision": "599cc5524bb760f5600b480eabcea34effcb07db",
   "scannerVersion": "1.1307.1",
-  "sarifSha256": "cf9ed16d406b5646d42e19b142c7c9679ca8d6219ce870d7573c3b29f6edccd8",
-  "reviewKind": "independent-primitive-and-fingerprint-current-git-review",
+  "sarifSha256": "7684ed39de5cdb66c267a87c9e1ed1f1e19aaff5e155161fadf805db1cbf8444",
+  "reviewKind": "independent-receipt-authority-context-review",
   "reviewedCount": 85,
   "counts": {
     "false-positive": 81,
     "open": 4
   },
-  "priorReviewRevision": "c2617205eadfb755a1258a87a08c625ae3b43d3b",
-  "scopeNote": "85 fresh finding identities, fingerprints and evidence digests unchanged; four individually reassessed source bindings renewed and 178 unchanged. Four HTTP risks retain their original acceptance.",
+  "priorReviewRevision": "462445a80dccac1966983ab2f8821eaeaa06fd40",
+  "scopeNote": "85 fresh identities/fingerprints/flows unchanged. Three independently reviewed authority-file context bindings renewed; 179 unchanged. Four HTTP acceptances unchanged.",
   "entries": [
     {
       "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
@@ -131,7 +131,7 @@
       "line": 93,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "The current CLI accepts exactly --python and one explicit absolute local interpreter path. Re-read its full runtimeReceipts -> verifyImplementationBuild -> stableBytes flow. The Python bridge text, repository root and certification directory are fixed by this script; the bridge enumerates repository PROFILES and certification_result validates exchange identifiers against [a-z][a-z0-9_]{1,63}, profile identity, pinned SDK and independently trusted receipt hashes before returning rows. The later receipt path is therefore not a remotely chosen archive member. stableBytes validates canonical parents, an ordinary non-symlink single-link file, O_RDONLY/O_NOFOLLOW where available, and matching identities before/during/after the bounded read. The reported readSync argument is an opened descriptor rather than an unvalidated path string. A user selecting a malicious local Python executable already exercises the explicit local execution capability; this CLI is not an untrusted runtime selector exposed by the application. False positive for this exact reported path-traversal flow, not a claim that arbitrary interpreters are trusted. Independent current-source reassessment: Complete package.json delta only changes devDependency @types/node 26.1.1 to 22.20.2. No CLI script, argument, executable selection or runtime dependency changed. Rechecked unchanged explicit local Python selector and fixed bridge/receipt stableBytes flow; no new remote path authority. This is context freshness only, not certification receipt approval.",
+      "rationale": "False positive for traversal at readSync: the reported flow starts with the explicit local --python option and follows fixed-bridge stdout into the receipt read. The trusted local interpreter executes fixed isolated Python code, returns only certified fixed-profile exchange names, and cannot obtain pins from receipt data. readSync consumes the previously opened descriptor, not a path string. stableBytes enforces canonical parent, ordinary single-link file, bounded size, no-follow read-only open, descriptor identity and before/after identity checks. Arbitrary operator-selected malicious executable is outside this trusted local invocation contract. The sole authority delta replaces one exact Hyperliquid receipt digest in the immutable MappingProxyType. The current receipt Git bytes hash to the independently approved LF candidate 7bb3df93bd03bb02dbf41e3165467072d80d07d6f7d5495cc45bdc32b65ad1fa. The tracked independent adoption review approves implementation evidence only; the separate root gate records the subsequent successful byte/runtime comparison. Neither receipt JSON nor CLI arguments supplies an approval pin. Python obtains pins only from the imported authority, validates exchange against the fixed profile ID and identifier grammar, and verifies pinned bytes plus runtime schema before returning rows. Other profiles remain quarantined. This review verifies these boundaries and recorded approval, not a new full implementation or container/provider approval.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -143,7 +143,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289"
+          "sha256": "b2d7e8f3b649e6dc5c8a2ea516d029aa8a5f212029039777951c80696673c341"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -4164,7 +4164,7 @@
       "line": 292,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "Re-read CLI arity/flag guard, runtimeReceipts and the complete Python bridge. Only --python plus one absolute executable path is permitted. The selected executable is canonicalized with realpath and checked as an ordinary file under a canonical parent. spawnSync receives an argument array containing fixed -I, -B, -c, fixed bridge code and the fixed repository root; shell:false, windowsHide, a 30-second timeout and a 2-MiB output limit remain explicit. Shell metacharacters in the selected path do not become shell syntax. Running the operator-selected local Python interpreter is the intended capability, not an attacker-supplied shell command. The service does not provide a remote route to this CLI selector. This is an individual false-positive determination for indirect command injection, not an assertion that malicious local executables would be safe. Independent current-source reassessment: Complete package.json delta only aligns Node development types 26.1.1 to 22.20.2; no scripts/runtime selector change. Rechecked explicit absolute Python runtime, realpath/ordinary file checks and fixed argument-array spawn with shell:false, timeout and byte cap. Operator executable authority remains intentionally local.",
+      "rationale": "False positive for indirect command injection in this local CLI contract: the operator deliberately selects the absolute Python executable through the only accepted --python option. absolutePython, realpath, ordinary-file and canonical-parent checks precede spawnSync. The executable receives a fixed argument array with isolated -I, no-bytecode -B, literal bridge code and fixed repository root; shell is false, with timeout and output limits. No application request, receipt field or pin selects executable/code/import names. These checks do not certify an arbitrary malicious executable as safe; local executable selection remains operator authority. The sole authority delta replaces one exact Hyperliquid receipt digest in the immutable MappingProxyType. The current receipt Git bytes hash to the independently approved LF candidate 7bb3df93bd03bb02dbf41e3165467072d80d07d6f7d5495cc45bdc32b65ad1fa. The tracked independent adoption review approves implementation evidence only; the separate root gate records the subsequent successful byte/runtime comparison. Neither receipt JSON nor CLI arguments supplies an approval pin. Python obtains pins only from the imported authority, validates exchange against the fixed profile ID and identifier grammar, and verifies pinned bytes plus runtime schema before returning rows. Other profiles remain quarantined. This review verifies these boundaries and recorded approval, not a new full implementation or container/provider approval.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -4176,7 +4176,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289"
+          "sha256": "b2d7e8f3b649e6dc5c8a2ea516d029aa8a5f212029039777951c80696673c341"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -4348,7 +4348,7 @@
       "line": 85,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "Independently inspected the distinct stableBytes openSync sink in the reported CLI -> interpreter output -> receipt exchange flow. The script derives repositoryRoot from its own module location and the certification directory is constant. Its fixed Python bridge obtains exchanges only from local PROFILES and accepts certification_result success, whose strict identifier/profile checks and approved receipt pins precede output. Receipt schema/hash comparison precedes the final local receipt read. openSync uses read-only flags with no-follow support, after canonical-parent and lstat regular-file/single-link checks, then verifies descriptor identity. It does not grant arbitrary write access as suggested by the generic finding. Explicit selection of the local Python executable is operator authority; no HTTP or signal input chooses it. This assessment covers the particular flagged open path, not all possible filesystem attacks. Independent current-source reassessment: Complete package.json delta only aligns Node development types 26.1.1 to 22.20.2. Distinct openSync receipt sink and stableBytes canonical parent/single-link/no-follow/descriptor checks remain unchanged; no new path source or write access introduced.",
+      "rationale": "False positive for traversal at openSync: the reported stdout-derived exchange originates from fixed PROFILES via certification_result, which enforces a lowercase identifier grammar and equality to profile.id before looking up source-owned pins and validating receipt bytes/schema. The CLI constructs only the fixed certifications directory plus that certified exchange and .json. stableBytes canonical-parent and ordinary-file checks precede read-only/no-follow open; descriptor identity, link count, bounded reads and after-read identity checks reject link or concurrent replacement. Pins remain code-owned and have now been explicitly independently approved for the exact installed receipt. The sole authority delta replaces one exact Hyperliquid receipt digest in the immutable MappingProxyType. The current receipt Git bytes hash to the independently approved LF candidate 7bb3df93bd03bb02dbf41e3165467072d80d07d6f7d5495cc45bdc32b65ad1fa. The tracked independent adoption review approves implementation evidence only; the separate root gate records the subsequent successful byte/runtime comparison. Neither receipt JSON nor CLI arguments supplies an approval pin. Python obtains pins only from the imported authority, validates exchange against the fixed profile ID and identifier grammar, and verifies pinned bytes plus runtime schema before returning rows. Other profiles remain quarantined. This review verifies these boundaries and recorded approval, not a new full implementation or container/provider approval.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -4360,7 +4360,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289"
+          "sha256": "b2d7e8f3b649e6dc5c8a2ea516d029aa8a5f212029039777951c80696673c341"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -4548,5 +4548,9 @@
         }
       ]
     }
-  ]
+  ],
+  "independentReviewEvidence": {
+    "path": "reports/security-services/fixer-receipt599-snyk-independent-review.json",
+    "sha256": "102f2758e786bdb70b109b596ec6a42a23580cd55721788b1829510db7327cf2"
+  }
 }
