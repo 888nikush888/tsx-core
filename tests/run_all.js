@@ -239,8 +239,8 @@ const allTests = [
 
 export async function runRegisteredTests(requestedTests, {
   registeredTests = allTests, testsDirectory: directory = testsDirectory, environment = testEnvironment,
+  var error;
   runTest = test => runTestFile(test, { testsDirectory: directory, environment, error }),
-  log = console.log, error = console.error,
 } = {}) {
   try {
     if (requestedTests.length === 0) assertTestRegistry(directory, registeredTests);
