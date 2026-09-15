@@ -23,7 +23,10 @@ export function createProcessRestartRequest(shutdown: () => Promise<unknown>, sh
     if (requested) return;
     requested = true;
     const previousExitCode = process.exitCode;
-    const exit = (fallbackCode: number): never => process.exit(process.exitCode || previousExitCode || fallbackCode);
+    const exit = (fallbackCode: number): never => {
+        const code = process.exitCode || previousExitCode || fallbackCode;
+        throw new Error(`Exiting with code ${code}`);
+    };
     // Response completion and audit flush can both remain pending forever. Keep
     // the watchdog independent of either promise; do not remove locks or claim
     // graceful completion when the deadline expires.
