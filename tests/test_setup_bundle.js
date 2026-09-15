@@ -129,7 +129,7 @@ try {
     assert.deepEqual(validatePortableSetupBundle(distinct), distinct, 'Validated identifiers retain bytes rather than being trimmed.');
     const duplicate = structuredClone(bundle);
     duplicate.models[collection].push(structuredClone(duplicate.models[collection][0]));
-    assert.throws(() => validatePortableSetupBundle(duplicate), new RegExp(`${label} identifiers are duplicated`));
+    assert.throws(() => validatePortableSetupBundle(duplicate), { message: `Setup bundle ${label} identifiers are duplicated.` });
   }
 
   const tampered = structuredClone(bundle);

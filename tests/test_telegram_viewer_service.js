@@ -354,7 +354,7 @@ async function verifyDeliveryMessageContracts() {
   const sendMessage = bot.sendMessage.bind(bot);
   let botCalls = 0;
   bot.sendMessage = (...args) => { botCalls += 1; return sendMessage(...args); };
-  const now = 1_700_000_010_000;
+  const now = Date.parse('2023-11-14T22:13:30.000Z');
   const service = new TelegramViewerService({ core: fakeCore(), bot, state, now: () => now });
   let sourceSeq = 0;
   const queue = async message => {
