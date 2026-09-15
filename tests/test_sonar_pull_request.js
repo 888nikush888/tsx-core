@@ -64,18 +64,20 @@ async function rejectResponse(endpoint, body, message) {
 
 async function assertExplicitScannerArguments() {
   const mainArgs = sonarScanArguments({ SONAR_EXPECTED_REVISION: revision });
-  assert.equal(mainArgs, '-Dsonar.scm.revision=${env.SONAR_EXPECTED_REVISION}');
+  assert.equal(mainArgs, `-Dsonar.scm.revision=${env.SONAR_EXPECTED_REVISION}`);
   const prArgs = sonarScanArguments(environment);
-  assert.equal(prArgs, [mainArgs, '-Dsonar.pullrequest.key=${env.SONAR_PULL_REQUEST}',
-    '-Dsonar.pullrequest.branch=${env.SONAR_PULL_REQUEST_BRANCH}', '-Dsonar.pullrequest.base=${env.SONAR_PULL_REQUEST_BASE}'].join(' '));
+  assert.equal(prArgs, [mainArgs, `-Dsonar.pullrequest.key=${env.SONAR_PULL_REQUEST}`,
+    `-Dsonar.pullrequest.branch=${env.SONAR_PULL_REQUEST_BRANCH}`, `-Dsonar.pullrequest.base=${env.SONAR_PULL_REQUEST_BASE}`].join(' '));
   // These valid Git ref characters must never be interpolated into action args.
-  for (const ref of ['codex/quote\'"', 'codex/$(touch-pwned);`id`', 'codex/a=b&c|d', 'codex/ä-ß']) {
+  for (const ref of ['codex/quote\"\"', 'codex/$(touch-pwned);`id`', 'codex/a=b&c|d', 'codex/ä-ß']) {
     const scoped = { ...environment, SONAR_PULL_REQUEST_BRANCH: ref, SONAR_PULL_REQUEST_BASE: ref };
     assert.equal(sonarScope(scoped).pullRequest.branch, ref);
     assert.equal(sonarScanArguments(scoped), prArgs);
   }
   for (const field of ['SONAR_PULL_REQUEST_BRANCH', 'SONAR_PULL_REQUEST_BASE']) {
-    for (const ref of ['codex/${env.SONAR_TOKEN}', 'codex/a\n-Dsonar.token=x', 'codex/a b', ' codex/a', 'codex/a\n']) {
+    for (const ref of [`codex/\${env.SONAR_TOKEN}`, 'codex/a
+-Dsonar.token=x', 'codex/a b', ' codex/a', 'codex/a
+']) {
       assert.throws(() => sonarScanArguments({ ...environment, [field]: ref }), /refs contain/u);
     }
   }

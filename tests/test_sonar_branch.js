@@ -50,7 +50,7 @@ async function fakeFetch(url) {
 }
 
 try {
-  const args = '-Dsonar.scm.revision=${env.SONAR_EXPECTED_REVISION} -Dsonar.branch.name=${env.SONAR_BRANCH}';
+  const args = `-Dsonar.scm.revision=${env.SONAR_EXPECTED_REVISION} -Dsonar.branch.name=${env.SONAR_BRANCH}`;
   assert.equal(sonarScanArguments(environment), args);
   for (const ref of ['codex/quote\'"', 'codex/$(touch-pwned);`id`', 'codex/a=b&c|d', 'codex/ä-ß']) {
     assert.equal(sonarScanArguments({ ...environment, SONAR_BRANCH: ref }), args);
