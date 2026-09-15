@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import { jsonRequest } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { ExchangeCatalog, TradingSnapshot } from "@/app/workflow/types";
+import type { AnalyticsResponse, ExecutionAnalytics, ExchangeCatalog, TradingSnapshot } from "@/app/workflow/types";
 import { MoneyAmount, MoneySummaryAmount } from "@/app/workflow/money-amount";
 import { moneyChartGroups, moneyDisplay } from "@/app/workflow/money-display";
 import { usePoll } from "@/shared/api/use-poll";
@@ -66,7 +66,7 @@ export function Analytics({
   const setExchange = (value: string) => updateFilter('exchange', value);
   const setMode = (value: string) => updateFilter('mode', value);
   const setStatus = (value: string) => updateFilter('status', value);
-  const [analyticsResponse, setAnalyticsResponse] = useState<any>(null);
+  const [analyticsResponse, setAnalyticsResponse] = useState<{ context: string; value: AnalyticsResponse } | null>(null);
   const analyticsContext = JSON.stringify([range, customFrom, customUntil, channelId, accountId, exchange, mode, status]);
   const analytics = analyticsResponse?.context === analyticsContext ? analyticsResponse.value : null;
   const [error, setError] = useState("");
@@ -86,7 +86,7 @@ export function Analytics({
   const adaptiveStates = trading?.workflowAdaptiveRisk?.states || [];
   const evaluations = trading?.workflowAdaptiveRisk?.evaluations || [];
   const executionIncomplete = analytics?.execution?.coverage?.complete === false;
-  const execution = executionIncomplete ? {} : analytics?.execution || {};
+  const execution: ExecutionAnalytics = executionIncomplete ? {} : analytics?.execution || {};
   const fallback = analytics?.fallback || {};
   const fallbackSkipReasons = [
     ["SYMBOL_UNAVAILABLE", "Pair fehlt"],
@@ -96,10 +96,10 @@ export function Analytics({
   const totalMoney = analytics?.performance?.total;
   const channelMoneyCharts = moneyChartGroups(channels);
   const closedTrades = channels.reduce(
-    (total, item: any) => total + Number(item.closedTrades || 0),
+    (total, item) => total + Number(item.closedTrades || 0),
     0,
   );
-  const drawdowns = equity.filter((point: any) => point.drawdownPercent != null && Number.isFinite(Number(point.drawdownPercent))).map((point: any) => Number(point.drawdownPercent));
+  const drawdowns = equity.filter((point) => point.drawdownPercent != null && Number.isFinite(Number(point.drawdownPercent))).map((point) => Number(point.drawdownPercent));
   const peakDrawdown = drawdowns.length ? Math.max(...drawdowns) : null;
   const funnel = Object.entries(execution.funnel || {}).map(([name, value]) => ({
     name: name.replaceAll("_", " "),
@@ -109,7 +109,7 @@ export function Analytics({
     (Number(expectancy.winRate) / 100) * Number(expectancy.averageWin) -
     (1 - Number(expectancy.winRate) / 100) * Number(expectancy.averageLoss);
   const channelOptions = useMemo(
-    () => [...new Set<string>((analytics?.performance?.channels || []).map((item: any) => String(item.id)))],
+    () => [...new Set<string>((analytics?.performance?.channels || []).map((item) => String(item.id)))],
     [analytics?.performance?.channels],
   );
   const exchangeOptions = useMemo(() => {
@@ -166,7 +166,7 @@ export function Analytics({
         />
         <div className="operation-metric">
           <strong>
-            {duration((execution as any).latencyMs?.signalToSubmit?.p95)}
+            {duration(execution.latencyMs?.signalToSubmit?.p95)}
           </strong>
           <span>Signal → Submit p95</span>
         </div>
@@ -236,7 +236,7 @@ export function Analytics({
             <span>PnL</span>
             <span>Slippage</span>
           </div>
-          {channels.map((item: any) => (
+          {channels.map((item) => (
             <div className="analytics-row" role="row" key={item.id}>
               <strong>{item.id}</strong>
               <span>{item.closedTrades}</span>
@@ -259,7 +259,7 @@ export function Analytics({
       </section>
       <section className="operations-card">
         <h3>Börsenvergleich</h3>
-        {exchanges.map((item: any) => (
+        {exchanges.map((item) => (
           <div className="system-line" key={item.id}>
             <span>
               {item.id} · {item.completedIntents || 0}/{item.intents || 0}{" "}
@@ -287,7 +287,7 @@ export function Analytics({
       </section>
       <section className="operations-card">
         <h3>Fallback-Auswahl je Börsenkonto</h3>
-        {(fallback.byAccount || []).map((item: any) => (
+        {(fallback.byAccount || []).map((item) => (
           <div className="system-line" key={item.accountId}>
             <span>{item.accountId} · {item.exchange}/{item.mode}</span>
             <strong>{item.selected} gewählt · {item.unavailable} übersprungen · {item.attempts} Versuche</strong>
@@ -299,7 +299,7 @@ export function Analytics({
       </section>
       <section className="operations-card">
         <h3>Aktives adaptives Risiko je Pfad</h3>
-        {adaptiveStates.map((item: any) => (
+        {adaptiveStates.map((item) => (
           <div className="adaptive-row" key={item.stateKey}>
             <div>
               <strong>
@@ -324,7 +324,7 @@ export function Analytics({
       </section>
       <section className="operations-card">
         <h3>Letzte adaptive Bewertungen</h3>
-        {evaluations.filter((item: any) => (!channelId || item.channelId === channelId) && (!accountId || item.accountId === accountId)).slice(0, 30).map((item: any) => (
+        {evaluations.filter((item) => (!channelId || item.channelId === channelId) && (!accountId || item.accountId === accountId)).slice(0, 30).map((item) => (
           <div className="adaptive-row" key={item.id}>
             <div>
               <strong>
