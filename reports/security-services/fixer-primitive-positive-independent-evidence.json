@@ -1,0 +1,72 @@
+{
+  "baseRevision": "abb177e75212c33957fb0db74f2f4f5553b87ab1",
+  "scope": [
+    "src/contract_values.ts",
+    "tests/test_exchange_contract_validation.js"
+  ],
+  "bindings": [
+    {
+      "path": "src/contract_values.ts",
+      "gitSha256": "b56516782dbc13bdac7bb1066d33d14b358ae51f69dfe73e26869b1561f6ef27",
+      "workingRawSha256": "f6306c6e970ddb06a8b8d9a7bec919cbc5e83351c6db621b886906d9f21f5dd1",
+      "workingLfSha256": "f6306c6e970ddb06a8b8d9a7bec919cbc5e83351c6db621b886906d9f21f5dd1"
+    },
+    {
+      "path": "tests/test_exchange_contract_validation.js",
+      "gitSha256": "b792cf23f24b2ea24e4bc2bfdd38a36a74ee3aa39d1f767ec8530486419ff459",
+      "workingRawSha256": "e4cb2a8bcd7490dae31f9cdd7c708f3dc46c64de2ff472559cd2fc521125caf2",
+      "workingLfSha256": "e4cb2a8bcd7490dae31f9cdd7c708f3dc46c64de2ff472559cd2fc521125caf2"
+    }
+  ],
+  "inferredStringArgumentTypes": [
+    "number | bigint",
+    "string | boolean | symbol | undefined"
+  ],
+  "semantics": [
+    "Outer instanceof Error/message handling and exact null message unchanged.",
+    "Explicit numeric guard and separate non-numeric primitive guard cover all six primitive typeof cases without casts.",
+    "Objects and functions reach null fallback without any String invocation; hostile hooks and boxed values remain uncoerced.",
+    "All supported primitive values use String exactly as before, including symbols, bigint, undefined, NaN and infinities."
+  ],
+  "validation": [
+    {
+      "path": "reports/security-services/fixer-primitive-positive-contract-tests.log",
+      "exitCode": 0,
+      "sha256": "dede4eed716023f613655264568b7a81041cb5ab78cdcf3bc9def0a057477714"
+    },
+    {
+      "path": "reports/security-services/fixer-primitive-positive-forwarder-tests.log",
+      "exitCode": 0,
+      "sha256": "e5d4fa2698c478dd6eb06022d3635a85e0bc24a2eff72eaf6de3f474caa3afcd"
+    },
+    {
+      "path": "reports/security-services/fixer-primitive-positive-typecheck.log",
+      "exitCode": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reports/security-services/fixer-primitive-positive-lint.log",
+      "exitCode": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reports/security-services/fixer-primitive-positive-complexity.log",
+      "exitCode": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "complexity": {
+    "primitiveErrorMessage": 3,
+    "nonNumericPrimitiveErrorMessage": 5,
+    "eslintMaximum5Exit": 0
+  },
+  "limits": [
+    "No Sonar/DeepSource rescan performed; actual remote issue closure remains to verify.",
+    "No commit, no unrelated edits. This implementation evidence includes independent TypeScript compiler inference but is authored by the implementer."
+  ],
+  "regexCaller": {
+    "path": "src/filters.ts",
+    "sha256": "9135f07539b9582c98ec48fb116e243b4b1dd215fd6440743adc057bac5fdb0f",
+    "review": "regexErrorMessage first handles cross-realm native errors via own string message descriptor. Remaining values reach unchanged unknownErrorMessage semantics. safeRegexTest retains the VM timeout and original error cause; no execution or timeout boundary changed."
+  }
+}

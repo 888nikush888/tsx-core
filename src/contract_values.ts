@@ -17,6 +17,13 @@ export function unknownErrorMessage(error: unknown): string {
 }
 
 function primitiveErrorMessage(error: unknown): string | null {
-  if (typeof error === 'object' || typeof error === 'function') return null;
-  return String(error);
+  if (typeof error === 'number' || typeof error === 'bigint') return String(error);
+  return nonNumericPrimitiveErrorMessage(error);
+}
+
+function nonNumericPrimitiveErrorMessage(error: unknown): string | null {
+  if (typeof error === 'string' || typeof error === 'boolean' || typeof error === 'symbol' || typeof error === 'undefined') {
+    return String(error);
+  }
+  return null;
 }
