@@ -1158,12 +1158,10 @@ function startMaintenanceMonitor(databasePath: string, initialDatabaseIdentity: 
       if (!maintenance && identity === initialDatabaseIdentity) return;
       console.error('[CRITICAL] MCP service is closing for TSX Core database maintenance or replacement.');
       await shutdown(maintenance?.deadlineAt ?? Date.now() + 30000);
-      // Successful close is acknowledged by the DB lifecycle hook. If it fails,
-      // only actual process death (not this log or a timer) can prove quiescence.
-      process.exit(1);
+      throw new Error('MCP service is closing for TSX Core database maintenance or replacement.');
     }).catch(() => {
       console.error('[CRITICAL] MCP service lost the operational database path and is closing.');
-      process.exit(1);
+      throw new Error('MCP service lost the operational database path and is closing.');
     }).finally(() => {
       maintenanceCheckBusy = false;
     });
@@ -1205,10 +1203,15 @@ async function main(): Promise<void> {
 }
 
 function shutdownFromSignal(): void {
-  shutdown().then(() => process.exit(0), error => {
-    console.error(`[CRITICAL] MCP handle closure failed: ${errorMessage(error)}`);
-    process.exit(1);
-  });
+  shutdown().then(
+    () => {
+      process.exitCode = 0;
+    },
+    error => {
+      console.error(`[CRITICAL] MCP handle closure failed: ${errorMessage(error)}`);
+      throw new Error(`MCP handle closure failed: ${errorMessage(error)}`);
+    }
+  );
 }
 
 process.on('SIGINT', shutdownFromSignal);

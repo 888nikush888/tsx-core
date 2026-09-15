@@ -137,7 +137,7 @@ process.on('uncaughtException', (error: unknown) => {
   } catch {
     /* ignore logging failure during fatal crash */
   }
-  process.exit(1);
+  throw new Error(errMsg);
 });
 
 process.on('unhandledRejection', (reason: unknown) => {
@@ -151,7 +151,7 @@ process.on('unhandledRejection', (reason: unknown) => {
   } catch {
     /* ignore logging failure during fatal rejection */
   }
-  process.exit(1);
+  throw new Error(errMsg);
 });
 
 const DEFAULT_PARSER_TIMEOUT_MS = 60000;
@@ -173,7 +173,7 @@ async function checkCrashLoop() {
 
 try { tdl.configure({ tdjson: getTdjson() }); } catch (error) {
   console.error("Fehler beim Initialisieren der TDLib-Bibliothek:", error.message);
-  process.exit(1);
+  throw new Error(`Fehler beim Initialisieren der TDLib-Bibliothek: ${error.message}`);
 }
 
 const OUTBOX_MAX_IN_MEMORY_TASKS = 200;
@@ -1547,8 +1547,8 @@ function shutdown(exitCode = 0): Promise<void> {
   return shutdownPromise;
 }
 
-process.on('SIGINT', () => { void shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
-process.on('SIGTERM', () => { void shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
+process.on('SIGINT', () => { void shutdown(0).finally(() => { process.exitCode = process.exitCode || 0; }); });
+process.on('SIGTERM', () => { void shutdown(0).finally(() => { process.exitCode = process.exitCode || 0; }); });
 
 interface RuntimeConfiguration {
   config: Config;
@@ -2154,30 +2154,10 @@ async function run() {
     addLog('[CRITICAL] Managed settings or secrets are invalid. Routing and new entries remain disabled until repaired and restarted; existing exposure is reconciled where credentials are usable.');
     try {
       await initDb(databasePath);
-      const engine = await composeTradingControl(tradingCredentials, clockGuard);
-      tradingRuntime = new TradingRuntime(engine, 2_000, addLog, clockGuard, startupAuthority);
-      tradingWebControl?.attachEntryRuntime(tradingRuntime);
-      await tradingRuntime.startProtectionOnly();
-    } catch (error: unknown) {
-      addLog(`[CRITICAL] Trading safety state could not be loaded in recovery mode; factory reset remains blocked until database recovery: ${unknownErrorMessage(error)}`);
-    }
-    await startDashboardRuntime(
-      runtime, secretStore, runtimeSettings, tradingCredentials, telegramViewerSettings, telegramViewerSecrets,
-    );
-    return;
-  }
-  startupAuthority.completeGate('configuration');
-  const { retentionPolicy } = await initializeCoreRuntime(tradingCredentials, clockGuard, runtime.config, databasePath);
-  await runStartupGate(startupAuthority, 'dashboard', () => startDashboardRuntime(
-    runtime, secretStore, runtimeSettings, tradingCredentials, telegramViewerSettings, telegramViewerSecrets,
-  ));
-  await startInfrastructureGates(runtime, databasePath, retentionPolicy.minFreeBytes, clockGuard);
-  await runConfiguredMode(runtime);
-}
 try {
   await run();
 } catch (err: unknown) {
   console.error("Kritischer Fehler:", unknownErrorMessage(err));
   await shutdown(1);
-  process.exit(process.exitCode || 1);
+  throw new Error(`Kritischer Fehler: ${unknownErrorMessage(err)}`);
 }
