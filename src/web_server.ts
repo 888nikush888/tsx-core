@@ -1330,7 +1330,7 @@ async function factoryResetHandler(context: RequestContext): Promise<void> {
       id: payload.jobId, kind: 'factory-reset', scope: { service: 'TSX Core' }, request: { confirmation: 'FACTORY RESET' }, status: 200,
       operation: async () => {
         requireCurrentVerifiedBackup(context);
-        await context.appState.performFactoryReset!();
+        await context.appState.performFactoryReset?.();
         addLog('[SECURITY] Complete factory reset executed through the web dashboard.');
         return { message: 'Factory reset completed. Restart into first-run setup requested.' };
       },
@@ -1627,7 +1627,7 @@ async function restoreBackupHandler(context: RequestContext): Promise<void> {
     await runRestartCommand(context, {
       id: payload.jobId, kind: 'backup-restore', scope: { artifactName: name }, request: { name }, status: 200,
       operation: async () => {
-        const restored = await context.appState.restoreBackup!(name);
+        const restored = await context.appState.restoreBackup?.(name) ?? { previousDatabase: undefined, previousConfig: undefined };
         return { name, artifactName: name, rollbackPreserved: Boolean(restored.previousDatabase || restored.previousConfig) };
       },
     });

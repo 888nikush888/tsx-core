@@ -81,9 +81,9 @@ export function PaperLab({ readOnly = true }: Readonly<{ readOnly?: boolean }>) 
     generation.current++;
     setMessage('Paper-Änderung bestätigt. Simulierte Fills, Positionen und Schutz anhand der aktualisierten Belege prüfen.');
     if (!result) return;
-    setSnapshot((current) => ({ ...current, activity: { ...current!.activity,
-      ...(result.market ? { paperMarkets: [...current!.activity.paperMarkets.filter((item) => item.accountId !== result.accountId || item.symbol !== result.market!.symbol), result.market] } : {}),
-      ...(result.balance ? { paperAccounts: [...(current!.activity.paperAccounts ?? []).filter((item) => item.accountId !== result.accountId), result.balance] } : {}),
+    setSnapshot((current) => ({ ...current, activity: { ...(current?.activity ?? {}),
+      ...(result.market ? { paperMarkets: [...(current?.activity?.paperMarkets ?? []).filter((item) => item.accountId !== result.accountId || item.symbol !== result.market.symbol), result.market] } : {}),
+      ...(result.balance ? { paperAccounts: [...(current?.activity?.paperAccounts ?? []).filter((item) => item.accountId !== result.accountId), result.balance] } : {}),
     } }));
     if (kind === 'market' && result.market && !symbol) setSymbol(result.market.symbol);
   };
