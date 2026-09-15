@@ -1,0 +1,29 @@
+{
+  "sonar": "running",
+  "snykJobs": 5,
+  "bothNodeRuns": 226,
+  "run": 34942308145,
+  "container": "independent implementation verifier rejected before image builds",
+  "browserJobs": 4,
+  "scope": "Published1aead48 only; newer local changes have not passed full module gate yet.",
+  "module": {
+    "statements": 96.5,
+    "lines": 96.5,
+    "functions": 99.2,
+    "branches": 86.51
+  },
+  "revision": "1aead48508ef2123a516dd774f0f62152039814b",
+  "critical": {
+    "statements": 97.18,
+    "lines": 97.18,
+    "functions": 100,
+    "branches": 89.88
+  },
+  "mutationJobs": 4,
+  "pythonTests": 547,
+  "core": "success",
+  "log": {
+    "sha256": "acc11d2f3faf289b2e1ba8ec836d7e37edcae447d1f42eb40b8355f2478a7597",
+    "path": "reports/security-services/fixer-ci-1aead48-core-direct.log"
+  }
+}

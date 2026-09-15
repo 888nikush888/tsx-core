@@ -1,0 +1,1138 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-full-historical-core-source-review-wave6",
+  "generatedAt": "2026-09-15T07:54:18.135677+00:00",
+  "baselineRevision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+  "reviewedRevision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+  "selection": {
+    "baseline": "5b025d9",
+    "target": "26127c6",
+    "paths": [
+      "src/ui_parameter_types.ts",
+      "src/ui_parser_lab.ts",
+      "src/ui_resource_publication.ts",
+      "src/ui_restart_coordinator.ts",
+      "src/ui_review_tree.ts",
+      "src/ui_route_inventory.ts",
+      "src/ui_runtime_contract.ts",
+      "src/ui_setup_review.ts",
+      "src/ui_signal_original.ts",
+      "src/ui_signal_reads.ts",
+      "src/ui_trade_relations.ts",
+      "src/ui_trading_reads.ts",
+      "src/ui_workflow_drafts.ts",
+      "src/ui_workflow_models.ts",
+      "src/ui_workflow_reads.ts",
+      "src/viewer_repository.ts",
+      "src/web_server.ts",
+      "src/workflow_fallback_policy.ts",
+      "src/workflow_repository.ts",
+      "src/workflow_repository_rows.d.ts"
+    ]
+  },
+  "counts": {
+    "selected": 20,
+    "completeHistoricalDeltaCoverage": 20,
+    "concreteRegressions": 0,
+    "remainingSelectedFileDeltaGaps": 0
+  },
+  "entries": [
+    {
+      "path": "src/ui_parameter_types.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "c7fd888906e64e251ee45c2b749f918e9065c32a",
+        "gitBlobSha256": "7511b4f75af91f83c51c3711dae6afb4732048b05b9cd53a3dcce00261ed685b"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "cfb01347513e9e673c949628376b1b3444ac6f19",
+        "gitBlobSha256": "f15d15bc34e31062f6c2d68d489f0d58b74ad0884127676a2d30ddf54290c053"
+      },
+      "fullHistoricalDeltaSha256": "c9bd042ffcc206e0491104f64bb273ffd4022677f850f749808ad6cae02c744a",
+      "hunks": [
+        "@@ -1,31 +1,29 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "UiParameter declaration moves to type-only contract import/reexport. defaultAt traverses own object properties and refuses prototype-sensitive segments. All production parameterFields call sites use declared safe FieldSpec paths with DEFAULT_CONFIG, DEFAULT_RUNTIME_SETTINGS, strategy/contract definitions or absent defaults; none traverses primitive string.length. Present null/false/0 remains distinct from absence. This intentionally excludes unsafe/object-external paths, not a valid catalogue regression.",
+      "contextBindings": [
+        {
+          "path": "src/ui_parameter_catalog.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "15ef434bd77cbe4747dfa73d198695673ba519f5",
+          "gitBlobSha256": "8f16a645246ae2aee5f1b95f4daa4031aa8b8aff7cb16a04e7ad56538452a79f"
+        },
+        {
+          "path": "src/ui_model_parameters.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "edb5393c9f005d4d50d342621b08645b3c06a958",
+          "gitBlobSha256": "7b7be8b111843dceff1bc4033b7c0e4d76c768609bdccb1f7f33e3aa95f87f2c"
+        },
+        {
+          "path": "src/ui_contracts.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "8b5d62abae043b2b3a613eb97d2968e60e3d160a",
+          "gitBlobSha256": "5ce33185d9c79c90802207e3efc752d1213fedfe0ecd02bc252ac9f735e9aa9d"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_parser_lab.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "fb73b7a8b9ee9bb1f7b0eb8a8e427c49c38cd4d4",
+        "gitBlobSha256": "d4f1652601c61597b7cebc6aafbaba9fb876f69bdacc288494b98ef631730927"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "03431dc099b38b567b6ae9cbf2da5043ad374b49",
+        "gitBlobSha256": "62531fc9abcb10eca4ba578315ef0a610826b55b5d7ff34a029f5b5060d06bce"
+      },
+      "fullHistoricalDeltaSha256": "38730bf7d80c212377c840bd7adcd2bd44c9cdd5082d613d28d75dcf3abe6f57",
+      "hunks": [
+        "@@ -109,6 +109,6 @@ function boundedXml(xml: string): string {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Only boundedXml high-surrogate guard changes. low indexes an existing prefix of the same string; explicit undefined check is redundant for positive low. Unicode flag tests a single UTF-16 code unit, still detects split high surrogate. Provider consent, preview hash, source/configuration and byte bound are unchanged.",
+      "contextBindings": [
+        {
+          "path": "src/web_server.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "2bc6a4bdbc77ea233bf67fce46cdf268b5a129fc",
+          "gitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_resource_publication.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "4e4281f480822f2ed95b2af22aaf0d6d2fb19773",
+        "gitBlobSha256": "bd4a946dd35786308a2c428d40e65cb96f7324567096f35024687c76610a3525"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "70a0f3b148618c01c6d617f0cc2ac9f498874c46",
+        "gitBlobSha256": "4ac18ac206a5df787275f608613e2f74fb85599303faaad72ae621c38f6e022f"
+      },
+      "fullHistoricalDeltaSha256": "bc5397f985979823603843a9af6f4d97567dc490ca378f240a60a1bfc741c3e4",
+      "hunks": [
+        "@@ -2,13 +2,36 @@ import { requireString } from './contract_values.js';",
+        "@@ -17,12 +40,9 @@ export async function uiResourcePublication(id: string) {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full helper extraction: dependency strategy/contract dispatch, hash conflict before dependency existence, archived rejection, draft-only publication, then workflow resource publication. requireString validates reference IDs already required by workflow resource validators. Both publications remain under the same DB owner. A no-dependency/non-draft branch now crosses a resolved-Promise await; no external call or loss of transaction scope. No timing-equivalence claim.",
+      "contextBindings": [
+        {
+          "path": "src/workflow_repository.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "0ad9dc45138822c8a83eb0dba7a0e304f99cdc52",
+          "gitBlobSha256": "6e0ba9a081c37b9b7a50b2ae5590201c20e065bd64d698338bb6d239adb16080"
+        },
+        {
+          "path": "src/db.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "64ac91b806dac2cc1934deb2ae812fdfa3db3562",
+          "gitBlobSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8"
+        },
+        {
+          "path": "src/ui_workflow_reads.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "c9b42091d05acaccb91f2709f0bad8fcfaf7a7d4",
+          "gitBlobSha256": "27b2f613efdb68f1f93eb917b49794f12c5785cb4496ca38893b914d1f7a9d16"
+        },
+        {
+          "path": "src/web_server.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "2bc6a4bdbc77ea233bf67fce46cdf268b5a129fc",
+          "gitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_restart_coordinator.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "ef4c62233a609faa84d45255d112fd1b03d7a5e0",
+        "gitBlobSha256": "13b34fdab7a50bdfe09434b66fcb95ee4955917e788d31d7923e0719b94b7295"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "d27ede6503f5de1bf401171442f74be58471089f",
+        "gitBlobSha256": "5d908b97ef37ea4b700f5f1bf562f1d34c22a1f5552f9a967a1d93ff49f5e303"
+      },
+      "fullHistoricalDeltaSha256": "a2d12fa940652a8cfb1ae49eb7a6ee5ea67d683c2d10b3d11586d20c02fc655c",
+      "hunks": [
+        "@@ -33,7 +33,7 @@ export function createProcessRestartRequest(shutdown: () => Promise<unknown>, sh",
+        "@@ -52,17 +52,18 @@ export class UiRestartCoordinator {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full diff changes finish from arrow to hoisted local function and captures requestRestart. scheduled/current-instance/state/idempotence guards, 500ms referenced deadline, listener cleanup and immediate finished-response behavior remain. Captured callback no longer receives coordinator as this; all actual callers inspected use receiver-free closures (forwarder createProcessRestartRequest, restart fixture, web-server and recovery tests). No supported receiver-dependent caller exists. Event registration follows fallback assignment, so clearTimeout always sees initialized timer.",
+      "contextBindings": [
+        {
+          "path": "src/forwarder.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "79247f59ebcfffef06437a2dabc534cc5752fb17",
+          "gitBlobSha256": "71537e7d74b2b9d9ea00176b16779e90cbceb79628676cf7008cf22bfa31c62c"
+        },
+        {
+          "path": "src/web_server.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "2bc6a4bdbc77ea233bf67fce46cdf268b5a129fc",
+          "gitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653"
+        },
+        {
+          "path": "tests/test_ui_restart_recovery.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "a34b2c5f749d3a8be9d3f015031f16b7375a4063",
+          "gitBlobSha256": "7cbb0560643ec13c3027ee9a5fe4c46898af120c54d1b86b2a874d267faf7b3d"
+        },
+        {
+          "path": "tests/fixtures/ui_restart_fixture.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "568b0947238939404a5de44c07bd18e3ed7ae6b1",
+          "gitBlobSha256": "e851639528afeb7df657abe55421e2bdb8744677a59f3ad2f016cea073c4deac"
+        },
+        {
+          "path": "tests/test_web_server.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "3dc1475645771b203c3847c65909eaaafbc22007",
+          "gitBlobSha256": "785f92778ea758bd28e9db59ec5b36d5143053c5e05d82b5d51a06fe19f1c616"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_review_tree.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "93a69dddeb168940d7ff61e11d84fc2e181ff052",
+        "gitBlobSha256": "03c012efab18113430de1b1d19440086b969d7aa41725ad365a9afd1c198e66e"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "1580439225395207de4f67537cdf2036ed1320ab",
+        "gitBlobSha256": "d9ca26a03ef71ad95f888e1865e7cfdd6beb7167b7b3aa1b9fdfa9256126ae67"
+      },
+      "fullHistoricalDeltaSha256": "6229409e6e9987bc7f1e4aa5d77aafa57e687c36ebfea381066128390c21492b",
+      "hunks": [
+        "@@ -2,16 +2,19 @@ import { redactReview } from './ui_change_review.js';",
+        "@@ -24,7 +27,7 @@ function nodeEntry(key: string, value: any, path: string[]) {",
+        "@@ -39,8 +42,9 @@ export function uiReviewTree(root: unknown, query: URLSearchParams, scope: unkno"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "isReviewContainer replaces equivalent null/truthy/object checks; arrays remain traversable. Own-key and protected-key rejection, cursor binding, 30-key paging and empty primitive return shape remain. String section high-surrogate test adds Unicode mode to one code unit and keeps exact UTF-16 boundary. Typed container fallback changes no Object.keys output for supported roots.",
+      "contextBindings": [
+        {
+          "path": "src/ui_change_review.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "ed067d3fb22a4153dcbbbf8e092633cdb71bd45c",
+          "gitBlobSha256": "7ab52e76ad50d969c76345ea6c753e97702591f93376ea03595c17920ed33afb"
+        },
+        {
+          "path": "src/web_server.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "2bc6a4bdbc77ea233bf67fce46cdf268b5a129fc",
+          "gitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653"
+        },
+        {
+          "path": "tests/test_ui_change_reviews.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "8af8d11e677aa3ae8085d24739dd7fcbbcfe347a",
+          "gitBlobSha256": "ebec2a19f62ce75c5204fdb0e6e7e1a4276b784522185f8dc6de9dcf4cde6aa6"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_route_inventory.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "1a321bd3c220c8f9c8c010d6adad3bf4fb9870ba",
+        "gitBlobSha256": "ced713ca27c1f2f82294c0747cf055aac34193008c20e954f966edd2e398d685"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "94ab4f23a538ded399c5bd9a2efc06c33bc77d44",
+        "gitBlobSha256": "f75ba6df430b2b52fc676b60842f51206045dd482b88b43132b83e03e06f7a7e"
+      },
+      "fullHistoricalDeltaSha256": "35cbdab2a896e9c464d01e5d0837db799fb7df07ceffdef7065286a566248fd0",
+      "hunks": [
+        "@@ -3,8 +3,8 @@ export const UI_ROUTE_INVENTORY = [",
+        "@@ -25,7 +25,7 @@ export const UI_ROUTE_INVENTORY = [",
+        "@@ -36,12 +36,12 @@ export const UI_ROUTE_INVENTORY = [",
+        "@@ -49,7 +49,7 @@ export const UI_ROUTE_INVENTORY = [",
+        "@@ -64,14 +64,14 @@ export const UI_ROUTE_INVENTORY = [",
+        "@@ -109,7 +109,7 @@ export const UI_ROUTE_INVENTORY = [",
+        "@@ -123,8 +123,8 @@ export const UI_ROUTE_INVENTORY = ["
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Complete diff checked as generated route metadata. Machine comparison strips only handlerSha256 and proves every other route/handler/role/recovery/confirmation/input field and ordering identical across all rows. These hashes bind altered handler text; they do not prove handler authorization by themselves. Webserver full historical delta separately reviewed here.",
+      "contextBindings": [
+        {
+          "path": "scripts/build_ui_route_inventory.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "0fc5892edcb9ddcd4612927d64b9b60cc35be8d2",
+          "gitBlobSha256": "a1e73d8f6f48f7dce5acbdc87585e54c17233e18caf8afd91d4c19d787a2fb2c"
+        },
+        {
+          "path": "src/web_server.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "2bc6a4bdbc77ea233bf67fce46cdf268b5a129fc",
+          "gitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_runtime_contract.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "909c70bcc3c03cf3a24c25332fc00a0337484ed1",
+        "gitBlobSha256": "1b9aa0dd7ed8d8ab3f760a3fb9307b1f2e53e34e8a611c7ffa4440944b5d8d8d"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "fe6a8b666d58f44f199323b2cd1f614816ab7ff5",
+        "gitBlobSha256": "186bab704b3305ad3feb3ccca2da611819e958806e6eea57385d1c1627bd425d"
+      },
+      "fullHistoricalDeltaSha256": "14b95e9656673bfd84ba235a0d955d1bb8ff2d83d8f6e292fd48edd329b400d8",
+      "hunks": [
+        "@@ -10,20 +10,27 @@ export const RUNTIME_INTEGER_RANGES = {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Group prefix/pattern loops and suffix table replace same predicates. Prefix ordering moves backup/data before authentication, but languages are disjoint: no string starts with backup/data and dashboard/tailscale/oidc/enterprise. Audit/alert and jsonLogging remain separate. Suffixes remain same order and matching rules. No external state or asynchronous behavior.",
+      "contextBindings": [
+        {
+          "path": "src/ui_parameter_catalog.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "15ef434bd77cbe4747dfa73d198695673ba519f5",
+          "gitBlobSha256": "8f16a645246ae2aee5f1b95f4daa4031aa8b8aff7cb16a04e7ad56538452a79f"
+        },
+        {
+          "path": "src/ui_effective_parameters.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "a5c5dfa7397ef75c46d88e87a89c141725b3a1a5",
+          "gitBlobSha256": "474c2e30a0286a0525339a59f346e15bdc710c77fba01dece459753ff70c398d"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_setup_review.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "ec420cc35dc0837a37c063149710f676295fb6ff",
+        "gitBlobSha256": "62140e82ad0bae630a57fa2b6dd96371883654ac2a275085905eee7e36380b3f"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "c95540b0f594e48e70f161e713b0d9b48a660c31",
+        "gitBlobSha256": "60ed15f819cd1cb2269883567587abedb3b8c4da87bcaaf56b4227f1e3f0f9cf"
+      },
+      "fullHistoricalDeltaSha256": "d78407e09bb15232e86360d8846a0d67970d2b12ea9cb3cc3a35a317e047a699",
+      "hunks": [
+        "@@ -2,14 +2,14 @@ import { exportPortableSetupBundle, type PortableSetupBundle } from './setup_bun"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Only object redaction wrapper substitution on locally constructed content object. redactReviewRecord calls redactReview at depth 0 with same default PII policy. Paged cutoff, effect and imported setup fields unchanged.",
+      "contextBindings": [
+        {
+          "path": "src/ui_change_review.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "ed067d3fb22a4153dcbbbf8e092633cdb71bd45c",
+          "gitBlobSha256": "7ab52e76ad50d969c76345ea6c753e97702591f93376ea03595c17920ed33afb"
+        },
+        {
+          "path": "src/web_server.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "2bc6a4bdbc77ea233bf67fce46cdf268b5a129fc",
+          "gitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653"
+        },
+        {
+          "path": "src/setup_bundle.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "2f8c7542464a1858939b3674ecb9a5c946d997f6",
+          "gitBlobSha256": "92f77eb1ea8f17df10b698a4734d23f14d0cda0f3fb56b04a3988a89d4f79d27"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_signal_original.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "91191037c8408e34541cef766a512a9f9eb295fd",
+        "gitBlobSha256": "95213da362898ec6d04d7260865aa1ce1d56e8d48eb8f2f91ebfc54a9d568483"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "a4ce9a6fcf4579bd5e57514c021d7b398c5a600d",
+        "gitBlobSha256": "91244b3aee37ccd7ac3df1b9d7f9aa1f73815e519e270911cc9b4020b7124edd"
+      },
+      "fullHistoricalDeltaSha256": "3d2c5093994c57864e8e8d622c79097b8850fd63deb540b814c779aac105fdc0",
+      "hunks": [
+        "@@ -3,19 +3,38 @@ import { maskPII } from './logger.js';"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full kind/field/offset helper extraction preserves id validation, default processed/xml and messages/text, whitelist-owned SQL columns, filter fingerprint and numeric cursor validation. OriginalColumn message-id validation precedes field check now, but same failure text and no side effect; unsupported kind is rejected before dictionary use. No inherited key becomes SQL.",
+      "contextBindings": [
+        {
+          "path": "src/web_server.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "2bc6a4bdbc77ea233bf67fce46cdf268b5a129fc",
+          "gitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653"
+        },
+        {
+          "path": "tests/test_ui_next_reads.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "222cf1ffb46fde1e9f113872b4c6c9cd6c4c46b4",
+          "gitBlobSha256": "ee4a0e77d50ad846b473600991c7079de71cb1e16be1675033ccf72ff2f8dc93"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_signal_reads.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "f2e1498a82084bf620e9f1149631a33d01ac2a74",
+        "gitBlobSha256": "90bd7e7539f6a3c9729eb8238544f4f4f9a48a1e23c6226d556339ec4b72fdef"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "01ed60330be097ec6470057907fa7eb7467afbf8",
+        "gitBlobSha256": "684372a25aa136fc8a897b29b84c82b85cb21d4c16234115474e24bc83e55e4b"
+      },
+      "fullHistoricalDeltaSha256": "87584094978005f7c5f43f2c6f11662c37ce1e4b528d757b82f7b1564c179e20",
+      "hunks": [
+        "@@ -20,7 +20,7 @@ const LISTS = {",
+        "@@ -44,7 +44,7 @@ function signalFilters(kind: UiSignalList, query: URLSearchParams) {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Only pending_tasks projection literal delimiter changes and trailing whitespace. SQL decoded literal is unchanged, including nested json_valid/acknowledgement/target checks. Paging, source visibility and state definitions untouched.",
+      "contextBindings": [
+        {
+          "path": "tests/test_ui_next_reads.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "222cf1ffb46fde1e9f113872b4c6c9cd6c4c46b4",
+          "gitBlobSha256": "ee4a0e77d50ad846b473600991c7079de71cb1e16be1675033ccf72ff2f8dc93"
+        },
+        {
+          "path": "src/web_server.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "2bc6a4bdbc77ea233bf67fce46cdf268b5a129fc",
+          "gitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_trade_relations.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "6323317f14854e8320b8dfa4568d91960cdf7356",
+        "gitBlobSha256": "d77b30697856503ee200f1bd7e5e4b9a142ea43d88b58c7185e19236d2a7b0d7"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "fe3b3d998a8c6bcbed157bd5bd1add54a08043b1",
+        "gitBlobSha256": "34f3bcfa8454812adf2c9c19215349ca7e30b23a92f5c95599d8bb29933ebdba"
+      },
+      "fullHistoricalDeltaSha256": "07246785b64edad49da6190e57352d08f5fbd0ef89f28e1094ec81fddfb2f6f0",
+      "hunks": [
+        "@@ -1,4 +1,5 @@",
+        "@@ -16,33 +17,47 @@ const RELATIONS = {",
+        "@@ -52,21 +67,53 @@ export async function uiTradeRelationPage(intentId: string, kind: UiTradeRelatio"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full delta covers moneyConversion and relation-page helpers, not merely later parameter grouping. Extra getMoneyEvent for FX account identity is inside sole relationPage BEGIN IMMEDIATE transaction: both reads observe same event/account identity; no source mutation performed. Error-to-unresolved handling and redaction preserved. Entries remain sequential, SQL whitelist/parameters/order/limit+1/cursor/observedAt identical. await Promise.resolve before acquiring DB owner is an extra yield; observation cutoff is still captured before transaction as historically, and no execution/authorization action occurs here. No microtask equivalence or immutable-status snapshot claim.",
+      "contextBindings": [
+        {
+          "path": "src/db.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "64ac91b806dac2cc1934deb2ae812fdfa3db3562",
+          "gitBlobSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8"
+        },
+        {
+          "path": "src/trading_money_ledger.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "dd5b53a300027aca6809e26f230c9ee9f8807cbd",
+          "gitBlobSha256": "426aa130dfdd0ddbc6f1478843dedd5002ede29760b74c9c1694f4b42047de67"
+        },
+        {
+          "path": "src/trading_fx_valuation.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "a81e1dca828b5e0af7d77ada545c5b46f62dc524",
+          "gitBlobSha256": "a3a9a93fe3835479454e5b185b43e4774049293ad886dd0baac69cb5e025ece2"
+        },
+        {
+          "path": "src/web_server.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "2bc6a4bdbc77ea233bf67fce46cdf268b5a129fc",
+          "gitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653"
+        },
+        {
+          "path": "tests/test_ui_next_reads.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "222cf1ffb46fde1e9f113872b4c6c9cd6c4c46b4",
+          "gitBlobSha256": "ee4a0e77d50ad846b473600991c7079de71cb1e16be1675033ccf72ff2f8dc93"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_trading_reads.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "2f3e0a40926804010d02597087ee43da83ff211d",
+        "gitBlobSha256": "7988942f0b99ecf6a1bab672bb1990da24a849db3c08195472f0f19e7a795a36"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "6b2d7aac7abbd49662c6965e2db1936acae6749b",
+        "gitBlobSha256": "0c487374e052abdff5edd0b83a0103b2bba2d0a018dbdf1dd73e0d5f4ef8b4ee"
+      },
+      "fullHistoricalDeltaSha256": "49aa9aaf4526e3bc47dd68f16e79c5640bd2415d47101d578e4e6e38ebef6b67",
+      "hunks": [
+        "@@ -112,18 +112,15 @@ export async function uiTradeSafety(intentId: string, accountId: string) {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Full diff comprises SQL literal quoting and whitespace only: same account fields, bound account id, stream/reconciliation/capacity/path queries and concurrent protection read; no plan/execution behavior changes.",
+      "contextBindings": [
+        {
+          "path": "tests/test_ui_next_reads.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "222cf1ffb46fde1e9f113872b4c6c9cd6c4c46b4",
+          "gitBlobSha256": "ee4a0e77d50ad846b473600991c7079de71cb1e16be1675033ccf72ff2f8dc93"
+        },
+        {
+          "path": "src/web_server.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "2bc6a4bdbc77ea233bf67fce46cdf268b5a129fc",
+          "gitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_workflow_drafts.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "f188f441642ccdf7c8e12ff00c777a23501f30bb",
+        "gitBlobSha256": "5fba62adabf9313fa9e9c572a09136861b9aaf84197df1d24c3833d366272c53"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "6c1e946e18d781b31d9e5a25a06f3dd43972c6ab",
+        "gitBlobSha256": "1136f7934517fa885634d72e62071d38285075b96a067f32c984b7bd8f453cec"
+      },
+      "fullHistoricalDeltaSha256": "ee7d87343dc8a11c97d7a4aaa5ce7d3d43ebc34b45c8919099929cd2e2e1630b",
+      "hunks": [
+        "@@ -14,14 +14,37 @@ export async function getUiWorkflowDraft(id: string) {",
+        "@@ -43,12 +66,49 @@ export async function deleteUiWorkflowDraft(id: string, baseVersion: unknown) {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Input guards split into synchronous helpers in original id/baseVersion/actor/baseRevision order, then validateGraph/JSON/1MiB bound. Activation splits same short-circuit current/expired/version/base/graph hash checks without evaluating graph on earlier failure. saveWorkflowRevision and draft rebasing remain awaited within same transaction; no stale revision bypass.",
+      "contextBindings": [
+        {
+          "path": "src/workflow_repository.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "0ad9dc45138822c8a83eb0dba7a0e304f99cdc52",
+          "gitBlobSha256": "6e0ba9a081c37b9b7a50b2ae5590201c20e065bd64d698338bb6d239adb16080"
+        },
+        {
+          "path": "src/db.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "64ac91b806dac2cc1934deb2ae812fdfa3db3562",
+          "gitBlobSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8"
+        },
+        {
+          "path": "tests/test_ui_next_reads.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "222cf1ffb46fde1e9f113872b4c6c9cd6c4c46b4",
+          "gitBlobSha256": "ee4a0e77d50ad846b473600991c7079de71cb1e16be1675033ccf72ff2f8dc93"
+        },
+        {
+          "path": "src/web_server.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "2bc6a4bdbc77ea233bf67fce46cdf268b5a129fc",
+          "gitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_workflow_models.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "ca9bd106f607efbf05d71ebf0ab0aec4b3033c2e",
+        "gitBlobSha256": "081390c86a4a120473847c91c41e1fdbfecca1736732534415675e99e8a65221"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "cc96906777584f274404befbda3e8adcc0ff7064",
+        "gitBlobSha256": "b714f27418eb6bb55660b0c5e643c9dbaf9b329d36914ec3a73eb97e3d38221d"
+      },
+      "fullHistoricalDeltaSha256": "0f083932a8326019ba6c5b62a270b6b00b7f5a956dea09fdd4088d0618b97a25",
+      "hunks": [
+        "@@ -5,16 +5,16 @@ import { getTradingSignalSchemaById, getTradingStrategyVersion, getSignalContrac",
+        "@@ -65,7 +65,11 @@ export async function uiModelDetail(inputKind: unknown, inputId: unknown) {",
+        "@@ -98,6 +102,6 @@ export async function mutateUiModel(input: { kind: unknown; id: unknown; action:"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Schema enable/disable now explicitly rejects missing current schema before update; outer mutateUiModel already resolves current and runs transaction. Existing schema spread and enabled value identical; missing schema still fails closed. SQL values unchanged. Result object redaction wrapper retains depth/PII policy.",
+      "contextBindings": [
+        {
+          "path": "src/trading_repository.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "4f4e683e748c7a4437fbdc916c2993fdc2dd94c2",
+          "gitBlobSha256": "e6e66619c460a1500fc116fed381c820231c2dbcfd16837684a3364166045c93"
+        },
+        {
+          "path": "src/ui_change_review.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "ed067d3fb22a4153dcbbbf8e092633cdb71bd45c",
+          "gitBlobSha256": "7ab52e76ad50d969c76345ea6c753e97702591f93376ea03595c17920ed33afb"
+        },
+        {
+          "path": "src/web_server.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "2bc6a4bdbc77ea233bf67fce46cdf268b5a129fc",
+          "gitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/ui_workflow_reads.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "a3a70fe96223cd2a5d26cc4f2ca8a5e51dccf9d1",
+        "gitBlobSha256": "ee17ef58f02ca9c5dc54d8d6ce8b170f21668307ae9875e4a58c68ea61ceb3fe"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "c9b42091d05acaccb91f2709f0bad8fcfaf7a7d4",
+        "gitBlobSha256": "27b2f613efdb68f1f93eb917b49794f12c5785cb4496ca38893b914d1f7a9d16"
+      },
+      "fullHistoricalDeltaSha256": "069b83ace65a1ed0201288b95dc02a69c7c32919cd3116d6f007fc5d369fcda1",
+      "hunks": [
+        "@@ -2,7 +2,7 @@ import { getDatabase } from './db.js';",
+        "@@ -67,7 +67,7 @@ async function resourceDetail(objectId: string, observedAt: number) {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Only resourceDetail switches redactReview(resource,0,false) to redactReviewRecord({...resource},false). resourceFromRow returns plain enumerable own data fields; spread loses no supported field. PII flag remains false and key-secret redaction remains active. Active node binding/read pagination unchanged.",
+      "contextBindings": [
+        {
+          "path": "src/workflow_repository.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "0ad9dc45138822c8a83eb0dba7a0e304f99cdc52",
+          "gitBlobSha256": "6e0ba9a081c37b9b7a50b2ae5590201c20e065bd64d698338bb6d239adb16080"
+        },
+        {
+          "path": "src/ui_change_review.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "ed067d3fb22a4153dcbbbf8e092633cdb71bd45c",
+          "gitBlobSha256": "7ab52e76ad50d969c76345ea6c753e97702591f93376ea03595c17920ed33afb"
+        },
+        {
+          "path": "src/ui_resource_publication.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "70a0f3b148618c01c6d617f0cc2ac9f498874c46",
+          "gitBlobSha256": "4ac18ac206a5df787275f608613e2f74fb85599303faaad72ae621c38f6e022f"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/viewer_repository.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "4353ec0584afdc07ceb14445480532393d9e57f5",
+        "gitBlobSha256": "439f0c077b69055feaeb6207afe9745749fe1bd679f486f436ead0621f5394d1"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "4a5956e76ca7fff761d2ca5a175b974cbcff350a",
+        "gitBlobSha256": "e209d53691318c396d3615a2896ab24dd340515e4437ac2a552ef7f109651d4f"
+      },
+      "fullHistoricalDeltaSha256": "92e2486040940e9e7264591a7561f0b46ff1a43cff4c43990b9486ae42e8b418",
+      "hunks": [
+        "@@ -99,8 +99,9 @@ export async function recordTradingNotificationEvent(input: {",
+        "@@ -166,7 +167,8 @@ export async function createTelegramViewerTestEvent(input: {"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Two explicit non-null identity checks replace assertions. identifier(nullable=false) already throws for null/undefined/empty/nonmatching strings; new !id/!dedupeKey/!createdBy branches are unreachable for normal validated values. Event type, secret rejection, dedupe transaction and viewer test creation unchanged.",
+      "contextBindings": [
+        {
+          "path": "src/viewer_types.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "3c1728133fd074a21bd14f41d3c476f71b3ee2b0",
+          "gitBlobSha256": "d164aef9a37437b3ef7cf0ea3efb11c8e68b324c6550c30fc53b03607d5792bf"
+        },
+        {
+          "path": "src/trading_notifications.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "768338f15b6247cde2c62b0daf54614fccc52e4e",
+          "gitBlobSha256": "97b8ef4e2494f6f70a8ad437dd0164f04805517f3135155beb54c639fa189a86"
+        },
+        {
+          "path": "tests/test_telegram_viewer_core.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "9b4ecc8742b35cb778c6090c8b0d9866e2e51b2b",
+          "gitBlobSha256": "fb1f0ebae3e523a79d6275f11b3a151225260d429f50a3b12d9b6d38e3b183f8"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/web_server.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "fccd939943326baac9504488b69bba65efc4ec89",
+        "gitBlobSha256": "87b0677894440971205d1d1d6673f5454392c48edaec8bfd1f4ea04e5f2fb77b"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "2bc6a4bdbc77ea233bf67fce46cdf268b5a129fc",
+        "gitBlobSha256": "943fef8927397db79d699b1d9f60336613ab28d793a77ba99b22f58f02f7b653"
+      },
+      "fullHistoricalDeltaSha256": "c982d366ecd2ff32d1df8ecb472444cb720be996e5f20c724c7fbdb07a455a5e",
+      "hunks": [
+        "@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url';",
+        "@@ -91,7 +93,7 @@ import { type UiOperationStore, type UiJobKind, UI_PROCESS_INSTANCE_ID } from '.",
+        "@@ -171,21 +173,28 @@ const MIME_TYPES: Record<string, string> = {",
+        "@@ -378,7 +387,7 @@ async function readJsonBody(req: http.IncomingMessage, maxBytes = 256 * 1024): P",
+        "@@ -508,7 +517,7 @@ function installMutationAuditBarrier(context: RequestContext): void {",
+        "@@ -545,7 +554,7 @@ function installMutationAuditBarrier(context: RequestContext): void {",
+        "@@ -652,7 +661,7 @@ function firstConfigured(...values: Array<string | undefined>): string {",
+        "@@ -769,8 +778,14 @@ function sendDownload(",
+        "@@ -882,7 +897,7 @@ function requireConfirmation(context: RequestContext, expected: string, message:",
+        "@@ -991,7 +1006,7 @@ async function controlHandler(context: RequestContext): Promise<void> {",
+        "@@ -1043,7 +1058,7 @@ function getConfigHandler({ res, appState }: RequestContext): void {",
+        "@@ -1139,7 +1154,7 @@ async function previewSetupBundleHandler(context: RequestContext): Promise<void>",
+        "@@ -1223,25 +1238,25 @@ function setupBundleAccountMappings(payload: any, preview: SetupBundlePreview):",
+        "@@ -1252,15 +1267,16 @@ async function applySetupBundleHandler(context: RequestContext): Promise<void> {",
+        "@@ -1286,7 +1302,7 @@ async function applySetupBundleHandler(context: RequestContext): Promise<void> {",
+        "@@ -1369,6 +1385,21 @@ function operationsHandler({ res, appState }: RequestContext): void {",
+        "@@ -1379,9 +1410,9 @@ async function runBackupHandler(context: RequestContext): Promise<void> {",
+        "@@ -1497,13 +1528,14 @@ async function runRestartCommand(context: RequestContext, command: {",
+        "@@ -1571,9 +1603,9 @@ async function recoverOffsiteBackupHandler(context: RequestContext): Promise<voi",
+        "@@ -1844,7 +1876,8 @@ async function uiWorkflowObjectsHandler(context: RequestContext): Promise<void>",
+        "@@ -2247,7 +2280,7 @@ async function uiWorkflowDraftHandler(context: RequestContext): Promise<void> {",
+        "@@ -2265,6 +2298,13 @@ async function uiJobsHandler(context: RequestContext): Promise<void> {",
+        "@@ -2274,16 +2314,13 @@ async function uiParserLabHandler(context: RequestContext): Promise<void> {",
+        "@@ -2294,9 +2331,9 @@ async function uiBackupDrillHandler(context: RequestContext): Promise<void> {",
+        "@@ -2307,7 +2344,7 @@ async function mcpSnapshotHandler(context: RequestContext): Promise<void> {",
+        "@@ -2318,7 +2355,9 @@ async function mcpSnapshotHandler(context: RequestContext): Promise<void> {",
+        "@@ -2723,30 +2762,46 @@ function bootstrapStatusHandler(",
+        "@@ -2811,8 +2866,7 @@ async function authorizeLocalSessionInitialization(",
+        "@@ -2925,36 +2979,49 @@ function staticResponseBody(",
+        "@@ -3114,15 +3181,19 @@ async function internalViewerPayload(context: RequestContext, relativePath: stri",
+        "@@ -3185,7 +3256,7 @@ export function startWebServer(",
+        "@@ -3199,7 +3270,7 @@ export function startWebServer("
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "Entire historical diff inspected: typed app state/records, actor guards, job wrappers, bootstrap/parser/static helpers and viewer regex narrowing. Actor requirement is reached after route auth; missing actor now deliberate401. Job wrappers preserve bound appState method receiver and asynchronous failures observed by store.run catch; removed void does not alter execution. Setup replacement now validateConfig before persistence/import, aligning active config with validated persisted config; invalid input rejects before beforeCommit. Existing backup, preview/hash, audit and rollback paths remain. Bootstrap has extra awaited proof helper even on loopback, but same mode/configured/store/proof/origin and subsequent audit sequence; no authorization removed. Static path decode/containment and MIME/gzip/cache/fallback identical, with a second deterministic decode after first successful decode. Internal viewer groups remain exact regex allowlist. Internal HTTP remains user-accepted separate risk; not FP.",
+      "contextBindings": [
+        {
+          "path": "src/dashboard_auth.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "90c5575421e27497bace3a2a35ae15ff13bc8a7e",
+          "gitBlobSha256": "f21c02da3de736ef39afda8963d54bc4e10c6f66e9cd98fd79f5f361afc3bdc2"
+        },
+        {
+          "path": "src/config.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "dfe21487fd9f0da0bb8cd5e8b9b491a509716ea7",
+          "gitBlobSha256": "835d6fb83af653ea6d239170e451eaade10299fa7a9bbe6287c6f383f5ff0b53"
+        },
+        {
+          "path": "src/setup_bundle.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "2f8c7542464a1858939b3674ecb9a5c946d997f6",
+          "gitBlobSha256": "92f77eb1ea8f17df10b698a4734d23f14d0cda0f3fb56b04a3988a89d4f79d27"
+        },
+        {
+          "path": "src/ui_operation_store.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "60e0fc63e67ccebbb5459c9cef65a84d4122ee97",
+          "gitBlobSha256": "6ca19330d59d052caa32494dbfbaff7c32098e5ac28a9efc9528dbbdc7cdbdd3"
+        },
+        {
+          "path": "src/ui_restart_coordinator.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "d27ede6503f5de1bf401171442f74be58471089f",
+          "gitBlobSha256": "5d908b97ef37ea4b700f5f1bf562f1d34c22a1f5552f9a967a1d93ff49f5e303"
+        },
+        {
+          "path": "tests/test_web_server.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "3dc1475645771b203c3847c65909eaaafbc22007",
+          "gitBlobSha256": "785f92778ea758bd28e9db59ec5b36d5143053c5e05d82b5d51a06fe19f1c616"
+        },
+        {
+          "path": "tests/test_ui_operator_commands.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "3b6036b1d81ab258bb97229da94f7f4f03f268c7",
+          "gitBlobSha256": "ec105e7f5506c7a8e93ce56e033fb73c18d804853d0391b299cda9edd70b2d5c"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/workflow_fallback_policy.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "cdbe96502f0dc410c9e2a310eafffbefa637e7ff",
+        "gitBlobSha256": "b524fa25255fd1dccb7d5746f21fcc82e168279c4898acea5024802b501f68d2"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "63d58ffec392db9d2cfe4ac7793ebba386b17438",
+        "gitBlobSha256": "1bd4e0333f032aaffa143fb4d6473b4dfdfb635dc69f4f6fab294b4b3a9305f2"
+      },
+      "fullHistoricalDeltaSha256": "0f5ce9d92dd26d4f7dd83e5e58651a87ec8410ed4d5cfd822f1cf4d8c6ef7a88",
+      "hunks": [
+        "@@ -16,11 +16,16 @@ export function isWorkflowFallbackReason(value: unknown): value is WorkflowFallb"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "fallbackRank explicitly throws for unknown reason instead of undefined subtraction/NaN. Only production caller workflowEdgeFallbackPolicy verifies reason allowlist and uniqueness before canonicalization, so validated policies preserve stable canonical ordering. No fallback reason expanded, no live account promotion changed.",
+      "contextBindings": [
+        {
+          "path": "src/workflow_repository.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "0ad9dc45138822c8a83eb0dba7a0e304f99cdc52",
+          "gitBlobSha256": "6e0ba9a081c37b9b7a50b2ae5590201c20e065bd64d698338bb6d239adb16080"
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "f3a51ba9d1c2a72d10d521fb480b58641d0fad21",
+          "gitBlobSha256": "5b4355690d90e856d362f8b670dd0d1e33b0a30239e11613585c01123568e57f"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/workflow_repository.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "gitBlobOid": "5b2235f27cd836dd97b8ad91c48621f6b9c3dd07",
+        "gitBlobSha256": "a10d03ae130903587ecc4be970ac99c333f20e46c22c666c5541e586699be9bd"
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "0ad9dc45138822c8a83eb0dba7a0e304f99cdc52",
+        "gitBlobSha256": "6e0ba9a081c37b9b7a50b2ae5590201c20e065bd64d698338bb6d239adb16080"
+      },
+      "fullHistoricalDeltaSha256": "0711c8940a555fdcafbeca1815aad92b8319882659d2a75a01767d2ae757ea57",
+      "hunks": [
+        "@@ -1,3 +1,5 @@",
+        "@@ -9,6 +11,8 @@ import { composeSignalSchemaContract } from './signal_contract.js';",
+        "@@ -64,18 +68,18 @@ const EMPTY_WORKFLOW_GRAPH: WorkflowGraph = { schemaVersion: 1, nodes: [], edges",
+        "@@ -117,7 +121,7 @@ interface WorkflowHistoryState {",
+        "@@ -181,7 +185,7 @@ async function writeWorkflowBuilderHistory(history: WorkflowHistoryState, now: n",
+        "@@ -217,7 +221,7 @@ export async function clearWorkflowBuilderHistory(reason: unknown, now = Date.no",
+        "@@ -226,26 +230,31 @@ function validateRegexConfiguration(value: ResourceConfiguration): Record<string",
+        "@@ -253,11 +262,11 @@ function validateParserConfiguration(value: ResourceConfiguration): Record<strin",
+        "@@ -277,7 +286,7 @@ function validateSizingConfiguration(value: ResourceConfiguration): Record<strin",
+        "@@ -296,10 +305,11 @@ function adaptiveRiskTiers(value: ResourceConfiguration): Array<{ riskPercent: s",
+        "@@ -310,10 +320,10 @@ function optionalBoolean(value: unknown, label: string): void {",
+        "@@ -322,14 +332,15 @@ function optionalAdaptiveTier(value: unknown, tierCount: number): number | null",
+        "@@ -346,8 +357,8 @@ function validateAdaptiveRiskConfiguration(value: ResourceConfiguration): Record",
+        "@@ -364,7 +375,7 @@ function validateDedupeConfiguration(value: ResourceConfiguration): Record<strin",
+        "@@ -396,7 +407,7 @@ function validateResourceConfiguration(kind: WorkflowResourceKind, input: unknow",
+        "@@ -408,7 +419,7 @@ function resourceFromRow(row: any): WorkflowResourceVersion {",
+        "@@ -497,9 +508,9 @@ function hydratedRouteGroups(",
+        "@@ -528,14 +539,14 @@ async function workflowRevisionFromRow(row: any): Promise<WorkflowRevision> {",
+        "@@ -578,7 +589,7 @@ export async function updateWorkflowResourceDraft(id: string, input: {",
+        "@@ -595,12 +606,12 @@ export async function updateWorkflowResourceDraft(id: string, input: {",
+        "@@ -614,7 +625,7 @@ export async function archiveWorkflowResource(id: string, now = Date.now()): Pro",
+        "@@ -630,7 +641,7 @@ export async function archiveWorkflowResourceFamily(",
+        "@@ -651,7 +662,7 @@ export async function archiveWorkflowResourceFamily(",
+        "@@ -662,7 +673,7 @@ export async function archiveWorkflowResourceFamily(",
+        "@@ -700,7 +711,7 @@ export async function deleteWorkflowResourceFamily(resourceId: string): Promise<",
+        "@@ -708,11 +719,12 @@ function workflowEdgeKind(edge: Record<string, any>, id: string, schemaVersion:",
+        "@@ -730,17 +742,18 @@ function workflowEdgeFallbackPolicy(",
+        "@@ -795,9 +808,14 @@ function normalizeWorkflowEdge(input: {",
+        "@@ -807,7 +825,7 @@ export function validateGraph(input: unknown): WorkflowGraph {",
+        "@@ -827,9 +845,9 @@ export function validateGraph(input: unknown): WorkflowGraph {",
+        "@@ -911,7 +929,7 @@ function workflowImpact(",
+        "@@ -942,6 +960,18 @@ async function loadWorkflowResources(graph: WorkflowGraph): Promise<Map<string,",
+        "@@ -952,8 +982,8 @@ function buildWorkflowTopology(graph: WorkflowGraph): {",
+        "@@ -975,8 +1005,7 @@ function ordinaryAccountNodesForChannel(",
+        "@@ -1039,8 +1068,8 @@ function fallbackSuccessorsForChannel(",
+        "@@ -1062,19 +1091,19 @@ interface WorkflowCompileContext {",
+        "@@ -1096,7 +1125,7 @@ async function loadCompiledPathDependencies(",
+        "@@ -1130,32 +1159,31 @@ async function compileTerminalLineage(",
+        "@@ -1202,7 +1230,7 @@ async function walkWorkflowPaths(",
+        "@@ -1228,8 +1256,8 @@ async function walkWorkflowPaths(",
+        "@@ -1281,7 +1309,7 @@ async function activeWorkflowState(): Promise<{",
+        "@@ -1310,16 +1338,13 @@ async function activateCompiledWorkflowRevision(input: {",
+        "@@ -1413,8 +1438,9 @@ export async function saveWorkflowRevision(input: {",
+        "@@ -1520,7 +1546,7 @@ export async function previewWorkflowImpact(input: {",
+        "@@ -1536,7 +1562,7 @@ async function ensurePublishedWorkflowResource(input: {",
+        "@@ -1561,8 +1587,8 @@ interface LegacyResourceDefinition {",
+        "@@ -1576,7 +1602,7 @@ async function loadLegacyWorkflowInputs(): Promise<{ routes: any[]; schemas: Leg",
+        "@@ -1589,7 +1615,7 @@ function selectLegacySchema(schemas: LegacySchemaRow[], templateName: string, st",
+        "@@ -1618,14 +1644,14 @@ function legacyOutputMode(config: Config): 'telegram_xml' | 'telegram_original'",
+        "@@ -1669,7 +1695,7 @@ function legacyResourceDefinitions(input: {",
+        "@@ -1689,9 +1715,11 @@ async function materializeLegacyPath(",
+        "@@ -1739,7 +1767,7 @@ export async function migrateLegacyTradingRoutesToWorkflow(",
+        "@@ -1747,7 +1775,14 @@ export async function getActiveWorkflow(): Promise<WorkflowRevision | null> {",
+        "@@ -1759,7 +1794,7 @@ function keywordFilterReason(keywords: any, text: string): string | null {",
+        "@@ -1771,8 +1806,8 @@ function pathAllowsInput(",
+        "@@ -1894,7 +1929,7 @@ export async function getWorkflowSignalPlans(input: {",
+        "@@ -1920,7 +1955,7 @@ type WorkflowIntentInput = {",
+        "@@ -1931,7 +1966,7 @@ export async function isWorkflowExecutionAuthorized(executionPathId: string): Pr",
+        "@@ -1945,18 +1980,18 @@ async function processWorkflowIntentPath(input: {",
+        "@@ -1980,7 +2015,7 @@ async function persistFallbackRouteGroup(input: {",
+        "@@ -2015,7 +2050,7 @@ async function persistFallbackRouteGroup(input: {",
+        "@@ -2070,8 +2105,7 @@ async function refreshWorkflowSignalRunFromFallback(fallbackRunId: string, now:",
+        "@@ -2084,7 +2118,7 @@ async function refreshWorkflowSignalRunFromFallback(fallbackRunId: string, now:",
+        "@@ -2112,11 +2146,12 @@ async function persistWorkflowTradingIntents(",
+        "@@ -2141,7 +2176,7 @@ async function persistWorkflowTradingIntents(",
+        "@@ -2177,7 +2212,7 @@ export interface WorkflowFallbackAdvanceResult {",
+        "@@ -2191,8 +2226,8 @@ function fallbackAdvanceResult(",
+        "@@ -2202,7 +2237,7 @@ async function loadFallbackAdvanceRows(intentId: string): Promise<{ current: any",
+        "@@ -2218,7 +2253,7 @@ async function loadFallbackAdvanceRows(intentId: string): Promise<{ current: any",
+        "@@ -2240,8 +2275,8 @@ async function exhaustFallbackRun(",
+        "@@ -2270,14 +2305,14 @@ async function stopDisallowedFallback(",
+        "@@ -2297,43 +2332,37 @@ async function insertPromotedFallbackIntent(",
+        "@@ -2377,7 +2406,7 @@ export async function advanceWorkflowFallbackOnEligibleFailure(",
+        "@@ -2407,7 +2436,7 @@ export async function markWorkflowFallbackSelected(intentId: string, now = Date.",
+        "@@ -2431,13 +2460,13 @@ export async function stopWorkflowFallback(intentId: string, reason: string, now"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "All historical hunks inspected across resource validation, topology, compilation, history, migration, signal plans and fallback persistence. Row generics/type imports erase; SQL delimiters/whitespace preserve predicates/parameter order. Decimal requireString checks same existing string-only decimal contract (old trim already rejected ordinary numbers/null), no coercion. prompt helper moves invalid prompt check after template/model validations: multi-invalid error precedence changes only, valid trim/timeouts unchanged. Graph enum guards compare same primitive members; node/resource lookups now explicit failures after graph/resource existence validation. Queue pop/shift loops preserve dense validated string IDs and traversal order; successor loop uses same validated nonnull map values and next target. Legacy adjacency generation preserves node pairs and UUID call count/order. History context guard follows activation inside rollback-capable transaction and is unreachable for record mode loaded history/validated label. New run readback guard preserves failure, with clearer text. Runtime/permission checks, pinned configurations, source dedupe, fallback promotion and status SQL remain unchanged. Latest uncommitted ten String-to-requireString edits explicitly excluded from this committed26127c6 chain; separate root followup binding required.",
+      "contextBindings": [
+        {
+          "path": "src/db.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "64ac91b806dac2cc1934deb2ae812fdfa3db3562",
+          "gitBlobSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8"
+        },
+        {
+          "path": "src/trading_decimal.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "1e41f66830134af41b5526e85f8a87a04af47e12",
+          "gitBlobSha256": "30f9058ce628d90bfe6303933e7f19e2fad81cb965aa9a30e7aa3e4b43bfb415"
+        },
+        {
+          "path": "src/contract_values.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "4919a74bb0f5cfa8d3dfa05a0ac52ba34bf9610a",
+          "gitBlobSha256": "81a3497fe7474e808ae1515d088cf9b0faa188d50e2372cab46d4c82b5336374"
+        },
+        {
+          "path": "src/workflow_fallback_policy.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "63d58ffec392db9d2cfe4ac7793ebba386b17438",
+          "gitBlobSha256": "1bd4e0333f032aaffa143fb4d6473b4dfdfb635dc69f4f6fab294b4b3a9305f2"
+        },
+        {
+          "path": "tests/test_workflow_builder.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "4395400ceb9eea2013ceab28109b9f6a3691302f",
+          "gitBlobSha256": "42f95600d762b13764736fb44da1e5923f810de584a098ccba6c1d091e2c359c"
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "f3a51ba9d1c2a72d10d521fb480b58641d0fad21",
+          "gitBlobSha256": "5b4355690d90e856d362f8b670dd0d1e33b0a30239e11613585c01123568e57f"
+        },
+        {
+          "path": "tests/test_workflow_migration.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "78439a46edef5c9210052a2e1203b5c6027d632b",
+          "gitBlobSha256": "b85d8e372c40dbd7aa58b8f7679195d0636e206c617499e9f28c16bb05915fa4"
+        },
+        {
+          "path": "tests/test_workflow_input_types.js",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "51087572a0813ff73aa162ea1672748b05f25249",
+          "gitBlobSha256": "4a55b5d7e71c5146c43ea143721fe7fb200eb7b041b9f35aeb7bcb75328ea563"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": true,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    },
+    {
+      "path": "src/workflow_repository_rows.d.ts",
+      "baseline": {
+        "revision": "5b025d9453b7c264d7d03b4e6e6189b4a9c52395",
+        "exists": false
+      },
+      "current": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "199a2f14ec3c769c883a54d609922daf471a5f9a",
+        "gitBlobSha256": "9c6f00e74ff6c54e68969dee84f47164efe1b11f75a2f76cc0196c02e6316be3"
+      },
+      "fullHistoricalDeltaSha256": "7fe058d8c352f48d2d413766d353ad5ccd2688df15782be17cc75a360beb673d",
+      "hunks": [
+        "@@ -0,0 +1,56 @@"
+      ],
+      "completeHistoricalDeltaCoverage": true,
+      "rationale": "New declaration-only SQLite row interfaces model selected columns and nullable states. No emitted runtime or relaxed parser introduced. Uses are generic query typing and private mapper signatures; runtime JSON parsing/hash checks retained in workflow repository. Optional query absence remains represented in consumer signatures/guards.",
+      "contextBindings": [
+        {
+          "path": "src/workflow_repository.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "0ad9dc45138822c8a83eb0dba7a0e304f99cdc52",
+          "gitBlobSha256": "6e0ba9a081c37b9b7a50b2ae5590201c20e065bd64d698338bb6d239adb16080"
+        },
+        {
+          "path": "src/trading_repository_rows.d.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "b6a55d7f3ed1d350d9d987c753a9635d7664a2f0",
+          "gitBlobSha256": "99c058a55541aa0bd221190618c0c4a6b8901789fb32797de9b11a02290e3a48"
+        },
+        {
+          "path": "src/db.ts",
+          "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+          "gitBlobOid": "64ac91b806dac2cc1934deb2ae812fdfa3db3562",
+          "gitBlobSha256": "cd1e8bf100cf71423d712f93f0cc2a5b2460d0058dcbc56153a44abe3ff8c1e8"
+        }
+      ],
+      "workingTreeDiffersFromCommittedReview": false,
+      "concreteRegressionFound": false,
+      "remainingFileDeltaGap": null
+    }
+  ],
+  "routeInventoryComparison": {
+    "rows": 138,
+    "changedHandlerHashes": 17,
+    "allNonHashFieldsAndOrderIdentical": true,
+    "generatorCheck": {
+      "command": "node scripts/build_ui_route_inventory.js --check",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-src-wave6-route-inventory-check.log",
+      "sha256": "36ced2f29ed3d9bf413a98c973d0b7fe28d150d0fe365d899233d4a9cf266241"
+    }
+  },
+  "validation": [
+    {
+      "command": "node --import tsx tests/test_ui_next_reads.js",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "reports/security-services/fixer-src-wave6-test_ui_next_reads.js.log",
+      "sha256": "7ed208c035cb95faed4dd0362870587b23a1b2d43b6623ab0fa5305344648564",
+      "testSource": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "222cf1ffb46fde1e9f113872b4c6c9cd6c4c46b4",
+        "gitBlobSha256": "ee4a0e77d50ad846b473600991c7079de71cb1e16be1675033ccf72ff2f8dc93"
+      }
+    },
+    {
+      "command": "node --import tsx tests/test_ui_restart_recovery.js",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "reports/security-services/fixer-src-wave6-test_ui_restart_recovery.js.log",
+      "sha256": "d528d75e2e29629025e746dec1096dcb428713254f1867be1f458cddec1eb49a",
+      "testSource": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "a34b2c5f749d3a8be9d3f015031f16b7375a4063",
+        "gitBlobSha256": "7cbb0560643ec13c3027ee9a5fe4c46898af120c54d1b86b2a874d267faf7b3d"
+      }
+    },
+    {
+      "command": "node --import tsx tests/test_workflow_builder.js",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "reports/security-services/fixer-src-wave6-test_workflow_builder.js.log",
+      "sha256": "28e0b2fc7fe6791c812cfaf5ff7051178203ea9fd14b0c5c2a45ab251f5def71",
+      "testSource": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "4395400ceb9eea2013ceab28109b9f6a3691302f",
+        "gitBlobSha256": "42f95600d762b13764736fb44da1e5923f810de584a098ccba6c1d091e2c359c"
+      }
+    },
+    {
+      "command": "node --import tsx tests/test_workflow_fallback.js",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "reports/security-services/fixer-src-wave6-test_workflow_fallback.js.log",
+      "sha256": "d6b16edca17e3590701f4b91977eb6136acb19755118723a9e5c8ec6852c32c3",
+      "testSource": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "f3a51ba9d1c2a72d10d521fb480b58641d0fad21",
+        "gitBlobSha256": "5b4355690d90e856d362f8b670dd0d1e33b0a30239e11613585c01123568e57f"
+      }
+    },
+    {
+      "command": "node --import tsx tests/test_workflow_migration.js",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "reports/security-services/fixer-src-wave6-test_workflow_migration.js.log",
+      "sha256": "5ced9691d144e2d5b7633c22577fe013abf7079b1d6b9529c6db21f17744eab8",
+      "testSource": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "78439a46edef5c9210052a2e1203b5c6027d632b",
+        "gitBlobSha256": "b85d8e372c40dbd7aa58b8f7679195d0636e206c617499e9f28c16bb05915fa4"
+      }
+    },
+    {
+      "command": "node --import tsx tests/test_web_server.js",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "reports/security-services/fixer-src-wave6-test_web_server.js.log",
+      "sha256": "fba55e5c769bc8515e9a4ddf6c0ec9854ecae5a46a7a89790f942232e479b7ed",
+      "testSource": {
+        "revision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+        "gitBlobOid": "3dc1475645771b203c3847c65909eaaafbc22007",
+        "gitBlobSha256": "785f92778ea758bd28e9db59ec5b36d5143053c5e05d82b5d51a06fe19f1c616"
+      }
+    }
+  ],
+  "sharedWorktreeStatusAtReport": " M frontend/src/features/risk-analytics/equity-chart.tsx\n M src/workflow_repository.ts\n M tests/test_module_coverage.js\n M tests/test_telegram_viewer_runtime.js\n M tests/test_workflow_input_types.js\n?? exchange_executor/certifications/reviews/codacy-signal-contract-regexp-decision-2026-09-15.json\n?? exchange_executor/certifications/reviews/fixer-codacy-signal-contract-regexp-review-2026-09-15.json\n?? exchange_executor/certifications/reviews/fixer-equity-account-helper-independent-review-2026-09-15.json\n?? exchange_executor/certifications/reviews/fixer-implementation-src-wave5-review-2026-09-15.json\n?? exchange_executor/certifications/reviews/fixer-implementation-tests-quality-wave1-review-2026-09-15.json\n?? exchange_executor/certifications/reviews/fixer-workflow-string-contracts-independent-review-2026-09-15.json\n",
+  "limits": [
+    "Complete delta coverage is scoped independent semantic review, not whole-program correctness or implementation/provider receipt approval.",
+    "No source, receipt, trustpin or platform mutation by reviewer. No container or live provider access.",
+    "Six fresh existing tests ran against shared frozen working tree, including separately reviewed root uncommitted workflow changes; committed hash review remains26127c6 and does not silently absorb that delta.",
+    "Timing of additional awaited helper boundaries is not claimed identical; transaction ownership, valid outputs and authorization sequence inspected.",
+    "Other historical unchanged code is context, not freshly exhaustive all-lines review. HTTP accepted risks remain open separately."
+  ]
+}

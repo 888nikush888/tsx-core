@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-workflow-string-consumer-review",
+  "baseRevision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+  "sourceBindings": [
+    {
+      "path": "src/workflow_repository.ts",
+      "beforeGitBlobSha256": "6e0ba9a081c37b9b7a50b2ae5590201c20e065bd64d698338bb6d239adb16080",
+      "workingRawSha256": "8382e600d42f058c5352d8778121c9c45a43e10e760e84dc9c963f248f9c4c04",
+      "workingLfSha256": "8382e600d42f058c5352d8778121c9c45a43e10e760e84dc9c963f248f9c4c04"
+    },
+    {
+      "path": "tests/test_workflow_input_types.js",
+      "workingRawSha256": "1a71c8b20131a2317dbefc8b711007354a97d5123811f518fefef01faf995018"
+    },
+    {
+      "path": "src/contract_values.ts",
+      "workingRawSha256": "81a3497fe7474e808ae1515d088cf9b0faa188d50e2372cab46d4c82b5336374"
+    }
+  ],
+  "review": [
+    "All10String\u2192requireString substitutions inspected. Added validation only tests typeof; no trim or string serialization.",
+    "Compile channel/account/schema/strategy IDs are normalized by validateResourceConfiguration/stringValue in draft creation and legacy-resource creation. Parser template/models/prompt use their own string validators. Historical5b025same ID/template validation contracts inspected; no supported numeric identity producer established.",
+    "Publication retains validated configuration JSON; compiler effective resources carry same values. Workflow execution paths are stored with revision definitions. Readback recomputes integrity and rejects altered definitions; database triggers reject UPDATE to immutable definitions. No claim arbitrary object rows can bypass these controls.",
+    "Consumer optional prompt/primaryModel/fallbackModel retains original truthy condition. Undefined/null/false/0/empty string remain omitted; valid strings remain byte-identical including whitespace if already stored.",
+    "No SQL parameter ordering, Promise boundary, route grouping, dedupe/timeout/output or plan hash change for valid values. requireString causes TypeError only for unsupported nonstring values instead of arbitrary coercion."
+  ],
+  "tests": {
+    "existingExtendedSuite": "test_workflow_input_types.js PASS immediate process exit0",
+    "cases": "18 malformedconsumer object/array/number cases;5falsyOptional combinations; whitespace preservation; actual published/pinned workflow public readback stable.",
+    "isolation": "Actual private functions extracted by TypeScriptAST from current source and invoked with realpublished JSON-roundtrip executionpath. No immutability trigger disabled and no product helper exported.",
+    "before": "Actual HEADconsumer separately extracted accepts objecttemplateName as[object Object]. This demonstrates previous permissive helper, not a live persistedrowexploit.",
+    "rootAttribution": "Root reports5existingWorkflowSuitesPASS; not rerun by this reviewer.",
+    "logs": [
+      {
+        "path": "reports/security-services/fixer-workflow-string-independent-before.log",
+        "sha256": "e234a4448d1bfc122ef469c1dd65056b9b105cccdad66fbc1e5c60aba2313f4d"
+      },
+      {
+        "path": "reports/security-services/fixer-workflow-string-independent-after.log",
+        "sha256": "e42020dbdf9673fc09e7a7170c4ad6af48d934b621a36199cf593b5310792f5a"
+      }
+    ]
+  },
+  "findings": [],
+  "editsByReviewer": [
+    "tests/test_workflow_input_types.js"
+  ],
+  "limits": [
+    "No source edit, commit, push or scanner disposition.",
+    "Bounded10-delta review; does not approve complete historical workflow implementation receipt."
+  ],
+  "exactSubstitutionCount": 10,
+  "countBreakdown": {
+    "compileIdentifiers": 4,
+    "signalPlanConsumer": 6
+  }
+}

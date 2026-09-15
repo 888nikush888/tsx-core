@@ -1095,7 +1095,7 @@ async function loadCompiledPathDependencies(
   accountId: string,
   strategyVersionId: string,
 ): Promise<{ account: Pick<AccountRow, 'id' | 'enabled' | 'status'>; baseStrategy: StrategyConfiguration }> {
-  const schemaId = String(configs.schema.schemaId);
+  const schemaId = requireString(configs.schema.schemaId, 'Compiled schema ID');
   const [account, strategy, schema, contract] = await Promise.all([
     getDatabase().get<Pick<AccountRow, 'id' | 'enabled' | 'status'>>('SELECT id, enabled, status FROM trading_accounts WHERE id = ?', [accountId]),
     getDatabase().get<Pick<StrategyRow, 'status' | 'configuration_json'>>('SELECT status, configuration_json FROM trading_strategy_versions WHERE id = ?', [strategyVersionId]),
@@ -1173,8 +1173,8 @@ async function compileTerminalLineage(
   }
   const primaryConfigs = Object.fromEntries<Record<string, unknown>>(primaryNodes
     .map(item => [item.kind, requiredWorkflowResource(context.resources, item.resourceVersionId).configuration]));
-  const channelId = String(primaryConfigs.channel.channelId);
-  const strategyVersionId = String(primaryConfigs.strategy.strategyVersionId);
+  const channelId = requireString(primaryConfigs.channel.channelId, 'Compiled channel ID');
+  const strategyVersionId = requireString(primaryConfigs.strategy.strategyVersionId, 'Compiled strategy version ID');
   const routeGroupKey = sha256({ channelNodeId, terminalLineage, accountNodeIds, fallbackPolicies });
   const candidates: WorkflowRouteGroup['candidates'] = [];
   for (let rank = 0; rank < accountNodeIds.length; rank += 1) {
@@ -1183,7 +1183,7 @@ async function compileTerminalLineage(
     const byKind = new Map(pathNodes.map(item => [item.kind, item]));
     const configs = Object.fromEntries<Record<string, unknown>>(pathNodes
       .map(item => [item.kind, requiredWorkflowResource(context.resources, item.resourceVersionId).configuration]));
-    const accountId = String(configs.account.accountId);
+    const accountId = requireString(configs.account.accountId, 'Compiled account ID');
     const { account, baseStrategy } = await loadCompiledPathDependencies(configs, accountId, strategyVersionId);
     const effectiveConfiguration = compiledEffectiveConfiguration(baseStrategy, configs);
     const id = randomUUID();
@@ -1865,13 +1865,13 @@ function signalPlanForPath(path: WorkflowExecutionPath, workflowRevisionId: stri
     parserResourceVersionId: path.parserResourceVersionId,
     schemaResourceVersionId: path.schemaResourceVersionId,
     contractResourceVersionId: path.contractResourceVersionId,
-    templateName: String(parser.templateName),
-    prompt: parser.prompt ? String(parser.prompt) : undefined,
+    templateName: requireString(parser.templateName, 'Compiled parser template name'),
+    prompt: parser.prompt ? requireString(parser.prompt, 'Compiled parser prompt') : undefined,
     timeoutMs: Number(parser.timeoutMs),
-    primaryModel: parser.primaryModel ? String(parser.primaryModel) : undefined,
-    fallbackModel: parser.fallbackModel ? String(parser.fallbackModel) : undefined,
-    schemaId: String(schema.schemaId),
-    contractVersionId: String(contract.contractVersionId),
+    primaryModel: parser.primaryModel ? requireString(parser.primaryModel, 'Compiled primary parser model') : undefined,
+    fallbackModel: parser.fallbackModel ? requireString(parser.fallbackModel, 'Compiled fallback parser model') : undefined,
+    schemaId: requireString(schema.schemaId, 'Compiled schema ID'),
+    contractVersionId: requireString(contract.contractVersionId, 'Compiled contract version ID'),
     dedupe: {
       enabled: dedupe ? dedupe.enabled !== false : false,
       cooldownHours: Number(dedupe?.cooldownHours ?? 24),

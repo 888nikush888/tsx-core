@@ -170,9 +170,14 @@ async function verifyApiClients(upstreamUrl, requests, responseState) {
 }
 
 async function verifyHealthServer(requests, activeBotToken) {
+  let currentStatus = { healthy: true, ready: true, enabled: false, lastError: null };
+  let tokenUnavailable = false;
   const health = startTelegramViewerHealthServer({
-    port: 0, serviceToken: SERVICE_TOKEN,
-    status: () => ({ healthy: true, ready: true, enabled: false, lastError: null }),
+    port: 0, serviceToken: async () => {
+      if (tokenUnavailable) throw new Error('Synthetic token provider failure');
+      return SERVICE_TOKEN;
+    },
+    status: () => currentStatus,
   });
   await once(health, 'listening');
   const address = health.address();
@@ -194,6 +199,20 @@ async function verifyHealthServer(requests, activeBotToken) {
   response = await fetch(`${base}/status`, { headers: { Authorization: `Bearer ${SERVICE_TOKEN}` } });
   assert.strictEqual(response.status, 200);
   assert.strictEqual(JSON.stringify(await response.json()).includes(SERVICE_TOKEN), false);
+  currentStatus = { ...currentStatus, healthy: false, ready: false };
+  for (const [route, field] of [['health', 'healthy'], ['ready', 'ready']]) {
+    response = await fetch(`${base}/${route}`);
+    assert.strictEqual(response.status, 503);
+    assert.deepStrictEqual(await response.json(), { [field]: false });
+  }
+  response = await fetch(`${base}/missing`);
+  assert.strictEqual(response.status, 404);
+  tokenUnavailable = true;
+  response = await fetch(`${base}/status`, { headers: { Authorization: `Bearer ${SERVICE_TOKEN}` } });
+  assert.strictEqual(response.status, 500);
+  assert.deepStrictEqual(await response.json(), { error: 'Viewer health request failed.' });
+  response = await fetch(`${base}/healthz`);
+  assert.strictEqual(response.status, 503, 'Token provider failure must not disable the public health probe.');
   response = await fetch(`${base}/healthz`, { method: 'POST' });
   assert.strictEqual(response.status, 405);
   assert.ok(requests.some(request => request.url.includes(activeBotToken)), 'The Bot API client must re-read a rotated bot token without restarting the viewer.');

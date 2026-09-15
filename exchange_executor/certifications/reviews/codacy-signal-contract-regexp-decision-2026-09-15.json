@@ -1,0 +1,23 @@
+{
+  "attemptedAt": "2026-09-15T07:51:59.608Z",
+  "issueId": "78b31b234a8932e9787ca8054b286d82",
+  "path": "src/signal_contract.ts",
+  "line": 96,
+  "ruleId": "Semgrep_javascript_dos_rule-non-literal-regexp",
+  "reviewedRevision": "1aead48508ef2123a516dd774f0f62152039814b",
+  "review": {
+    "path": "reports/security-services/fixer-codacy-signal-contract-regexp-review.json",
+    "sha256": "0af1a4122b4811d8381cf080d6d29a9bcd061bf43a2f91a0beef2ca0e3d7b127"
+  },
+  "reason": "FalsePositive",
+  "comment": "The flagged constructor only checks syntax and discards the RegExp object; it performs no text match. safePattern requires a nonempty string trimmed to at most160characters, rejects newline/NUL and selected unsupported constructs, and rejects invalid syntax. These heuristics are not a proof of safe backtracking. Actual validateSignalXml consumer validates the definition before validateDynamicContract, which establishes a shared100ms deadline across at most30additional fields. validateAdditionalFieldText rejects exhausted remaining time and executes the dynamic expression only through safeRegexTest and vm.runInContext timeout. Timeout/failure becomes SignalValidationError, not acceptance; nonmatch also rejects. XML is capped at64KiB. Independently rerun pathological and compatibility tests confirm bounded rejection. The generic constructor warning omits this bounded execution boundary.",
+  "state": "ignored-disposition-confirmed-active-removal-pending-rescan",
+  "mutated": true,
+  "readbackConfirmed": false,
+  "httpStatus": 204,
+  "ignoredDispositionConfirmed": true,
+  "activeCount": 2,
+  "ignoredCount": 344,
+  "targetStillActive": true,
+  "fullListReadbackAt": "2026-09-15T07:52:47.391Z"
+}

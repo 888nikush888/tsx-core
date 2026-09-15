@@ -1,0 +1,15 @@
+{
+  "log": "reports/security-services/fixer-viewer-health-complete-module-recheck.log",
+  "coverage": {
+    "functions": 99.2,
+    "statements": 96.5,
+    "lines": 96.5,
+    "branches": 86.47
+  },
+  "registeredTestFiles": 226,
+  "logSha256": "07864ad6f962ed11cb81ca5ce90506fb45a4bab9aa7520a6d8fea59b9bed8398",
+  "baseRevision": "26127c6256632992d49cc74f7a387f8c80c56e18",
+  "limits": "Windows Node22 with existing locked packages. Earlier sporadic backupfixture timeout unreproduced in3targetruns and now fullsuitePASS; no timeouts/assertions weakened. Fresh Linux validation required for this source.",
+  "actualExit": 0,
+  "kind": "full-module-verified-workflow-equity-viewer-corrections"
+}

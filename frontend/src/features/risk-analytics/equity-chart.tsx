@@ -49,11 +49,15 @@ function equityPoint(point: EquityObservation): EquityPoint | null {
   if (typeof point.equity !== "string" || !Number.isFinite(equity)) return null;
   return { observedAt, equity, exact: point.equity };
 }
+function observationAccountId(value: unknown): string | null {
+  if (value == null) return "aggregate";
+  return typeof value === "string" ? value : null;
+}
 function validatedObservation(point: EquityObservation): { accountId: string; currency: string; point: EquityPoint } | null {
   const observation = equityPoint(point);
   if (!observation) return null;
-  if (point.accountId != null && typeof point.accountId !== "string") return null;
-  const accountId = typeof point.accountId === "string" ? point.accountId : "aggregate";
+  const accountId = observationAccountId(point.accountId);
+  if (accountId === null) return null;
   const currency = equityObservationGroup(point);
   return currency ? { accountId, currency, point: observation } : null;
 }
