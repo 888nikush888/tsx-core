@@ -1,0 +1,26 @@
+{
+  "attemptedAt": "2026-09-15T09:04:18.438Z",
+  "issueId": "757f1b7f1e131822522fc6812066e0d6",
+  "path": "src/signal_schema.ts",
+  "line": 570,
+  "ruleId": "Semgrep_javascript_dos_rule-non-literal-regexp",
+  "reviewedRevision": "20aea4bd856dccf26081bfba6ee070f6667e0a75",
+  "review": {
+    "path": "reports/security-services/fixer-codacy-signal-schema-regexp-20aea4b-independent-review.json",
+    "sha256": "765a7b9d935a8d4ff1683efb5611535c978fb0460641d22ebecba32a8c1c8cb7"
+  },
+  "reason": "FalsePositive",
+  "comment": "This exact non-literal RegExp is intentional contract data, but its only private call chain is enclosed by one vm.runInContext(validate(), timeout:100) execution deadline for the entire ordered additional-field batch. The timeout interrupts actual native backtracking even in the trusted host callback, as shown by three pathological expressions both first and after 29 ordinary fields. The batch deadline is not renewed per field. Timeout or construction failure rejects with SignalValidationError and never yields a validated signal. The scanner sees dynamic construction but does not account for the enclosing verified execution bound. This conclusion is specific to this occurrence and published source binding. Independent review bound to published 20aea4b verified the exact source blobs and existing execution-log hashes. Real pathological patterns fail both first and after 29 ordinary fields with native ERR_SCRIPT_EXECUTION_TIMEOUT; no signal is accepted on error. This is an execution deadline, not a JavaScript sandbox or a general exemption for dynamic RegExp. Re-review required if the call chain or timeout boundary changes.",
+  "state": "ignored-disposition-confirmed-active-removal-pending-rescan",
+  "mutated": true,
+  "readbackConfirmed": false,
+  "httpStatus": 204,
+  "ignoredDispositionConfirmed": true,
+  "targetStillActive": true,
+  "noOtherIgnoredIdsChanged": true,
+  "noOtherActiveIdsChanged": true,
+  "analysisRevisionUnchanged": true,
+  "activeCount": 1,
+  "ignoredCount": 346,
+  "fullListReadbackAt": "2026-09-15T09:04:21.427Z"
+}
