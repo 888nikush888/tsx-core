@@ -9,20 +9,63 @@ import { ChangeReview } from '@/shared/components/change-review';
 import { time } from '@/shared/components/operator-primitives';
 import { useConfirmationDialog } from '@/components/confirmation-dialog';
 import { ResourceEditor } from '@/app/workflow/resource-editor';
-import { KIND_META, WORKFLOW_KINDS, type WorkflowKind, type WorkflowResource, type TradingSnapshot } from '@/app/workflow/types';
+import { KIND_META, WORKFLOW_KINDS, type WorkflowKind, type WorkflowResource, type TradingSnapshot, type WorkflowGraph } from '@/app/workflow/types';
+
+// Read models for uiWorkflowPage/uiWorkflowDetail. These are the trusted
+// server DTO boundary, not validation of arbitrary response JSON.
+type WorkflowListEntry = {
+  id: string; createdAt: number;
+  resourceId?: string; version?: number; name?: string; kind?: string;
+  revision?: number; accountId?: string; channelId?: string;
+  enabled?: number; status?: string; createdBy?: string;
+  editRevision?: number; fallbackRank?: number;
+};
+type WorkflowResourceListEntry = WorkflowListEntry & { resourceId: string };
+type WorkflowListPage = {
+  entries: WorkflowListEntry[];
+  observedAt: number; hasMore: boolean; nextCursor: string | null;
+};
+type WorkflowParameterEffect = {
+  field: string; value: unknown; strategyValue: unknown;
+  strategyValuePresent: boolean; unit: string | null;
+  source: string; sourceVersionId: string | null; resourceId: string | null;
+  overridesStrategy: boolean; scope: string; effect: string;
+};
+type WorkflowSource = {
+  nodeId: string;
+  resource: Pick<WorkflowResource, 'id' | 'resourceId' | 'name' | 'version' | 'kind' | 'status' | 'configurationSha256'> | null;
+};
+type WorkflowObjectRead = {
+  observedAt?: number; effect?: string;
+  resource?: WorkflowResource;
+  publication?: { publicationHash: string; dependency: (Record<string, unknown> & { id: string }) | null };
+  activePaths?: Array<{ id: string; channelId: string; accountId: string }>;
+  editingBlockedByRedaction?: boolean;
+  revision?: {
+    id: string; revision: number; status: string; definitionSha256: string;
+    createdBy: string; createdAt: number; graph: WorkflowGraph; warnings: string[];
+  };
+  integrityVerified?: boolean;
+  path?: {
+    id: string; channelId: string; accountId: string; fallbackRank: number;
+    effectiveConfiguration: unknown;
+  } | null;
+  parameterEffects?: WorkflowParameterEffect[];
+  sources?: WorkflowSource[];
+};
 
 type Kind = 'resources' | 'paths' | 'revisions';
 export const resourceUrl = (resource: { resourceId: string; id: string }) => `/workflows/resources/${encodeURIComponent(resource.resourceId)}/versions/${encodeURIComponent(resource.id)}`;
 const TITLES: Record<Kind, string> = { resources: 'Ressourcenbibliothek', paths: 'Ausführungspfade', revisions: 'Workflowrevisionen' };
 
 export function WorkflowLibrary({ kind, resourceId }: Readonly<{ kind: Kind; resourceId?: string }>) {
-  const [params, setParams] = useSearchParams(); const [state, setState] = useState<any>(null); const [error, setError] = useState('');
+  const [params, setParams] = useSearchParams(); const [state, setState] = useState<{ key: string; value: WorkflowListPage } | null>(null); const [error, setError] = useState('');
   const query = new URLSearchParams(params); query.set('kind', kind); if (resourceId) { query.set('resourceId', resourceId); } const key = query.toString();
   const load = useCallback((signal: AbortSignal) => jsonRequest(`/api/workflow/objects?${key}`, { signal }), [key]);
   usePoll(load, value => { setState({ key, value }); setError(''); }, failure => setError(failure.message));
   const page = state?.key === key ? state.value : null;
   const change = (name: string, value: string) => { const next = new URLSearchParams(params); next.delete('cursor'); if (value) { next.set(name, value); } else { next.delete(name); } setParams(next); };
-  const rows = (page?.entries ?? []).map((entry: any) => {
+  const rows = (page?.entries ?? []).map((entry) => {
     const workflowEntryTitle = () => {
       if (kind === 'resources') {
         return `${entry.name} · v${entry.version}`;
@@ -33,7 +76,7 @@ export function WorkflowLibrary({ kind, resourceId }: Readonly<{ kind: Kind; res
       return entry.id;
     };
     return (({ ...entry,
-      id: <Link to={kind === 'resources' ? resourceUrl(entry) : `/workflows/${kind}/${encodeURIComponent(entry.id)}`}>{workflowEntryTitle()}</Link>,
+      id: <Link to={kind === 'resources' ? resourceUrl(entry as WorkflowResourceListEntry) : `/workflows/${kind}/${encodeURIComponent(entry.id)}`}>{workflowEntryTitle()}</Link>,
       kind: KIND_META[entry.kind as WorkflowKind]?.short ?? entry.kind, createdAt: time(entry.createdAt), enabled: entry.enabled === 1,
       accountId: entry.accountId ? <Link to={`/trading/accounts/${encodeURIComponent(entry.accountId)}`}>{entry.accountId}</Link> : null }));
   });
@@ -59,7 +102,7 @@ export function WorkflowLibrary({ kind, resourceId }: Readonly<{ kind: Kind; res
   </section>;
 }
 
-function workflowObjectTitle(kind: Kind, resource: WorkflowResource | undefined, data: any) {
+function workflowObjectTitle(kind: Kind, resource: WorkflowResource | undefined, data: WorkflowObjectRead) {
   if (resource) return `${resource.name} · Version ${resource.version}`;
   return kind === 'paths' ? 'Originaler Ausführungspfad' : `Workflowrevision ${data.revision.revision}`;
 }
@@ -68,16 +111,16 @@ function resourceArchiveLabel(resource: WorkflowResource) {
 }
 
 export function WorkflowObject({ kind, id, resourceId }: Readonly<{ kind: Kind; id: string; resourceId?: string }>) {
-  const readOnly = useOperatorReadOnly(); const [data, setData] = useState<any>(null); const [error, setError] = useState(''); const [message, setMessage] = useState('');
+  const readOnly = useOperatorReadOnly(); const [data, setData] = useState<WorkflowObjectRead | null>(null); const [error, setError] = useState(''); const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false); const [editing, setEditing] = useState(false); const [trading, setTrading] = useState<TradingSnapshot | null>(null);
-  const [comparisonId, setComparisonId] = useState(''); const [comparison, setComparison] = useState<any>(null); const [savedResource, setSavedResource] = useState<WorkflowResource | null>(null);
+  const [comparisonId, setComparisonId] = useState(''); const [comparison, setComparison] = useState<WorkflowResource | null>(null); const [savedResource, setSavedResource] = useState<WorkflowResource | null>(null);
   const { confirm, confirmationDialog } = useConfirmationDialog();
   const load = useCallback((signal?: AbortSignal) => jsonRequest(`/api/workflow/objects?kind=${kind}&id=${encodeURIComponent(id)}`, { signal }), [id, kind]);
   usePoll(load, value => { setData(value); setError(''); }, failure => setError(failure.message));
   const loadTrading = useCallback((signal: AbortSignal) => editing ? jsonRequest('/api/trading', { signal }) : Promise.resolve(null), [editing]);
   usePoll(loadTrading, value => { if (value) setTrading(value); }, failure => setError(`Editor-Kontext: ${failure.message}`));
   const resource: WorkflowResource | undefined = data?.resource;
-  const command = async (operation: () => Promise<any>, label: string, accept?: (value: any) => void) => {
+  const command = async <Result,>(operation: () => Promise<Result>, label: string, accept?: (value: Result) => void) => {
     if (readOnly || busy) { return null; } setBusy(true); setMessage('');
     try {
       const result = await mutateAndObserve(operation, value => { accept?.(value); setMessage(label); }, async () => setData(await load()));
@@ -120,7 +163,7 @@ export function WorkflowObject({ kind, id, resourceId }: Readonly<{ kind: Kind; 
       }
       return 'Archivierung bestätigt.';
     };
-    await command(() => {
+    await command<{ resource?: WorkflowResource }>(() => {
       const lifecycleConfirmation = () => {
         if (operation === 'publish') {
           return 'publish-workflow-dependencies';
@@ -134,11 +177,11 @@ export function WorkflowObject({ kind, id, resourceId }: Readonly<{ kind: Kind; 
         headers: { 'X-Destructive-Confirmation': lifecycleConfirmation() },
         body: JSON.stringify(operation === 'publish' ? { id, baseEditRevision: resource.editRevision, publishDependencies: true, publicationHash: data.publication?.publicationHash } : { ...(family ? { resourceId: resource.resourceId } : { id }), operation }) }));
     },
-      lifecycleSuccess(), result => { if (result.resource) setData((current: any) => ({ ...current, resource: result.resource })); });
+      lifecycleSuccess(), result => { if (result.resource) setData((current) => ({ ...current, resource: result.resource })); });
   };
   const save = async (value: { name: string; description: string; configuration: Record<string, unknown>; baseEditRevision?: number }) => {
     if (!resource) return false;
-    const result = await command(() => jsonRequest(resource.status === 'draft' ? '/api/workflow/resources/update' : '/api/workflow/resources', { method: 'POST', body: JSON.stringify({ ...value,
+    const result = await command<{ resource: WorkflowResource }>(() => jsonRequest(resource.status === 'draft' ? '/api/workflow/resources/update' : '/api/workflow/resources', { method: 'POST', body: JSON.stringify({ ...value,
       ...(resource.status === 'draft' ? { id: resource.id } : { resourceId: resource.resourceId, kind: resource.kind }) }) }), 'Ressourcenentwurf gespeichert. Publikation und Graphaktivierung erfolgen separat.', result => setSavedResource(result.resource));
     return Boolean(result);
   };
@@ -146,7 +189,7 @@ export function WorkflowObject({ kind, id, resourceId }: Readonly<{ kind: Kind; 
     try {
       const [draft, active] = await Promise.all([jsonRequest('/api/workflow/drafts?id=operator'), jsonRequest('/api/workflow')]);
       if (!await confirm({ title: 'Historischen Graph als Entwurf übernehmen', description: `Revision ${data.revision.revision} ersetzt den gespeicherten Operatorentwurf ${draft.draft?.version ?? 'ohne Version'}. Die aktuelle Revision bleibt aktiv. Archivierte Quellen können vor einer späteren Aktivierung eine neue Version benötigen.`, confirmLabel: 'Entwurf übernehmen', destructive: true })) return;
-      await command(() => jsonRequest('/api/workflow/drafts', { method: 'POST', body: JSON.stringify({ id: 'operator', baseVersion: draft.draft?.version ?? null, baseRevisionId: active.workflow?.id ?? null, graph: data.revision.graph }) }), 'Historischer Graph als neuer Operatorentwurf gespeichert. Im Builder vergleichen, publizieren und mit frischer Wirkungsprüfung aktivieren.');
+      await command<unknown>(() => jsonRequest('/api/workflow/drafts', { method: 'POST', body: JSON.stringify({ id: 'operator', baseVersion: draft.draft?.version ?? null, baseRevisionId: active.workflow?.id ?? null, graph: data.revision.graph }) }), 'Historischer Graph als neuer Operatorentwurf gespeichert. Im Builder vergleichen, publizieren und mit frischer Wirkungsprüfung aktivieren.');
     } catch (error_) { setError(String(error_)); }
   };
   if (!data) return <section><h1>Workflowobjekt</h1><p>{error ? <span role="alert">{error}</span> : <output>Objekt wird geladen …</output>}</p></section>;
@@ -158,7 +201,7 @@ export function WorkflowObject({ kind, id, resourceId }: Readonly<{ kind: Kind; 
       <Link to={`/workflows/resources/${encodeURIComponent(resource.resourceId)}`}>Alle Versionen dieser Ressource</Link>
       <ChangeReview after={resource.configuration} showAll label="Gespeicherte Parameter dieser Quelle" />
       {data.publication?.dependency && <ChangeReview after={data.publication.dependency} showAll label="Referenziertes Modell · Inhalt vor Publikation prüfen" />}
-      <h2>Aktive Verwendungen</h2><ul>{data.activePaths.map((path: any) => <li key={path.id}><Link to={`/workflows/paths/${encodeURIComponent(path.id)}`}>{path.id}</Link> · Kanal {path.channelId}</li>)}</ul>{!data.activePaths.length && <p>In der beobachteten aktiven Revision nicht verwendet. Historische Referenzen werden bei Archivierung oder Löschung zusätzlich geprüft.</p>}
+      <h2>Aktive Verwendungen</h2><ul>{data.activePaths.map((path) => <li key={path.id}><Link to={`/workflows/paths/${encodeURIComponent(path.id)}`}>{path.id}</Link> · Kanal {path.channelId}</li>)}</ul>{!data.activePaths.length && <p>In der beobachteten aktiven Revision nicht verwendet. Historische Referenzen werden bei Archivierung oder Löschung zusätzlich geprüft.</p>}
       <label>Vergleichsversion-ID<input className="block border bg-background p-2 w-full" maxLength={128} value={comparisonId} onChange={event => setComparisonId(event.target.value)} /></label>
       <button className="secondary-button" disabled={!comparisonId} onClick={() => { (async () => { try { const result = await jsonRequest(`/api/workflow/objects?kind=resources&id=${encodeURIComponent(comparisonId)}`); if (result.resource.resourceId !== resource.resourceId) { throw new Error('Vergleich erfordert dieselbe Ressourcenfamilie.'); } setComparison(result.resource); } catch (error_) { setError(String(error_)); } })(); }}>Versionen vergleichen</button>
       {comparison && <ChangeReview before={comparison.configuration} after={resource.configuration} label={`Vergleich v${comparison.version} → v${resource.version}`} />}
@@ -172,7 +215,7 @@ export function WorkflowObject({ kind, id, resourceId }: Readonly<{ kind: Kind; 
     </> : <><EvidenceFields fields={[["Revision-ID", data.revision.id], ["Status", data.revision.status], ["Integrität geprüft", data.integrityVerified], ["Definition-Hash", data.revision.definitionSha256], ["Erstellt von", data.revision.createdBy], ["Erstellt", time(data.revision.createdAt)]]} />
       <Link to={`/workflows/paths?revisionId=${encodeURIComponent(data.revision.id)}&active=false`}>Alle Pfade dieser Revision</Link>
       {data.path && <><EvidenceFields fields={[["Pfad-ID", data.path.id], ["Kanal", data.path.channelId], ["Konto", <Link key="account" to={`/trading/accounts/${encodeURIComponent(data.path.accountId)}`}>{data.path.accountId}</Link>], ["Fallbackrang", data.path.fallbackRank]]} />
-        <EvidenceTable caption="Wirksame Strategieparameter und Ursprung" rows={(data.parameterEffects ?? []).map((field: any) => {
+        <EvidenceTable caption="Wirksame Strategieparameter und Ursprung" rows={(data.parameterEffects ?? []).map((field) => {
           const strategyValue = () => {
             if (!field.strategyValuePresent) {
               return 'nicht gesetzt';
@@ -203,7 +246,7 @@ export function WorkflowObject({ kind, id, resourceId }: Readonly<{ kind: Kind; 
         <p>Diese Parameter gelten für Intents dieses Pfads. Signalhebel, adaptive Risikostufe und Markt-/FX-/Schutzbelege können den eigenen Tradeplan zusätzlich begrenzen. Die gespeicherte Strategie ist eine Quelle der kompilieren Konfiguration.</p>
         <details><summary>Vollständiger kompilierter Originalbeleg</summary><ChangeReview after={data.path.effectiveConfiguration} showAll label="Kompilierte wirksame Parameter dieses Pfads" /></details>
         <Link to={`/trading/journal?accountId=${encodeURIComponent(data.path.accountId)}&channelId=${encodeURIComponent(data.path.channelId)}`}>Trades dieses Kanals und Kontos · Originalpfad im Trade prüfen</Link></>}
-      <EvidenceTable caption="Gepinnte Quellen" rows={data.sources.map((source: any) => ({ node: source.nodeId, kind: source.resource?.kind, resource: source.resource ? <Link to={resourceUrl(source.resource)}>{source.resource.name} · v{source.resource.version}</Link> : 'Originalquelle nicht verfügbar' }))} columns={[["node", "Knoten"], ["kind", "Art"], ["resource", "Version öffnen"]]} />
+      <EvidenceTable caption="Gepinnte Quellen" rows={data.sources.map((source) => ({ node: source.nodeId, kind: source.resource?.kind, resource: source.resource ? <Link to={resourceUrl(source.resource)}>{source.resource.name} · v{source.resource.version}</Link> : 'Originalquelle nicht verfügbar' }))} columns={[["node", "Knoten"], ["kind", "Art"], ["resource", "Version öffnen"]]} />
       {listEntries<string>(data.revision.warnings, warning => warning).map(({ item: warning, key }) => <p key={key}>{warning}</p>)}
       {kind === 'revisions' && <><ChangeReview after={data.revision.graph} showAll label="Originalgraph · unveränderlich" /><button className="secondary-button" disabled={readOnly || busy} onClick={() => { restoreDraft(); }}>Historischen Graph als Entwurf übernehmen</button><Link to="/workflows/builder">Entwurf im Builder prüfen</Link></>}
     </>}

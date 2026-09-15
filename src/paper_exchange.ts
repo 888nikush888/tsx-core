@@ -40,6 +40,28 @@ function paperAccounting(symbol: string): ExchangeFillAccounting {
   return { version: 1, source: 'paper-contract-v1', providerSymbol: symbol, settlementAsset: 'USDT', linear: true, quantityUnit: 'base' };
 }
 
+
+interface PaperAccountRow { account_id: string; equity: string; available_balance: string; realized_pnl: string; updated_at: number }
+interface PaperMarketRow {
+  account_id: string; symbol: string; mark_price: string; price_tick: string; quantity_step: string;
+  minimum_quantity: string; minimum_notional: string; max_leverage: number; updated_at: number;
+}
+interface PaperOrderRow {
+  exchange_order_id: string; account_id: string; client_order_id: string; symbol: string;
+  role: 'entry' | 'take_profit' | 'stop_loss' | 'flatten'; side: 'buy' | 'sell';
+  order_type: 'market' | 'limit' | 'stop_market'; status: Exclude<ExchangeOrderResult['status'], 'unknown'>;
+  quantity: string; filled_quantity: string; average_price: string | null; price: string | null; trigger_price: string | null;
+  reduce_only: 0 | 1; target_index: number | null; leverage: number; created_at: number; updated_at: number;
+}
+interface PaperPositionRow {
+  account_id: string; symbol: string; side: 'LONG' | 'SHORT'; quantity: string;
+  average_entry_price: string; margin_used: string; realized_pnl: string; updated_at: number;
+}
+interface PaperFillRow {
+  exchange_fill_id: string; exchange_order_id: string; account_id: string; client_order_id: string;
+  price: string; quantity: string; fee: string; fee_asset: string | null; filled_at: number; raw_json: string;
+}
+
 interface PaperMarkedPosition { side: string; quantity: string; average_entry_price: string; mark_price: string | null }
 function paperUnrealized(position: PaperMarkedPosition): string | null {
   if (position.mark_price === null) return null;
@@ -76,7 +98,7 @@ function signedMultiply(value: string, multiplier: string): string {
   return negative && result !== '0' ? `-${result}` : result;
 }
 
-function orderResult(row: any): ExchangeOrderResult {
+function orderResult(row: PaperOrderRow): ExchangeOrderResult {
   return {
     clientOrderId: String(row.client_order_id),
     exchangeOrderId: String(row.exchange_order_id),
@@ -88,7 +110,7 @@ function orderResult(row: any): ExchangeOrderResult {
   };
 }
 
-function orderCanFill(row: any, markPrice: string): boolean {
+function orderCanFill(row: PaperOrderRow, markPrice: string): boolean {
   if (row.order_type === 'market') return true;
   if (row.order_type === 'stop_market') {
     // A triggered market stop cannot become a dormant trigger again after a partial fill.
@@ -106,13 +128,13 @@ async function transaction<T>(operation: () => Promise<T>): Promise<T> {
   return withDatabaseTransaction(() => operation());
 }
 
-async function updateOpeningPosition(row: any, fillQuantity: string, fillPrice: string, now: number): Promise<void> {
+async function updateOpeningPosition(row: PaperOrderRow, fillQuantity: string, fillPrice: string, now: number): Promise<void> {
   const database = getDatabase();
-  const account = await database.get<any>('SELECT * FROM trading_paper_accounts WHERE account_id = ?', [row.account_id]);
+  const account = await database.get<PaperAccountRow>('SELECT * FROM trading_paper_accounts WHERE account_id = ?', [row.account_id]);
   if (!account) throw new Error('Paper account balance is missing.');
   const margin = divideDecimal(multiplyDecimal(fillQuantity, fillPrice), String(row.leverage || 1));
   if (compareDecimal(account.available_balance, margin) < 0) throw new Error('Paper account has insufficient available balance.');
-  const existing = await database.get<any>(
+  const existing = await database.get<PaperPositionRow>(
     'SELECT * FROM trading_paper_positions WHERE account_id = ? AND symbol = ?',
     [row.account_id, row.symbol],
   );
@@ -155,9 +177,9 @@ async function cancelOrphanedReduceOrders(accountId: string, symbol: string, now
   );
 }
 
-async function updateClosingPosition(row: any, requestedQuantity: string, fillPrice: string, now: number, options: PaperExecutionOptions): Promise<{ quantity: string; flat: boolean }> {
+async function updateClosingPosition(row: PaperOrderRow, requestedQuantity: string, fillPrice: string, now: number, options: PaperExecutionOptions): Promise<{ quantity: string; flat: boolean }> {
   const database = getDatabase();
-  const position = await database.get<any>(
+  const position = await database.get<PaperPositionRow>(
     'SELECT * FROM trading_paper_positions WHERE account_id = ? AND symbol = ?',
     [row.account_id, row.symbol],
   );
@@ -172,7 +194,7 @@ async function updateClosingPosition(row: any, requestedQuantity: string, fillPr
   const releasedMargin = divideDecimal(multiplyDecimal(position.margin_used, fillQuantity), position.quantity);
   const remaining = subtractDecimal(position.quantity, fillQuantity);
   const remainingMargin = subtractDecimal(position.margin_used, releasedMargin);
-  const account = await database.get<any>('SELECT * FROM trading_paper_accounts WHERE account_id = ?', [row.account_id]);
+  const account = await database.get<PaperAccountRow>('SELECT * FROM trading_paper_accounts WHERE account_id = ?', [row.account_id]);
   if (!account) throw new Error('Paper account balance is missing.');
   await database.run(
     `UPDATE trading_paper_accounts
@@ -200,14 +222,14 @@ async function updateClosingPosition(row: any, requestedQuantity: string, fillPr
   return { quantity: fillQuantity, flat: remaining === '0' };
 }
 
-function partialFillAverage(row: any, fillQuantity: string, fillPrice: string, cumulative: string): string | null {
+function partialFillAverage(row: PaperOrderRow, fillQuantity: string, fillPrice: string, cumulative: string): string | null {
   if (cumulative === '0') return null;
   const previousCost = compareDecimal(row.filled_quantity, '0') > 0
     ? multiplyDecimal(row.filled_quantity, decimal(row.average_price, { positive: true })) : '0';
   return divideDecimal(addSignedDecimal(previousCost, multiplyDecimal(fillQuantity, fillPrice)), cumulative);
 }
 
-async function fillOrder(row: any, markPrice: string, now: number, options: PaperExecutionOptions, immediatePrice?: string): Promise<any> {
+async function fillOrder(row: PaperOrderRow, markPrice: string, now: number, options: PaperExecutionOptions, immediatePrice?: string): Promise<PaperOrderRow | undefined> {
   const fillPrice = immediatePrice ?? (row.order_type === 'limit' ? row.price : markPrice);
   const remaining = subtractDecimal(row.quantity, row.filled_quantity);
   const requested = minDecimal(remaining, options.maximumFillQuantity ?? remaining);
@@ -241,18 +263,18 @@ async function fillOrder(row: any, markPrice: string, now: number, options: Pape
       [fillId, row.exchange_order_id, row.account_id, row.client_order_id, fillPrice, fillQuantity, now, JSON.stringify(raw)],
     );
   }
-  return getDatabase().get('SELECT * FROM trading_paper_orders WHERE exchange_order_id = ?', [row.exchange_order_id]);
+  return getDatabase().get<PaperOrderRow>('SELECT * FROM trading_paper_orders WHERE exchange_order_id = ?', [row.exchange_order_id]);
 }
 
 async function settleOpenOrders(accountId: string, symbol: string, markPrice: string, now: number, options: PaperExecutionOptions): Promise<void> {
-  const orders = await getDatabase().all<any[]>(
+  const orders = await getDatabase().all<PaperOrderRow[]>(
     `SELECT * FROM trading_paper_orders
      WHERE account_id = ? AND symbol = ? AND status IN ('open', 'partially_filled')
      ORDER BY CASE role WHEN 'stop_loss' THEN 0 WHEN 'take_profit' THEN 1 ELSE 2 END, created_at`,
     [accountId, symbol],
   );
   for (const order of orders) {
-    const current = await getDatabase().get<any>(
+    const current = await getDatabase().get<PaperOrderRow>(
       'SELECT * FROM trading_paper_orders WHERE exchange_order_id = ?',
       [order.exchange_order_id],
     );
@@ -315,7 +337,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
 
   private async readAccountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot> {
     assertPaperAccount(account);
-    const row = await getDatabase().get<any>('SELECT * FROM trading_paper_accounts WHERE account_id = ?', [account.id]);
+    const row = await getDatabase().get<PaperAccountRow>('SELECT * FROM trading_paper_accounts WHERE account_id = ?', [account.id]);
     if (!row) throw new Error('Paper account state is missing.');
     const observedAt = Date.now();
     const amounts = await paperBalanceAmounts(account.id, row);
@@ -333,7 +355,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
 
   async marketSnapshot(account: TradingAccount, symbol: string): Promise<TradingMarketSnapshot> {
     assertPaperAccount(account);
-    const row = await getDatabase().get<any>(
+    const row = await getDatabase().get<PaperMarketRow>(
       'SELECT * FROM trading_paper_markets WHERE account_id = ? AND symbol = ?',
       [account.id, symbol],
     );
@@ -357,7 +379,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
     };
   }
 
-  private async simulatedTierEvidence(account: TradingAccount, market: any): Promise<TradingLeverageTierEvidence> {
+  private async simulatedTierEvidence(account: TradingAccount, market: PaperMarketRow): Promise<TradingLeverageTierEvidence> {
     const observedAt = Date.now();
     const [position, orders] = await Promise.all([
       getDatabase().get<{ quantity: string }>('SELECT quantity FROM trading_paper_positions WHERE account_id = ? AND symbol = ?', [account.id, market.symbol]),
@@ -379,7 +401,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
         entryPriceBoundary: request.entryPriceBoundary, maxSlippagePercent: request.entryPriceBoundary?.maxSlippagePercent ?? '' }, request);
     }
     return transaction(async () => {
-      const existing = await getDatabase().get<any>(
+      const existing = await getDatabase().get<PaperOrderRow>(
         'SELECT * FROM trading_paper_orders WHERE account_id = ? AND client_order_id = ?',
         [account.id, request.clientOrderId],
       );
@@ -400,7 +422,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
           request.targetIndex, request.leverage, now, now,
         ],
       );
-      let row = await getDatabase().get<any>('SELECT * FROM trading_paper_orders WHERE exchange_order_id = ?', [exchangeOrderId]);
+      let row = await getDatabase().get<PaperOrderRow>('SELECT * FROM trading_paper_orders WHERE exchange_order_id = ?', [exchangeOrderId]);
       if (orderCanFill(row, market.markPrice)) row = await fillOrder(row, market.markPrice, now, this.executionOptions,
         request.timeInForce === 'IOC' ? market.markPrice : undefined);
       if (request.timeInForce === 'IOC' && ['open', 'partially_filled'].includes(row.status)) {
@@ -437,7 +459,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
        WHERE account_id = ? AND client_order_id = ? AND status IN ('open', 'partially_filled')`,
       [now, account.id, clientOrderId],
     );
-    const row = await getDatabase().get<any>(
+    const row = await getDatabase().get<PaperOrderRow>(
       'SELECT * FROM trading_paper_orders WHERE account_id = ? AND client_order_id = ?',
       [account.id, clientOrderId],
     );
@@ -453,11 +475,11 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
   private async readOpenState(account: TradingAccount): Promise<ExchangeOpenState> {
     const startedAt = Date.now();
     const [orders, positions, fills] = await Promise.all([
-      getDatabase().all<any[]>('SELECT * FROM trading_paper_orders WHERE account_id = ? ORDER BY created_at', [account.id]),
-      getDatabase().all<any[]>(`SELECT position.*, market.mark_price FROM trading_paper_positions position
+      getDatabase().all<PaperOrderRow[]>('SELECT * FROM trading_paper_orders WHERE account_id = ? ORDER BY created_at', [account.id]),
+      getDatabase().all<(PaperPositionRow & { mark_price: string | null })[]>(`SELECT position.*, market.mark_price FROM trading_paper_positions position
         LEFT JOIN trading_paper_markets market ON market.account_id = position.account_id AND market.symbol = position.symbol
         WHERE position.account_id = ? ORDER BY position.symbol`, [account.id]),
-      getDatabase().all<any[]>('SELECT * FROM trading_paper_fills WHERE account_id = ? ORDER BY filled_at', [account.id]),
+      getDatabase().all<PaperFillRow[]>('SELECT * FROM trading_paper_fills WHERE account_id = ? ORDER BY filled_at', [account.id]),
     ]);
     const symbols = new Map(orders.map(order => [order.exchange_order_id, order.symbol]));
     const completedAt = Date.now();

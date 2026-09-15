@@ -1,0 +1,910 @@
+{
+  "schemaVersion": 1,
+  "kind": "lossless-new-1fd38d6a-evidence-manifest",
+  "sourceRevision": "1fd38d6af1bd51ac8b8f232d7142a90419123ef9",
+  "files": [
+    {
+      "member": "next/reports/security-services/71e4-outbox-message-ids-db-proposed.ts",
+      "path": "reports/security-services/71e4-outbox-message-ids-db-proposed.ts",
+      "sha256": "ba5b7049d3a006c2091b2dcfa0ac269487b0c5448c7dab2b087b2584f6c6ed96",
+      "bytes": 197541
+    },
+    {
+      "member": "next/reports/security-services/71e4-outbox-message-ids-forwarder-proposed.ts",
+      "path": "reports/security-services/71e4-outbox-message-ids-forwarder-proposed.ts",
+      "sha256": "4e9c22a3c68e16a22fb256f9907a6eb525f447af6886b39985460d97f52ac112",
+      "bytes": 91769
+    },
+    {
+      "member": "next/reports/security-services/71e4-outbox-message-ids-inputs.json",
+      "path": "reports/security-services/71e4-outbox-message-ids-inputs.json",
+      "sha256": "17276cfec9a0326bb851f0fdefc56d2900419c30b9692af1517fb22b71910cd7",
+      "bytes": 119
+    },
+    {
+      "member": "next/reports/security-services/71e4-outbox-message-ids-proposal-lf.patch",
+      "path": "reports/security-services/71e4-outbox-message-ids-proposal-lf.patch",
+      "sha256": "c10248e1c18fae7733cd55fc590328ce8252b26e7b594beaa1b3be0b30005b02",
+      "bytes": 11266
+    },
+    {
+      "member": "next/reports/security-services/71e4-outbox-message-ids-proposal-review.json",
+      "path": "reports/security-services/71e4-outbox-message-ids-proposal-review.json",
+      "sha256": "e38d9ccb2c213d894b2e3de991df85c249fc4183f5cd13c8c74cdea49d8ee58f",
+      "bytes": 7772
+    },
+    {
+      "member": "next/reports/security-services/71e4-outbox-message-ids-proposal.patch",
+      "path": "reports/security-services/71e4-outbox-message-ids-proposal.patch",
+      "sha256": "c10248e1c18fae7733cd55fc590328ce8252b26e7b594beaa1b3be0b30005b02",
+      "bytes": 11266
+    },
+    {
+      "member": "next/reports/security-services/71e4-outbox-message-ids-test_outbox-proposed.js",
+      "path": "reports/security-services/71e4-outbox-message-ids-test_outbox-proposed.js",
+      "sha256": "6eb0c5c92800832ec71fb3c07162c9ea514247c5f75d8cc88c8d61d513aaba5c",
+      "bytes": 19146
+    },
+    {
+      "member": "next/reports/security-services/71e4-outbox-message-ids-tests-proposal-lf.patch",
+      "path": "reports/security-services/71e4-outbox-message-ids-tests-proposal-lf.patch",
+      "sha256": "f95a42cbf273ef20a4521dd34f7552ea448403dae6560f21de78cf1dfb32d39d",
+      "bytes": 6636
+    },
+    {
+      "member": "next/reports/security-services/71e4-outbox-message-ids-tests-proposal.patch",
+      "path": "reports/security-services/71e4-outbox-message-ids-tests-proposal.patch",
+      "sha256": "f95a42cbf273ef20a4521dd34f7552ea448403dae6560f21de78cf1dfb32d39d",
+      "bytes": 6636
+    },
+    {
+      "member": "next/reports/security-services/71e4-outbox-message-ids-virtual-verification.json",
+      "path": "reports/security-services/71e4-outbox-message-ids-virtual-verification.json",
+      "sha256": "48314cd6da85ce695ecb889695c34f0a0b89b485debb4820c5fb3f75ca1a5013",
+      "bytes": 331
+    },
+    {
+      "member": "next/reports/security-services/build-1fd38d6a-receipt-candidate.py",
+      "path": "reports/security-services/build-1fd38d6a-receipt-candidate.py",
+      "sha256": "4ec7bf1cd00345712e392c5ceb37e6438a0c861c53c4fdb41cac75336fd18d7f",
+      "bytes": 8008
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-62-requirement-continuity-plan.json",
+      "path": "reports/security-services/fixer-1fd38d6a-62-requirement-continuity-plan.json",
+      "sha256": "c277731287e63a904a92411f68705f31c42e752e89c6c9083e42790fc316c46f",
+      "bytes": 594741
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-candidate-preparation-state.json",
+      "path": "reports/security-services/fixer-1fd38d6a-candidate-preparation-state.json",
+      "sha256": "cc06426def4028401c7cace7c58d09d71bdde41ab07e7957def346be34b2bcc0",
+      "bytes": 1192
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-candidate-python-validation.json",
+      "path": "reports/security-services/fixer-1fd38d6a-candidate-python-validation.json",
+      "sha256": "62716a8712e93c8fc13c8aa00180feb46d2da5171c552b9c191772e29cbbb5be",
+      "bytes": 387
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-complete-source-independent-plan.json",
+      "path": "reports/security-services/fixer-1fd38d6a-complete-source-independent-plan.json",
+      "sha256": "c701615d86ee6124cf66fd44601d007c16c2520bc4f2538ef63715b31f91fb5a",
+      "bytes": 30194
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-complete-source-supplement.json",
+      "path": "reports/security-services/fixer-1fd38d6a-complete-source-supplement.json",
+      "sha256": "ece4dd02a346e0d87eba5209f6b2f1efee510fac41f32e116ebb683dd92e06b7",
+      "bytes": 14110
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-context-after.json",
+      "path": "reports/security-services/fixer-1fd38d6a-context-after.json",
+      "sha256": "6904eeb45d57b7e54f568906f5b713e69202fd66bafa7bffe9e18d91a51e7ece",
+      "bytes": 405252
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-execution-supplement.json",
+      "path": "reports/security-services/fixer-1fd38d6a-execution-supplement.json",
+      "sha256": "e7a6040451f0e8a48f874040e89a6d3355173fdeca1516ff2993ffa069f04ad7",
+      "bytes": 4258
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-frontend-full.log",
+      "path": "reports/security-services/fixer-1fd38d6a-frontend-full.log",
+      "sha256": "b8907baafbdcb11f955ce5e15e3b5c876f47e3f967fca79655976cc9fd353c12",
+      "bytes": 364
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-full-build.log",
+      "path": "reports/security-services/fixer-1fd38d6a-full-build.log",
+      "sha256": "e62dfe47a3515a0a5df9565cc09690e23c0d508b4f19a791eea6b8e46fe140c4",
+      "bytes": 1592
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-full-module.log",
+      "path": "reports/security-services/fixer-1fd38d6a-full-module.log",
+      "sha256": "f2d700afdee95930a781769cc68cc9a126056eaa2ad0f4d96423b5305d74bab2",
+      "bytes": 93063
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-full-verification-completion.json",
+      "path": "reports/security-services/fixer-1fd38d6a-full-verification-completion.json",
+      "sha256": "3541298568c6da874c6f1029802922f4ae39da1d154d2a448039401f22083abb",
+      "bytes": 326
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-independent-context-during-verification.json",
+      "path": "reports/security-services/fixer-1fd38d6a-independent-context-during-verification.json",
+      "sha256": "78367159852c37235d205103c2899af66d8f13a9706160d83af382980d0ff713",
+      "bytes": 405252
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-independent-receipt-reference-graph.json",
+      "path": "reports/security-services/fixer-1fd38d6a-independent-receipt-reference-graph.json",
+      "sha256": "052df2977717b41a88d24f5ee44047eda3d909398527382c0287e65613629378",
+      "bytes": 183901
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-independent-receipt-review.json",
+      "path": "reports/security-services/fixer-1fd38d6a-independent-receipt-review.json",
+      "sha256": "a90b9ea6bb9208ab6c40355f3afd5795a3875737a398cb85de250354a0030d55",
+      "bytes": 6062
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-parity-supplement.json",
+      "path": "reports/security-services/fixer-1fd38d6a-parity-supplement.json",
+      "sha256": "ce44c7484ee04bea820dbb392512a445669cb5ad3a52e1f6267b9fd00fc50f7d",
+      "bytes": 583600
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-receipt-adoption-approval.json",
+      "path": "reports/security-services/fixer-1fd38d6a-receipt-adoption-approval.json",
+      "sha256": "52d625aedccd76a269602e88f0a250821edfff7bed703dd6b86136a0d910a512",
+      "bytes": 1403
+    },
+    {
+      "member": "next/reports/security-services/fixer-1fd38d6a-root-candidate-validation.json",
+      "path": "reports/security-services/fixer-1fd38d6a-root-candidate-validation.json",
+      "sha256": "5f041dfbfede885f3e816ae10486c6bae4a2f8123f2c423125ce3ed105f3be94",
+      "bytes": 353
+    },
+    {
+      "member": "next/reports/security-services/fixer-forwarder-unicode-repair.json",
+      "path": "reports/security-services/fixer-forwarder-unicode-repair.json",
+      "sha256": "886bf1a2fdad950ef0bc5e1780469ef44757fc0ede692362e0f476c56aee5467",
+      "bytes": 435
+    },
+    {
+      "member": "next/reports/security-services/fixer-message-ids-runtime-library-implementation-review.json",
+      "path": "reports/security-services/fixer-message-ids-runtime-library-implementation-review.json",
+      "sha256": "324a08a49cab7ad6e04c4370aadfabb754680646e3ac591cb95a1a8725b84d72",
+      "bytes": 5507
+    },
+    {
+      "member": "next/reports/security-services/fixer-message-ids-test_ingress_migration.log",
+      "path": "reports/security-services/fixer-message-ids-test_ingress_migration.log",
+      "sha256": "719f32d270d2f298e3550da2a6f95c26031cff2c96c97efdd2a877b5568ad462",
+      "bytes": 267
+    },
+    {
+      "member": "next/reports/security-services/fixer-message-ids-test_outbox_scheduler.log",
+      "path": "reports/security-services/fixer-message-ids-test_outbox_scheduler.log",
+      "sha256": "c907a137247c7d98ac050e8af383046e7882134d4f27ea42680ebd5b3cd65025",
+      "bytes": 208
+    },
+    {
+      "member": "next/reports/security-services/fixer-next-types-frontend-tests.log",
+      "path": "reports/security-services/fixer-next-types-frontend-tests.log",
+      "sha256": "becbb82e637671009fb7e08b68573350116f221b256ae44bc2f7e710a2fac466",
+      "bytes": 356
+    },
+    {
+      "member": "next/reports/security-services/fixer-next-types-test_ai_usage_reservations.log",
+      "path": "reports/security-services/fixer-next-types-test_ai_usage_reservations.log",
+      "sha256": "a18541b6ad3e23d555778b231b8f9005fdc0f532ffd9adffc484e6bfb0ca9336",
+      "bytes": 219
+    },
+    {
+      "member": "next/reports/security-services/fixer-next-types-test_backup.log",
+      "path": "reports/security-services/fixer-next-types-test_backup.log",
+      "sha256": "a831fc6c6c6a2ce775d43a153f86e791a2af91395dc91c562ed5c9e205710dcf",
+      "bytes": 38
+    },
+    {
+      "member": "next/reports/security-services/fixer-next-types-test_outbox.log",
+      "path": "reports/security-services/fixer-next-types-test_outbox.log",
+      "sha256": "f9b54c49fed62d0d49b8852adcde69a5eaa4e05b12618f6b8d330f230eff4e3c",
+      "bytes": 414
+    },
+    {
+      "member": "next/reports/security-services/fixer-next-types-test_outbox_scheduler.log",
+      "path": "reports/security-services/fixer-next-types-test_outbox_scheduler.log",
+      "sha256": "c907a137247c7d98ac050e8af383046e7882134d4f27ea42680ebd5b3cd65025",
+      "bytes": 208
+    },
+    {
+      "member": "next/reports/security-services/fixer-next-types-test_trading_fx_contract.log",
+      "path": "reports/security-services/fixer-next-types-test_trading_fx_contract.log",
+      "sha256": "838d101185a00c879454e5dd322a7d4a737293a679f20e232bb5a47023bd687c",
+      "bytes": 97
+    },
+    {
+      "member": "next/reports/security-services/fixer-next-types-test_trading_recovery_schedule_commit.log",
+      "path": "reports/security-services/fixer-next-types-test_trading_recovery_schedule_commit.log",
+      "sha256": "73cc289cfdafc33fa08d146d130ec838ca73f681cc60ac7eaa51927a86ddb279",
+      "bytes": 131
+    },
+    {
+      "member": "next/reports/security-services/fixer-next-types-test_trading_recovery_schedule_contract.log",
+      "path": "reports/security-services/fixer-next-types-test_trading_recovery_schedule_contract.log",
+      "sha256": "c85cb95829ab4edce62416e226d26e4fd3372aa9275e0e18cebcb19e74d9b288",
+      "bytes": 95
+    },
+    {
+      "member": "next/reports/security-services/fixer-next-types-test_trading_recovery_schedule_transport.log",
+      "path": "reports/security-services/fixer-next-types-test_trading_recovery_schedule_transport.log",
+      "sha256": "0565d35a29dc03cb7ae1d99f25cb3a64f1bcdd740861dfe347664b65b13bd2f3",
+      "bytes": 173
+    },
+    {
+      "member": "next/reports/security-services/fixer-next-types-test_viewer_database_scope.log",
+      "path": "reports/security-services/fixer-next-types-test_viewer_database_scope.log",
+      "sha256": "9c2509afb997c5b33a14f92b19f15f772b5996122f15766b9966670771faba09",
+      "bytes": 105
+    },
+    {
+      "member": "next/reports/security-services/fixer-next-types66-implementation-review.json",
+      "path": "reports/security-services/fixer-next-types66-implementation-review.json",
+      "sha256": "56f5666fb460218b21aaed9ab1871a0a15620f215e0ff9b9fc5f936c07219a2c",
+      "bytes": 5658
+    },
+    {
+      "member": "next/reports/security-services/fixer-outbox-before-guard-regression.log",
+      "path": "reports/security-services/fixer-outbox-before-guard-regression.log",
+      "sha256": "8bd2a0c5d5cf0c60186f167ce9357d8ce34ac0391a0012296a6bbfd3b6cad3d7",
+      "bytes": 1110
+    },
+    {
+      "member": "next/reports/security-services/fixer-outbox-message-ids-actual.log",
+      "path": "reports/security-services/fixer-outbox-message-ids-actual.log",
+      "sha256": "47047a53d81e883e5acf0122eff8f40b1a58c0d3baca4ee50d3908ec537cf9b0",
+      "bytes": 414
+    },
+    {
+      "member": "next/reports/security-services/fixer-outbox-syntax-actual.log",
+      "path": "reports/security-services/fixer-outbox-syntax-actual.log",
+      "sha256": "7bcae807d8bb0dd627033e60579676693986f441269aa0e19d6185c80ff3c673",
+      "bytes": 414
+    },
+    {
+      "member": "next/reports/security-services/fixer-outbox-syntax-implementation-review.json",
+      "path": "reports/security-services/fixer-outbox-syntax-implementation-review.json",
+      "sha256": "d89f4e212311c065f48d6e7a2667936aac97aab5bf3d62264f79fa5d08766851",
+      "bytes": 3303
+    },
+    {
+      "member": "next/reports/security-services/fixer-outbox-syntax-test_ingress_migration.log",
+      "path": "reports/security-services/fixer-outbox-syntax-test_ingress_migration.log",
+      "sha256": "3bb4660a047de4560229458c2ce246a69a4412ccdc27a035905cf7813cf84d2b",
+      "bytes": 267
+    },
+    {
+      "member": "next/reports/security-services/fixer-outbox-syntax-test_outbox_scheduler.log",
+      "path": "reports/security-services/fixer-outbox-syntax-test_outbox_scheduler.log",
+      "sha256": "c907a137247c7d98ac050e8af383046e7882134d4f27ea42680ebd5b3cd65025",
+      "bytes": 208
+    },
+    {
+      "member": "next/reports/security-services/fixer-outbox-syntax-test_repository_governance.log",
+      "path": "reports/security-services/fixer-outbox-syntax-test_repository_governance.log",
+      "sha256": "c3cbf92b3e22a5bbcb9fab31fd8ccff43a7a4a2815105b12023fda1aa3b54bc7",
+      "bytes": 37
+    },
+    {
+      "member": "next/reports/security-services/fixer-runtime-diagnostic-test_trading_control_races.log",
+      "path": "reports/security-services/fixer-runtime-diagnostic-test_trading_control_races.log",
+      "sha256": "d3d8790f1da967bd49c720322f536acbf6ae0605da5578a3e7570f091caa9122",
+      "bytes": 246
+    },
+    {
+      "member": "next/reports/security-services/fixer-runtime-diagnostic-test_trading_emergency.log",
+      "path": "reports/security-services/fixer-runtime-diagnostic-test_trading_emergency.log",
+      "sha256": "9593eb2b950021e300899d440e5729c21388dfbe70716df17c12d28daa4664c6",
+      "bytes": 111
+    },
+    {
+      "member": "next/reports/security-services/fixer-runtime-diagnostic-test_trading_preparation_recovery.log",
+      "path": "reports/security-services/fixer-runtime-diagnostic-test_trading_preparation_recovery.log",
+      "sha256": "8b6250ec3d1612491ccd29af262c4591b7ad805eef10fff293e7c8c37b19525c",
+      "bytes": 103
+    },
+    {
+      "member": "next/reports/security-services/fixer-workflow-library-types-tests.log",
+      "path": "reports/security-services/fixer-workflow-library-types-tests.log",
+      "sha256": "7dfb41e3feb6a1e1757164d0782defa7b335b8879f6f35f174db0af906307cd1",
+      "bytes": 300
+    },
+    {
+      "member": "next/reports/security-services/hyperliquid-1fd38d6a-receipt-candidate-lf.json",
+      "path": "reports/security-services/hyperliquid-1fd38d6a-receipt-candidate-lf.json",
+      "sha256": "9d56f6946102b339acce02ac2ccc5c0388b44402f60a5de1cd461309626d4c8b",
+      "bytes": 1355
+    },
+    {
+      "member": "next/reports/security-services/independent-1fd38d6a-receipt-check.py",
+      "path": "reports/security-services/independent-1fd38d6a-receipt-check.py",
+      "sha256": "abd9e29865caa3f42387b147e44c4f73e68ed132b0576337dbfcc9bcb743642b",
+      "bytes": 6755
+    },
+    {
+      "member": "next/reports/security-services/outbox-json-parser-depth-comparison.json",
+      "path": "reports/security-services/outbox-json-parser-depth-comparison.json",
+      "sha256": "2799678a77ce5b4f2beb81a85e060130cbde07a9b004b099772bd3c180e4adc3",
+      "bytes": 517
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-baseline-test.log",
+      "path": "reports/security-services/outbox-syntax-baseline-test.log",
+      "sha256": "bda12ea9cc2bad2a7d3acd54bb5bee47a2a69f320f6651a410f7a8d4f13efab7",
+      "bytes": 1767
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-db-proposed.ts",
+      "path": "reports/security-services/outbox-syntax-db-proposed.ts",
+      "sha256": "b7e15ccc469f2bd6d3be7f78738d6f13f66730ac5d4aa86dba6bcb5489d610a1",
+      "bytes": 200379
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-independent-check.log",
+      "path": "reports/security-services/outbox-syntax-independent-check.log",
+      "sha256": "fbe8518c9795617a2c11af156b1e76e23ea5174f6b0ac9e1ef978cf72c977de9",
+      "bytes": 326
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-independent-check.mjs",
+      "path": "reports/security-services/outbox-syntax-independent-check.mjs",
+      "sha256": "199740ebabee696732a689630bd1f560cdf43fc6483e695efe057caf92607264",
+      "bytes": 3440
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-independent-loader.mjs",
+      "path": "reports/security-services/outbox-syntax-independent-loader.mjs",
+      "sha256": "be474776fa8b4ae38ef340b7ed729ef59f834cefd1dcd3a8adb53d132e5c491b",
+      "bytes": 566
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-independent-review.json",
+      "path": "reports/security-services/outbox-syntax-independent-review.json",
+      "sha256": "c218fb78f6d28534fa1db224b72b3949abe6f457b87996cf2779bd4b61bec94f",
+      "bytes": 3871
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-independent-verification.json",
+      "path": "reports/security-services/outbox-syntax-independent-verification.json",
+      "sha256": "25e89dd206e2dc7d68854860a61a4b7b44899c41675395871aad752ac3437aa2",
+      "bytes": 529
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-proposal-lf.patch",
+      "path": "reports/security-services/outbox-syntax-proposal-lf.patch",
+      "sha256": "ff9ac0cb268cb2046f21393631c9a175f3641a41b10a194e1278cb54e0a78762",
+      "bytes": 9609
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-proposal-loader.mjs",
+      "path": "reports/security-services/outbox-syntax-proposal-loader.mjs",
+      "sha256": "dbcb423866f3fc50533d6b02d467c83c31120a0932d55cf3fe7318a40f66709f",
+      "bytes": 902
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-proposal-review.json",
+      "path": "reports/security-services/outbox-syntax-proposal-review.json",
+      "sha256": "15c9e61d20c2d40b0f3b4a40ea7d357dedf9d29e6c008c5e8335fdbb4cbf5bbb",
+      "bytes": 8166
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-proposal-test.log",
+      "path": "reports/security-services/outbox-syntax-proposal-test.log",
+      "sha256": "bb98ec7c4fd7280fb061b929a2fa70bed5c3f68c617df423385e5414bb341d60",
+      "bytes": 414
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-proposal.patch",
+      "path": "reports/security-services/outbox-syntax-proposal.patch",
+      "sha256": "ff9ac0cb268cb2046f21393631c9a175f3641a41b10a194e1278cb54e0a78762",
+      "bytes": 9609
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-test-proposed.js",
+      "path": "reports/security-services/outbox-syntax-test-proposed.js",
+      "sha256": "85e1facad388ac59934a1238ec9b0511b73f340a4971d7e5ba1f2469e06f3822",
+      "bytes": 28302
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-tests-proposal-lf.patch",
+      "path": "reports/security-services/outbox-syntax-tests-proposal-lf.patch",
+      "sha256": "b58332cdd640db54d4e1f02a2981fccbcfb3a55a4aaeae666e71800509a06131",
+      "bytes": 9638
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-tests-proposal.patch",
+      "path": "reports/security-services/outbox-syntax-tests-proposal.patch",
+      "sha256": "b58332cdd640db54d4e1f02a2981fccbcfb3a55a4aaeae666e71800509a06131",
+      "bytes": 9638
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-virtual-tsc.log",
+      "path": "reports/security-services/outbox-syntax-virtual-tsc.log",
+      "sha256": "89ae14ad8754c9628591b067ffa424a883289413bb9279d595083d21e7821cb1",
+      "bytes": 42
+    },
+    {
+      "member": "next/reports/security-services/outbox-syntax-virtual-tsc.mjs",
+      "path": "reports/security-services/outbox-syntax-virtual-tsc.mjs",
+      "sha256": "2628c3afc8c54b0f6141c585a5f457012100f2489499263f3538897751308673",
+      "bytes": 905
+    },
+    {
+      "member": "next/reports/security-services/prepare-1fd38d6a-continuity.py",
+      "path": "reports/security-services/prepare-1fd38d6a-continuity.py",
+      "sha256": "d6b074ac35023da614bd91aa2ff9eb6293ef950c6aacf3138886c06b235035eb",
+      "bytes": 10323
+    },
+    {
+      "member": "next/reports/security-services/prepare-recovery13.mjs",
+      "path": "reports/security-services/prepare-recovery13.mjs",
+      "sha256": "405e291b3f353f064ef1a52f860e4d56dde523476ef8207e44f664785e455438",
+      "bytes": 4818
+    },
+    {
+      "member": "next/reports/security-services/recovery-schedule13-fx-context-proposed.ts",
+      "path": "reports/security-services/recovery-schedule13-fx-context-proposed.ts",
+      "sha256": "d8bd62657e9828b17d6ad3632fbc04011349cfdcc49d2c458d90942ecd3ad871",
+      "bytes": 7065
+    },
+    {
+      "member": "next/reports/security-services/recovery-schedule13-proposal-lf.patch",
+      "path": "reports/security-services/recovery-schedule13-proposal-lf.patch",
+      "sha256": "3b3a0665547e4801cf87e5c75ed1d196f6573e0e84407560dc0fd852693486df",
+      "bytes": 14883
+    },
+    {
+      "member": "next/reports/security-services/recovery-schedule13-proposal-review.json",
+      "path": "reports/security-services/recovery-schedule13-proposal-review.json",
+      "sha256": "3142213848212d6b6dd1aba759bd0f583d50161d4c5455c45c5dcc3ea8b7446d",
+      "bytes": 11580
+    },
+    {
+      "member": "next/reports/security-services/recovery-schedule13-proposal.patch",
+      "path": "reports/security-services/recovery-schedule13-proposal.patch",
+      "sha256": "4a1005b0059793e4972d09c0375368ea8561b8be7a31a470c0677525a9382735",
+      "bytes": 15094
+    },
+    {
+      "member": "next/reports/security-services/recovery-schedule13-proposed.ts",
+      "path": "reports/security-services/recovery-schedule13-proposed.ts",
+      "sha256": "5daaa903707c78dd73e767decf0425338a4bef90451e55a81b0a3c2168d94456",
+      "bytes": 20668
+    },
+    {
+      "member": "next/reports/security-services/report-recovery13.mjs",
+      "path": "reports/security-services/report-recovery13.mjs",
+      "sha256": "916feca3700123c2c8ab7ea88f6b0ae944b2e49f0b2703d64f25d682650524c1",
+      "bytes": 4848
+    },
+    {
+      "member": "next/reports/security-services/reproduce-runtime-s6551-isolation.mjs",
+      "path": "reports/security-services/reproduce-runtime-s6551-isolation.mjs",
+      "sha256": "92cce40499853b0c523264b045afc9572889980ff1db64f5776260cf437405f7",
+      "bytes": 2851
+    },
+    {
+      "member": "next/reports/security-services/review-snyk-1fd38d6.mjs",
+      "path": "reports/security-services/review-snyk-1fd38d6.mjs",
+      "sha256": "0cd049f835128456a5960c4a2cb4fdd62da3ec23c19b9e94ef76aa639238ad6d",
+      "bytes": 6501
+    },
+    {
+      "member": "next/reports/security-services/runtime-diagnostic-fence-baseline-isolation-test.log",
+      "path": "reports/security-services/runtime-diagnostic-fence-baseline-isolation-test.log",
+      "sha256": "59e49836181cd841546a1c37c8ef6024c3f6280af04546da79d42c4ceac1f7fa",
+      "bytes": 762
+    },
+    {
+      "member": "next/reports/security-services/runtime-diagnostic-fence-baseline-test.log",
+      "path": "reports/security-services/runtime-diagnostic-fence-baseline-test.log",
+      "sha256": "7a486a0034489494f4a06bad8f24bb09610120ac83cc7a3d36329900aa47474e",
+      "bytes": 848
+    },
+    {
+      "member": "next/reports/security-services/runtime-diagnostic-fence-first-harness-failure.log",
+      "path": "reports/security-services/runtime-diagnostic-fence-first-harness-failure.log",
+      "sha256": "bed04b08bec4aa3f482a65c03078e6ed361b4ba039124baba0d8a666df396824",
+      "bytes": 1120
+    },
+    {
+      "member": "next/reports/security-services/runtime-diagnostic-fence-loader.mjs",
+      "path": "reports/security-services/runtime-diagnostic-fence-loader.mjs",
+      "sha256": "e494ce875c6e96441370d4bbf254a6ad04186eabe1ae6f846b6ddf6467e44b9d",
+      "bytes": 1109
+    },
+    {
+      "member": "next/reports/security-services/runtime-diagnostic-fence-proposal-lf.patch",
+      "path": "reports/security-services/runtime-diagnostic-fence-proposal-lf.patch",
+      "sha256": "fea84c3e05bacd8e5ca96e4c7ddb599022aadc049d74685018c568fbc83049f7",
+      "bytes": 5516
+    },
+    {
+      "member": "next/reports/security-services/runtime-diagnostic-fence-proposal-review.json",
+      "path": "reports/security-services/runtime-diagnostic-fence-proposal-review.json",
+      "sha256": "9e5542bb9a556e7f4b82cc822bcc1f046c982cd0dde8173081f666d8805414c0",
+      "bytes": 4623
+    },
+    {
+      "member": "next/reports/security-services/runtime-diagnostic-fence-proposal-test.log",
+      "path": "reports/security-services/runtime-diagnostic-fence-proposal-test.log",
+      "sha256": "d3d8790f1da967bd49c720322f536acbf6ae0605da5578a3e7570f091caa9122",
+      "bytes": 246
+    },
+    {
+      "member": "next/reports/security-services/runtime-diagnostic-fence-proposal.patch",
+      "path": "reports/security-services/runtime-diagnostic-fence-proposal.patch",
+      "sha256": "180dc0c46e74962c4e48bcfc18ccaf7fb6b4ac0ee0c62b31568ec22445a1f36e",
+      "bytes": 5621
+    },
+    {
+      "member": "next/reports/security-services/runtime-diagnostic-fence-proposed.ts",
+      "path": "reports/security-services/runtime-diagnostic-fence-proposed.ts",
+      "sha256": "166f16b6d20f60898a828cdb9172652dfebe2cc78be306b05c591a0d1654e7a9",
+      "bytes": 11945
+    },
+    {
+      "member": "next/reports/security-services/runtime-diagnostic-fence-test-proposed.js",
+      "path": "reports/security-services/runtime-diagnostic-fence-test-proposed.js",
+      "sha256": "4765f13813a1ce59838d011ae2b0c69cb8f324ac5e4598bf121564462adddad0",
+      "bytes": 8910
+    },
+    {
+      "member": "next/reports/security-services/runtime-s6551-independent-defect-review.json",
+      "path": "reports/security-services/runtime-s6551-independent-defect-review.json",
+      "sha256": "90a491647c496f8cfd1aed2474240558384ca3a707717d552b21612f7167c8e0",
+      "bytes": 4341
+    },
+    {
+      "member": "next/reports/security-services/runtime-s6551-independent-failure-reproduction.json",
+      "path": "reports/security-services/runtime-s6551-independent-failure-reproduction.json",
+      "sha256": "1480067173f33a8e3f870deda270f1fb12733df43add3e9fb7547900f24e451a",
+      "bytes": 3869
+    },
+    {
+      "member": "next/reports/security-services/setup-bundle-unknown-candidate.ts",
+      "path": "reports/security-services/setup-bundle-unknown-candidate.ts",
+      "sha256": "e791531314737d3784a147f9bce981073909c70f3ebbf606e8292c6438b58cde",
+      "bytes": 33074
+    },
+    {
+      "member": "next/reports/security-services/setup-bundle-unknown-independent-review.json",
+      "path": "reports/security-services/setup-bundle-unknown-independent-review.json",
+      "sha256": "3ae447d67368dcda15f1b081937954cb0389ccd882eb6d5baff668f7e3bdd344",
+      "bytes": 3545
+    },
+    {
+      "member": "next/reports/security-services/setup-bundle-unknown-proposal-review.json",
+      "path": "reports/security-services/setup-bundle-unknown-proposal-review.json",
+      "sha256": "3e359c46c62c9557c3f56e57125bcaf048f393c46b64cd8c73db68a679d18a65",
+      "bytes": 1504
+    },
+    {
+      "member": "next/reports/security-services/setup-bundle-unknown-proposal.mjs",
+      "path": "reports/security-services/setup-bundle-unknown-proposal.mjs",
+      "sha256": "24ae77d737f768085e81619dfdb6270dd10fc17e032cc56f459743493a4455c2",
+      "bytes": 4701
+    },
+    {
+      "member": "next/reports/security-services/setup-bundle-unknown-proposal.patch",
+      "path": "reports/security-services/setup-bundle-unknown-proposal.patch",
+      "sha256": "b34b4fc1c5fece59040a454e2c72b8c74ee705695c9d18bb2fa25bcc5e7efcde",
+      "bytes": 9312
+    },
+    {
+      "member": "next/reports/security-services/setup-bundle-unknown-virtual-result.json",
+      "path": "reports/security-services/setup-bundle-unknown-virtual-result.json",
+      "sha256": "03812b2f682b5cc37cf1cf1551f70653ada7d0bf2fc522d2e3460db5e1c4055c",
+      "bytes": 99
+    },
+    {
+      "member": "next/reports/security-services/snyk-1fd38d6-independent-preliminary-review.json",
+      "path": "reports/security-services/snyk-1fd38d6-independent-preliminary-review.json",
+      "sha256": "f7741863c9bcde928152c94d733750ab56718ab6454432da4d31344a27259e63",
+      "bytes": 8644
+    },
+    {
+      "member": "next/reports/security-services/snyk-1fd38d6-preliminary-binding-console.json",
+      "path": "reports/security-services/snyk-1fd38d6-preliminary-binding-console.json",
+      "sha256": "f43e60d2d1ee95de687ee5b2dc88f1c3caee0e3b86dd40a82d2063b2372ed8cd",
+      "bytes": 3340
+    },
+    {
+      "member": "next/reports/security-services/snyk-1fd38d6-preliminary-binding-delta.json",
+      "path": "reports/security-services/snyk-1fd38d6-preliminary-binding-delta.json",
+      "sha256": "1d57b6be403d76177a3fd965dc741fac0a3c468a98591a1aed8175758d441ee4",
+      "bytes": 97149
+    },
+    {
+      "member": "next/reports/security-services/snyk-1fd38d6-reviewed-source-delta.patch",
+      "path": "reports/security-services/snyk-1fd38d6-reviewed-source-delta.patch",
+      "sha256": "52816912ee5e3243775e59bc785b9645f89b6187beacadc60fe3deeb50a5a862",
+      "bytes": 99894
+    },
+    {
+      "member": "next/reports/security-services/workflow-library-types-proposal-lf.patch",
+      "path": "reports/security-services/workflow-library-types-proposal-lf.patch",
+      "sha256": "0fcb305c984bf325543162f0e9ba38740f62b4616d90e11c0a35b6a382a75a1f",
+      "bytes": 16079
+    },
+    {
+      "member": "next/reports/security-services/workflow-library-types-proposal-review.json",
+      "path": "reports/security-services/workflow-library-types-proposal-review.json",
+      "sha256": "75c84c43ec49ec7bce1eab0c18c6d92876676d2578eb3a819e76fa707df01e3c",
+      "bytes": 6618
+    },
+    {
+      "member": "next/reports/security-services/workflow-library-types-proposal.patch",
+      "path": "reports/security-services/workflow-library-types-proposal.patch",
+      "sha256": "0fcb305c984bf325543162f0e9ba38740f62b4616d90e11c0a35b6a382a75a1f",
+      "bytes": 16079
+    },
+    {
+      "member": "next/reports/security-services/workflow-library-types-proposed.tsx",
+      "path": "reports/security-services/workflow-library-types-proposed.tsx",
+      "sha256": "f0b3cec138f3aae384021bb6518d538ca1417980e82d2bb6b6f1e65790444e1d",
+      "bytes": 22728
+    },
+    {
+      "member": "next/reports/security-services/workflow-library-types-virtual-check.json",
+      "path": "reports/security-services/workflow-library-types-virtual-check.json",
+      "sha256": "5a9051f26a3314d4974ef9f8c18abfeea87fab01ce56bbf8538481bbf51d68d1",
+      "bytes": 465
+    },
+    {
+      "member": "next/reports/security-services/write-1fd38d6a-independent-review.py",
+      "path": "reports/security-services/write-1fd38d6a-independent-review.py",
+      "sha256": "ed1be8e9c1e0808d874f248dce1450545d2ed71fc557ab645bb9893703fb98ea",
+      "bytes": 4883
+    }
+  ],
+  "inheritedExactFiles": [
+    {
+      "referencePath": "reports/security-services/fixer-message-ids-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-message-ids-root-tsc.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-message-ids-test_forwarder_error_types.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-contract-undefined-forwarder.log",
+      "memberSha256": "e5d4fa2698c478dd6eb06022d3635a85e0bc24a2eff72eaf6de3f474caa3afcd",
+      "bytes": 218
+    },
+    {
+      "referencePath": "reports/security-services/fixer-message-ids-test_ingress_atomicity.log",
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+      "member": "active/reports/security-services/fixer-ingress-service-test_ingress_atomicity.js.log",
+      "memberSha256": "2266c0a0092e3cbf69885e8377981fa48e47b0ebcd3bb3f43d74af2559de1b3d",
+      "bytes": 49
+    },
+    {
+      "referencePath": "reports/security-services/fixer-message-ids-test_ingress_contract_guards.log",
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+      "member": "active/reports/security-services/fixer-e58-ingress-independent.log",
+      "memberSha256": "b3555efa9826dbc95339e546f729dd99eb27782eea8e2dd63285053756950b38",
+      "bytes": 83
+    },
+    {
+      "referencePath": "reports/security-services/fixer-message-ids-test_ingress_workflow_pinning.log",
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+      "member": "active/reports/security-services/fixer-ingress-service-test_ingress_workflow_pinning.js.log",
+      "memberSha256": "4ab5c306ee63c01e552812ffad7213edc564a2f86b3cc3dc01855df16eb66875",
+      "bytes": 157
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-types-frontend-tsc.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-types-root-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-types-root-tsc.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-types-test_database_maintenance.log",
+      "path": "exchange_executor/certifications/reviews/fixer-final-f1b7-evidence.tar.gz",
+      "sha256": "08959768353cc9f3be169d6ebcdec53a0a443dbb0e2e910ce32090e6be08a636",
+      "member": "next/reports/security-services/fixer-mcp-rename-db-tests.log",
+      "memberSha256": "2ba996dc8c36c1d6482e381239e74f6a9807dc504be8fb4d4af82503faafedc5",
+      "bytes": 110
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-types-test_setup_bundle.log",
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+      "member": "active/reports/security-services/fixer-codacy-c1-setup-test.log",
+      "memberSha256": "21e0a44a76e039e1f190793cb81b1ce28010328dcd3aea7cf5230b976be21ac1",
+      "bytes": 37
+    },
+    {
+      "referencePath": "reports/security-services/fixer-next-types-test_trading_recovery_schedule.log",
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+      "member": "active/reports/security-services/fixer-src-wave4-test_trading_recovery_schedule.js.log",
+      "memberSha256": "3448514952e27c9e8e7a4f804efe494e4609a37c36debc86586ababa0709537f",
+      "bytes": 120
+    },
+    {
+      "referencePath": "reports/security-services/fixer-outbox-syntax-actual-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-outbox-syntax-actual-tsc.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-outbox-syntax-test_database_maintenance.log",
+      "path": "exchange_executor/certifications/reviews/fixer-final-f1b7-evidence.tar.gz",
+      "sha256": "08959768353cc9f3be169d6ebcdec53a0a443dbb0e2e910ce32090e6be08a636",
+      "member": "next/reports/security-services/fixer-mcp-rename-db-tests.log",
+      "memberSha256": "2ba996dc8c36c1d6482e381239e74f6a9807dc504be8fb4d4af82503faafedc5",
+      "bytes": 110
+    },
+    {
+      "referencePath": "reports/security-services/fixer-outbox-syntax-test_ingress_atomicity.log",
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+      "member": "active/reports/security-services/fixer-ingress-service-test_ingress_atomicity.js.log",
+      "memberSha256": "2266c0a0092e3cbf69885e8377981fa48e47b0ebcd3bb3f43d74af2559de1b3d",
+      "bytes": 49
+    },
+    {
+      "referencePath": "reports/security-services/fixer-outbox-syntax-test_ingress_contract_guards.log",
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+      "member": "active/reports/security-services/fixer-e58-ingress-independent.log",
+      "memberSha256": "b3555efa9826dbc95339e546f729dd99eb27782eea8e2dd63285053756950b38",
+      "bytes": 83
+    },
+    {
+      "referencePath": "reports/security-services/fixer-outbox-syntax-test_ingress_workflow_pinning.log",
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9",
+      "member": "active/reports/security-services/fixer-ingress-service-test_ingress_workflow_pinning.js.log",
+      "memberSha256": "4ab5c306ee63c01e552812ffad7213edc564a2f86b3cc3dc01855df16eb66875",
+      "bytes": 157
+    },
+    {
+      "referencePath": "reports/security-services/fixer-runtime-diagnostic-actual-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-runtime-diagnostic-actual-tsc.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/fixer-workflow-library-types-tsc.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/recovery-schedule13-contract-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/recovery-schedule13-fx-context-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/runtime-diagnostic-fence-source-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "referencePath": "reports/security-services/runtime-diagnostic-fence-test-lint.log",
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77",
+      "member": "next/reports/security-services/fixer-baseline-batch1-final-lint.log",
+      "memberSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "inheritedAssetsNotDuplicated": [
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-5a532f-evidence.tar.gz",
+      "sha256": "23c186a2888d53349e0b1b1ff1cd44af5c0e63664880a59c9b322ec87d8abd39"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-b425-evidence.tar.gz",
+      "sha256": "dbffd63c21754ec9af502689728e05df2621cd82d08b1a18f2b0964af2564a24"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-final-f1b7-evidence.tar.gz",
+      "sha256": "08959768353cc9f3be169d6ebcdec53a0a443dbb0e2e910ce32090e6be08a636"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9"
+    }
+  ],
+  "historicalNameReferencesResolvedToArchive": [],
+  "unresolvedReferences": [],
+  "independentGraphBindingsRechecked": 1008,
+  "scope": "Only new raw evidence documents/logs and explicitly referenced evidence helpers/snapshots under reports/security-services. Product sources remain frozen Git/collector bindings. Identical prior evidence bytes inherited without duplication.",
+  "historicalHarnessFailure": "Original 142 failed harness evidence remains immutable in inherited b425 archive, alongside successful retry; no duplicate archive payload.",
+  "providerAcceptanceVerified": false,
+  "operativeReceiptOrPinsChanged": false
+}

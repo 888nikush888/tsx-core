@@ -124,6 +124,49 @@ import {
   workflowPathFocusState,
 } from "./workflow-graph";
 
+// API DTO views describe this server's wire contract; the existing shallow
+// resilience checks below are not full validation of arbitrary JSON.
+type WorkflowImpactView = {
+  changed?: Array<{ channelId: string; accountId: string }>;
+  removed?: Array<{ channelId: string; accountId: string }>;
+  destructive?: boolean;
+  confirmation?: string | null;
+};
+type WorkflowDraftMeta = {
+  id?: string;
+  version?: number | null;
+  baseRevisionId?: string | null;
+  graph?: WorkflowGraph;
+  expired?: boolean;
+};
+type WorkflowDraftPreview = {
+  draft?: WorkflowDraftMeta | null;
+  workflow?: WorkflowSnapshot["workflow"];
+};
+type WorkflowSystemStatus = {
+  connectionState?: string;
+  state?: string;
+  status?: string;
+  error?: unknown;
+  mcp?: { mode?: string };
+  operations?: { backup?: {
+    integrityVerified?: { verifiedAt?: number };
+    healthy?: boolean;
+  } };
+};
+// create/update both normalize resource configuration on the server. Fields
+// remain optional because each resource kind supplies only its own subset.
+type WorkflowSummaryConfiguration = {
+  accountId?: string; channelId?: string; schemaId?: string;
+  contractVersionId?: string; strategyVersionId?: string;
+  allowedTypes?: string[]; allowedKeywords?: string[]; blockedKeywords?: string[];
+  patterns?: string[]; tiers?: unknown[];
+  mode?: string; enabled?: boolean; timeoutMs?: number; templateName?: string;
+  cooldownHours?: number; maxLeverage?: number; defaultLeverage?: number;
+  riskPerTradePercent?: string; maxAdaptiveRiskPercent?: string;
+};
+type WorkflowCanvasNode = Node<{ kind: WorkflowKind }>;
+
 const nodeTypes = { workflow: WorkflowNode, columnHeader: ColumnHeaderNode };
 const edgeTypes = { workflow: WorkflowEdge };
 const EMPTY_GRAPH: WorkflowGraph = { schemaVersion: 1, nodes: [], edges: [] };
@@ -211,7 +254,7 @@ export function workflowResourceSummary(
   resource: WorkflowResource,
   trading: TradingSnapshot | null,
 ): string {
-  const value: any = resource.configuration;
+  const value = resource.configuration as WorkflowSummaryConfiguration;
   if (resource.kind === "account") {
     const account = trading?.accounts.find(
       (item) => item.id === value.accountId,
@@ -269,7 +312,7 @@ function newId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
-export function workflowImpactDescription(impact: any): string {
+export function workflowImpactDescription(impact: WorkflowImpactView): string {
   const lines = [
     `${impact.changed?.length || 0} Pfad(e) werden geändert.`,
     `${impact.removed?.length || 0} Pfad(e) werden entfernt.`,
@@ -283,7 +326,7 @@ export function workflowImpactDescription(impact: any): string {
   return `${lines.join("\n")}\n\nDiese Änderung sofort als aktive Revision übernehmen?`;
 }
 
-function workflowSnapshot(payload: any): WorkflowSnapshot {
+function workflowSnapshot(payload: WorkflowSnapshot | null | undefined): WorkflowSnapshot {
   const resources = Array.isArray(payload?.resources) ? payload.resources : [];
   const candidate = payload?.workflow;
   const graph = candidate?.graph;
@@ -299,7 +342,7 @@ function workflowSnapshot(payload: any): WorkflowSnapshot {
   return { workflow: validWorkflow ? candidate : null, resources };
 }
 
-function builderHistoryStatus(payload: any): BuilderHistoryStatus {
+function builderHistoryStatus(payload: BuilderHistoryStatus | null | undefined): BuilderHistoryStatus {
   const valid = payload?.limit === 5
     && Number.isSafeInteger(payload.undoCount)
     && payload.undoCount >= 0
@@ -314,7 +357,7 @@ function builderHistoryStatus(payload: any): BuilderHistoryStatus {
   return valid ? payload : EMPTY_BUILDER_HISTORY;
 }
 
-function tradingSnapshot(payload: any): TradingSnapshot | null {
+function tradingSnapshot(payload: TradingSnapshot | null | undefined): TradingSnapshot | null {
   const valid =
     payload?.overview?.runtime &&
     Array.isArray(payload.accounts) &&
@@ -328,7 +371,7 @@ function tradingSnapshot(payload: any): TradingSnapshot | null {
   return valid ? payload : null;
 }
 
-function exchangeCatalog(payload: any): ExchangeCatalog | null {
+function exchangeCatalog(payload: ExchangeCatalog | null | undefined): ExchangeCatalog | null {
   return payload?.implementation && Array.isArray(payload.exchanges)
     ? payload
     : null;
@@ -609,7 +652,7 @@ export function resolveStatusbarCopy(workspace: string): StatusbarCopy {
 
 export function buildDashboardCockpit(
   runtime: TradingSnapshot["overview"]["runtime"] | undefined,
-  systemStatus: Record<string, any> | null,
+  systemStatus: WorkflowSystemStatus | null,
   openIncidents: TradingSnapshot["accountIncidents"],
 ): CockpitItem[] {
   const runtimeBlocker = () => {
@@ -641,7 +684,7 @@ export function buildDashboardCockpit(
 }
 
 export function buildOperationsCockpit(
-  systemStatus: Record<string, any> | null,
+  systemStatus: WorkflowSystemStatus | null,
   openIncidents: TradingSnapshot["accountIncidents"],
 ): CockpitItem[] {
   return [
@@ -691,7 +734,7 @@ export function WorkspaceStatusbar({
   workspace: Exclude<WorkflowWorkspace, "builder">;
   onRefresh: () => Promise<void>;
   trading: TradingSnapshot | null;
-  systemStatus: Record<string, any> | null;
+  systemStatus: WorkflowSystemStatus | null;
   refreshing: boolean;
   lastUpdated: number | null;
 }>) {
@@ -1136,7 +1179,7 @@ function historyNavigationPlan(
 }
 
 async function requestHistoryNavigationConfirmation(
-  impact: any,
+  impact: WorkflowImpactView,
   plan: HistoryNavigationPlan,
   confirm: (options: ConfirmationDialogOptions) => Promise<string | null>,
 ): Promise<{ accepted: boolean; confirmation: string | null }> {
@@ -1244,7 +1287,7 @@ function graphRevisionError(message: string, embedded: boolean) {
   return embedded ? 'Der aktive Workflow wurde parallel geändert. Dein Entwurf bleibt erhalten; Serverstand vergleichen.' : 'Der Workflow wurde parallel geändert. Der aktuelle Stand wird neu geladen.';
 }
 
-async function confirmGraphImpact(impact: any, confirm: ReturnType<typeof useConfirmationDialog>['confirm']) {
+async function confirmGraphImpact(impact: WorkflowImpactView, confirm: ReturnType<typeof useConfirmationDialog>['confirm']) {
   if (!impact.destructive) return { accepted: true, confirmation: null };
   const required = typeof impact.confirmation === 'string' ? impact.confirmation : undefined;
   const accepted = await confirm({
@@ -1265,7 +1308,7 @@ function resourceAction(resource: WorkflowResource | null, action: (resource: Wo
   return resource ? () => action(resource) : undefined;
 }
 
-async function persistGraphDraft(graph: WorkflowGraph, meta: any) {
+async function persistGraphDraft(graph: WorkflowGraph, meta: WorkflowDraftMeta | null) {
   if (!meta) throw new Error('Graphentwurf konnte nicht geladen werden. Keine Speicherung möglich.');
   return jsonRequest('/api/workflow/drafts', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1304,20 +1347,20 @@ function bindSavedResourceToGraph(
 
 export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {}) {
   const readOnly = useOperatorReadOnly();
-  const [draftMeta, setDraftMeta] = useState<any>(null);
-  const draftMetaRef = useRef<any>(null);
+  const [draftMeta, setDraftMeta] = useState<WorkflowDraftMeta | null>(null);
+  const draftMetaRef = useRef<WorkflowDraftMeta | null>(null);
   const graphInitialized = useRef(false);
   const [draftUnsaved, setDraftUnsaved] = useState(false);
   useDirtyGuard(draftUnsaved);
   const [tableView, setTableView] = useState(false);
-  const [serverDraftPreview, setServerDraftPreview] = useState<any>(null);
+  const [serverDraftPreview, setServerDraftPreview] = useState<WorkflowDraftPreview | null>(null);
   const [snapshot, setSnapshot] = useState<WorkflowSnapshot>({
     workflow: null,
     resources: [],
   });
   const [trading, setTrading] = useState<TradingSnapshot | null>(null);
   const [catalog, setCatalog] = useState<ExchangeCatalog | null>(null);
-  const [systemStatus, setSystemStatus] = useState<Record<string, any> | null>(
+  const [systemStatus, setSystemStatus] = useState<WorkflowSystemStatus | null>(
     null,
   );
   const [graph, setGraph] = useState<WorkflowGraph>(EMPTY_GRAPH);
@@ -1361,7 +1404,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
   const simulationTriggerRef = useRef<HTMLButtonElement>(null);
   const routeTriggerRef = useRef<HTMLButtonElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
-  const reactFlowRef = useRef<ReactFlowInstance<Node, Edge> | null>(null);
+  const reactFlowRef = useRef<ReactFlowInstance<WorkflowCanvasNode, Edge> | null>(null);
   const fitViewPendingRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
@@ -1980,8 +2023,8 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
     [activateGraph],
   );
 
-  const displayNodes = useMemo<Node[]>(() => {
-    const headers: Node[] = WORKFLOW_KINDS.map((kind) => ({
+  const displayNodes = useMemo<WorkflowCanvasNode[]>(() => {
+    const headers: WorkflowCanvasNode[] = WORKFLOW_KINDS.map((kind) => ({
       id: `__column_${kind}`,
       type: "columnHeader",
       draggable: false,
@@ -1993,7 +2036,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
       style: { width: COLUMN_HEADER_DIMENSIONS.width, zIndex: -1 },
     }));
     const query = search.trim().toLocaleLowerCase("de-DE");
-    const nodes: Node[] = graph.nodes.map((node) => {
+    const nodes: WorkflowCanvasNode[] = graph.nodes.map((node) => {
       const resource = resourceById.get(node.resourceVersionId);
       const nodeSummary = resource ? workflowResourceSummary(resource, trading) : node.resourceVersionId;
       const warning = snapshot.workflow?.compiled.warnings.find((item) =>
@@ -2650,7 +2693,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
             edit={setEditorNodeId} remove={edgeId => { removeEdge(edgeId); }}
             connect={(source, target) => { activateGraph({ ...graph, edges: [...graph.edges, { id: newId('edge'), source, target }] }, 'Verbindung'); }} />}
           <div ref={canvasRef} id="workflow-canvas" className="workflow-canvas" style={embedded && tableView ? { display: 'none' } : undefined}>
-        <ReactFlow
+        <ReactFlow<WorkflowCanvasNode, Edge>
           nodes={displayNodes}
           edges={displayEdges}
           nodeTypes={nodeTypes}
@@ -2707,14 +2750,14 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
             showInteractive={false}
             onFitView={showAllNodes}
           />
-          <MiniMap
+          <MiniMap<WorkflowCanvasNode>
             position="bottom-right"
             pannable
             zoomable
             nodeColor={(node) =>
               node.id.startsWith("__column_")
                 ? "transparent"
-                : KIND_META[(node.data as any).kind]?.color || "#64748b"
+                : KIND_META[node.data.kind]?.color || "#64748b"
             }
             maskColor="var(--minimap-mask)"
           />

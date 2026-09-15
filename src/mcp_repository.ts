@@ -161,7 +161,7 @@ export interface McpTradingEvent {
   exchange: string | null;
   mode: string | null;
   occurredAt: number;
-  details: Record<string, unknown>;
+  details: unknown;
   correlationId: string | null;
 }
 
@@ -178,6 +178,14 @@ export interface McpRuntimeTransition {
   cancelledControlRequests: number;
   cancelledProposals: number;
 }
+
+
+type AgentRow = Record<'id' | 'name' | 'tokenPrefix' | 'permissionsJson' | 'eventSubscriptionsJson' | 'enabled' | 'createdAt' | 'updatedAt' | 'lastSeenAt', unknown>;
+type SessionRow = Record<'id' | 'agentId' | 'clientName' | 'clientVersion' | 'connectedAt' | 'lastSeenAt' | 'disconnectedAt', unknown>;
+type ControlRequestRow = Record<'id' | 'agentId' | 'sessionId' | 'action' | 'payloadJson' | 'resultJson' | 'error' | 'createdAt' | 'startedAt' | 'completedAt', unknown> & { status: McpControlRequest['status'] };
+type ProposalRow = Record<'id' | 'agentId' | 'agentName' | 'sessionId' | 'action' | 'payloadJson' | 'preflightJson' | 'requestedAt' | 'expiresAt' | 'decidedAt' | 'decidedBy' | 'executedAt' | 'resultJson' | 'error', unknown> & { status: McpAgentProposal['status'] };
+type ActionRow = Record<'id' | 'agentId' | 'agentName' | 'sessionId' | 'toolName' | 'permission' | 'requestJson' | 'resultJson' | 'error' | 'startedAt' | 'completedAt' | 'durationMs', unknown> & { outcome: McpAgentAction['outcome'] };
+type EventRow = Record<'id' | 'intentId' | 'channelId' | 'accountId' | 'exchange' | 'mode' | 'eventType' | 'occurredAt' | 'detailsJson' | 'correlationId', unknown>;
 
 const PERMISSION_SET = new Set<string>(MCP_PERMISSIONS);
 const RUNTIME_MODE_SET = new Set<string>(MCP_RUNTIME_MODES);
@@ -304,8 +312,8 @@ function runtimeMode(value: unknown): McpRuntimeMode {
   return value as McpRuntimeMode;
 }
 
-async function runtimeStateFrom(database: any): Promise<McpRuntimeState> {
-  const row = await database.get(
+async function runtimeStateFrom(database: ReturnType<typeof getDatabase>): Promise<McpRuntimeState> {
+  const row = await database.get<Record<'mode' | 'updatedAt' | 'updatedBy', unknown>>(
     `SELECT mode, updated_at AS updatedAt, updated_by AS updatedBy
      FROM mcp_runtime_state WHERE singleton_id = 1`,
   );
@@ -317,7 +325,7 @@ async function runtimeStateFrom(database: any): Promise<McpRuntimeState> {
   };
 }
 
-async function assertRuntimeActiveFrom(database: any): Promise<void> {
+async function assertRuntimeActiveFrom(database: ReturnType<typeof getDatabase>): Promise<void> {
   if ((await runtimeStateFrom(database)).mode !== 'active') {
     throw new Error('MCP runtime is not active. Enable it in the dashboard before using agents or actions.');
   }
@@ -391,7 +399,7 @@ export async function setMcpRuntimeMode(
   });
 }
 
-function parsed(value: unknown): any {
+function parsed(value: unknown): unknown {
   if (typeof value !== 'string') return null;
   try {
     return JSON.parse(value);
@@ -414,7 +422,7 @@ function constantTimeDigestMatch(left: string, right: string): boolean {
   return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
 }
 
-function mappedAgent(row: any): McpAgent {
+function mappedAgent(row: AgentRow): McpAgent {
   return {
     id: String(row.id),
     name: String(row.name),
@@ -428,7 +436,7 @@ function mappedAgent(row: any): McpAgent {
   };
 }
 
-function mappedSession(row: any): McpAgentSession {
+function mappedSession(row: SessionRow): McpAgentSession {
   return {
     id: String(row.id),
     agentId: String(row.agentId),
@@ -440,7 +448,7 @@ function mappedSession(row: any): McpAgentSession {
   };
 }
 
-function mappedControlRequest(row: any): McpControlRequest {
+function mappedControlRequest(row: ControlRequestRow): McpControlRequest {
   return {
     id: String(row.id),
     agentId: String(row.agentId),
@@ -456,7 +464,7 @@ function mappedControlRequest(row: any): McpControlRequest {
   };
 }
 
-function mappedProposal(row: any): McpAgentProposal {
+function mappedProposal(row: ProposalRow): McpAgentProposal {
   return {
     id: String(row.id),
     agentId: String(row.agentId),
@@ -521,7 +529,7 @@ export async function createMcpAgent(input: {
 }
 
 export async function listMcpAgents(): Promise<McpAgent[]> {
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<AgentRow[]>(
     `SELECT id, name, token_prefix AS tokenPrefix, permissions_json AS permissionsJson,
             event_subscriptions_json AS eventSubscriptionsJson, enabled,
             created_at AS createdAt, updated_at AS updatedAt, last_seen_at AS lastSeenAt
@@ -655,7 +663,7 @@ export async function deleteMcpAgent(idValue: unknown): Promise<boolean> {
 export async function authenticateMcpToken(value: unknown): Promise<AuthenticatedMcpAgent | null> {
   if (typeof value !== 'string' || !value.startsWith(TOKEN_PREFIX) || value.length > 128) return null;
   const digest = tokenDigest(value);
-  const row = await getDatabase().get<any>(
+  const row = await getDatabase().get<AgentRow & { tokenSha256: unknown }>(
     `SELECT id, name, token_sha256 AS tokenSha256, token_prefix AS tokenPrefix,
             permissions_json AS permissionsJson, event_subscriptions_json AS eventSubscriptionsJson,
             enabled, created_at AS createdAt, updated_at AS updatedAt, last_seen_at AS lastSeenAt
@@ -732,7 +740,7 @@ export async function disconnectMcpSession(idValue: unknown, agentIdValue?: unkn
 
 export async function listMcpSessions(limit = 200): Promise<McpAgentSession[]> {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1_000) throw new Error('MCP session limit is invalid.');
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<SessionRow[]>(
     `SELECT id, agent_id AS agentId, client_name AS clientName, client_version AS clientVersion,
             connected_at AS connectedAt, last_seen_at AS lastSeenAt, disconnected_at AS disconnectedAt
      FROM mcp_agent_sessions ORDER BY connected_at DESC LIMIT ?`,
@@ -778,7 +786,7 @@ export async function recordMcpAgentAction(input: {
 
 export async function listMcpAgentActions(limit = 200): Promise<McpAgentAction[]> {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1_000) throw new Error('MCP action limit is invalid.');
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<ActionRow[]>(
     `SELECT a.id, a.agent_id AS agentId, g.name AS agentName, a.session_id AS sessionId,
             a.tool_name AS toolName, a.permission, a.outcome, a.request_json AS requestJson,
             a.result_json AS resultJson, a.error, a.started_at AS startedAt,
@@ -850,7 +858,7 @@ export async function enqueueMcpControlRequest(input: {
 
 export async function getMcpControlRequest(idValue: unknown): Promise<McpControlRequest | null> {
   const id = identifier(idValue, 'MCP control request identifier', 64);
-  const row = await getDatabase().get<any>(
+  const row = await getDatabase().get<ControlRequestRow>(
     `SELECT id, agent_id AS agentId, session_id AS sessionId, action,
             payload_json AS payloadJson, status, result_json AS resultJson,
             error, created_at AS createdAt, started_at AS startedAt, completed_at AS completedAt
@@ -879,7 +887,7 @@ export async function waitForMcpControlRequest(
 
 export async function claimNextMcpControlRequest(): Promise<McpControlRequest | null> {
   return withDatabaseTransaction(async database => {
-    const row = await database.get<any>(
+    const row = await database.get<ControlRequestRow>(
       `SELECT id, agent_id AS agentId, session_id AS sessionId, action,
               payload_json AS payloadJson, status, result_json AS resultJson,
               error, created_at AS createdAt, started_at AS startedAt, completed_at AS completedAt
@@ -1307,7 +1315,7 @@ export async function createMcpProposal(input: {
         autoApprove ? `mcp:${agentId}` : null,
       ],
     );
-    const row = await database.get<any>(
+    const row = await database.get<ProposalRow>(
       `SELECT proposal.id, proposal.agent_id AS agentId, agent.name AS agentName,
               proposal.session_id AS sessionId, proposal.action,
               proposal.payload_json AS payloadJson, proposal.preflight_json AS preflightJson,
@@ -1337,7 +1345,7 @@ async function expireMcpProposals(now = Date.now()): Promise<number> {
 
 export async function getMcpProposal(idValue: unknown): Promise<McpAgentProposal | null> {
   const id = identifier(idValue, 'MCP proposal identifier', 64);
-  const row = await getDatabase().get<any>(
+  const row = await getDatabase().get<ProposalRow>(
     `SELECT proposal.id, proposal.agent_id AS agentId, agent.name AS agentName,
             proposal.session_id AS sessionId, proposal.action,
             proposal.payload_json AS payloadJson, proposal.preflight_json AS preflightJson,
@@ -1356,7 +1364,7 @@ export async function getMcpProposal(idValue: unknown): Promise<McpAgentProposal
 export async function listMcpProposals(limit = 200): Promise<McpAgentProposal[]> {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1_000) throw new Error('MCP proposal limit is invalid.');
   await expireMcpProposals();
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<ProposalRow[]>(
     `SELECT proposal.id, proposal.agent_id AS agentId, agent.name AS agentName,
             proposal.session_id AS sessionId, proposal.action,
             proposal.payload_json AS payloadJson, proposal.preflight_json AS preflightJson,
@@ -1495,7 +1503,7 @@ export async function listPendingMcpEvents(
   if (agent.eventSubscriptions.length < 1) return [];
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 500) throw new Error('MCP event limit is invalid.');
   const placeholders = agent.eventSubscriptions.map(() => '?').join(', ');
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<EventRow[]>(
     `SELECT e.id, e.intent_id AS intentId, e.channel_id AS channelId,
             e.account_id AS accountId, e.exchange, e.mode, e.event_type AS eventType,
             e.occurred_at AS occurredAt, e.details_json AS detailsJson,

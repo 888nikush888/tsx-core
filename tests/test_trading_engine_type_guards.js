@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { requireTakeProfitTargets, requireTakeProfitAllocation } from '../src/trading_take_profit.js';
+import { requireTakeProfitTargets, requireTakeProfitAllocation, TakeProfitAllocationError } from '../src/trading_take_profit.js';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -16,6 +16,11 @@ for (const target of [{ ...validTarget, price: null }, { ...validTarget, price: 
   assert.throws(() => requireTakeProfitTargets({ orders: [target] }));
 }
 assert.deepEqual(requireTakeProfitAllocation(['1'], ['0'], 0), { desired: '1', remaining: '0' });
+for (const [totals, remaining] of [[[], ['0']], [['1'], []]]) {
+  assert.throws(() => requireTakeProfitAllocation(totals, remaining, 0), error =>
+    error instanceof TakeProfitAllocationError && error instanceof Error && !(error instanceof TypeError)
+    && error.message === 'Take-profit allocation has no quantity for a planned target.');
+}
 for (const [totals, remaining] of [[[], ['0']], [['1'], []], [['-1'], ['0']], [['1'], ['bad']]]) {
   assert.throws(() => requireTakeProfitAllocation(totals, remaining, 0));
 }

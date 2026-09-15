@@ -17,6 +17,29 @@ const IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9:._/-]{0,255}$/;
 const SENSITIVE_KEY = /(secret|token|password|private.?key|api.?key|api.?hash|authorization|credential)/i;
 const MAXIMUM_DETAILS_BYTES = 32 * 1024;
 
+interface NotificationEventRow {
+  seq: unknown;
+  id: unknown;
+  dedupe_key: unknown;
+  event_type: unknown;
+  intent_id: unknown;
+  channel_id: unknown;
+  account_id: unknown;
+  exchange: unknown;
+  mode: TradingNotificationEvent['mode'];
+  occurred_at: unknown;
+  created_at: unknown;
+  details_json: unknown;
+}
+
+interface ViewerTestEventRow {
+  seq: unknown;
+  id: unknown;
+  created_at: unknown;
+  created_by: unknown;
+  message: unknown;
+}
+
 function identifier(value: unknown, label: string, nullable = false): string | null {
   if ((value === null || value === undefined) && nullable) return null;
   if (typeof value !== 'string' || !IDENTIFIER_PATTERN.test(value)) throw new Error(`${label} is invalid.`);
@@ -69,7 +92,7 @@ function eventType(value: unknown): TradingNotificationEventType {
   return value as TradingNotificationEventType;
 }
 
-function eventFromRow(row: any): TradingNotificationEvent {
+function eventFromRow(row: NotificationEventRow): TradingNotificationEvent {
   return {
     seq: Number(row.seq),
     id: String(row.id),
@@ -119,7 +142,7 @@ export async function recordTradingNotificationEvent(input: {
      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, dedupeKey, type, intentId, channelId, accountId, exchange, mode, occurredAt, createdAt, serializedDetails],
   );
-  const row = await getDatabase().get<any>(
+  const row = await getDatabase().get<NotificationEventRow>(
     'SELECT * FROM trading_notification_events WHERE dedupe_key = ?',
     [dedupeKey],
   );
@@ -144,7 +167,7 @@ export async function listTradingNotificationEvents(input: {
   limit?: unknown;
 } = {}): Promise<{ events: TradingNotificationEvent[]; nextSeq: number }> {
   const afterSeq = cursorInput(input.afterSeq, 'Notification event cursor');
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<NotificationEventRow[]>(
     'SELECT * FROM trading_notification_events WHERE seq > ? ORDER BY seq LIMIT ?',
     [afterSeq, boundedLimit(input.limit)],
   );
@@ -152,7 +175,7 @@ export async function listTradingNotificationEvents(input: {
   return { events, nextSeq: events.at(-1)?.seq ?? afterSeq };
 }
 
-function testEventFromRow(row: any): TelegramViewerTestEvent {
+function testEventFromRow(row: ViewerTestEventRow): TelegramViewerTestEvent {
   return {
     seq: Number(row.seq),
     id: String(row.id),
@@ -192,7 +215,7 @@ export async function listTelegramViewerTestEvents(input: {
   limit?: unknown;
 } = {}): Promise<{ events: TelegramViewerTestEvent[]; nextSeq: number }> {
   const afterSeq = cursorInput(input.afterSeq, 'Telegram viewer test-event cursor');
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<ViewerTestEventRow[]>(
     'SELECT * FROM telegram_viewer_test_events WHERE seq > ? ORDER BY seq LIMIT ?',
     [afterSeq, boundedLimit(input.limit)],
   );

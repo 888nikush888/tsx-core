@@ -1,0 +1,28 @@
+{
+  "operativeReceiptChanged": false,
+  "providerAcceptanceVerified": false,
+  "actualRootValidation": {
+    "pythonReceiptValidation": "actual production validate_receipt passed, independent report62716a87",
+    "nodeFourCommitments": "passed fd1844, actual970inputs",
+    "syntheticPinInjected": false
+  },
+  "candidate": {
+    "sha256": "9d56f6946102b339acce02ac2ccc5c0388b44402f60a5de1cd461309626d4c8b",
+    "path": "reports/security-services/hyperliquid-1fd38d6a-receipt-candidate-lf.json"
+  },
+  "kind": "independent-exact-receipt-adoption-approval",
+  "conditions": [
+    "Archive exact reviewed raw evidence and verify all member/reference hashes before adoption.",
+    "Adopt only exact approved receipt bytes and matching independent pin.",
+    "Run actual operative gate and receipt/runtime regression checks after adoption.",
+    "Fresh Snyk and applicable external CI/container checks remain pending.",
+    "PR30 already merged main90fb with exact protection restored; this is separate followup."
+  ],
+  "independentReview": {
+    "sha256": "a90b9ea6bb9208ab6c40355f3afd5795a3875737a398cb85de250354a0030d55",
+    "path": "reports/security-services/fixer-1fd38d6a-independent-receipt-review.json"
+  },
+  "revision": "1fd38d6af1bd51ac8b8f232d7142a90419123ef9",
+  "containerRuntimeVerified": false,
+  "implementationEvidenceApprovedForExactReceiptAdoption": true
+}

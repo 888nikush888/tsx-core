@@ -5,6 +5,40 @@ import { mkdir, rename, stat, lstat, open as openFile, readFile, readdir, realpa
 import { createHash, randomUUID } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
+interface SqliteBackupOperation {
+  readonly completed: boolean;
+  step(pages: number, callback: (error: Error | null, completed?: boolean) => void): this;
+}
+
+declare module 'sqlite3' {
+  interface Database {
+    backup(filename: string, callback?: (error: Error | null) => void): SqliteBackupOperation;
+    backup(filename: string, destinationName: string, sourceName: string, filenameIsDestination: boolean,
+      callback?: (error: Error | null) => void): SqliteBackupOperation;
+  }
+}
+
+interface SignalStorageRow {
+  id: string | null; chat_id: string | null; message_id: number | null;
+  xml_content: string | null; normalized_content: string | null; created_at: number | null;
+  template_name: string | null; schema_name: string | null; prompt_sha256: string | null;
+  model: string | null; provider_request_id: string | null; prompt_tokens: number | null;
+  completion_tokens: number | null; parser_version: string | null; workflow_revision_id: string | null;
+}
+interface IncomingMessageStorageRow {
+  id: number; chat_id: string | null; message_id: number | null; sender: string | null;
+  text: string | null; type: string | null; status: string | null; created_at: number | null;
+}
+interface OutboxStorageRow {
+  id: string | null; type: OutboxTask['type'] | null; chat_id: string | null; message_id: number | null;
+  message_ids: string | null; media_group_id: string | null; added_at: number | null;
+  status: OutboxStatus; attempts: number | null; claimed_at: number | null;
+  updated_at: number | null; completed_at: number | null; last_error: string | null;
+  config_json: string | null; result_json: string | null;
+  workflow_revision_id: string | null; ingress_work_id: string | null;
+}
+interface StoredMediaGroup { messages: unknown; fromChatId: number }
+
 const MARKER_NAME = '.mcp-maintenance';
 const PARTICIPANTS = '.mcp-participants';
 const ACKS = '.mcp-maintenance-acks';
@@ -58,7 +92,7 @@ export function mcpMaintenanceMarkerPath(databasePath = operationalDatabasePath(
 }
 
 async function exists(file: string): Promise<boolean> {
-  try { await lstat(file); return true; } catch (error: any) { if (error?.code === 'ENOENT') return false;
+  try { await lstat(file); return true; } catch (error: unknown) { if ((error as { code?: unknown } | null | undefined)?.code === 'ENOENT') return false;
     throw error; }
 }
 
@@ -86,7 +120,7 @@ async function assertDatabaseAbsent(databasePath: string): Promise<void> {
 
 async function databaseTargetEvidence(databasePath: string, allowAbsent: boolean): Promise<MaintenanceDatabaseEvidence> {
   try { return { databaseState: 'present', databaseIdentity: await databaseFileIdentity(databasePath) }; }
-  catch (error: any) { if (error?.code !== 'ENOENT' || !allowAbsent) throw error; }
+  catch (error: unknown) { if ((error as { code?: unknown } | null | undefined)?.code !== 'ENOENT' || !allowAbsent) throw error; }
   await assertDatabaseAbsent(databasePath);
   return { databaseState: 'absent', databaseIdentity: null };
 }
@@ -118,7 +152,7 @@ async function exclusiveJson(file: string, value: object): Promise<void> {
 async function replaceJson(file: string, value: object): Promise<void> {
   const temporary = `${file}.${randomUUID()}.tmp`;
   await exclusiveJson(temporary, value);
-  try { await renameMaintenanceEvidence(temporary, file); } finally { await unlink(temporary).catch((error: any) => { if (error?.code !== 'ENOENT') throw error; }); }
+  try { await renameMaintenanceEvidence(temporary, file); } finally { await unlink(temporary).catch((error: unknown) => { if ((error as { code?: unknown })?.code !== 'ENOENT') throw error; }); }
 }
 
 async function renameMaintenanceEvidence(temporary: string, file: string): Promise<void> {
@@ -323,12 +357,12 @@ let databaseMaintenanceReason: string | null = null;
 const GUARDED_DATABASE_METHODS = new Set(['all', 'each', 'exec', 'get', 'run']);
 
 function createGuardedDatabase(database: Database): Database {
-  return new Proxy(database as any, {
+  return new Proxy(database, {
     get(target, property, receiver) {
       const value = Reflect.get(target, property, receiver);
       if (typeof value !== 'function') return value;
       if (!GUARDED_DATABASE_METHODS.has(String(property))) return value.bind(target);
-      return (...parameters: any[]) => {
+      return (...parameters: unknown[]) => {
         if (databaseMaintenanceReason && !serializedDatabaseAccess.isOwnedByCurrentOperation()) {
           return Promise.reject(new Error(`Database maintenance is active: ${databaseMaintenanceReason}`));
         }
@@ -486,12 +520,15 @@ export const REQUIRED_DATABASE_TABLES = [
 
 export type OutboxStatus = 'pending' | 'preparing' | 'sending' | 'completed' | 'failed' | 'unknown' | 'needs_review';
 
+export type OutboxPayloadField = 'message_ids' | 'config_json' | 'result_json';
+
 export interface OutboxTask {
   id: string;
   type: 'single' | 'mediaGroup';
   chatId: string;
   messageId?: number;
-  messageIds?: number[];
+  messageIds?: unknown;
+  payloadErrors?: OutboxPayloadField[];
   mediaGroupId?: string;
   addedAt: number;
   status: OutboxStatus;
@@ -500,8 +537,8 @@ export interface OutboxTask {
   updatedAt: number;
   completedAt?: number;
   lastError?: string;
-  config?: any;
-  result?: any;
+  config?: unknown;
+  result?: unknown;
   workflowRevisionId?: string | null;
   ingressWorkId?: string;
 }
@@ -2890,13 +2927,13 @@ async function migrateDatabase(database: Database, beforeApply?: (fromVersion: n
 async function copyDatabase(database: Database, destinationPath: string): Promise<void> {
   const resolvedDestination = path.resolve(destinationPath);
   await mkdir(path.dirname(resolvedDestination), { recursive: true });
-  const destinationExists = await stat(resolvedDestination).then(() => true).catch((error: any) => {
-    if (error.code === 'ENOENT') return false;
+  const destinationExists = await stat(resolvedDestination).then(() => true).catch((error: unknown) => {
+    if ((error as { code?: unknown }).code === 'ENOENT') return false;
     throw error;
   });
   if (destinationExists) throw new Error(`Database copy destination already exists: ${resolvedDestination}`);
-  const nativeDatabase: any = database.getDatabaseInstance();
-  const backup: any = await new Promise((resolve, reject) => {
+  const nativeDatabase = database.getDatabaseInstance();
+  const backup = await new Promise<SqliteBackupOperation>((resolve, reject) => {
     const operation = nativeDatabase.backup(resolvedDestination, (error: Error | null) => {
       if (error) reject(error);
       else resolve(operation);
@@ -2950,8 +2987,8 @@ async function initializeDatabase(dbPath: string): Promise<void> {
   await databaseParticipant?.closeSucceeded();
   databaseParticipant = null;
   const resolvedDbPath = path.resolve(dbPath);
-  const databaseExisted = await stat(resolvedDbPath).then(stats => stats.isFile() && stats.size > 0).catch((error: any) => {
-    if (error.code === 'ENOENT') return false;
+  const databaseExisted = await stat(resolvedDbPath).then(stats => stats.isFile() && stats.size > 0).catch((error: unknown) => {
+    if ((error as { code?: unknown }).code === 'ENOENT') return false;
     throw error;
   });
   await mkdir(path.dirname(resolvedDbPath), { recursive: true });
@@ -3140,7 +3177,7 @@ export async function saveSignal(
   xmlContent: string,
   normalizedContent: string,
   provenance?: SignalProvenance
-): Promise<any> {
+): Promise<SignalStorageRow> {
   return withDatabaseTransaction(async database => {
     await database.run(
     `INSERT INTO signals (
@@ -3153,7 +3190,7 @@ export async function saveSignal(
       ...signalProvenanceParameters(provenance), provenance?.workflowRevisionId ?? null
     ]
     );
-    const existing = await database.get<any>('SELECT * FROM signals WHERE id = ?', [id]);
+    const existing = await database.get<SignalStorageRow>('SELECT * FROM signals WHERE id = ?', [id]);
     if (existing.chat_id !== chatId || existing.message_id !== messageId
       || existing.normalized_content !== normalizedContent
       || existing.workflow_revision_id !== (provenance?.workflowRevisionId ?? null)) {
@@ -3168,6 +3205,13 @@ export async function saveSignal(
     }
     return existing;
   });
+}
+
+interface AiUsageReservationRow {
+  usage_day: string;
+  allowance: number;
+  status: 'reserved' | 'settled_known' | 'settled_unknown';
+  actual_tokens: number | null;
 }
 
 export interface AiUsageReservation {
@@ -3209,7 +3253,7 @@ export async function commitAiUsage(reservationId: string, allowance: number, ac
   const actual = known ? actualTokens : allowance;
   const status = known ? 'settled_known' : 'settled_unknown';
   await withDatabaseTransaction(async database => {
-    const row = await database.get<any>('SELECT * FROM ai_usage_reservations WHERE id = ?', [reservationId]);
+    const row = await database.get<AiUsageReservationRow>('SELECT * FROM ai_usage_reservations WHERE id = ?', [reservationId]);
     if (!row) throw new Error(`No AI usage reservation exists for ${reservationId}.`);
     if (row.allowance !== allowance) throw new Error('AI settlement conflict: allowance differs.');
     if (row.status !== 'reserved') {
@@ -3231,7 +3275,7 @@ export async function commitAiUsage(reservationId: string, allowance: number, ac
 }
 
 export async function getAiUsage(usageDay: string): Promise<{ requestCount: number; usedTokens: number; reservedTokens: number }> {
-  const row = await getDb().get<any>(
+  const row = await getDb().get<Record<'request_count' | 'used_tokens' | 'reserved_tokens', number>>(
     'SELECT request_count, used_tokens, reserved_tokens FROM ai_usage_daily WHERE usage_day = ?',
     [usageDay]
   );
@@ -3585,23 +3629,54 @@ async function findPermanentDuplicate(database: Awaited<ReturnType<typeof getDat
   return { isDupe: true, matchFile: match.id };
 }
 
-function parseJsonField(value: unknown, field: string, taskId: string): any {
+function parseOutboxJsonField(value: unknown, field: OutboxPayloadField, errors: OutboxPayloadField[]): unknown {
   if (value === null || value === undefined || value === '') return undefined;
-  if (typeof value !== 'string') throw new TypeError(`Outbox task ${taskId} has non-string ${field}.`);
+  if (typeof value !== 'string') {
+    errors.push(field);
+    return undefined;
+  }
   try {
     return JSON.parse(value);
-  } catch (error: any) {
-    throw new Error(`Outbox task ${taskId} has invalid ${field}: ${error.message}`, { cause: error });
+  } catch (error: unknown) {
+    if (!(error instanceof SyntaxError)) throw error;
+    errors.push(field);
+    return undefined;
   }
 }
 
-function mapOutboxRow(row: any): OutboxTask {
+export class OutboxMessageIdsError extends Error {
+  constructor(taskId: string) {
+    super(`Media-group outbox task ${taskId} has malformed messageIds; explicit review required.`);
+    this.name = 'OutboxMessageIdsError';
+  }
+}
+
+function isSafeOutboxMessageIds(value: unknown): value is number[] {
+  if (!Array.isArray(value) || value.length === 0) return false;
+  for (let index = 0; index < value.length; index++) {
+    if (!Number.isSafeInteger(value[index])) return false;
+  }
+  return true;
+}
+
+export function requireOutboxMessageIds(task: Pick<OutboxTask, 'id' | 'messageIds'>): number[] {
+  const messageIds = task.messageIds;
+  if (!isSafeOutboxMessageIds(messageIds)) throw new OutboxMessageIdsError(task.id);
+  return messageIds;
+}
+
+function mapOutboxRow(row: OutboxStorageRow): OutboxTask {
+  const payloadErrors: OutboxPayloadField[] = [];
+  const messageIds = parseOutboxJsonField(row.message_ids, 'message_ids', payloadErrors);
+  const config = parseOutboxJsonField(row.config_json, 'config_json', payloadErrors);
+  const result = parseOutboxJsonField(row.result_json, 'result_json', payloadErrors);
   return {
     id: String(row.id),
     type: row.type,
     chatId: String(row.chat_id),
     messageId: row.message_id === null ? undefined : Number(row.message_id),
-    messageIds: parseJsonField(row.message_ids, 'message_ids', row.id),
+    messageIds,
+    ...(payloadErrors.length ? { payloadErrors } : {}),
     mediaGroupId: row.media_group_id || undefined,
     addedAt: Number(row.added_at),
     status: row.status,
@@ -3610,11 +3685,30 @@ function mapOutboxRow(row: any): OutboxTask {
     updatedAt: Number(row.updated_at || row.added_at),
     completedAt: row.completed_at === null ? undefined : Number(row.completed_at),
     lastError: row.last_error || undefined,
-    config: parseJsonField(row.config_json, 'config_json', row.id),
-    result: parseJsonField(row.result_json, 'result_json', row.id),
+    config,
+    result,
     workflowRevisionId: row.workflow_revision_id || null,
     ingressWorkId: row.ingress_work_id || undefined
   };
+}
+
+// Select the row and call this helper within the same write-locked transaction.
+// Only status/diagnostics change: persisted payload bytes remain available for repair.
+async function reviewOutboxRow(row: OutboxStorageRow): Promise<OutboxTask> {
+  const task = mapOutboxRow(row);
+  if (!task.payloadErrors?.length) return task;
+  const status: OutboxStatus = task.status === 'sending' ? 'unknown'
+    : task.status === 'unknown' || task.status === 'completed' ? task.status : 'needs_review';
+  const lastError = `Invalid persisted outbox JSON in ${task.payloadErrors.join(', ')}; explicit data review required.`;
+  if (task.status !== status || task.lastError !== lastError) {
+    const updatedAt = Date.now();
+    await getDb().run('UPDATE pending_tasks SET status = ?, updated_at = ?, last_error = ? WHERE id = ?',
+      [status, updatedAt, lastError, task.id]);
+    task.updatedAt = updatedAt;
+  }
+  task.status = status;
+  task.lastError = lastError;
+  return task;
 }
 
 // Durable inbox/outbox API
@@ -3626,7 +3720,7 @@ export interface EnqueueOutboxTaskInput {
   messageIds?: number[];
   mediaGroupId?: string;
   addedAt: number;
-  config?: any;
+  config?: unknown;
   workflowRevisionId?: string | null;
   ingressWorkId?: string;
   needsReview?: boolean;
@@ -3673,17 +3767,22 @@ export async function enqueueOutboxTask(task: EnqueueOutboxTaskInput): Promise<b
 }
 
 export async function claimOutboxTask(id: string): Promise<OutboxTask | null> {
-  const database = getDb();
-  const now = Date.now();
-  const row = await database.get(
-    `UPDATE pending_tasks
-     SET status = 'preparing', attempts = attempts + 1, claimed_at = ?, updated_at = ?,
-         last_error = NULL, completed_at = NULL, result_json = NULL
-     WHERE id = ? AND status IN ('pending', 'failed')
-     RETURNING *`,
-    [now, now, id]
-  );
-  return row ? mapOutboxRow(row) : null;
+  return withDatabaseTransaction(async database => {
+    const current = await database.get<OutboxStorageRow>('SELECT * FROM pending_tasks WHERE id = ?', [id]);
+    if (!current) return null;
+    const task = await reviewOutboxRow(current);
+    if (task.payloadErrors?.length || !['pending', 'failed'].includes(task.status)) return null;
+    const now = Date.now();
+    const row = await database.get<OutboxStorageRow>(
+      `UPDATE pending_tasks
+       SET status = 'preparing', attempts = attempts + 1, claimed_at = ?, updated_at = ?,
+           last_error = NULL, completed_at = NULL, result_json = NULL
+       WHERE id = ? AND status IN ('pending', 'failed')
+       RETURNING *`,
+      [now, now, id]
+    );
+    return row ? mapOutboxRow(row) : null;
+  });
 }
 
 export async function markOutboxSending(id: string): Promise<void> {
@@ -3698,7 +3797,7 @@ export async function markOutboxSending(id: string): Promise<void> {
   }
 }
 
-export async function completeOutboxTask(id: string, result?: any): Promise<void> {
+export async function completeOutboxTask(id: string, result?: unknown): Promise<void> {
   const database = getDb();
   const now = Date.now();
   const update = await database.run(
@@ -3724,7 +3823,8 @@ export async function failOutboxTask(id: string, error: unknown): Promise<Outbox
          updated_at = ?, last_error = ?, completed_at = NULL, result_json = NULL
      WHERE id = ? AND status IN ('preparing', 'sending')
      RETURNING status`,
-    [error instanceof SignalConflictError || (error instanceof Error && error.name === 'AiUsageSettlementError') ? 1 : 0, Date.now(), message, id]
+    [error instanceof SignalConflictError || error instanceof OutboxMessageIdsError
+      || (error instanceof Error && error.name === 'AiUsageSettlementError') ? 1 : 0, Date.now(), message, id]
   );
   if (!row) throw new Error(`Outbox task ${id} cannot be failed from its current state.`);
   return row.status;
@@ -3751,22 +3851,24 @@ export async function recoverInterruptedOutboxTasks(): Promise<{ requeued: numbe
 }
 
 export async function getOutboxTask(id: string): Promise<OutboxTask | null> {
-  const row = await getDb().get('SELECT * FROM pending_tasks WHERE id = ?', [id]);
-  return row ? mapOutboxRow(row) : null;
+  return withDatabaseTransaction(async database => {
+    const row = await database.get<OutboxStorageRow>('SELECT * FROM pending_tasks WHERE id = ?', [id]);
+    return row ? reviewOutboxRow(row) : null;
+  });
 }
 
 export async function listOutboxTasks(statuses?: OutboxStatus[], limit = 100): Promise<OutboxTask[]> {
   const safeLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(limit, 1000)) : 100;
-  let rows: any[];
-  if (statuses && statuses.length > 0) {
-    rows = await getDb().all(
-      'SELECT * FROM pending_tasks WHERE status IN (SELECT value FROM json_each(?)) ORDER BY added_at ASC LIMIT ?',
-      [JSON.stringify(statuses), safeLimit]
-    );
-  } else {
-    rows = await getDb().all('SELECT * FROM pending_tasks ORDER BY added_at ASC LIMIT ?', [safeLimit]);
-  }
-  return rows.map(mapOutboxRow);
+  return withDatabaseTransaction(async database => {
+    const rows = statuses && statuses.length > 0
+      ? await database.all<OutboxStorageRow[]>(
+        'SELECT * FROM pending_tasks WHERE status IN (SELECT value FROM json_each(?)) ORDER BY added_at ASC LIMIT ?',
+        [JSON.stringify(statuses), safeLimit])
+      : await database.all<OutboxStorageRow[]>('SELECT * FROM pending_tasks ORDER BY added_at ASC LIMIT ?', [safeLimit]);
+    const tasks: OutboxTask[] = [];
+    for (const row of rows) tasks.push(await reviewOutboxRow(row));
+    return tasks;
+  });
 }
 
 /**
@@ -3776,25 +3878,42 @@ export async function listOutboxTasks(statuses?: OutboxStatus[], limit = 100): P
 export async function listPendingOutboxTasksForScheduling(excludedTaskIds: string[] = [], limit = 100): Promise<OutboxTask[]> {
   const safeLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(limit, 1000)) : 100;
   const excluded = [...new Set(excludedTaskIds.filter(id => typeof id === 'string' && id.length > 0))].slice(0, 1000);
-  const rows = await getDb().all(
-    `SELECT * FROM pending_tasks
-     WHERE status = 'pending'
-       AND id NOT IN (SELECT value FROM json_each(?))
-     ORDER BY added_at ASC, id ASC LIMIT ?`,
-    [JSON.stringify(excluded), safeLimit]
-  );
-  return rows.map(mapOutboxRow);
+  return withDatabaseTransaction(async database => {
+    const initial = await database.get<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM pending_tasks WHERE status = 'pending'
+       AND id NOT IN (SELECT value FROM json_each(?))`, [JSON.stringify(excluded)]);
+    let remaining = initial?.count || 0;
+    const tasks: OutboxTask[] = [];
+    while (remaining > 0 && tasks.length < safeLimit) {
+      const rows = await database.all<OutboxStorageRow[]>(
+        `SELECT * FROM pending_tasks WHERE status = 'pending'
+         AND id NOT IN (SELECT value FROM json_each(?))
+         ORDER BY added_at ASC, id ASC LIMIT ?`,
+        [JSON.stringify([...excluded, ...tasks.map(task => task.id)]), Math.min(remaining, safeLimit - tasks.length)]);
+      if (!rows.length) break;
+      remaining -= rows.length;
+      for (const row of rows) {
+        const task = await reviewOutboxRow(row);
+        if (!task.payloadErrors?.length) tasks.push(task);
+      }
+    }
+    return tasks;
+  });
 }
 
 export async function requeueOutboxTask(id: string): Promise<boolean> {
-  const result = await getDb().run(
-    `UPDATE pending_tasks
-     SET status = 'pending', updated_at = ?, claimed_at = NULL, completed_at = NULL,
-         last_error = 'Explicit operator retry requested.', result_json = NULL
-     WHERE id = ? AND status IN ('failed', 'unknown')`,
-    [Date.now(), id]
-  );
-  return Number(result.changes || 0) === 1;
+  return withDatabaseTransaction(async database => {
+    const row = await database.get<OutboxStorageRow>('SELECT * FROM pending_tasks WHERE id = ?', [id]);
+    if (!row || (await reviewOutboxRow(row)).payloadErrors?.length) return false;
+    const result = await database.run(
+      `UPDATE pending_tasks
+       SET status = 'pending', updated_at = ?, claimed_at = NULL, completed_at = NULL,
+           last_error = 'Explicit operator retry requested.', result_json = NULL
+       WHERE id = ? AND status IN ('failed', 'unknown')`,
+      [Date.now(), id]
+    );
+    return Number(result.changes || 0) === 1;
+  });
 }
 
 export async function acknowledgeOutboxTask(id: string, reason: string): Promise<boolean> {
@@ -3809,7 +3928,7 @@ export async function acknowledgeOutboxTask(id: string, reason: string): Promise
 }
 
 // Media Group Buffer API
-export async function saveMediaGroupBuffer(groupId: string, fromChatId: string, messages: any[]): Promise<void> {
+export async function saveMediaGroupBuffer(groupId: string, fromChatId: string, messages: unknown[]): Promise<void> {
   const database = getDb();
   await database.run(
     `INSERT OR REPLACE INTO media_group_buffer (group_id, from_chat_id, messages_json, added_at) 
@@ -3823,10 +3942,10 @@ export async function removeMediaGroupBuffer(groupId: string): Promise<void> {
   await database.run('DELETE FROM media_group_buffer WHERE group_id = ?', [groupId]);
 }
 
-export async function getMediaGroupBuffers(): Promise<Record<string, any>> {
+export async function getMediaGroupBuffers(): Promise<Record<string, StoredMediaGroup>> {
   const database = getDb();
-  const rows = await database.all('SELECT * FROM media_group_buffer');
-  const result: Record<string, any> = {};
+  const rows = await database.all<Array<{ group_id: string | null; from_chat_id: string | null; messages_json: string | null }>>('SELECT * FROM media_group_buffer');
+  const result: Record<string, StoredMediaGroup> = {};
   for (const r of rows) {
     result[r.group_id] = {
       messages: JSON.parse(r.messages_json),
@@ -3866,17 +3985,17 @@ export async function updateIncomingMessageStatus(
   );
 }
 
-export async function getIncomingMessages(limit = 100): Promise<any[]> {
+export async function getIncomingMessages(limit = 100): Promise<IncomingMessageStorageRow[]> {
   const database = getDb();
-  return await database.all(
+  return await database.all<IncomingMessageStorageRow[]>(
     'SELECT * FROM incoming_messages ORDER BY created_at DESC LIMIT ?',
     [limit]
   );
 }
 
-export async function getProcessedSignals(limit = 100): Promise<any[]> {
+export async function getProcessedSignals(limit = 100): Promise<SignalStorageRow[]> {
   const database = getDb();
-  return await database.all(
+  return await database.all<SignalStorageRow[]>(
     'SELECT * FROM signals ORDER BY created_at DESC LIMIT ?',
     [limit]
   );

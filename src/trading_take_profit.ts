@@ -10,6 +10,13 @@ import type { ExchangeOpenState, PlannedOrder, TradingIntent, TradingPlan, Tradi
 
 export type PlannedTakeProfitOrder = PlannedOrder & { price: string; targetIndex: number };
 
+export class TakeProfitAllocationError extends Error {
+  constructor() {
+    super('Take-profit allocation has no quantity for a planned target.');
+    this.name = 'TakeProfitAllocationError';
+  }
+}
+
 /** Verify every pinned target before recovering, cancelling, or submitting exit orders. */
 export function requireTakeProfitTargets(plan: TradingPlan): PlannedTakeProfitOrder[] {
   return plan.orders.filter(order => order.role === 'take_profit').map((order, index) => {
@@ -25,7 +32,7 @@ export function requireTakeProfitAllocation(totals: string[], remaining: string[
   const desired = totals[index];
   const outstanding = remaining[index];
   if (typeof desired !== 'string' || typeof outstanding !== 'string') {
-    throw new Error('Take-profit allocation has no quantity for a planned target.');
+    throw new TakeProfitAllocationError();
   }
   decimal(desired);
   decimal(outstanding);

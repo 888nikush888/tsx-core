@@ -1,0 +1,30 @@
+{
+  "kind": "independent-exact-receipt-adoption-approval",
+  "revision": "b42583fcd9063666da673e1b243f6268cd9c530e",
+  "candidate": {
+    "path": "reports/security-services/hyperliquid-b425-receipt-candidate-lf.json",
+    "sha256": "e0e8285c975107a2cfb8fad02f4bc608096260c80c9593aa0ce916b90609cac3"
+  },
+  "independentReview": {
+    "path": "reports/security-services/fixer-b425-receipt-independent-review.json",
+    "sha256": "405180395156ccbfdca31ea5a69e1fca27c46f97868c68f17c2060e9cef74382"
+  },
+  "actualCandidateValidation": {
+    "path": "reports/security-services/fixer-b425-root-candidate-validation.json",
+    "sha256": "1c1711b751f0ab7b8e7da9a7c3a16bb9c122408f2634469aff8e2c87b2db8096",
+    "toolChunk": "3f9b6f",
+    "syntheticPinInjected": false
+  },
+  "implementationEvidenceApprovedForExactReceiptAdoption": true,
+  "providerAcceptanceVerified": false,
+  "containerRuntimeVerified": false,
+  "conditions": [
+    "Archive exact current evidence with no unresolved references before adoption.",
+    "Adopt only independently reviewed exact receipt bytes and matching pin.",
+    "Run actual operative implementation gate after adoption; no synthetic pin injection.",
+    "Current external CI/container/scanner checks remain open for b425.",
+    "Keep published PR30 revision0d frozen while main merge is prioritized.",
+    "Retain all prior scope restrictions; other profiles remain quarantined."
+  ],
+  "operativeReceiptChanged": false
+}

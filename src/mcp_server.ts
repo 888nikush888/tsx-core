@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type { Server } from 'node:http';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Express, Request as ExpressRequest, Response, NextFunction } from 'express';
+import type { CallToolResult, ToolAnnotations, ServerRequest, ServerNotification, InitializeRequest } from '@modelcontextprotocol/sdk/types.js';
+import type { ShapeOutput, ZodRawShapeCompat } from '@modelcontextprotocol/sdk/server/zod-compat.js';
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
+import { McpServer, type ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
@@ -97,7 +101,13 @@ const PROPOSAL_ACTION_VALUES = [
   'trading.release_kill_switch',
 ] as const;
 
-type ToolHandler = (input: any, sessionId?: string) => Promise<unknown>;
+// HTTP JSON remains unknown until the existing SDK request discriminator accepts it.
+type Request = ExpressRequest<Record<string, string>, unknown, unknown>;
+
+type ToolHandler<Shape extends ZodRawShapeCompat> = (input: ShapeOutput<Shape>, sessionId?: string) => Promise<unknown>;
+type ToolConfig<Shape extends ZodRawShapeCompat> = {
+  title?: string; description?: string; inputSchema?: Shape; annotations?: ToolAnnotations;
+};
 type SessionRuntime = {
   agentId: string;
   transport: StreamableHTTPServerTransport;
@@ -177,7 +187,7 @@ function bearerToken(header: unknown): string | null {
   return match?.[1] ?? null;
 }
 
-function remoteIdentity(req: any): string {
+function remoteIdentity(req: Request): string {
   return String(req.ip || req.socket?.remoteAddress || 'unknown').slice(0, 128);
 }
 
@@ -213,11 +223,11 @@ function jsonText(value: unknown): string {
   return text;
 }
 
-function toolResult(value: unknown): any {
+function toolResult(value: unknown): CallToolResult {
   return { content: [{ type: 'text', text: jsonText(value) }] };
 }
 
-function toolError(error: unknown): any {
+function toolError(error: unknown): CallToolResult {
   return {
     isError: true,
     content: [{ type: 'text', text: errorMessage(error).slice(0, 4_000) }],
@@ -244,15 +254,22 @@ async function currentAgent(agentId: string): Promise<McpAgent> {
   return agent;
 }
 
-function registerTool(
+// Schema-bearing handlers retain the inferred parser output; tools without a schema cannot consume input.
+function registerTool<Shape extends ZodRawShapeCompat>(server: McpServer, agentId: string, name: string,
+  permission: McpPermission, config: ToolConfig<Shape> & { inputSchema: Shape }, handler: ToolHandler<Shape>): void;
+function registerTool(server: McpServer, agentId: string, name: string,
+  permission: McpPermission, config: ToolConfig<never> & { inputSchema?: never }, handler: () => Promise<unknown>): void;
+function registerTool<Shape extends ZodRawShapeCompat>(
   server: McpServer,
   agentId: string,
   name: string,
   permission: McpPermission,
-  config: any,
-  handler: ToolHandler,
+  config: ToolConfig<Shape>,
+  handler: ToolHandler<Shape>,
 ): void {
-  server.registerTool(name, config, (input: any, extra: any) => databaseWork.run(async () => {
+  // SDK ToolCallback is conditional over raw-shape/schema/undefined. Shape is restricted to raw shapes here;
+  // this signature-only bridge preserves that correlation, without asserting any parsed input value.
+  server.registerTool<ZodRawShapeCompat, Shape>(name, config, ((input: ShapeOutput<Shape>, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => databaseWork.run(async () => {
     const startedAt = Date.now();
     const sessionId = typeof extra?.sessionId === 'string' ? extra.sessionId : undefined;
     try {
@@ -295,7 +312,7 @@ function registerTool(
       }).catch(() => undefined);
       return toolError(error);
     }
-  }).catch(error => toolError(error)));
+  }).catch(error => toolError(error))) as ToolCallback<Shape>);
 }
 
 function enqueueControl(
@@ -530,13 +547,13 @@ function registerReadTools(server: McpServer, agentId: string): void {
   registerExtendedReadTools(server, agentId);
 }
 
-function registerControlTool(
+function registerControlTool<Shape extends ZodRawShapeCompat>(
   server: McpServer,
   agentId: string,
   name: string,
   permission: McpPermission,
   action: McpControlAction,
-  config: any,
+  config: ToolConfig<Shape> & { inputSchema: Shape },
 ): void {
   registerTool(
     server,
@@ -548,13 +565,13 @@ function registerControlTool(
   );
 }
 
-function registerProposalTool(
+function registerProposalTool<Shape extends ZodRawShapeCompat>(
   server: McpServer,
   agentId: string,
   name: string,
   permission: McpPermission,
   action: McpProposalAction,
-  config: any,
+  config: ToolConfig<Shape> & { inputSchema: Shape },
 ): void {
   registerTool(
     server,
@@ -975,8 +992,8 @@ async function initializeOperationalDatabase(databasePath: string): Promise<stri
   return initialDatabaseIdentity;
 }
 
-function configureHttpSecurity(app: any, origins: Set<string>): void {
-  app.use((req: any, res: any, next: any) => {
+function configureHttpSecurity(app: Express, origins: Set<string>): void {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     const origin = typeof req.headers.origin === 'string' ? req.headers.origin : null;
     if (origin && !origins.has(origin)) {
       res.status(403).json({ jsonrpc: '2.0', error: { code: -32000, message: 'Origin is not allowed.' }, id: null });
@@ -988,8 +1005,8 @@ function configureHttpSecurity(app: any, origins: Set<string>): void {
   });
 }
 
-function configureHealthCheck(app: any): void {
-  app.get('/healthz', async (_req: any, res: any) => {
+function configureHealthCheck(app: Express): void {
+  app.get('/healthz', async (_req: Request, res: Response) => {
     try {
       await databaseWork.run(async () => {
         await getDatabase().get('SELECT 1');
@@ -1007,7 +1024,7 @@ function configureHealthCheck(app: any): void {
   });
 }
 
-async function authenticateRequest(req: any, res: any): Promise<AuthenticatedMcpAgent | null> {
+async function authenticateRequest(req: Request, res: Response): Promise<AuthenticatedMcpAgent | null> {
   const identity = remoteIdentity(req);
   if (isRateLimited(identity)) {
     res.status(429).json({ jsonrpc: '2.0', error: { code: -32000, message: 'Too many authentication failures.' }, id: null });
@@ -1028,8 +1045,8 @@ async function authenticateRequest(req: any, res: any): Promise<AuthenticatedMcp
 async function handleExistingSession(
   agent: AuthenticatedMcpAgent,
   sessionId: string,
-  req: any,
-  res: any,
+  req: Request,
+  res: Response,
 ): Promise<void> {
   const runtime = sessions.get(sessionId);
   if (runtime?.agentId !== agent.id) {
@@ -1044,8 +1061,9 @@ async function handleExistingSession(
   await runtime.transport.handleRequest(req, res, req.body);
 }
 
-async function initializeMcpSession(agent: AuthenticatedMcpAgent, req: any, res: any): Promise<void> {
-  const clientInfo = req.body?.params?.clientInfo ?? {};
+async function initializeMcpSession(agent: AuthenticatedMcpAgent, req: Request, res: Response): Promise<void> {
+  // The sole caller already passed isInitializeRequest; retain the original optional reads.
+  const clientInfo: Partial<InitializeRequest['params']['clientInfo']> = (req.body as InitializeRequest)?.params?.clientInfo ?? {};
   const runtime: SessionRuntime = {
     agentId: agent.id,
     transport: undefined as unknown as StreamableHTTPServerTransport,
@@ -1084,7 +1102,7 @@ async function initializeMcpSession(agent: AuthenticatedMcpAgent, req: any, res:
   if (sessionRegistration !== null) await sessionRegistration;
 }
 
-async function handleMcpRequest(req: any, res: any): Promise<void> {
+async function handleMcpRequest(req: Request, res: Response): Promise<void> {
   const mode = await synchronizeRuntimeMode();
   if (mode !== 'active') {
     res.setHeader('Retry-After', mode === 'standby' ? '5' : '60');
@@ -1096,7 +1114,7 @@ async function handleMcpRequest(req: any, res: any): Promise<void> {
           ? 'MCP runtime is in standby. Enable active mode in the TSX Core dashboard.'
           : 'MCP runtime is disabled. Enable it in the TSX Core dashboard.',
       },
-      id: req.body?.id ?? null,
+      id: (req.body as { readonly id?: unknown } | null | undefined)?.id ?? null,
     });
     return;
   }
@@ -1116,8 +1134,8 @@ async function handleMcpRequest(req: any, res: any): Promise<void> {
   await initializeMcpSession(agent, req, res);
 }
 
-function configureMcpRoute(app: any): void {
-  app.all('/mcp', (req: any, res: any) => {
+function configureMcpRoute(app: Express): void {
+  app.all('/mcp', (req: Request, res: Response) => {
     databaseWork.run(() => handleMcpRequest(req, res)).catch(error => {
       console.error(`[ERROR] MCP request failed: ${errorMessage(error)}`);
       if (!res.headersSent) {
@@ -1175,7 +1193,7 @@ async function main(): Promise<void> {
   const databasePath = operationalDatabasePath();
   const initialDatabaseIdentity = await initializeOperationalDatabase(databasePath);
   currentRuntimeMode = (await getMcpRuntimeState()).mode;
-  const app = createMcpExpressApp({ host, allowedHosts: allowedHosts(host) });
+  const app: Express = createMcpExpressApp({ host, allowedHosts: allowedHosts(host) });
   configureHttpSecurity(app, origins);
   configureHealthCheck(app);
   configureMcpRoute(app);

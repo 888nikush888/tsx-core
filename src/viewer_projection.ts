@@ -4,27 +4,39 @@ import { moneyPerformanceRows, summarizeMoneyRows, type MoneySummary, type Money
 import { journalMoneyDetails, journalProjectedMoney } from './trade_journal.js';
 import { moneyValueFromDecimal, negateMoneyValue } from './trading_money_value.js';
 
-// Selected SQLite fields retain unknown values until the existing presentation conversion.
-// These row types constrain column names without pretending to validate persisted contents.
-type SelectedRow<Column extends string> = Record<Column, unknown>;
-type AccountRow = SelectedRow<'id' | 'name' | 'exchange' | 'mode' | 'status' | 'enabled'
-  | 'max_concurrent_positions' | 'kill_switch_active' | 'kill_switch_reason' | 'capabilities_json'
-  | 'last_verified_at' | 'last_reconciled_at' | 'last_error' | 'equity' | 'available_balance'
-  | 'unrealized_pnl' | 'margin_used' | 'observed_at'>;
-type PositionRow = SelectedRow<'id' | 'intent_id' | 'account_id' | 'account_name' | 'exchange' | 'mode'
-  | 'channel_id' | 'symbol' | 'side' | 'status' | 'quantity' | 'average_entry_price' | 'stop_price'
-  | 'opened_at' | 'closed_at' | 'updated_at' | 'plan_json'> & Parameters<typeof journalProjectedMoney>[0];
-type OrderRow = SelectedRow<'id' | 'intent_id' | 'account_id' | 'account_name' | 'exchange' | 'mode'
-  | 'exchange_order_id' | 'role' | 'side' | 'order_type' | 'status' | 'price' | 'trigger_price'
-  | 'quantity' | 'filled_quantity' | 'reduce_only' | 'last_error' | 'created_at' | 'updated_at'>;
-type TradeRow = SelectedRow<'id' | 'channel_id' | 'account_id' | 'account_name' | 'exchange' | 'mode'
-  | 'symbol' | 'side' | 'status' | 'block_reason' | 'last_error' | 'created_at' | 'updated_at' | 'plan_json'>;
-type RuntimeRow = SelectedRow<'execution_enabled' | 'live_trading_enabled' | 'kill_switch_active'
-  | 'kill_switch_reason' | 'updated_at'>;
-type EquityRow = SelectedRow<'account_id' | 'equity' | 'available_balance' | 'unrealized_pnl' | 'margin_used' | 'observed_at'>;
-type RiskRow = SelectedRow<'id' | 'severity' | 'code' | 'account_id' | 'intent_id' | 'created_at' | 'acknowledged_at'>;
-type IncidentRow = SelectedRow<'id' | 'account_id' | 'category' | 'severity' | 'message' | 'status'
-  | 'occurrence_count' | 'first_seen_at' | 'last_seen_at' | 'resolved_at'>;
+// Text columns describe the existing application writer and SQLite query contracts.
+// Nullable text includes outer-joined equity; other values keep their existing conversions.
+// These static contracts do not validate externally corrupted database contents.
+type SelectedRow<Text extends string, NullableText extends string, Other extends string> =
+  Record<Text, string> & Record<NullableText, string | null> & Record<Other, unknown>;
+
+type AccountRow = SelectedRow<
+  'id' | 'name' | 'exchange' | 'mode' | 'status',
+  'kill_switch_reason' | 'last_error' | 'equity' | 'available_balance' | 'unrealized_pnl' | 'margin_used',
+  'enabled' | 'max_concurrent_positions' | 'kill_switch_active' | 'capabilities_json'
+  | 'last_verified_at' | 'last_reconciled_at' | 'observed_at'>;
+type PositionRow = SelectedRow<
+  'id' | 'intent_id' | 'account_id' | 'account_name' | 'exchange' | 'mode' | 'channel_id'
+  | 'symbol' | 'side' | 'status' | 'quantity' | 'stop_price',
+  'average_entry_price',
+  'opened_at' | 'closed_at' | 'updated_at' | 'plan_json'> & Parameters<typeof journalProjectedMoney>[0];
+type OrderRow = SelectedRow<
+  'id' | 'intent_id' | 'account_id' | 'account_name' | 'exchange' | 'mode'
+  | 'role' | 'side' | 'order_type' | 'status' | 'quantity' | 'filled_quantity',
+  'exchange_order_id' | 'price' | 'trigger_price' | 'last_error',
+  'reduce_only' | 'created_at' | 'updated_at'>;
+type TradeRow = SelectedRow<
+  'id' | 'channel_id' | 'account_id' | 'account_name' | 'exchange' | 'mode' | 'symbol' | 'side' | 'status',
+  'block_reason' | 'last_error',
+  'created_at' | 'updated_at' | 'plan_json'>;
+type RuntimeRow = SelectedRow<never, 'kill_switch_reason',
+  'execution_enabled' | 'live_trading_enabled' | 'kill_switch_active' | 'updated_at'>;
+type EquityRow = SelectedRow<
+  'account_id' | 'equity' | 'available_balance' | 'unrealized_pnl' | 'margin_used', never, 'observed_at'>;
+type RiskRow = SelectedRow<'id' | 'severity' | 'code', 'account_id' | 'intent_id',
+  'created_at' | 'acknowledged_at'>;
+type IncidentRow = SelectedRow<'id' | 'account_id' | 'category' | 'severity' | 'message' | 'status', never,
+  'occurrence_count' | 'first_seen_at' | 'last_seen_at' | 'resolved_at'>;
 interface PerformanceTradeRow {
   channel_id: string | null; account_id: string; exchange: string; mode: string; trades: number;
 }

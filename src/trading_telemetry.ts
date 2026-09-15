@@ -18,13 +18,14 @@ type AnalyticsRow = {
   intentStatus?: unknown; status?: unknown;
 };
 type EquityQueryRow = Pick<TradingEquityPoint, 'reportingCurrency' | 'accountingSource' | 'mode'> &
-  Record<'accountId' | 'equity' | 'availableBalance' | 'unrealizedPnl' | 'marginUsed' | 'observedAt', unknown>;
-type FallbackQueryRow = Record<'runId' | 'channelId' | 'fallbackStatus' | 'currentRank' | 'createdAt' |
-  'rank' | 'candidateStatus' | 'errorCode' | 'accountId' | 'intentStatus' | 'exchange' | 'mode', unknown>;
+  Record<'accountId' | 'equity' | 'availableBalance' | 'unrealizedPnl' | 'marginUsed', string> & { observedAt: unknown };
+type FallbackQueryRow = Record<'runId' | 'accountId' | 'exchange' | 'mode', string> &
+  Record<'channelId' | 'fallbackStatus' | 'currentRank' | 'createdAt' | 'rank'
+    | 'candidateStatus' | 'errorCode' | 'intentStatus', unknown>;
 type PositionMoneyInput = ClosedMoneyRow & { realizedPnlValueJson?: string | null };
 type PositionQueryRow = PositionMoneyInput &
   Record<'channelId' | 'accountId' | 'exchange' | 'mode' | 'intentStatus' | 'closedAt', unknown>;
-type IntentQueryRow = { status: string } & Record<'channelId' | 'accountId' | 'exchange' | 'mode' | 'createdAt', unknown>;
+type IntentQueryRow = { status: string; accountId: string } & Record<'channelId' | 'exchange' | 'mode' | 'createdAt', unknown>;
 type FillQueryRow = { planJson: string | null } &
   Record<'channelId' | 'accountId' | 'exchange' | 'mode' | 'intentStatus' | 'fillPrice' | 'quantity' | 'plannedPrice' | 'filledAt', unknown>;
 

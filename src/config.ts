@@ -28,8 +28,8 @@ function syncParentDirectorySync(destination: string): void {
   try {
     directory = fs.openSync(path.dirname(destination), 'r');
     fs.fsyncSync(directory);
-  } catch (error: any) {
-    if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes(error?.code)) throw error;
+  } catch (error: unknown) {
+    if (!(['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'] as readonly unknown[]).includes((error as { code?: unknown })?.code)) throw error;
   } finally {
     if (directory !== undefined) fs.closeSync(directory);
   }
@@ -40,8 +40,8 @@ async function syncParentDirectory(destination: string): Promise<void> {
   try {
     directory = await fsPromises.open(path.dirname(destination), 'r');
     await directory.sync();
-  } catch (error: any) {
-    if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes(error?.code)) throw error;
+  } catch (error: unknown) {
+    if (!(['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'] as readonly unknown[]).includes((error as { code?: unknown })?.code)) throw error;
   } finally {
     await directory?.close();
   }
@@ -272,11 +272,13 @@ export function isValidTargetChannel(channel: unknown): boolean {
   return isNumeric || isUsername;
 }
 
-function isRecord(value: unknown): value is Record<string, any> {
+type MutableConfigInput = Record<string, unknown> & Partial<Record<keyof Config, unknown>>;
+
+function isRecord(value: unknown): value is MutableConfigInput {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function normalizeApiId(cfg: Record<string, any>): void {
+function normalizeApiId(cfg: Record<string, unknown>): void {
   if (cfg.apiId === undefined) return;
   const parsed = Number(cfg.apiId);
   if (!Number.isSafeInteger(parsed) || parsed < 0) {
@@ -287,15 +289,15 @@ function normalizeApiId(cfg: Record<string, any>): void {
   cfg.apiId = parsed;
 }
 
-function normalizeForwardOptions(cfg: Record<string, any>): void {
+function normalizeForwardOptions(cfg: Record<string, unknown>): void {
   if (!isRecord(cfg.forwardOptions)) cfg.forwardOptions = {};
-  const maxConcurrency = Number(cfg.forwardOptions.maxConcurrency);
-  cfg.forwardOptions.maxConcurrency =
+  const maxConcurrency = Number((cfg.forwardOptions as Record<string, unknown>).maxConcurrency);
+  (cfg.forwardOptions as Record<string, unknown>).maxConcurrency =
     Number.isSafeInteger(maxConcurrency) && maxConcurrency >= 1 && maxConcurrency <= 100
       ? maxConcurrency
       : DEFAULT_CONFIG.forwardOptions.maxConcurrency;
-  const queueTimeoutSeconds = Number(cfg.forwardOptions.queueTimeoutSeconds);
-  cfg.forwardOptions.queueTimeoutSeconds =
+  const queueTimeoutSeconds = Number((cfg.forwardOptions as Record<string, unknown>).queueTimeoutSeconds);
+  (cfg.forwardOptions as Record<string, unknown>).queueTimeoutSeconds =
     Number.isFinite(queueTimeoutSeconds) &&
     queueTimeoutSeconds >= 0 &&
     queueTimeoutSeconds <= 86_400
@@ -303,7 +305,7 @@ function normalizeForwardOptions(cfg: Record<string, any>): void {
       : DEFAULT_CONFIG.forwardOptions.queueTimeoutSeconds;
 }
 
-function normalizeModelNames(xmlParsing: Record<string, any>): void {
+function normalizeModelNames(xmlParsing: Record<string, unknown>): void {
   for (const key of ['primaryModel', 'fallbackModel'] as const) {
     const value = String(xmlParsing[key] || '').trim();
     xmlParsing[key] = /^[a-zA-Z0-9._:/-]{1,128}$/.test(value)
@@ -312,7 +314,7 @@ function normalizeModelNames(xmlParsing: Record<string, any>): void {
   }
 }
 
-function normalizeSourceTemplates(xmlParsing: Record<string, any>): void {
+function normalizeSourceTemplates(xmlParsing: Record<string, unknown>): void {
   if (!isRecord(xmlParsing.sourceTemplates)) {
     xmlParsing.sourceTemplates = {};
     return;
@@ -320,12 +322,12 @@ function normalizeSourceTemplates(xmlParsing: Record<string, any>): void {
   for (const [key, value] of Object.entries(xmlParsing.sourceTemplates)) {
     if (typeof value !== 'string') {
       console.warn(`[WARN] xmlParsing.sourceTemplates["${key}"] is not a string and was removed.`);
-      delete xmlParsing.sourceTemplates[key];
+      delete (xmlParsing.sourceTemplates as Record<string, unknown>)[key];
     }
   }
 }
 
-function normalizeAiLimits(xmlParsing: Record<string, any>): void {
+function normalizeAiLimits(xmlParsing: Record<string, unknown>): void {
   if (!isRecord(xmlParsing.aiLimits)) {
     xmlParsing.aiLimits = { ...DEFAULT_CONFIG.xmlParsing.aiLimits };
   }
@@ -333,37 +335,37 @@ function normalizeAiLimits(xmlParsing: Record<string, any>): void {
     keyof Config['xmlParsing']['aiLimits'],
     [number, number],
   ]>) {
-    const value = Number(xmlParsing.aiLimits[key]);
-    xmlParsing.aiLimits[key] =
+    const value = Number((xmlParsing.aiLimits as Record<string, unknown>)[key]);
+    (xmlParsing.aiLimits as Record<string, unknown>)[key] =
       Number.isSafeInteger(value) && value >= minimum && value <= maximum
         ? value
         : DEFAULT_CONFIG.xmlParsing.aiLimits[key];
   }
 }
 
-function normalizeXmlParsing(cfg: Record<string, any>): void {
+function normalizeXmlParsing(cfg: Record<string, unknown>): void {
   if (!isRecord(cfg.xmlParsing)) cfg.xmlParsing = structuredClone(DEFAULT_CONFIG.xmlParsing);
-  normalizeModelNames(cfg.xmlParsing);
-  normalizeSourceTemplates(cfg.xmlParsing);
-  normalizeAiLimits(cfg.xmlParsing);
+  normalizeModelNames(cfg.xmlParsing as Record<string, unknown>);
+  normalizeSourceTemplates(cfg.xmlParsing as Record<string, unknown>);
+  normalizeAiLimits(cfg.xmlParsing as Record<string, unknown>);
 }
 
-export function ensureQueueCoversParserTimeout(cfg: Record<string, any>): void {
-  if (!isRecord(cfg.forwardOptions) || !isRecord(cfg.xmlParsing?.aiLimits)) return;
-  if (cfg.xmlParsing.enabled !== true) return;
-  const parserMs = Number(cfg.xmlParsing.aiLimits.requestTimeoutMs);
-  const queueSeconds = Number(cfg.forwardOptions.queueTimeoutSeconds);
+export function ensureQueueCoversParserTimeout(cfg: Record<string, unknown>): void {
+  if (!isRecord(cfg.forwardOptions) || !isRecord((cfg.xmlParsing as { aiLimits?: unknown } | null | undefined)?.aiLimits)) return;
+  if ((cfg.xmlParsing as Record<string, unknown>).enabled !== true) return;
+  const parserMs = Number(((cfg.xmlParsing as Record<string, unknown>).aiLimits as Record<string, unknown>).requestTimeoutMs);
+  const queueSeconds = Number((cfg.forwardOptions as Record<string, unknown>).queueTimeoutSeconds);
   if (!Number.isSafeInteger(parserMs) || !Number.isSafeInteger(queueSeconds) || queueSeconds <= 0) return;
   const minimumSeconds = Math.ceil((parserMs + 5_000) / 1000);
   if (queueSeconds < minimumSeconds) {
     console.warn(
       `[WARN] forwardOptions.queueTimeoutSeconds raised to ${minimumSeconds} so AI parser timeouts can complete.`
     );
-    cfg.forwardOptions.queueTimeoutSeconds = minimumSeconds;
+    (cfg.forwardOptions as Record<string, unknown>).queueTimeoutSeconds = minimumSeconds;
   }
 }
 
-function normalizeSourceFilters(cfg: Record<string, any>): void {
+function normalizeSourceFilters(cfg: Record<string, unknown>): void {
   if (!isRecord(cfg.sourceFilters)) {
     cfg.sourceFilters = {};
     return;
@@ -379,7 +381,7 @@ function normalizeSourceFilters(cfg: Record<string, any>): void {
   }
 }
 
-function normalizeSourceAliases(cfg: Record<string, any>): void {
+function normalizeSourceAliases(cfg: Record<string, unknown>): void {
   if (!isRecord(cfg.sourceAliases)) {
     cfg.sourceAliases = {};
     return;
@@ -392,7 +394,7 @@ function normalizeSourceAliases(cfg: Record<string, any>): void {
   }
 }
 
-function validateOptionalBoolean(container: Record<string, any>, key: string, qualifiedName: string): void {
+function validateOptionalBoolean(container: Record<string, unknown>, key: string, qualifiedName: string): void {
   if (container[key] !== undefined && typeof container[key] !== 'boolean') {
     throw new Error(`${qualifiedName} must be true or false.`);
   }
@@ -405,13 +407,13 @@ function validateOptionalStringArray(value: unknown, qualifiedName: string): voi
   }
 }
 
-function assertKnownKeys(container: Record<string, any>, allowed: readonly string[], qualifiedName: string): void {
+function assertKnownKeys(container: Record<string, unknown>, allowed: readonly string[], qualifiedName: string): void {
   const allowedKeys = new Set(allowed);
   const unknown = Object.keys(container).filter((key) => !allowedKeys.has(key));
   if (unknown.length > 0) throw new Error(`Unknown ${qualifiedName} field(s): ${unknown.join(', ')}.`);
 }
 
-function validateSideEffectContracts(cfg: Record<string, any>): void {
+function validateSideEffectContracts(cfg: Record<string, unknown>): void {
   assertKnownKeys(cfg, [
     'apiId', 'apiHash', 'sourceChannels', 'targetChannel', 'forwardOptions', 'filters',
     'sourceFilters', 'sourceAliases', 'xmlParsing', 'dupeBlocker',
@@ -454,7 +456,7 @@ function validateSideEffectContracts(cfg: Record<string, any>): void {
 /**
  * Validates and sanitizes config properties.
  */
-export function validateConfig(cfg: any): Config {
+export function validateConfig(cfg: unknown): Config {
   if (!isRecord(cfg)) throw new Error('Configuration root must be a JSON object.');
   validateSideEffectContracts(cfg);
   normalizeApiId(cfg);
@@ -470,7 +472,13 @@ export function validateConfig(cfg: any): Config {
 /**
  * Merges defaults into loaded configuration.
  */
-export function mergeConfigDefaults(cfg: any): Config {
+// An erased property/spread view of legacy merge input, not a validated Config.
+type MergeInputView = {
+  forwardOptions?: object; filters?: object; sourceFilters?: object; sourceAliases?: object;
+  xmlParsing?: { sourceTemplates?: object; aiLimits?: object }; dupeBlocker?: object;
+};
+export function mergeConfigDefaults(cfg: unknown): Config;
+export function mergeConfigDefaults(cfg: MergeInputView): Config {
   const merged = {
     ...DEFAULT_CONFIG,
     ...cfg,
@@ -518,12 +526,12 @@ export function readConfigSync(destination = configPath): Config {
     const raw = fs.readFileSync(destination, 'utf-8');
     const parsed = JSON.parse(raw);
     return mergeConfigDefaults(parsed);
-  } catch (error: any) {
-    if (error?.code === 'ENOENT') {
+  } catch (error: unknown) {
+    if ((error as { code?: unknown })?.code === 'ENOENT') {
       writeConfigSync(DEFAULT_CONFIG, destination);
       return mergeConfigDefaults({});
     }
-    throw new Error(`Failed to read configuration from ${destination}: ${error.message}`, { cause: error });
+    throw new Error(`Failed to read configuration from ${destination}: ${(error as { message?: unknown }).message}`, { cause: error });
   }
 }
 
@@ -535,12 +543,12 @@ export async function readConfig(destination = configPath): Promise<Config> {
     const raw = await fsPromises.readFile(destination, 'utf-8');
     const parsed = JSON.parse(raw);
     return mergeConfigDefaults(parsed);
-  } catch (error: any) {
-    if (error?.code === 'ENOENT') {
+  } catch (error: unknown) {
+    if ((error as { code?: unknown })?.code === 'ENOENT') {
       await writeConfig(DEFAULT_CONFIG, destination);
       return mergeConfigDefaults({});
     }
-    throw new Error(`Failed to read configuration from ${destination}: ${error.message}`, { cause: error });
+    throw new Error(`Failed to read configuration from ${destination}: ${(error as { message?: unknown }).message}`, { cause: error });
   }
 }
 
@@ -593,8 +601,8 @@ function writeConfigFileSync(content: string, destination: string): void {
     if (descriptor !== undefined) fs.closeSync(descriptor);
     try {
       fs.unlinkSync(temporary);
-    } catch (cleanupError: any) {
-      if (cleanupError?.code !== 'ENOENT') console.error(`Failed to remove temporary config ${temporary}: ${cleanupError.message}`);
+    } catch (cleanupError: unknown) {
+      if ((cleanupError as { code?: unknown })?.code !== 'ENOENT') console.error(`Failed to remove temporary config ${temporary}: ${(cleanupError as { message?: unknown }).message}`);
     }
     throw error;
   }

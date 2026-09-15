@@ -1,3 +1,4 @@
+import { requireTakeProfitAllocation, TakeProfitAllocationError } from '../src/trading_take_profit.js';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
@@ -146,6 +147,20 @@ async function provePositionFailureIsolation() {
     assert.deepEqual(calls, positions.map(position => position.intent_id),
       'A positions-local error must not make protection depend on database order.');
   }
+
+  const allocation = new TradingEngine([adapter]);
+  const allocationCalls = [];
+  allocation.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
+  allocation.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
+    allocationCalls.push(local.intent_id);
+    if (local.intent_id === positions[0].intent_id) requireTakeProfitAllocation([], ['0'], 0);
+    return false;
+  };
+  await assert.rejects(allocation.applyRemoteState(account, adapter, remote), error =>
+    error.name === 'PositionReconciliationAggregateError'
+    && error.errors.length === 1 && error.errors[0] instanceof TakeProfitAllocationError);
+  assert.deepEqual(allocationCalls, positions.map(position => position.intent_id),
+    'Missing take-profit allocation must retain protection of the independent position.');
 
   const multiple = new TradingEngine([adapter]);
   const multipleCalls = [];

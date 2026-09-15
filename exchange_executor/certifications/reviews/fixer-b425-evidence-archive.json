@@ -1,0 +1,34 @@
+{
+  "kind": "deterministic-verified-b425-new-evidence-archive",
+  "sourceRevision": "b42583fcd9063666da673e1b243f6268cd9c530e",
+  "archive": "exchange_executor/certifications/reviews/fixer-b425-evidence.tar.gz",
+  "sha256": "dbffd63c21754ec9af502689728e05df2621cd82d08b1a18f2b0964af2564a24",
+  "archiveBytes": 774924,
+  "manifest": "exchange_executor/certifications/reviews/fixer-b425-evidence-manifest.json",
+  "manifestSha256": "ac1be19176949c9101f2943b65e6d1a16de11e90453a5925be6c260856cefb87",
+  "rawFiles": 71,
+  "membersIncludingManifest": 72,
+  "rawBytes": 3901691,
+  "inheritedExactFiles": 23,
+  "inheritedAssetsNotDuplicated": [
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-final-f1b7-evidence.tar.gz",
+      "sha256": "08959768353cc9f3be169d6ebcdec53a0a443dbb0e2e910ce32090e6be08a636"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-next-a0-evidence.tar.gz",
+      "sha256": "c9939ddc42c85d1457d46e03b6f343cb5dd94d38ba17c237c1ea4c516cdc8d77"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-implementation-evidence-44b8cfd.tar.gz",
+      "sha256": "813d43c4b185d8f453f38e0eb72f71c4a1b41c70bc77d898f283dad017abf4a9"
+    }
+  ],
+  "unresolvedReferences": [],
+  "allMemberBytesAndSha256Verified": true,
+  "doubleBuildByteIdentical": true,
+  "allNewRawFilesStillMatch": true,
+  "oldArchivesUnchanged": true,
+  "sourceReceiptPinsChanged": false,
+  "providerAcceptanceVerified": false
+}

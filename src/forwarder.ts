@@ -39,6 +39,7 @@ import {
   completeOutboxTask,
   enqueueOutboxTask,
   failOutboxTask,
+  requireOutboxMessageIds,
   getMediaGroupBuffers,
   getAiUsage,
   getDatabase,
@@ -259,7 +260,8 @@ async function executePersistedOutboxTask(task: OutboxTask, config: ForwarderCon
   }
 
   const messages = config.durableIngress.albumMessages || [];
-  if (messages.length !== task.messageIds?.length) {
+  const messageIds = requireOutboxMessageIds(task);
+  if (messages.length !== messageIds.length) {
     throw new Error(`Album ${task.mediaGroupId} could not be reconstructed completely.`);
   }
   return forwardMediaGroup(task.mediaGroupId, config, { messages, fromChatId: Number(task.chatId) }, context);

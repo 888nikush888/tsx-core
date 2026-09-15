@@ -1,0 +1,35 @@
+{
+  "kind": "actual-post-adoption-runtime-verification",
+  "sourceRevision": "5a532f0230d52e1169cb60311e4f9f726a86d003",
+  "receiptSha256": "478e4bac1387ce1a1dc775461729607a7c0a0a71ddc68a288e0149f2c7bc8634",
+  "archiveRootVerification": {
+    "toolChunk": "fb5719",
+    "rawFiles": 60,
+    "inheritedExactFiles": 4,
+    "unresolved": 0
+  },
+  "actualGate": {
+    "toolChunk": "4ca937",
+    "exitCode": 0,
+    "buildInputsMatch": true,
+    "runtimeReceiptsVerified": true,
+    "sourceTreeHash": "db728ce18cec3dbdf931d51aad556c6a1fd15fcafa0bb116af9e340660b53f81",
+    "quarantinedProfiles": [
+      "bybit",
+      "krakenfutures"
+    ],
+    "providerAcceptanceVerified": false,
+    "performedGateExecution": false
+  },
+  "regressionTests": {
+    "toolChunk": "4ca937",
+    "certificationEvidence": 12,
+    "implementationRuntime": 12,
+    "bothPassed": true
+  },
+  "limits": [
+    "Offline runtime verification only; no live provider acceptance.",
+    "Fresh external scans/container verification for this follow-up remain open.",
+    "Published PR30 unchanged."
+  ]
+}
