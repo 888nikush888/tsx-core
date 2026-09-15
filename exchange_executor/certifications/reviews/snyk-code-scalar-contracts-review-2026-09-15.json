@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "reviewedRevision": "a0e831ac7bc5e10404d516723fd6d750860ff300",
+  "reviewedRevision": "6409c840aa3d20ce6691a0eb1c994cc3c893c054",
   "scannerVersion": "1.1307.1",
-  "sarifSha256": "90ae01937c1da02e8e665cafbfc7acebcf205380fa6a3d91b2118879239c5288",
-  "reviewKind": "root-single-diagnostic-context-review",
+  "sarifSha256": "d695e38dd6c66c0f7a5d75d2beccc4a986381048df6da8676dc11ce47f569035",
+  "reviewKind": "independent-three-receipt-authority-context-review",
   "reviewedCount": 85,
   "counts": {
     "false-positive": 81,
     "open": 4
   },
-  "priorReviewRevision": "599cc5524bb760f5600b480eabcea34effcb07db",
-  "scopeNote": "Fresh scan retains85 canonical findings;181 bindings unchanged and one diagnostic context independently reviewed by root. Four owner-accepted HTTP risks unchanged.",
+  "priorReviewRevision": "a0e831ac7bc5e10404d516723fd6d750860ff300",
+  "scopeNote": "85 canonical IDs/fingerprints/evidence digests unchanged;179 bindings unchanged,3 authority contexts individually reviewed. Existing81 false positives and4 accepted HTTP risks unchanged.",
   "entries": [
     {
       "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
@@ -131,7 +131,7 @@
       "line": 93,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "False positive for traversal at readSync: the reported flow starts with the explicit local --python option and follows fixed-bridge stdout into the receipt read. The trusted local interpreter executes fixed isolated Python code, returns only certified fixed-profile exchange names, and cannot obtain pins from receipt data. readSync consumes the previously opened descriptor, not a path string. stableBytes enforces canonical parent, ordinary single-link file, bounded size, no-follow read-only open, descriptor identity and before/after identity checks. Arbitrary operator-selected malicious executable is outside this trusted local invocation contract. The sole authority delta replaces one exact Hyperliquid receipt digest in the immutable MappingProxyType. The current receipt Git bytes hash to the independently approved LF candidate 7bb3df93bd03bb02dbf41e3165467072d80d07d6f7d5495cc45bdc32b65ad1fa. The tracked independent adoption review approves implementation evidence only; the separate root gate records the subsequent successful byte/runtime comparison. Neither receipt JSON nor CLI arguments supplies an approval pin. Python obtains pins only from the imported authority, validates exchange against the fixed profile ID and identifier grammar, and verifies pinned bytes plus runtime schema before returning rows. Other profiles remain quarantined. This review verifies these boundaries and recorded approval, not a new full implementation or container/provider approval.",
+      "rationale": "False positive for traversal at readSync: the reported flow starts with the explicit local --python option and follows fixed-bridge stdout into the receipt read. The trusted local interpreter executes fixed isolated Python code, returns only certified fixed-profile exchange names, and cannot obtain pins from receipt data. readSync consumes the previously opened descriptor, not a path string. stableBytes enforces canonical parent, ordinary single-link file, bounded size, no-follow read-only open, descriptor identity and before/after identity checks. Arbitrary operator-selected malicious executable is outside this trusted local invocation contract. The sole authority delta replaces one exact Hyperliquid receipt digest in the immutable MappingProxyType. The current receipt Git bytes hash to the independently approved LF candidate 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17. The tracked independent adoption review approves implementation evidence only; the separate root gate records the subsequent successful byte/runtime comparison. Neither receipt JSON nor CLI arguments supplies an approval pin. Python obtains pins only from the imported authority, validates exchange against the fixed profile ID and identifier grammar, and verifies pinned bytes plus runtime schema before returning rows. Other profiles remain quarantined. This review verifies these boundaries and recorded approval, not a new full implementation or container/provider approval. Independently re-read at 6409c84: sole authority delta is exact approved Hyperliquid receipt digest replacement. MappingProxyType key/profile and tuple cardinality remain fixed; no path, executable, argument, import or shell control changes. Exact receipt Git bytes match the tracked independent 62-requirement/967-input LF adoption approval. This disposition only revalidates the existing local CLI trust boundary; it does not grant provider acceptance.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -143,7 +143,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "b2d7e8f3b649e6dc5c8a2ea516d029aa8a5f212029039777951c80696673c341"
+          "sha256": "72f7ac03ab4215bedd23f0541c08b6a8f8341bc01dd91d18ed4d07803ad95412"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -4164,7 +4164,7 @@
       "line": 292,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "False positive for indirect command injection in this local CLI contract: the operator deliberately selects the absolute Python executable through the only accepted --python option. absolutePython, realpath, ordinary-file and canonical-parent checks precede spawnSync. The executable receives a fixed argument array with isolated -I, no-bytecode -B, literal bridge code and fixed repository root; shell is false, with timeout and output limits. No application request, receipt field or pin selects executable/code/import names. These checks do not certify an arbitrary malicious executable as safe; local executable selection remains operator authority. The sole authority delta replaces one exact Hyperliquid receipt digest in the immutable MappingProxyType. The current receipt Git bytes hash to the independently approved LF candidate 7bb3df93bd03bb02dbf41e3165467072d80d07d6f7d5495cc45bdc32b65ad1fa. The tracked independent adoption review approves implementation evidence only; the separate root gate records the subsequent successful byte/runtime comparison. Neither receipt JSON nor CLI arguments supplies an approval pin. Python obtains pins only from the imported authority, validates exchange against the fixed profile ID and identifier grammar, and verifies pinned bytes plus runtime schema before returning rows. Other profiles remain quarantined. This review verifies these boundaries and recorded approval, not a new full implementation or container/provider approval.",
+      "rationale": "False positive for indirect command injection in this local CLI contract: the operator deliberately selects the absolute Python executable through the only accepted --python option. absolutePython, realpath, ordinary-file and canonical-parent checks precede spawnSync. The executable receives a fixed argument array with isolated -I, no-bytecode -B, literal bridge code and fixed repository root; shell is false, with timeout and output limits. No application request, receipt field or pin selects executable/code/import names. These checks do not certify an arbitrary malicious executable as safe; local executable selection remains operator authority. The sole authority delta replaces one exact Hyperliquid receipt digest in the immutable MappingProxyType. The current receipt Git bytes hash to the independently approved LF candidate 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17. The tracked independent adoption review approves implementation evidence only; the separate root gate records the subsequent successful byte/runtime comparison. Neither receipt JSON nor CLI arguments supplies an approval pin. Python obtains pins only from the imported authority, validates exchange against the fixed profile ID and identifier grammar, and verifies pinned bytes plus runtime schema before returning rows. Other profiles remain quarantined. This review verifies these boundaries and recorded approval, not a new full implementation or container/provider approval. Independently re-read at 6409c84: sole authority delta is exact approved Hyperliquid receipt digest replacement. MappingProxyType key/profile and tuple cardinality remain fixed; no path, executable, argument, import or shell control changes. Exact receipt Git bytes match the tracked independent 62-requirement/967-input LF adoption approval. This disposition only revalidates the existing local CLI trust boundary; it does not grant provider acceptance.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -4176,7 +4176,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "b2d7e8f3b649e6dc5c8a2ea516d029aa8a5f212029039777951c80696673c341"
+          "sha256": "72f7ac03ab4215bedd23f0541c08b6a8f8341bc01dd91d18ed4d07803ad95412"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -4348,7 +4348,7 @@
       "line": 85,
       "reviewedSourceSha256": "db05ec0328bf0d9878445ed29f0d6e886abb013820cd0f75efc0711cd0afd7b3",
       "disposition": "false-positive",
-      "rationale": "False positive for traversal at openSync: the reported stdout-derived exchange originates from fixed PROFILES via certification_result, which enforces a lowercase identifier grammar and equality to profile.id before looking up source-owned pins and validating receipt bytes/schema. The CLI constructs only the fixed certifications directory plus that certified exchange and .json. stableBytes canonical-parent and ordinary-file checks precede read-only/no-follow open; descriptor identity, link count, bounded reads and after-read identity checks reject link or concurrent replacement. Pins remain code-owned and have now been explicitly independently approved for the exact installed receipt. The sole authority delta replaces one exact Hyperliquid receipt digest in the immutable MappingProxyType. The current receipt Git bytes hash to the independently approved LF candidate 7bb3df93bd03bb02dbf41e3165467072d80d07d6f7d5495cc45bdc32b65ad1fa. The tracked independent adoption review approves implementation evidence only; the separate root gate records the subsequent successful byte/runtime comparison. Neither receipt JSON nor CLI arguments supplies an approval pin. Python obtains pins only from the imported authority, validates exchange against the fixed profile ID and identifier grammar, and verifies pinned bytes plus runtime schema before returning rows. Other profiles remain quarantined. This review verifies these boundaries and recorded approval, not a new full implementation or container/provider approval.",
+      "rationale": "False positive for traversal at openSync: the reported stdout-derived exchange originates from fixed PROFILES via certification_result, which enforces a lowercase identifier grammar and equality to profile.id before looking up source-owned pins and validating receipt bytes/schema. The CLI constructs only the fixed certifications directory plus that certified exchange and .json. stableBytes canonical-parent and ordinary-file checks precede read-only/no-follow open; descriptor identity, link count, bounded reads and after-read identity checks reject link or concurrent replacement. Pins remain code-owned and have now been explicitly independently approved for the exact installed receipt. The sole authority delta replaces one exact Hyperliquid receipt digest in the immutable MappingProxyType. The current receipt Git bytes hash to the independently approved LF candidate 49027dc8f1c341f740e2cfa2f7229e9a07fbb640ff3db8ee494f978285b78e17. The tracked independent adoption review approves implementation evidence only; the separate root gate records the subsequent successful byte/runtime comparison. Neither receipt JSON nor CLI arguments supplies an approval pin. Python obtains pins only from the imported authority, validates exchange against the fixed profile ID and identifier grammar, and verifies pinned bytes plus runtime schema before returning rows. Other profiles remain quarantined. This review verifies these boundaries and recorded approval, not a new full implementation or container/provider approval. Independently re-read at 6409c84: sole authority delta is exact approved Hyperliquid receipt digest replacement. MappingProxyType key/profile and tuple cardinality remain fixed; no path, executable, argument, import or shell control changes. Exact receipt Git bytes match the tracked independent 62-requirement/967-input LF adoption approval. This disposition only revalidates the existing local CLI trust boundary; it does not grant provider acceptance.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -4360,7 +4360,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "b2d7e8f3b649e6dc5c8a2ea516d029aa8a5f212029039777951c80696673c341"
+          "sha256": "72f7ac03ab4215bedd23f0541c08b6a8f8341bc01dd91d18ed4d07803ad95412"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
