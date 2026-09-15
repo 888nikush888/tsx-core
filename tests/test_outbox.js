@@ -14,6 +14,7 @@ import { beginMcpOfflineMaintenance } from '../src/mcp_maintenance.js';
 import { restorePreMigrationSnapshot } from '../src/migration_recovery.js';
 import {
   acknowledgeOutboxTask,
+  withDatabaseTransaction,
   claimOutboxTask,
   closeDb,
   completeOutboxTask,
@@ -300,8 +301,7 @@ async function testPersistedMessageIdBoundary() {
   await database.run("DELETE FROM pending_tasks WHERE id LIKE 'shape-media-%' OR id = 'shape-valid'");
 }
 
-async function testMalformedMessageIdsSchedulerBoundary() {
-  const database = getDatabase();
+function createOutboxExecutionHarness() {
   const source = readFileSync(new URL('../src/forwarder.ts', import.meta.url), 'utf8');
   const parsed = ts.createSourceFile('forwarder.ts', source, ts.ScriptTarget.Latest, true);
   const names = ['executePersistedOutboxTask', 'executeScheduledOutboxTask'];
@@ -320,6 +320,12 @@ async function testMalformedMessageIdsSchedulerBoundary() {
       await context.markSending(); provider.push(context.taskId); return { delivered: true };
     },
   });
+  return { execute, sending, provider, scheduled, schedulerErrors };
+}
+
+async function testMalformedMessageIdsSchedulerBoundary() {
+  const database = getDatabase();
+  const { execute, sending, provider, scheduled, schedulerErrors } = createOutboxExecutionHarness();
   for (const id of ['schedule-shape-bad', 'schedule-shape-good']) {
     await enqueueOutboxTask({ id, type: 'mediaGroup', chatId: '-1001', mediaGroupId: id,
       messageIds: [1, 2], ingressWorkId: 'pinned-boundary-fixture', addedAt: Date.now(),
@@ -350,6 +356,120 @@ async function testMalformedMessageIdsSchedulerBoundary() {
   assert.strictEqual(schedulerErrors.length, 1);
   assert.match(schedulerErrors[0], /schedule-shape-bad.*malformed messageIds/);
   await database.run("DELETE FROM pending_tasks WHERE id LIKE 'schedule-shape-%'");
+}
+
+async function testPersistedJsonSyntaxBoundary() {
+  const database = getDatabase();
+  const raw = '{"private-payload-secret":';
+  for (const field of ['message_ids', 'config_json', 'result_json']) {
+    const id = `syntax-field-${field}`;
+    await enqueueOutboxTask(task(id, 811));
+    await database.run(`UPDATE pending_tasks SET ${field} = ? WHERE id = ?`, [raw, id]);
+    assert.strictEqual(await claimOutboxTask(id), null, 'Decode before claiming or clearing result evidence.');
+    const viewed = await getOutboxTask(id);
+    assert.strictEqual(viewed.status, 'needs_review');
+    assert.strictEqual(viewed.attempts, 0);
+    assert.deepStrictEqual(viewed.payloadErrors, [field]);
+    assert(!viewed.lastError.includes('private-payload-secret'));
+    assert((await listOutboxTasks(undefined, 1000)).some(item => item.id === id));
+    assert.strictEqual((await database.get(`SELECT ${field} AS raw FROM pending_tasks WHERE id = ?`, [id])).raw, raw);
+    assert.strictEqual(await requeueOutboxTask(id), false);
+  }
+  for (const field of ['message_ids', 'config_json', 'result_json']) {
+  for (const status of ['pending', 'preparing', 'failed', 'sending', 'unknown', 'completed', 'needs_review']) {
+    const id = `syntax-state-${field}-${status}`;
+    await enqueueOutboxTask(task(id, 812));
+    await database.run(`UPDATE pending_tasks SET status = ?, ${field} = ?, completed_at = 123 WHERE id = ?`, [status, raw, id]);
+    const viewed = await getOutboxTask(id);
+    assert.strictEqual(viewed.status, status === 'sending' || status === 'unknown' ? 'unknown'
+      : status === 'completed' ? 'completed' : 'needs_review');
+    assert.strictEqual(await claimOutboxTask(id), null);
+    assert.strictEqual(await requeueOutboxTask(id), false);
+    const retained = await database.get(`SELECT ${field} AS raw, completed_at FROM pending_tasks WHERE id = ?`, [id]);
+    assert.strictEqual(retained.raw, raw);
+    assert.strictEqual(retained.completed_at, 123);
+    if (status === 'unknown' && field === 'config_json') {
+      assert.strictEqual(await acknowledgeOutboxTask(id, 'Operator verified delivery'), true);
+      const acknowledged = await database.get('SELECT status, config_json, result_json FROM pending_tasks WHERE id = ?', [id]);
+      assert.strictEqual(acknowledged.status, 'completed');
+      assert.strictEqual(acknowledged.config_json, raw);
+      assert.deepStrictEqual(JSON.parse(acknowledged.result_json), { acknowledged: true, reason: 'Operator verified delivery' });
+    }
+  }
+  }
+  for (const status of ['failed', 'unknown', 'needs_review']) {
+    const id = `syntax-retry-${status}`;
+    await enqueueOutboxTask(task(id, 815));
+    await database.run('UPDATE pending_tasks SET status = ?, config_json = ? WHERE id = ?', [status, raw, id]);
+    const quarantined = await getOutboxTask(id);
+    await database.run('UPDATE pending_tasks SET config_json = ? WHERE id = ?', ['{}', id]);
+    assert.strictEqual(await requeueOutboxTask(id), quarantined.status === 'unknown', 'Repair does not widen retry eligibility.');
+  }
+  for (const status of ['sending', 'completed']) {
+    const id = `syntax-repaired-${status}`;
+    await enqueueOutboxTask(task(id, 813));
+    await database.run('UPDATE pending_tasks SET config_json = ? WHERE id = ?', [raw, id]);
+    let release, started;
+    const held = new Promise(resolve => { release = resolve; });
+    const entered = new Promise(resolve => { started = resolve; });
+    const repair = withDatabaseTransaction(async db => {
+      await db.run('UPDATE pending_tasks SET config_json = ?, status = ? WHERE id = ?', ['{"repaired":true}', status, id]);
+      started();
+      await held;
+    });
+    await entered;
+    const read = getOutboxTask(id);
+    release();
+    await repair;
+    const viewed = await read;
+    assert.strictEqual(viewed.status, status, 'Queued read must review the current committed status and repaired bytes.');
+    assert.strictEqual(viewed.payloadErrors, undefined);
+    assert.deepStrictEqual(viewed.config, { repaired: true });
+  }
+  const deep = '['.repeat(1500) + '0' + ']'.repeat(1500);
+  await enqueueOutboxTask(task('syntax-native-depth', 814));
+  await database.run('UPDATE pending_tasks SET config_json = ? WHERE id = ?', [deep, 'syntax-native-depth']);
+  assert.strictEqual((await claimOutboxTask('syntax-native-depth')).status, 'preparing', 'Native accepted JSON must not inherit SQLite depth rejection.');
+  for (const rawValue of [null, '', 'null', '0', 'false', '[]', '{}']) {
+    await database.run("UPDATE pending_tasks SET config_json = ?, status = 'pending' WHERE id = 'syntax-native-depth'", [rawValue]);
+    assert.strictEqual((await claimOutboxTask('syntax-native-depth')).payloadErrors, undefined);
+  }
+  await database.run("DELETE FROM pending_tasks WHERE id LIKE 'syntax-%'");
+}
+
+async function testMalformedJsonSyntaxSchedulerBoundary() {
+  const database = getDatabase();
+  const { execute, sending, provider, scheduled, schedulerErrors } = createOutboxExecutionHarness();
+  for (const id of ['schedule-syntax-bad', 'schedule-syntax-bad2', 'schedule-syntax-bad3', 'schedule-syntax-good']) {
+    await enqueueOutboxTask({ id, type: 'mediaGroup', chatId: '-1001', mediaGroupId: id,
+      messageIds: [1, 2], ingressWorkId: 'pinned-boundary-fixture', addedAt: Date.now(),
+      config: { durableIngress: { albumMessages: [{ id: 1 }, { id: 2 }] } } });
+  }
+  await database.run("UPDATE pending_tasks SET config_json = ? WHERE id LIKE 'schedule-syntax-bad%'",
+    ['{private-secret']);
+  const otherIds = (await database.all("SELECT id FROM pending_tasks WHERE id NOT LIKE 'schedule-syntax-%'")).map(row => row.id);
+  await database.run("UPDATE pending_tasks SET added_at = CASE WHEN id LIKE 'schedule-syntax-bad%' THEN 1 ELSE 2 END WHERE id LIKE 'schedule-syntax-%'");
+  const queue = new ConcurrencyQueue(1, 0, 2);
+  const scheduler = new DurableOutboxScheduler({ queue,
+    listPending: async excluded => listPendingOutboxTasksForScheduling([...otherIds, ...excluded], 1),
+    execute: (id, signal) => { scheduled.push(id); return execute(id, null, signal); },
+    logError: message => schedulerErrors.push(message),
+  });
+  await scheduler.resume();
+  const deadline = Date.now() + 5000;
+  while ((await getOutboxTask('schedule-syntax-good')).status !== 'completed') {
+    assert(Date.now() < deadline, 'The next valid durable task must complete.');
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
+  assert(await queue.waitForIdle(5000), 'Both real scheduler tasks must settle.');
+  assert.strictEqual((await getOutboxTask('schedule-syntax-bad')).status, 'needs_review');
+  assert.strictEqual((await getOutboxTask('schedule-syntax-good')).status, 'completed');
+  assert.deepStrictEqual(sending, ['schedule-syntax-good'], 'Malformed metadata must never reach sending.');
+  assert.deepStrictEqual(provider, ['schedule-syntax-good'], 'Only the valid task reaches the provider seam.');
+  assert.strictEqual(scheduled.filter(id => id === 'schedule-syntax-bad').length, 0, 'No automatic malformed retry.');
+  assert.deepStrictEqual(schedulerErrors, []);
+  assert((await listOutboxTasks(undefined, 1000)).some(row => row.id === 'schedule-syntax-bad'), 'Quarantined row remains inspectable.');
+  await database.run("DELETE FROM pending_tasks WHERE id LIKE 'schedule-syntax-%'");
 }
 
 async function testMigrationRecovery(testDir, dbPath) {
@@ -394,6 +514,8 @@ async function runTests() {
     await testSignalProvenance(dbPath);
     await testPersistedMessageIdBoundary();
     await testMalformedMessageIdsSchedulerBoundary();
+    await testPersistedJsonSyntaxBoundary();
+    await testMalformedJsonSyntaxSchedulerBoundary();
     await testMigrationRecovery(testDir, dbPath);
     console.log('ALL DURABLE OUTBOX TESTS PASSED!');
   } finally {

@@ -520,12 +520,15 @@ export const REQUIRED_DATABASE_TABLES = [
 
 export type OutboxStatus = 'pending' | 'preparing' | 'sending' | 'completed' | 'failed' | 'unknown' | 'needs_review';
 
+export type OutboxPayloadField = 'message_ids' | 'config_json' | 'result_json';
+
 export interface OutboxTask {
   id: string;
   type: 'single' | 'mediaGroup';
   chatId: string;
   messageId?: number;
   messageIds?: unknown;
+  payloadErrors?: OutboxPayloadField[];
   mediaGroupId?: string;
   addedAt: number;
   status: OutboxStatus;
@@ -3626,13 +3629,18 @@ async function findPermanentDuplicate(database: Awaited<ReturnType<typeof getDat
   return { isDupe: true, matchFile: match.id };
 }
 
-function parseJsonField(value: unknown, field: string, taskId: string): unknown {
+function parseOutboxJsonField(value: unknown, field: OutboxPayloadField, errors: OutboxPayloadField[]): unknown {
   if (value === null || value === undefined || value === '') return undefined;
-  if (typeof value !== 'string') throw new TypeError(`Outbox task ${taskId} has non-string ${field}.`);
+  if (typeof value !== 'string') {
+    errors.push(field);
+    return undefined;
+  }
   try {
     return JSON.parse(value);
   } catch (error: unknown) {
-    throw new Error(`Outbox task ${taskId} has invalid ${field}: ${(error as { message?: unknown }).message}`, { cause: error });
+    if (!(error instanceof SyntaxError)) throw error;
+    errors.push(field);
+    return undefined;
   }
 }
 
@@ -3658,12 +3666,17 @@ export function requireOutboxMessageIds(task: Pick<OutboxTask, 'id' | 'messageId
 }
 
 function mapOutboxRow(row: OutboxStorageRow): OutboxTask {
+  const payloadErrors: OutboxPayloadField[] = [];
+  const messageIds = parseOutboxJsonField(row.message_ids, 'message_ids', payloadErrors);
+  const config = parseOutboxJsonField(row.config_json, 'config_json', payloadErrors);
+  const result = parseOutboxJsonField(row.result_json, 'result_json', payloadErrors);
   return {
     id: String(row.id),
     type: row.type,
     chatId: String(row.chat_id),
     messageId: row.message_id === null ? undefined : Number(row.message_id),
-    messageIds: parseJsonField(row.message_ids, 'message_ids', row.id),
+    messageIds,
+    ...(payloadErrors.length ? { payloadErrors } : {}),
     mediaGroupId: row.media_group_id || undefined,
     addedAt: Number(row.added_at),
     status: row.status,
@@ -3672,11 +3685,30 @@ function mapOutboxRow(row: OutboxStorageRow): OutboxTask {
     updatedAt: Number(row.updated_at || row.added_at),
     completedAt: row.completed_at === null ? undefined : Number(row.completed_at),
     lastError: row.last_error || undefined,
-    config: parseJsonField(row.config_json, 'config_json', row.id),
-    result: parseJsonField(row.result_json, 'result_json', row.id),
+    config,
+    result,
     workflowRevisionId: row.workflow_revision_id || null,
     ingressWorkId: row.ingress_work_id || undefined
   };
+}
+
+// Select the row and call this helper within the same write-locked transaction.
+// Only status/diagnostics change: persisted payload bytes remain available for repair.
+async function reviewOutboxRow(row: OutboxStorageRow): Promise<OutboxTask> {
+  const task = mapOutboxRow(row);
+  if (!task.payloadErrors?.length) return task;
+  const status: OutboxStatus = task.status === 'sending' ? 'unknown'
+    : task.status === 'unknown' || task.status === 'completed' ? task.status : 'needs_review';
+  const lastError = `Invalid persisted outbox JSON in ${task.payloadErrors.join(', ')}; explicit data review required.`;
+  if (task.status !== status || task.lastError !== lastError) {
+    const updatedAt = Date.now();
+    await getDb().run('UPDATE pending_tasks SET status = ?, updated_at = ?, last_error = ? WHERE id = ?',
+      [status, updatedAt, lastError, task.id]);
+    task.updatedAt = updatedAt;
+  }
+  task.status = status;
+  task.lastError = lastError;
+  return task;
 }
 
 // Durable inbox/outbox API
@@ -3735,17 +3767,22 @@ export async function enqueueOutboxTask(task: EnqueueOutboxTaskInput): Promise<b
 }
 
 export async function claimOutboxTask(id: string): Promise<OutboxTask | null> {
-  const database = getDb();
-  const now = Date.now();
-  const row = await database.get(
-    `UPDATE pending_tasks
-     SET status = 'preparing', attempts = attempts + 1, claimed_at = ?, updated_at = ?,
-         last_error = NULL, completed_at = NULL, result_json = NULL
-     WHERE id = ? AND status IN ('pending', 'failed')
-     RETURNING *`,
-    [now, now, id]
-  );
-  return row ? mapOutboxRow(row) : null;
+  return withDatabaseTransaction(async database => {
+    const current = await database.get<OutboxStorageRow>('SELECT * FROM pending_tasks WHERE id = ?', [id]);
+    if (!current) return null;
+    const task = await reviewOutboxRow(current);
+    if (task.payloadErrors?.length || !['pending', 'failed'].includes(task.status)) return null;
+    const now = Date.now();
+    const row = await database.get<OutboxStorageRow>(
+      `UPDATE pending_tasks
+       SET status = 'preparing', attempts = attempts + 1, claimed_at = ?, updated_at = ?,
+           last_error = NULL, completed_at = NULL, result_json = NULL
+       WHERE id = ? AND status IN ('pending', 'failed')
+       RETURNING *`,
+      [now, now, id]
+    );
+    return row ? mapOutboxRow(row) : null;
+  });
 }
 
 export async function markOutboxSending(id: string): Promise<void> {
@@ -3814,22 +3851,24 @@ export async function recoverInterruptedOutboxTasks(): Promise<{ requeued: numbe
 }
 
 export async function getOutboxTask(id: string): Promise<OutboxTask | null> {
-  const row = await getDb().get('SELECT * FROM pending_tasks WHERE id = ?', [id]);
-  return row ? mapOutboxRow(row) : null;
+  return withDatabaseTransaction(async database => {
+    const row = await database.get<OutboxStorageRow>('SELECT * FROM pending_tasks WHERE id = ?', [id]);
+    return row ? reviewOutboxRow(row) : null;
+  });
 }
 
 export async function listOutboxTasks(statuses?: OutboxStatus[], limit = 100): Promise<OutboxTask[]> {
   const safeLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(limit, 1000)) : 100;
-  let rows: OutboxStorageRow[];
-  if (statuses && statuses.length > 0) {
-    rows = await getDb().all(
-      'SELECT * FROM pending_tasks WHERE status IN (SELECT value FROM json_each(?)) ORDER BY added_at ASC LIMIT ?',
-      [JSON.stringify(statuses), safeLimit]
-    );
-  } else {
-    rows = await getDb().all('SELECT * FROM pending_tasks ORDER BY added_at ASC LIMIT ?', [safeLimit]);
-  }
-  return rows.map(mapOutboxRow);
+  return withDatabaseTransaction(async database => {
+    const rows = statuses && statuses.length > 0
+      ? await database.all<OutboxStorageRow[]>(
+        'SELECT * FROM pending_tasks WHERE status IN (SELECT value FROM json_each(?)) ORDER BY added_at ASC LIMIT ?',
+        [JSON.stringify(statuses), safeLimit])
+      : await database.all<OutboxStorageRow[]>('SELECT * FROM pending_tasks ORDER BY added_at ASC LIMIT ?', [safeLimit]);
+    const tasks: OutboxTask[] = [];
+    for (const row of rows) tasks.push(await reviewOutboxRow(row));
+    return tasks;
+  });
 }
 
 /**
@@ -3839,25 +3878,42 @@ export async function listOutboxTasks(statuses?: OutboxStatus[], limit = 100): P
 export async function listPendingOutboxTasksForScheduling(excludedTaskIds: string[] = [], limit = 100): Promise<OutboxTask[]> {
   const safeLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(limit, 1000)) : 100;
   const excluded = [...new Set(excludedTaskIds.filter(id => typeof id === 'string' && id.length > 0))].slice(0, 1000);
-  const rows = await getDb().all(
-    `SELECT * FROM pending_tasks
-     WHERE status = 'pending'
-       AND id NOT IN (SELECT value FROM json_each(?))
-     ORDER BY added_at ASC, id ASC LIMIT ?`,
-    [JSON.stringify(excluded), safeLimit]
-  );
-  return rows.map(mapOutboxRow);
+  return withDatabaseTransaction(async database => {
+    const initial = await database.get<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM pending_tasks WHERE status = 'pending'
+       AND id NOT IN (SELECT value FROM json_each(?))`, [JSON.stringify(excluded)]);
+    let remaining = initial?.count || 0;
+    const tasks: OutboxTask[] = [];
+    while (remaining > 0 && tasks.length < safeLimit) {
+      const rows = await database.all<OutboxStorageRow[]>(
+        `SELECT * FROM pending_tasks WHERE status = 'pending'
+         AND id NOT IN (SELECT value FROM json_each(?))
+         ORDER BY added_at ASC, id ASC LIMIT ?`,
+        [JSON.stringify([...excluded, ...tasks.map(task => task.id)]), Math.min(remaining, safeLimit - tasks.length)]);
+      if (!rows.length) break;
+      remaining -= rows.length;
+      for (const row of rows) {
+        const task = await reviewOutboxRow(row);
+        if (!task.payloadErrors?.length) tasks.push(task);
+      }
+    }
+    return tasks;
+  });
 }
 
 export async function requeueOutboxTask(id: string): Promise<boolean> {
-  const result = await getDb().run(
-    `UPDATE pending_tasks
-     SET status = 'pending', updated_at = ?, claimed_at = NULL, completed_at = NULL,
-         last_error = 'Explicit operator retry requested.', result_json = NULL
-     WHERE id = ? AND status IN ('failed', 'unknown')`,
-    [Date.now(), id]
-  );
-  return Number(result.changes || 0) === 1;
+  return withDatabaseTransaction(async database => {
+    const row = await database.get<OutboxStorageRow>('SELECT * FROM pending_tasks WHERE id = ?', [id]);
+    if (!row || (await reviewOutboxRow(row)).payloadErrors?.length) return false;
+    const result = await database.run(
+      `UPDATE pending_tasks
+       SET status = 'pending', updated_at = ?, claimed_at = NULL, completed_at = NULL,
+           last_error = 'Explicit operator retry requested.', result_json = NULL
+       WHERE id = ? AND status IN ('failed', 'unknown')`,
+      [Date.now(), id]
+    );
+    return Number(result.changes || 0) === 1;
+  });
 }
 
 export async function acknowledgeOutboxTask(id: string, reason: string): Promise<boolean> {
