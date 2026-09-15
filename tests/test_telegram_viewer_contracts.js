@@ -1,3 +1,5 @@
+import * as scalarFormatters from '../src/telegram_viewer/formatters.js';
+import { verifyFormatterScalarBoundaries } from './fixtures/formatter_scalar_cases.js';
 import assert from 'node:assert/strict';
 import { TelegramBotApiClient, TelegramViewerCoreApiClient } from '../src/telegram_viewer/clients.js';
 import { TelegramViewerService } from '../src/telegram_viewer/service.js';
@@ -54,3 +56,5 @@ assert.equal(queueCalls, 0);
 assert.equal(cursorWrites, 0, 'Invalid responses must not lose unseen events by advancing a cursor.');
 console.log('Viewer API contracts reject malformed identities/settings/cursors without delivery effects.');
 
+
+verifyFormatterScalarBoundaries(scalarFormatters);

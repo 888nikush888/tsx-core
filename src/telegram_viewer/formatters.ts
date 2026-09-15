@@ -55,6 +55,11 @@ function scalarText(value: unknown): string | null {
   return null;
 }
 
+// Untrusted display values must not run object coercion or imply an object is a numeric value.
+function displayScalarText(value: unknown): string {
+  return scalarText(value) ?? 'ungeklärt';
+}
+
 function currencyUnit(value: unknown): string | null {
   return typeof value === 'string' && /^[A-Z][A-Z0-9]{1,15}$/.test(value) ? value : null;
 }
@@ -138,10 +143,10 @@ function leverageLines(value: unknown): string[] {
 export function formatSummary(payload: Record<string, unknown>): string {
   return clipped([
     'TSX Core · Übersicht',
-    `Konten: ${legacyOptionalField(payload.accounts, 'total') ?? 0}`,
-    `Aktive Positionen: ${legacyOptionalField(payload.positions, 'active') ?? 0}`,
-    `Offene Intents: ${legacyOptionalField(payload.intents, 'active') ?? 0}`,
-    `Offene Incidents: ${legacyOptionalField(payload.incidents, 'open') ?? 0}`,
+    `Konten: ${displayScalarText(legacyOptionalField(payload.accounts, 'total') ?? 0)}`,
+    `Aktive Positionen: ${displayScalarText(legacyOptionalField(payload.positions, 'active') ?? 0)}`,
+    `Offene Intents: ${displayScalarText(legacyOptionalField(payload.intents, 'active') ?? 0)}`,
+    `Offene Incidents: ${displayScalarText(legacyOptionalField(payload.incidents, 'open') ?? 0)}`,
   ].join('\n'));
 }
 
@@ -156,9 +161,9 @@ export function formatPositions(payload: Record<string, unknown>): string {
   const items = values(payload, 'positions').map(item => [
     line([legacyField(item, 'symbol') || legacyField(item, 'id') || 'Position', legacyField(item, 'exchange'), legacyField(item, 'mode'), legacyField(item, 'side'), legacyField(item, 'status')]),
     ...leverageLines(legacyField(item, 'leverage')),
-    legacyField(item, 'quantity') !== undefined ? `Menge: ${legacyField(item, 'quantity')}` : null,
-    legacyField(item, 'averageEntryPrice') !== null && legacyField(item, 'averageEntryPrice') !== undefined ? `Entry: ${legacyField(item, 'averageEntryPrice')}` : null,
-    legacyField(item, 'stopPrice') !== null && legacyField(item, 'stopPrice') !== undefined ? `Stop: ${legacyField(item, 'stopPrice')}` : null,
+    legacyField(item, 'quantity') !== undefined ? `Menge: ${displayScalarText(legacyField(item, 'quantity'))}` : null,
+    legacyField(item, 'averageEntryPrice') !== null && legacyField(item, 'averageEntryPrice') !== undefined ? `Entry: ${displayScalarText(legacyField(item, 'averageEntryPrice'))}` : null,
+    legacyField(item, 'stopPrice') !== null && legacyField(item, 'stopPrice') !== undefined ? `Stop: ${displayScalarText(legacyField(item, 'stopPrice'))}` : null,
     ...accountingLines(item),
   ].filter((value): value is string => Boolean(value)).join('\n'));
   return listMessage('Positionen', items);
@@ -167,7 +172,7 @@ export function formatPositions(payload: Record<string, unknown>): string {
 export function formatOrders(payload: Record<string, unknown>): string {
   return listMessage('Orders', values(payload, 'orders').map(item => line([
     legacyField(item, 'symbol') || legacyField(item, 'id') || 'Order', legacyField(item, 'exchange'), legacyField(item, 'role'), legacyField(item, 'side'), legacyField(item, 'status'),
-    legacyField(item, 'filledQuantity') !== undefined ? `${legacyField(item, 'filledQuantity')}/${legacyField(item, 'quantity') ?? '?'}` : null,
+    legacyField(item, 'filledQuantity') !== undefined ? `${displayScalarText(legacyField(item, 'filledQuantity'))}/${displayScalarText(legacyField(item, 'quantity') ?? '?')}` : null,
   ])));
 }
 
@@ -183,7 +188,7 @@ export function formatTrades(payload: Record<string, unknown>): string {
 export function formatPerformance(payload: Record<string, unknown>): string {
   return listMessage('Performance', values(payload, 'groups').map(item => [line([
     legacyField(item, 'channelId') || legacyField(item, 'accountId') || 'Gruppe', legacyField(item, 'exchange'), legacyField(item, 'mode'),
-    legacyField(item, 'trades') !== undefined ? `${legacyField(item, 'trades')} Trades` : null,
+    legacyField(item, 'trades') !== undefined ? `${displayScalarText(legacyField(item, 'trades'))} Trades` : null,
   ]), ...accountingLines(item)].join('\n')));
 }
 
@@ -199,7 +204,7 @@ export function formatSystem(payload: Record<string, unknown>): string {
     `Execution: ${payload.executionEnabled ? 'aktiv' : 'inaktiv'}`,
     `Live: ${payload.liveTradingEnabled ? 'aktiv' : 'inaktiv'}`,
     `Kill-Switch: ${payload.killSwitchActive ? 'aktiv' : 'inaktiv'}`,
-    `Offene Incidents: ${payload.openIncidents ?? 0}`,
+    `Offene Incidents: ${displayScalarText(payload.openIncidents ?? 0)}`,
   ].join('\n'));
 }
 
@@ -294,8 +299,8 @@ export const TELEGRAM_VIEWER_UNKNOWN_COMMAND = [
 
 function accountEquityLine(item: unknown): string | null {
   if (legacyField(item, 'equity') === null || legacyField(item, 'equity') === undefined) return null;
-  const currency = legacyField(item, 'reportingCurrency') ? ` ${legacyField(item, 'reportingCurrency')}` : '';
-  return `Equity ${legacyField(item, 'equity')}${currency}`;
+  const currency = legacyField(item, 'reportingCurrency') ? ` ${displayScalarText(legacyField(item, 'reportingCurrency'))}` : '';
+  return `Equity ${displayScalarText(legacyField(item, 'equity'))}${currency}`;
 }
 function exchangeLine(event: TradingNotificationEvent): string | null {
   if (!event.exchange) return null;
