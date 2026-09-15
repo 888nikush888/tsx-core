@@ -34,7 +34,7 @@ function dataNode(value, state, depth) {
   const keys = Reflect.ownKeys(descriptors).filter(key => !(Array.isArray(value) && key === 'length'));
   if (Array.isArray(value)) requireAcceptance(keys.length === value.length && keys.every((key, index) => key === String(index)), 'sparse implementation array');
   for (const key of keys) {
-    requireAcceptance(typeof key === 'string' && !/[\x00-\x1f\x7f]/u.test(key)
+    requireAcceptance(typeof key === 'string' && !/\p{Cc}/u.test(key)
       && !/^(?:__proto__|constructor|prototype|apiKey|secret|password|privateKey|authorization|signature)$/iu.test(key), 'unsafe implementation key');
     const descriptor = descriptors[key];
     requireAcceptance(Object.hasOwn(descriptor, 'value') && descriptor.enumerable, 'implementation accessors are not evidence');
