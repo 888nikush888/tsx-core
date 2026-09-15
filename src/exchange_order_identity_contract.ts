@@ -35,13 +35,20 @@ function assertIdentityEvidence(value: unknown, result: OrderIdentityInput): ass
   let fields: string[];
   if (proof.profile === 'kraken_batch_tag_v1') {
     fields = [...base, 'tag'];
-    if (proof.tag !== proof.clientOrderId || info.order_tag !== proof.tag || info.order_id !== proof.exchangeOrderId) {
-      throw new Error('Kraken batch tag lacks its exact original response.');
-    }
+    assertKrakenOriginalResponse(proof, info);
   } else if (proof.profile === 'hyperliquid_cloid_lookup_v1') {
     fields = [...base, 'user', 'providerMarketId', 'startedAt', 'completedAt'];
     validateCloid(proof, info, raw);
   } else throw new Error('Unsupported native order identity evidence.');
+  assertEvidenceFields(proof, fields);
+}
+
+function assertKrakenOriginalResponse(proof: Record<string, unknown>, info: Record<string, unknown>): void {
+  if (proof.tag !== proof.clientOrderId || info.order_tag !== proof.tag || info.order_id !== proof.exchangeOrderId) {
+    throw new Error('Kraken batch tag lacks its exact original response.');
+  }
+}
+function assertEvidenceFields(proof: Record<string, unknown>, fields: string[]): void {
   const actualFields = Object.keys(proof);
   actualFields.sort(codeUnitOrder);
   fields.sort(codeUnitOrder);
@@ -61,10 +68,19 @@ function assertScope(proof: Record<string, unknown>, result: OrderIdentityInput)
 function validateCloid(proof: Record<string, unknown>, info: Record<string, unknown>, raw: Record<string, unknown>): void {
   const native = object(info.order);
   id(proof.providerMarketId);
-  if (typeof proof.user !== 'string' || !/^0x[0-9a-f]{40}$/.test(proof.user)
-    || typeof proof.clientOrderId !== 'string' || !/^0x[0-9a-fA-F]{32}$/.test(proof.clientOrderId)
-    || String(native.oid) !== proof.exchangeOrderId || native.coin !== proof.providerMarketId || raw.symbol !== proof.providerSymbol
-    || (native.cloid != null && native.cloid !== proof.clientOrderId)) throw new Error('Hyperliquid lookup scope contradicts its original order.');
+  if (invalidLookupIdentifiers(proof) || nativeLookupMismatch(proof, native, raw)) throw new Error('Hyperliquid lookup scope contradicts its original order.');
+  assertLookupReadInterval(proof);
+}
+
+function invalidLookupIdentifiers(proof: Record<string, unknown>): boolean {
+  return typeof proof.user !== 'string' || !/^0x[0-9a-f]{40}$/.test(proof.user)
+    || typeof proof.clientOrderId !== 'string' || !/^0x[0-9a-fA-F]{32}$/.test(proof.clientOrderId);
+}
+function nativeLookupMismatch(proof: Record<string, unknown>, native: Record<string, unknown>, raw: Record<string, unknown>): boolean {
+  return String(native.oid) !== proof.exchangeOrderId || native.coin !== proof.providerMarketId || raw.symbol !== proof.providerSymbol
+    || (native.cloid != null && native.cloid !== proof.clientOrderId);
+}
+function assertLookupReadInterval(proof: Record<string, unknown>): void {
   // The range comparisons run only after both values pass Number.isSafeInteger.
   if (![proof.startedAt, proof.completedAt].every(Number.isSafeInteger) || (proof.startedAt as number) < 0
     || (proof.completedAt as number) < (proof.startedAt as number) || (proof.completedAt as number) > Date.now() + 60_000) throw new Error('Invalid cloid lookup read interval.');

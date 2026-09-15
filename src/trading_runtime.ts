@@ -14,6 +14,13 @@ import {
 type RuntimeLogger = (message: string) => void;
 interface PendingEntryCursor { id: string; created_at: number }
 
+// Preserve legacy diagnostic coercion, including primitive prototype getters and truthy messages.
+function runtimeFailureMessage(error: unknown): string {
+  const message: unknown = error === null || error === undefined
+    ? undefined : Reflect.get(Object(error), 'message', error);
+  return `${message || String(error)}`;
+}
+
 export class TradingRuntime {
   private timer: NodeJS.Timeout | null = null;
   private streamTimer: NodeJS.Timeout | null = null;
@@ -166,16 +173,16 @@ export class TradingRuntime {
     for (const accountId of accountIds) {
       try {
         await this.engine.retireUnauthorizedPreparations(accountId);
-      } catch (error: any) {
-        failures.push(`${accountId} preparation-recovery: ${error?.message || String(error)}`);
+      } catch (error: unknown) {
+        failures.push(`${accountId} preparation-recovery: ${runtimeFailureMessage(error)}`);
       }
       try {
         const streamTriggered = this.streamDirtyAccounts.delete(accountId);
         await this.engine.reconcileAccount(accountId, {
           force: startup || streamTriggered,
         });
-      } catch (error: any) {
-        const message = error?.message || String(error);
+      } catch (error: unknown) {
+        const message = runtimeFailureMessage(error);
         failures.push(`${accountId}: ${message}`);
       }
     }
@@ -234,8 +241,8 @@ export class TradingRuntime {
   private async captureEntryExpiryFailure(failures: string[]): Promise<void> {
     try {
       await this.engine.cancelExpiredEntries();
-    } catch (error: any) {
-      failures.push(`entry-expiry: ${error?.message || String(error)}`);
+    } catch (error: unknown) {
+      failures.push(`entry-expiry: ${runtimeFailureMessage(error)}`);
     }
   }
 
