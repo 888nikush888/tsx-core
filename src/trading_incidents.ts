@@ -25,11 +25,29 @@ export interface TradingAccountIncident {
   resolvedAt: number | null;
 }
 
+// Persisted row written by recordTradingAccountIncident; status and severity also have SQL CHECK constraints.
+interface IncidentRow {
+  id: string;
+  account_id: string;
+  fingerprint: string;
+  category: TradingIncidentCategory;
+  severity: TradingAccountIncident['severity'];
+  message: string;
+  details_json: string;
+  status: TradingAccountIncident['status'];
+  occurrence_count: number;
+  first_seen_at: number;
+  last_seen_at: number;
+  resolved_at: number | null;
+}
+
+type ResolvedIncidentRow = Pick<IncidentRow, 'id' | 'category' | 'severity' | 'message' | 'occurrence_count'>;
+
 function incidentFingerprint(category: TradingIncidentCategory, message: string): string {
   return createHash('sha256').update(`${category}\0${message.trim()}`).digest('hex');
 }
 
-function incidentFromRow(row: any): TradingAccountIncident {
+function incidentFromRow(row: IncidentRow): TradingAccountIncident {
   let details: Record<string, unknown> = {};
   try {
     const parsed = JSON.parse(String(row.details_json || '{}'));
@@ -65,7 +83,7 @@ export async function recordTradingAccountIncident(input: {
   if (!message) throw new Error('Trading account incident requires a message.');
   const now = input.now ?? Date.now();
   const fingerprint = incidentFingerprint(input.category, message);
-  const existing = await getDatabase().get<any>(
+  const existing = await getDatabase().get<IncidentRow>(
     `SELECT * FROM trading_account_incidents
      WHERE account_id = ? AND fingerprint = ? AND status = 'open'`,
     [input.accountId, fingerprint],
@@ -84,7 +102,7 @@ export async function recordTradingAccountIncident(input: {
       details_json: JSON.stringify(input.details || {}),
     });
   }
-  const row = {
+  const row: IncidentRow = {
     id: randomUUID(),
     account_id: input.accountId,
     fingerprint,
@@ -127,7 +145,7 @@ export async function resolveTradingAccountIncidents(
 ): Promise<number> {
   if (categories.length === 0) return 0;
   const placeholders = categories.map(() => '?').join(', ');
-  const incidents = await getDatabase().all<any[]>(
+  const incidents = await getDatabase().all<ResolvedIncidentRow[]>(
     `SELECT id, category, severity, message, occurrence_count
      FROM trading_account_incidents
      WHERE account_id = ? AND status = 'open' AND category IN (${placeholders})`,
@@ -168,7 +186,7 @@ export async function listTradingAccountIncidents(input: {
   }
   if (input.includeResolved !== true) conditions.push("status = 'open'");
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-  const rows = await getDatabase().all<any[]>(
+  const rows = await getDatabase().all<IncidentRow[]>(
     `SELECT * FROM trading_account_incidents ${where}
      ORDER BY CASE status WHEN 'open' THEN 0 ELSE 1 END, last_seen_at DESC LIMIT ?`,
     [...parameters, limit],

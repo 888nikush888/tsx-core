@@ -1,0 +1,32 @@
+{
+  "node": "v22.23.2",
+  "sourceLfSha256": "d67611f0b9fbbf7d96e9b0a84ab38ff32032b383593867b0a5ff56524766d7db",
+  "emittedJsIdentical": true,
+  "results": [
+    {
+      "name": "failures",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-incident-rows-failures.log"
+    },
+    {
+      "name": "retirement",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-incident-rows-retirement.log"
+    },
+    {
+      "name": "viewer-core",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-incident-rows-viewer-core.log"
+    },
+    {
+      "name": "types",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-incident-rows-types.log"
+    },
+    {
+      "name": "lint",
+      "exitCode": 0,
+      "log": "reports/security-services/fixer-incident-rows-lint.log"
+    }
+  ]
+}
