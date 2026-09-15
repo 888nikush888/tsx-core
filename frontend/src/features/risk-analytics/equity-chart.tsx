@@ -53,7 +53,7 @@ function validatedObservation(point: EquityObservation): { accountId: string; cu
   const observation = equityPoint(point);
   if (!observation) return null;
   if (point.accountId != null && typeof point.accountId !== "string") return null;
-  const accountId = point.accountId ?? "aggregate";
+  const accountId = typeof point.accountId === "string" ? point.accountId : "aggregate";
   const currency = equityObservationGroup(point);
   return currency ? { accountId, currency, point: observation } : null;
 }

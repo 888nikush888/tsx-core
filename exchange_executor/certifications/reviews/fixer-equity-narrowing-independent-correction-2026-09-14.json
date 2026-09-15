@@ -1,0 +1,25 @@
+{
+  "kind": "independent-equity-narrowing-correction",
+  "priorCompilerPassWithdrawn": true,
+  "cause": "Combined shell exit status was mistaken for compiler status despite redirected TS2322. Future compiler checks explicitly exit $LASTEXITCODE or execute compiler as only command.",
+  "sourcePath": "frontend/src/features/risk-analytics/equity-chart.tsx",
+  "currentRawSha256": "65d27fc7383c8ec8a9b4904bcc69a32df1b0497f55e3852d1806e073b97005c0",
+  "currentLfSha256": "af13c5f0b85d5acf42d10d6925e5494e95b41a9a1540cb8eb62ab896f88dcf93",
+  "review": "Existing guard excludes every non-null non-string ID. Thus remaining set is strings/null/undefined. Explicit typeof ternary returns unchanged string for strings and aggregate for null/undefined, exactly matching prior nullish expression at runtime while proving string type toTS5.9 with strictNullChecksfalse. No coercion, trimming, grouping or label behavior changes.",
+  "validation": [
+    {
+      "command": "Frontend own tsc --noEmit -p frontend/tsconfig.app.json; exit $LASTEXITCODE",
+      "result": "PASS actual exit0",
+      "log": "fixer-equity-narrowing-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "Existing operations-panel-helpers plus operator-state-regressions suites; exit $LASTEXITCODE",
+      "result": "2suites30tests PASS actual exit0",
+      "log": "fixer-equity-narrowing-recheck.log",
+      "sha256": "86d86103e54154f1f41bbdc0e783cd5a9017569391f5584083a46389c778b8fa"
+    }
+  ],
+  "rootBuild": "Root reports npm run build --prefix frontend exit0; independent source/test/typecheck above are separate evidence.",
+  "activeEditsByReviewer": false
+}

@@ -1,0 +1,52 @@
+{
+  "kind": "independent-module-coverage-expectation-update-review",
+  "committedBaselineRevision": "ad11761b6bc6b6ef622a46855e8e64cebbe87257",
+  "testSource": {
+    "path": "tests/test_module_coverage.js",
+    "beforeGitBlobSha256": "909e5ae8cf6d7fe1bbeeb83ffb17695ae89dd51fd98ffb149ad4d7e611ce3eb8",
+    "afterWorkingRawSha256": "4723097c61c6b4dc4aaf952b11d8476b5d74037b1e7a7b48a0101eb8234e4bc5",
+    "afterWorkingLfSha256": "4723097c61c6b4dc4aaf952b11d8476b5d74037b1e7a7b48a0101eb8234e4bc5",
+    "uncommitted": true
+  },
+  "exactDelta": "Only the expected baseline object changes statements96.48->96.49,branches86.44->86.45,lines96.48->96.49; functions99.20 unchanged. Byte comparison after LF normalization confirms no other changes.",
+  "publishedEvidence": {
+    "path": "exchange_executor/certifications/reviews/fixer-253f8f9-ci-and-coverage-review-2026-09-14.json",
+    "gitBlobSha256": "6757aeaa277bb8db1e7988ba52bfae298ee995441fecc5aff73ea95d14c77266",
+    "logsIndependentlyHashedAndRead": [
+      {
+        "path": "reports/security-services/fixer-ci-253f8f9-core.log",
+        "sha256": "2bbb9776ce3c7516e1522b74dea8da66121bca54701426bd0bdbc4f957f2d0a9",
+        "observedTotalLine": "2026-09-14T07:36:34.8968256Z All files                              |    96.5 |    86.49 |    99.2 |    96.5 |                   ",
+        "parsedTotals": {
+          "statements": 96.5,
+          "branches": 86.49,
+          "functions": 99.2,
+          "lines": 96.5
+        }
+      },
+      {
+        "path": "reports/security-services/fixer-e58bd77-module-coverage.log",
+        "sha256": "5f11544350368420097ad7016570a7e47fb7052b7cc10f2bc9309cedf67c49d2",
+        "observedTotalLine": "All files                              |   96.49 |    86.45 |    99.2 |   96.49 |                   ",
+        "parsedTotals": {
+          "statements": 96.49,
+          "branches": 86.45,
+          "functions": 99.2,
+          "lines": 96.49
+        }
+      }
+    ]
+  },
+  "crossPlatformMinimum": {
+    "statements": 96.49,
+    "branches": 86.45,
+    "functions": 99.2,
+    "lines": 96.49
+  },
+  "result": "PASS: new expected object equals already committed baseline and independently parsed minimum of actual Linux253f8f9/Windowse58bd77 coverage. No gate lowered or removed.",
+  "limits": [
+    "Only expectation alignment verified; running root full suite not claimed completed.",
+    "The ad11761 provenance index remains committed-only and lists this test edit separately as uncommitted.",
+    "Existing missing-metric/regression/failing-child assertions and test helper unchanged."
+  ]
+}

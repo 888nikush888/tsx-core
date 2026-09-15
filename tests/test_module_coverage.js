@@ -21,7 +21,7 @@ assert.deepEqual(
     functions: repositoryBaseline.functions,
     lines: repositoryBaseline.lines,
   },
-  { statements: 96.48, branches: 86.44, functions: 99.20, lines: 96.48 },
+  { statements: 96.49, branches: 86.45, functions: 99.20, lines: 96.49 },
   'A higher single-platform observation must not replace the verified cross-platform baseline.',
 );
 
