@@ -24,7 +24,7 @@ function safeDetails(details: Record<string, unknown>): string[] {
     .map(([key, value]) => `${key}: ${String(value).slice(0, 500)}`);
 }
 
-function values(payload: Record<string, any>, key: string): any[] {
+function values(payload: Record<string, unknown>, key: string): any[] {
   const value = payload[key];
   if (Array.isArray(value)) return value;
   const singular = key.endsWith('s') ? key.slice(0, -1) : key;
@@ -84,11 +84,11 @@ function moneyLines(label: string, summary: Record<string, unknown>): string[] {
   return text ? [`${label} ${text}`] : [`${label} ungeklärt`, ...subtotalLines(label, summary)];
 }
 
-function accountingLines(item: Record<string, any>): string[] {
+function accountingLines(item: Record<string, unknown>): string[] {
   const components: Array<[string, string]> = [['pricePnl', 'Preis-PnL'], ['signedFees', 'Gebühren (signiert)'], ['funding', 'Funding']];
   return [...moneyLines('PnL', item), ...components.flatMap(([key, label]) => {
     const value = item[key];
-    return value && typeof value === 'object' && !Array.isArray(value) ? moneyLines(label, value) : [];
+    return value && typeof value === 'object' && !Array.isArray(value) ? moneyLines(label, value as Record<string, unknown>) : [];
   })];
 }
 
@@ -128,14 +128,14 @@ export function formatSummary(payload: Record<string, any>): string {
   ].join('\n'));
 }
 
-export function formatAccounts(payload: Record<string, any>): string {
+export function formatAccounts(payload: Record<string, unknown>): string {
   return listMessage('Accounts', values(payload, 'accounts').map(item => line([
     item.name || item.id || 'Konto', item.exchange, item.mode, item.status,
     accountEquityLine(item),
   ])));
 }
 
-export function formatPositions(payload: Record<string, any>): string {
+export function formatPositions(payload: Record<string, unknown>): string {
   const items = values(payload, 'positions').map(item => [
     line([item.symbol || item.id || 'Position', item.exchange, item.mode, item.side, item.status]),
     ...leverageLines(item.leverage),
@@ -147,14 +147,14 @@ export function formatPositions(payload: Record<string, any>): string {
   return listMessage('Positionen', items);
 }
 
-export function formatOrders(payload: Record<string, any>): string {
+export function formatOrders(payload: Record<string, unknown>): string {
   return listMessage('Orders', values(payload, 'orders').map(item => line([
     item.symbol || item.id || 'Order', item.exchange, item.role, item.side, item.status,
     item.filledQuantity !== undefined ? `${item.filledQuantity}/${item.quantity ?? '?'}` : null,
   ])));
 }
 
-export function formatTrades(payload: Record<string, any>): string {
+export function formatTrades(payload: Record<string, unknown>): string {
   return listMessage('Trades', values(payload, 'trades').map(item => {
     const summary = line([
       item.symbol || item.id || 'Trade', item.exchange, item.mode, item.side, item.status,
@@ -163,20 +163,20 @@ export function formatTrades(payload: Record<string, any>): string {
   }));
 }
 
-export function formatPerformance(payload: Record<string, any>): string {
+export function formatPerformance(payload: Record<string, unknown>): string {
   return listMessage('Performance', values(payload, 'groups').map(item => [line([
     item.channelId || item.accountId || 'Gruppe', item.exchange, item.mode,
     item.trades !== undefined ? `${item.trades} Trades` : null,
   ]), ...accountingLines(item)].join('\n')));
 }
 
-export function formatRisk(payload: Record<string, any>): string {
+export function formatRisk(payload: Record<string, unknown>): string {
   return listMessage('Risk', values(payload, 'events').map(item => line([
     item.severity, item.code || item.eventType || item.id, item.accountId, item.acknowledgedAt ? 'quittiert' : null,
   ])));
 }
 
-export function formatSystem(payload: Record<string, any>): string {
+export function formatSystem(payload: Record<string, unknown>): string {
   return clipped([
     'TSX Core · System',
     `Execution: ${payload.executionEnabled ? 'aktiv' : 'inaktiv'}`,
@@ -186,7 +186,7 @@ export function formatSystem(payload: Record<string, any>): string {
   ].join('\n'));
 }
 
-export function formatEvents(payload: Record<string, any>): string {
+export function formatEvents(payload: Record<string, unknown>): string {
   return listMessage('Events', values(payload, 'events').map(item => line([
     item.eventType || item.code || item.id || 'Event', item.exchange, item.mode, item.accountId, item.intentId,
   ])));
@@ -225,7 +225,7 @@ export function formatNotification(
   return formatTelegramViewerEvent(event, settings);
 }
 
-export function formatTelegramViewerProjection(resource: string, payload: Record<string, any>): string {
+export function formatTelegramViewerProjection(resource: string, payload: Record<string, unknown>): string {
   if (resource === 'summary') return formatSummary(payload);
   if (resource === 'accounts') return formatAccounts(payload);
   if (resource === 'positions') return formatPositions(payload);
@@ -275,7 +275,7 @@ export const TELEGRAM_VIEWER_UNKNOWN_COMMAND = [
   'Dieser Befehl ist nicht verfügbar. Der Viewer bietet ausschließlich lesenden Zugriff.',
 ].join('\n');
 
-function accountEquityLine(item: Record<string, any>): string | null {
+function accountEquityLine(item: Record<string, unknown>): string | null {
   if (item.equity === null || item.equity === undefined) return null;
   const currency = item.reportingCurrency ? ` ${item.reportingCurrency}` : '';
   return `Equity ${item.equity}${currency}`;
