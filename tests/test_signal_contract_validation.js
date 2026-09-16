@@ -434,7 +434,7 @@ function testContractPatternExecution() {
 
   // The outer process owns the deadline even if the runtime guard regresses.
   const fixture = fileURLToPath(new URL('./fixtures/signal_contract_regex_child.js', import.meta.url));
-  for (const pattern of ['^(a+)+$', '^(a|aa)+$', '^((a+))+$']) {
+  for (const pattern of ['^(a+)+$', '^(a|aa)+$', '^((a+))+$', '(a?){1000000000}']) {
     for (const placement of ['first', 'late']) {
       const result = spawnSync(process.execPath, ['--import', 'tsx', fixture, pattern, placement], {
         encoding: 'utf8', timeout: 5_000,

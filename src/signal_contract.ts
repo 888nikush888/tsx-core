@@ -93,8 +93,8 @@ function safePattern(value: unknown, label: string): string | undefined {
     throw new Error(`${label} contains unsupported high-risk regular-expression constructs.`);
   }
   try {
-    // Compilation performs the validation; the trivial test call keeps the constructed instance used.
-    new RegExp(pattern, 'u').test('');
+    // skipcq: JS-R1002 - compilation validates syntax; even matching empty input must stay inside the execution budget.
+    new RegExp(pattern, 'u');
   } catch (error) {
     throw new Error(`${label} is not a valid regular expression.`, { cause: error });
   }
