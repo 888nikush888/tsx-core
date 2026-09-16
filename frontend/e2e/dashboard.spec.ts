@@ -12,6 +12,8 @@ function json(route: Route, body: unknown, status = 200) {
   });
 }
 
+type MockRequest = ReturnType<Route["request"]>;
+
 async function mockDashboardApi(
   page: Page,
   firstRun = false,
@@ -40,28 +42,30 @@ async function mockDashboardApi(
     stack.push(entry);
     if (stack.length > 5) stack.shift();
   };
-  await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
-    const request = route.request();
-    const url = new URL(request.url());
-    if (url.pathname === "/api/bootstrap/status") {
+  const mockBootstrapStatusRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/bootstrap/status") return false;
       await json(route, {
         required: firstRun,
         available: true,
         localSessionAvailable: !firstRun,
         bootstrapProofRequired: firstRun,
       });
-      return;
-    }
-    if (url.pathname === "/api/bootstrap") {
+    return true;
+  };
+
+  const mockBootstrapRoute = async (route: Route, url: URL, request: MockRequest): Promise<boolean> => {
+    if (url.pathname !== "/api/bootstrap") return false;
       if (firstRun) expect(request.postDataJSON()).toEqual({ bootstrapProof: "b".repeat(64) });
       await json(
         route,
         { token: TOKEN, recoveryLocation: "secrets/dashboard_admin_token" },
         201,
       );
-      return;
-    }
-    if (url.pathname === "/api/local-session") {
+    return true;
+  };
+
+  const mockLocalSessionRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/local-session") return false;
       await json(
         route,
         {
@@ -73,18 +77,11 @@ async function mockDashboardApi(
         },
         201,
       );
-      return;
-    }
-    const authorized = request.headers().authorization === `Bearer ${TOKEN}`;
-    if (url.pathname === "/api/status" && !authorized) {
-      await json(route, { error: "Authentication required." }, 401);
-      return;
-    }
-    if (!authorized) {
-      await json(route, { error: "Authentication required." }, 401);
-      return;
-    }
-    if (url.pathname === "/api/status") {
+    return true;
+  };
+
+  const mockStatusRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/status") return false;
       await json(route, {
         isRunning: false,
         connectionState: "disconnected",
@@ -97,38 +94,50 @@ async function mockDashboardApi(
         backup: { healthy: true, lastSuccessAt: Date.now() },
         mcp: { mode: "inactive", updatedAt: Date.now(), updatedBy: "system" },
       });
-      return;
-    }
-    if (url.pathname === "/api/workflow/drafts") {
+    return true;
+  };
+
+  const mockWorkflowDraftsRoute = async (route: Route, url: URL, request: MockRequest): Promise<boolean> => {
+    if (url.pathname !== "/api/workflow/drafts") return false;
       if (request.method() === "POST") {
         const body = request.postDataJSON();
-        if (body.baseVersion !== (graphDraft?.version ?? null)) { await json(route, { error: 'VERSION_CONFLICT' }, 409); return; }
+        if (body.baseVersion !== (graphDraft?.version ?? null)) { await json(route, { error: 'VERSION_CONFLICT' }, 409); return true; }
         graphDraft = { ...body, version: (graphDraft?.version ?? 0) + 1, updatedAt: Date.now(), expired: false };
       }
-      await json(route, { draft: graphDraft }); return;
-    }
-    if (url.pathname === "/api/workflow/objects") {
+      await json(route, { draft: graphDraft });
+    return true;
+  };
+
+  const mockWorkflowObjectsRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/workflow/objects") return false;
       const resource = workflowResources.find(item => item.id === url.searchParams.get('id')) ?? pendingResource;
-      await json(route, { resource, publication: { publicationHash: 'browser-publication-hash', dependency: null } }); return;
-    }
-    if (url.pathname === "/api/workflow/history") {
+      await json(route, { resource, publication: { publicationHash: 'browser-publication-hash', dependency: null } });
+    return true;
+  };
+
+  const mockWorkflowHistoryRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/workflow/history") return false;
       await json(route, historyStatus());
-      return;
-    }
-    if (url.pathname === "/api/workflow/history/impact") {
+    return true;
+  };
+
+  const mockWorkflowHistoryImpactRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/workflow/history/impact") return false;
       await json(route, {
         impact: { destructive: false, changed: [], removed: [], confirmation: null },
       });
-      return;
-    }
-    if (url.pathname === "/api/workflow/history/apply") {
+    return true;
+  };
+
+  const mockWorkflowHistoryApplyRoute = async (route: Route, url: URL, request: MockRequest): Promise<boolean> => {
+    if (url.pathname !== "/api/workflow/history/apply") return false;
       const body = request.postDataJSON() as { direction: "undo" | "redo" };
       const source = body.direction === "undo" ? undo : redo;
       const destination = body.direction === "undo" ? redo : undo;
       const target = source.pop();
       if (!target) {
         await json(route, { error: `WORKFLOW_HISTORY_${body.direction.toUpperCase()}_EMPTY` }, 409);
-        return;
+        return true;
       }
       pushHistory(destination, { workflow: copyWorkflow(currentWorkflow), label: target.label });
       revisionSequence += 1;
@@ -147,16 +156,20 @@ async function mockDashboardApi(
             compiled: { paths: [], warnings: [] },
           };
       await json(route, { workflow: currentWorkflow, history: historyStatus() });
-      return;
-    }
-    if (url.pathname === "/api/workflow") {
+    return true;
+  };
+
+  const mockWorkflowRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/workflow") return false;
       await json(route, {
         workflow: currentWorkflow,
         resources: workflowResources,
       });
-      return;
-    }
-    if (url.pathname === "/api/workflow/impact") {
+    return true;
+  };
+
+  const mockWorkflowImpactRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/workflow/impact") return false;
       await json(route, {
         impact: {
           destructive: false,
@@ -165,9 +178,11 @@ async function mockDashboardApi(
           confirmation: null,
         },
       });
-      return;
-    }
-    if (url.pathname === "/api/workflow/mutate") {
+    return true;
+  };
+
+  const mockWorkflowMutateRoute = async (route: Route, url: URL, request: MockRequest): Promise<boolean> => {
+    if (url.pathname !== "/api/workflow/mutate") return false;
       const body = request.postDataJSON() as { graph: Record<string, unknown>; historyLabel?: string };
       const previous = currentWorkflow as Record<string, unknown> | null;
       pushHistory(undo, {
@@ -186,9 +201,11 @@ async function mockDashboardApi(
       };
       graphDraft = { ...graphDraft, baseRevisionId: currentWorkflow.id };
       await json(route, { workflow: currentWorkflow, history: historyStatus(), draft: graphDraft });
-      return;
-    }
-    if (url.pathname === "/api/workflow/resources" && request.method() === "POST") {
+    return true;
+  };
+
+  const mockWorkflowResourcesRoute = async (route: Route, url: URL, request: MockRequest): Promise<boolean> => {
+    if (url.pathname !== "/api/workflow/resources" || request.method() !== "POST") return false;
       const body = request.postDataJSON() as Record<string, unknown>;
       const versions = workflowResources.filter((item) => item.resourceId === body.resourceId);
       const version = Math.max(0, ...versions.map((item) => Number(item.version || 0))) + 1;
@@ -208,12 +225,14 @@ async function mockDashboardApi(
       };
       workflowResources.push(pendingResource);
       await json(route, { resource: pendingResource }, 201);
-      return;
-    }
-    if (url.pathname === "/api/workflow/resources/publish") {
+    return true;
+  };
+
+  const mockWorkflowPublishRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/workflow/resources/publish") return false;
       if (!pendingResource) {
         await json(route, { error: "No pending resource." }, 409);
-        return;
+        return true;
       }
       pendingResource = { ...pendingResource, status: "published", publishedAt: Date.now() };
       const publishedResourceId = pendingResource.id;
@@ -221,9 +240,11 @@ async function mockDashboardApi(
       workflowResources[index] = pendingResource;
       await json(route, { resource: pendingResource });
       pendingResource = null;
-      return;
-    }
-    if (url.pathname === "/api/trading") {
+    return true;
+  };
+
+  const mockTradingRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/trading") return false;
       await json(route, {
         overview: {
           runtime: {
@@ -247,9 +268,11 @@ async function mockDashboardApi(
         activity: { positions: [], riskEvents: [], reconciliations: [] },
         exchangeStreams: [],
       });
-      return;
-    }
-    if (url.pathname === "/api/exchanges/catalog") {
+    return true;
+  };
+
+  const mockExchangesCatalogRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/exchanges/catalog") return false;
       await json(route, {
         implementation: {
           library: "ccxt",
@@ -284,27 +307,33 @@ async function mockDashboardApi(
           },
         ],
       });
-      return;
-    }
-    if (url.pathname === "/api/exchanges/probe") {
+    return true;
+  };
+
+  const mockExchangesProbeRoute = async (route: Route, url: URL, request: MockRequest): Promise<boolean> => {
+    if (url.pathname !== "/api/exchanges/probe") return false;
       const exchange = JSON.parse(request.postData() || "{}").exchange;
       await json(route, {
         id: exchange, name: String(exchange).toUpperCase(), status: "candidate", reason: null,
         provider: "ccxt", ccxt: { rest: true, pro: true }, markets: { linearSwap: true },
         credentialFields: [], modes: [], capabilities: {},
       });
-      return;
-    }
-    if (url.pathname === "/api/config") {
+    return true;
+  };
+
+  const mockConfigRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/config") return false;
       await json(route, {
         apiId: 0,
         sourceChannels: [],
         targetChannel: "",
         xmlParsing: { enabled: false },
       });
-      return;
-    }
-    if (url.pathname === "/api/secrets") {
+    return true;
+  };
+
+  const mockSecretsRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/secrets") return false;
       await json(route, {
         secrets: {
           telegramApiHash: secretState,
@@ -320,15 +349,40 @@ async function mockDashboardApi(
           backupEncryptionKey: secretState,
         },
       });
-      return;
-    }
-    if (url.pathname === "/api/recovery") {
+    return true;
+  };
+
+  const mockRecoveryRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/recovery") return false;
       await json(route, { active: false, serverInstanceId: "browser-instance", session: { role: "admin", actorId: "browser-admin" } });
+    return true;
+  };
+
+  const mockMetricsHistoryRoute = async (route: Route, url: URL): Promise<boolean> => {
+    if (url.pathname !== "/api/metrics-history") return false;
+      await json(route, { history: [] });
+    return true;
+  };
+
+  const authorizedRoutes: Array<(route: Route, url: URL, request: MockRequest) => Promise<boolean>> = [
+    mockStatusRoute, mockWorkflowDraftsRoute, mockWorkflowObjectsRoute, mockWorkflowHistoryRoute, mockWorkflowHistoryImpactRoute, mockWorkflowHistoryApplyRoute,
+    mockWorkflowRoute, mockWorkflowImpactRoute, mockWorkflowMutateRoute, mockWorkflowResourcesRoute, mockWorkflowPublishRoute,
+    mockTradingRoute, mockExchangesCatalogRoute, mockExchangesProbeRoute, mockConfigRoute, mockSecretsRoute, mockRecoveryRoute, mockMetricsHistoryRoute,
+  ];
+
+  await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    for (const handle of [mockBootstrapStatusRoute, mockBootstrapRoute, mockLocalSessionRoute]) {
+      if (await handle(route, url, request)) return;
+    }
+    const authorized = request.headers().authorization === `Bearer ${TOKEN}`;
+    if (!authorized) {
+      await json(route, { error: "Authentication required." }, 401);
       return;
     }
-    if (url.pathname === "/api/metrics-history") {
-      await json(route, { history: [] });
-      return;
+    for (const handle of authorizedRoutes) {
+      if (await handle(route, url, request)) return;
     }
     await json(route, {});
   });

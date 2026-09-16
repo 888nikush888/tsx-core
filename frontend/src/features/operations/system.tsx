@@ -43,6 +43,263 @@ type SetupPreviewPayload = {
   accountMapping?: { automatic?: Record<string, string>; candidates?: Array<{ id: string; name: string; exchange: string; mode: string }> } | null;
 };
 
+function RuntimeSection({ payload, runtime, setRuntime, runtimeForm, busy, saveRuntime, restart }: Readonly<{
+  payload: RuntimeParameterPayload | null; runtime: Record<string, unknown>; setRuntime: ReturnType<typeof useVersionedDraft<Record<string, unknown>>>["setDraft"];
+  runtimeForm: ReturnType<typeof useVersionedDraft<Record<string, unknown>>>; busy: string; saveRuntime: () => void | Promise<void>; restart: () => void | Promise<void>;
+}>) {
+  if (!payload) return <p>Runtime-Einstellungen nicht verfügbar.</p>;
+  return (
+    <section className="operations-card system-form">
+        <h3>Dashboard-Zugriff & Runtime</h3>
+        <RuntimeParameters value={runtime} onChange={setRuntime} payload={payload} />
+        <button
+          type="button"
+          className="primary-button"
+          disabled={Boolean(busy) || runtimeForm.conflict}
+          onClick={() => { saveRuntime(); }}
+        >
+          Runtime speichern
+        </button>
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={Boolean(busy)}
+          onClick={() => { restart(); }}
+        >
+          Kontrolliert neu starten
+        </button>
+        <RuntimeEvidence payload={payload} />
+    </section>
+  );
+}
+
+function SecretsSection({ secrets, secretInput, setSecretInput, busy, saveSecrets }: Readonly<{
+  secrets: ManagedSecretStatuses | null; secretInput: Record<string, string>; setSecretInput: (value: Record<string, string>) => void;
+  busy: string; saveSecrets: () => void | Promise<void>;
+}>) {
+  return (
+      <section className="operations-card system-form">
+        <h3>Write-only Enterprise-Secrets</h3>
+        <div className="runtime-grid">
+          {[
+            "auditWebhookToken",
+            "alertRelayToken",
+            "alertWebhookToken",
+            "backupOffsiteToken",
+            "backupEncryptionKey",
+          ].map((name) => (
+            <label key={name}>
+              {name} · {secrets?.[name]?.configured ? "gespeichert" : "fehlt"}
+              <input
+                type="password"
+                autoComplete="off"
+                value={secretInput[name] || ""}
+                onChange={(event) =>
+                  setSecretInput({ ...secretInput, [name]: event.target.value })
+                }
+              />
+            </label>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="primary-button"
+          disabled={Boolean(busy)}
+          onClick={() => { saveSecrets(); }}
+        >
+          Secrets sicher speichern
+        </button>
+      </section>
+  );
+}
+
+function AccessSection({ access, busy, rotateToken, revokeViewer }: Readonly<{
+  access: AccessObservation | null; busy: string; rotateToken: (role: "admin" | "viewer") => void | Promise<void>; revokeViewer: () => void | Promise<void>;
+}>) {
+  return (
+      <section className="operations-card">
+        <h3>Zugriffsschlüssel</h3>
+        <div className="system-line">
+          <span>Aktuelle Identität</span>
+          <strong>{access?.identity?.name || access?.identity?.login || access?.actorId || "unbekannt"} · {access?.role || "–"}</strong>
+        </div>
+        <div className="system-line">
+          <span>Remote-Verbindung</span>
+          <strong>{access?.remoteAccess?.connected ? `${access.remoteAccess.provider} verbunden` : "nicht verbunden"}</strong>
+        </div>
+        <div className="system-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={Boolean(busy)}
+            onClick={() => { rotateToken("admin"); }}
+          >
+            Admin-Key rotieren
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={Boolean(busy)}
+            onClick={() => { rotateToken("viewer"); }}
+          >
+            Viewer-Key erzeugen/rotieren
+          </button>
+          <button
+            type="button"
+            className="danger-button"
+            disabled={Boolean(busy)}
+            onClick={() => { revokeViewer(); }}
+          >
+            Viewer-Key widerrufen
+          </button>
+        </div>
+
+      </section>
+  );
+}
+
+function SetupBundleSection({ busy, exportSetup, previewSetup, setupPreview, setupMappings, setSetupMappings, setupConfirmation, setSetupConfirmation, applySetup }: Readonly<{
+  busy: string; exportSetup: () => void | Promise<void>; previewSetup: (file: File | null) => void | Promise<void>; setupPreview: SetupPreviewPayload | null;
+  setupMappings: Record<string, string>; setSetupMappings: (value: Record<string, string> | ((previous: Record<string, string>) => Record<string, string>)) => void;
+  setupConfirmation: string; setSetupConfirmation: (value: string) => void; applySetup: () => void | Promise<void>;
+}>) {
+  return (
+      <section className="operations-card setup-bundle-card">
+        <h3>Portables Setup-Bundle</h3>
+        <p className="operations-help">Exportiert Builder, Parser, Verträge, Strategien und nicht-geheime Einstellungen. Zugangsdaten, Tokens, Tailscale-Identitäten, Nachrichten, Logs, Journal und Backups bleiben ausgeschlossen.</p>
+        <div className="system-actions">
+          <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => { exportSetup(); }}>Setup exportieren</Button>
+          <label className="secondary-button setup-file-button">
+            {busy === "setup-preview" ? "Prüfe Bundle…" : "Bundle auswählen"}
+            <input type="file" accept="application/json,.json" disabled={Boolean(busy)} onChange={(event) => { previewSetup(event.target.files?.[0] || null); event.currentTarget.value = ""; }} />
+          </label>
+        </div>
+        {setupPreview && (
+          <div className="setup-preview">
+            <div className="setup-diff-grid">
+              <Metric label="Aktuelle Bausteine" value={setupPreview.diff.current.nodes} />
+              <Metric label="Import-Bausteine" value={setupPreview.diff.imported.nodes} />
+              <Metric label="Import-Verbindungen" value={setupPreview.diff.imported.edges} />
+              <Metric label="Import-Ressourcen" value={setupPreview.diff.imported.resources} />
+            </div>
+            <p>Vorschau gültig bis {time(setupPreview.expiresAt)} · Prüfsumme {String(setupPreview.bundleHash).slice(0, 16)}…</p>
+            {setupPreview.contentReview ? <><p>{setupPreview.contentReview.effect}</p>
+              {setupPreview.contentReview.paged ? <SetupReviewTree previewKey={setupPreview.previewKey} /> : <><ChangeReview before={setupPreview.contentReview.before} after={setupPreview.contentReview.after} label="Setup-Inhalte vor und nach dem Import" />
+              <details><summary>Vorhandene Bibliothek einschließlich ungebundener Entwürfe prüfen</summary><ChangeReview after={setupPreview.contentReview.existingLibrary} showAll label="Vorhandene Bibliothek" /></details></>}
+              <p>Änderungen an Konfiguration, Bibliothek, Kontostand oder aktivem Workflow machen diese Vorschau ungültig. Vor dem Ersetzen erstellt der Server ein Backup.</p></> : <p role="alert">Inhaltlicher Vergleich nicht verfügbar. Neue Serverversion bzw. neue Vorschau erforderlich.</p>}
+            {(setupPreview.accountReferences || []).map(reference => (
+              <label key={reference.sourceAccountId}>
+                <span>{reference.name} · {reference.exchange}/{reference.mode}</span>
+                <select value={setupMappings[reference.sourceAccountId] || ""} onChange={(event) => setSetupMappings((value) => ({ ...value, [reference.sourceAccountId]: event.target.value }))}>
+                  <option value="">Lokales Konto zuordnen</option>
+                  {(setupPreview.accountMapping?.candidates || []).filter(candidate => candidate.exchange === reference.exchange && candidate.mode === reference.mode).map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
+                </select>
+              </label>
+            ))}
+            <label>
+              <span>Zum Ersetzen exakt „{setupPreview.confirmation}“ eingeben</span>
+              <Input autoComplete="off" value={setupConfirmation} onChange={(event) => setSetupConfirmation(event.target.value)} />
+            </label>
+            <Button type="button" variant="destructive" disabled={Boolean(busy) || !setupPreview.contentReview || setupConfirmation !== setupPreview.confirmation || (setupPreview.accountReferences || []).some(reference => !setupMappings[reference.sourceAccountId])} onClick={() => { applySetup(); }}>
+              {busy === "setup-apply" ? "Sichere und ersetze…" : "Bestehendes Setup sicher ersetzen"}
+            </Button>
+          </div>
+        )}
+      </section>
+  );
+}
+
+function AuditSection({ operations, busy, replayAudit, setMessage }: Readonly<{
+  operations: OperationsObservation | null; busy: string; replayAudit: () => void | Promise<void>; setMessage: (message: string) => void;
+}>) {
+  const auditStatus = () => {
+    if (operations?.audit?.healthy === false) {
+      return "gestört";
+    }
+    if (operations?.audit?.healthy === true) {
+      return "bereit";
+    }
+    return "unbekannt";
+  };
+  return (
+      <section className="operations-card">
+        <h3>Audit und Diagnose</h3>
+        <div className="system-line"><span>Audit-Zustand</span><strong>{auditStatus()}</strong></div>
+        <div className="system-line"><span>Letzte Integritätsprüfung</span><strong>{time(operations?.backup?.integrityVerified?.verifiedAt)}</strong></div>
+        <div className="system-line"><span>Geprüfter Datenstand erstellt</span><strong>{time(Date.parse(operations?.backup?.integrityVerified?.artifactCreatedAt ?? ""))}</strong></div>
+        <div className="system-line"><span>Gemeinsame Konfiguration geprüft</span><strong>{time(operations?.backup?.configurationCoherent?.verifiedAt)}</strong></div>
+        <div className="system-line"><span>Offsite zurückgelesen und geprüft</span><strong>{time(operations?.backup?.offsiteVerified?.verifiedAt)}</strong></div>
+        <div className="system-line"><span>Letzte artefaktlokale Restore-Prüfung</span><strong>{operations?.backup?.restoreEligibility?.status || "unknown"} · {time(operations?.backup?.restoreEligibility?.checkedAt)}</strong></div>
+        <div className="system-line"><span>Letzter tatsächlich durchgeführter Probelauf</span><strong>{time(operations?.backup?.restoreDrill?.performedAt)}</strong></div>
+        <p>Die Restore-Prüfung betrifft nur das Artefakt. Sie belegt weder heutige Börsenflatheit noch eine spätere Handelsfreigabe.</p>
+        <div className="system-actions">
+          <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => { replayAudit(); }}>Audit erneut übertragen</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => { (async () => {
+              try {
+                const response = await apiFetch('/api/status');
+                if (!response.ok) throw new Error(`Diagnose nicht verfügbar (${response.status}).`);
+                const url = URL.createObjectURL(await response.blob());
+                const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'tsx-core-diagnose.json'; anchor.click(); URL.revokeObjectURL(url);
+              } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
+            })(); }}
+          >
+            Diagnosestatus öffnen
+          </Button>
+        </div>
+      </section>
+  );
+}
+
+function ExchangeEngineSection({ catalog }: Readonly<{ catalog: ExchangeCatalog | null }>) {
+  return (
+      <section className="operations-card">
+        <h3>Exchange Engine</h3>
+        <div className="system-line">
+          <span>Bibliothek</span>
+          <strong>
+            {catalog?.implementation.library || "ccxt"}{" "}
+            {catalog?.implementation.version}
+          </strong>
+        </div>
+        <div className="system-line">
+          <span>Private Streams</span>
+          <strong>{catalog?.implementation.streaming || "ccxt-pro"}</strong>
+        </div>
+        <div className="system-line">
+          <span>Order-Autorität</span>
+          <strong>{catalog?.implementation.orderAuthority || "rest"}</strong>
+        </div>
+        {catalog?.exchanges.map((exchange) => (
+          <div className="system-line" key={exchange.id}>
+            <span>{exchange.name} · {exchange.status}</span>
+            <strong>{exchange.reason || exchange.modes.join(" · ") || "nicht ausführbar"}</strong>
+          </div>
+        ))}
+      </section>
+  );
+}
+
+function DangerZoneSection({ operations, busy, dangerConfirmation, setDangerConfirmation, dangerAction }: Readonly<{
+  operations: OperationsObservation | null; busy: string; dangerConfirmation: string; setDangerConfirmation: (value: string) => void;
+  dangerAction: (kind: "clear" | "factory") => void | Promise<void>;
+}>) {
+  return (
+      <section className="operations-card danger-zone">
+        <h3>Gefahrenzone</h3>
+        <p>Nur mit Administratorrolle und einer aktuellen, gesunden Sicherung. „Datenbank leeren“ bewahrt Trading-Zustand gemäß Serverrichtlinie; Factory Reset entfernt die vollständige lokale Installation.</p>
+        <div className="system-line"><span>Sicherung</span><strong>{operations?.backup?.healthy && operations?.backup?.restoreEligibility?.status === "eligible" ? `lokal wiederherstellbar · ${time(operations.backup.integrityVerified?.verifiedAt)}` : "nicht aktuell oder nicht wiederherstellbar – Aktion gesperrt"}</strong></div>
+        <label><span>Bestätigung</span><Input autoComplete="off" value={dangerConfirmation} onChange={(event) => setDangerConfirmation(event.target.value)} placeholder="DATENBANK LEEREN oder FACTORY RESET" /></label>
+        <div className="system-actions">
+          <Button type="button" variant="destructive" disabled={Boolean(busy) || !operations?.backup?.healthy || operations?.backup?.restoreEligibility?.status !== "eligible" || dangerConfirmation !== "DATENBANK LEEREN"} onClick={() => { dangerAction("clear"); }}>Datenbank leeren</Button>
+          <Button type="button" variant="destructive" disabled={Boolean(busy) || !operations?.backup?.healthy || operations?.backup?.restoreEligibility?.status !== "eligible" || dangerConfirmation !== "FACTORY RESET"} onClick={() => { dangerAction("factory"); }}>Factory Reset</Button>
+        </div>
+      </section>
+  );
+}
+
 export function System({
   catalog,
   onRefresh,
@@ -305,15 +562,6 @@ export function System({
     if (!result && kind === 'factory') setMessage('Factory Reset nicht bestätigt. Zuerst Auftrag und Recovery prüfen; keine automatische Wiederholung.');
     if (result) setDangerConfirmation("");
   };
-  const auditStatus = () => {
-    if (operations?.audit?.healthy === false) {
-      return "gestört";
-    }
-    if (operations?.audit?.healthy === true) {
-      return "bereit";
-    }
-    return "unbekannt";
-  };
   return (
     <div className="operations-stack">
       {confirmationDialog}
@@ -329,201 +577,13 @@ export function System({
         </div>
       )}
       <TelegramSettings />
-      {runtimePayload ? <section className="operations-card system-form">
-        <h3>Dashboard-Zugriff & Runtime</h3>
-        <RuntimeParameters value={runtime} onChange={setRuntime} payload={runtimePayload} />
-        <button
-          type="button"
-          className="primary-button"
-          disabled={Boolean(busy) || runtimeForm.conflict}
-          onClick={() => { saveRuntime(); }}
-        >
-          Runtime speichern
-        </button>
-        <button
-          type="button"
-          className="secondary-button"
-          disabled={Boolean(busy)}
-          onClick={() => { restart(); }}
-        >
-          Kontrolliert neu starten
-        </button>
-        <RuntimeEvidence payload={runtimePayload} />
-      </section> : <p>Runtime-Einstellungen nicht verfügbar.</p>}
-      <section className="operations-card system-form">
-        <h3>Write-only Enterprise-Secrets</h3>
-        <div className="runtime-grid">
-          {[
-            "auditWebhookToken",
-            "alertRelayToken",
-            "alertWebhookToken",
-            "backupOffsiteToken",
-            "backupEncryptionKey",
-          ].map((name) => (
-            <label key={name}>
-              {name} · {secrets?.[name]?.configured ? "gespeichert" : "fehlt"}
-              <input
-                type="password"
-                autoComplete="off"
-                value={secretInput[name] || ""}
-                onChange={(event) =>
-                  setSecretInput({ ...secretInput, [name]: event.target.value })
-                }
-              />
-            </label>
-          ))}
-        </div>
-        <button
-          type="button"
-          className="primary-button"
-          disabled={Boolean(busy)}
-          onClick={() => { saveSecrets(); }}
-        >
-          Secrets sicher speichern
-        </button>
-      </section>
-      <section className="operations-card">
-        <h3>Zugriffsschlüssel</h3>
-        <div className="system-line">
-          <span>Aktuelle Identität</span>
-          <strong>{access?.identity?.name || access?.identity?.login || access?.actorId || "unbekannt"} · {access?.role || "–"}</strong>
-        </div>
-        <div className="system-line">
-          <span>Remote-Verbindung</span>
-          <strong>{access?.remoteAccess?.connected ? `${access.remoteAccess.provider} verbunden` : "nicht verbunden"}</strong>
-        </div>
-        <div className="system-actions">
-          <button
-            type="button"
-            className="secondary-button"
-            disabled={Boolean(busy)}
-            onClick={() => { rotateToken("admin"); }}
-          >
-            Admin-Key rotieren
-          </button>
-          <button
-            type="button"
-            className="secondary-button"
-            disabled={Boolean(busy)}
-            onClick={() => { rotateToken("viewer"); }}
-          >
-            Viewer-Key erzeugen/rotieren
-          </button>
-          <button
-            type="button"
-            className="danger-button"
-            disabled={Boolean(busy)}
-            onClick={() => { revokeViewer(); }}
-          >
-            Viewer-Key widerrufen
-          </button>
-        </div>
-
-      </section>
-      <section className="operations-card setup-bundle-card">
-        <h3>Portables Setup-Bundle</h3>
-        <p className="operations-help">Exportiert Builder, Parser, Verträge, Strategien und nicht-geheime Einstellungen. Zugangsdaten, Tokens, Tailscale-Identitäten, Nachrichten, Logs, Journal und Backups bleiben ausgeschlossen.</p>
-        <div className="system-actions">
-          <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => { exportSetup(); }}>Setup exportieren</Button>
-          <label className="secondary-button setup-file-button">
-            {busy === "setup-preview" ? "Prüfe Bundle…" : "Bundle auswählen"}
-            <input type="file" accept="application/json,.json" disabled={Boolean(busy)} onChange={(event) => { previewSetup(event.target.files?.[0] || null); event.currentTarget.value = ""; }} />
-          </label>
-        </div>
-        {setupPreview && (
-          <div className="setup-preview">
-            <div className="setup-diff-grid">
-              <Metric label="Aktuelle Bausteine" value={setupPreview.diff.current.nodes} />
-              <Metric label="Import-Bausteine" value={setupPreview.diff.imported.nodes} />
-              <Metric label="Import-Verbindungen" value={setupPreview.diff.imported.edges} />
-              <Metric label="Import-Ressourcen" value={setupPreview.diff.imported.resources} />
-            </div>
-            <p>Vorschau gültig bis {time(setupPreview.expiresAt)} · Prüfsumme {String(setupPreview.bundleHash).slice(0, 16)}…</p>
-            {setupPreview.contentReview ? <><p>{setupPreview.contentReview.effect}</p>
-              {setupPreview.contentReview.paged ? <SetupReviewTree previewKey={setupPreview.previewKey} /> : <><ChangeReview before={setupPreview.contentReview.before} after={setupPreview.contentReview.after} label="Setup-Inhalte vor und nach dem Import" />
-              <details><summary>Vorhandene Bibliothek einschließlich ungebundener Entwürfe prüfen</summary><ChangeReview after={setupPreview.contentReview.existingLibrary} showAll label="Vorhandene Bibliothek" /></details></>}
-              <p>Änderungen an Konfiguration, Bibliothek, Kontostand oder aktivem Workflow machen diese Vorschau ungültig. Vor dem Ersetzen erstellt der Server ein Backup.</p></> : <p role="alert">Inhaltlicher Vergleich nicht verfügbar. Neue Serverversion bzw. neue Vorschau erforderlich.</p>}
-            {(setupPreview.accountReferences || []).map(reference => (
-              <label key={reference.sourceAccountId}>
-                <span>{reference.name} · {reference.exchange}/{reference.mode}</span>
-                <select value={setupMappings[reference.sourceAccountId] || ""} onChange={(event) => setSetupMappings((value) => ({ ...value, [reference.sourceAccountId]: event.target.value }))}>
-                  <option value="">Lokales Konto zuordnen</option>
-                  {(setupPreview.accountMapping?.candidates || []).filter(candidate => candidate.exchange === reference.exchange && candidate.mode === reference.mode).map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
-                </select>
-              </label>
-            ))}
-            <label>
-              <span>Zum Ersetzen exakt „{setupPreview.confirmation}“ eingeben</span>
-              <Input autoComplete="off" value={setupConfirmation} onChange={(event) => setSetupConfirmation(event.target.value)} />
-            </label>
-            <Button type="button" variant="destructive" disabled={Boolean(busy) || !setupPreview.contentReview || setupConfirmation !== setupPreview.confirmation || (setupPreview.accountReferences || []).some(reference => !setupMappings[reference.sourceAccountId])} onClick={() => { applySetup(); }}>
-              {busy === "setup-apply" ? "Sichere und ersetze…" : "Bestehendes Setup sicher ersetzen"}
-            </Button>
-          </div>
-        )}
-      </section>
-      <section className="operations-card">
-        <h3>Audit und Diagnose</h3>
-        <div className="system-line"><span>Audit-Zustand</span><strong>{auditStatus()}</strong></div>
-        <div className="system-line"><span>Letzte Integritätsprüfung</span><strong>{time(operations?.backup?.integrityVerified?.verifiedAt)}</strong></div>
-        <div className="system-line"><span>Geprüfter Datenstand erstellt</span><strong>{time(Date.parse(operations?.backup?.integrityVerified?.artifactCreatedAt ?? ""))}</strong></div>
-        <div className="system-line"><span>Gemeinsame Konfiguration geprüft</span><strong>{time(operations?.backup?.configurationCoherent?.verifiedAt)}</strong></div>
-        <div className="system-line"><span>Offsite zurückgelesen und geprüft</span><strong>{time(operations?.backup?.offsiteVerified?.verifiedAt)}</strong></div>
-        <div className="system-line"><span>Letzte artefaktlokale Restore-Prüfung</span><strong>{operations?.backup?.restoreEligibility?.status || "unknown"} · {time(operations?.backup?.restoreEligibility?.checkedAt)}</strong></div>
-        <div className="system-line"><span>Letzter tatsächlich durchgeführter Probelauf</span><strong>{time(operations?.backup?.restoreDrill?.performedAt)}</strong></div>
-        <p>Die Restore-Prüfung betrifft nur das Artefakt. Sie belegt weder heutige Börsenflatheit noch eine spätere Handelsfreigabe.</p>
-        <div className="system-actions">
-          <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => { replayAudit(); }}>Audit erneut übertragen</Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => { (async () => {
-              try {
-                const response = await apiFetch('/api/status');
-                if (!response.ok) throw new Error(`Diagnose nicht verfügbar (${response.status}).`);
-                const url = URL.createObjectURL(await response.blob());
-                const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'tsx-core-diagnose.json'; anchor.click(); URL.revokeObjectURL(url);
-              } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
-            })(); }}
-          >
-            Diagnosestatus öffnen
-          </Button>
-        </div>
-      </section>
-      <section className="operations-card">
-        <h3>Exchange Engine</h3>
-        <div className="system-line">
-          <span>Bibliothek</span>
-          <strong>
-            {catalog?.implementation.library || "ccxt"}{" "}
-            {catalog?.implementation.version}
-          </strong>
-        </div>
-        <div className="system-line">
-          <span>Private Streams</span>
-          <strong>{catalog?.implementation.streaming || "ccxt-pro"}</strong>
-        </div>
-        <div className="system-line">
-          <span>Order-Autorität</span>
-          <strong>{catalog?.implementation.orderAuthority || "rest"}</strong>
-        </div>
-        {catalog?.exchanges.map((exchange) => (
-          <div className="system-line" key={exchange.id}>
-            <span>{exchange.name} · {exchange.status}</span>
-            <strong>{exchange.reason || exchange.modes.join(" · ") || "nicht ausführbar"}</strong>
-          </div>
-        ))}
-      </section>
-      <section className="operations-card danger-zone">
-        <h3>Gefahrenzone</h3>
-        <p>Nur mit Administratorrolle und einer aktuellen, gesunden Sicherung. „Datenbank leeren“ bewahrt Trading-Zustand gemäß Serverrichtlinie; Factory Reset entfernt die vollständige lokale Installation.</p>
-        <div className="system-line"><span>Sicherung</span><strong>{operations?.backup?.healthy && operations?.backup?.restoreEligibility?.status === "eligible" ? `lokal wiederherstellbar · ${time(operations.backup.integrityVerified?.verifiedAt)}` : "nicht aktuell oder nicht wiederherstellbar – Aktion gesperrt"}</strong></div>
-        <label><span>Bestätigung</span><Input autoComplete="off" value={dangerConfirmation} onChange={(event) => setDangerConfirmation(event.target.value)} placeholder="DATENBANK LEEREN oder FACTORY RESET" /></label>
-        <div className="system-actions">
-          <Button type="button" variant="destructive" disabled={Boolean(busy) || !operations?.backup?.healthy || operations?.backup?.restoreEligibility?.status !== "eligible" || dangerConfirmation !== "DATENBANK LEEREN"} onClick={() => { dangerAction("clear"); }}>Datenbank leeren</Button>
-          <Button type="button" variant="destructive" disabled={Boolean(busy) || !operations?.backup?.healthy || operations?.backup?.restoreEligibility?.status !== "eligible" || dangerConfirmation !== "FACTORY RESET"} onClick={() => { dangerAction("factory"); }}>Factory Reset</Button>
-        </div>
-      </section>
+      <RuntimeSection payload={runtimePayload} runtime={runtime} setRuntime={setRuntime} runtimeForm={runtimeForm} busy={busy} saveRuntime={saveRuntime} restart={restart} />
+      <SecretsSection secrets={secrets} secretInput={secretInput} setSecretInput={setSecretInput} busy={busy} saveSecrets={saveSecrets} />
+      <AccessSection access={access} busy={busy} rotateToken={rotateToken} revokeViewer={revokeViewer} />
+      <SetupBundleSection busy={busy} exportSetup={exportSetup} previewSetup={previewSetup} setupPreview={setupPreview} setupMappings={setupMappings} setSetupMappings={setSetupMappings} setupConfirmation={setupConfirmation} setSetupConfirmation={setSetupConfirmation} applySetup={applySetup} />
+      <AuditSection operations={operations} busy={busy} replayAudit={replayAudit} setMessage={setMessage} />
+      <ExchangeEngineSection catalog={catalog} />
+      <DangerZoneSection operations={operations} busy={busy} dangerConfirmation={dangerConfirmation} setDangerConfirmation={setDangerConfirmation} dangerAction={dangerAction} />
     </div>
   );
 }

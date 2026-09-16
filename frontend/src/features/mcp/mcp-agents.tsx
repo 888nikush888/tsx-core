@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { Plus } from 'lucide-react';
 import { jsonRequest } from '@/lib/api';
@@ -42,6 +42,265 @@ type McpSnapshot = {
   pages?: Record<string, { hasMore?: boolean; nextCursor: string }>;
 };
 type McpSnapshotState = { key: string; value: McpSnapshot };
+
+type McpAgentForm = { name: string; permissions: string[]; eventSubscriptions: string[]; enabled: boolean };
+
+function McpNotices({ error, notice, interpretation }: Readonly<{ error: string; notice: string; interpretation: string | undefined }>) {
+  return (
+    <>
+      {error && <div className="builder-error">{error}</div>}
+      {notice && <p><output>{notice}</output></p>}
+      {interpretation && <p>{interpretation}</p>}
+    </>
+  );
+}
+
+function McpRuntimeSection({ snapshot, busy, runtime }: Readonly<{ snapshot: McpSnapshot | null; busy: string; runtime: (mode: string) => void | Promise<void> }>) {
+  return (
+      <section className="operations-card">
+        <h3>Laufzeitmodus</h3>
+        <div className="mcp-mode-grid">
+          {["active", "standby", "disabled"].map((mode) => (
+            <button
+              type="button"
+              key={mode}
+              disabled={Boolean(busy)}
+              className={snapshot?.runtime?.mode === mode ? "active" : ""}
+              onClick={() => { runtime(mode); }}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+        <div className="system-line">
+          <span>Endpoint</span>
+          <strong>{snapshot?.endpoint || "nicht veröffentlicht"}</strong>
+        </div>
+      </section>
+  );
+}
+
+function McpAgentsSection({ snapshot, selectedId, canLeaveDraft, setCreating, setSelectedId, pageControls }: Readonly<{
+  snapshot: McpSnapshot | null; selectedId: string; canLeaveDraft: () => Promise<boolean>;
+  setCreating: (value: boolean) => void; setSelectedId: (id: string) => void; pageControls: (kind: string, label: string) => ReactNode;
+}>) {
+  return (
+      <section className="operations-card">
+        <h3>Agenten</h3>
+        <div className="agent-grid">
+          {snapshot?.agents?.map(agent => (
+            <button
+              type="button"
+              key={agent.id}
+              className={selectedId === agent.id ? "selected" : ""}
+              onClick={async () => {
+                if (agent.id !== selectedId && !await canLeaveDraft()) return;
+                setCreating(false);
+                setSelectedId(agent.id);
+              }}
+            >
+              <span
+                className={`status-dot ${agent.enabled ? "healthy" : "muted"}`}
+              />
+              <strong>{agent.name}</strong>
+              <small>
+                {agent.tokenPrefix}… · {agent.permissions.length} Rechte
+              </small>
+            </button>
+          ))}
+          {!snapshot?.agents?.length && (
+            <Empty text="Noch keine MCP-Agenten." />
+          )}
+        </div>
+        {pageControls('agents', 'Agenten')}
+      </section>
+  );
+}
+
+function McpEditor({ selected, draft, form, setForm, serverForm, snapshot, busy, save, remove, rotate, toggleList }: Readonly<{
+  selected: McpAgentEntry | null; draft: ReturnType<typeof useVersionedDraft<McpAgentForm>>; form: McpAgentForm;
+  setForm: (value: McpAgentForm) => void; serverForm: McpAgentForm | null; snapshot: McpSnapshot | null; busy: string;
+  save: () => void | Promise<void>; remove: () => void | Promise<void>; rotate: () => void | Promise<void>;
+  toggleList: (key: 'permissions' | 'eventSubscriptions', value: string) => void;
+}>) {
+  return (
+        <section className="operations-card mcp-editor">
+          <h3>{selected ? "Agent bearbeiten" : "Agent erstellen"}</h3>
+          {draft.dirty && <p><output>Ungespeicherte Änderungen · automatische Aktualisierung erhält diesen Entwurf.</output></p>}
+          {draft.conflict && <div role="alert" className="builder-error">
+            <p>Der Serverstand wurde geändert. Speichern ist bis zum Vergleich gesperrt.</p>
+            <dl><dt>Server</dt><dd>{serverForm?.name} · {serverForm?.enabled ? "aktiv" : "inaktiv"} · Rechte: {serverForm?.permissions.join(", ")} · Ereignisse: {serverForm?.eventSubscriptions.join(", ")}</dd>
+              <dt>Entwurf</dt><dd>{form.name} · {form.enabled ? "aktiv" : "inaktiv"} · Rechte: {form.permissions.join(", ")} · Ereignisse: {form.eventSubscriptions.join(", ")}</dd></dl>
+            <button type="button" className="secondary-button" onClick={draft.acceptServer}>Entwurf verwerfen und Server übernehmen</button>
+            <button type="button" className="secondary-button" onClick={draft.rebase}>Verglichen: Entwurf auf neuen Stand anwenden</button>
+          </div>}
+          <label>
+            Name{" "}
+            <input
+              value={form.name}
+              onChange={(event) =>
+                setForm({ ...form, name: event.target.value })
+              }
+            />
+          </label>
+          <label className="builder-toggle">
+            <input
+              type="checkbox"
+              checked={form.enabled}
+              onChange={(event) =>
+                setForm({ ...form, enabled: event.target.checked })
+              }
+            />
+            <span aria-hidden="true" /> Agent aktiviert
+          </label>
+          <fieldset>
+            <legend>Berechtigungen</legend>
+            <div className="permission-grid">
+              {snapshot?.permissions?.map((permission: string) => (
+                <label key={permission}>
+                  <input
+                    type="checkbox"
+                    checked={form.permissions.includes(permission)}
+                    onChange={() => toggleList("permissions", permission)}
+                  />
+                  {permission}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Ereignisse</legend>
+            <div className="permission-grid">
+              {snapshot?.eventTypes?.map((eventType: string) => (
+                <label key={eventType}>
+                  <input
+                    type="checkbox"
+                    checked={form.eventSubscriptions.includes(eventType)}
+                    onChange={() => toggleList("eventSubscriptions", eventType)}
+                  />
+                  {eventType}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <div className="mcp-editor-actions">
+            {selected && (
+              <button
+                type="button"
+                className="danger-button"
+                disabled={Boolean(busy)}
+                onClick={() => { remove(); }}
+              >
+                Löschen
+              </button>
+            )}
+            {selected && (
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={Boolean(busy)}
+                onClick={() => { rotate(); }}
+              >
+                Token rotieren
+              </button>
+            )}
+            <button
+              type="button"
+              className="primary-button"
+              disabled={Boolean(busy) || !form.name.trim() || draft.conflict}
+              onClick={() => { save(); }}
+            >
+              Speichern
+            </button>
+          </div>
+        </section>
+  );
+}
+
+function McpProposalsSection({ snapshot, draft, params, setParams, busy, decide, pageControls }: Readonly<{
+  snapshot: McpSnapshot | null; draft: ReturnType<typeof useVersionedDraft<McpAgentForm>>; params: URLSearchParams;
+  setParams: (update: (previous: URLSearchParams) => URLSearchParams) => void; busy: string;
+  decide: (proposal: McpProposalEntry, approve: boolean) => void | Promise<void>; pageControls: (kind: string, label: string) => ReactNode;
+}>) {
+  return (
+      <section className="operations-card">
+        <h3>Freigabe-Warteschlange</h3>
+        <label>Vorschlagsstatus<select className="border bg-background p-2" disabled={draft.dirty} value={params.get('proposalsStatus') || 'pending'} onChange={event => setParams(previous => { previous.set('proposalsStatus', event.target.value); previous.delete('proposalsCursor'); return previous; })}>{['pending', 'approved', 'executing', 'completed', 'rejected', 'failed', 'expired', 'all'].map(status => <option key={status}>{status}</option>)}</select></label>
+        {snapshot?.proposals
+          ?.map(proposal => (
+            <div className="proposal-row" key={proposal.id}>
+              <div>
+                <strong>{proposal.action}</strong>
+                <small>
+                  {proposal.agentName} · {proposal.status} · bis {time(proposal.expiresAt)}
+                </small>
+                {proposal.preflight?.blockers?.map((item: string) => (
+                  <small className="error-text" key={item}>
+                    {item}
+                  </small>
+                ))}
+              </div>
+              <div>
+                <Link to={`/integrations/mcp/proposals/${encodeURIComponent(proposal.id)}`} className="secondary-button">Prüfen & entscheiden</Link>
+                <button
+                  type="button"
+                  disabled={Boolean(busy) || proposal.status !== 'pending'}
+                  onClick={() => { decide(proposal, false); }}
+                >
+                  Ablehnen
+                </button>
+              </div>
+            </div>
+          ))}
+        {!snapshot?.proposals?.length && <Empty text="Keine Vorschläge auf dieser Seite." />}
+        {pageControls('proposals', 'Vorschläge')}
+      </section>
+  );
+}
+
+function McpSessionsSection({ snapshot, pageControls }: Readonly<{ snapshot: McpSnapshot | null; pageControls: (kind: string, label: string) => ReactNode }>) {
+  return (
+      <section className="operations-card">
+        <h3>Aktive Sitzungen & letzte Aktionen</h3>
+        <div className="system-line">
+          <span>Aktive Sitzungen</span>
+          <strong>
+            {snapshot?.activeSessionCount ?? 'unbekannt'}
+          </strong>
+        </div>
+        {snapshot?.sessions?.map(session => <p key={session.id}>{session.agentName || session.agentId} · {session.clientName} · {session.disconnectedAt == null ? 'verbunden' : 'getrennt'} · zuletzt {time(session.lastSeenAt)}</p>)}
+        {pageControls('sessions', 'Sitzungen')}
+        {snapshot?.actions?.map(action => {
+          const actionBadge = () => {
+            if (action.outcome === "succeeded") {
+              return "healthy";
+            }
+            if (action.outcome === "failed") {
+              return "danger";
+            }
+            return "";
+          };
+          return ((
+            <div className="mcp-action" key={action.id}>
+              <span
+                className={`state-badge ${actionBadge()}`}
+              >
+                {action.outcome}
+              </span>
+              <div>
+                <strong>{action.toolName}</strong>
+                <small>
+                  {action.agentName} · {action.durationMs} ms ·{" "}
+                  {time(action.completedAt)}
+                </small>
+              </div>
+            </div>
+          ));
+        })}
+        {pageControls('actions', 'Aktionen')}
+      </section>
+  );
+}
 
 export function Mcp() {
   const [params, setParams] = useSearchParams();
@@ -250,222 +509,13 @@ export function Mcp() {
           <Plus size={14} /> Agent
         </button>
       </div>
-      {error && <div className="builder-error">{error}</div>}
-      {notice && <p><output>{notice}</output></p>}
-      {snapshot?.interpretation && <p>{snapshot.interpretation}</p>}
-      <section className="operations-card">
-        <h3>Laufzeitmodus</h3>
-        <div className="mcp-mode-grid">
-          {["active", "standby", "disabled"].map((mode) => (
-            <button
-              type="button"
-              key={mode}
-              disabled={Boolean(busy)}
-              className={snapshot?.runtime?.mode === mode ? "active" : ""}
-              onClick={() => { runtime(mode); }}
-            >
-              {mode}
-            </button>
-          ))}
-        </div>
-        <div className="system-line">
-          <span>Endpoint</span>
-          <strong>{snapshot?.endpoint || "nicht veröffentlicht"}</strong>
-        </div>
-      </section>
+      <McpNotices error={error} notice={notice} interpretation={snapshot?.interpretation} />
+      <McpRuntimeSection snapshot={snapshot} busy={busy} runtime={runtime} />
 
-      <section className="operations-card">
-        <h3>Agenten</h3>
-        <div className="agent-grid">
-          {snapshot?.agents?.map(agent => (
-            <button
-              type="button"
-              key={agent.id}
-              className={selectedId === agent.id ? "selected" : ""}
-              onClick={async () => {
-                if (agent.id !== selectedId && !await canLeaveDraft()) return;
-                setCreating(false);
-                setSelectedId(agent.id);
-              }}
-            >
-              <span
-                className={`status-dot ${agent.enabled ? "healthy" : "muted"}`}
-              />
-              <strong>{agent.name}</strong>
-              <small>
-                {agent.tokenPrefix}… · {agent.permissions.length} Rechte
-              </small>
-            </button>
-          ))}
-          {!snapshot?.agents?.length && (
-            <Empty text="Noch keine MCP-Agenten." />
-          )}
-        </div>
-        {pageControls('agents', 'Agenten')}
-      </section>
-      {showEditor && (
-        <section className="operations-card mcp-editor">
-          <h3>{selected ? "Agent bearbeiten" : "Agent erstellen"}</h3>
-          {draft.dirty && <p><output>Ungespeicherte Änderungen · automatische Aktualisierung erhält diesen Entwurf.</output></p>}
-          {draft.conflict && <div role="alert" className="builder-error">
-            <p>Der Serverstand wurde geändert. Speichern ist bis zum Vergleich gesperrt.</p>
-            <dl><dt>Server</dt><dd>{serverForm?.name} · {serverForm?.enabled ? "aktiv" : "inaktiv"} · Rechte: {serverForm?.permissions.join(", ")} · Ereignisse: {serverForm?.eventSubscriptions.join(", ")}</dd>
-              <dt>Entwurf</dt><dd>{form.name} · {form.enabled ? "aktiv" : "inaktiv"} · Rechte: {form.permissions.join(", ")} · Ereignisse: {form.eventSubscriptions.join(", ")}</dd></dl>
-            <button type="button" className="secondary-button" onClick={draft.acceptServer}>Entwurf verwerfen und Server übernehmen</button>
-            <button type="button" className="secondary-button" onClick={draft.rebase}>Verglichen: Entwurf auf neuen Stand anwenden</button>
-          </div>}
-          <label>
-            Name{" "}
-            <input
-              value={form.name}
-              onChange={(event) =>
-                setForm({ ...form, name: event.target.value })
-              }
-            />
-          </label>
-          <label className="builder-toggle">
-            <input
-              type="checkbox"
-              checked={form.enabled}
-              onChange={(event) =>
-                setForm({ ...form, enabled: event.target.checked })
-              }
-            />
-            <span aria-hidden="true" /> Agent aktiviert
-          </label>
-          <fieldset>
-            <legend>Berechtigungen</legend>
-            <div className="permission-grid">
-              {snapshot?.permissions?.map((permission: string) => (
-                <label key={permission}>
-                  <input
-                    type="checkbox"
-                    checked={form.permissions.includes(permission)}
-                    onChange={() => toggleList("permissions", permission)}
-                  />
-                  {permission}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <fieldset>
-            <legend>Ereignisse</legend>
-            <div className="permission-grid">
-              {snapshot?.eventTypes?.map((eventType: string) => (
-                <label key={eventType}>
-                  <input
-                    type="checkbox"
-                    checked={form.eventSubscriptions.includes(eventType)}
-                    onChange={() => toggleList("eventSubscriptions", eventType)}
-                  />
-                  {eventType}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <div className="mcp-editor-actions">
-            {selected && (
-              <button
-                type="button"
-                className="danger-button"
-                disabled={Boolean(busy)}
-                onClick={() => { remove(); }}
-              >
-                Löschen
-              </button>
-            )}
-            {selected && (
-              <button
-                type="button"
-                className="secondary-button"
-                disabled={Boolean(busy)}
-                onClick={() => { rotate(); }}
-              >
-                Token rotieren
-              </button>
-            )}
-            <button
-              type="button"
-              className="primary-button"
-              disabled={Boolean(busy) || !form.name.trim() || draft.conflict}
-              onClick={() => { save(); }}
-            >
-              Speichern
-            </button>
-          </div>
-        </section>
-      )}
-      <section className="operations-card">
-        <h3>Freigabe-Warteschlange</h3>
-        <label>Vorschlagsstatus<select className="border bg-background p-2" disabled={draft.dirty} value={params.get('proposalsStatus') || 'pending'} onChange={event => setParams(previous => { previous.set('proposalsStatus', event.target.value); previous.delete('proposalsCursor'); return previous; })}>{['pending', 'approved', 'executing', 'completed', 'rejected', 'failed', 'expired', 'all'].map(status => <option key={status}>{status}</option>)}</select></label>
-        {snapshot?.proposals
-          ?.map(proposal => (
-            <div className="proposal-row" key={proposal.id}>
-              <div>
-                <strong>{proposal.action}</strong>
-                <small>
-                  {proposal.agentName} · {proposal.status} · bis {time(proposal.expiresAt)}
-                </small>
-                {proposal.preflight?.blockers?.map((item: string) => (
-                  <small className="error-text" key={item}>
-                    {item}
-                  </small>
-                ))}
-              </div>
-              <div>
-                <Link to={`/integrations/mcp/proposals/${encodeURIComponent(proposal.id)}`} className="secondary-button">Prüfen & entscheiden</Link>
-                <button
-                  type="button"
-                  disabled={Boolean(busy) || proposal.status !== 'pending'}
-                  onClick={() => { decide(proposal, false); }}
-                >
-                  Ablehnen
-                </button>
-              </div>
-            </div>
-          ))}
-        {!snapshot?.proposals?.length && <Empty text="Keine Vorschläge auf dieser Seite." />}
-        {pageControls('proposals', 'Vorschläge')}
-      </section>
-      <section className="operations-card">
-        <h3>Aktive Sitzungen & letzte Aktionen</h3>
-        <div className="system-line">
-          <span>Aktive Sitzungen</span>
-          <strong>
-            {snapshot?.activeSessionCount ?? 'unbekannt'}
-          </strong>
-        </div>
-        {snapshot?.sessions?.map(session => <p key={session.id}>{session.agentName || session.agentId} · {session.clientName} · {session.disconnectedAt == null ? 'verbunden' : 'getrennt'} · zuletzt {time(session.lastSeenAt)}</p>)}
-        {pageControls('sessions', 'Sitzungen')}
-        {snapshot?.actions?.map(action => {
-          const actionBadge = () => {
-            if (action.outcome === "succeeded") {
-              return "healthy";
-            }
-            if (action.outcome === "failed") {
-              return "danger";
-            }
-            return "";
-          };
-          return ((
-            <div className="mcp-action" key={action.id}>
-              <span
-                className={`state-badge ${actionBadge()}`}
-              >
-                {action.outcome}
-              </span>
-              <div>
-                <strong>{action.toolName}</strong>
-                <small>
-                  {action.agentName} · {action.durationMs} ms ·{" "}
-                  {time(action.completedAt)}
-                </small>
-              </div>
-            </div>
-          ));
-        })}
-        {pageControls('actions', 'Aktionen')}
-      </section>
+      <McpAgentsSection snapshot={snapshot} selectedId={selectedId} canLeaveDraft={canLeaveDraft} setCreating={setCreating} setSelectedId={setSelectedId} pageControls={pageControls} />
+      {showEditor && <McpEditor selected={selected} draft={draft} form={form} setForm={setForm} serverForm={serverForm} snapshot={snapshot} busy={busy} save={save} remove={remove} rotate={rotate} toggleList={toggleList} />}
+      <McpProposalsSection snapshot={snapshot} draft={draft} params={params} setParams={setParams} busy={busy} decide={decide} pageControls={pageControls} />
+      <McpSessionsSection snapshot={snapshot} pageControls={pageControls} />
     </div>
   );
 }

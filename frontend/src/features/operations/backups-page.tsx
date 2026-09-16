@@ -54,6 +54,46 @@ function backupRequest(kind: BackupCommand, id: string, name: string | undefined
   return { endpoint, init: { method: 'POST', headers, body: JSON.stringify({ jobId: id, ...scope }) } };
 }
 
+function ArtifactEvidence({ evidence }: Readonly<{ evidence: BackupVerificationEvidence }>) {
+  return (
+    <EvidenceFields fields={[
+      ['Artefakthash', evidence.artifactSha256], ['Erstellt', evidence.artifactCreatedAt == null ? null : new Date(evidence.artifactCreatedAt).toLocaleString('de-DE')],
+      ['Integrität', evidence.integrityVerified ? `belegt · ${new Date(evidence.integrityVerified.verifiedAt).toLocaleString('de-DE')}` : null],
+      ['Konfigurationskohärenz', evidence.configurationCoherent ? 'belegt' : null], ['Restore-Zulässigkeit', evidence.restoreEligibility?.status],
+      ['Blocker', evidence.restoreEligibility?.reasons?.join('; ')], ['Offsite-Prüfung', evidence.offsiteVerified ? 'belegt (siehe Artefaktbeleg)' : null], ['Restore-Probelauf', evidence.restoreDrill ? 'belegt (siehe Artefaktbeleg)' : null],
+    ]} />
+  );
+}
+
+function ArtifactSection({ name, evidence, busy, readOnly, command }: Readonly<{
+  name: string | undefined; evidence: BackupVerificationEvidence | undefined; busy: boolean; readOnly: boolean;
+  command: (kind: BackupCommand) => void | Promise<void>;
+}>) {
+  if (!name || !evidence) return null;
+  return (
+    <section className="operations-card"><h2>{name}</h2>
+      <ArtifactEvidence evidence={evidence} />
+      <div className="system-actions"><button disabled={busy || readOnly} onClick={() => { command('drill'); }}>Isolierten Probelauf starten</button><button className="danger-button" disabled={busy || readOnly || evidence.restoreEligibility?.status !== 'eligible'} onClick={() => { command('restore'); }}>Wiederherstellen</button></div><details><summary>Vollständige Prüfbelege</summary><pre className="whitespace-pre-wrap break-all text-sm">{JSON.stringify(evidence, null, 2)}</pre></details></section>
+  );
+}
+
+function BackupList({ name, value }: Readonly<{ name: string | undefined; value: BackupResponse | null }>) {
+  if (name || !value) return null;
+  return (
+    <EvidenceTable caption="Lokaler Artefaktbestand" rows={(value.backups ?? []).map((artifact: string) => ({ id: artifact, artifact: <Link className="underline" to={`/operations/backups/${encodeURIComponent(artifact)}`}>{artifact}</Link> }))} columns={[["artifact", "Artefakt öffnen & prüfen"]]} />
+  );
+}
+
+function OffsiteRecoverSection({ name, busy, readOnly, objectName, setObjectName, command }: Readonly<{
+  name: string | undefined; busy: boolean; readOnly: boolean; objectName: string; setObjectName: (value: string) => void;
+  command: (kind: BackupCommand) => void | Promise<void>;
+}>) {
+  if (name) return null;
+  return (
+    <section className="operations-card system-form"><h2>Offsite-Backup zurückholen</h2><label>Objektname<input value={objectName} onChange={event => setObjectName(event.target.value)} placeholder="backup-….tgfb" maxLength={180} /></label><button disabled={busy || readOnly || !objectName.trim()} onClick={() => { command('recover'); }}>Herunterladen & prüfen</button></section>
+  );
+}
+
 export function BackupsPage({ name }: Readonly<{ name?: string }>) {
   const readOnly = useOperatorReadOnly();
   const [value, setValue] = useState<BackupResponse | null>(null); const [error, setError] = useState('');
@@ -79,15 +119,10 @@ export function BackupsPage({ name }: Readonly<{ name?: string }>) {
     {name ? <Link to="/operations/backups">Alle Backups</Link> : <button className="primary-button" disabled={readOnly || busy} onClick={() => { command('create'); }}>Jetzt sichern</button>}
     {error && <p role="alert">{error}</p>}{message && <p><output>{message}</output></p>}{jobId && <JobLink id={jobId} />}
     {readOnly && <p>Viewer: Prüfbelege können gelesen werden. Änderungen erfordern Administratorrechte.</p>}
-    {name && evidence && <section className="operations-card"><h2>{name}</h2><EvidenceFields fields={[
-      ['Artefakthash', evidence.artifactSha256], ['Erstellt', evidence.artifactCreatedAt == null ? null : new Date(evidence.artifactCreatedAt).toLocaleString('de-DE')],
-      ['Integrität', evidence.integrityVerified ? `belegt · ${new Date(evidence.integrityVerified.verifiedAt).toLocaleString('de-DE')}` : null],
-      ['Konfigurationskohärenz', evidence.configurationCoherent ? 'belegt' : null], ['Restore-Zulässigkeit', evidence.restoreEligibility?.status],
-      ['Blocker', evidence.restoreEligibility?.reasons?.join('; ')], ['Offsite-Prüfung', evidence.offsiteVerified ? 'belegt (siehe Artefaktbeleg)' : null], ['Restore-Probelauf', evidence.restoreDrill ? 'belegt (siehe Artefaktbeleg)' : null],
-    ]} /><div className="system-actions"><button disabled={busy || readOnly} onClick={() => { command('drill'); }}>Isolierten Probelauf starten</button><button className="danger-button" disabled={busy || readOnly || evidence.restoreEligibility?.status !== 'eligible'} onClick={() => { command('restore'); }}>Wiederherstellen</button></div><details><summary>Vollständige Prüfbelege</summary><pre className="whitespace-pre-wrap break-all text-sm">{JSON.stringify(evidence, null, 2)}</pre></details></section>}
-    {!name && value && <EvidenceTable caption="Lokaler Artefaktbestand" rows={(value.backups ?? []).map((artifact: string) => ({ id: artifact, artifact: <Link className="underline" to={`/operations/backups/${encodeURIComponent(artifact)}`}>{artifact}</Link> }))} columns={[["artifact", "Artefakt öffnen & prüfen"]]} />}
+    <ArtifactSection name={name} evidence={evidence} busy={busy} readOnly={readOnly} command={command} />
+    <BackupList name={name} value={value} />
     {!value && <p><output>Backup-Nachweise werden geladen …</output></p>}
-    {!name && <section className="operations-card system-form"><h2>Offsite-Backup zurückholen</h2><label>Objektname<input value={objectName} onChange={event => setObjectName(event.target.value)} placeholder="backup-….tgfb" maxLength={180} /></label><button disabled={busy || readOnly || !objectName.trim()} onClick={() => { command('recover'); }}>Herunterladen & prüfen</button></section>}
+    <OffsiteRecoverSection name={name} busy={busy} readOnly={readOnly} objectName={objectName} setObjectName={setObjectName} command={command} />
     <Link to="/operations/jobs">Dauerhafte Wartungsaufträge</Link>
     <aside className="operations-card"><h2>Wartung bei gestopptem Core</h2><p>Imagewechsel und Offline-Rollback benötigen den dokumentierten Deployment-Weg mit geprüften Images und Backups. Ein vollständig gestoppter Core kann diese Oberfläche nicht bereitstellen. Ein unabhängiger Host-Wartungsdienst gehört zur optionalen Erweiterung.</p></aside>
   </div>;

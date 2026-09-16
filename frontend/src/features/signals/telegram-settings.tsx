@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { jsonRequest, mutateAndObserve } from '@/lib/api';
 import { Link } from '@/lib/navigation';
 import { usePoll } from '@/shared/api/use-poll';
@@ -70,14 +70,142 @@ type TelegramConfig = {
 };
 type TelegramNormalization = { before: Record<string, unknown>; after: Record<string, unknown> };
 
+function serverDraftSeed(server: TelegramServerConfig | null) {
+  return { values: (server?.values ?? null) as TelegramConfig | null, revision: server?.revision ?? null };
+}
+
+function telegramSubConfigs(config: TelegramConfig) {
+  return {
+    xml: (config.xmlParsing ?? {}) as TelegramXmlParsing,
+    forward: (config.forwardOptions ?? {}) as TelegramForwardOptions,
+    filters: (config.filters ?? {}) as TelegramFilters,
+    dupe: (config.dupeBlocker ?? {}) as TelegramDupeBlocker,
+  };
+}
+
+function dirtyFromInputs(secretInput: Record<string, string>, loginInput: { value: string; firstName: string; lastName: string }) {
+  return Object.values(secretInput).some(Boolean) || Object.values(loginInput).some(Boolean);
+}
+
+function telegramCanStop(status: TelegramStatus | null) {
+  return status?.isRunning === true || ['connecting', 'authentication-required'].includes(status?.connectionState ?? '');
+}
+
+function telegramSourceIds(config: TelegramConfig, xml: TelegramXmlParsing) {
+  return [...new Set<string>([...(config.sourceChannels ?? []), ...Object.keys(config.sourceFilters ?? {}), ...Object.keys(config.sourceAliases ?? {}), ...Object.keys(xml.sourceTemplates ?? {})])].filter(Boolean);
+}
+
+function TelegramNotices({ message, readOnly }: Readonly<{ message: string; readOnly: boolean }>) {
+  return (
+    <>
+    {message && <p><output>{message}</output></p>}{readOnly && <p>Nur Lesezugriff. Änderungen und Anmeldung benötigen die Adminrolle.</p>}
+    </>
+  );
+}
+
+function SettingsCoreGrid({ config, forward, xml, edit, editXml }: Readonly<{
+  config: TelegramConfig; forward: TelegramForwardOptions; xml: TelegramXmlParsing; edit: (key: string, value: unknown) => void; editXml: (key: string, value: unknown) => void;
+}>) {
+  return (
+    <div className="builder-field-grid"><label>Telegram API ID<input type="number" min={0} step={1} value={config.apiId ?? ''} onChange={event => edit('apiId', Number(event.target.value))} /></label><label>Telegram-Ziel (globale Vorgabe)<input value={config.targetChannel ?? ''} onChange={event => edit('targetChannel', event.target.value)} /></label>
+        <label>Queue · Parallelität<input type="number" min={1} max={100} step={1} value={forward.maxConcurrency ?? ''} onChange={event => edit('forwardOptions', { ...forward, maxConcurrency: Number(event.target.value) })} /></label><label>Queue · Zeitlimit (Sekunden)<input aria-label="Queue · Zeitlimit (Sekunden)" type="number" min={0} max={86400} step={1} value={forward.queueTimeoutSeconds ?? ''} onChange={event => edit('forwardOptions', { ...forward, queueTimeoutSeconds: Number(event.target.value) })} /><small>0 deaktiviert das Queue-Zeitlimit. Bei aktivem globalem Parser erhöht der Server einen positiven Wert auf mindestens Requesttimeout + 5 Sekunden.</small></label>
+        <label>Primärmodell<input maxLength={128} value={xml.primaryModel ?? ''} onChange={event => editXml('primaryModel', event.target.value)} /></label><label>Fallback-Modell<input maxLength={128} value={xml.fallbackModel ?? ''} onChange={event => editXml('fallbackModel', event.target.value)} /></label></div>
+  );
+}
+
+function LegacyDetails({ config, xml, forward, dupe, filters, edit, editXml, source, setSource, sourceIds, sourceFilter }: Readonly<{
+  config: TelegramConfig; xml: TelegramXmlParsing; forward: TelegramForwardOptions; dupe: TelegramDupeBlocker; filters: TelegramFilters;
+  edit: (key: string, value: unknown) => void; editXml: (key: string, value: unknown) => void; source: string; setSource: (value: string) => void;
+  sourceIds: string[]; sourceFilter: TelegramSourceFilter;
+}>) {
+  return (
+        <details><summary>Globaler Legacy-Signalweg · Quellen, Filter und Ausgabe</summary><p>Wirkt für neu angenommene Nachrichten ohne aktive Workflowrevision. Workflow-Bausteine werden im Builder geändert. Dateiausgabe ist ausschließlich eine Legacy-Option.</p>
+          <Lines label="Globale Quellkanäle" value={config.sourceChannels} onChange={value => edit('sourceChannels', value)} />
+    <div className="builder-field-grid"><Lines label="Erforderliche Keywords (mindestens eines)" value={filters.allowedKeywords} onChange={value => edit('filters', { ...filters, allowedKeywords: value })} /><Lines label="Gesperrte Keywords" value={filters.blockedKeywords} onChange={value => edit('filters', { ...filters, blockedKeywords: value })} /><Lines label="Erlaubte Inhaltstypen" value={filters.allowedTypes} onChange={value => edit('filters', { ...filters, allowedTypes: value })} /><Lines label="Globale Regex-Muster" value={filters.regexPatterns} onChange={value => edit('filters', { ...filters, regexPatterns: value })} /></div>
+          <Toggle label="Originalnachrichten an das globale Ziel weiterleiten" value={forward.forwardToTarget ?? true} onChange={value => edit('forwardOptions', { ...forward, forwardToTarget: value })} /><Toggle label="Als Kopie senden" value={forward.sendCopy ?? false} onChange={value => edit('forwardOptions', { ...forward, sendCopy: value })} /><Toggle label="Mediencaption entfernen" value={forward.removeCaption ?? false} onChange={value => edit('forwardOptions', { ...forward, removeCaption: value })} />
+          <Toggle label="Globalen Legacy-Parser verwenden" value={xml.enabled ?? false} onChange={value => editXml('enabled', value)} /><Toggle label="Legacy-XML an globales Ziel senden" value={xml.forwardXmlToTarget ?? false} onChange={value => editXml('forwardXmlToTarget', value)} /><Toggle label="Legacy-Signaldateien speichern" value={xml.saveToFile ?? false} onChange={value => editXml('saveToFile', value)} />
+          <label>Legacy-Signalverzeichnis<input value={xml.signalsDir ?? ''} onChange={event => editXml('signalsDir', event.target.value)} /><small>Speicherort für erzeugte Legacy-Signaldateien; kein Shell- oder Wartungsbefehl.</small></label>
+          <label>Legacy-Parser-Gesamtzeitlimit (ms)<input type="number" min={0} step={1} value={xml.timeout ?? ''} onChange={event => editXml('timeout', event.target.value === '' ? 0 : Number(event.target.value))} /><small>Leer oder 0 verwendet den bestehenden Parserstandard. Globaler Requesttimeout und Workflow-Parserzeitlimit gelten separat.</small></label>
+          <Toggle label="Globale Duplikatsperre" value={dupe.enabled ?? false} onChange={value => edit('dupeBlocker', { ...dupe, enabled: value })} /><label>Duplikat-Cooldown (Stunden)<input type="number" min={0} value={dupe.cooldownHours ?? ''} onChange={event => edit('dupeBlocker', { ...dupe, cooldownHours: Number(event.target.value) })} /><small>0 sperrt identische Signale dauerhaft. Keine Wiederholung bereits angenommener Orders oder unbekannter Sendungen.</small></label>
+          <h4>Kanalbezogene globale Vorgaben</h4><label>Konfigurierter Quellkanal<select value={source} onChange={event => setSource(event.target.value)}><option value="">Kanal wählen</option>{sourceIds.map(id => <option key={id}>{id}</option>)}</select></label>
+          {source && <div className="system-form"><label>Quellalias<input value={config.sourceAliases?.[source] ?? ''} onChange={event => edit('sourceAliases', { ...config.sourceAliases, [source]: event.target.value })} /><small>Leer zeigt die Kanal-ID. Der Alias dient auch der Eingangsanzeige.</small></label>
+            <label>Legacy-Parservorlage<input value={xml.sourceTemplates?.[source] ?? ''} onChange={event => editXml('sourceTemplates', { ...xml.sourceTemplates, [source]: event.target.value })} /><small>Leer verwendet die Standardvorlage.</small></label>
+            <Toggle label="Globale Regex-Muster für diesen Kanal überschreiben" value={Array.isArray(sourceFilter?.regexPatterns)} onChange={value => edit('sourceFilters', { ...config.sourceFilters, [source]: value ? { ...sourceFilter, regexPatterns: [] } : null })} />
+            {Array.isArray(sourceFilter?.regexPatterns) ? <Lines label="Kanal-Regex-Muster" value={sourceFilter?.regexPatterns} onChange={value => edit('sourceFilters', { ...config.sourceFilters, [source]: { ...sourceFilter, regexPatterns: value } })} /> : <p>Erbt die globalen Regex-Muster. Beim Speichern entfernt der Server die aufgehobene Kanalvorgabe.</p>}
+          </div>}
+        </details>
+  );
+}
+
+function TelegramRoutingSection({ readOnly, busy, status, errors, canStop, prompt, loginPrompt, command }: Readonly<{
+  readOnly: boolean; busy: boolean; status: TelegramStatus | null; errors: Record<string, string>; canStop: boolean;
+  prompt: { kind?: string | null; label?: string | null; link?: string | null } | null | undefined; loginPrompt: () => ReactNode;
+  command: (url: string, body: unknown, accepted: (result: Record<string, unknown>) => void, description: string, headers?: Record<string, string>) => void | Promise<void>;
+}>) {
+  return (
+    <section className="operations-card system-form"><h3>Telegram-Routing</h3><EvidenceFields fields={[["Verbindung", status?.connectionState], ["Dienst läuft", status?.isRunning], ["Beobachtete Quellen", status?.resolvedSources?.length], ["Queue · aktiv", status?.queue?.running], ["Queue · wartend", status?.queue?.queued]]} />
+      <fieldset disabled={readOnly || busy || !status || Boolean(errors.Verbindung)}><button className="primary-button" disabled={canStop} onClick={() => { command('/api/control', { action: 'start' }, () => undefined, 'Verbindungsaufbau angefordert; Erfolg erst durch den Verbindungszustand bestätigt.'); }}>Starten</button><button className="secondary-button" disabled={!canStop} onClick={() => { command('/api/control', { action: 'stop' }, () => undefined, 'Telegram-Routing gestoppt. Bestehende Trades und deren Schutz laufen gesondert weiter.'); }}>Stoppen</button></fieldset>
+      {status?.telegramLogin?.state === 'waiting' && <fieldset disabled={readOnly || busy}><legend>Telegram-Anmeldung · {prompt?.label}</legend>
+        {loginPrompt()}
+      </fieldset>}
+    </section>
+  );
+}
+
+function GlobalConfigSection({ server, form, xml, editXml, config, normalization, readOnly, busy, save, coreGrid, legacy }: Readonly<{
+  server: TelegramServerConfig | null; form: ReturnType<typeof useVersionedDraft<TelegramConfig>>; xml: TelegramXmlParsing;
+  editXml: (key: string, value: unknown) => void; config: TelegramConfig; normalization: TelegramNormalization | null; readOnly: boolean; busy: boolean;
+  save: () => void | Promise<void>; coreGrid: ReactNode; legacy: ReactNode;
+}>) {
+  if (!server) return <p>Grundkonfiguration wird geladen.</p>;
+  return (
+    <section className="operations-card system-form"><h3>Globale Quellen, Parser und Queue</h3>
+      <p>Queue und globale KI-Grenzen gelten für künftige Arbeit. Telegram-Verbindungsdaten und Quellen werden beim nächsten Verbindungsaufbau aufgelöst. <Link to="/workflows/paths">Aktive Workflow-Pfade</Link> besitzen eigene gepinnte Filter, Parser-, Dedupe- und Ausgabeparameter; neue globale Legacy-Werte schreiben bestehende Nachrichten und Trades nicht um.</p>
+      <fieldset disabled={readOnly || busy || !form.baseRevision}>{coreGrid}
+        <Toggle label="Externe KI-Datenverarbeitung freigegeben" value={xml.externalDataPolicyAccepted ?? false} onChange={value => editXml('externalDataPolicyAccepted', value)} />
+        <AiLimitsForm value={xml.aiLimits ?? {}} onChange={value => editXml('aiLimits', value)} />
+        {legacy}
+        <ChangeReview before={server.values} after={config} label="Zu speichernde Konfigurationsänderungen" />
+        <button className="primary-button" disabled={form.conflict} onClick={() => { save(); }}>Grundkonfiguration speichern</button>
+      </fieldset>{!form.baseRevision && <p role="alert">Versionsvertrag fehlt. Speichern benötigt eine kompatible Serverversion.</p>}
+      {normalization && <ChangeReview before={normalization.before} after={normalization.after} label="Servernormalisierung nach dem Speichern" />}
+    </section>
+  );
+}
+
+function SecretsSection({ readOnly, busy, secrets, secretInput, setSecretInput, command }: Readonly<{
+  readOnly: boolean; busy: boolean; secrets: TelegramSecrets | null; secretInput: Record<string, string>;
+  setSecretInput: (value: Record<string, string> | ((previous: Record<string, string>) => Record<string, string>)) => void;
+  command: (url: string, body: unknown, accepted: (result: Record<string, unknown>) => void, description: string, headers?: Record<string, string>) => void | Promise<void>;
+}>) {
+  if (readOnly) return null;
+  return (
+    <section className="operations-card system-form"><h3>Telegram-/KI-Zugangsdaten</h3><fieldset disabled={busy || !secrets}>{[['telegramApiHash', 'Telegram API Hash'], ['openRouterApiKey', 'OpenRouter API Key']].map(([key, label]) => {
+      const secretStatus = () => {
+        if (secrets?.[key]?.configured) {
+          return 'gespeichert';
+        }
+        if (secrets) {
+          return 'fehlt';
+        }
+        return 'unbekannt';
+      };
+      return (<label key={key}>{label} · {secretStatus()}<input type="password" autoComplete="off" placeholder="Leer lassen zum Beibehalten" value={secretInput[key] ?? ''} onChange={event => setSecretInput({ ...secretInput, [key]: event.target.value })} /></label>);
+    })}
+      <button className="secondary-button" disabled={!Object.values(secretInput).some(value => value.trim())} onClick={() => { command('/api/secrets', Object.fromEntries(Object.entries(secretInput).filter(([, value]) => value.trim())), () => setSecretInput({}), 'Zugangsdaten gespeichert. Die Konfiguration wurde durch diese Aktion nicht geändert.'); }}>Telegram-/KI-Zugangsdaten speichern</button></fieldset></section>
+  );
+}
+
 export function TelegramSettings() {
   const readOnly = useOperatorReadOnly();
   const [server, setServer] = useState<TelegramServerConfig | null>(null); const [status, setStatus] = useState<TelegramStatus | null>(null); const [secrets, setSecrets] = useState<TelegramSecrets | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({}); const [refresh, setRefresh] = useState(0);
-  const form = useVersionedDraft<TelegramConfig>('telegram-config', (server?.values ?? null) as TelegramConfig | null, server?.revision ?? null, {});
-  const config = form.draft; const xml = (config.xmlParsing ?? {}) as TelegramXmlParsing; const forward = (config.forwardOptions ?? {}) as TelegramForwardOptions; const filters = (config.filters ?? {}) as TelegramFilters; const dupe = (config.dupeBlocker ?? {}) as TelegramDupeBlocker;
+  const seed = serverDraftSeed(server);
+  const form = useVersionedDraft<TelegramConfig>('telegram-config', seed.values, seed.revision, {});
+  const config = form.draft;
+  const { xml, forward, filters, dupe } = telegramSubConfigs(config);
   const [secretInput, setSecretInput] = useState<Record<string, string>>({}); const [loginInput, setLoginInput] = useState({ value: '', firstName: '', lastName: '' });
-  useDirtyGuard(Object.values(secretInput).some(Boolean) || Object.values(loginInput).some(Boolean));
+  useDirtyGuard(dirtyFromInputs(secretInput, loginInput));
   const [busy, setBusy] = useState(false); const [message, setMessage] = useState(''); const [normalization, setNormalization] = useState<TelegramNormalization | null>(null); const [source, setSource] = useState('');
   const readConfig = useCallback((signal: AbortSignal) => jsonRequest('/api/config', { signal }), []);
   const readStatus = useCallback((signal: AbortSignal) => jsonRequest('/api/status', { signal }), []);
@@ -112,8 +240,8 @@ export function TelegramSettings() {
     }, 'Telegram- und KI-Grundkonfiguration gespeichert. Zurückgegebene Werte und Queue-Zustand prüfen.', { 'If-Match': String(form.baseRevision) });
   };
   const prompt = status?.telegramLogin?.prompt;
-  const canStop = status?.isRunning === true || ['connecting', 'authentication-required'].includes(status?.connectionState ?? '');
-  const sourceIds = [...new Set<string>([...(config.sourceChannels ?? []), ...Object.keys(config.sourceFilters ?? {}), ...Object.keys(config.sourceAliases ?? {}), ...Object.keys(xml.sourceTemplates ?? {})])].filter(Boolean);
+  const canStop = telegramCanStop(status);
+  const sourceIds = telegramSourceIds(config, xml);
   const sourceFilter = config.sourceFilters?.[source];
   const loginPrompt = () => {
     if (prompt?.kind === 'otherDeviceConfirmation') {
@@ -125,65 +253,13 @@ export function TelegramSettings() {
     return <>{prompt?.kind === 'name' ? <div className="builder-field-grid"><label>Vorname<input value={loginInput.firstName} onChange={event => setLoginInput({ ...loginInput, firstName: event.target.value })} /></label><label>Nachname<input value={loginInput.lastName} onChange={event => setLoginInput({ ...loginInput, lastName: event.target.value })} /></label></div> : <label>{prompt?.label}<input type={prompt?.kind === 'password' ? 'password' : 'text'} autoComplete="off" value={loginInput.value} onChange={event => setLoginInput({ ...loginInput, value: event.target.value })} /></label>}
       <button className="primary-button" onClick={() => { command('/api/telegram-login', prompt?.kind === 'name' ? { firstName: loginInput.firstName, lastName: loginInput.lastName } : { value: loginInput.value }, () => setLoginInput({ value: '', firstName: '', lastName: '' }), 'Anmeldedaten angenommen; Verbindung wird weiter beobachtet.'); }}>Weiter</button></>;
   };
-  const settingsCoreGrid = (
-    <div className="builder-field-grid"><label>Telegram API ID<input type="number" min={0} step={1} value={config.apiId ?? ''} onChange={event => edit('apiId', Number(event.target.value))} /></label><label>Telegram-Ziel (globale Vorgabe)<input value={config.targetChannel ?? ''} onChange={event => edit('targetChannel', event.target.value)} /></label>
-        <label>Queue · Parallelität<input type="number" min={1} max={100} step={1} value={forward.maxConcurrency ?? ''} onChange={event => edit('forwardOptions', { ...forward, maxConcurrency: Number(event.target.value) })} /></label><label>Queue · Zeitlimit (Sekunden)<input aria-label="Queue · Zeitlimit (Sekunden)" type="number" min={0} max={86400} step={1} value={forward.queueTimeoutSeconds ?? ''} onChange={event => edit('forwardOptions', { ...forward, queueTimeoutSeconds: Number(event.target.value) })} /><small>0 deaktiviert das Queue-Zeitlimit. Bei aktivem globalem Parser erhöht der Server einen positiven Wert auf mindestens Requesttimeout + 5 Sekunden.</small></label>
-        <label>Primärmodell<input maxLength={128} value={xml.primaryModel ?? ''} onChange={event => editXml('primaryModel', event.target.value)} /></label><label>Fallback-Modell<input maxLength={128} value={xml.fallbackModel ?? ''} onChange={event => editXml('fallbackModel', event.target.value)} /></label></div>
-  );
-  const legacyKeywordGrid = (
-    <div className="builder-field-grid"><Lines label="Erforderliche Keywords (mindestens eines)" value={filters.allowedKeywords} onChange={value => edit('filters', { ...filters, allowedKeywords: value })} /><Lines label="Gesperrte Keywords" value={filters.blockedKeywords} onChange={value => edit('filters', { ...filters, blockedKeywords: value })} /><Lines label="Erlaubte Inhaltstypen" value={filters.allowedTypes} onChange={value => edit('filters', { ...filters, allowedTypes: value })} /><Lines label="Globale Regex-Muster" value={filters.regexPatterns} onChange={value => edit('filters', { ...filters, regexPatterns: value })} /></div>
-  );
 
-  const legacyDetails = (
-        <details><summary>Globaler Legacy-Signalweg · Quellen, Filter und Ausgabe</summary><p>Wirkt für neu angenommene Nachrichten ohne aktive Workflowrevision. Workflow-Bausteine werden im Builder geändert. Dateiausgabe ist ausschließlich eine Legacy-Option.</p>
-          <Lines label="Globale Quellkanäle" value={config.sourceChannels} onChange={value => edit('sourceChannels', value)} />
-          {legacyKeywordGrid}
-          <Toggle label="Originalnachrichten an das globale Ziel weiterleiten" value={forward.forwardToTarget ?? true} onChange={value => edit('forwardOptions', { ...forward, forwardToTarget: value })} /><Toggle label="Als Kopie senden" value={forward.sendCopy ?? false} onChange={value => edit('forwardOptions', { ...forward, sendCopy: value })} /><Toggle label="Mediencaption entfernen" value={forward.removeCaption ?? false} onChange={value => edit('forwardOptions', { ...forward, removeCaption: value })} />
-          <Toggle label="Globalen Legacy-Parser verwenden" value={xml.enabled ?? false} onChange={value => editXml('enabled', value)} /><Toggle label="Legacy-XML an globales Ziel senden" value={xml.forwardXmlToTarget ?? false} onChange={value => editXml('forwardXmlToTarget', value)} /><Toggle label="Legacy-Signaldateien speichern" value={xml.saveToFile ?? false} onChange={value => editXml('saveToFile', value)} />
-          <label>Legacy-Signalverzeichnis<input value={xml.signalsDir ?? ''} onChange={event => editXml('signalsDir', event.target.value)} /><small>Speicherort für erzeugte Legacy-Signaldateien; kein Shell- oder Wartungsbefehl.</small></label>
-          <label>Legacy-Parser-Gesamtzeitlimit (ms)<input type="number" min={0} step={1} value={xml.timeout ?? ''} onChange={event => editXml('timeout', event.target.value === '' ? 0 : Number(event.target.value))} /><small>Leer oder 0 verwendet den bestehenden Parserstandard. Globaler Requesttimeout und Workflow-Parserzeitlimit gelten separat.</small></label>
-          <Toggle label="Globale Duplikatsperre" value={dupe.enabled ?? false} onChange={value => edit('dupeBlocker', { ...dupe, enabled: value })} /><label>Duplikat-Cooldown (Stunden)<input type="number" min={0} value={dupe.cooldownHours ?? ''} onChange={event => edit('dupeBlocker', { ...dupe, cooldownHours: Number(event.target.value) })} /><small>0 sperrt identische Signale dauerhaft. Keine Wiederholung bereits angenommener Orders oder unbekannter Sendungen.</small></label>
-          <h4>Kanalbezogene globale Vorgaben</h4><label>Konfigurierter Quellkanal<select value={source} onChange={event => setSource(event.target.value)}><option value="">Kanal wählen</option>{sourceIds.map(id => <option key={id}>{id}</option>)}</select></label>
-          {source && <div className="system-form"><label>Quellalias<input value={config.sourceAliases?.[source] ?? ''} onChange={event => edit('sourceAliases', { ...config.sourceAliases, [source]: event.target.value })} /><small>Leer zeigt die Kanal-ID. Der Alias dient auch der Eingangsanzeige.</small></label>
-            <label>Legacy-Parservorlage<input value={xml.sourceTemplates?.[source] ?? ''} onChange={event => editXml('sourceTemplates', { ...xml.sourceTemplates, [source]: event.target.value })} /><small>Leer verwendet die Standardvorlage.</small></label>
-            <Toggle label="Globale Regex-Muster für diesen Kanal überschreiben" value={Array.isArray(sourceFilter?.regexPatterns)} onChange={value => edit('sourceFilters', { ...config.sourceFilters, [source]: value ? { ...sourceFilter, regexPatterns: [] } : null })} />
-            {Array.isArray(sourceFilter?.regexPatterns) ? <Lines label="Kanal-Regex-Muster" value={sourceFilter?.regexPatterns} onChange={value => edit('sourceFilters', { ...config.sourceFilters, [source]: { ...sourceFilter, regexPatterns: value } })} /> : <p>Erbt die globalen Regex-Muster. Beim Speichern entfernt der Server die aufgehobene Kanalvorgabe.</p>}
-          </div>}
-        </details>
-  );
   return <div className="operations-stack"><h2>Telegram & KI-Grundlage</h2>
     {Object.entries(errors).filter(([, error]) => error).map(([key, error]) => <p role="alert" key={key}>{key}: {error} · Vorhandene Daten können veraltet sein.</p>)}
-    {message && <p><output>{message}</output></p>}{readOnly && <p>Nur Lesezugriff. Änderungen und Anmeldung benötigen die Adminrolle.</p>}
-    <section className="operations-card system-form"><h3>Telegram-Routing</h3><EvidenceFields fields={[["Verbindung", status?.connectionState], ["Dienst läuft", status?.isRunning], ["Beobachtete Quellen", status?.resolvedSources?.length], ["Queue · aktiv", status?.queue?.running], ["Queue · wartend", status?.queue?.queued]]} />
-      <fieldset disabled={readOnly || busy || !status || Boolean(errors.Verbindung)}><button className="primary-button" disabled={canStop} onClick={() => { command('/api/control', { action: 'start' }, () => undefined, 'Verbindungsaufbau angefordert; Erfolg erst durch den Verbindungszustand bestätigt.'); }}>Starten</button><button className="secondary-button" disabled={!canStop} onClick={() => { command('/api/control', { action: 'stop' }, () => undefined, 'Telegram-Routing gestoppt. Bestehende Trades und deren Schutz laufen gesondert weiter.'); }}>Stoppen</button></fieldset>
-      {status?.telegramLogin?.state === 'waiting' && <fieldset disabled={readOnly || busy}><legend>Telegram-Anmeldung · {prompt?.label}</legend>
-        {loginPrompt()}
-      </fieldset>}
-    </section>
+      <TelegramNotices message={message} readOnly={readOnly} />
+      <TelegramRoutingSection readOnly={readOnly} busy={busy} status={status} errors={errors} canStop={canStop} prompt={prompt} loginPrompt={loginPrompt} command={command} />
     <DraftState label="Grundkonfiguration" form={form} server={server?.values} />
-    {server ? <section className="operations-card system-form"><h3>Globale Quellen, Parser und Queue</h3>
-      <p>Queue und globale KI-Grenzen gelten für künftige Arbeit. Telegram-Verbindungsdaten und Quellen werden beim nächsten Verbindungsaufbau aufgelöst. <Link to="/workflows/paths">Aktive Workflow-Pfade</Link> besitzen eigene gepinnte Filter, Parser-, Dedupe- und Ausgabeparameter; neue globale Legacy-Werte schreiben bestehende Nachrichten und Trades nicht um.</p>
-      <fieldset disabled={readOnly || busy || !form.baseRevision}>{settingsCoreGrid}
-        <Toggle label="Externe KI-Datenverarbeitung freigegeben" value={xml.externalDataPolicyAccepted ?? false} onChange={value => editXml('externalDataPolicyAccepted', value)} />
-        <AiLimitsForm value={xml.aiLimits ?? {}} onChange={value => editXml('aiLimits', value)} />
-        {legacyDetails}
-        <ChangeReview before={server.values} after={config} label="Zu speichernde Konfigurationsänderungen" />
-        <button className="primary-button" disabled={form.conflict} onClick={() => { save(); }}>Grundkonfiguration speichern</button>
-      </fieldset>{!form.baseRevision && <p role="alert">Versionsvertrag fehlt. Speichern benötigt eine kompatible Serverversion.</p>}
-      {normalization && <ChangeReview before={normalization.before} after={normalization.after} label="Servernormalisierung nach dem Speichern" />}
-    </section> : <p>Grundkonfiguration wird geladen.</p>}
-    {!readOnly && <section className="operations-card system-form"><h3>Telegram-/KI-Zugangsdaten</h3><fieldset disabled={busy || !secrets}>{[['telegramApiHash', 'Telegram API Hash'], ['openRouterApiKey', 'OpenRouter API Key']].map(([key, label]) => {
-      const secretStatus = () => {
-        if (secrets?.[key]?.configured) {
-          return 'gespeichert';
-        }
-        if (secrets) {
-          return 'fehlt';
-        }
-        return 'unbekannt';
-      };
-      return (<label key={key}>{label} · {secretStatus()}<input type="password" autoComplete="off" placeholder="Leer lassen zum Beibehalten" value={secretInput[key] ?? ''} onChange={event => setSecretInput({ ...secretInput, [key]: event.target.value })} /></label>);
-    })}
-      <button className="secondary-button" disabled={!Object.values(secretInput).some(value => value.trim())} onClick={() => { command('/api/secrets', Object.fromEntries(Object.entries(secretInput).filter(([, value]) => value.trim())), () => setSecretInput({}), 'Zugangsdaten gespeichert. Die Konfiguration wurde durch diese Aktion nicht geändert.'); }}>Telegram-/KI-Zugangsdaten speichern</button></fieldset></section>}
+      <GlobalConfigSection server={server} form={form} xml={xml} editXml={editXml} config={config} normalization={normalization} readOnly={readOnly} busy={busy} save={save} coreGrid={<SettingsCoreGrid config={config} forward={forward} xml={xml} edit={edit} editXml={editXml} />} legacy={<LegacyDetails config={config} xml={xml} forward={forward} dupe={dupe} filters={filters} edit={edit} editXml={editXml} source={source} setSource={setSource} sourceIds={sourceIds} sourceFilter={sourceFilter} />} />
+      <SecretsSection readOnly={readOnly} busy={busy} secrets={secrets} secretInput={secretInput} setSecretInput={setSecretInput} command={command} />
   </div>;
 }
