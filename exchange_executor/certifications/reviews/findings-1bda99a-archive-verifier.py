@@ -10,8 +10,8 @@ import tarfile
 
 ROOT = Path.cwd()
 R = ROOT / 'reports/findings-review'
-def sha(raw):
-    return hashlib.sha256(raw).hexdigest()
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
 
 
 def require(condition, message):
