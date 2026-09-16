@@ -481,8 +481,11 @@ test("workflow nodes and connections render when resize callbacks are unavailabl
 }) => {
   await page.addInitScript(() => {
     class SilentResizeObserver {
+      // skipcq: JS-0105 - browser ResizeObserver interface conformance.
       observe() { /* no-op: dashboard tests intentionally disable layout observation */ }
+      // skipcq: JS-0105 - browser ResizeObserver interface conformance.
       unobserve() { /* no-op: dashboard tests intentionally disable layout observation */ }
+      // skipcq: JS-0105 - browser ResizeObserver interface conformance.
       disconnect() { /* no-op: dashboard tests intentionally disable layout observation */ }
     }
     Object.defineProperty(window, "ResizeObserver", {

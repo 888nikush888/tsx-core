@@ -400,7 +400,7 @@ async function verifyBoundedReconciliationHistory(paper, account, engine) {
       [`bounded-${index}`, account.id, now + index, now + index],
     );
   }
-  await engine.pruneReconciliationRuns(account.id);
+  await TradingEngine.pruneReconciliationRuns(account.id);
   const boundedRuns = await getDatabase().get(
     'SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ?', [account.id],
   );

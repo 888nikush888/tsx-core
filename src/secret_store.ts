@@ -377,10 +377,10 @@ export class ManagedSecretStore {
       if (error?.code === 'ENOENT') return null;
       throw error;
     }
-    return this.validatePendingTransaction(parsed);
+    return ManagedSecretStore.validatePendingTransaction(parsed);
   }
 
-  private validatePendingTransaction(parsed: unknown): Array<[ManagedSecretName, unknown]> {
+  private static validatePendingTransaction(parsed: unknown): Array<[ManagedSecretName, unknown]> {
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       throw new Error('Managed secret transaction is invalid.');
     }

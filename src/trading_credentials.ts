@@ -227,7 +227,7 @@ export class TradingCredentialStore {
     for (const accountId of filesToMigrate) {
       const result = await this.readNormalized(accountId);
       if (result.migrated) {
-        await this.writeAtomically(this.accountPath(accountId), `${JSON.stringify(result.stored)}\n`);
+        await TradingCredentialStore.writeAtomically(this.accountPath(accountId), `${JSON.stringify(result.stored)}\n`);
         changed = true;
       }
     }
@@ -238,7 +238,7 @@ export class TradingCredentialStore {
   async set(accountId: string, credentials: TradingCredentials, now = Date.now()): Promise<void> {
     const safeAccountId = assertAccountId(accountId);
     const stored = storedCredentials(safeAccountId, credentials, now);
-    await this.writeAtomically(this.accountPath(safeAccountId), `${JSON.stringify(stored)}\n`);
+    await TradingCredentialStore.writeAtomically(this.accountPath(safeAccountId), `${JSON.stringify(stored)}\n`);
   }
 
   async stageCandidate(credentials: TradingCredentials, now = Date.now()): Promise<string> {
@@ -300,7 +300,7 @@ export class TradingCredentialStore {
       if (error?.code !== 'ENOENT') throw error;
       const token = randomBytes(32).toString('hex');
       try {
-        await this.writeAtomically(this.executorTokenPath(), `${token}\n`);
+        await TradingCredentialStore.writeAtomically(this.executorTokenPath(), `${token}\n`);
         return token;
       } catch (writeError: any) {
         if (writeError?.code !== 'EEXIST') throw writeError;
@@ -339,7 +339,7 @@ export class TradingCredentialStore {
     return normalizeStored(accountId, parsed);
   }
 
-  private async writeAtomically(destination: string, content: string): Promise<void> {
+  private static async writeAtomically(destination: string, content: string): Promise<void> {
     const temporary = `${destination}.${process.pid}.${Date.now()}.${randomBytes(6).toString('hex')}.tmp`;
     let handle: fs.FileHandle | undefined;
     try {

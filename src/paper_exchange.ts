@@ -296,7 +296,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
       ? undefined : decimal(options.maximumFillQuantity, { positive: true }) };
   }
 
-  async setBalance(accountId: string, equity: string, availableBalance = equity, now = Date.now()): Promise<void> {
+  static async setBalance(accountId: string, equity: string, availableBalance = equity, now = Date.now()): Promise<void> {
     const normalizedEquity = decimal(equity, { positive: true });
     const normalizedAvailable = decimal(availableBalance);
     if (compareDecimal(normalizedAvailable, normalizedEquity) > 0) throw new Error('Available paper balance cannot exceed equity.');
@@ -332,10 +332,10 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
   }
 
   async accountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot> {
-    return withDatabaseTransaction(() => this.readAccountSnapshot(account));
+    return withDatabaseTransaction(() => PaperExchangeAdapter.readAccountSnapshot(account));
   }
 
-  private async readAccountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot> {
+  private static async readAccountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot> {
     assertPaperAccount(account);
     const row = await getDatabase().get<PaperAccountRow>('SELECT * FROM trading_paper_accounts WHERE account_id = ?', [account.id]);
     if (!row) throw new Error('Paper account state is missing.');
@@ -375,11 +375,11 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
       maxLeverage: Math.min(50, Number(row.max_leverage)),
       observedAt: Number(row.updated_at),
       accounting: paperAccounting(row.symbol),
-      leverageTiers: await this.simulatedTierEvidence(account, row),
+      leverageTiers: await PaperExchangeAdapter.simulatedTierEvidence(account, row),
     };
   }
 
-  private async simulatedTierEvidence(account: TradingAccount, market: PaperMarketRow): Promise<TradingLeverageTierEvidence> {
+  private static async simulatedTierEvidence(account: TradingAccount, market: PaperMarketRow): Promise<TradingLeverageTierEvidence> {
     const observedAt = Date.now();
     const [position, orders] = await Promise.all([
       getDatabase().get<{ quantity: string }>('SELECT quantity FROM trading_paper_positions WHERE account_id = ? AND symbol = ?', [account.id, market.symbol]),
@@ -451,6 +451,7 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
     });
   }
 
+  // skipcq: JS-0105 - exchange adapter interface method; tests substitute it per adapter instance.
   async cancelOrder(account: TradingAccount, clientOrderId: string): Promise<ExchangeOrderResult> {
     assertPaperAccount(account);
     const now = Date.now();
@@ -469,10 +470,10 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
 
   async openState(account: TradingAccount): Promise<ExchangeOpenState> {
     assertPaperAccount(account);
-    return withDatabaseTransaction(() => this.readOpenState(account));
+    return withDatabaseTransaction(() => PaperExchangeAdapter.readOpenState(account));
   }
 
-  private async readOpenState(account: TradingAccount): Promise<ExchangeOpenState> {
+  private static async readOpenState(account: TradingAccount): Promise<ExchangeOpenState> {
     const startedAt = Date.now();
     const [orders, positions, fills] = await Promise.all([
       getDatabase().all<PaperOrderRow[]>('SELECT * FROM trading_paper_orders WHERE account_id = ? ORDER BY created_at', [account.id]),

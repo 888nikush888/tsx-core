@@ -301,6 +301,7 @@ export class TradingWebControl {
       interpretation: 'Kontoseite mit maximal 30 Konten und 30 offenen Vorfällen. Aktuelle Zustände je Seite; keine Portfolio-/Providerabfrage und keine Modell-/Tradehistorie.' };
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   async operatorOverview() { return { overview: await getTradingOverview(), observedAt: Date.now() }; }
 
   async portfolioSnapshot(forceRefresh = false): Promise<TradingPortfolioSnapshot> {
@@ -366,6 +367,7 @@ export class TradingWebControl {
     return { accounts: snapshots, observedAt, cached: false };
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   createStrategy(payload: { strategyId?: unknown; name?: unknown; description?: unknown; configuration?: unknown }) {
     return createTradingStrategyDraft({
       strategyId: payload.strategyId ? identifier(payload.strategyId, 'Strategy identifier', 64) : undefined,
@@ -375,6 +377,7 @@ export class TradingWebControl {
     });
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   updateStrategy(payload: { id?: unknown; name?: unknown; description?: unknown; configuration?: unknown }) {
     return updateTradingStrategyDraft(identifier(payload.id, 'Strategy version identifier', 64), {
       name: identifier(payload.name, 'Strategy name', 80),
@@ -383,18 +386,22 @@ export class TradingWebControl {
     });
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   publishStrategy(id: unknown) {
     return publishTradingStrategyVersion(identifier(id, 'Strategy version identifier', 64));
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   archiveStrategy(id: unknown) {
     return archiveTradingStrategyVersion(identifier(id, 'Strategy version identifier', 64));
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   removeStrategy(id: unknown) {
     return deleteTradingStrategyVersion(identifier(id, 'Strategy version identifier', 64));
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   createSignalSchema(payload: Partial<Parameters<typeof createTradingSignalSchema>[0]>) {
     return createTradingSignalSchema({
       id: payload.id,
@@ -408,6 +415,7 @@ export class TradingWebControl {
     });
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   updateSignalSchema(payload: Partial<Parameters<typeof updateTradingSignalSchema>[1]> & { id?: unknown }) {
     return updateTradingSignalSchema(identifier(payload.id, 'Signal schema identifier', 40), {
       name: payload.name,
@@ -420,10 +428,12 @@ export class TradingWebControl {
     });
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   removeSignalSchema(id: unknown) {
     return deleteTradingSignalSchema(identifier(id, 'Signal schema identifier', 40));
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   createSignalContract(payload: Partial<Parameters<typeof createSignalContract>[0]>) {
     return createSignalContract({
       id: payload.id,
@@ -433,10 +443,12 @@ export class TradingWebControl {
     });
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   createSignalContractVersion(payload: { contractId?: unknown; sourceVersionId?: unknown }) {
     return createSignalContractDraftVersion(payload.contractId, payload.sourceVersionId);
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   updateSignalContract(payload: Partial<Parameters<typeof updateSignalContractDraft>[0]>) {
     return updateSignalContractDraft({
       contractId: payload.contractId,
@@ -448,6 +460,7 @@ export class TradingWebControl {
     });
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   duplicateSignalContract(payload: Partial<Parameters<typeof duplicateSignalContract>[0]>) {
     return duplicateSignalContract({
       sourceVersionId: payload.sourceVersionId,
@@ -457,22 +470,27 @@ export class TradingWebControl {
     });
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   publishSignalContract(versionId: unknown) {
     return publishSignalContractVersion(versionId);
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   archiveSignalContract(versionId: unknown) {
     return archiveSignalContractVersion(versionId);
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   removeSignalContractDraft(versionId: unknown) {
     return deleteSignalContractDraft(versionId);
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   removeSignalContractVersion(versionId: unknown) {
     return deleteSignalContractVersion(versionId);
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   validateSignalContract(payload: { definition?: unknown; xml?: unknown; sourceText?: unknown }) {
     const definition = validateSignalContractDefinition(payload.definition);
     if (typeof payload.xml !== 'string') throw new Error('Signal XML must be a string.');
@@ -487,6 +505,7 @@ export class TradingWebControl {
     return validated;
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   setChannelRiskPolicy(payload: Partial<Parameters<typeof upsertChannelRiskPolicy>[0]>) {
     return upsertChannelRiskPolicy({
       channelId: payload.channelId, mode: payload.mode, tiers: payload.tiers, currentTier: payload.currentTier,
@@ -497,6 +516,7 @@ export class TradingWebControl {
     });
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   removeChannelRiskPolicy(channelId: unknown) {
     return deleteChannelRiskPolicy(channelId);
   }
@@ -514,7 +534,7 @@ export class TradingWebControl {
       });
     }
     const catalogEntry = await this.certifiedCatalogEntry(exchange, mode);
-    const credentials = this.credentialsFromPayload(catalogEntry, payload.credentials);
+    const credentials = TradingWebControl.credentialsFromPayload(catalogEntry, payload.credentials);
     this.ensureAdapter(exchange);
     const account = await createTradingAccount({
       name: identifier(payload.name, 'Account name', 80),
@@ -540,7 +560,7 @@ export class TradingWebControl {
   }
 
   private async replaceAccountCredentialsOwned(payload: CredentialReplacementPayload, context: TradingMutationContext): Promise<TradingAccount> {
-    let account = await this.requiredAccount(payload.id);
+    let account = await TradingWebControl.requiredAccount(payload.id);
     if (account.exchange === 'paper') throw new Error('Paper accounts do not have exchange credentials.');
     const catalogEntry = await this.certifiedCatalogEntry(account.exchange, account.mode);
     const adapter = this.requiredAdapter(account.exchange);
@@ -581,7 +601,7 @@ export class TradingWebControl {
     }
 
     const candidateId = await this.credentials.stageCandidate(
-      this.credentialsFromPayload(catalogEntry, payload.credentials),
+      TradingWebControl.credentialsFromPayload(catalogEntry, payload.credentials),
     );
     try {
       const candidate = { ...account, id: candidateId, credentialRef: 'managed-secret' };
@@ -620,7 +640,7 @@ export class TradingWebControl {
   }
 
   private async verifyAccountOwned(id: string, enableOnSuccess: boolean): Promise<TradingAccount> {
-    const account = await this.requiredAccount(id);
+    const account = await TradingWebControl.requiredAccount(id);
     if (account.exchange === 'paper') {
       return updateTradingAccountState(account.id, { status: 'ready', enabled: true, verifiedAt: Date.now() });
     }
@@ -661,7 +681,7 @@ export class TradingWebControl {
   }
 
   private async setAccountEnabledOwned(id: string, enabledValue: boolean, context: TradingMutationContext): Promise<TradingAccount> {
-    const account = await this.requiredAccount(id);
+    const account = await TradingWebControl.requiredAccount(id);
     const enabled = boolean(enabledValue, 'Account enabled state');
     if (enabled && account.status === 'disabled') return this.verifyAccount(account.id, true, context);
     if (enabled && account.status !== 'ready') throw new Error('Only a successfully verified account can be enabled.');
@@ -696,7 +716,7 @@ export class TradingWebControl {
   }
 
   private async configureAccountOwned(payload: AccountConfigurationPayload, accountId: string, context: TradingMutationContext): Promise<TradingAccount> {
-    const current = await this.requiredAccount(accountId);
+    const current = await TradingWebControl.requiredAccount(accountId);
     if (current.killSwitchActive && payload.killSwitchActive === false) {
       throw new Error('Account kill switches require the protected kill-switch release confirmation operation.');
     }
@@ -730,7 +750,7 @@ export class TradingWebControl {
     if (confirmation !== 'RELEASE ACCOUNT KILL SWITCH') {
       throw new Error('Explicit account kill-switch release confirmation required.');
     }
-    const current = await this.requiredAccount(accountId);
+    const current = await TradingWebControl.requiredAccount(accountId);
     if (!current.killSwitchActive) throw new Error('Account kill switch is not active.');
     if (!current.enabled || current.status !== 'ready') {
       throw new Error('Account must be enabled and verified before its kill switch can be released.');
@@ -744,7 +764,7 @@ export class TradingWebControl {
     if (!reconciled) throw new Error('Forced reconciliation did not return safety evidence.');
     return withDatabaseTransaction(async () => {
       this.engine.mutations.assertEpoch(context, epoch);
-      const evidence = await collectAccountReleaseEvidence({ current: await this.requiredAccount(accountId), reconciled,
+      const evidence = await collectAccountReleaseEvidence({ current: await TradingWebControl.requiredAccount(accountId), reconciled,
         verificationAccount: current, epoch, requestedAt, balance, balanceStartedAt, balanceCompletedAt });
       const proof = evaluateTradingSafety(evidence, 'accountRelease');
       assertTradingSafety(proof);
@@ -767,13 +787,14 @@ export class TradingWebControl {
   }
 
   private async removeAccountOwned(id: string): Promise<void> {
-    const account = await this.requiredAccount(id);
+    const account = await TradingWebControl.requiredAccount(id);
     const remote = await this.requiredAdapter(account.exchange).openState(account);
-    this.assertNoRemoteExposure(remote);
+    TradingWebControl.assertNoRemoteExposure(remote);
     if (!await deleteTradingAccount(account.id)) throw new Error('Trading account does not exist.');
     if (account.exchange !== 'paper') await this.credentials.remove(account.id);
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   setRoute(payload: { channelId?: unknown; strategyVersionId?: unknown; accountId?: unknown; enabled?: unknown }) {
     return setTradingRoute({
       channelId: identifier(payload.channelId, 'Channel identifier'),
@@ -783,6 +804,7 @@ export class TradingWebControl {
     });
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   removeRoute(channelId: unknown) {
     return deleteTradingRoute(identifier(channelId, 'Channel identifier'));
   }
@@ -867,11 +889,11 @@ export class TradingWebControl {
   }
 
   private async configurePaperOwned(payload: PaperConfigurationPayload) {
-    const account = await this.requiredAccount(payload.accountId);
+    const account = await TradingWebControl.requiredAccount(payload.accountId);
     if (account.exchange !== 'paper' || account.mode !== 'paper') throw new Error('Paper configuration requires a paper account.');
     const result = await withDatabaseTransaction(async () => {
       await assertPaperConfigurationRevision(account.id, payload);
-      if (payload.equity !== undefined) await this.paper.setBalance(account.id, payload.equity, payload.availableBalance ?? payload.equity);
+      if (payload.equity !== undefined) await PaperExchangeAdapter.setBalance(account.id, payload.equity, payload.availableBalance ?? payload.equity);
       if (payload.market) {
         const market = payload.market;
         await this.paper.setMarket(account.id, market);
@@ -903,32 +925,39 @@ export class TradingWebControl {
     return this.engine.emergencyFlattenManaged(accountId);
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   acknowledgeRisk(id: unknown) {
     return acknowledgeTradingRiskEvent(identifier(id, 'Risk event identifier', 64));
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   createWorkflowResource(payload: Partial<Parameters<typeof createWorkflowResourceDraft>[0]>) {
     if (payload.kind === undefined) throw new Error('Unsupported workflow resource kind.');
     return createWorkflowResourceDraft({ ...payload, kind: payload.kind, name: payload.name ?? '', configuration: payload.configuration });
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   updateWorkflowResource(payload: Partial<Parameters<typeof updateWorkflowResourceDraft>[1]> & { id?: unknown }) {
     return updateWorkflowResourceDraft(identifier(payload.id, 'Workflow resource version identifier', 64),
       { ...payload, name: payload.name ?? '', configuration: payload.configuration });
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   publishWorkflowResource(id: unknown) {
     return publishWorkflowResource(identifier(id, 'Workflow resource version identifier', 64));
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   archiveWorkflowResource(id: unknown) {
     return archiveWorkflowResource(identifier(id, 'Workflow resource version identifier', 64));
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   deleteWorkflowResourceDraft(id: unknown) {
     return deleteWorkflowResourceDraft(identifier(id, 'Workflow resource version identifier', 64));
   }
 
+  // skipcq: JS-0105 - the control-plane instance is the single injected dashboard API surface; the stateless subset deliberately stays on the instance.
   activateWorkflow(payload: Partial<Omit<Parameters<typeof saveWorkflowRevision>[0], 'actorId'>>, actorId = 'control:workflow') {
     return saveWorkflowRevision({
       baseRevisionId: payload.baseRevisionId ?? null,
@@ -945,7 +974,7 @@ export class TradingWebControl {
     const accounts = (await listTradingAccounts()).filter(account => account.exchange !== 'paper');
     for (const account of accounts) {
       const remote = await this.requiredAdapter(account.exchange).openState(account);
-      this.assertNoRemoteExposure(remote);
+      TradingWebControl.assertNoRemoteExposure(remote);
     }
     const localExposure = await getDatabase().get<{ count: number }>(
       `SELECT COUNT(*) AS count FROM trading_positions
@@ -954,7 +983,7 @@ export class TradingWebControl {
     if (Number(localExposure?.count || 0) > 0) throw new Error('Factory reset refused while managed positions remain open.');
   }
 
-  private async requiredAccount(id: unknown): Promise<TradingAccount> {
+  private static async requiredAccount(id: unknown): Promise<TradingAccount> {
     const account = await getTradingAccount(identifier(id, 'Account identifier', 64));
     if (!account) throw new Error('Trading account does not exist.');
     return account;
@@ -996,7 +1025,7 @@ export class TradingWebControl {
     return entry;
   }
 
-  private credentialsFromPayload(entry: ExchangeCatalogEntry, input: unknown): TradingCredentials {
+  private static credentialsFromPayload(entry: ExchangeCatalogEntry, input: unknown): TradingCredentials {
     if (!input || typeof input !== 'object' || Array.isArray(input)) {
       throw new Error('Exchange credentials are required.');
     }
@@ -1026,7 +1055,7 @@ export class TradingWebControl {
     for (const account of accounts) await this.engine.reconcileAccount(account.id);
   }
 
-  private assertNoRemoteExposure(remote: ExchangeOpenState): void {
+  private static assertNoRemoteExposure(remote: ExchangeOpenState): void {
     const openOrders = remote.orders.filter(order => ['open', 'partially_filled', 'unknown'].includes(order.status));
     if (openOrders.length > 0 || remote.positions.length > 0) {
       throw new Error('Operation refused while the exchange reports open orders or positions.');

@@ -53,10 +53,13 @@ class FakeOfficialAdapter {
     this.snapshotCalls += 1;
     return Promise.resolve({ equity: '1000', availableBalance: '900', unrealizedPnl: '25', marginUsed: '100', fundingPnlToday: '-1' });
   }
+  // skipcq: JS-0105 - fixture implements the exchange adapter surface consumed through instances.
   marketSnapshot(_account, symbol) {
     return Promise.resolve({ symbol, markPrice: '100', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, observedAt: Date.now() });
   }
+  // skipcq: JS-0105 - fixture implements the exchange adapter surface consumed through instances.
   async submitOrder() { throw new Error('Not used by control-plane contract test.'); }
+  // skipcq: JS-0105 - fixture implements the exchange adapter surface consumed through instances.
   async cancelOrder() { throw new Error('Not used by control-plane contract test.'); }
   async openState(account) {
     this.trace.push({ kind: 'read', accountId: account.id, statuses: this.remote.orders.map(order => order.status) });
