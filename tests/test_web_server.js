@@ -217,7 +217,7 @@ async function testOperatorReadContracts(baseUrl, appState) {
 
 async function testConfigurationNormalization(baseUrl, appState) {
   const previous = { config: appState.config, persist: appState.persistConfig, apply: appState.applyRuntimeConfig };
-  let persisted; let applied;
+  let persisted = null; let applied = null;
   appState.config = structuredClone(DEFAULT_CONFIG);
   appState.config.sourceFilters = { '-1001': { regexPatterns: ['original'] }, '-1002': { regexPatterns: ['untouched'] } };
   appState.persistConfig = value => { persisted = structuredClone(value); };

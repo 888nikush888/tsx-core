@@ -13,8 +13,7 @@ const definitions = {
   usdc: ['bybit:usdc-usd-index:v1', 'bybit:usdc-usd-index:v1', 'spot', 'USDCUSDT', 'usdIndexPrice', '1.002'],
 };
 export function sealFxReceipt(receipt) {
-  const { receiptHash: ignored, ...body } = receipt;
-  void ignored;
+  const { receiptHash: _receiptHash, ...body } = receipt;
   body.envelopeHash = fxDigest('bybit-fx-envelope-v1', body.envelope);
   return { ...body, receiptHash: fxDigest('bybit-fx-receipt-v1', body) };
 }

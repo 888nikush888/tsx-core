@@ -8,7 +8,7 @@ import { McpServer, type ToolCallback } from '@modelcontextprotocol/sdk/server/m
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { closeDb, getDatabase, initDb } from './db.js';
 import { loadEnv } from './env.js';
 import {

@@ -17,7 +17,7 @@ function deferred() {
   return { promise, resolve };
 }
 const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-control-race-'));
-let runtime;
+let runtime = null;
 try {
   await initDb(path.join(directory, 'control.db'));
   await seedTradingFixtures();
@@ -87,8 +87,8 @@ const coercionFailure = new Error('coercion failure');
 thrownValues.push({ get message() { throw getterFailure; } },
   { message: { toString() { throw coercionFailure; } } });
 for (const thrown of thrownValues) {
-  let expected = undefined;
-  let expectedError = undefined;
+  let expected = null;
+  let expectedError = null;
   try {
     expected = uninformativeObjects.includes(thrown)
       ? 'entry-expiry: Non-Error object thrown without a useful message'

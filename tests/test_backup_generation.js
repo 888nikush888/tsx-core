@@ -22,7 +22,7 @@ const config = { ...structuredClone(DEFAULT_CONFIG), apiId: 17 };
 const template = path.join(sources.templatesDirectory, 'default.xml');
 const generationRoot = path.join(root, '.config.json.tsx-generations');
 const pin = callback => withPinnedConfigurationGeneration(sources.configurationPath, sources.databasePath, callback);
-let owner;
+let owner = null;
 
 async function initialization() {
   await mkdir(sources.templatesDirectory);

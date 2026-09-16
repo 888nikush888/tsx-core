@@ -3,7 +3,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getTdjson } from 'prebuilt-tdlib';
-import * as tdl from 'tdl';
+import { configure, createClient } from 'tdl';
 import { loadEnv } from '../src/env.js';
 
 const modulePath = fileURLToPath(import.meta.url);
@@ -28,7 +28,7 @@ function boundedInteger(value, fallback, minimum, maximum, name) {
 }
 
 async function withTimeout(operation, timeoutMs, label) {
-  let timer = undefined;
+  let timer = null;
   try {
     return await Promise.race([
       operation,
@@ -132,8 +132,8 @@ async function run() {
   const notBeforeSeconds = Math.floor(startedAt / 1000) - 30;
   let client = null;
   try {
-    tdl.configure({ tdjson: getTdjson() });
-    client = tdl.createClient({
+    configure({ tdjson: getTdjson() });
+    client = createClient({
       apiId: configuration.apiId,
       apiHash: configuration.apiHash,
       databaseDirectory: configuration.databaseDirectory,

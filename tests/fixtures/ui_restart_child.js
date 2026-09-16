@@ -38,7 +38,7 @@ if (mode === 'crash-before-receipt') {
 }
 if (mode === 'disconnect') {
   const release = deferred(); controls.barrier = release.promise;
-  void controls.entered.promise.then(() => process.send({ type: 'entered' }));
+  controls.entered.promise.then(() => process.send({ type: 'entered' }));
   process.on('message', message => { if (message.type === 'release') release.resolve(); });
 }
 if (mode === 'stalled-response') {

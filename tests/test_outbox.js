@@ -282,7 +282,7 @@ async function testPersistedMessageIdBoundary() {
     assert.deepStrictEqual(listed.config, { preserved: true }, 'Unrelated JSON stays opaque and unchanged.');
     const claimed = await claimOutboxTask(id);
     assert.strictEqual(claimed.status, 'preparing');
-    let failure;
+    let failure = null;
     try { requireOutboxMessageIds(claimed); } catch (error) { failure = error; }
     assert(failure instanceof OutboxMessageIdsError);
     assert.strictEqual(await failOutboxTask(id, failure), 'needs_review');
@@ -409,7 +409,7 @@ async function testPersistedJsonSyntaxBoundary() {
     const id = `syntax-repaired-${status}`;
     await enqueueOutboxTask(task(id, 813));
     await database.run('UPDATE pending_tasks SET config_json = ? WHERE id = ?', [raw, id]);
-    let release, started;
+    let release = null, started = null;
     const held = new Promise(resolve => { release = resolve; });
     const entered = new Promise(resolve => { started = resolve; });
     const repair = withDatabaseTransaction(async db => {

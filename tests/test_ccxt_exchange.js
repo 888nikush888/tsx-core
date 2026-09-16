@@ -27,6 +27,7 @@ function modeVerification() {
       executionModeObservation: { verified: true, entryAllowed: false, requiresSymbolRead: true, reason: null,
         scope: 'account_observation', origin: 'authenticated', observedAt: Date.now(), ccxtVersion: '4.5.75' } } };
 }
+// skipcq: JS-0119 - undefined is the no-override sentinel consumed by the fetch fixture below.
 let nextResponse;
 await initDb(path.join(directory, 'forwarder.db'));
 await seedTradingFixtures();

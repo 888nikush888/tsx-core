@@ -32,6 +32,7 @@ function validatedPage(response, collectionName, page, total) {
 
 async function fetchPages(endpoint, parameters, collectionName, options) {
   const records = new Map();
+  // skipcq: JS-0119 - total must start undefined; validatedPage distinguishes the first call via undefined.
   let total;
   for (let page = 1; ; page += 1) {
     const response = await sonarGet(endpoint, { ...parameters, p: page, ps: PAGE_SIZE }, options);

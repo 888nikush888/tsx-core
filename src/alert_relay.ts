@@ -171,7 +171,11 @@ export function createAlertRelay(options: AlertRelayOptions): http.Server {
   validateOptions(options);
   const timeoutMs = options.timeoutMs ?? 10_000;
   validateTimeout(timeoutMs);
-  const server = http.createServer((request, response) => void handleAlertRequest(request, response, options, timeoutMs));
+  const server = http.createServer((request, response) => {
+    handleAlertRequest(request, response, options, timeoutMs).catch(() => {
+      response.destroy();
+    });
+  });
   server.requestTimeout = 15_000;
   server.headersTimeout = 5_000;
   server.keepAliveTimeout = 5_000;

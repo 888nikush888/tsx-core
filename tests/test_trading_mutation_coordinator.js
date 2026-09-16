@@ -10,7 +10,7 @@ const coordinator = new TradingMutationCoordinator();
 const hold = deferred();
 const entered = deferred();
 const order = [];
-let capturedContext;
+let capturedContext = null;
 const epoch = coordinator.entryEpoch('a');
 const first = coordinator.run('a', async context => {
   capturedContext = context;

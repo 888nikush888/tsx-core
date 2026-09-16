@@ -68,7 +68,7 @@ function testBoundedReviewTree() {
   assert.throws(() => uiReviewTree(root, new URLSearchParams({ path: '["password"]' }), 'review-1'), /unavailable/);
   assert.throws(() => uiReviewTree(root, new URLSearchParams({ path: '["__proto__"]' }), 'review-1'), /unavailable/);
   assert.throws(() => uiReviewTree(root, new URLSearchParams({ path: '["library"]', cursor: first.nextCursor }), 'review-2'), /match/);
-  let cursor; let text = '';
+  let cursor = null; let text = '';
   do { const result = uiReviewTree(root, new URLSearchParams({ path: '["text"]', ...(cursor ? { cursor } : {}) }), 'review-1'); text += result.text; cursor = result.nextCursor; } while (cursor);
   assert.equal(text, root.text, 'Review text slices must not split or lose Unicode original data.');
   const large = setupContentReview({ content: { workflow: root }, library: { resources: ['x'.repeat(300000)] } }, { systemConfig: {}, workflow: {}, models: {}, accountReferences: [] });

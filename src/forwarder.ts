@@ -5,7 +5,7 @@ import { forwarderErrorCode, isForwardRestrictedError } from './forwarder_errors
 import type { WorkflowSignalPlan } from './workflow_repository.js';
 import type { TradingIntent, TradingSignalSchema } from './trading_types.js';
 import type { Config } from './config.js';
-import * as tdl from 'tdl';
+import { configure, createClient } from 'tdl';
 import { getTdjson } from 'prebuilt-tdlib';
 import { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
@@ -171,7 +171,7 @@ async function checkCrashLoop() {
   }
 }
 
-try { tdl.configure({ tdjson: getTdjson() }); } catch (error) {
+try { configure({ tdjson: getTdjson() }); } catch (error) {
   console.error("Fehler beim Initialisieren der TDLib-Bibliothek:", error.message);
   process.exit(1);
 }
@@ -1307,7 +1307,7 @@ async function connectAndActivateRouting(
   requiresTelegramTarget = true,
 ): Promise<void> {
   state.connectionState = 'connecting';
-  client = tdl.createClient({ apiId, apiHash, databaseDirectory: SESSION_DIRECTORY, filesDirectory: './session_files' });
+  client = createClient({ apiId, apiHash, databaseDirectory: SESSION_DIRECTORY, filesDirectory: './session_files' });
   client.on('error', err => {
     state.connectionState = 'error';
     addLog(`[TDLib Fehler] ${err.message || err}`);
@@ -1547,8 +1547,8 @@ function shutdown(exitCode = 0): Promise<void> {
   return shutdownPromise;
 }
 
-process.on('SIGINT', () => { void shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
-process.on('SIGTERM', () => { void shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
+process.on('SIGINT', () => { shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
+process.on('SIGTERM', () => { shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
 
 interface RuntimeConfiguration {
   config: Config;

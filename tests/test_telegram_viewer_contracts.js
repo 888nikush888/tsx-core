@@ -1,3 +1,4 @@
+// skipcq: JS-C1003 - the module namespace object is passed as a whole into verifyFormatterScalarBoundaries.
 import * as scalarFormatters from '../src/telegram_viewer/formatters.js';
 import { verifyFormatterScalarBoundaries } from './fixtures/formatter_scalar_cases.js';
 import assert from 'node:assert/strict';
@@ -6,7 +7,7 @@ import { TelegramViewerService } from '../src/telegram_viewer/service.js';
 import { DEFAULT_TELEGRAM_VIEWER_SETTINGS } from '../src/telegram_viewer_settings.js';
 
 const originalFetch = globalThis.fetch;
-let payload;
+let payload = null;
 globalThis.fetch = async () => new Response(JSON.stringify(payload), { status: 200 });
 try {
   const core = new TelegramViewerCoreApiClient('http://127.0.0.1:12345', 's'.repeat(43));

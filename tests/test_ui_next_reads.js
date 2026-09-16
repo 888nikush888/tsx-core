@@ -132,7 +132,7 @@ try {
   await database.run("DELETE FROM trading_account_incidents WHERE id='attention-critical'");
   const longOriginal = '🎯'.repeat(20005);
   await saveSignal('text-original', 'old-channel', 123, longOriginal, '0.000000000000001', { model: 'original-model' });
-  let textCursor; const textParts = [];
+  let textCursor = null; const textParts = [];
   do {
     const result = await uiSignalOriginal(new URLSearchParams({ id: 'text-original', ...(textCursor ? { cursor: textCursor } : {}) }));
     assert.ok([...result.text].length <= 10000); assert.equal(result.totalCharacters, 20005); assert.equal(result.model, 'original-model');
