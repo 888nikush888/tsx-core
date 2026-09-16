@@ -77,9 +77,9 @@ function normalizedJson(value: unknown): string {
   const visit = (candidate: unknown): unknown => {
     if (Array.isArray(candidate)) return candidate.map(visit);
     if (!candidate || typeof candidate !== 'object') return candidate;
-    return Object.fromEntries(Object.keys(candidate)
-      .sort((left, right) => left.localeCompare(right))
-      .map(key => [key, visit((candidate as Record<string, unknown>)[key])]));
+    return Object.fromEntries(Object.entries(candidate)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, nested]) => [key, visit(nested)]));
   };
   return JSON.stringify(visit(value));
 }
@@ -122,6 +122,7 @@ function workflowHistoryLabel(value: unknown): string {
   const label = value ?? DEFAULT_WORKFLOW_HISTORY_LABEL;
   if (typeof label !== 'string' || !label.trim() || label.trim().length > 160
     // skipcq: JS-0004 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
+    // eslint-disable-next-line no-control-regex -- intentional rejection of control characters in untrusted labels
     || /[\u0000-\u001f\u007f]/u.test(label)) {
     throw new Error('Workflow history label is invalid.');
   }
@@ -189,7 +190,8 @@ async function writeWorkflowBuilderHistory(history: WorkflowHistoryState, now: n
     'UPDATE workflow_builder_history SET undo_json = ?, redo_json = ?, updated_at = ? WHERE singleton_id = 1',
     [normalizedJson(undo), normalizedJson(redo), now],
   );
-  if (Number(result.changes || 0) !== 1) throw new Error('Workflow builder history state is missing.');
+  const persisted = Number(result.changes || 0) === 1;
+  if (!persisted) throw new Error('Workflow builder history state is missing.');
 }
 
 function workflowHistoryStatus(history: WorkflowHistoryState): WorkflowHistoryStatus {
@@ -310,7 +312,7 @@ function adaptiveRiskTiers(value: ResourceConfiguration): Array<{ riskPercent: s
   });
   tiers.forEach((tier, index) => {
     const previous = tiers[index - 1];
-    if (index > 0 && (!previous || Number(tier.riskPercent) <= Number(previous.riskPercent))) {
+    if (index > 0 && Number(tier.riskPercent) <= Number(previous.riskPercent)) {
       throw new Error('Adaptive-risk tiers must increase strictly.');
     }
   });
@@ -405,7 +407,8 @@ const RESOURCE_VALIDATORS: Partial<Record<WorkflowResourceKind, ResourceValidato
 function validateResourceConfiguration(kind: WorkflowResourceKind, input: unknown): Record<string, unknown> {
   const value = object(input, `${kind} configuration`);
   if (JSON.stringify(value).length > 100_000) throw new Error('Workflow resource configuration is too large.');
-  return RESOURCE_VALIDATORS[kind]?.(value) ?? value;
+  const validator = Object.entries(RESOURCE_VALIDATORS).find(([id]) => id === kind)?.[1];
+  return validator?.(value) ?? value;
 }
 
 function resourceFromRow(row: WorkflowResourceRow): WorkflowResourceVersion {
@@ -504,7 +507,7 @@ function hydratedRouteGroups(
     ...group,
     candidates: group.candidates.map(candidate => ({
       ...candidate,
-      fallbackOn: candidate.fallbackOn ?? policyByPath.get(candidate.pathId) ?? [],
+      fallbackOn: (candidate as { fallbackOn?: WorkflowFallbackReason[] }).fallbackOn ?? policyByPath.get(candidate.pathId) ?? [],
     })),
   }));
 }
@@ -835,11 +838,12 @@ export function validateGraph(input: unknown): WorkflowGraph {
     };
   });
   for (const kind of RESOURCE_KINDS) {
+    const stage = Object.entries(STAGE).find(([id]) => id === kind)?.[1] ?? 0;
     nodes
       .filter(node => node.kind === kind)
       .sort((left, right) => left.position.y - right.position.y || left.id.localeCompare(right.id))
       .forEach((node, index) => {
-        node.position = { x: STAGE[kind] * WORKFLOW_COLUMN_GAP, y: index * WORKFLOW_ROW_GAP };
+        node.position = { x: stage * WORKFLOW_COLUMN_GAP, y: index * WORKFLOW_ROW_GAP };
       });
   }
   const nodesById = new Map(nodes.map(node => [node.id, node]));
@@ -1201,7 +1205,7 @@ async function compileTerminalLineage(
       adaptiveRiskResourceVersionId: resourceVersionForKind(byKind, 'adaptive_risk'),
       routeGroupKey,
       fallbackRank: rank,
-      fallbackOn: [...fallbackPolicies[rank]],
+      fallbackOn: [...(fallbackPolicies.at(rank) ?? [])],
       nodeIds: candidateNodeIds,
       effectiveConfiguration,
       enabled: Number(account.enabled) === 1 && account.status === 'ready',
@@ -1210,7 +1214,7 @@ async function compileTerminalLineage(
     candidates.push({
       pathId: id,
       accountId,
-      accountNodeId: accountNodeIds[rank],
+      accountNodeId: accountNodeIds.at(rank),
       rank,
       enabled: path.enabled,
       fallbackOn: [...path.fallbackOn],
@@ -1460,7 +1464,7 @@ export function previewWorkflowBuilderHistoryImpact(input: {
     const history = await loadWorkflowBuilderHistory();
     const { activeId, activePaths } = await activeWorkflowState();
     if (activeId !== input.baseRevisionId) throw new Error('WORKFLOW_REVISION_CONFLICT');
-    const entry = history[direction].at(-1);
+    const entry = (direction === 'undo' ? history.undo : history.redo).at(-1);
     if (!entry) throw new Error(`WORKFLOW_HISTORY_${direction.toUpperCase()}_EMPTY`);
     const target = await workflowHistoryTarget(entry);
     return workflowImpact(activePaths, target.compiled.paths, target.compiled.warnings);
@@ -1492,7 +1496,7 @@ export async function applyWorkflowBuilderHistory(input: {
     const history = await loadWorkflowBuilderHistory();
     const { activeId, activePaths } = await activeWorkflowState();
     if (activeId !== input.baseRevisionId) throw new Error('WORKFLOW_REVISION_CONFLICT');
-    const targetEntry = history[direction].at(-1);
+    const targetEntry = (direction === 'undo' ? history.undo : history.redo).at(-1);
     if (!targetEntry) throw new Error(`WORKFLOW_HISTORY_${direction.toUpperCase()}_EMPTY`);
     const target = await workflowHistoryTarget(targetEntry);
     const impact = workflowImpact(activePaths, target.compiled.paths, target.compiled.warnings);
@@ -1639,7 +1643,7 @@ export function legacyAdaptiveRiskDefinition(alias: string, policy: LegacyRiskPo
 }
 
 function legacyOutputMode(config: Config): 'telegram_xml' | 'telegram_original' | 'audit_only' {
-  if (!config.forwardOptions?.forwardToTarget) return 'audit_only';
+  if (!config.forwardOptions.forwardToTarget) return 'audit_only';
   return config.xmlParsing.forwardXmlToTarget ? 'telegram_xml' : 'telegram_original';
 }
 
@@ -1655,19 +1659,19 @@ function legacyResourceDefinitions(input: {
   policy: LegacyRiskPolicyRow | undefined;
 }): LegacyResourceDefinition[] {
   const { config, route, channelId, alias, strategy, schema, templateName, prompt, policy } = input;
-  const sourcePatterns = config.sourceFilters?.[channelId]?.regexPatterns;
-  const regexPatterns = Array.isArray(sourcePatterns) ? sourcePatterns : (config.filters.regexPatterns || []);
+  const sourcePatterns = Object.entries(config.sourceFilters).find(([id]) => id === channelId)?.[1]?.regexPatterns;
+  const regexPatterns = Array.isArray(sourcePatterns) ? sourcePatterns : config.filters.regexPatterns;
   return [
     { kind: 'channel', name: `Kanal · ${alias}`, configuration: { channelId } },
     {
       kind: 'content_filter', name: `Inhalt · ${alias}`,
-      configuration: { allowedTypes: config.filters.allowedTypes?.length ? config.filters.allowedTypes : ['text'] },
+      configuration: { allowedTypes: config.filters.allowedTypes.length ? config.filters.allowedTypes : ['text'] },
     },
     {
       kind: 'keyword_filter', name: `Schlüsselwörter · ${alias}`,
       configuration: {
         allowedKeywords: config.filters.allowedKeywords || [],
-        blockedKeywords: config.filters.blockedKeywords || [],
+        blockedKeywords: config.filters.blockedKeywords,
       },
     },
     { kind: 'regex', name: `Regex · ${alias}`, configuration: { patterns: regexPatterns, mode: 'all' } },
@@ -1718,7 +1722,7 @@ async function materializeLegacyPath(
   }
   const edges: WorkflowEdge[] = [];
   for (const [index, source] of nodes.entries()) {
-    const target = nodes[index + 1];
+    const target = nodes.at(index + 1);
     if (target) edges.push({ id: randomUUID(), source: source.id, target: target.id });
   }
   return { nodes, edges };
@@ -1739,14 +1743,14 @@ export async function migrateLegacyTradingRoutesToWorkflow(
   for (const route of routes) {
     const channelId = String(route.channel_id);
     const strategy = validateStrategyConfiguration(parseJson(route.configuration_json, 'legacy strategy configuration'));
-    const templateName = config.xmlParsing.sourceTemplates?.[channelId] || 'default';
+    const templateName = Object.entries(config.xmlParsing.sourceTemplates).find(([id]) => id === channelId)?.[1] || 'default';
     const schema = selectLegacySchema(schemas, templateName, strategy);
     if (!schema) {
       skipped.push(`${channelId}: no enabled signal schema allowed by strategy ${route.strategy_version_id}`);
       continue;
     }
     const prompt = await loadSignalPromptTemplate(templateName);
-    const alias = config.sourceAliases?.[channelId] || channelId;
+    const alias = Object.entries(config.sourceAliases).find(([id]) => id === channelId)?.[1] || channelId;
     const definitions = legacyResourceDefinitions({
       config, route, channelId, alias, strategy, schema, templateName: prompt.templateName,
       prompt: prompt.promptTemplate, policy: policies.get(channelId),
@@ -1912,7 +1916,7 @@ export async function getWorkflowSignalPlans(input: {
   contentType: string;
   workflowRevisionId?: string | null;
 }): Promise<WorkflowSignalPlan[]> {
-  let workflow = null;
+  let workflow: WorkflowRevision | null = null;
   if (input.workflowRevisionId === undefined) workflow = await getActiveWorkflow();
   else if (input.workflowRevisionId) workflow = await getWorkflowRevisionById(input.workflowRevisionId);
   if (input.workflowRevisionId && !workflow) throw new Error('Pinned workflow revision is missing; review required.');
@@ -1964,7 +1968,7 @@ export async function isWorkflowExecutionAuthorized(executionPathId: string): Pr
   return active.compiled.paths.some(candidate => candidate.enabled
     && candidate.channelId === original.channel_id && candidate.accountId === original.account_id
     && candidate.nodeIds.length === originalNodes.length
-    && candidate.nodeIds.every((id, index) => id === originalNodes[index]));
+    && candidate.nodeIds.every((id, index) => id === originalNodes.at(index)));
 }
 
 function workflowIntentBlockReason(path: WorkflowExecutionPath, account: AccountRow | undefined, runtime: RuntimeRow | undefined): string | null {
