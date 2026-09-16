@@ -54,10 +54,10 @@ function exactProduct(input: string, factor: string, output: string): boolean {
     === outputCoefficient.value * 10n ** BigInt(inputCoefficient.scale + factorCoefficient.scale);
 }
 function arithmetic(value: unknown, row: Record<string, any>): void {
-  const a = shape(value, 'operation decimalPrecision decimalRounding exactProduct');
-  if (a.operation !== 'multiply' || !Number.isSafeInteger(a.decimalPrecision) || a.decimalPrecision < 1 || a.decimalPrecision > 10000
-    || !['ROUND_CEILING', 'ROUND_DOWN', 'ROUND_FLOOR', 'ROUND_HALF_DOWN', 'ROUND_HALF_EVEN', 'ROUND_HALF_UP', 'ROUND_UP', 'ROUND_05UP'].includes(a.decimalRounding)
-    || a.exactProduct !== exactProduct(row.inputQuantity, row.appliedFactor, row.outputQuantity)) invalid();
+  const arithmeticRow = shape(value, 'operation decimalPrecision decimalRounding exactProduct');
+  if (arithmeticRow.operation !== 'multiply' || !Number.isSafeInteger(arithmeticRow.decimalPrecision) || arithmeticRow.decimalPrecision < 1 || arithmeticRow.decimalPrecision > 10000
+    || !['ROUND_CEILING', 'ROUND_DOWN', 'ROUND_FLOOR', 'ROUND_HALF_DOWN', 'ROUND_HALF_EVEN', 'ROUND_HALF_UP', 'ROUND_UP', 'ROUND_05UP'].includes(arithmeticRow.decimalRounding)
+    || arithmeticRow.exactProduct !== exactProduct(row.inputQuantity, row.appliedFactor, row.outputQuantity)) invalid();
 }
 function originalBinding(row: Record<string, any>, fill: ExchangeFill): ExchangeFillIdentity {
   const identity = validateFillIdentity(row.nativeIdentity), raw = object(fill.raw), info = object(raw.info);
@@ -72,13 +72,13 @@ function originalBinding(row: Record<string, any>, fill: ExchangeFill): Exchange
   return identity;
 }
 function marketBinding(value: unknown, row: Record<string, any>, fill: ExchangeFill, identity: ExchangeFillIdentity): void {
-  const m = shape(value, 'providerMarketId providerSymbol base quote settlementAsset contract linear inverse appliedContractSize source sourceHash observedAt providerContractSize providerOriginalStatus');
-  for (const name of ['providerMarketId', 'providerSymbol', 'base', 'quote', 'settlementAsset']) token(m[name]);
-  if (m.contract !== true || m.linear !== true || m.inverse !== false || m.source !== 'ccxt-4.5.75-loaded-market'
-    || m.observedAt !== null || m.providerContractSize !== null || m.providerOriginalStatus !== 'not-retained') invalid();
-  if (m.providerMarketId !== identity.providerMarketId || m.providerSymbol !== identity.providerSymbol
-    || m.settlementAsset !== fill.accounting?.settlementAsset || m.appliedContractSize !== row.appliedFactor) invalid();
-  const { sourceHash, ...original } = m;
+  const market = shape(value, 'providerMarketId providerSymbol base quote settlementAsset contract linear inverse appliedContractSize source sourceHash observedAt providerContractSize providerOriginalStatus');
+  for (const name of ['providerMarketId', 'providerSymbol', 'base', 'quote', 'settlementAsset']) token(market[name]);
+  if (market.contract !== true || market.linear !== true || market.inverse !== false || market.source !== 'ccxt-4.5.75-loaded-market'
+    || market.observedAt !== null || market.providerContractSize !== null || market.providerOriginalStatus !== 'not-retained') invalid();
+  if (market.providerMarketId !== identity.providerMarketId || market.providerSymbol !== identity.providerSymbol
+    || market.settlementAsset !== fill.accounting?.settlementAsset || market.appliedContractSize !== row.appliedFactor) invalid();
+  const { sourceHash, ...original } = market;
   if (sourceHash !== fillQuantityDigest('kraken-normalization-market-v1', original)) invalid();
 }
 export function validateFillQuantityNormalization(value: unknown, fill: ExchangeFill): FillQuantityNormalization {

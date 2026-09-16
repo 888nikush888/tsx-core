@@ -16,7 +16,7 @@ export function verifyFormatterScalarBoundaries(formatters, legacy = null) {
     ['system incidents','formatSystem',{openIncidents:2},['openIncidents']],
   ];
   let validComparisons=0, malformedCases=0, legacyCoercionReads=0;
-  const replace=(base,keys,value)=>{const p=structuredClone(base);let parent=p;for(const key of keys.slice(0,-1))parent=parent[key];parent[keys.at(-1)]=value;return p;};
+  const replace=(base,keys,value)=>{const clone=structuredClone(base);let parent=clone;for(const key of keys.slice(0,-1))parent=parent[key];parent[keys.at(-1)]=value;return clone;};
   for(const [label,name,payload,keys] of cases){
     if(legacy){assert.equal(formatters[name](payload),legacy[name](payload),label);validComparisons++;}
     let reads=0;const hostile=Object.defineProperty({},Symbol.toPrimitive,{get(){reads++;throw new Error('must not coerce '+label);}});

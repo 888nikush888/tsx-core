@@ -108,10 +108,10 @@ export function moneyValueFromDecimal(value: string): MoneyValue {
 }
 
 function gcd(left: bigint, right: bigint): bigint {
-  let a = left < 0n ? -left : left;
-  let b = right;
-  while (b !== 0n) [a, b] = [b, a % b];
-  return a;
+  let leftMagnitude = left < 0n ? -left : left;
+  let rightMagnitude = right;
+  while (rightMagnitude !== 0n) [leftMagnitude, rightMagnitude] = [rightMagnitude, leftMagnitude % rightMagnitude];
+  return leftMagnitude;
 }
 
 function exceedsRationalLimit(left: ExactRational, right: ExactRational): boolean {

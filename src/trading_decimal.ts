@@ -68,21 +68,21 @@ export function subtractDecimal(left: string, right: string): string {
 }
 
 export function multiplyDecimal(left: string, right: string): string {
-  const a = parse(left);
-  const b = parse(right);
-  const productScale = a.scale + b.scale;
-  const coefficient = a.coefficient * b.coefficient;
+  const parsedLeft = parse(left);
+  const parsedRight = parse(right);
+  const productScale = parsedLeft.scale + parsedRight.scale;
+  const coefficient = parsedLeft.coefficient * parsedRight.coefficient;
   if (productScale <= 18) return format(coefficient, productScale);
   return format(coefficient / powerOfTen(productScale - 18), 18);
 }
 
 export function divideDecimal(left: string, right: string, scale = 18): string {
-  const a = parse(left);
-  const b = parse(right);
-  if (b.coefficient === 0n) throw new Error('Division by zero.');
+  const parsedLeft = parse(left);
+  const parsedRight = parse(right);
+  if (parsedRight.coefficient === 0n) throw new Error('Division by zero.');
   if (!Number.isSafeInteger(scale) || scale < 0 || scale > 18) throw new Error('Division scale must be between 0 and 18.');
-  const numerator = a.coefficient * powerOfTen(scale + b.scale);
-  const denominator = b.coefficient * powerOfTen(a.scale);
+  const numerator = parsedLeft.coefficient * powerOfTen(scale + parsedRight.scale);
+  const denominator = parsedRight.coefficient * powerOfTen(parsedLeft.scale);
   return format(numerator / denominator, scale);
 }
 
@@ -129,18 +129,18 @@ export function subtractSignedDecimal(left: string, right: string): string {
 }
 
 export function multiplySignedDecimal(left: string, right: string): string {
-  const a = signedDecimal(left);
-  const b = signedDecimal(right);
-  const magnitude = multiplyDecimal(a.startsWith('-') ? a.slice(1) : a, b.startsWith('-') ? b.slice(1) : b);
-  return a.startsWith('-') !== b.startsWith('-') ? negateSignedDecimal(magnitude) : magnitude;
+  const signedLeft = signedDecimal(left);
+  const signedRight = signedDecimal(right);
+  const magnitude = multiplyDecimal(signedLeft.startsWith('-') ? signedLeft.slice(1) : signedLeft, signedRight.startsWith('-') ? signedRight.slice(1) : signedRight);
+  return signedLeft.startsWith('-') !== signedRight.startsWith('-') ? negateSignedDecimal(magnitude) : magnitude;
 }
 
 /** Monetary valuations may not silently round an unknown cost down, even below one quantum. */
 export function multiplyExactSignedDecimal(left: string, right: string): string {
-  const a = signedDecimal(left);
-  const b = signedDecimal(right);
-  const parsedA = parse(a.startsWith('-') ? a.slice(1) : a);
-  const parsedB = parse(b.startsWith('-') ? b.slice(1) : b);
+  const signedLeft = signedDecimal(left);
+  const signedRight = signedDecimal(right);
+  const parsedA = parse(signedLeft.startsWith('-') ? signedLeft.slice(1) : signedLeft);
+  const parsedB = parse(signedRight.startsWith('-') ? signedRight.slice(1) : signedRight);
   let coefficient = parsedA.coefficient * parsedB.coefficient;
   let scale = parsedA.scale + parsedB.scale;
   while (scale > 0 && coefficient % 10n === 0n) {
@@ -149,7 +149,7 @@ export function multiplyExactSignedDecimal(left: string, right: string): string 
   }
   if (scale > 18) throw new Error('Exact monetary valuation exceeds supported decimal precision.');
   const magnitude = decimal(format(coefficient, scale));
-  return a.startsWith('-') !== b.startsWith('-') ? negateSignedDecimal(magnitude) : magnitude;
+  return signedLeft.startsWith('-') !== signedRight.startsWith('-') ? negateSignedDecimal(magnitude) : magnitude;
 }
 
 /** Exact proportional cost allocation; an unrepresentable ratio needs an explicit rounding contract. */
@@ -164,22 +164,22 @@ export function allocateDecimalExact(value: string, numerator: string, denominat
 }
 
 export function addSignedDecimal(left: string, right: string): string {
-  const a = signedDecimal(left);
-  const b = signedDecimal(right);
-  const aNegative = a.startsWith('-');
-  const bNegative = b.startsWith('-');
-  const aMagnitude = aNegative ? a.slice(1) : a;
-  const bMagnitude = bNegative ? b.slice(1) : b;
-  if (aNegative === bNegative) {
-    const sum = addDecimal(aMagnitude, bMagnitude);
-    return aNegative && sum !== '0' ? `-${sum}` : sum;
+  const signedLeft = signedDecimal(left);
+  const signedRight = signedDecimal(right);
+  const leftNegative = signedLeft.startsWith('-');
+  const rightNegative = signedRight.startsWith('-');
+  const leftMagnitude = leftNegative ? signedLeft.slice(1) : signedLeft;
+  const rightMagnitude = rightNegative ? signedRight.slice(1) : signedRight;
+  if (leftNegative === rightNegative) {
+    const sum = addDecimal(leftMagnitude, rightMagnitude);
+    return leftNegative && sum !== '0' ? `-${sum}` : sum;
   }
-  const order = compareDecimal(aMagnitude, bMagnitude);
+  const order = compareDecimal(leftMagnitude, rightMagnitude);
   if (order === 0) return '0';
   const difference = order > 0
-    ? subtractDecimal(aMagnitude, bMagnitude)
-    : subtractDecimal(bMagnitude, aMagnitude);
-  const negative = order > 0 ? aNegative : bNegative;
+    ? subtractDecimal(leftMagnitude, rightMagnitude)
+    : subtractDecimal(rightMagnitude, leftMagnitude);
+  const negative = order > 0 ? leftNegative : rightNegative;
   return negative ? `-${difference}` : difference;
 }
 
