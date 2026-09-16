@@ -270,16 +270,16 @@ assert.doesNotMatch(nodeImage, /:latest(?:@|$)/, 'NODE_IMAGE must not use latest
 assert.doesNotMatch(runtimeImage, /:latest(?:@|$)/, 'RUNTIME_IMAGE must not use latest');
 assert.match(runtimeImage, /^gcr\.io\/distroless\/nodejs22-debian13@sha256:/);
 assert.equal(runtimeImage, 'gcr.io/distroless/nodejs22-debian13@sha256:bde4c459719d1101d0ed962bb1eec9cbf58bbbaca3560ac143c8ca02ab02e099');
-assert.equal(baseImages[0], '${NODE_IMAGE}', 'base stage must use the pinned NODE_IMAGE argument');
+assert.equal(baseImages[0], `\${NODE_IMAGE}`, 'base stage must use the pinned NODE_IMAGE argument');
 assert.ok(
   baseImages.slice(1, -1).every((image) => image === 'base'),
   'all build stages must inherit the pinned build base'
 );
-assert.equal(baseImages.at(-1), '${RUNTIME_IMAGE}', 'runner must use the pinned distroless image');
+assert.equal(baseImages.at(-1), `\${RUNTIME_IMAGE}`, 'runner must use the pinned distroless image');
 assert.match(dockerfile, /^ARG DEBIAN_SNAPSHOT=\d{8}T\d{6}Z$/m);
 assert.match(dockerfile, /snapshot\.debian\.org\/archive\/debian\/\$\{DEBIAN_SNAPSHOT\}/);
 assert.match(dockerfile, /snapshot\.debian\.org\/archive\/debian-security\/\$\{DEBIAN_SNAPSHOT\}/);
-const runtimeStage = dockerfile.slice(dockerfile.indexOf('FROM ${RUNTIME_IMAGE} AS runner'));
+const runtimeStage = dockerfile.slice(dockerfile.indexOf(`FROM \${RUNTIME_IMAGE} AS runner`));
 assert.doesNotMatch(runtimeStage, /^RUN\s/m, 'distroless runtime must not install packages');
 assert.match(runtimeStage, /^USER 65532:65532$/m);
 assert.match(runtimeStage, /^CMD \["dist\/forwarder\.js"\]$/m);
@@ -358,12 +358,12 @@ assert.doesNotMatch(implementationBlock, /continue-on-error|\|\|\s*true|--exchan
   'The packaging gate cannot skip profiles, inject approvals, or disregard a NO-GO.');
 const runtimeGateCommand = containerJob.split('\n').find(line => line.includes('/app/verify_implementation_runtime.py'));
 assert.equal(runtimeGateCommand?.trim(),
-  'docker run --rm --network none --read-only --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -E -B /app/verify_implementation_runtime.py',
+  `docker run --rm --network none --read-only --entrypoint python tsx-core-exchange-executor:\${{ github.sha }} -E -B /app/verify_implementation_runtime.py`,
   'The final baked image must verify every real implementation receipt offline without mounts, env approvals, or user overrides.');
 const runtimeGatePosition = containerJob.indexOf(runtimeGateCommand);
 const executorUserCheck = containerJob.indexOf('test "$(docker image inspect tsx-core-exchange-executor:');
 assert.equal(containerJob.slice(executorUserCheck, containerJob.indexOf('\n', executorUserCheck)).trim(),
-  'test "$(docker image inspect tsx-core-exchange-executor:${{ github.sha }} --format \'{{.Config.User}}\')" = 65532:65532',
+  `test "$(docker image inspect tsx-core-exchange-executor:\${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532`,
   'The baked receipt gate must retain the explicit UID/GID 65532 image identity check.');
 assert.ok(executorUserCheck > executorBuildStep && runtimeGatePosition > executorUserCheck,
   'The installed-byte receipt gate must use the already verified non-root image user.');
