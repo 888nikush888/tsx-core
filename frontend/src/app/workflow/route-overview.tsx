@@ -62,63 +62,7 @@ export function RouteOverview({
     onFocusPath(pathId);
     onOpenChange(false);
   };
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="route-overview-panel"
-      >
-        <DialogHeader>
-          <Badge variant="secondary">
-            <Route /> Routing
-          </Badge>
-          <DialogTitle>Kanäle, Verarbeitung und Börsen</DialogTitle>
-          <DialogDescription>
-            Die Matrix zeigt verbindlich, welche exklusive Kontoreihenfolge ein
-            Signal verwendet. Jede Kontoverbindung zeigt, welche sicheren
-            Verfügbarkeits- oder Kapazitätsgründe den nächsten Versuch erlauben.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="route-overview-content">
-          <Alert>
-            <GitBranch />
-            <AlertTitle>Die Verbindungen bestimmen die Ausführung</AlertTitle>
-            <AlertDescription>
-              Zusammengeführte Kanäle teilen alle folgenden Abzweigungen. Für
-              eine feste Kanal-zu-Konto-Zuordnung werden getrennte Knotenpfade
-              angelegt; dieselbe veröffentlichte Regex- oder Parser-Version kann
-              in mehreren Pfaden wiederverwendet werden.
-            </AlertDescription>
-          </Alert>
-
-          {topology.crossProducts.map((group) => (
-            <Alert key={group.id} className="route-cross-product-alert">
-              <GitMerge />
-              <AlertTitle>
-                Vollständige Verteilung: {group.channelCount} Kanäle ×{" "}
-                {group.accountCount} Konten
-              </AlertTitle>
-              <AlertDescription>
-                {group.channels.join(", ")} laufen gemeinsam durch{" "}
-                {group.sharedNodes.join(", ")} und erreichen deshalb{" "}
-                {group.accounts.join(", ")}. Ergebnis: {group.routeCount}{" "}
-                Ausführungspfade.
-              </AlertDescription>
-            </Alert>
-          ))}
-
-          <Card size="sm" className="route-matrix-card">
-            <CardHeader>
-              <CardTitle>Kanal × Börsenkonto</CardTitle>
-              <CardDescription>
-                Klicke eine belegte Zelle an, um den zugehörigen Pfad auf dem
-                Canvas hervorzuheben.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {topology.routes.length === 0 ? (
-                <p className="route-empty">Noch kein vollständiger Pfad.</p>
-              ) : (
-                <div className="route-matrix-scroll">
+  const routeMatrixTable = (
                   <table aria-label="Kanal-zu-Konto-Matrix">
                     <thead>
                       <tr>
@@ -185,11 +129,40 @@ export function RouteOverview({
                       ))}
                     </tbody>
                   </table>
+  );
+  const routingAlert = (
+          <Alert>
+            <GitBranch />
+            <AlertTitle>Die Verbindungen bestimmen die Ausführung</AlertTitle>
+            <AlertDescription>
+              Zusammengeführte Kanäle teilen alle folgenden Abzweigungen. Für
+              eine feste Kanal-zu-Konto-Zuordnung werden getrennte Knotenpfade
+              angelegt; dieselbe veröffentlichte Regex- oder Parser-Version kann
+              in mehreren Pfaden wiederverwendet werden.
+            </AlertDescription>
+          </Alert>
+  );
+  const matrixCard = (
+          <Card size="sm" className="route-matrix-card">
+            <CardHeader>
+              <CardTitle>Kanal × Börsenkonto</CardTitle>
+              <CardDescription>
+                Klicke eine belegte Zelle an, um den zugehörigen Pfad auf dem
+                Canvas hervorzuheben.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {topology.routes.length === 0 ? (
+                <p className="route-empty">Noch kein vollständiger Pfad.</p>
+              ) : (
+                <div className="route-matrix-scroll">
+                  {routeMatrixTable}
                 </div>
               )}
             </CardContent>
           </Card>
-
+  );
+  const routeListSection = (
           <section className="route-list" aria-labelledby="route-list-title">
             <div className="route-list-heading">
               <div>
@@ -245,6 +218,45 @@ export function RouteOverview({
               </Card>
             ))}
           </section>
+  );
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="route-overview-panel"
+      >
+        <DialogHeader>
+          <Badge variant="secondary">
+            <Route /> Routing
+          </Badge>
+          <DialogTitle>Kanäle, Verarbeitung und Börsen</DialogTitle>
+          <DialogDescription>
+            Die Matrix zeigt verbindlich, welche exklusive Kontoreihenfolge ein
+            Signal verwendet. Jede Kontoverbindung zeigt, welche sicheren
+            Verfügbarkeits- oder Kapazitätsgründe den nächsten Versuch erlauben.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="route-overview-content">
+          {routingAlert}
+
+          {topology.crossProducts.map((group) => (
+            <Alert key={group.id} className="route-cross-product-alert">
+              <GitMerge />
+              <AlertTitle>
+                Vollständige Verteilung: {group.channelCount} Kanäle ×{" "}
+                {group.accountCount} Konten
+              </AlertTitle>
+              <AlertDescription>
+                {group.channels.join(", ")} laufen gemeinsam durch{" "}
+                {group.sharedNodes.join(", ")} und erreichen deshalb{" "}
+                {group.accounts.join(", ")}. Ergebnis: {group.routeCount}{" "}
+                Ausführungspfade.
+              </AlertDescription>
+            </Alert>
+          ))}
+
+          {matrixCard}
+
+          {routeListSection}
         </div>
       </DialogContent>
     </Dialog>

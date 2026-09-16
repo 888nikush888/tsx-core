@@ -90,10 +90,13 @@ export function OperatorApp() {
     }
     return "Verbindung wird geprüft";
   };
-  return <OperatorReadOnlyContext.Provider value={readOnly}><div className="min-h-screen bg-background text-foreground">
+  const appHeader = (
     <header className="border-b p-4 flex flex-wrap items-center justify-between gap-3"><Link to="/cockpit" aria-label="TSX Core Cockpit"><Logo variant="full" size={36} /></Link>
       <div className="text-sm"><p>{session?.session?.actorId ?? "Identität wird geprüft"} · {session?.session?.role ?? "unbekannte Rolle"}</p><p>Backend {session?.backendVersion ?? "unbekannt"} · UI {__UI_VERSION__} · {connectionStatus()}</p></div><GlobalSearch /><ThemeToggle />
     </header>
+  );
+  return <OperatorReadOnlyContext.Provider value={readOnly}><div className="min-h-screen bg-background text-foreground">
+    {appHeader}
     <nav aria-label="Hauptbereiche" className="grid grid-cols-2 gap-2 border-b p-3 sm:grid-cols-4 xl:grid-cols-7">{OPERATOR_AREAS.map((item) => <Link tabIndex={0} key={item.id} to={item.links[0][0]} aria-current={area?.id === item.id ? "page" : undefined} className={`min-h-11 flex items-center px-3 py-2 border ${area?.id === item.id ? "bg-muted font-semibold" : "border-transparent"}`}>{item.label}</Link>)}</nav>
     <nav aria-label="Unterbereiche" className="flex flex-wrap gap-3 px-4 py-3">{area?.links.map(([path, label]) => <Link key={path} to={path} aria-current={pathname === path ? "page" : undefined} className="min-h-11 px-2 py-3 underline-offset-4 hover:underline">{label}</Link>)}<Link to="/recovery" className="ml-auto min-h-11 py-3">Recovery</Link></nav>
     <div className="px-4 text-sm"><p>Neue Entries: {entryPermission()} · Live-Erlaubnis: {livePermission()}. Bestehende Exposition und Schutz sind gesonderte Nachweise. {globalState && `Globalen Zustand gelesen ${new Date(globalState.readAt).toLocaleTimeString('de-DE')}.`}</p></div>

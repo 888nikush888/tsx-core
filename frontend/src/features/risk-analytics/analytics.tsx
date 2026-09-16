@@ -124,6 +124,24 @@ export function Analytics({
     }
     return [...labels].sort((left, right) => left[1].localeCompare(right[1]));
   }, [catalog, trading?.accounts, trading?.channelAnalytics?.exchanges]);
+  const channelHeaderRow = (
+          <div className="analytics-row heading" role="row">
+            <span>Kanal</span>
+            <span>Trades</span>
+            <span>W / L</span>
+            <span>Win Rate</span>
+            <span>PnL</span>
+            <span>Slippage</span>
+          </div>
+  );
+  const expectancyGrid = (
+        <div className="expectancy-grid">
+          <label><span>Trefferquote %</span><Input type="number" min="0" max="100" value={expectancy.winRate} onChange={(event) => setExpectancy((value) => ({ ...value, winRate: event.target.value }))} /></label>
+          <label><span>Ø Gewinn (R)</span><Input type="number" min="0" step="0.1" value={expectancy.averageWin} onChange={(event) => setExpectancy((value) => ({ ...value, averageWin: event.target.value }))} /></label>
+          <label><span>Ø Verlust (R)</span><Input type="number" min="0" step="0.1" value={expectancy.averageLoss} onChange={(event) => setExpectancy((value) => ({ ...value, averageLoss: event.target.value }))} /></label>
+          <div className={`expectancy-result ${expectancyValue < 0 ? "danger" : "healthy"}`}><strong>{metricNumber(expectancyValue, 3)} R</strong><span>Erwartungswert je Trade</span></div>
+        </div>
+  );
   return (
     <div className="operations-stack">
       {filtersOpen && (
@@ -228,14 +246,7 @@ export function Analytics({
           role="table"
           aria-label="Kanalperformance"
         >
-          <div className="analytics-row heading" role="row">
-            <span>Kanal</span>
-            <span>Trades</span>
-            <span>W / L</span>
-            <span>Win Rate</span>
-            <span>PnL</span>
-            <span>Slippage</span>
-          </div>
+          {channelHeaderRow}
           {channels.map((item) => (
             <div className="analytics-row" role="row" key={item.id}>
               <strong>{item.id}</strong>
@@ -347,12 +358,7 @@ export function Analytics({
       </section>
       <section className="operations-card">
         <h3>Erwartungswert-Rechner</h3>
-        <div className="expectancy-grid">
-          <label><span>Trefferquote %</span><Input type="number" min="0" max="100" value={expectancy.winRate} onChange={(event) => setExpectancy((value) => ({ ...value, winRate: event.target.value }))} /></label>
-          <label><span>Ø Gewinn (R)</span><Input type="number" min="0" step="0.1" value={expectancy.averageWin} onChange={(event) => setExpectancy((value) => ({ ...value, averageWin: event.target.value }))} /></label>
-          <label><span>Ø Verlust (R)</span><Input type="number" min="0" step="0.1" value={expectancy.averageLoss} onChange={(event) => setExpectancy((value) => ({ ...value, averageLoss: event.target.value }))} /></label>
-          <div className={`expectancy-result ${expectancyValue < 0 ? "danger" : "healthy"}`}><strong>{metricNumber(expectancyValue, 3)} R</strong><span>Erwartungswert je Trade</span></div>
-        </div>
+        {expectancyGrid}
       </section>
     </div>
   );

@@ -68,6 +68,17 @@ export function WorkflowFallbackPolicyDialog({
     setPreset("custom");
   };
 
+  const presetFieldset = (
+        <fieldset className="workflow-connection-modes">
+          <legend>Voreinstellung</legend>
+          <label><input type="radio" name="fallback-preset" checked={preset === "pair_only"}
+            onChange={() => choosePreset("pair_only")} /><span><strong>Nur Handelspaar</strong>{" "}<small>Kompatibles Verhalten bestehender Ketten.</small></span></label>
+          <label><input type="radio" name="fallback-preset" checked={preset === "recommended"}
+            onChange={() => choosePreset("recommended")} /><span><strong>Empfohlen</strong>{" "}<small>Paar, volles Konto und bereits belegtes Symbol.</small></span></label>
+          <label><input type="radio" name="fallback-preset" checked={preset === "custom"}
+            onChange={() => setPreset("custom")} /><span><strong>Benutzerdefiniert</strong>{" "}<small>Wähle die erlaubten Gründe einzeln.</small></span></label>
+        </fieldset>
+  );
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent className="workflow-connection-dialog sm:max-w-xl">
@@ -79,15 +90,7 @@ export function WorkflowFallbackPolicyDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <fieldset className="workflow-connection-modes">
-          <legend>Voreinstellung</legend>
-          <label><input type="radio" name="fallback-preset" checked={preset === "pair_only"}
-            onChange={() => choosePreset("pair_only")} /><span><strong>Nur Handelspaar</strong>{" "}<small>Kompatibles Verhalten bestehender Ketten.</small></span></label>
-          <label><input type="radio" name="fallback-preset" checked={preset === "recommended"}
-            onChange={() => choosePreset("recommended")} /><span><strong>Empfohlen</strong>{" "}<small>Paar, volles Konto und bereits belegtes Symbol.</small></span></label>
-          <label><input type="radio" name="fallback-preset" checked={preset === "custom"}
-            onChange={() => setPreset("custom")} /><span><strong>Benutzerdefiniert</strong>{" "}<small>Wähle die erlaubten Gründe einzeln.</small></span></label>
-        </fieldset>
+        {presetFieldset}
 
         <fieldset className="workflow-connection-channels">
           <legend>Erlaubte Wechselgründe</legend>

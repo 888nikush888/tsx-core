@@ -2625,6 +2625,240 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
     default:
       break;
   }
+  const searchEmptyCard = (
+              <Card>
+                <CardContent>
+                  <span>
+                    <strong>Keine passenden Bausteine</strong>
+                    <small>
+                      Die Suche blendet derzeit alle Canvas-Bausteine aus.
+                    </small>
+                  </span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={showAllNodes}
+                  >
+                    Suche löschen und alles anzeigen
+                  </Button>
+                </CardContent>
+              </Card>
+  );
+  const routeFocusCard = () => (
+              <Card>
+                <CardContent>
+                  <RouteIcon aria-hidden="true" />
+                  <span>
+                    <small>Pfadfokus</small>
+                    <strong>
+                      {selectedRoute.channelName} → {selectedRoute.fallbackAccounts.map((candidate) => candidate.accountName).join(" → ")}
+                    </strong>
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedPathId(null)}
+                  >
+                    Alle zeigen
+                  </Button>
+                </CardContent>
+              </Card>
+  );
+  const connectionPanelCard = () => (
+              <Card>
+                <CardHeader>
+                  <div>
+                    <Badge variant="secondary">
+                      {connectionKindIcon(connectionKind)}
+                      {connectionKindCreationLabel(connectionKind)}
+                    </Badge>
+                    <CardTitle>
+                      {resourceById.get(connectionSource.resourceVersionId)
+                        ?.name || "Baustein"}
+                    </CardTitle>
+                    <CardDescription>
+                      {connectionKindInstruction(connectionKind)}
+                    </CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={cancelConnection}
+                    aria-label="Verbindung abbrechen"
+                  >
+                    <X />
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <Input
+                    aria-label="Verbindungsziele durchsuchen"
+                    placeholder="Ziel suchen …"
+                    value={connectionSearch}
+                    onChange={(event) =>
+                      setConnectionSearch(event.target.value)
+                    }
+                  />
+                  <div className="connection-target-list">
+                    {connectionTargets.slice(0, 24).map((item) => (
+                      <Button
+                        key={item.node.id}
+                        type="button"
+                        variant="ghost"
+                        onClick={() => completeConnection(item.node.id)}
+                      >
+                        <span
+                          style={
+                            {
+                              "--node-accent": KIND_META[item.node.kind].color,
+                            } as CSSProperties
+                          }
+                        />
+                        <span>
+                          <strong>{item.name}</strong>
+                          <small>
+                            {KIND_META[item.node.kind].label} ·{" "}
+                            {item.description}
+                          </small>
+                        </span>
+                      </Button>
+                    ))}
+                    {connectionTargets.length === 0 && (
+                      <p>Keine passenden, noch unverbundenen Ziele gefunden.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+  );
+  const simulationFields = (
+          <div className="simulation-fields">
+            <Label>
+              Kanal-ID
+              <Input
+                value={simulation.channelId}
+                onChange={(event) =>
+                  setSimulation({
+                    ...simulation,
+                    channelId: event.target.value,
+                  })
+                }
+              />
+            </Label>
+            <Label>
+              Inhaltstyp
+              <NativeSelect
+                className="w-full"
+                value={simulation.contentType}
+                onChange={(event) =>
+                  setSimulation({
+                    ...simulation,
+                    contentType: event.target.value,
+                  })
+                }
+              >
+                <option value="text">Text</option>
+                <option value="photo">Foto mit Caption</option>
+                <option value="video">Video mit Caption</option>
+                <option value="document">Dokument</option>
+              </NativeSelect>
+            </Label>
+            <Label>
+              Beispielnachricht
+              <Textarea
+                value={simulation.text}
+                onChange={(event) =>
+                  setSimulation({ ...simulation, text: event.target.value })
+                }
+              />
+            </Label>
+            <Button type="button" onClick={runSimulation}>
+              <FlaskConical data-icon="inline-start" /> Pfade prüfen
+            </Button>
+          </div>
+  );
+  const connectionInspectorDialog = (
+      <Dialog
+        open={Boolean(selectedConnection)}
+        onOpenChange={(open) => !open && setSelectedEdgeId(null)}
+      >
+        <DialogContent className="workflow-connection-inspector sm:max-w-lg">
+          <DialogHeader>
+            <Badge variant="secondary">
+              {connectionKindIcon(selectedConnection?.kind)}
+              {connectionKindLabel(selectedConnection?.kind)}
+            </Badge>
+            <DialogTitle>
+              {selectedConnection?.sourceName} → {selectedConnection?.targetName}
+            </DialogTitle>
+            <DialogDescription>
+              {connectionScopeDescription(selectedConnection)}
+              {selectedConnection?.kind === "account_fallback"
+                ? ` · Wechsel bei: ${fallbackPolicyShortLabel(selectedConnection.fallbackOn)}`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="workflow-connection-inspector-actions">
+            {selectedConnection?.canEditScope && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (!selectedConnection) return;
+                  setConnectionDraft({
+                    edgeId: selectedConnection.edge.id,
+                    sourceId: selectedConnection.edge.source,
+                    targetId: selectedConnection.edge.target,
+                    kind: selectedConnection.kind,
+                  });
+                  setSelectedEdgeId(null);
+                }}
+              >
+                Routing bearbeiten
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                if (selectedConnection) removeEdge(selectedConnection.edge.id);
+              }}
+            >
+              <Trash2 data-icon="inline-start" /> Verbindung löschen
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+  );
+  const simulationDialog = (
+      <Dialog
+        open={simulationOpen}
+        onOpenChange={(open) => {
+          if (!open) closeSimulation();
+        }}
+      >
+        <DialogContent
+          className="simulation-modal sm:max-w-xl"
+          closeLabel="Simulation schließen"
+        >
+          <DialogHeader>
+            <Badge variant="secondary">Trockenlauf</Badge>
+            <DialogTitle>Signal durch aktive Revision schicken</DialogTitle>
+            <DialogDescription>
+              Die Simulation führt keine Order aus. Sie zeigt, welche Pfade das
+              Signal passieren würde.
+            </DialogDescription>
+          </DialogHeader>
+          {simulationFields}
+          {simulationResult && (
+            <div className="simulation-result" aria-live="polite">
+              <WorkflowSimulationResult result={simulationResult} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+  );
   return (
     <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
       {!embedded && <WorkflowTopbar />}
@@ -2764,115 +2998,17 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
           />
           {noSearchResults && (
             <Panel position="top-center" className="canvas-empty-panel">
-              <Card>
-                <CardContent>
-                  <span>
-                    <strong>Keine passenden Bausteine</strong>
-                    <small>
-                      Die Suche blendet derzeit alle Canvas-Bausteine aus.
-                    </small>
-                  </span>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={showAllNodes}
-                  >
-                    Suche löschen und alles anzeigen
-                  </Button>
-                </CardContent>
-              </Card>
+              {searchEmptyCard}
             </Panel>
           )}
           {selectedRoute && (
             <Panel position="top-right" className="route-focus-panel">
-              <Card>
-                <CardContent>
-                  <RouteIcon aria-hidden="true" />
-                  <span>
-                    <small>Pfadfokus</small>
-                    <strong>
-                      {selectedRoute.channelName} → {selectedRoute.fallbackAccounts.map((candidate) => candidate.accountName).join(" → ")}
-                    </strong>
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedPathId(null)}
-                  >
-                    Alle zeigen
-                  </Button>
-                </CardContent>
-              </Card>
+              {routeFocusCard()}
             </Panel>
           )}
           {connectionSource && (
             <Panel position="top-left" className="connection-panel">
-              <Card>
-                <CardHeader>
-                  <div>
-                    <Badge variant="secondary">
-                      {connectionKindIcon(connectionKind)}
-                      {connectionKindCreationLabel(connectionKind)}
-                    </Badge>
-                    <CardTitle>
-                      {resourceById.get(connectionSource.resourceVersionId)
-                        ?.name || "Baustein"}
-                    </CardTitle>
-                    <CardDescription>
-                      {connectionKindInstruction(connectionKind)}
-                    </CardDescription>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={cancelConnection}
-                    aria-label="Verbindung abbrechen"
-                  >
-                    <X />
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <Input
-                    aria-label="Verbindungsziele durchsuchen"
-                    placeholder="Ziel suchen …"
-                    value={connectionSearch}
-                    onChange={(event) =>
-                      setConnectionSearch(event.target.value)
-                    }
-                  />
-                  <div className="connection-target-list">
-                    {connectionTargets.slice(0, 24).map((item) => (
-                      <Button
-                        key={item.node.id}
-                        type="button"
-                        variant="ghost"
-                        onClick={() => completeConnection(item.node.id)}
-                      >
-                        <span
-                          style={
-                            {
-                              "--node-accent": KIND_META[item.node.kind].color,
-                            } as CSSProperties
-                          }
-                        />
-                        <span>
-                          <strong>{item.name}</strong>
-                          <small>
-                            {KIND_META[item.node.kind].label} ·{" "}
-                            {item.description}
-                          </small>
-                        </span>
-                      </Button>
-                    ))}
-                    {connectionTargets.length === 0 && (
-                      <p>Keine passenden, noch unverbundenen Ziele gefunden.</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              {connectionPanelCard()}
             </Panel>
           )}
             </ReactFlow>
@@ -2920,57 +3056,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
           { saveFallbackPolicy(fallbackOn, applyToChain); }
         }
       />
-      <Dialog
-        open={Boolean(selectedConnection)}
-        onOpenChange={(open) => !open && setSelectedEdgeId(null)}
-      >
-        <DialogContent className="workflow-connection-inspector sm:max-w-lg">
-          <DialogHeader>
-            <Badge variant="secondary">
-              {connectionKindIcon(selectedConnection?.kind)}
-              {connectionKindLabel(selectedConnection?.kind)}
-            </Badge>
-            <DialogTitle>
-              {selectedConnection?.sourceName} → {selectedConnection?.targetName}
-            </DialogTitle>
-            <DialogDescription>
-              {connectionScopeDescription(selectedConnection)}
-              {selectedConnection?.kind === "account_fallback"
-                ? ` · Wechsel bei: ${fallbackPolicyShortLabel(selectedConnection.fallbackOn)}`
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="workflow-connection-inspector-actions">
-            {selectedConnection?.canEditScope && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  if (!selectedConnection) return;
-                  setConnectionDraft({
-                    edgeId: selectedConnection.edge.id,
-                    sourceId: selectedConnection.edge.source,
-                    targetId: selectedConnection.edge.target,
-                    kind: selectedConnection.kind,
-                  });
-                  setSelectedEdgeId(null);
-                }}
-              >
-                Routing bearbeiten
-              </Button>
-            )}
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => {
-                if (selectedConnection) removeEdge(selectedConnection.edge.id);
-              }}
-            >
-              <Trash2 data-icon="inline-start" /> Verbindung löschen
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {connectionInspectorDialog}
       <ResourceEditor
         open={Boolean(editorNodeId || newKind)}
         kind={editorKind}
@@ -3028,75 +3114,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
           }); }
         }
       />
-      <Dialog
-        open={simulationOpen}
-        onOpenChange={(open) => {
-          if (!open) closeSimulation();
-        }}
-      >
-        <DialogContent
-          className="simulation-modal sm:max-w-xl"
-          closeLabel="Simulation schließen"
-        >
-          <DialogHeader>
-            <Badge variant="secondary">Trockenlauf</Badge>
-            <DialogTitle>Signal durch aktive Revision schicken</DialogTitle>
-            <DialogDescription>
-              Die Simulation führt keine Order aus. Sie zeigt, welche Pfade das
-              Signal passieren würde.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="simulation-fields">
-            <Label>
-              Kanal-ID
-              <Input
-                value={simulation.channelId}
-                onChange={(event) =>
-                  setSimulation({
-                    ...simulation,
-                    channelId: event.target.value,
-                  })
-                }
-              />
-            </Label>
-            <Label>
-              Inhaltstyp
-              <NativeSelect
-                className="w-full"
-                value={simulation.contentType}
-                onChange={(event) =>
-                  setSimulation({
-                    ...simulation,
-                    contentType: event.target.value,
-                  })
-                }
-              >
-                <option value="text">Text</option>
-                <option value="photo">Foto mit Caption</option>
-                <option value="video">Video mit Caption</option>
-                <option value="document">Dokument</option>
-              </NativeSelect>
-            </Label>
-            <Label>
-              Beispielnachricht
-              <Textarea
-                value={simulation.text}
-                onChange={(event) =>
-                  setSimulation({ ...simulation, text: event.target.value })
-                }
-              />
-            </Label>
-            <Button type="button" onClick={runSimulation}>
-              <FlaskConical data-icon="inline-start" /> Pfade prüfen
-            </Button>
-          </div>
-          {simulationResult && (
-            <div className="simulation-result" aria-live="polite">
-              <WorkflowSimulationResult result={simulationResult} />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {simulationDialog}
       {confirmationDialog}
       <RouteOverview
         open={routeOverviewOpen}

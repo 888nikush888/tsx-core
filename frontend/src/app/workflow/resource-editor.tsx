@@ -1209,6 +1209,35 @@ function ContractForm({
         </div>
   );
 
+  const additionalFieldsHeading = (
+        <div className="strategy-section-heading contract-additional-heading">
+          <span>
+            <strong>Zusätzliche Felder</strong>
+            <small>Optionale, typisierte Erweiterungen des Signalvertrags.</small>
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              onChange({
+                ...value,
+                additionalFields: [
+                  ...value.additionalFields,
+                  {
+                    path: "",
+                    type: "text",
+                    required: false,
+                    allowedValues: [],
+                  },
+                ],
+              })
+            }
+          >
+            <Plus data-icon="inline-start" /> Feld hinzufügen
+          </Button>
+        </div>
+  );
   return (
     <div className="strategy-form contract-form">
       <section>
@@ -1301,33 +1330,7 @@ function ContractForm({
       </section>
 
       <section>
-        <div className="strategy-section-heading contract-additional-heading">
-          <span>
-            <strong>Zusätzliche Felder</strong>
-            <small>Optionale, typisierte Erweiterungen des Signalvertrags.</small>
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              onChange({
-                ...value,
-                additionalFields: [
-                  ...value.additionalFields,
-                  {
-                    path: "",
-                    type: "text",
-                    required: false,
-                    allowedValues: [],
-                  },
-                ],
-              })
-            }
-          >
-            <Plus data-icon="inline-start" /> Feld hinzufügen
-          </Button>
-        </div>
+        {additionalFieldsHeading}
         {value.additionalFields.length === 0 ? (
           <p className="builder-info">Keine zusätzlichen Felder definiert.</p>
         ) : (
@@ -2142,17 +2145,7 @@ export function ResourceEditor({
             </div>
   );
 
-  return (
-    <><Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) closeEditor();
-      }}
-    >
-      <DialogContent
-        className="builder-modal sm:max-w-4xl"
-        closeLabel="Baustein-Editor schließen"
-      >
+  const editorHeader = (
         <DialogHeader>
           <Badge variant="secondary" style={{ color: meta.color }}>
             {meta.label}
@@ -2164,6 +2157,64 @@ export function ResourceEditor({
             {draftOnly ? 'Speichert bearbeitbare Ressourcen- und Modelldrafts. Publikation und Aktivierung erfolgen ausdrücklich in getrennten Schritten.' : 'Änderungen werden als unveränderliche Version gespeichert und anschließend atomar aktiviert.'}
           </DialogDescription>
         </DialogHeader>
+  );
+  const editorFooter = (
+        <DialogFooter className="builder-modal-footer">
+          {onDeleteNode && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={saving || readOnly}
+              onClick={onDeleteNode}
+            >
+              <Archive data-icon="inline-start" /> Nur vom Canvas lösen
+            </Button>
+          )}
+          {onArchiveResource && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={saving || readOnly}
+              onClick={() => setArchiveConfirmation(true)}
+            >
+              <Archive data-icon="inline-start" /> Dauerhaft archivieren
+            </Button>
+          )}
+          {onDeleteResource && (
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={saving || readOnly}
+              onClick={() => setDeleteConfirmation(true)}
+            >
+              <Trash2 data-icon="inline-start" /> Endgültig löschen
+            </Button>
+          )}
+          <span />
+          <Button type="button" variant="outline" onClick={closeEditor}>
+            Abbrechen
+          </Button>
+          <Button
+            type="button"
+            disabled={readOnly || saving || partialFailure || !name.trim()}
+            onClick={submit}
+          >
+            {resourceSaveLabel(saving, draftOnly)}
+          </Button>
+        </DialogFooter>
+  );
+  return (
+    <><Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) closeEditor();
+      }}
+    >
+      <DialogContent
+        className="builder-modal sm:max-w-4xl"
+        closeLabel="Baustein-Editor schließen"
+      >
+        {editorHeader}
         <fieldset disabled={readOnly} className="builder-modal-content" onChangeCapture={() => setTouched(true)}>
           {readOnly && <p>Viewer: Ressourcen sind schreibgeschützt.</p>}
           {confirmedSteps.length > 0 && <section aria-label="Bestätigte Teilschritte"><p>Bereits bestätigt:</p><ul>{listEntries(confirmedSteps, step => step).map(({ item: step, key }) => <li key={key}>{step}</li>)}</ul>{partialFailure && <p>Ein Folgeschritt ist fehlgeschlagen. Die aufgeführten Objekte bleiben gespeichert. Dialog schließen und vorhandene Entwürfe prüfen, bevor eine weitere Änderung begonnen wird.</p>}</section>}
@@ -2403,49 +2454,7 @@ export function ResourceEditor({
             </Alert>
           )}
         </fieldset>
-        <DialogFooter className="builder-modal-footer">
-          {onDeleteNode && (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={saving || readOnly}
-              onClick={onDeleteNode}
-            >
-              <Archive data-icon="inline-start" /> Nur vom Canvas lösen
-            </Button>
-          )}
-          {onArchiveResource && (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={saving || readOnly}
-              onClick={() => setArchiveConfirmation(true)}
-            >
-              <Archive data-icon="inline-start" /> Dauerhaft archivieren
-            </Button>
-          )}
-          {onDeleteResource && (
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={saving || readOnly}
-              onClick={() => setDeleteConfirmation(true)}
-            >
-              <Trash2 data-icon="inline-start" /> Endgültig löschen
-            </Button>
-          )}
-          <span />
-          <Button type="button" variant="outline" onClick={closeEditor}>
-            Abbrechen
-          </Button>
-          <Button
-            type="button"
-            disabled={readOnly || saving || partialFailure || !name.trim()}
-            onClick={submit}
-          >
-            {resourceSaveLabel(saving, draftOnly)}
-          </Button>
-        </DialogFooter>
+        {editorFooter}
       </DialogContent>
     </Dialog>{confirmationDialog}</>
   );

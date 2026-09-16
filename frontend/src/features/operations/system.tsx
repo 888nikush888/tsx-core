@@ -28,7 +28,8 @@ function RuntimeEvidence({ payload }: Readonly<{ payload: RuntimeParameterPayloa
     }
     return 'unbekannt';
   };
-  return <details><summary>Gespeicherte und aktive Werte · Quelle und Wirkung</summary><p>{payload.precedence ?? 'Quellenvertrag nicht verfügbar.'}</p><p>Quelle: {payload.source ?? 'unbekannt'} · Neustart erforderlich: {restartRequirement()}</p><div className="overflow-x-auto"><table><thead><tr><th>Parameter</th><th>Gespeichert</th><th>Beim Start angewendet</th></tr></thead><tbody>{Object.entries(payload.settings ?? {}).map(([key, value]) => <tr key={key}><th>{key}</th><td>{JSON.stringify(value)}</td><td>{payload.active ? JSON.stringify(payload.active[key]) : 'nicht beobachtet'}</td></tr>)}</tbody></table></div></details>;
+  const runtimeTable = (<table><thead><tr><th>Parameter</th><th>Gespeichert</th><th>Beim Start angewendet</th></tr></thead><tbody>{Object.entries(payload.settings ?? {}).map(([key, value]) => <tr key={key}><th>{key}</th><td>{JSON.stringify(value)}</td><td>{payload.active ? JSON.stringify(payload.active[key]) : 'nicht beobachtet'}</td></tr>)}</tbody></table>);
+  return <details><summary>Gespeicherte und aktive Werte · Quelle und Wirkung</summary><p>{payload.precedence ?? 'Quellenvertrag nicht verfügbar.'}</p><p>Quelle: {payload.source ?? 'unbekannt'} · Neustart erforderlich: {restartRequirement()}</p><div className="overflow-x-auto">{runtimeTable}</div></details>;
 }
 
 type SetupPreviewPayload = {

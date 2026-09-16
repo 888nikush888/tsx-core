@@ -260,6 +260,24 @@ export function DashboardAuthGate({
   }
 
   if (state === "recovery") {
+    const recoveryActions = (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button
+                variant="outline"
+                onClick={() => navigator.clipboard.writeText(recoveryToken)}
+              >
+                Copy token
+              </Button>
+              <Button
+                onClick={() => {
+                  setRecoveryToken("");
+                  validateStoredToken();
+                }}
+              >
+                I saved it — continue
+              </Button>
+            </div>
+    );
     return (
       <main className="min-h-screen grid place-items-center bg-background p-6">
         <Card className="w-full max-w-xl">
@@ -281,22 +299,7 @@ export function DashboardAuthGate({
             >
               {recoveryToken}
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Button
-                variant="outline"
-                onClick={() => navigator.clipboard.writeText(recoveryToken)}
-              >
-                Copy token
-              </Button>
-              <Button
-                onClick={() => {
-                  setRecoveryToken("");
-                  validateStoredToken();
-                }}
-              >
-                I saved it — continue
-              </Button>
-            </div>
+            {recoveryActions}
           </CardContent>
         </Card>
       </main>
@@ -304,21 +307,7 @@ export function DashboardAuthGate({
   }
 
   if (state === "locked") {
-    return (
-      <main className="min-h-screen grid place-items-center bg-background p-6">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            {brand}
-            <CardTitle role="heading" aria-level={1}>
-              Dashboard authentication
-            </CardTitle>
-            <CardDescription>
-              Enter a local dashboard token or an OIDC access token. An
-              authenticated reverse proxy can grant access without storing a
-              token in the browser.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+    const authForm = (
             <form className="space-y-4" onSubmit={submit}>
               <div className="space-y-2">
                 <Label htmlFor="dashboard-token">Bearer token</Label>
@@ -345,6 +334,23 @@ export function DashboardAuthGate({
                 {submitting ? "Authenticating…" : "Unlock dashboard"}
               </Button>
             </form>
+    );
+    return (
+      <main className="min-h-screen grid place-items-center bg-background p-6">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            {brand}
+            <CardTitle role="heading" aria-level={1}>
+              Dashboard authentication
+            </CardTitle>
+            <CardDescription>
+              Enter a local dashboard token or an OIDC access token. An
+              authenticated reverse proxy can grant access without storing a
+              token in the browser.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {authForm}
           </CardContent>
         </Card>
       </main>

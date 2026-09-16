@@ -246,10 +246,7 @@ export function Accounts({
     }
   };
 
-  return (
-    <>
-      <div className="operations-stack">
-      {confirmationDialog}
+  const accountsHeading = (
       <div className="operations-section-heading">
         <div>
           <h3>Börsenkonten</h3>
@@ -267,6 +264,101 @@ export function Accounts({
           <Plus size={15} /> Konto
         </button>
       </div>
+  );
+  const incidentOverview = (
+      <section className="operations-card account-incident-overview" aria-label="Offene Konto-Incidents">
+        <div className="operations-section-heading">
+          <div>
+            <h3>Offene Konto-Incidents</h3>
+            <p>
+              Warnungen werden bei einem sauberen Kontoabgleich automatisch gelöst. Bei einer Kontosperre zuerst abgleichen und anschließend „Prüfen &amp; freigeben“ verwenden.
+            </p>
+          </div>
+          <Badge variant={openIncidents.some((incident) => incident.severity === "critical") ? "destructive" : "outline"}>
+            {openIncidents.length} offen
+          </Badge>
+        </div>
+        {openIncidents.map((incident) => {
+          const account = trading?.accounts.find((candidate) => candidate.id === incident.accountId);
+          return (
+            <div className="account-incident" key={`overview-${incident.id}`}>
+              <div>
+                <strong>{account?.name || incident.accountId} · {incident.message}</strong>
+                <small>{incident.category} · {incident.occurrenceCount} Beobachtungen · zuletzt {time(incident.lastSeenAt)}</small>
+              </div>
+              <div className="incident-actions">
+                <Badge variant={incident.severity === "critical" ? "destructive" : "outline"}>
+                  {incident.severity === "critical" ? "kritisch" : "Warnung"}
+                </Badge>
+                {account && (
+                  <Button type="button" variant="outline" size="sm" disabled={busy === account.id} onClick={() => { accountAction(account, "reconcile"); }}>
+                    Abgleichen
+                  </Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {openIncidents.length === 0 && <Empty text="Keine offenen Konto-Incidents." />}
+      </section>
+  );
+  const releaseDialog = (
+      <Dialog
+        open={Boolean(releaseTarget)}
+        onOpenChange={(open) => {
+          if (!open && !busy) {
+            setReleaseTarget(null);
+            setReleaseConfirmation("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <Badge variant="destructive">Kontoschutz</Badge>
+            <DialogTitle>Kill-Switch sicher freigeben</DialogTitle>
+            <DialogDescription>
+              TSX Core führt vor der Freigabe zwei vollständige Börsenabgleiche
+              durch. Unverwaltete Orders, Positionen oder fehlender Stop-Schutz
+              verhindern die Freigabe.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="kill-switch-confirmation">
+            Zur Bestätigung exakt „RELEASE ACCOUNT KILL SWITCH“ eingeben
+            <Input
+              autoComplete="off"
+              value={releaseConfirmation}
+              onChange={(event) => setReleaseConfirmation(event.target.value)}
+            />
+          </label>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={Boolean(busy)}
+              onClick={() => setReleaseTarget(null)}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={
+                Boolean(busy) ||
+                releaseConfirmation !== "RELEASE ACCOUNT KILL SWITCH"
+              }
+              onClick={() => { confirmKillSwitchRelease(); }}
+            >
+              {busy ? "Prüfe Schutz…" : "Prüfen und freigeben"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+  );
+  return (
+    <>
+      <div className="operations-stack">
+      {confirmationDialog}
+      {accountsHeading}
       {!catalogGroups && (
         <div className="account-warning">
           <AlertTriangle size={15} />
@@ -319,41 +411,7 @@ export function Accounts({
           {message}
         </div>
       )}
-      <section className="operations-card account-incident-overview" aria-label="Offene Konto-Incidents">
-        <div className="operations-section-heading">
-          <div>
-            <h3>Offene Konto-Incidents</h3>
-            <p>
-              Warnungen werden bei einem sauberen Kontoabgleich automatisch gelöst. Bei einer Kontosperre zuerst abgleichen und anschließend „Prüfen &amp; freigeben“ verwenden.
-            </p>
-          </div>
-          <Badge variant={openIncidents.some((incident) => incident.severity === "critical") ? "destructive" : "outline"}>
-            {openIncidents.length} offen
-          </Badge>
-        </div>
-        {openIncidents.map((incident) => {
-          const account = trading?.accounts.find((candidate) => candidate.id === incident.accountId);
-          return (
-            <div className="account-incident" key={`overview-${incident.id}`}>
-              <div>
-                <strong>{account?.name || incident.accountId} · {incident.message}</strong>
-                <small>{incident.category} · {incident.occurrenceCount} Beobachtungen · zuletzt {time(incident.lastSeenAt)}</small>
-              </div>
-              <div className="incident-actions">
-                <Badge variant={incident.severity === "critical" ? "destructive" : "outline"}>
-                  {incident.severity === "critical" ? "kritisch" : "Warnung"}
-                </Badge>
-                {account && (
-                  <Button type="button" variant="outline" size="sm" disabled={busy === account.id} onClick={() => { accountAction(account, "reconcile"); }}>
-                    Abgleichen
-                  </Button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-        {openIncidents.length === 0 && <Empty text="Keine offenen Konto-Incidents." />}
-      </section>
+      {incidentOverview}
       {creating && (
         <section className="operations-card account-create">
           <label>
@@ -487,15 +545,18 @@ export function Accounts({
             }
             return "";
           };
-          return ((
-            <section className="operations-card account-card" key={account.id}>
-              <div className="account-card-title">
+          const accountTitle = (
                 <div>
                   <strong><Link to={`/trading/accounts/${encodeURIComponent(account.id)}`}>{account.name}</Link></strong>
                   <span>
                     {account.exchange} · {account.mode}
                   </span>
                 </div>
+          );
+          return ((
+            <section className="operations-card account-card" key={account.id}>
+              <div className="account-card-title">
+                {accountTitle}
                 <span
                   className={`state-badge ${accountBadge()}`}
                 >
@@ -653,56 +714,7 @@ export function Accounts({
           ));
         })}
       </div>
-      <Dialog
-        open={Boolean(releaseTarget)}
-        onOpenChange={(open) => {
-          if (!open && !busy) {
-            setReleaseTarget(null);
-            setReleaseConfirmation("");
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <Badge variant="destructive">Kontoschutz</Badge>
-            <DialogTitle>Kill-Switch sicher freigeben</DialogTitle>
-            <DialogDescription>
-              TSX Core führt vor der Freigabe zwei vollständige Börsenabgleiche
-              durch. Unverwaltete Orders, Positionen oder fehlender Stop-Schutz
-              verhindern die Freigabe.
-            </DialogDescription>
-          </DialogHeader>
-          <label className="kill-switch-confirmation">
-            Zur Bestätigung exakt „RELEASE ACCOUNT KILL SWITCH“ eingeben
-            <Input
-              autoComplete="off"
-              value={releaseConfirmation}
-              onChange={(event) => setReleaseConfirmation(event.target.value)}
-            />
-          </label>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={Boolean(busy)}
-              onClick={() => setReleaseTarget(null)}
-            >
-              Abbrechen
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={
-                Boolean(busy) ||
-                releaseConfirmation !== "RELEASE ACCOUNT KILL SWITCH"
-              }
-              onClick={() => { confirmKillSwitchRelease(); }}
-            >
-              {busy ? "Prüfe Schutz…" : "Prüfen und freigeben"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {releaseDialog}
     </>
   );
 }

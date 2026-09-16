@@ -239,6 +239,53 @@ export function Overview({
     }
     return "unbekannt";
   };
+   const dashboardGrid = (
+      <div className="dashboard-grid">
+        <section className="operations-card analytics-chart dashboard-equity-card">
+          <h3>Equity-Verlauf</h3>
+          <EquityChart
+            points={trading?.equityHistory || []}
+            accounts={trading?.accounts || []}
+            emptyText="Noch keine Equity-Messwerte."
+          />
+        </section>
+        <section className="operations-card">
+          <h3>Remote-Zugriff und Betrieb</h3>
+          <div className="system-line"><span>Identität</span><strong>{access?.identity?.name || access?.identity?.login || access?.actorId || "unbekannt"}</strong></div>
+          <div className="system-line"><span>Rolle</span><strong>{access?.role || "–"}</strong></div>
+          <div className="system-line"><span>Remote-Zugriff</span><strong>{remoteAccessStatus()}</strong></div>
+          <div className="system-line"><span>Letzter Abgleich</span><strong>{time(overview?.latestReconciliationAt)}</strong></div>
+          {(portfolio?.accounts || []).map((account) => <div className="system-line" key={account.accountId}><span>{account.name} · {account.exchange}/{account.mode}</span><strong>{account.error || `${account.equity ?? "unbekannt"} ${account.reportingCurrency ?? ""} · ${time(account.observedAt)}`}</strong></div>)}
+        </section>
+      </div>
+   );
+   const positionsSection = (
+      <section className="operations-card">
+        <h3>Aktive Positionen · aktueller Ausschnitt</h3>
+        <p>{trading?.interpretation} <Link to="/trading/positions">Alle Positionen seitenweise lesen</Link> · <Link to="/trading/orders?status=unknown">Alle unklaren Orders</Link> · <Link to="/trading/journal">Alle Intents im Journal</Link></p>
+        {trading?.coverage && Object.values(trading.coverage).some(Boolean) && <p>Mindestens eine Quelle enthält weitere Daten. Die Listenlinks öffnen die vollständige Seitenauswahl. Equity zeigt höchstens 1.000 Originalbeobachtungen ab dem 90-Tage-Fensterbeginn.</p>}
+        <div className="position-table" role="table" aria-label="Aktive Positionen">
+          <div className="position-row heading" role="row"><span role="columnheader">Position</span><span role="columnheader">Fill-Durchschnitt / Paper-Mark</span><span role="columnheader">SL (gemeldet)</span><span role="columnheader">TPs</span><span role="columnheader">Hebel</span><span role="columnheader">Realisierter PnL</span></div>
+          {openPositions.map((position) => {
+            const intent = intentById.get(position.intentId);
+            const orders = (trading?.activity.orders as Order[] | undefined) || [];
+            const relatedOrders = orders.filter((order) => order.intentId === position.intentId);
+            const targets = relatedOrders.filter((order) => String(order.role).startsWith("take_profit")).map((order) => order.triggerPrice || order.price);
+            const paperMarket = (trading?.activity.paperMarkets as PaperMarket[] | undefined)?.find((market) => market.accountId === position.accountId && market.symbol === position.symbol);
+            const leverage = resolveDisplayedLeverage(intent?.plan);
+            return <div className="position-row" role="row" key={position.id}>
+              <strong role="cell"><Link to={`/trading/trades/${encodeURIComponent(position.intentId)}`}>{position.symbol} · {position.side}</Link><small>{accountById.get(position.accountId)?.name || position.accountId}</small></strong>
+              <span role="cell">{position.averageEntryPrice ?? "unbekannt"} / {paperMarket?.markPrice ?? "nicht verfügbar"}<small>Planreferenz: {intent?.plan?.markPrice ?? "unbekannt"} · Mark beobachtet: {time(paperMarket?.updatedAt)} · Unrealisierter PnL: nicht verfügbar</small></span>
+              <span role="cell">{position.stopPrice || relatedOrders.find((order) => order.role === "stop_loss")?.triggerPrice || "unbekannt"}<small>Restmenge {position.quantity ?? 'unbekannt'} · Schutz: {position.protection?.protected === true ? 'aktuell belegt' : 'nicht aktuell bewiesen'} · {position.protection?.reason ?? 'Originalbeleg im Trade-Detail'}. Prüfung {time(position.protection?.evaluatedAt)}.</small></span>
+              <span role="cell">{targets.length ? targets.join(" · ") : 'keine Orderbelege im Ausschnitt'}</span>
+              <span role="cell">{leverage ? `${leverage}×` : "unbekannt"}</span>
+              <span role="cell"><MoneyAmount value={position.realizedPnlValue} amount={position.realizedPnl} currency={position.reportingCurrency} status={position.accountingStatus} /></span>
+            </div>;
+          })}
+          {trading && openPositions.length === 0 && <Empty text="Keine aktive Position." />}
+        </div>
+      </section>
+   );
    return (
     <div className="operations-stack">
       {confirmationDialog}
@@ -302,49 +349,8 @@ export function Overview({
           </div>
         ))}
       </section>
-      <div className="dashboard-grid">
-        <section className="operations-card analytics-chart dashboard-equity-card">
-          <h3>Equity-Verlauf</h3>
-          <EquityChart
-            points={trading?.equityHistory || []}
-            accounts={trading?.accounts || []}
-            emptyText="Noch keine Equity-Messwerte."
-          />
-        </section>
-        <section className="operations-card">
-          <h3>Remote-Zugriff und Betrieb</h3>
-          <div className="system-line"><span>Identität</span><strong>{access?.identity?.name || access?.identity?.login || access?.actorId || "unbekannt"}</strong></div>
-          <div className="system-line"><span>Rolle</span><strong>{access?.role || "–"}</strong></div>
-          <div className="system-line"><span>Remote-Zugriff</span><strong>{remoteAccessStatus()}</strong></div>
-          <div className="system-line"><span>Letzter Abgleich</span><strong>{time(overview?.latestReconciliationAt)}</strong></div>
-          {(portfolio?.accounts || []).map((account) => <div className="system-line" key={account.accountId}><span>{account.name} · {account.exchange}/{account.mode}</span><strong>{account.error || `${account.equity ?? "unbekannt"} ${account.reportingCurrency ?? ""} · ${time(account.observedAt)}`}</strong></div>)}
-        </section>
-      </div>
-      <section className="operations-card">
-        <h3>Aktive Positionen · aktueller Ausschnitt</h3>
-        <p>{trading?.interpretation} <Link to="/trading/positions">Alle Positionen seitenweise lesen</Link> · <Link to="/trading/orders?status=unknown">Alle unklaren Orders</Link> · <Link to="/trading/journal">Alle Intents im Journal</Link></p>
-        {trading?.coverage && Object.values(trading.coverage).some(Boolean) && <p>Mindestens eine Quelle enthält weitere Daten. Die Listenlinks öffnen die vollständige Seitenauswahl. Equity zeigt höchstens 1.000 Originalbeobachtungen ab dem 90-Tage-Fensterbeginn.</p>}
-        <div className="position-table" role="table" aria-label="Aktive Positionen">
-          <div className="position-row heading" role="row"><span role="columnheader">Position</span><span role="columnheader">Fill-Durchschnitt / Paper-Mark</span><span role="columnheader">SL (gemeldet)</span><span role="columnheader">TPs</span><span role="columnheader">Hebel</span><span role="columnheader">Realisierter PnL</span></div>
-          {openPositions.map((position) => {
-            const intent = intentById.get(position.intentId);
-            const orders = (trading?.activity.orders as Order[] | undefined) || [];
-            const relatedOrders = orders.filter((order) => order.intentId === position.intentId);
-            const targets = relatedOrders.filter((order) => String(order.role).startsWith("take_profit")).map((order) => order.triggerPrice || order.price);
-            const paperMarket = (trading?.activity.paperMarkets as PaperMarket[] | undefined)?.find((market) => market.accountId === position.accountId && market.symbol === position.symbol);
-            const leverage = resolveDisplayedLeverage(intent?.plan);
-            return <div className="position-row" role="row" key={position.id}>
-              <strong role="cell"><Link to={`/trading/trades/${encodeURIComponent(position.intentId)}`}>{position.symbol} · {position.side}</Link><small>{accountById.get(position.accountId)?.name || position.accountId}</small></strong>
-              <span role="cell">{position.averageEntryPrice ?? "unbekannt"} / {paperMarket?.markPrice ?? "nicht verfügbar"}<small>Planreferenz: {intent?.plan?.markPrice ?? "unbekannt"} · Mark beobachtet: {time(paperMarket?.updatedAt)} · Unrealisierter PnL: nicht verfügbar</small></span>
-              <span role="cell">{position.stopPrice || relatedOrders.find((order) => order.role === "stop_loss")?.triggerPrice || "unbekannt"}<small>Restmenge {position.quantity ?? 'unbekannt'} · Schutz: {position.protection?.protected === true ? 'aktuell belegt' : 'nicht aktuell bewiesen'} · {position.protection?.reason ?? 'Originalbeleg im Trade-Detail'}. Prüfung {time(position.protection?.evaluatedAt)}.</small></span>
-              <span role="cell">{targets.length ? targets.join(" · ") : 'keine Orderbelege im Ausschnitt'}</span>
-              <span role="cell">{leverage ? `${leverage}×` : "unbekannt"}</span>
-              <span role="cell"><MoneyAmount value={position.realizedPnlValue} amount={position.realizedPnl} currency={position.reportingCurrency} status={position.accountingStatus} /></span>
-            </div>;
-          })}
-          {trading && openPositions.length === 0 && <Empty text="Keine aktive Position." />}
-        </div>
-      </section>
+      {dashboardGrid}
+      {positionsSection}
       <div className="dashboard-grid">
         <section className="operations-card">
           <h3>Aktuelle Signale</h3>

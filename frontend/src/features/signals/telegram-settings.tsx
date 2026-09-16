@@ -134,21 +134,7 @@ export function TelegramSettings() {
     <div className="builder-field-grid"><Lines label="Erforderliche Keywords (mindestens eines)" value={filters.allowedKeywords} onChange={value => edit('filters', { ...filters, allowedKeywords: value })} /><Lines label="Gesperrte Keywords" value={filters.blockedKeywords} onChange={value => edit('filters', { ...filters, blockedKeywords: value })} /><Lines label="Erlaubte Inhaltstypen" value={filters.allowedTypes} onChange={value => edit('filters', { ...filters, allowedTypes: value })} /><Lines label="Globale Regex-Muster" value={filters.regexPatterns} onChange={value => edit('filters', { ...filters, regexPatterns: value })} /></div>
   );
 
-  return <div className="operations-stack"><h2>Telegram & KI-Grundlage</h2>
-    {Object.entries(errors).filter(([, error]) => error).map(([key, error]) => <p role="alert" key={key}>{key}: {error} · Vorhandene Daten können veraltet sein.</p>)}
-    {message && <p><output>{message}</output></p>}{readOnly && <p>Nur Lesezugriff. Änderungen und Anmeldung benötigen die Adminrolle.</p>}
-    <section className="operations-card system-form"><h3>Telegram-Routing</h3><EvidenceFields fields={[["Verbindung", status?.connectionState], ["Dienst läuft", status?.isRunning], ["Beobachtete Quellen", status?.resolvedSources?.length], ["Queue · aktiv", status?.queue?.running], ["Queue · wartend", status?.queue?.queued]]} />
-      <fieldset disabled={readOnly || busy || !status || Boolean(errors.Verbindung)}><button className="primary-button" disabled={canStop} onClick={() => { command('/api/control', { action: 'start' }, () => undefined, 'Verbindungsaufbau angefordert; Erfolg erst durch den Verbindungszustand bestätigt.'); }}>Starten</button><button className="secondary-button" disabled={!canStop} onClick={() => { command('/api/control', { action: 'stop' }, () => undefined, 'Telegram-Routing gestoppt. Bestehende Trades und deren Schutz laufen gesondert weiter.'); }}>Stoppen</button></fieldset>
-      {status?.telegramLogin?.state === 'waiting' && <fieldset disabled={readOnly || busy}><legend>Telegram-Anmeldung · {prompt?.label}</legend>
-        {loginPrompt()}
-      </fieldset>}
-    </section>
-    <DraftState label="Grundkonfiguration" form={form} server={server?.values} />
-    {server ? <section className="operations-card system-form"><h3>Globale Quellen, Parser und Queue</h3>
-      <p>Queue und globale KI-Grenzen gelten für künftige Arbeit. Telegram-Verbindungsdaten und Quellen werden beim nächsten Verbindungsaufbau aufgelöst. <Link to="/workflows/paths">Aktive Workflow-Pfade</Link> besitzen eigene gepinnte Filter, Parser-, Dedupe- und Ausgabeparameter; neue globale Legacy-Werte schreiben bestehende Nachrichten und Trades nicht um.</p>
-      <fieldset disabled={readOnly || busy || !form.baseRevision}>{settingsCoreGrid}
-        <Toggle label="Externe KI-Datenverarbeitung freigegeben" value={xml.externalDataPolicyAccepted ?? false} onChange={value => editXml('externalDataPolicyAccepted', value)} />
-        <AiLimitsForm value={xml.aiLimits ?? {}} onChange={value => editXml('aiLimits', value)} />
+  const legacyDetails = (
         <details><summary>Globaler Legacy-Signalweg · Quellen, Filter und Ausgabe</summary><p>Wirkt für neu angenommene Nachrichten ohne aktive Workflowrevision. Workflow-Bausteine werden im Builder geändert. Dateiausgabe ist ausschließlich eine Legacy-Option.</p>
           <Lines label="Globale Quellkanäle" value={config.sourceChannels} onChange={value => edit('sourceChannels', value)} />
           {legacyKeywordGrid}
@@ -164,6 +150,23 @@ export function TelegramSettings() {
             {Array.isArray(sourceFilter?.regexPatterns) ? <Lines label="Kanal-Regex-Muster" value={sourceFilter?.regexPatterns} onChange={value => edit('sourceFilters', { ...config.sourceFilters, [source]: { ...sourceFilter, regexPatterns: value } })} /> : <p>Erbt die globalen Regex-Muster. Beim Speichern entfernt der Server die aufgehobene Kanalvorgabe.</p>}
           </div>}
         </details>
+  );
+  return <div className="operations-stack"><h2>Telegram & KI-Grundlage</h2>
+    {Object.entries(errors).filter(([, error]) => error).map(([key, error]) => <p role="alert" key={key}>{key}: {error} · Vorhandene Daten können veraltet sein.</p>)}
+    {message && <p><output>{message}</output></p>}{readOnly && <p>Nur Lesezugriff. Änderungen und Anmeldung benötigen die Adminrolle.</p>}
+    <section className="operations-card system-form"><h3>Telegram-Routing</h3><EvidenceFields fields={[["Verbindung", status?.connectionState], ["Dienst läuft", status?.isRunning], ["Beobachtete Quellen", status?.resolvedSources?.length], ["Queue · aktiv", status?.queue?.running], ["Queue · wartend", status?.queue?.queued]]} />
+      <fieldset disabled={readOnly || busy || !status || Boolean(errors.Verbindung)}><button className="primary-button" disabled={canStop} onClick={() => { command('/api/control', { action: 'start' }, () => undefined, 'Verbindungsaufbau angefordert; Erfolg erst durch den Verbindungszustand bestätigt.'); }}>Starten</button><button className="secondary-button" disabled={!canStop} onClick={() => { command('/api/control', { action: 'stop' }, () => undefined, 'Telegram-Routing gestoppt. Bestehende Trades und deren Schutz laufen gesondert weiter.'); }}>Stoppen</button></fieldset>
+      {status?.telegramLogin?.state === 'waiting' && <fieldset disabled={readOnly || busy}><legend>Telegram-Anmeldung · {prompt?.label}</legend>
+        {loginPrompt()}
+      </fieldset>}
+    </section>
+    <DraftState label="Grundkonfiguration" form={form} server={server?.values} />
+    {server ? <section className="operations-card system-form"><h3>Globale Quellen, Parser und Queue</h3>
+      <p>Queue und globale KI-Grenzen gelten für künftige Arbeit. Telegram-Verbindungsdaten und Quellen werden beim nächsten Verbindungsaufbau aufgelöst. <Link to="/workflows/paths">Aktive Workflow-Pfade</Link> besitzen eigene gepinnte Filter, Parser-, Dedupe- und Ausgabeparameter; neue globale Legacy-Werte schreiben bestehende Nachrichten und Trades nicht um.</p>
+      <fieldset disabled={readOnly || busy || !form.baseRevision}>{settingsCoreGrid}
+        <Toggle label="Externe KI-Datenverarbeitung freigegeben" value={xml.externalDataPolicyAccepted ?? false} onChange={value => editXml('externalDataPolicyAccepted', value)} />
+        <AiLimitsForm value={xml.aiLimits ?? {}} onChange={value => editXml('aiLimits', value)} />
+        {legacyDetails}
         <ChangeReview before={server.values} after={config} label="Zu speichernde Konfigurationsänderungen" />
         <button className="primary-button" disabled={form.conflict} onClick={() => { save(); }}>Grundkonfiguration speichern</button>
       </fieldset>{!form.baseRevision && <p role="alert">Versionsvertrag fehlt. Speichern benötigt eine kompatible Serverversion.</p>}

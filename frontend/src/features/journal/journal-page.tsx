@@ -75,9 +75,7 @@ export function JournalPage({ trading, onRefresh }: Readonly<{ trading: TradingS
     }
     return "Auswahl wird geladen …";
   };
-  return <div className="operations-stack">
-    <div className="operations-section-heading"><div><h2>Trade Journal</h2><p>Originalversionen, Ausführungsdaten und Reviews. {journalPageSummary()}</p></div>
-      <div className="system-actions"><button className="secondary-button" onClick={() => { exportPage("csv"); }}>CSV · aktuelle Seite</button><button className="secondary-button" onClick={() => { exportPage("json"); }}>JSON · aktuelle Seite</button><button className="secondary-button" onClick={() => setRefresh((value) => value + 1)}>Aktualisieren</button></div></div>
+  const journalFilterBar = (
     <section className="operations-card journal-filterbar" aria-label="Journalfilter">
       <label>Von<input type="date" value={filters.from} onChange={(event) => setFilter("from", event.target.value)} /></label>
       <label>Bis<input type="date" value={filters.to} onChange={(event) => setFilter("to", event.target.value)} /></label>
@@ -88,10 +86,18 @@ export function JournalPage({ trading, onRefresh }: Readonly<{ trading: TradingS
       <label>Review<select value={filters.reviewed} onChange={(event) => setFilter("reviewed", event.target.value)}><option value="">Alle Reviews</option><option value="true">Geprüft</option><option value="false">Nicht geprüft</option></select></label>
       <button className="secondary-button" onClick={() => setParams(new URLSearchParams())}>Filter zurücksetzen</button>
     </section>
-    {error && <p role="alert" className="builder-error">{error} Vorhandene Daten können veraltet sein.</p>}{notice && <p><output>{notice}</output></p>}
-    {current && <><p>Erstellungsgrenze: {current.observedAt ? new Date(current.observedAt).toLocaleString("de-DE") : "unbekannt"}. Status, Review und Geldbewertung entsprechen der jeweiligen Seitenabfrage.</p>
+  );
+  const journalTableBlock = () => (
       <div className="overflow-x-auto"><table className="w-full text-left"><caption className="sr-only">Journal · serverseitig paginierte Auswahl</caption><thead><tr>{["Trade", "Konto / Modus", "Intentstatus", "Erstellt", "Geldbewertung", "Review"].map((label) => <th scope="col" key={label} className="p-3">{label}</th>)}</tr></thead>
         <tbody>{current.entries.map(entry => <tr key={entry.intentId}><td className="p-3"><Link to={`/trading/trades/${encodeURIComponent(entry.intentId)}`}>{entry.symbol} · {entry.side}</Link></td><td className="p-3">{entry.accountName} · {entry.exchange} / {entry.mode}</td><td className="p-3">{entry.status}</td><td className="p-3">{new Date(entry.createdAt).toLocaleString("de-DE")}</td><td className="p-3">{entry.money ? <MoneySummaryAmount summary={entry.money} /> : <MoneyAmount value={entry.position?.realizedPnlValue} amount={entry.position?.realizedPnl} currency={entry.position?.reportingCurrency} status={entry.position?.accountingStatus} />}</td><td className="p-3">{entry.review?.reviewed ? "geprüft" : "nicht geprüft"} · {entry.review?.rating ?? "keine Bewertung"}</td></tr>)}</tbody></table></div>
+  );
+  return <div className="operations-stack">
+    <div className="operations-section-heading"><div><h2>Trade Journal</h2><p>Originalversionen, Ausführungsdaten und Reviews. {journalPageSummary()}</p></div>
+      <div className="system-actions"><button className="secondary-button" onClick={() => { exportPage("csv"); }}>CSV · aktuelle Seite</button><button className="secondary-button" onClick={() => { exportPage("json"); }}>JSON · aktuelle Seite</button><button className="secondary-button" onClick={() => setRefresh((value) => value + 1)}>Aktualisieren</button></div></div>
+    {journalFilterBar}
+    {error && <p role="alert" className="builder-error">{error} Vorhandene Daten können veraltet sein.</p>}{notice && <p><output>{notice}</output></p>}
+    {current && <><p>Erstellungsgrenze: {current.observedAt ? new Date(current.observedAt).toLocaleString("de-DE") : "unbekannt"}. Status, Review und Geldbewertung entsprechen der jeweiligen Seitenabfrage.</p>
+      {journalTableBlock()}
       {!current.entries.length && <p>Keine Einträge für diese Filter.</p>}
       <div className="system-actions"><button className="secondary-button" disabled={!cursor} onClick={() => setParams((previous) => { previous.delete("cursor"); return previous; })}>Erste Seite</button><button className="secondary-button" disabled={!current.hasMore} onClick={() => setParams((previous) => { previous.set("cursor", current.nextCursor); return previous; })}>Nächste Seite</button></div></>}
     <section className="operations-card"><h3>Risikoereignisse · aktueller Ausschnitt</h3><Link to="/trading/risk-events?status=unacknowledged">Alle unquittierten Risikoereignisse seitenweise prüfen</Link>{((trading?.activity.riskEvents ?? []) as RiskEventEntry[]).map(event => <div className="system-line" key={event.id}><span>{event.code} · {event.accountId ?? "global"}</span>{event.acknowledgedAt ? <span>Quittiert · Ursache separat prüfen</span> : <button className="secondary-button" disabled={readOnly} onClick={() => { acknowledge(event.id); }}>Quittieren</button>}</div>)}</section>

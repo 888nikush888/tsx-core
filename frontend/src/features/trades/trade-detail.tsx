@@ -118,6 +118,13 @@ export function TradeDetail({ intentId, readOnly = true }: Readonly<{ intentId: 
   if (!current) return <div className="operations-stack"><h1>Trade {intentId}</h1><p>{error ? <span role="alert">{error}</span> : <output>Trade wird geladen …</output>}</p><Link to="/trading/journal">Zum Journal</Link></div>;
   const plan = (current.plan ?? {}) as TradePlan;
   const leverage = (plan.leverageDecision ?? {}) as TradeLeverageDecision;
+  const reviewFieldset = (
+      <fieldset disabled={readOnly || busy}><label>Notizen<textarea maxLength={10000} value={form.draft.notes} onChange={(event) => form.setDraft({ ...form.draft, notes: event.target.value })} /></label>
+        <label>Tags (ein Tag pro Zeile)<textarea value={form.draft.tags.join("\n")} onChange={(event) => form.setDraft({ ...form.draft, tags: event.target.value ? event.target.value.split("\n") : [] })} /></label>
+        <label>Bewertung<select value={form.draft.rating ?? ""} onChange={(event) => form.setDraft({ ...form.draft, rating: event.target.value === "" ? null : Number(event.target.value) })}><option value="">Keine Bewertung</option>{[1, 2, 3, 4, 5].map((rating) => <option key={rating} value={rating}>{rating}</option>)}</select></label>
+        <label><input type="checkbox" checked={form.draft.reviewed} onChange={(event) => form.setDraft({ ...form.draft, reviewed: event.target.checked })} />Geprüft</label>
+        <button className="primary-button" disabled={form.conflict} onClick={() => { save(); }}>Review speichern</button></fieldset>
+  );
   return <div className="operations-stack">
     <div><Link to="/trading/journal">Journal</Link><h1>{current.symbol} · {current.side}</h1><p>Intent {current.intentId} · {current.status} · {current.exchange}/{current.mode} · beobachtet {displayTime(observedAt)}</p></div>
     {error && <p role="alert">{error} Anzeige möglicherweise veraltet.</p>}{message && <p><output>{message}</output></p>}
@@ -156,11 +163,7 @@ export function TradeDetail({ intentId, readOnly = true }: Readonly<{ intentId: 
     <section className="operations-card system-form"><h2>Review</h2>{readOnly && <p>Viewer: Ausführungsdaten und Review sind schreibgeschützt.</p>}
       {form.dirty && <p><output>Ungespeicherter Reviewentwurf</output></p>}
       {form.conflict && <div role="alert"><p>Review wurde zwischenzeitlich geändert. Servernotiz: {review?.notes || "leer"} · Tags: {review?.tags.join(", ")} · Bewertung: {review?.rating ?? "keine"} · {review?.reviewed ? "geprüft" : "nicht geprüft"}</p><button onClick={form.acceptServer}>Serverstand übernehmen</button><button onClick={form.rebase}>Verglichen: Entwurf erneut anwenden</button></div>}
-      <fieldset disabled={readOnly || busy}><label>Notizen<textarea maxLength={10000} value={form.draft.notes} onChange={(event) => form.setDraft({ ...form.draft, notes: event.target.value })} /></label>
-        <label>Tags (ein Tag pro Zeile)<textarea value={form.draft.tags.join("\n")} onChange={(event) => form.setDraft({ ...form.draft, tags: event.target.value ? event.target.value.split("\n") : [] })} /></label>
-        <label>Bewertung<select value={form.draft.rating ?? ""} onChange={(event) => form.setDraft({ ...form.draft, rating: event.target.value === "" ? null : Number(event.target.value) })}><option value="">Keine Bewertung</option>{[1, 2, 3, 4, 5].map((rating) => <option key={rating} value={rating}>{rating}</option>)}</select></label>
-        <label><input type="checkbox" checked={form.draft.reviewed} onChange={(event) => form.setDraft({ ...form.draft, reviewed: event.target.checked })} />Geprüft</label>
-        <button className="primary-button" disabled={form.conflict} onClick={() => { save(); }}>Review speichern</button></fieldset>
+      {reviewFieldset}
     </section>
     <details className="operations-card"><summary>Redigierter technischer Originalbeleg</summary><pre className="whitespace-pre-wrap break-all">{JSON.stringify({ signal: current.signal.executable, plan: current.plan }, null, 2)}</pre></details>
   </div>;
