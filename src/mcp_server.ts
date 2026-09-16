@@ -1160,9 +1160,11 @@ function startMaintenanceMonitor(databasePath: string, initialDatabaseIdentity: 
       await shutdown(maintenance?.deadlineAt ?? Date.now() + 30000);
       // Successful close is acknowledged by the DB lifecycle hook. If it fails,
       // only actual process death (not this log or a timer) can prove quiescence.
+      // skipcq: JS-0263 - maintenance close contract: only real process death proves quiescence.
       process.exit(1);
     }).catch(() => {
       console.error('[CRITICAL] MCP service lost the operational database path and is closing.');
+      // skipcq: JS-0263 - maintenance close contract: only real process death proves quiescence.
       process.exit(1);
     }).finally(() => {
       maintenanceCheckBusy = false;
@@ -1205,8 +1207,10 @@ async function main(): Promise<void> {
 }
 
 function shutdownFromSignal(): void {
+  // skipcq: JS-0263 - signal shutdown must guarantee termination after the handle-close acknowledgment.
   shutdown().then(() => process.exit(0), error => {
     console.error(`[CRITICAL] MCP handle closure failed: ${errorMessage(error)}`);
+    // skipcq: JS-0263 - a failed handle close must still terminate deterministically.
     process.exit(1);
   });
 }

@@ -23,11 +23,11 @@ async function abortableDelay(milliseconds: number, signal?: AbortSignal | null)
       signal?.removeEventListener('abort', onAbort);
       resolve();
     }, milliseconds);
-    const onAbort = () => {
+    function onAbort(): void {
       clearTimeout(timer);
       if (signal) reject(abortError(signal));
       else reject(new Error('Aborted.'));
-    };
+    }
     signal?.addEventListener('abort', onAbort, { once: true });
   });
 }

@@ -1,6 +1,7 @@
 import { isStringMember } from './contract_values.js';
 import type { ExchangeHistoryCheckpoint, ExchangeHistoryProgress, ExchangeHistoryRetention } from './trading_types.js';
 import { assertCoverageContinuation, validateHistoryCoverage } from './exchange_history_coverage.js';
+import { isDeepStrictEqual } from 'node:util';
 
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid history checkpoint object.');
@@ -172,4 +173,3 @@ export function assertHistoryResponse(request: ExchangeHistoryCheckpoint[], prog
     assertHistoryContinuation(previous, row);
   }
 }
-import { isDeepStrictEqual } from 'node:util';

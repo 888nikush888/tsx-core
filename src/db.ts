@@ -3037,6 +3037,8 @@ async function closeFailedInitialization(database: Database | null, participant:
   databaseParticipant = null;
 }
 
+const getDb = getDatabase;
+
 export async function getSchemaVersion(): Promise<number> {
   const row = await getDb().get<{ version: number }>('SELECT MAX(version) AS version FROM schema_migrations');
   return Number(row?.version || 0);
@@ -3077,8 +3079,6 @@ export function getDatabase(): Database {
   }
   return guardedDb;
 }
-
-const getDb = getDatabase;
 
 function rawDatabase(): Database {
   if (!db) throw new Error('Database not initialized. Call initDb() first.');

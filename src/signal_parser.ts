@@ -184,10 +184,10 @@ async function abortableDelay(delayMs: number, signal?: AbortSignal): Promise<vo
       signal?.removeEventListener('abort', onAbort);
       resolve();
     }, delayMs);
-    const onAbort = () => {
+    function onAbort(): void {
       clearTimeout(timer);
       reject(abortError());
-    };
+    }
     if (signal?.aborted) onAbort();
     else signal?.addEventListener('abort', onAbort, { once: true });
   });

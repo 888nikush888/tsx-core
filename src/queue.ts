@@ -99,16 +99,17 @@ export class ConcurrencyQueue {
     }
     return new Promise<boolean>(resolve => {
       let settled = false;
-      const finish = (drained: boolean) => {
+      const waiters = this.idleWaiters;
+      const timer = setTimeout(() => finish(false), timeoutMs);
+      function finish(drained: boolean): void {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        this.idleWaiters.delete(onIdle);
+        waiters.delete(onIdle);
         resolve(drained);
-      };
-      const onIdle = () => finish(true);
-      const timer = setTimeout(() => finish(false), timeoutMs);
-      this.idleWaiters.add(onIdle);
+      }
+      function onIdle(): void { finish(true); }
+      waiters.add(onIdle);
       if (this.running === 0) onIdle();
     });
   }

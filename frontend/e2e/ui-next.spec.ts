@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 const TOKEN = 'a'.repeat(32);
+const trading = { overview: { runtime: { executionEnabled: false, liveTradingEnabled: false, killSwitchActive: true } }, accounts: [], strategies: [], signalSchemas: [], signalContracts: [], intents: [], activity: { positions: [], orders: [], fills: [], riskEvents: [], reconciliations: [], paperMarkets: [] }, workflowAdaptiveRisk: { states: [], evaluations: [] }, exchangeStreams: [], accountIncidents: [], fallbackRuns: [] };
+
 const NEW_TOKEN = 'b'.repeat(32);
 
 test('account pages retain their cursor on reload and do not fetch the legacy aggregate', async ({ page }) => {
@@ -280,7 +282,6 @@ test('Legacy risk migration preserves null and blockers in a reviewed draft and 
 });
 
 const aiLimits = { maxInputChars: 10000, maxOutputTokens: 1024, primaryAttempts: 1, fallbackAttempts: 0, dailyRequestLimit: 100, dailyTokenLimit: 10000, requestTimeoutMs: 250000, backoffMs: 0 };
-const trading = { overview: { runtime: { executionEnabled: false, liveTradingEnabled: false, killSwitchActive: true } }, accounts: [], strategies: [], signalSchemas: [], signalContracts: [], intents: [], activity: { positions: [], orders: [], fills: [], riskEvents: [], reconciliations: [], paperMarkets: [] }, workflowAdaptiveRisk: { states: [], evaluations: [] }, exchangeStreams: [], accountIncidents: [], fallbackRuns: [] };
 const entry = { intentId: 'intent-1', symbol: 'BTCUSDT', side: 'LONG', status: 'monitoring', accountId: 'paper-1', accountName: 'Paper 1', exchange: 'paper', mode: 'paper', channelId: 'channel-1', createdAt: 1000, workflowRevisionId: 'original-revision', executionPathId: 'path-1', signalRunId: 'run-1', signal: { id: 'signal-1', sourceMessageId: 42 }, strategy: { name: 'Original', id: 'strategy-v3', version: 3, configurationSha256: 'original-hash' }, plan: { entryPrice: '60000.00000001', quantity: '0.001', leverage: 10 }, position: null, orders: [], fills: [], timeline: {}, review: { notes: '', tags: [], rating: null, reviewed: false, updatedAt: null } };
 
 test('standalone model recovery binds the accepted model and keeps the receipt when refresh fails', async ({ page }) => {
