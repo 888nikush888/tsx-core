@@ -9,8 +9,8 @@ await initDb(databasePath);
 
 function park() {
   process.stdout.write(`PROTECTED_ENTRY_CRASH:${phase}\n`);
-  setInterval(() => {}, 1_000);
-  return new Promise(() => {});
+  setInterval(() => { /* keep-alive noop: the parent kills this fixture */ }, 1_000);
+  return new Promise(() => { /* never settles: parks until the parent kills the fixture */ });
 }
 
 class CrashPaper extends PaperExchangeAdapter {

@@ -230,7 +230,7 @@ for (const [shard, concurrency, minutes] of mutationBudgets) {
   assert.deepEqual(config.thresholds, { high: 80, low: 70, break: 70 });
   const calls = [];
   assert.equal(runMutationShards([shard, '--force'], {
-    spawnImpl: (...args) => { calls.push(args); return { status: 0 }; }, log: () => {},
+    spawnImpl: (...args) => { calls.push(args); return { status: 0 }; }, log: () => { /* test double: shard logging is not asserted */ },
   }), 0);
   assert.equal(calls.length, 1);
   assert.equal(calls[0][2].timeout, minutes * 60_000, shard);

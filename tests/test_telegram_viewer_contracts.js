@@ -33,14 +33,14 @@ const state = {
   lastTest: async () => null, eventCursor: async () => 5, testCursor: async () => 5,
   queueDeliveries: async () => { queueCalls += 1; },
   setEventCursor: async () => { cursorWrites += 1; }, setTestCursor: async () => { cursorWrites += 1; },
-  pendingDeliveries: async () => [], telegramOffset: async () => 0, setTelegramOffset: async () => {},
+  pendingDeliveries: async () => [], telegramOffset: async () => 0, setTelegramOffset: async () => { /* test double: offset writes are not asserted */ },
 };
 const viewer = new TelegramViewerService({
   core: { config: async () => ({ settings }), get: async () => response }, state,
   bot: {
     getUpdates: async () => [{ update_id: 1, message: { chat: { id: '1001', type: 'private' },
       from: { id: { toString() { coercions += 1; return '1001'; } } }, text: '/status' } }],
-    sendMessage: async () => { sends += 1; }, answerCallbackQuery: async () => {},
+    sendMessage: async () => { sends += 1; }, answerCallbackQuery: async () => { /* test double: callback answers are not asserted */ },
   },
 });
 await viewer.refreshSettings();

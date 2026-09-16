@@ -314,8 +314,8 @@ function createOutboxExecutionHarness() {
     Error, claimOutboxTask, completeOutboxTask, failOutboxTask, requireOutboxMessageIds,
     mergeConfigDefaults: value => value,
     markOutboxSending: async id => { sending.push(id); await markOutboxSending(id); },
-    addLog: () => {}, unknownErrorMessage: error => error.message, forwarderErrorCode: () => undefined,
-    deliverySlo: { recordAttempt() {}, recordConfirmed() {}, recordFailure() {} },
+    addLog: () => { /* test double: log output is not asserted in this scenario */ }, unknownErrorMessage: error => error.message, forwarderErrorCode: () => undefined,
+    deliverySlo: { recordAttempt() { /* test double: SLO recording is not asserted */ }, recordConfirmed() { /* test double: SLO recording is not asserted */ }, recordFailure() { /* test double: SLO recording is not asserted */ } },
     forwardMediaGroup: async (_id, _config, _group, context) => {
       await context.markSending(); provider.push(context.taskId); return { delivered: true };
     },

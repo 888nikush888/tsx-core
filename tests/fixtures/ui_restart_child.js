@@ -23,7 +23,7 @@ if (mode === 'crash-after-receipt') {
   store.runRestart = async (...args) => {
     await run(...args);
     process.send({ type: 'boundary', boundary: 'after-durable-receipt-before-restart' });
-    return new Promise(() => {});
+    return new Promise(() => { /* never settles: parks after the durable-receipt boundary */ });
   };
 }
 if (mode === 'crash-before-receipt') {
@@ -31,7 +31,7 @@ if (mode === 'crash-before-receipt') {
   fs.rename = async (from, to) => {
     if (to.endsWith('.json') && JSON.parse(await fs.readFile(from, 'utf8')).restart) {
       process.send({ type: 'boundary', boundary: 'after-command-before-durable-receipt' });
-      await new Promise(() => {});
+      await new Promise(() => { /* never settles: parks before the durable receipt for this crash mode */ });
     }
     return rename(from, to);
   };
@@ -43,13 +43,13 @@ if (mode === 'disconnect') {
 }
 if (mode === 'stalled-response') {
   controls.blockAudit = async event => {
-    if (event.phase === 'completed') await new Promise(() => {});
+    if (event.phase === 'completed') await new Promise(() => { /* never settles: stalls the audit phase for this fixture mode */ });
   };
 }
 if (mode.startsWith('stalled-flush')) {
   app.auditTrail.flush = async () => {
     if (mode === 'stalled-flush-existing-error') process.exitCode = 23;
-    await new Promise(() => {});
+    await new Promise(() => { /* never settles: stalls the audit flush for this fixture mode */ });
   };
 }
 

@@ -56,7 +56,7 @@ export async function createRestartFixture(directory, generation) {
     getQueueState: () => ({ running: 0, queued: 0, maxConcurrency: 1, paused: true }),
     startForwarding: async () => { throw new Error('Routing is disabled in this isolated fixture.'); },
     stopForwarding: () => work('restart'), restoreBackup: () => work('backup-restore'), performFactoryReset: () => work('factory-reset'),
-    reloadConfig: () => {}, getOperationsStatus: () => ({ backup: backupProof() }),
+    reloadConfig: () => { /* fixture no-op: reload is not exercised before the restart boundary */ }, getOperationsStatus: () => ({ backup: backupProof() }),
     auditTrail: { snapshot: () => ({ healthy: true }), record: async event => {
       if (controls.blockAudit) await controls.blockAudit(event);
       await appendFile(path.join(directory, 'audit.log'), JSON.stringify(event) + '\n');

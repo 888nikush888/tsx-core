@@ -481,9 +481,9 @@ test("workflow nodes and connections render when resize callbacks are unavailabl
 }) => {
   await page.addInitScript(() => {
     class SilentResizeObserver {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
+      observe() { /* no-op: dashboard tests intentionally disable layout observation */ }
+      unobserve() { /* no-op: dashboard tests intentionally disable layout observation */ }
+      disconnect() { /* no-op: dashboard tests intentionally disable layout observation */ }
     }
     Object.defineProperty(window, "ResizeObserver", {
       configurable: true,

@@ -5,8 +5,8 @@ import { checkCrashLoopFiles } from '../../src/crash_guard.js';
 
 const directory = path.resolve(process.argv[2]);
 const mode = process.argv[3];
-const forever = () => new Promise(() => {});
-const keepAlive = setInterval(() => {}, 1000);
+const forever = () => new Promise(() => { /* never settles: keeps the child alive until the parent kills it */ });
+const keepAlive = setInterval(() => { /* keep-alive noop: released only on parent kill */ }, 1000);
 
 try {
   const owner = await acquireProcessLock(path.join(directory, '.process_active'));

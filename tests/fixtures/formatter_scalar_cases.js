@@ -23,7 +23,7 @@ export function verifyFormatterScalarBoundaries(formatters, legacy = null) {
     const changed=replace(payload,keys,hostile);assert.match(formatters[name](changed),/ungeklärt/,label);assert.equal(reads,0,label);
     if(legacy){assert.throws(()=>legacy[name](changed),/must not coerce/);assert.equal(reads,1,label);legacyCoercionReads+=reads;}
     malformedCases++;
-    for(const bad of [[],Object(2),()=>{},Symbol('invalid'),2n]){assert.match(formatters[name](replace(payload,keys,bad)),/ungeklärt/,label);malformedCases++;}
+    for(const bad of [[],Object(2),()=>{/* malformed-value fixture: functions are not formatter scalars */},Symbol('invalid'),2n]){assert.match(formatters[name](replace(payload,keys,bad)),/ungeklärt/,label);malformedCases++;}
   }
   const additional=[['formatSummary',{}],['formatSummary',{accounts:null}],['formatOrders',{orders:[{filledQuantity:0}]}],['formatPositions',{positions:[{quantity:null,averageEntryPrice:null,stopPrice:null}]}],['formatAccounts',{accounts:[{equity:null}]}]];
   for(const [name,payload] of additional){if(name==='formatPositions'){assert.match(formatters[name](payload),/Menge: ungeklärt/);continue;}if(legacy){assert.equal(formatters[name](payload),legacy[name](payload));validComparisons++;}}

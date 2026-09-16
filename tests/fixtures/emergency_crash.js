@@ -6,8 +6,8 @@ await initDb(process.argv[2]);
 const timing = process.argv[4];
 function parkForHardCrash() {
   process.stdout.write('EMERGENCY_CRASH_MARKER\n');
-  setInterval(() => {}, 1_000);
-  return new Promise(() => {});
+  setInterval(() => { /* keep-alive noop: the parent kills the parked fixture */ }, 1_000);
+  return new Promise(() => { /* never settles: parks until the parent kills the fixture */ });
 }
 if (timing === 'before') {
   const database = getDatabase();
