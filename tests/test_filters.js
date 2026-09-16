@@ -48,7 +48,7 @@ function testRegexParsing() {
   console.log("   -> OK");
 }
 
-async function runTests() {
+function runTests() {
   console.log("=== Running Filters Unit Tests ===");
 
   // 1. hasNestedQuantifiers
@@ -192,7 +192,7 @@ async function runTests() {
   console.log("\nALL FILTERS UNIT TESTS PASSED!");
 }
 
-await runTests().catch(err => {
+await (async () => runTests())().catch(err => {
   console.error("Filters test execution failed:", err);
   process.exit(1);
 });

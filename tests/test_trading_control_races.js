@@ -140,15 +140,15 @@ try {
     for (const makeMalformed of malformedFactories) {
       const calls = [];
       const engine = {
-        retireUnauthorizedPreparations: async id => {
+        retireUnauthorizedPreparations: id => {
           calls.push(`prepare:${id}`);
           if (id === targets[0] && phase === 'preparation') throw makeMalformed();
         },
-        reconcileAccount: async id => {
+        reconcileAccount: id => {
           calls.push(`reconcile:${id}`);
           if (id === targets[0] && phase === 'reconciliation') throw makeMalformed();
         },
-        cancelExpiredEntries: async () => { throw makeMalformed(); },
+        cancelExpiredEntries: () => { throw makeMalformed(); },
       };
       const fixture = new TradingRuntime(engine);
       const failures = await fixture.reconcileAccounts(false);

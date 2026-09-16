@@ -131,7 +131,7 @@ await withFixture(async ({ intent, engine, paper }) => {
   const originalNow = Date.now;
   const readMarket = paper.marketSnapshot.bind(paper);
   let delayed = false;
-  paper.marketSnapshot = async (...args) => {
+  paper.marketSnapshot = (...args) => {
     if (!delayed) { delayed = true; const now = originalNow(); Date.now = () => now + 31_000; }
     return readMarket(...args);
   };

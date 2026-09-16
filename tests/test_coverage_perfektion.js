@@ -3,7 +3,7 @@ import { isForeignKeyConstraint, SignalReferencedError } from '../src/db.js';
 import { ensureQueueCoversParserTimeout } from '../src/config.js';
 import { clearRegexCache, parseRegex } from '../src/filters.js';
 
-async function runTests() {
+function runTests() {
   console.log("=== Perfektion Coverage Gap Tests ===");
 
   console.log("1. isForeignKeyConstraint branches...");
@@ -81,4 +81,4 @@ async function runTests() {
   console.log("\nALL PERFEKTION COVERAGE TESTS PASSED!");
 }
 
-await runTests().catch(e => { console.error(e); process.exit(1); });
+await (async () => runTests())().catch(e => { console.error(e); process.exit(1); });

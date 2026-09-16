@@ -50,7 +50,7 @@ async function disabledExposureStillNeedsWorker() {
   const entriesBefore = await getDatabase().get("SELECT COUNT(*) AS count FROM trading_paper_orders WHERE role = 'entry'");
   const read = paper.openState.bind(paper);
   const workerReads = [];
-  paper.openState = async account => { workerReads.push(account.id); return read(account); };
+  paper.openState = account => { workerReads.push(account.id); return read(account); };
   const runtime = new TradingRuntime(engine, 60_000);
   try {
     await runtime.startProtectionOnly();
@@ -96,8 +96,8 @@ async function acceptedEntryIsNotImplicitlyDrained() {
   assert.equal(entry.status, 'open'); assert.equal(entry.filledQuantity, '0'); assert.equal(stop.status, 'open');
   let cancels = 0, submits = 0;
   const cancel = paper.cancelOrder.bind(paper), submit = paper.submitProtectedEntry.bind(paper);
-  paper.cancelOrder = async (...args) => { cancels += 1; return cancel(...args); };
-  paper.submitProtectedEntry = async (...args) => { submits += 1; return submit(...args); };
+  paper.cancelOrder = (...args) => { cancels += 1; return cancel(...args); };
+  paper.submitProtectedEntry = (...args) => { submits += 1; return submit(...args); };
   await updateTradingRuntimeState({ executionEnabled: false });
   const runtime = new TradingRuntime(new TradingEngine([paper]), 60_000);
   const now = originalNow();

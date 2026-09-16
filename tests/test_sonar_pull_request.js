@@ -34,7 +34,7 @@ const hotspotResponse = { component: { key: 'project', pullRequest: '28', measur
   { metric: 'new_security_hotspots_reviewed', periods: [{ index: 1, value: '100.0', bestValue: true }] }
 ] } };
 
-async function fakeFetch(url) {
+function fakeFetch(url) {
   const parsed = new URL(url);
   calls.push(parsed);
   switch (parsed.pathname) {

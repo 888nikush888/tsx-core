@@ -229,7 +229,7 @@ async function testMalformedMoneyKeepsPositionFailureScope() {
   const locals = [{ id: 'position-a', intent_id: 'intent-a', symbol: 'A' }, { id: 'position-b', intent_id: 'intent-b', symbol: 'B' }];
   engine.ingestOwnedState = () => Promise.resolve(({ localPositions: locals, unrelatedUnmanagedExposure: false }));
   const visited = [];
-  engine.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
+  engine.reconcileOpenRemotePosition = (_account, _adapter, _remote, local) => {
     visited.push(local.id);
     if (local.id === 'position-a') moneyValueFromRational({ numerator: 1, denominator: '2' });
     return false;

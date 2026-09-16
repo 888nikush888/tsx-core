@@ -374,7 +374,7 @@ async function testEditableDefaultPromptOverride() {
       {
         budget: memoryBudget(),
         limits: { primaryAttempts: 1, fallbackAttempts: 0, backoffMs: 0 },
-        requestCompletion: async request => {
+        requestCompletion: request => {
           systemPrompt = request.messages[0].content;
           return { choices: [{ finish_reason: 'stop', message: { content: STANDARD_LONG } }] };
         }
@@ -400,7 +400,7 @@ async function testImmutableWorkflowPromptOverride() {
       promptTemplate: immutablePrompt,
       budget: memoryBudget(),
       limits: { primaryAttempts: 1, fallbackAttempts: 0, backoffMs: 0 },
-    requestCompletion: async request => {
+    requestCompletion: request => {
           systemPrompt = request.messages[0].content;
           return { choices: [{ finish_reason: 'stop', message: { content: STANDARD_LONG } }] };
         }
@@ -432,7 +432,7 @@ async function testAiRetryAndInjection() {
     {
       budget: retryBudget,
       limits: { primaryAttempts: 1, fallbackAttempts: 1, backoffMs: 0 },
-      requestCompletion: async request => {
+      requestCompletion: request => {
         retryModels.push(request.model);
         if (retryModels.length === 1) throw Object.assign(new Error('rate limited'), { status: 429 });
         return { choices: [{ finish_reason: 'stop', message: { content: STANDARD_LONG } }] };
@@ -453,7 +453,7 @@ async function testAiRetryAndInjection() {
     {
       budget: memoryBudget(),
       limits: { primaryAttempts: 1, fallbackAttempts: 1, backoffMs: 0 },
-      requestCompletion: async request => {
+      requestCompletion: request => {
         retryAfterModels.push(request.model);
         if (retryAfterModels.length === 1) {
           throw Object.assign(new Error('provider response must not be persisted'), {
@@ -504,7 +504,7 @@ async function testAiBudgetAndAbort() {
   let deniedProviderCalls = 0;
   await assert.rejects(parseSignalToXml('valid input', undefined, { primaryModel: 'test/primary' }, {
     budget: memoryBudget(false), limits: { primaryAttempts: 1, fallbackAttempts: 0 },
-    requestCompletion: async () => { deniedProviderCalls += 1; throw new Error('must not run'); }
+    requestCompletion: () => { deniedProviderCalls += 1; throw new Error('must not run'); }
   }), AiBudgetExceededError);
   assert.strictEqual(deniedProviderCalls, 0);
   const controller = new AbortController();
@@ -517,7 +517,7 @@ async function testAiBudgetAndAbort() {
   const activeAbort = parseSignalToXml('LONG BTCUSDT 1 2 3', undefined, undefined, {
     signal: activeController.signal,
     budget: memoryBudget(),
-    requestCompletion: async (_request, options) => {
+    requestCompletion: (_request, options) => {
       activeCalls += 1;
       return new Promise((_resolve, reject) => {
         options.signal.addEventListener('abort', () => {
@@ -577,7 +577,7 @@ async function runTests() {
   console.log('ALL STRICT SIGNAL PARSER TESTS PASSED!');
 }
 
-await runTests().catch(error => {
+await (async () => runTests())().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

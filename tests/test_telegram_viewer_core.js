@@ -391,6 +391,6 @@ try {
 
   console.log('Telegram viewer core contracts passed.');
 } finally {
-  await closeDb().catch(() => undefined);
+  await (async () => closeDb())().catch(() => undefined);
   await rm(directory, { recursive: true, force: true });
 }

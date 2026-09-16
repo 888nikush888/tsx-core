@@ -118,8 +118,8 @@ async function count(table, accountId) {
     'trading_account_mode_observations'].includes(table));
   return (await getDatabase().get(`SELECT COUNT(*) AS n FROM ${table} WHERE account_id=?`, [accountId])).n;
 }
-async function attempt(id) { return getDatabase().get('SELECT * FROM trading_recovery_schedule_attempts WHERE id=?', [id]); }
-async function schedule(accountId) { return getDatabase().get('SELECT * FROM trading_recovery_schedules WHERE account_id=?', [accountId]); }
+function attempt(id) { return getDatabase().get('SELECT * FROM trading_recovery_schedule_attempts WHERE id=?', [id]); }
+function schedule(accountId) { return getDatabase().get('SELECT * FROM trading_recovery_schedules WHERE account_id=?', [accountId]); }
 async function sources(accountId) {
   return { history: await getDatabase().all('SELECT * FROM trading_history_checkpoints WHERE account_id=? ORDER BY source,provider_symbol', [accountId]),
     logs: await getDatabase().all('SELECT * FROM trading_account_log_checkpoints WHERE account_id=?', [accountId]) };

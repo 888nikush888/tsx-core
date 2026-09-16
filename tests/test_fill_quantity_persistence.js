@@ -28,7 +28,7 @@ async function fixture(name, legacy = false, legacyQuantity = '1') {
   }
   return { ...context, fill, read: quantityRead(fill.quantityNormalization.normalizedAt) };
 }
-async function observations(accountId) {
+function observations(accountId) {
   return getDatabase().all('SELECT * FROM trading_fill_quantity_evidence WHERE account_id=? ORDER BY id', [accountId]);
 }
 async function providerReadAndAccountBinding() {

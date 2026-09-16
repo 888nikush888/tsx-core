@@ -66,7 +66,7 @@ async function nonErrorTransportFailures(adapter, account, writeRequest) {
   const counts = { attempts: 0, coercions: 0 };
   const transientFailure = 'Fixture transport timed out';
   try {
-    globalThis.fetch = async (...args) => {
+    globalThis.fetch = (...args) => {
       counts.attempts += 1;
       if (counts.attempts === 1) throw transientFailure;
       return originalFetch(...args);

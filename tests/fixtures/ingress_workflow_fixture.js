@@ -33,7 +33,7 @@ export async function workflowFixture() {
   ].map(([source, target]) => ({ id: `${source}-${target}`, kind: 'flow', source, target }));
   const graph = { schemaVersion: 3, nodes, edges };
   const first = await saveWorkflowRevision({ baseRevisionId: null, graph, actorId: 'test:ingress', confirmation: WORKFLOW_IMPACT_CONFIRMATION });
-  return { first, graph, resource, account, async revise(nextGraph) {
+  return { first, graph, resource, account, revise(nextGraph) {
     return saveWorkflowRevision({ baseRevisionId: first.id, graph: nextGraph, actorId: 'test:ingress', confirmation: WORKFLOW_IMPACT_CONFIRMATION });
   } };
 }

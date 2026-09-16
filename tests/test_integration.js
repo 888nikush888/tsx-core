@@ -126,7 +126,7 @@ async function runTests() {
   console.log("\nALL NODE.JS INTEGRATION VERIFICATION TESTS PASSED!");
 }
 
-await runTests().catch(err => {
+await (async () => runTests())().catch(err => {
   console.error("Integration verification failed with exception:", err);
   process.exit(1);
 });

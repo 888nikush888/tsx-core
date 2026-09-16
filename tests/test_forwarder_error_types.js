@@ -46,8 +46,8 @@ async function verifyRawForwardingPolicy(source) {
     `${executable}\nreturn forwardSingleMessage;`)(
     message => ({ text: message.text, type: 'text' }),
     () => authorized,
-    async () => { parsingCalls += 1; return xmlResult; },
-    async () => { rawCalls += 1; return 'raw-result'; },
+    () => { parsingCalls += 1; return xmlResult; },
+    () => { rawCalls += 1; return 'raw-result'; },
   );
   const context = { signal: new AbortController().signal };
   for (const workflowRevisionId of [null, 'workflow-1']) {

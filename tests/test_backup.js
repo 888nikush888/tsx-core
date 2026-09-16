@@ -373,7 +373,7 @@ async function assertOfflineBackupCli(root, artifact) {
   assert.equal(restored.status, 0, restored.stderr);
   assert.ok((await readFile(target)).length > 0);
   assert.equal(JSON.parse(await readFile(environment.CONFIG_PATH, 'utf8')).apiId, 123);
-  await withPinnedConfigurationGeneration(environment.CONFIG_PATH, target, async generation => {
+  await withPinnedConfigurationGeneration(environment.CONFIG_PATH, target, generation => {
     assert.equal(JSON.parse(generation.files.get('config.json')).apiId, 123,
       'The real restore CLI must leave the installed files in a committed local generation.');
   });
@@ -477,7 +477,7 @@ async function assertBackupScheduler(root, databasePath) {
     60_000,
     2,
     message => offsiteMessages.push(message),
-    { replicate: async artifact => verifiedReplication('backup-2026-offsite.tgfb', artifact), recover: async () => { throw new Error('not used'); } },
+    { replicate: artifact => verifiedReplication('backup-2026-offsite.tgfb', artifact), recover: () => { throw new Error('not used'); } },
     true
   );
   await offsiteScheduler.runNow();
@@ -490,7 +490,7 @@ async function assertBackupScheduler(root, databasePath) {
     60_000,
     2,
     () => undefined,
-    { replicate: async () => { throw new Error('replication unavailable'); }, recover: async () => { throw new Error('not used'); } },
+    { replicate: () => { throw new Error('replication unavailable'); }, recover: () => { throw new Error('not used'); } },
     true
   );
   await assert.rejects(failedScheduler.runNow(), /replication unavailable/);
@@ -506,11 +506,11 @@ async function assertBackupScheduler(root, databasePath) {
     2,
     () => undefined,
     {
-      replicate: async artifact => {
+      replicate: artifact => {
         markReplicationStarted();
         return new Promise(resolve => { releaseReplication = () => resolve(verifiedReplication('backup-2026-draining.tgfb', artifact)); });
       },
-      recover: async () => { throw new Error('not used'); }
+      recover: () => { throw new Error('not used'); }
     }
   );
   const activeRun = drainingScheduler.runNow();
@@ -560,7 +560,7 @@ async function runTests() {
   }
 }
 
-await runTests().catch(error => {
+await (async () => runTests())().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

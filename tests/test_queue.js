@@ -67,7 +67,7 @@ async function testErrorsAndTimeouts() {
   const errorQueue = new ConcurrencyQueue(2);
   
   const successfulJob = () => Promise.resolve("success");
-  const throwingJob = async () => {
+  const throwingJob = () => {
     throw new Error("Job failed");
   };
 
@@ -284,7 +284,7 @@ async function runTests() {
   await testHostileSettingsInput();
 }
 
-await runTests().catch(err => {
+await (async () => runTests())().catch(err => {
   console.error("ConcurrencyQueue test execution failed:", err);
   process.exit(1);
 });

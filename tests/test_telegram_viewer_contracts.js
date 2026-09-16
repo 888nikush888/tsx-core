@@ -8,7 +8,7 @@ import { DEFAULT_TELEGRAM_VIEWER_SETTINGS } from '../src/telegram_viewer_setting
 
 const originalFetch = globalThis.fetch;
 let payload = null;
-globalThis.fetch = async () => new Response(JSON.stringify(payload), { status: 200 });
+globalThis.fetch = () => new Response(JSON.stringify(payload), { status: 200 });
 try {
   const core = new TelegramViewerCoreApiClient('http://127.0.0.1:12345', 's'.repeat(43));
   const bot = new TelegramBotApiClient(`123456789:${'x'.repeat(30)}`, 'http://127.0.0.1:12345/bot');
@@ -30,17 +30,17 @@ const settings = { ...DEFAULT_TELEGRAM_VIEWER_SETTINGS, enabled: true, allowedUs
 let queueCalls = 0, cursorWrites = 0, sends = 0, coercions = 0;
 let response = { events: [], nextSeq: {} };
 const state = {
-  lastTest: async () => null, eventCursor: async () => 5, testCursor: async () => 5,
-  queueDeliveries: async () => { queueCalls += 1; },
-  setEventCursor: async () => { cursorWrites += 1; }, setTestCursor: async () => { cursorWrites += 1; },
-  pendingDeliveries: async () => [], telegramOffset: async () => 0, setTelegramOffset: async () => { /* test double: offset writes are not asserted */ },
+  lastTest: () => null, eventCursor: () => 5, testCursor: () => 5,
+  queueDeliveries: () => { queueCalls += 1; },
+  setEventCursor: () => { cursorWrites += 1; }, setTestCursor: () => { cursorWrites += 1; },
+  pendingDeliveries: () => [], telegramOffset: () => 0, setTelegramOffset: async () => { /* test double: offset writes are not asserted */ },
 };
 const viewer = new TelegramViewerService({
-  core: { config: async () => ({ settings }), get: async () => response }, state,
+  core: { config: () => ({ settings }), get: () => response }, state,
   bot: {
-    getUpdates: async () => [{ update_id: 1, message: { chat: { id: '1001', type: 'private' },
+    getUpdates: () => [{ update_id: 1, message: { chat: { id: '1001', type: 'private' },
       from: { id: { toString() { coercions += 1; return '1001'; } } }, text: '/status' } }],
-    sendMessage: async () => { sends += 1; }, answerCallbackQuery: async () => { /* test double: callback answers are not asserted */ },
+    sendMessage: () => { sends += 1; }, answerCallbackQuery: async () => { /* test double: callback answers are not asserted */ },
   },
 });
 await viewer.refreshSettings();

@@ -55,7 +55,7 @@ async function retries(role) {
   const id = await (role === 'stop' ? staleStop(context) : staleTarget(context));
   const send = context.paper.cancelOrder.bind(context.paper);
   let calls = 0;
-  context.paper.cancelOrder = async (account, target) => {
+  context.paper.cancelOrder = (account, target) => {
     if (target === id && ++calls === 1) throw new Error('simulated cancel timeout; order still active');
     return send(account, target);
   };
@@ -81,7 +81,7 @@ async function lateDispatchChange(kind) {
   const read = database.get.bind(database);
   let changed = false;
   let calls = 0;
-  context.paper.cancelOrder = async () => { calls += 1; throw new Error('must not dispatch'); };
+  context.paper.cancelOrder = () => { calls += 1; throw new Error('must not dispatch'); };
   database.get = async (sql, ...args) => {
     const row = await read(sql, ...args);
     if (!changed && sql.includes('SELECT side, stop_price FROM trading_positions')) {

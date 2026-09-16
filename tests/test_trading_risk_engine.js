@@ -21,7 +21,7 @@ class CostPaper extends PaperExchangeAdapter {
     }
     return snapshot;
   }
-  async cancelOrder(...args) { this.cancels += 1; return super.cancelOrder(...args); }
+  cancelOrder(...args) { this.cancels += 1; return super.cancelOrder(...args); }
 }
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-risk-engine-'));
 try {

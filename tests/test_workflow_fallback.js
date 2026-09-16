@@ -361,7 +361,7 @@ try {
   const technicalAdapter = {
     exchange: 'paper',
     accountSnapshot: (...args) => paper.accountSnapshot(...args),
-    marketSnapshot: async () => { throw new Error('Exchange executor request failed (502): simulated timeout'); },
+    marketSnapshot: () => { throw new Error('Exchange executor request failed (502): simulated timeout'); },
     submitOrder: (...args) => paper.submitOrder(...args),
     submitProtectedEntry: (...args) => paper.submitProtectedEntry(...args),
     cancelOrder: (...args) => paper.cancelOrder(...args),
@@ -394,8 +394,8 @@ try {
   let marketCallsAfterAccountFailure = 0;
   const accountFailureAdapter = {
     ...technicalAdapter,
-    accountSnapshot: async () => { throw new Error('Exchange executor request failed (503): account unavailable'); },
-    marketSnapshot: async () => { marketCallsAfterAccountFailure += 1; throw new Error('must not run'); },
+    accountSnapshot: () => { throw new Error('Exchange executor request failed (503): account unavailable'); },
+    marketSnapshot: () => { marketCallsAfterAccountFailure += 1; throw new Error('must not run'); },
   };
   await new TradingEngine([accountFailureAdapter]).processIntent(accountFailurePrimary.id);
   assert.equal((await getTradingIntent(accountFailurePrimary.id)).status, 'unknown');
@@ -767,8 +767,8 @@ try {
     exchange: 'paper',
     accountSnapshot: (...args) => paper.accountSnapshot(...args),
     marketSnapshot: (...args) => paper.marketSnapshot(...args),
-    submitOrder: async () => { throw new Error('simulated submit timeout'); },
-    submitProtectedEntry: async () => { throw new Error('simulated submit timeout'); },
+    submitOrder: () => { throw new Error('simulated submit timeout'); },
+    submitProtectedEntry: () => { throw new Error('simulated submit timeout'); },
     cancelOrder: (...args) => paper.cancelOrder(...args),
     openState: (...args) => paper.openState(...args),
   };
@@ -835,6 +835,6 @@ try {
 
   console.log('Workflow fallback tests passed.');
 } finally {
-  await closeDb().catch(() => undefined);
+  await (async () => closeDb())().catch(() => undefined);
   await rm(directory, { recursive: true, force: true });
 }

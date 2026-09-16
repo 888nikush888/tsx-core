@@ -12,10 +12,10 @@ function page(ids, { total = 2, next = false, cursor = null, oid = revision } = 
 }
 function fixture(responses) {
   const calls = [];
-  return { calls, fetchImpl: async (url, options) => {
+  return { calls, fetchImpl: (url, options) => {
     calls.push({ url, options, body: JSON.parse(options.body) });
     assert.ok(responses.length, 'Unexpected extra API call');
-    return { ok: true, json: async () => responses.shift() };
+    return { ok: true, json: () => responses.shift() };
   } };
 }
 test('exports every page and verifies revision/count again without exposing token', async () => {
@@ -48,9 +48,9 @@ for (const [name, responses, message] of [
   });
 }
 test('HTTP errors never expose the response body', async () => {
-  await assert.rejects(exportDeepSource({ token: 't', fetchImpl: async () => ({ ok: false, status: 401 }) }), /HTTP 401/);
+  await assert.rejects(exportDeepSource({ token: 't', fetchImpl: () => ({ ok: false, status: 401 }) }), /HTTP 401/);
 });
 test('network exceptions never expose authentication data', async () => {
-  await assert.rejects(exportDeepSource({ token: 't', fetchImpl: async () => { throw new Error('secret'); } }),
+  await assert.rejects(exportDeepSource({ token: 't', fetchImpl: () => { throw new Error('secret'); } }),
     error => error.message === 'DeepSource request failed; export is unverified.');
 });

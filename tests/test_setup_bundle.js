@@ -485,6 +485,6 @@ try {
     'A failed setup replacement must roll back its history reset.');
   console.log('Portable setup bundle tests passed.');
 } finally {
-  await closeDb().catch(() => undefined);
+  await (async () => closeDb())().catch(() => undefined);
   await rm(directory, { recursive: true, force: true });
 }

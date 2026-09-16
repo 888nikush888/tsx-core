@@ -137,7 +137,7 @@ async function provePositionFailureIsolation() {
     const engine = new TradingEngine([adapter]);
     const calls = [];
     engine.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
-    engine.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
+    engine.reconcileOpenRemotePosition = (_account, _adapter, _remote, local) => {
       calls.push(local.intent_id);
       if (local.intent_id === positions[failingIndex].intent_id) throw new Error(`position ${failingIndex} failed`);
       return false;
@@ -151,7 +151,7 @@ async function provePositionFailureIsolation() {
   const allocation = new TradingEngine([adapter]);
   const allocationCalls = [];
   allocation.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
-  allocation.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
+  allocation.reconcileOpenRemotePosition = (_account, _adapter, _remote, local) => {
     allocationCalls.push(local.intent_id);
     if (local.intent_id === positions[0].intent_id) requireTakeProfitAllocation([], ['0'], 0);
     return false;
@@ -165,7 +165,7 @@ async function provePositionFailureIsolation() {
   const multiple = new TradingEngine([adapter]);
   const multipleCalls = [];
   multiple.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
-  multiple.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
+  multiple.reconcileOpenRemotePosition = (_account, _adapter, _remote, local) => {
     multipleCalls.push(local.intent_id);
     throw new Error(`failed ${local.intent_id}`);
   };
@@ -175,7 +175,7 @@ async function provePositionFailureIsolation() {
   const budget = new TradingEngine([adapter]);
   const budgetCalls = [];
   budget.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
-  budget.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
+  budget.reconcileOpenRemotePosition = (_account, _adapter, _remote, local) => {
     budgetCalls.push(local.intent_id);
     if (local.intent_id === positions[0].intent_id) throw new CancelBudgetExhaustedError();
     return false;
@@ -186,7 +186,7 @@ async function provePositionFailureIsolation() {
   const global = new TradingEngine([adapter]);
   const globalCalls = [];
   global.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
-  global.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
+  global.reconcileOpenRemotePosition = (_account, _adapter, _remote, local) => {
     globalCalls.push(local.intent_id);
     const error = new Error('database integrity failure');
     error.code = 'SQLITE_CORRUPT';

@@ -23,7 +23,7 @@ const branchIdentity = { name: branch, type: 'LONG', isMain: false, commit: { sh
 const json = value => new Response(JSON.stringify(value));
 let openIssues = [{ key: 'existing-issue', severity: 'MINOR' }];
 
-async function fakeFetch(url) {
+function fakeFetch(url) {
   const parsed = new URL(url);
   assert.equal(parsed.searchParams.has('pullRequest'), false);
   switch (parsed.pathname) {

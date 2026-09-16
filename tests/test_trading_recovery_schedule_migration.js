@@ -29,7 +29,7 @@ async function originals(database) {
   result.migrations = await database.all('SELECT * FROM schema_migrations WHERE version<=43 ORDER BY version');
   return result;
 }
-async function schema(database) {
+function schema(database) {
   return database.all('SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name');
 }
 async function scheduleRows() {

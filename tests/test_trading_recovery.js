@@ -47,13 +47,13 @@ try {
   const fenced = await fixture('fenced');
   let sends = 0;
   fenced.guard = () => { throw new Error('operator fence'); };
-  fenced.send = async () => { sends += 1; throw new Error('must not send'); };
+  fenced.send = () => { sends += 1; throw new Error('must not send'); };
   await assert.rejects(runJournaledExchangeWrite(fenced), /operator fence/);
   assert.equal(sends, 0);
   assert.equal((await getDatabase().get("SELECT phase FROM trading_operations WHERE request_json = ?", [JSON.stringify(fenced.request)])).phase, 'abandoned');
 
   const timedOut = await fixture('timeout');
-  timedOut.send = async () => { sends += 1; throw new Error('connection lost after acceptance'); };
+  timedOut.send = () => { sends += 1; throw new Error('connection lost after acceptance'); };
   await assert.rejects(runJournaledExchangeWrite(timedOut), /connection lost/);
   await assert.rejects(runJournaledExchangeWrite(timedOut), /unresolved/);
   assert.equal(sends, 1);

@@ -70,7 +70,7 @@ async function externalChanges() {
   await writeFile(template, original);
   await pin(() => Promise.resolve());
   const foreign = path.join(root, 'different-runtime.json');
-  await assert.rejects(withManagedConfigurationWrite(sources.configurationPath, foreign, '{}', async () => { throw new Error('must not run'); }), /different.*scope/);
+  await assert.rejects(withManagedConfigurationWrite(sources.configurationPath, foreign, '{}', () => { throw new Error('must not run'); }), /different.*scope/);
   const originalConfig = await readFile(sources.configurationPath);
   await assert.rejects(withManagedConfigurationWrite(sources.configurationPath, sources.configurationPath, JSON.stringify({ ...config, apiId: 19 }), async () => {
     await writeFile(sources.configurationPath, JSON.stringify({ ...config, apiId: 19 }));
@@ -178,7 +178,7 @@ async function maintenanceRecovery() {
     assert.equal(reset.generation, 1, 'Factory reset starts a new store with a distinct identity, never reuses the old commit ID.');
     assert.notEqual(reset.commitId, recovered.commitId);
   } finally { await lease.release(); }
-  await pin(async generation => {
+  await pin(generation => {
     assert.equal(JSON.parse(generation.files.get('runtime-settings.json')).shutdownGraceMs, 75_000);
   });
 }

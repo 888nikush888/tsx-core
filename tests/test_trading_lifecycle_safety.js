@@ -121,7 +121,7 @@ async function drainCases() {
   missing.paper.openState = async account => { const state = await original(account); delete state.acquisition; return state; };
   let entryCancels = 0;
   const cancelMissing = missing.paper.cancelOrder.bind(missing.paper);
-  missing.paper.cancelOrder = async (account, id) => { if (id === missing.entry.clientOrderId) entryCancels += 1; return cancelMissing(account, id); };
+  missing.paper.cancelOrder = (account, id) => { if (id === missing.entry.clientOrderId) entryCancels += 1; return cancelMissing(account, id); };
   await assert.rejects(missing.engine.cancelOpenEntries(missing.account.id), error => hasReason(error, 'ACQUISITION_MISSING'));
   assert.equal((await original(missing.account)).orders.find(order => order.role === 'entry').status, 'cancelled', 'A terminal cancel acknowledgement alone is not drained proof.');
   assert.equal((await getTradingAccount(missing.account.id)).killSwitchActive, true);

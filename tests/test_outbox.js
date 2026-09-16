@@ -454,7 +454,7 @@ async function testMalformedJsonSyntaxSchedulerBoundary() {
   await database.run("UPDATE pending_tasks SET added_at = CASE WHEN id LIKE 'schedule-syntax-bad%' THEN 1 ELSE 2 END WHERE id LIKE 'schedule-syntax-%'");
   const queue = new ConcurrencyQueue(1, 0, 2);
   const scheduler = new DurableOutboxScheduler({ queue,
-    listPending: async excluded => listPendingOutboxTasksForScheduling([...otherIds, ...excluded], 1),
+    listPending: excluded => listPendingOutboxTasksForScheduling([...otherIds, ...excluded], 1),
     execute: (id, signal) => { scheduled.push(id); return execute(id, null, signal); },
     logError: message => schedulerErrors.push(message),
   });
@@ -527,7 +527,7 @@ async function runTests() {
   }
 }
 
-await runTests().catch(error => {
+await (async () => runTests())().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

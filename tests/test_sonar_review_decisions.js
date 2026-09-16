@@ -74,7 +74,7 @@ function transport(manifest = original) {
   const ledgers = [];
   const state = { issues, calls, ledgers, postMode: 'ok', getOverride: null, postCount: 0 };
   state.writeLedger = ledger => ledgers.push(ledger);
-  state.fetchImpl = async (url, options) => {
+  state.fetchImpl = (url, options) => {
     const parsed = new URL(url);
     assert.equal(parsed.origin, 'https://sonarcloud.io');
     assert.equal(options.redirect, 'error');
@@ -367,7 +367,7 @@ async function createPullRequestFixture() {
     GITHUB_SHA: checkoutRevision, SONAR_EXPECTED_REVISION: checkoutRevision, SONAR_APPLY_REVIEWED_PR29_DECISION: 'true' };
   const prEvent = { ...event, inputs: { apply_reviewed_pr29_sonar_decision: true } };
   const changes = { mode: 'pr29', environment: prEnvironment, event: prEvent, revision: checkoutRevision };
-  const reset = async (manifest = prOriginal) => writeFile(path.join(root, PR_REVIEW_MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
+  const reset = (manifest = prOriginal) => writeFile(path.join(root, PR_REVIEW_MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
   const create = () => {
     const state = transport(prOriginal);
     state.issues.set(mainDecision.issueKey, structuredClone(confirmedMain));

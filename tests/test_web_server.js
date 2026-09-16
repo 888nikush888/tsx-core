@@ -928,8 +928,8 @@ async function testTradingSignalSchemaControl(baseUrl, appState) {
   const calls = [];
   const original = appState.tradingControl;
   appState.tradingControl = {
-    createSignalSchema: async payload => { calls.push(['create', payload.id]); return payload; },
-    updateSignalSchema: async payload => { calls.push(['update', payload.id]); return payload; },
+    createSignalSchema: payload => { calls.push(['create', payload.id]); return payload; },
+    updateSignalSchema: payload => { calls.push(['update', payload.id]); return payload; },
     removeSignalSchema: id => { calls.push(['delete', id]); return Promise.resolve(true); },
   };
   try {
@@ -1635,7 +1635,7 @@ async function createAppState(testDir, controls) {
     applyRuntimeConfig: () => undefined,
     persistConfig: () => undefined,
     getMetricsHistory: () => [],
-    getOutboxTasks: async statuses => [{ id: 'unknown-task', status: statuses?.[0] || 'unknown' }],
+    getOutboxTasks: statuses => [{ id: 'unknown-task', status: statuses?.[0] || 'unknown' }],
     retryOutboxTask: id => { controls.retryCalls += 1; return Promise.resolve(id === 'unknown-task'); },
     acknowledgeOutboxTask: id => { controls.acknowledgeCalls += 1; return Promise.resolve(id === 'unknown-task'); },
     getTelegramLoginState: () => ({
@@ -1647,10 +1647,10 @@ async function createAppState(testDir, controls) {
       return { state: 'authenticating' };
     },
     auditTrail: {
-      record: async event => {
+      record: event => Promise.resolve().then(() => {
         controls.auditEvents.push(event);
         if (controls.auditShouldFail) throw new Error('audit unavailable');
-      },
+      }),
       snapshot: () => ({ healthy: true, remoteRequired: false, lastRemoteSuccessAt: null, recordCount: controls.auditEvents.length }),
       replayRemote: () => { controls.auditReplayCalls += 1; return Promise.resolve(controls.auditEvents.length); }
     },
@@ -2060,7 +2060,7 @@ async function runTests() {
   }
 }
 
-await runTests().catch(error => {
+await (async () => runTests())().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

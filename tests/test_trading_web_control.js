@@ -33,7 +33,7 @@ class FakeOfficialAdapter {
   candidateCredentialGeneration = null;
   scopedCurrentReads = false;
   trace = [];
-  async verifyAccount(account) {
+  verifyAccount(account) {
     this.trace.push({ kind: 'verify', accountId: account.id });
     if (this.verificationError) throw this.verificationError;
     return {
@@ -58,9 +58,9 @@ class FakeOfficialAdapter {
     return Promise.resolve({ symbol, markPrice: '100', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, observedAt: Date.now() });
   }
   // skipcq: JS-0105 - fixture implements the exchange adapter surface consumed through instances.
-  async submitOrder() { throw new Error('Not used by control-plane contract test.'); }
+  submitOrder() { throw new Error('Not used by control-plane contract test.'); }
   // skipcq: JS-0105 - fixture implements the exchange adapter surface consumed through instances.
-  async cancelOrder() { throw new Error('Not used by control-plane contract test.'); }
+  cancelOrder() { throw new Error('Not used by control-plane contract test.'); }
   async openState(account) {
     this.trace.push({ kind: 'read', accountId: account.id, statuses: this.remote.orders.map(order => order.status) });
     // Synthetic source evidence exercises the real control-plane safety consumers, not provider acceptance.
@@ -203,7 +203,7 @@ try {
     enableCalls: 0,
     disableCalls: 0,
     failNextEnable: false,
-    async enableEntries() {
+    enableEntries() {
       this.enableCalls += 1;
       if (this.failNextEnable) {
         this.failNextEnable = false;

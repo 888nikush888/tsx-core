@@ -57,12 +57,12 @@ function installEngineHook(engine) {
     return result;
   };
   const admission = engine.assertFinalEntryAdmission.bind(engine);
-  engine.assertFinalEntryAdmission = async (...args) => {
+  engine.assertFinalEntryAdmission = (...args) => {
     if (phase === 'prepared') return park();
     return admission(...args);
   };
   const outcome = engine.validateProtectedEntryOutcome.bind(engine);
-  engine.validateProtectedEntryOutcome = async (...args) => {
+  engine.validateProtectedEntryOutcome = (...args) => {
     if (phase === 'acknowledged') return park();
     return outcome(...args);
   };

@@ -17,9 +17,9 @@ const state = {
   startForwarding: () => Promise.resolve(), stopForwarding: () => Promise.resolve(), reloadConfig: () => undefined, applyRuntimeConfig: () => undefined,
   authenticator: { mode: 'token', isConfigured: () => true,
     authenticate: () => Promise.resolve(({ id: 'local-fake-admin', role: 'admin' })) },
-  auditTrail: { record: async event => {
+  auditTrail: { record: event => Promise.resolve().then(() => {
     if (event.phase === 'authorized' && revokeDuringAudit) authority.block('revoked during audit');
-  } },
+  }) },
   secretStore: { status: () => ({}) },
   runtimeSettings: { snapshot: () => ({}), set: () => { changes += 1; return Promise.resolve({}); } },
 };

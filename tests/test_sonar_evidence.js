@@ -29,7 +29,7 @@ for (const entry of await readdir('exchange_executor', { withFileTypes: true }))
   }
 }
 assert.ok(sources.every(source => !source.includes('/tests/')));
-async function fakeFetch(url) {
+function fakeFetch(url) {
   switch (new URL(url).pathname) {
     case '/api/ce/task': return response({ task: { id: 'task', componentKey: 'project', status: 'SUCCESS', analysisId: 'analysis' } });
     case '/api/project_analyses/search': return response({ analyses: [{ key: 'analysis', revision }] });

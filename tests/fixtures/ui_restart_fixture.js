@@ -54,7 +54,7 @@ export async function createRestartFixture(directory, generation) {
     config: { sourceChannels: [], targetChannel: '', forwardOptions: { forwardToTarget: false } },
     state: { isRunning: true }, startupAuthority: authority, uiOperations: store,
     getQueueState: () => ({ running: 0, queued: 0, maxConcurrency: 1, paused: true }),
-    startForwarding: async () => { throw new Error('Routing is disabled in this isolated fixture.'); },
+    startForwarding: () => { throw new Error('Routing is disabled in this isolated fixture.'); },
     stopForwarding: () => work('restart'), restoreBackup: () => work('backup-restore'), performFactoryReset: () => work('factory-reset'),
     reloadConfig: () => { /* fixture no-op: reload is not exercised before the restart boundary */ }, getOperationsStatus: () => ({ backup: backupProof() }),
     auditTrail: { snapshot: () => ({ healthy: true }), record: async event => {

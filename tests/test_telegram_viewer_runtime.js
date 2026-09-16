@@ -243,7 +243,7 @@ async function run() {
   }
 }
 
-run().catch(error => {
+(async () => run())().catch(error => {
   console.error(error);
   process.exit(1);
 });

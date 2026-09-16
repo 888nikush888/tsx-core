@@ -54,7 +54,7 @@ function tracedAdapter(paper, hooks = {}) {
   const events = [];
   const adapter = { exchange: 'paper' };
   for (const method of ['openState', 'submitOrder', 'cancelOrder', 'marketSnapshot', 'accountSnapshot']) {
-    adapter[method] = async (...args) => {
+    adapter[method] = (...args) => {
       events.push({ method, order: args[1] });
       return hooks[method] ? hooks[method](...args) : paper[method](...args);
     };

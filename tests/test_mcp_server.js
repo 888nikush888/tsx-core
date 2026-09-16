@@ -347,7 +347,7 @@ try {
     child.kill();
     await new Promise(resolve => child.once('exit', resolve));
   }
-  await closeDb().catch(() => undefined);
+  await (async () => closeDb())().catch(() => undefined);
   await processOwner.release();
   await rm(directory, { recursive: true, force: true });
 }

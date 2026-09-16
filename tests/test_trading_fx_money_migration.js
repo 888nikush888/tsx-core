@@ -31,7 +31,7 @@ async function originals(database) {
   result.migrations = await database.all('SELECT * FROM schema_migrations WHERE version<=44 ORDER BY version');
   return result;
 }
-async function schema(database) {
+function schema(database) {
   return database.all('SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name');
 }
 async function version(expected, database = getDatabase()) {
@@ -91,7 +91,7 @@ async function assertUpgraded(fixture) {
   assert.ok((await getDatabase().all('SELECT value_json FROM trading_accounting_projections')).every(row => row.value_json === null));
   assert.deepEqual(await getDatabase().all('SELECT ledger_realized_value_json FROM trading_positions'), [{ ledger_realized_value_json: null }]);
 }
-async function insertFx(eventId, accountId, conversionId, template) {
+function insertFx(eventId, accountId, conversionId, template) {
   return getDatabase().run(`INSERT INTO trading_fx_money_valuations
     (event_id,account_id,conversion_id,reporting_currency,payload_json,content_hash,recorded_at) VALUES (?,?,?,?,?,?,?)`,
   [eventId, accountId, conversionId, template.reporting_currency, template.payload_json, template.content_hash, template.recorded_at]);

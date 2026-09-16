@@ -93,6 +93,6 @@ try {
   assert.deepEqual(await getDatabase().all('PRAGMA foreign_key_check'), []);
   console.log('Configurable fallback migration test passed.');
 } finally {
-  await closeDb().catch(() => undefined);
+  await (async () => closeDb())().catch(() => undefined);
   await rm(directory, { recursive: true, force: true });
 }

@@ -16,7 +16,7 @@ function jsonResponse(body, status = 200, headers = {}) {
   });
 }
 
-async function sonarFetch(url, options) {
+function sonarFetch(url, options) {
   calls.push({ url: new URL(url), options });
   assert.equal(options.headers.authorization, 'Bearer test-token');
   const parsed = new URL(url);
@@ -63,7 +63,7 @@ async function assertReadRetries(environment) {
     let attempts = 0;
     await exportFindings({
       environment, ...clock,
-      fetchImpl: async (url, options) => {
+      fetchImpl: (url, options) => {
         attempts += 1;
         if (attempts > 1) return sonarFetch(url, options);
         if (failure === 'network') throw new TypeError('socket failed: test-token');
@@ -78,7 +78,7 @@ async function assertReadRetries(environment) {
   let attempts = 0;
   await assert.rejects(exportFindings({
     environment, ...clock,
-    fetchImpl: async () => { attempts += 1; throw new TypeError('test-token'); }
+    fetchImpl: () => { attempts += 1; throw new TypeError('test-token'); }
   }), /failed after 3 attempts/);
   assert.equal(attempts, 3);
   assert.deepEqual(clock.delays, [250, 500]);
@@ -128,7 +128,7 @@ async function assertRetryBudgets(environment) {
     let count = 0;
     await exportFindings({
       environment, ...delayedClock, now: () => new Date('2026-07-23T10:01:00Z'),
-      fetchImpl: async (url, options) => {
+      fetchImpl: (url, options) => {
         count += 1;
         return count === 1 ? jsonResponse({}, 429, { 'retry-after': retryAfter }) : sonarFetch(url, options);
       }
@@ -143,7 +143,7 @@ async function assertPaginationSafety(environment) {
   const clock = retryClock();
   await exportFindings({
     environment, ...clock,
-    fetchImpl: async (url, options) => {
+    fetchImpl: (url, options) => {
       const parsed = new URL(url);
       if (parsed.pathname === '/api/issues/search' && parsed.searchParams.get('p') === '2') {
         pageTwoAttempts += 1;
@@ -162,7 +162,7 @@ async function assertPaginationSafety(environment) {
     let issueRequests = 0;
     await assert.rejects(exportFindings({
       environment, ...retryClock(),
-      fetchImpl: async (url, options) => {
+      fetchImpl: (url, options) => {
         if (new URL(url).pathname !== '/api/issues/search') return sonarFetch(url, options);
         issueRequests += 1;
         return jsonResponse(invalidPage);
@@ -173,7 +173,7 @@ async function assertPaginationSafety(environment) {
   let analysisRequests = 0;
   await assert.rejects(exportFindings({
     environment,
-    fetchImpl: async (url, options) => {
+    fetchImpl: (url, options) => {
       if (new URL(url).pathname === '/api/project_analyses/search' && ++analysisRequests === 2) {
         return jsonResponse({ analyses: [{ key: 'changed-analysis', revision }] });
       }
@@ -183,7 +183,7 @@ async function assertPaginationSafety(environment) {
   assert.equal(analysisRequests, 2);
   await assert.rejects(exportFindings({
     environment,
-    fetchImpl: async (url, options) => {
+    fetchImpl: (url, options) => {
       const parsed = new URL(url);
       if (parsed.pathname === '/api/issues/search' && parsed.searchParams.get('resolved') === 'false') {
         return jsonResponse({ issues: [{ key: 'malformed', severity: 'MAJOR', impacts: 'invalid' }], paging: { total: 1 } });
@@ -273,7 +273,7 @@ try {
   await assert.rejects(
     exportFindings({
       environment: { ...environment, SONAR_REPORT_TASK_FILE: failedTaskFile },
-      fetchImpl: async (url, options) => {
+      fetchImpl: (url, options) => {
         failedTaskCalls.push(new URL(url));
         assert.equal(options.headers.authorization, 'Bearer test-token');
         return jsonResponse({

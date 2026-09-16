@@ -20,7 +20,7 @@ async function testLargeBacklogIsPumpedWithinMemoryBound() {
   const errors = [];
   const scheduler = new DurableOutboxScheduler({
     queue,
-    listPending: async (excluded, limit) => [...pending]
+    listPending: (excluded, limit) => [...pending]
       .filter(id => !excluded.includes(id))
       .sort()
       .slice(0, limit)
@@ -54,7 +54,7 @@ async function testPausedQueueDoesNotLoseDurableWork() {
   const completed = [];
   const scheduler = new DurableOutboxScheduler({
     queue,
-    listPending: async (excluded, limit) => [...pending].filter(id => !excluded.includes(id)).slice(0, limit).map(id => ({ id })),
+    listPending: (excluded, limit) => [...pending].filter(id => !excluded.includes(id)).slice(0, limit).map(id => ({ id })),
     execute: id => {
       pending.delete(id);
       completed.push(id);

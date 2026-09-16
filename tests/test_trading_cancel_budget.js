@@ -13,25 +13,25 @@ await coordinator.run('@runtime', async () => {
   await coordinator.run('a', async a => {
     await coordinator.run('b', async b => {
       for (let index = 0; index < 3; index += 1) {
-        await coordinator.run('a', async () => attempt('a', `entry-${index}`), a);
-        await coordinator.run('b', async () => attempt('b', `stop-${index}`), b);
+        await coordinator.run('a', () => attempt('a', `entry-${index}`), a);
+        await coordinator.run('b', () => attempt('b', `stop-${index}`), b);
       }
-      await coordinator.run('a', async () => {
+      await coordinator.run('a', () => {
         attempt('a', 'tp'); attempt('a', 'closure');
         assert.throws(() => claimCancelAttempt('a', 'sixth'), /budget/i);
         assert.throws(() => claimCancelAttempt('b', 'wrong-account'), /context/i);
       }, a);
-      await coordinator.run('b', async () => {
+      await coordinator.run('b', () => {
         attempt('b', 'tp'); attempt('b', 'closure');
         assert.throws(() => claimCancelAttempt('b', 'sixth'), /budget/i);
       }, b);
     });
-    await coordinator.run('a', async () => assert.throws(() => claimCancelAttempt('a', 'new-pass'), /budget/i), a);
+    await coordinator.run('a', () => assert.throws(() => claimCancelAttempt('a', 'new-pass'), /budget/i), a);
   });
 });
 let expired = null;
-await coordinator.run('a', async () => { expired = claimCancelAttempt('a', 'unused'); });
-await coordinator.run('a', async () => {
+await coordinator.run('a', () => { expired = claimCancelAttempt('a', 'unused'); });
+await coordinator.run('a', () => {
   assert.throws(() => consumeCancelAttempt(expired, 'a', 'unused'), /permit/i);
   for (let index = 0; index < 5; index += 1) attempt('a', `fresh-${index}`);
 });

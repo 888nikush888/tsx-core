@@ -34,7 +34,7 @@ async function testOwnershipFailureBoundary(database, intentId) {
       ...['ORDER_SEMANTICS', 'UNMAPPED_FILL', 'ORDER_OVERFILLED', 'CUMULATIVE_EXECUTION_MISMATCH', 'EXITS_EXCEED_ENTRIES', 'constructor', 'PRIVATE_UNKNOWN_CODE']
         .map(code => new TradingOwnershipError(code, 'PRIVATE_DATABASE_PATH and internal stack'))];
     for (const failure of failures) {
-      database.all = async function (sql, ...args) {
+      database.all = function (sql, ...args) {
         if (sql.startsWith('SELECT id, role, side, reduce_only')) throw failure;
         return originalAll.call(this, sql, ...args);
       };
