@@ -128,6 +128,40 @@ export function TelegramViewer() {
     }
     return 'unbekannt';
   };
+  const fieldGrid1 = (
+        <div className="builder-field-grid">
+          <label>Zeitzone<Input value={settings.timezone} onChange={(event) => setSettings({ ...settings, timezone: event.target.value })} /></label>
+          <label>Sprache/Locale<Input value={settings.locale} onChange={(event) => setSettings({ ...settings, locale: event.target.value })} /></label>
+          <label>Abfrageintervall (ms)<Input aria-label="Abfrageintervall (ms)" type="number" min={1000} max={60000}
+            value={settings.eventPollingIntervalMs} onChange={(event) => setSettings({ ...settings, eventPollingIntervalMs: Number(event.target.value) })} /></label>
+        </div>
+  );
+
+  const fieldGrid2 = (
+        <div className="builder-field-grid">
+          <label>Detailstufe<select value={settings.display.detailLevel}
+            onChange={(event) => setSettings({ ...settings, display: { ...settings.display, detailLevel: event.target.value as TelegramViewerSettings["display"]["detailLevel"] } })}>
+            <option value="compact">Kompakt</option><option value="normal">Normal</option><option value="detailed">Detailliert</option>
+          </select></label>
+          <label>PnL-Anzeige<select value={settings.display.pnlMode}
+            onChange={(event) => setSettings({ ...settings, display: { ...settings.display, pnlMode: event.target.value as TelegramViewerSettings["display"]["pnlMode"] } })}>
+            <option value="absolute">Absolut</option><option value="absolute_and_percent">Absolut und Prozent</option>
+          </select></label>
+        </div>
+  );
+
+  const fieldGrid3 = (
+        <div className="builder-field-grid">
+          {TELEGRAM_NOTIFICATION_LABELS.map(([key, label]) => (
+            <label className="builder-toggle" key={key}>
+              <input type="checkbox" checked={Boolean(settings.notifications[key])}
+                onChange={(event) => setSettings({ ...settings, notifications: { ...settings.notifications, [key]: event.target.checked } })} />
+              <span aria-hidden="true" /> {label}
+            </label>
+          ))}
+        </div>
+  );
+
   return (
     <div className="operations-stack">
       {confirmationDialog}
@@ -165,12 +199,7 @@ export function TelegramViewer() {
             onChange={(event) => setSettings({ ...settings, enabled: event.target.checked })} />
           <span aria-hidden="true" /> Viewer aktiv
         </label>
-        <div className="builder-field-grid">
-          <label>Zeitzone<Input value={settings.timezone} onChange={(event) => setSettings({ ...settings, timezone: event.target.value })} /></label>
-          <label>Sprache/Locale<Input value={settings.locale} onChange={(event) => setSettings({ ...settings, locale: event.target.value })} /></label>
-          <label>Abfrageintervall (ms)<Input aria-label="Abfrageintervall (ms)" type="number" min={1000} max={60000}
-            value={settings.eventPollingIntervalMs} onChange={(event) => setSettings({ ...settings, eventPollingIntervalMs: Number(event.target.value) })} /></label>
-        </div>
+        {fieldGrid1}
       </section>
 
       <section className="operations-card system-form">
@@ -183,30 +212,13 @@ export function TelegramViewer() {
 
       <section className="operations-card system-form">
         <h3>Darstellung</h3>
-        <div className="builder-field-grid">
-          <label>Detailstufe<select value={settings.display.detailLevel}
-            onChange={(event) => setSettings({ ...settings, display: { ...settings.display, detailLevel: event.target.value as TelegramViewerSettings["display"]["detailLevel"] } })}>
-            <option value="compact">Kompakt</option><option value="normal">Normal</option><option value="detailed">Detailliert</option>
-          </select></label>
-          <label>PnL-Anzeige<select value={settings.display.pnlMode}
-            onChange={(event) => setSettings({ ...settings, display: { ...settings.display, pnlMode: event.target.value as TelegramViewerSettings["display"]["pnlMode"] } })}>
-            <option value="absolute">Absolut</option><option value="absolute_and_percent">Absolut und Prozent</option>
-          </select></label>
-        </div>
+        {fieldGrid2}
         <div className="system-actions"><Button type="button" disabled={Boolean(busy) || form.conflict || readOnly} onClick={() => { saveSettings(); }}>Einstellungen speichern</Button></div>
       </section>
 
       <section className="operations-card system-form">
         <h3>Benachrichtigungen</h3>
-        <div className="builder-field-grid">
-          {TELEGRAM_NOTIFICATION_LABELS.map(([key, label]) => (
-            <label className="builder-toggle" key={key}>
-              <input type="checkbox" checked={Boolean(settings.notifications[key])}
-                onChange={(event) => setSettings({ ...settings, notifications: { ...settings.notifications, [key]: event.target.checked } })} />
-              <span aria-hidden="true" /> {label}
-            </label>
-          ))}
-        </div>
+        {fieldGrid3}
       </section>
 
       <section className="operations-card system-form">

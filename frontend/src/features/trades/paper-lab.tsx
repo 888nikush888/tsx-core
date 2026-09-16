@@ -50,13 +50,17 @@ function PaperEditor({ kind, account, record, readOnly, accepted, refresh, onSta
     } catch (reason) { setError(`Änderung nicht bestätigt. Keine automatische Wiederholung: ${reason instanceof Error ? reason.message : String(reason)}`); }
     finally { setBusy(false); }
   };
-  return <section className="operations-card system-form">{confirmationDialog}<h2>{kind === 'market' ? 'Simulierten Markt bearbeiten' : 'Simulierten Basisbestand setzen'}</h2>
-    {error && <p role="alert">{error}</p>}<DraftState label={kind === 'market' ? 'Paper-Markt' : 'Paper-Bestand'} form={form} server={values(kind, record)} />
-    {kind === 'balance' && <><p>Quelle: {record?.source ?? 'unbekannt'} · Währung: {record?.reportingCurrency ?? 'unbekannt'}. Die gespeicherten Basisbestände enthalten keine zusätzliche Marktbewertung offener Positionen.</p><EvidenceFields fields={[["Beobachtete Revision", record?.revision], ["Basis-Eigenkapital", record?.equity], ["Verfügbarer Basisbestand", record?.availableBalance], ["Stand (Unix ms)", record?.updatedAt]]} /></>}
+  const editorFieldset = (
     <fieldset disabled={readOnly || busy || Boolean(record && !record.revision) || (kind === 'balance' && !record)}><div className="builder-field-grid">
       {kind === 'market' ? <><label>Symbol<input readOnly={Boolean(record)} value={(form.draft as MarketDraft).symbol} onChange={event => form.setDraft({ ...form.draft, symbol: event.target.value })} placeholder="Beispiel: BTCUSDT" /></label>{MARKET_FIELDS.map(([key, label]) => <label key={key}>{label}<input inputMode="decimal" value={(form.draft as MarketDraft)[key]} onChange={event => form.setDraft({ ...form.draft, [key]: event.target.value })} /></label>)}<label>Maximaler Hebel<input type="number" min={1} max={125} step={1} value={(form.draft as MarketDraft).maxLeverage} onChange={event => form.setDraft({ ...form.draft, maxLeverage: Number(event.target.value) })} /></label></>
         : <><label>Basis-Eigenkapital ({record?.reportingCurrency ?? 'Währung unbekannt'})<input inputMode="decimal" value={(form.draft as BalanceDraft).equity} onChange={event => form.setDraft({ ...form.draft, equity: event.target.value })} /></label><label>Verfügbarer Basisbestand ({record?.reportingCurrency ?? 'Währung unbekannt'})<input inputMode="decimal" value={(form.draft as BalanceDraft).availableBalance} onChange={event => form.setDraft({ ...form.draft, availableBalance: event.target.value })} /></label></>}
     </div><button className="primary-button" disabled={form.conflict} onClick={() => { save(); }}>{kind === 'market' ? 'Paper-Markt speichern' : 'Paper-Bestand setzen'}</button></fieldset>
+  );
+
+  return <section className="operations-card system-form">{confirmationDialog}<h2>{kind === 'market' ? 'Simulierten Markt bearbeiten' : 'Simulierten Basisbestand setzen'}</h2>
+    {error && <p role="alert">{error}</p>}<DraftState label={kind === 'market' ? 'Paper-Markt' : 'Paper-Bestand'} form={form} server={values(kind, record)} />
+    {kind === 'balance' && <><p>Quelle: {record?.source ?? 'unbekannt'} · Währung: {record?.reportingCurrency ?? 'unbekannt'}. Die gespeicherten Basisbestände enthalten keine zusätzliche Marktbewertung offener Positionen.</p><EvidenceFields fields={[["Beobachtete Revision", record?.revision], ["Basis-Eigenkapital", record?.equity], ["Verfügbarer Basisbestand", record?.availableBalance], ["Stand (Unix ms)", record?.updatedAt]]} /></>}
+    {editorFieldset}
     {record && !record.revision && <p role="alert">Versionsvertrag fehlt. Eine kompatible Serverversion ist zum Bearbeiten erforderlich.</p>}
     {receipt && (receipt.after ? <ChangeReview {...receipt} label="Bestätigte Paper-Normalisierung" /> : <p><output>Änderung angenommen; bestätigte Werte fehlen im Antwortvertrag. Aktuellen Stand vor einem weiteren Schreibvorgang prüfen.</output></p>)}
   </section>;
@@ -93,10 +97,17 @@ export function PaperLab({ readOnly = true }: Readonly<{ readOnly?: boolean }>) 
   };
   // Browser navigation is guarded by each editor; selections also ask before unmounting either draft.
   const select = async (change: () => void, dirty: boolean) => { if (!dirty || await confirm({ title: 'Paper-Auswahl wechseln?', description: 'Ungespeicherte Paper-Eingaben verwerfen und die Auswahl wechseln?', confirmLabel: 'Eingaben verwerfen', destructive: true })) { change(); setMessage(''); } };
+  const accountSection = (
+    <section className="operations-card system-form"><label>Paper-Konto<select disabled={busy} value={accountId} onChange={event => { const id = event.target.value; select(() => { setAccountId(id); setSymbol(''); }, Object.values(editorStates).some(item => item.dirty)); }}><option value="">Konto wählen</option>{accounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>{!accounts.length && <p>Zuerst unter Trading → Konten ein Paper-Konto anlegen.</p>}</section>
+  );
+  const marketSection = (
+    <section className="operations-card system-form"><label>Vorhandener Markt<select disabled={busy} value={symbol} onChange={event => { const value = event.target.value; select(() => setSymbol(value), editorStates.market?.dirty ?? false); }}><option value="">Neuer Markt</option>{markets.map((item) => <option key={item.symbol}>{item.symbol}</option>)}</select></label></section>
+  );
+
   return <div className="operations-stack">{confirmationDialog}<h1>Paper-Labor · ausschließlich Simulation</h1><p>Paper-Kurse, Paper-Bestände und simulierte Ausführungen. Testnet- und Live-Konten sind hier nicht auswählbar.</p>
     {error && <p role="alert">{error} · Vorhandene Daten können veraltet sein.</p>}{message && <p><output>{message}</output></p>}
-    <section className="operations-card system-form"><label>Paper-Konto<select disabled={busy} value={accountId} onChange={event => { const id = event.target.value; select(() => { setAccountId(id); setSymbol(''); }, Object.values(editorStates).some(item => item.dirty)); }}><option value="">Konto wählen</option>{accounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>{!accounts.length && <p>Zuerst unter Trading → Konten ein Paper-Konto anlegen.</p>}</section>
-    {account && <><section className="operations-card system-form"><label>Vorhandener Markt<select disabled={busy} value={symbol} onChange={event => { const value = event.target.value; select(() => setSymbol(value), editorStates.market?.dirty ?? false); }}><option value="">Neuer Markt</option>{markets.map((item) => <option key={item.symbol}>{item.symbol}</option>)}</select></label></section>
+    {accountSection}
+    {account && <>{marketSection}
       <PaperEditor key={`market:${accountId}:${symbol}`} kind="market" account={account} record={record} readOnly={readOnly} accepted={accepted} refresh={refresh} onState={onState} />
       <PaperEditor key={`balance:${accountId}`} kind="balance" account={account} record={balance} readOnly={readOnly} accepted={accepted} refresh={refresh} onState={onState} />
       <section className="operations-card"><EvidenceTable caption="Beobachtete Paper-Märkte" rows={markets} columns={[["symbol", "Symbol"], ["markPrice", "Markpreis"], ["priceTick", "Tick"], ["quantityStep", "Mengenschritt"], ["minimumQuantity", "Mindestmenge"], ["minimumNotional", "Mindestnotional"], ["maxLeverage", "Maximaler Hebel"], ["updatedAt", "Stand (Unix ms)"]]} /></section></>}

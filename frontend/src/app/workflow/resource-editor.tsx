@@ -601,13 +601,7 @@ function StrategyForm({
     setAccess("allowedSides", next);
   };
 
-  return (
-    <div className="strategy-form">
-      <section>
-        <div className="strategy-section-heading">
-          <strong>Freigaben</strong>
-          <small>Welche Signale diese Strategie überhaupt annehmen darf.</small>
-        </div>
+  const fieldGrid1 = (
         <div className="builder-field-grid three">
           <Field label="Erlaubte Signal-Schemas" hint="Eine Schema-ID je Zeile.">
             <textarea
@@ -642,13 +636,9 @@ function StrategyForm({
             />
           </div>
         </div>
-      </section>
+  );
 
-      <section>
-        <div className="strategy-section-heading">
-          <strong>Entry</strong>
-          <small>Orderart, Preiswahl und maximale Wartezeit.</small>
-        </div>
+  const fieldGrid2 = (
         <div className="builder-field-grid three">
           <Field label="Orderart">
             <select
@@ -703,16 +693,9 @@ function StrategyForm({
             label="Post-only (nur bei Limit)"
           />
         </div>
-      </section>
+  );
 
-      <section>
-        <div className="strategy-section-heading">
-          <strong>Fallback-Positionsgröße</strong>
-          <small>
-            Ein nachgeschalteter Positionsgrößen-Baustein überschreibt diese
-            Grundwerte für seinen konkreten Pfad.
-          </small>
-        </div>
+  const fieldGrid3 = (
         <div className="builder-field-grid three">
           <Field label="Größenmodus">
             <select
@@ -797,13 +780,9 @@ function StrategyForm({
             />
           </Field>
         </div>
-      </section>
+  );
 
-      <section>
-        <div className="strategy-section-heading">
-          <strong>Take Profit & Stop</strong>
-          <small>Verteilung der Targets und Verhalten des Schutz-Stops.</small>
-        </div>
+  const fieldGrid4 = (
         <div className="builder-field-grid three">
           <Field label="Target-Verteilung">
             <select
@@ -885,16 +864,9 @@ function StrategyForm({
             geschlossen.
           </div>
         </div>
-      </section>
+  );
 
-      <section>
-        <div className="strategy-section-heading">
-          <strong>Sicherheitsgrenzen</strong>
-          <small>
-            Verlust-, Slippage- und Ablaufgrenzen. Die Positionsanzahl wird am
-            Börsenkonto verwaltet.
-          </small>
-        </div>
+  const fieldGrid5 = (
         <div className="builder-field-grid three">
           <Field label="Daily-Loss-Modus">
             <select
@@ -962,6 +934,54 @@ function StrategyForm({
             <Check size={16} /> Ein Schutz-Stop ist immer verpflichtend.
           </div>
         </div>
+  );
+
+  return (
+    <div className="strategy-form">
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Freigaben</strong>
+          <small>Welche Signale diese Strategie überhaupt annehmen darf.</small>
+        </div>
+        {fieldGrid1}
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Entry</strong>
+          <small>Orderart, Preiswahl und maximale Wartezeit.</small>
+        </div>
+        {fieldGrid2}
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Fallback-Positionsgröße</strong>
+          <small>
+            Ein nachgeschalteter Positionsgrößen-Baustein überschreibt diese
+            Grundwerte für seinen konkreten Pfad.
+          </small>
+        </div>
+        {fieldGrid3}
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Take Profit & Stop</strong>
+          <small>Verteilung der Targets und Verhalten des Schutz-Stops.</small>
+        </div>
+        {fieldGrid4}
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Sicherheitsgrenzen</strong>
+          <small>
+            Verlust-, Slippage- und Ablaufgrenzen. Die Positionsanzahl wird am
+            Börsenkonto verwaltet.
+          </small>
+        </div>
+        {fieldGrid5}
       </section>
     </div>
   );
@@ -996,17 +1016,7 @@ function ContractForm({
     onChange(remaining);
   };
 
-  return (
-    <div className="strategy-form contract-form">
-      <section>
-        <div className="strategy-section-heading">
-          <strong>{mode === "schema" ? "Normalisierte Signal-Felder" : "Signal-Felder"}</strong>
-          <small>
-            {mode === "schema"
-              ? "Diese Pfade und Typen bilden die Ausgabe des verbundenen Parser-Bausteins. Das Root-Element bleibt aus Sicherheitsgründen „signal“."
-              : "XML-Pfade für Richtung, Paar, Stop sowie optionale Angaben. Das Root-Element bleibt aus Sicherheitsgründen „signal“."}
-          </small>
-        </div>
+  const fieldGrid6 = (
         <div className="builder-field-grid three">
           <Field label="Richtungspfad">
             <input
@@ -1057,13 +1067,9 @@ function ContractForm({
             />
           </Field>
         </div>
-      </section>
+  );
 
-      <section>
-        <div className="strategy-section-heading">
-          <strong>{mode === "schema" ? "Entry-Struktur" : "Entry-Vertrag"}</strong>
-          <small>{mode === "schema" ? "Wie der Parser Market- und Range-Entries normalisiert." : "Welche Entry-Formen und XML-Pfade zulässig sind."}</small>
-        </div>
+  const fieldGrid7 = (
         <div className="builder-field-grid three">
           <Field label="Entry-Modus">
             <select
@@ -1122,13 +1128,9 @@ function ContractForm({
             />
           </Field>
         </div>
-      </section>
+  );
 
-      <section>
-        <div className="strategy-section-heading">
-          <strong>{mode === "schema" ? "Target-Struktur" : "Target-Vertrag"}</strong>
-          <small>{mode === "schema" ? "Wie Take-Profits in der normalisierten Parserausgabe aufgebaut sind." : "Form, Anzahl und Reihenfolge der Take-Profits."}</small>
-        </div>
+  const fieldGrid8 = (
         <div className="builder-field-grid three">
           <Field label="Container-Pfad">
             <input
@@ -1205,6 +1207,36 @@ function ContractForm({
             label="Fortlaufende Target-IDs verlangen"
           />
         </div>
+  );
+
+  return (
+    <div className="strategy-form contract-form">
+      <section>
+        <div className="strategy-section-heading">
+          <strong>{mode === "schema" ? "Normalisierte Signal-Felder" : "Signal-Felder"}</strong>
+          <small>
+            {mode === "schema"
+              ? "Diese Pfade und Typen bilden die Ausgabe des verbundenen Parser-Bausteins. Das Root-Element bleibt aus Sicherheitsgründen „signal“."
+              : "XML-Pfade für Richtung, Paar, Stop sowie optionale Angaben. Das Root-Element bleibt aus Sicherheitsgründen „signal“."}
+          </small>
+        </div>
+        {fieldGrid6}
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>{mode === "schema" ? "Entry-Struktur" : "Entry-Vertrag"}</strong>
+          <small>{mode === "schema" ? "Wie der Parser Market- und Range-Entries normalisiert." : "Welche Entry-Formen und XML-Pfade zulässig sind."}</small>
+        </div>
+        {fieldGrid7}
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>{mode === "schema" ? "Target-Struktur" : "Target-Vertrag"}</strong>
+          <small>{mode === "schema" ? "Wie Take-Profits in der normalisierten Parserausgabe aufgebaut sind." : "Form, Anzahl und Reihenfolge der Take-Profits."}</small>
+        </div>
+        {fieldGrid8}
       </section>
 
       <section>
@@ -1308,8 +1340,7 @@ function ContractForm({
                     itemIndex === index ? { ...candidate, ...changes } : candidate,
                   ),
                 });
-              return (
-                <div className="contract-additional-field" key={key}>
+  const fieldGrid9 = (
                   <div className="builder-field-grid three">
                     <Field label="Pfad">
                       <input
@@ -1384,6 +1415,11 @@ function ContractForm({
                       />
                     </Field>
                   </div>
+  );
+
+              return (
+                <div className="contract-additional-field" key={key}>
+                  {fieldGrid9}
                   <Button
                     type="button"
                     variant="ghost"
@@ -1422,20 +1458,7 @@ function SignalSchemaResourceFields({
   const copiedSchema = Boolean(schemaDraft.originalId && schemaDraft.copying);
   const schemaIdLabel = copiedSchema ? "Neue Schema-ID" : "Schema-ID";
 
-  return (
-    <div className="schema-copy-editor">
-      <div className="strategy-section-heading">
-        <strong>
-          {schemaDraft.originalId
-            ? "Signal-Schema bearbeiten"
-            : "Neues Signal-Schema"}
-        </strong>
-        <small>
-          {schemaDraft.originalId
-            ? "Eine Änderung erzeugt automatisch eine neue unveränderliche Schema-ID."
-            : "Baue hier die normalisierte Ausgabestruktur des Signals. Der konkrete Parser kommt aus den Verbindungen im Builder."}
-        </small>
-      </div>
+  const fieldGrid10 = (
       <div className="builder-field-grid three">
         <Field
           label={schemaIdLabel}
@@ -1466,6 +1489,23 @@ function SignalSchemaResourceFields({
           label="Schema aktiv"
         />
       </div>
+  );
+
+  return (
+    <div className="schema-copy-editor">
+      <div className="strategy-section-heading">
+        <strong>
+          {schemaDraft.originalId
+            ? "Signal-Schema bearbeiten"
+            : "Neues Signal-Schema"}
+        </strong>
+        <small>
+          {schemaDraft.originalId
+            ? "Eine Änderung erzeugt automatisch eine neue unveränderliche Schema-ID."
+            : "Baue hier die normalisierte Ausgabestruktur des Signals. Der konkrete Parser kommt aus den Verbindungen im Builder."}
+        </small>
+      </div>
+      {fieldGrid10}
       <section
         className="schema-parser-sources"
         aria-label="Parserquelle aus Builder"
@@ -1742,37 +1782,7 @@ export function ResourceEditor({
     });
   };
 
-  return (
-    <><Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) closeEditor();
-      }}
-    >
-      <DialogContent
-        className="builder-modal sm:max-w-4xl"
-        closeLabel="Baustein-Editor schließen"
-      >
-        <DialogHeader>
-          <Badge variant="secondary" style={{ color: meta.color }}>
-            {meta.label}
-          </Badge>
-          <DialogTitle id="resource-editor-title">
-            {resource ? "Baustein bearbeiten" : "Baustein erstellen"}
-          </DialogTitle>
-          <DialogDescription>
-            {draftOnly ? 'Speichert bearbeitbare Ressourcen- und Modelldrafts. Publikation und Aktivierung erfolgen ausdrücklich in getrennten Schritten.' : 'Änderungen werden als unveränderliche Version gespeichert und anschließend atomar aktiviert.'}
-          </DialogDescription>
-        </DialogHeader>
-        <fieldset disabled={readOnly} className="builder-modal-content" onChangeCapture={() => setTouched(true)}>
-          {readOnly && <p>Viewer: Ressourcen sind schreibgeschützt.</p>}
-          {confirmedSteps.length > 0 && <section aria-label="Bestätigte Teilschritte"><p>Bereits bestätigt:</p><ul>{listEntries(confirmedSteps, step => step).map(({ item: step, key }) => <li key={key}>{step}</li>)}</ul>{partialFailure && <p>Ein Folgeschritt ist fehlgeschlagen. Die aufgeführten Objekte bleiben gespeichert. Dialog schließen und vorhandene Entwürfe prüfen, bevor eine weitere Änderung begonnen wird.</p>}</section>}
-          {error && (
-            <Alert variant="destructive">
-              <AlertTriangle />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+  const fieldGrid11 = (
           <div className="builder-field-grid">
             <Field label="Name">
               <input
@@ -1789,32 +1799,9 @@ export function ResourceEditor({
               />
             </Field>
           </div>
+  );
 
-          {kind === "channel" && (
-            <Field
-              label="Telegram-Kanal-ID"
-              hint="Numerische Chat-ID, zum Beispiel -1002417439383."
-            >
-              <input
-                value={textValue(configuration.channelId)}
-                onChange={(event) => set("channelId", event.target.value)}
-              />
-            </Field>
-          )}
-          {kind === "content_filter" && (
-            <Field
-              label="Erlaubte Inhaltstypen"
-              hint="Je Zeile ein Typ: text, photo, video, document …"
-            >
-              <textarea
-                value={lines(configuration.allowedTypes)}
-                onChange={(event) =>
-                  set("allowedTypes", list(event.target.value))
-                }
-              />
-            </Field>
-          )}
-          {kind === "keyword_filter" && (
+  const fieldGrid12 = (
             <div className="builder-field-grid">
               <Field
                 label="Erlaubte Schlüsselwörter"
@@ -1836,34 +1823,9 @@ export function ResourceEditor({
                 />
               </Field>
             </div>
-          )}
-          {kind === "regex" && (
-            <>
-              <Field
-                label="Regex-Muster"
-                hint="Je Zeile ein Muster. Alle Muster laufen mit Zeitlimit und ReDoS-Prüfung."
-              >
-                <textarea
-                  className="code-input"
-                  value={lines(configuration.patterns)}
-                  onChange={(event) =>
-                    set("patterns", list(event.target.value))
-                  }
-                />
-              </Field>
-              <Field label="Verknüpfung">
-                <select
-                  value={textValue(configuration.mode, "all")}
-                  onChange={(event) => set("mode", event.target.value)}
-                >
-                  <option value="all">Alle Muster müssen passen</option>
-                  <option value="any">Mindestens ein Muster muss passen</option>
-                </select>
-              </Field>
-            </>
-          )}
-          {kind === "parser" && (
-            <>
+  );
+
+  const fieldGrid13 = (
               <div className="builder-field-grid three">
                 <Field label="Zeitlimit in ms" hint="2.000 bis 120.000">
                   <input
@@ -1899,61 +1861,9 @@ export function ResourceEditor({
                   Datenbank gespeichert – niemals als Datei.
                 </div>
               </div>
-              <Field
-                label="Parser-Prompt"
-                hint="Diese Vorlage wird zusammen mit dem Parser-Baustein gespeichert. Serverseitige Schutzregeln bleiben zusätzlich aktiv."
-              >
-                <textarea
-                  className="code-input prompt-input"
-                  value={templateContent}
-                  onChange={(event) => setTemplateContent(event.target.value)}
-                />
-              </Field>
-            </>
-          )}
-          {kind === "schema" && (
-            <SignalSchemaResourceFields
-              schemaDraft={schemaDraft}
-              parserSources={parserSources}
-              onChange={updateSchemaDraft}
-            />
-          )}
-          {kind === "contract" && (
-            <>
-              <Field
-                label="Vertrags-ID"
-                hint={
-                  configuration.contractVersionId
-                    ? "Die logische ID eines veröffentlichten Vertrags bleibt unveränderlich."
-                    : "Kleinbuchstaben, Zahlen, Unterstrich oder Bindestrich."
-                }
-              >
-                <input
-                  aria-label="Vertrags-ID"
-                  value={contractId}
-                  disabled={Boolean(configuration.contractVersionId)}
-                  onChange={(event) => setContractId(event.target.value)}
-                />
-              </Field>
-              {contractDraft ? (
-                <ContractForm
-                  value={contractDraft}
-                  onChange={(next) => {
-                    setContractDraft(next);
-                    setContractTouched(true);
-                  }}
-                />
-              ) : (
-                <Alert variant="destructive">
-                  <AlertTriangle />
-                  <AlertDescription>
-                    Die gewählte Vertragsversion ist nicht verfügbar.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </>
-          )}
-          {kind === "dedupe" && (
+  );
+
+  const fieldGrid14 = (
             <div className="builder-field-grid">
               <Toggle
                 checked={configuration.enabled !== false}
@@ -1972,37 +1882,9 @@ export function ResourceEditor({
                 />
               </Field>
             </div>
-          )}
-          {kind === "strategy" && (
-            strategyDraft ? (
-                <>
-                  {strategyDraft.allowedSignalSchemas.length === 0 && (
-                    <Alert variant="destructive">
-                      <AlertTriangle />
-                      <AlertDescription>
-                        Erstelle zuerst mindestens einen aktiven
-                        Signal-Schema-Baustein.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  <StrategyForm
-                    value={strategyDraft}
-                    onChange={(next) => {
-                      setStrategyDraft(next);
-                      setStrategyTouched(true);
-                    }}
-                  />
-                </>
-              ) : (
-                <Alert variant="destructive">
-                  <AlertTriangle />
-                  <AlertDescription>
-                    Die gewählte Strategieversion ist nicht verfügbar.
-                  </AlertDescription>
-                </Alert>
-              )
-          )}
-          {kind === "sizing" && (
+  );
+
+  const fieldGrid15 = (
             <div className="builder-field-grid three">
               <Field label="Größenmodus">
                 <select
@@ -2088,9 +1970,9 @@ export function ResourceEditor({
                 />
               </Field>
             </div>
-          )}
-          {kind === "adaptive_risk" && (
-            <>
+  );
+
+  const fieldGrid16 = (
               <div className="builder-field-grid three">
                 <Toggle
                   checked={configuration.enabled !== false}
@@ -2214,14 +2096,9 @@ export function ResourceEditor({
                   label="Pfad manuell sperren"
                 />
               </div>
-              <p className="builder-info">
-                Die Stufe wird getrennt pro Kanal, Börsenkonto und
-                Risiko-Baustein geführt. Eine andere Börsenroute kann dadurch
-                unabhängig reagieren.
-              </p>
-            </>
-          )}
-          {kind === "account" && (
+  );
+
+  const fieldGrid17 = (
             <div className="builder-field-grid">
               <Field label="Börsenkonto">
                 <select
@@ -2263,7 +2140,190 @@ export function ResourceEditor({
                 </div>
               )}
             </div>
+  );
+
+  return (
+    <><Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) closeEditor();
+      }}
+    >
+      <DialogContent
+        className="builder-modal sm:max-w-4xl"
+        closeLabel="Baustein-Editor schließen"
+      >
+        <DialogHeader>
+          <Badge variant="secondary" style={{ color: meta.color }}>
+            {meta.label}
+          </Badge>
+          <DialogTitle id="resource-editor-title">
+            {resource ? "Baustein bearbeiten" : "Baustein erstellen"}
+          </DialogTitle>
+          <DialogDescription>
+            {draftOnly ? 'Speichert bearbeitbare Ressourcen- und Modelldrafts. Publikation und Aktivierung erfolgen ausdrücklich in getrennten Schritten.' : 'Änderungen werden als unveränderliche Version gespeichert und anschließend atomar aktiviert.'}
+          </DialogDescription>
+        </DialogHeader>
+        <fieldset disabled={readOnly} className="builder-modal-content" onChangeCapture={() => setTouched(true)}>
+          {readOnly && <p>Viewer: Ressourcen sind schreibgeschützt.</p>}
+          {confirmedSteps.length > 0 && <section aria-label="Bestätigte Teilschritte"><p>Bereits bestätigt:</p><ul>{listEntries(confirmedSteps, step => step).map(({ item: step, key }) => <li key={key}>{step}</li>)}</ul>{partialFailure && <p>Ein Folgeschritt ist fehlgeschlagen. Die aufgeführten Objekte bleiben gespeichert. Dialog schließen und vorhandene Entwürfe prüfen, bevor eine weitere Änderung begonnen wird.</p>}</section>}
+          {error && (
+            <Alert variant="destructive">
+              <AlertTriangle />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
+          {fieldGrid11}
+
+          {kind === "channel" && (
+            <Field
+              label="Telegram-Kanal-ID"
+              hint="Numerische Chat-ID, zum Beispiel -1002417439383."
+            >
+              <input
+                value={textValue(configuration.channelId)}
+                onChange={(event) => set("channelId", event.target.value)}
+              />
+            </Field>
+          )}
+          {kind === "content_filter" && (
+            <Field
+              label="Erlaubte Inhaltstypen"
+              hint="Je Zeile ein Typ: text, photo, video, document …"
+            >
+              <textarea
+                value={lines(configuration.allowedTypes)}
+                onChange={(event) =>
+                  set("allowedTypes", list(event.target.value))
+                }
+              />
+            </Field>
+          )}
+          {kind === "keyword_filter" && fieldGrid12}
+          {kind === "regex" && (
+            <>
+              <Field
+                label="Regex-Muster"
+                hint="Je Zeile ein Muster. Alle Muster laufen mit Zeitlimit und ReDoS-Prüfung."
+              >
+                <textarea
+                  className="code-input"
+                  value={lines(configuration.patterns)}
+                  onChange={(event) =>
+                    set("patterns", list(event.target.value))
+                  }
+                />
+              </Field>
+              <Field label="Verknüpfung">
+                <select
+                  value={textValue(configuration.mode, "all")}
+                  onChange={(event) => set("mode", event.target.value)}
+                >
+                  <option value="all">Alle Muster müssen passen</option>
+                  <option value="any">Mindestens ein Muster muss passen</option>
+                </select>
+              </Field>
+            </>
+          )}
+          {kind === "parser" && (
+            <>
+              {fieldGrid13}
+              <Field
+                label="Parser-Prompt"
+                hint="Diese Vorlage wird zusammen mit dem Parser-Baustein gespeichert. Serverseitige Schutzregeln bleiben zusätzlich aktiv."
+              >
+                <textarea
+                  className="code-input prompt-input"
+                  value={templateContent}
+                  onChange={(event) => setTemplateContent(event.target.value)}
+                />
+              </Field>
+            </>
+          )}
+          {kind === "schema" && (
+            <SignalSchemaResourceFields
+              schemaDraft={schemaDraft}
+              parserSources={parserSources}
+              onChange={updateSchemaDraft}
+            />
+          )}
+          {kind === "contract" && (
+            <>
+              <Field
+                label="Vertrags-ID"
+                hint={
+                  configuration.contractVersionId
+                    ? "Die logische ID eines veröffentlichten Vertrags bleibt unveränderlich."
+                    : "Kleinbuchstaben, Zahlen, Unterstrich oder Bindestrich."
+                }
+              >
+                <input
+                  aria-label="Vertrags-ID"
+                  value={contractId}
+                  disabled={Boolean(configuration.contractVersionId)}
+                  onChange={(event) => setContractId(event.target.value)}
+                />
+              </Field>
+              {contractDraft ? (
+                <ContractForm
+                  value={contractDraft}
+                  onChange={(next) => {
+                    setContractDraft(next);
+                    setContractTouched(true);
+                  }}
+                />
+              ) : (
+                <Alert variant="destructive">
+                  <AlertTriangle />
+                  <AlertDescription>
+                    Die gewählte Vertragsversion ist nicht verfügbar.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </>
+          )}
+          {kind === "dedupe" && fieldGrid14}
+          {kind === "strategy" && (
+            strategyDraft ? (
+                <>
+                  {strategyDraft.allowedSignalSchemas.length === 0 && (
+                    <Alert variant="destructive">
+                      <AlertTriangle />
+                      <AlertDescription>
+                        Erstelle zuerst mindestens einen aktiven
+                        Signal-Schema-Baustein.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  <StrategyForm
+                    value={strategyDraft}
+                    onChange={(next) => {
+                      setStrategyDraft(next);
+                      setStrategyTouched(true);
+                    }}
+                  />
+                </>
+              ) : (
+                <Alert variant="destructive">
+                  <AlertTriangle />
+                  <AlertDescription>
+                    Die gewählte Strategieversion ist nicht verfügbar.
+                  </AlertDescription>
+                </Alert>
+              )
+          )}
+          {kind === "sizing" && fieldGrid15}
+          {kind === "adaptive_risk" && (
+            <>
+              {fieldGrid16}
+              <p className="builder-info">
+                Die Stufe wird getrennt pro Kanal, Börsenkonto und
+                Risiko-Baustein geführt. Eine andere Börsenroute kann dadurch
+                unabhängig reagieren.
+              </p>
+            </>
+          )}
+          {kind === "account" && fieldGrid17}
           {kind === "output" && (
             <Field label="Ausgabe">
               <select

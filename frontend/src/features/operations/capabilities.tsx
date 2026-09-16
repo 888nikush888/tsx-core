@@ -90,8 +90,7 @@ export function CapabilitiesPage() {
   const update = (key: string, value: string) => { setResponse(null); setQuery(current => {
       current.delete('cursor'); if (value) { current.set(key, value); } else { current.delete(key); } return current;
   }); };
-  return <section className="operations-stack"><h1>Aktionen & Parameter</h1>
-    <p>Dieses Verzeichnis erklärt Scope, Voraussetzungen und Wirkung. Den aktuellen Wert und die belegte Wirkung prüfen Sie in der jeweiligen Fachansicht. Der Server entscheidet bei jedem Befehl erneut über die Berechtigung.</p>
+  const directoryFilters = (
     <div className="builder-field-grid"><label>Verzeichnis<select value={parameters ? 'parameters' : 'capabilities'} onChange={event => {
       setResponse(null); setQuery(new URLSearchParams({ view: event.target.value }));
     }}><option value="capabilities">Verfügbare Aktionen</option><option value="parameters">Parameterverträge</option></select></label>
@@ -99,6 +98,11 @@ export function CapabilitiesPage() {
         <option value="">Alle Familien</option>{['runtime', 'config', 'resource', 'strategy', 'schema', 'contract', 'account', 'paper', 'journal', 'graph', 'mcp', 'viewer', 'secrets', 'deployment'].map(name => <option key={name}>{name}</option>)}</select></label>
         : <label>Bereich<select value={query.get('area') ?? ''} onChange={event => update('area', event.target.value)}><option value="">Alle Bereiche</option>
           {[['cockpit', 'Cockpit'], ['trading', 'Trading'], ['workflows', 'Workflows'], ['signals', 'Signale'], ['risk', 'Risiko'], ['integrations', 'Integrationen'], ['operations', 'Betrieb'], ['recovery', 'Recovery']].map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>}</div>
+  );
+
+  return <section className="operations-stack"><h1>Aktionen & Parameter</h1>
+    <p>Dieses Verzeichnis erklärt Scope, Voraussetzungen und Wirkung. Den aktuellen Wert und die belegte Wirkung prüfen Sie in der jeweiligen Fachansicht. Der Server entscheidet bei jedem Befehl erneut über die Berechtigung.</p>
+    {directoryFilters}
     {error && <p role="alert">Verzeichnis nicht aktuell bestätigt: {error}</p>}
     {!data && !error && <p><output>Verzeichnis wird geladen …</output></p>}
     {data && <><p>Vertrag {data.contractVersion} · {data.total} passende Einträge · {data.entries.length} auf dieser Seite</p>
