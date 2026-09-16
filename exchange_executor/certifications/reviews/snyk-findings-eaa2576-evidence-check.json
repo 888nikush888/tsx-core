@@ -1,0 +1,12 @@
+{
+  "reviewedRevision": "eaa2576c51d1bddb7bac52687bb470992c81b2d6",
+  "archiveSha256": "a444ed1149a6f62efba34d4bfdb3d66c46632298782635bce181e6fe5109c530",
+  "archiveBytes": 1742025,
+  "members": 141,
+  "sourceBindings": 100,
+  "reportFiles": 39,
+  "doubleBuildByteIdentical": true,
+  "everyMemberReadBack": true,
+  "allDeclaredReferenceHashesVerified": true,
+  "operativeChanged": false
+}
