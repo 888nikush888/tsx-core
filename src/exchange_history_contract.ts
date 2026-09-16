@@ -15,7 +15,7 @@ function integer(value: unknown): number {
 function token(value: unknown, maximum: number): string | null {
   if (value === null) return null;
   // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
-  if (typeof value !== 'string' || !value || value.length > maximum || /[\x00-\x1f]/.test(value)) throw new Error('Invalid history checkpoint token.');
+  if (typeof value !== 'string' || !value || value.length > maximum || /[\x00-\x1f]/u.test(value)) throw new Error('Invalid history checkpoint token.');
   return value;
 }
 

@@ -23,7 +23,7 @@ export function contractObject(value: unknown): Record<string, unknown> {
 
 function identifier(value: unknown, label: string): asserts value is string {
   // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
-  if (typeof value !== 'string' || !value.trim() || value.length > 256 || /[\x00-\x1f]/.test(value)) {
+  if (typeof value !== 'string' || !value.trim() || value.length > 256 || /[\x00-\x1f]/u.test(value)) {
     throw new Error(`Invalid exchange ${label} identifier.`);
   }
 }
