@@ -72,6 +72,7 @@ function testBoundedReviewTree() {
   do { const result = uiReviewTree(root, new URLSearchParams({ path: '["text"]', ...(cursor ? { cursor } : {}) }), 'review-1'); text += result.text; cursor = result.nextCursor; } while (cursor);
   assert.equal(text, root.text, 'Review text slices must not split or lose Unicode original data.');
   const large = setupContentReview({ content: { workflow: root }, library: { resources: ['x'.repeat(300000)] } }, { systemConfig: {}, workflow: {}, models: {}, accountReferences: [] });
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(large.paged, true); assert.ok(Buffer.byteLength(JSON.stringify(large)) < 2000); assert.equal(large.existingLibrary, undefined);
 }
 async function testMcpMetadata(agent, resource) {

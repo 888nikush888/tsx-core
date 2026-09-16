@@ -23,6 +23,7 @@ describe("workflow connection routing dialog", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Routing übernehmen" }));
+    // skipcq: JS-W1042 - an explicit single undefined argument is a different spy contract than a zero-argument call.
     expect(onSave).toHaveBeenCalledWith(undefined);
   });
 

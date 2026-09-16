@@ -1535,6 +1535,7 @@ export function ResourceEditor({
 }: ResourceEditorProps) {
   const readOnly = useOperatorReadOnly();
   const initialized = useRef<string | null>(null);
+  // skipcq: JS-W1042 - React's typed useRef API requires the explicit argument; omission would not compile.
   const initialRevision = useRef<number | undefined>(undefined);
   const [touched, setTouched] = useState(false);
   const { confirm, confirmationDialog } = useConfirmationDialog();
@@ -1556,6 +1557,7 @@ export function ResourceEditor({
     useState<SignalContractDefinition | null>(null);
   const [contractTouched, setContractTouched] = useState(false);
   const [contractId, setContractId] = useState("new-contract");
+  // skipcq: JS-W1042 - React's typed useRef API requires the explicit argument; omission would not compile.
   const baseDefinitionSha256 = useRef<string | undefined>(undefined);
   const [schemaDraft, setSchemaDraft] = useState<SignalSchemaDraft | null>(null);
   const [archiveConfirmation, setArchiveConfirmation] = useState(false);

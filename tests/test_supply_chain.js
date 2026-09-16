@@ -406,7 +406,9 @@ for (const exchange of ['hyperliquid', 'bybit', 'krakenfutures']) {
   } else {
     // Historical shape is permitted on disk, but runtime approval is tested
     // separately against the fixed review pin and the actual source trees.
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.equal(evidence.schemaVersion, undefined);
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.equal(evidence.implementationVerified, undefined);
   }
 }

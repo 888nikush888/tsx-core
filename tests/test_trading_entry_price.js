@@ -39,15 +39,18 @@ for (const side of ['LONG', 'SHORT']) {
   assert.deepEqual(revalidated.orders, plan.orders);
   const stop = plan.orders.find(order => order.role === 'stop_loss');
   assert.equal(stop.orderType, 'stop_market');
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(stop.timeInForce, undefined);
   assert.equal(stop.price, null);
 }
 const regular = planInput('LONG', 'range');
 regular.strategy.entry.postOnly = true;
 const regularPlan = createTradingPlan(regular);
+// skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
 assert.equal(regularPlan.entryPriceBoundary, undefined);
 assert.equal(regularPlan.orders[0].price, '100');
 assert.equal(regularPlan.orders[0].postOnly, true);
+// skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
 assert.equal(regularPlan.orders[0].timeInForce, undefined);
 assertEntryPriceBoundary(regularPlan, regularPlan.orders[0]);
 const boundedPlan = createTradingPlan(planInput());

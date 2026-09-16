@@ -33,6 +33,7 @@ try {
 
   const savedSync = JSON.parse(await readFile(syncPath, 'utf8'));
   assert.equal(savedSync.apiId, 12345);
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(savedSync.apiHash, undefined);
   assert.equal(readConfigSync(syncPath).apiId, 12345);
   assert.deepEqual((await readdir(root)).filter(name => name.endsWith('.tmp')), []);
@@ -66,6 +67,7 @@ try {
   malformedValues.sourceAliases = ['not-a-map'];
   const sanitized = validateConfig(malformedValues);
   assert.equal(sanitized.apiId, 0);
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(sanitized.apiHash, undefined);
   assert.equal(sanitized.forwardOptions.maxConcurrency, DEFAULT_CONFIG.forwardOptions.maxConcurrency);
   assert.equal(sanitized.forwardOptions.queueTimeoutSeconds, DEFAULT_CONFIG.forwardOptions.queueTimeoutSeconds);
@@ -135,6 +137,7 @@ try {
   assert.deepEqual(canonicalized.config.sourceFilters['-1001'], { regexPatterns: ['LONG'] });
   assert.equal(canonicalized.config.sourceAliases['-1001'], 'Alpha');
   assert.equal(canonicalized.config.xmlParsing.sourceTemplates['-1001'], 'alpha-template');
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(canonicalized.config.sourceFilters['@alpha_source'], undefined);
 
   const automaticAlias = structuredClone(DEFAULT_CONFIG);

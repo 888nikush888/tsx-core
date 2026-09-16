@@ -94,6 +94,7 @@ async function persistedCrashState(fixture, phase) {
   assert.equal(economicCount.count, expectedEntries,
     'The child marker distinguishes actual durable Paper acceptance from intent/journal state.');
   if (phase === 'plan-before-commit') {
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.equal(intent.plan, null); assert.equal(intent.status, 'pending'); assert.equal(orders.length, 0); assert.equal(position, undefined);
   } else {
     assert.equal(intent.plan.entryExpiresAt, fixture.origin + intent.plan.entryOrderTtlSeconds * 1_000);

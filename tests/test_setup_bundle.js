@@ -457,6 +457,7 @@ try {
   });
   const legacyV2Active = await getActiveWorkflow();
   assert.equal(legacyV2Active.graph.schemaVersion, 2);
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(legacyV2Active.graph.edges.at(-1).fallbackOn, undefined);
   assert.deepEqual(legacyV2Active.compiled.routeGroups[0].candidates[0].fallbackOn, ['SYMBOL_UNAVAILABLE']);
   assert.deepEqual(legacyV2Active.compiled.routeGroups[0].candidates[1].fallbackOn, []);

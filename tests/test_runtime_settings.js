@@ -20,6 +20,7 @@ try {
   store.applyToEnvironment();
   assert.equal(env.ENTERPRISE_MODE, 'false');
   assert.equal(env.DASHBOARD_LOCAL_TRUST, 'true');
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(env.DASHBOARD_ALLOWED_ORIGIN, undefined);
   assert.equal(env.TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES, 'false');
 

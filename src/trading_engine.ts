@@ -854,6 +854,7 @@ function safestActiveStop(activeStops: ActiveStop[], side: 'LONG' | 'SHORT'): Ac
       ? compareDecimal(candidate.triggerPrice, best.triggerPrice) > 0
       : compareDecimal(candidate.triggerPrice, best.triggerPrice) < 0;
     return candidateIsSafer ? candidate : best;
+  // skipcq: JS-W1042 - the explicit undefined seed keeps the reduce accumulator contract for empty inputs.
   }, undefined);
 }
 

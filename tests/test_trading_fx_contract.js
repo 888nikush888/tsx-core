@@ -20,7 +20,9 @@ assert.equal(usdt.valuationBasis, 'provider_snapshot_index_asof');
 assert.deepEqual(conversion('USDC').rate, { numerator: '501', denominator: '500' });
 assert.deepEqual(conversion('USD', 'USDT').rate, { numerator: '401', denominator: '400' });
 assert.deepEqual(conversion('USDT', 'USDC').rate, { numerator: '200000', denominator: '200901' });
+// skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
 assert.equal(assertFxConversionFresh(usdt, at), undefined);
+// skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
 assert.equal(assertFxConversionFresh(usdt, usdt.expiresAt), undefined);
 assert.throws(() => assertFxConversionFresh(usdt, usdt.expiresAt + 1), /FX/);
 assert.throws(() => assertFxConversionFresh(usdt, usdt.latestAt - 1), /FX/);

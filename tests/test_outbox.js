@@ -192,6 +192,7 @@ async function testAuxiliaryPersistence() {
     const buffers = await getMediaGroupBuffers();
     assert.deepStrictEqual(buffers['group-1'].messages.map(message => message.id), [21, 22]);
     await removeMediaGroupBuffer('group-1');
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.strictEqual((await getMediaGroupBuffers())['group-1'], undefined);
 
     const usageDay = '2030-01-02';
@@ -423,6 +424,7 @@ async function testPersistedJsonSyntaxBoundary() {
     await repair;
     const viewed = await read;
     assert.strictEqual(viewed.status, status, 'Queued read must review the current committed status and repaired bytes.');
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.strictEqual(viewed.payloadErrors, undefined);
     assert.deepStrictEqual(viewed.config, { repaired: true });
   }
@@ -432,6 +434,7 @@ async function testPersistedJsonSyntaxBoundary() {
   assert.strictEqual((await claimOutboxTask('syntax-native-depth')).status, 'preparing', 'Native accepted JSON must not inherit SQLite depth rejection.');
   for (const rawValue of [null, '', 'null', '0', 'false', '[]', '{}']) {
     await database.run("UPDATE pending_tasks SET config_json = ?, status = 'pending' WHERE id = 'syntax-native-depth'", [rawValue]);
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.strictEqual((await claimOutboxTask('syntax-native-depth')).payloadErrors, undefined);
   }
   await database.run("DELETE FROM pending_tasks WHERE id LIKE 'syntax-%'");

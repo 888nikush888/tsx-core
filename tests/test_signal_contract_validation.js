@@ -257,6 +257,7 @@ assert.deepEqual(marketSignal.groundingFields, [
 ]);
 
 const withoutLeverageXml = marketXml.replace('<leverage>5</leverage>', '');
+// skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
 assert.equal(validateSignalXml(withoutLeverageXml, undefined, typedSelection).execution.suggestedLeverage, undefined);
 for (const leverage of ['1', '125']) {
   const accepted = marketXml.replace('<leverage>5</leverage>', `<leverage>${leverage}</leverage>`);
