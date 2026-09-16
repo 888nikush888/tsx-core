@@ -353,7 +353,7 @@ function setSecurityHeaders(res: http.ServerResponse, origin?: string): void {
   }
 }
 
-async function readJsonBody(req: http.IncomingMessage, maxBytes = 256 * 1024): Promise<any> {
+async function readJsonBody(req: http.IncomingMessage, maxBytes = 256 * 1024): Promise<Record<string, unknown>> {
   const declaredLength = Number(req.headers['content-length']);
   if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
     throw new HttpError(413, `Request body exceeds ${maxBytes} bytes.`);
@@ -501,9 +501,10 @@ function installMutationAuditBarrier(context: RequestContext): void {
   const trail = context.appState.auditTrail;
   if (!audit || !trail) return;
   const response = context.res;
-  const originalEnd = response.end.bind(response);
+  type AuditResponseEnd = (chunk?: unknown, encodingOrCallback?: unknown, callback?: unknown) => unknown;
+  const originalEnd = response.end.bind(response) as unknown as AuditResponseEnd;
   let finalizing = false;
-  (response as any).end = (chunk?: unknown, encodingOrCallback?: unknown, callback?: unknown) => {
+  (response as unknown as { end: AuditResponseEnd }).end = (chunk?: unknown, encodingOrCallback?: unknown, callback?: unknown) => {
     if (finalizing) return response;
     finalizing = true;
     const originalStatus = response.statusCode;
@@ -532,7 +533,7 @@ function installMutationAuditBarrier(context: RequestContext): void {
       outcome,
     }).then(() => {
       addLog(`[AUDIT] request_id=${context.requestId} action=${audit.action} actor_role=${audit.actor.role} outcome=${outcome} status=${originalStatus}`);
-      (originalEnd as any)(chunk, callbackFunction);
+      originalEnd(chunk, callbackFunction);
     }).catch((error: Error) => {
       addLog(`[CRITICAL] request_id=${context.requestId} Audit outcome persistence failed: ${error.message}`, {
         request_id: context.requestId,
@@ -542,13 +543,13 @@ function installMutationAuditBarrier(context: RequestContext): void {
       if (originalStatus < 400 && !response.headersSent) {
         response.statusCode = 503;
         response.removeHeader('Content-Length');
-        (originalEnd as any)(JSON.stringify({
+        originalEnd(JSON.stringify({
           error: 'Audit outcome could not be durably persisted; mutation result is not acknowledged.',
           requestId: context.requestId,
         }), callbackFunction);
         return;
       }
-      (originalEnd as any)(chunk, callbackFunction);
+      originalEnd(chunk, callbackFunction);
     });
     return response;
   };
@@ -1194,7 +1195,7 @@ async function previewSetupBundleHandler(context: RequestContext): Promise<void>
   }
 }
 
-function consumeSetupBundlePreview(payload: any, actorId: string): SetupBundlePreview {
+function consumeSetupBundlePreview(payload: Record<string, unknown>, actorId: string): SetupBundlePreview {
   if (typeof payload.previewKey !== 'string' || typeof payload.confirmation !== 'string') {
     throw new HttpError(400, 'Preview key and confirmation are required.');
   }
@@ -1224,7 +1225,7 @@ async function setupReviewTreeHandler(context: RequestContext): Promise<void> {
   } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error))); }
 }
 
-function setupBundleAccountMappings(payload: any, preview: SetupBundlePreview): Record<string, string> {
+function setupBundleAccountMappings(payload: Record<string, unknown>, preview: SetupBundlePreview): Record<string, string> {
   if (!payload.accountMappings || typeof payload.accountMappings !== 'object' || Array.isArray(payload.accountMappings)) {
     throw new HttpError(400, 'Account mappings must be an object.');
   }
@@ -1605,7 +1606,7 @@ async function recoverOffsiteBackupHandler(context: RequestContext): Promise<voi
     if (payload.jobId !== undefined) {
       const store = context.appState.uiOperations;
       if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
-      const accepted = await store.accept({ id: payload.jobId, kind: 'backup-recover', actorId: requireActor(context).id, scope: { objectName }, request: { objectName } });
+      const accepted = await store.accept({ id: payload.jobId as string, kind: 'backup-recover', actorId: requireActor(context).id, scope: { objectName }, request: { objectName } });
       sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
       if (accepted.created) store.run(accepted.job.id, () => recoveredBackupJobArtifact(context, objectName)).catch(error => addLog(`[ERROR] Offsite recovery job persistence failed: ${errorMessage(error)}`));
       return;
@@ -1692,10 +1693,13 @@ async function tradingSnapshotHandler(context: RequestContext): Promise<void> {
     }
     const snapshot = await requireTradingControl(context).snapshot();
     const configuredChannels = Array.isArray(context.appState.config?.sourceChannels)
-      ? context.appState.config.sourceChannels.map((channel: any) => ({
-          id: String(channel?.id ?? channel?.channelId ?? channel),
-          name: String(channel?.name ?? channel?.title ?? channel?.id ?? channel),
-        }))
+      ? context.appState.config.sourceChannels.map((channel: unknown) => {
+          const record = channel as { id?: unknown; channelId?: unknown; name?: unknown; title?: unknown } | null | undefined;
+          return {
+            id: String(record?.id ?? record?.channelId ?? channel),
+            name: String(record?.name ?? record?.title ?? record?.id ?? channel),
+          };
+        })
       : [];
     sendJson(context.res, 200, { ...snapshot, configuredChannels });
   } catch (error) {
@@ -1759,7 +1763,7 @@ async function tradingAnalyticsHandler(context: RequestContext): Promise<void> {
 
 async function tradingMutation(
   context: RequestContext,
-  operation: (control: TradingWebControl, payload: any) => unknown,
+  operation: (control: TradingWebControl, payload: Record<string, unknown>) => unknown,
   statusCode = 200,
 ): Promise<void> {
   try {
@@ -1895,7 +1899,7 @@ async function uiWorkflowModelsHandler(context: RequestContext): Promise<void> {
       sendJson(context.res, 200, result);
     } else {
       if (!requireConfirmation(context, 'mutate-workflow-model', 'Explicit reviewed model action required.')) return;
-      sendJson(context.res, 200, await mutateUiModel(await readJsonBody(context.req, 4096)));
+      sendJson(context.res, 200, await mutateUiModel((await readJsonBody(context.req, 4096)) as Parameters<typeof mutateUiModel>[0]));
     }
   } catch (error) {
     const statusCode = context.req.method === 'GET' ? 400 : 409;
@@ -1928,14 +1932,14 @@ async function saveWorkflowHandler(context: RequestContext): Promise<void> {
   try {
     const payload = await readJsonBody(context.req, 2 * 1024 * 1024);
     const input: Parameters<typeof saveWorkflowRevision>[0] = {
-      baseRevisionId: payload.baseRevisionId ?? null,
+      baseRevisionId: (payload.baseRevisionId ?? null) as string | null,
       graph: payload.graph,
       actorId: context.actor?.id || 'dashboard:admin',
-      confirmation: payload.confirmation ?? null,
-      history: { mode: 'record', label: payload.historyLabel },
+      confirmation: (payload.confirmation ?? null) as string | null,
+      history: { mode: 'record', label: payload.historyLabel as string },
     };
     const result = await withDatabaseTransaction(async () => {
-      const activation = payload.draft ? await activateUiWorkflowDraft(input, payload.draft) : { workflow: await saveWorkflowRevision(input) };
+      const activation = payload.draft ? await activateUiWorkflowDraft(input, payload.draft as { id: string; version: number }) : { workflow: await saveWorkflowRevision(input) };
       return { ...activation, history: await getWorkflowBuilderHistoryStatus() };
     });
     sendJson(context.res, 201, { success: true, ...result, requestId: context.requestId });
@@ -1948,8 +1952,8 @@ async function previewWorkflowHistoryImpactHandler(context: RequestContext): Pro
   try {
     const payload = await readJsonBody(context.req, 64 * 1024);
     const impact = await previewWorkflowBuilderHistoryImpact({
-      direction: payload.direction,
-      baseRevisionId: payload.baseRevisionId ?? null,
+      direction: payload.direction as Parameters<typeof applyWorkflowBuilderHistory>[0]['direction'],
+      baseRevisionId: (payload.baseRevisionId ?? null) as string | null,
     });
     sendJson(context.res, 200, { success: true, impact, requestId: context.requestId });
   } catch (error) {
@@ -1961,10 +1965,10 @@ async function applyWorkflowHistoryHandler(context: RequestContext): Promise<voi
   try {
     const payload = await readJsonBody(context.req, 64 * 1024);
     const result = await applyWorkflowBuilderHistory({
-      direction: payload.direction,
-      baseRevisionId: payload.baseRevisionId ?? null,
+      direction: payload.direction as Parameters<typeof applyWorkflowBuilderHistory>[0]['direction'],
+      baseRevisionId: (payload.baseRevisionId ?? null) as string | null,
       actorId: context.actor?.id || 'dashboard:admin',
-      confirmation: payload.confirmation ?? null,
+      confirmation: (payload.confirmation ?? null) as string | null,
     });
     if (context.mutationAudit) context.mutationAudit.target = result.audit;
     sendJson(context.res, 200, {
@@ -2013,7 +2017,7 @@ async function previewWorkflowImpactHandler(context: RequestContext): Promise<vo
     sendJson(context.res, 200, {
       success: true,
       impact: await previewWorkflowImpact({
-        baseRevisionId: payload.baseRevisionId ?? null,
+        baseRevisionId: (payload.baseRevisionId ?? null) as string | null,
         graph: payload.graph,
       }),
       requestId: context.requestId,
@@ -2041,7 +2045,7 @@ async function simulateWorkflowHandler(context: RequestContext): Promise<void> {
     if (typeof payload.channelId !== 'string' || typeof payload.text !== 'string') {
       throw new HttpError(400, 'channelId and text are required.');
     }
-    sendJson(context.res, 200, { success: true, result: await simulateWorkflow(payload), requestId: context.requestId });
+    sendJson(context.res, 200, { success: true, result: await simulateWorkflow(payload as Parameters<typeof simulateWorkflow>[0]), requestId: context.requestId });
   } catch (error) {
     sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error)));
   }
@@ -2052,7 +2056,7 @@ async function createWorkflowResourceHandler(context: RequestContext): Promise<v
     const payload = await readJsonBody(context.req, 256 * 1024);
     sendJson(context.res, 201, {
       success: true,
-      resource: await createWorkflowResourceDraft(payload),
+      resource: await createWorkflowResourceDraft(payload as Parameters<typeof createWorkflowResourceDraft>[0]),
       requestId: context.requestId,
     });
   } catch (error) {
@@ -2065,7 +2069,7 @@ async function updateWorkflowResourceHandler(context: RequestContext): Promise<v
     const payload = await readJsonBody(context.req, 256 * 1024);
     sendJson(context.res, 200, {
       success: true,
-      resource: await updateWorkflowResourceDraft(payload.id, payload),
+      resource: await updateWorkflowResourceDraft(payload.id as string, payload as Parameters<typeof updateWorkflowResourceDraft>[1]),
       requestId: context.requestId,
     });
   } catch (error) {
@@ -2078,13 +2082,13 @@ async function publishWorkflowResourceHandler(context: RequestContext): Promise<
     const payload = await readJsonBody(context.req, 8 * 1024);
     if (payload.publishDependencies === true) {
       if (!requireConfirmation(context, 'publish-workflow-dependencies', 'Explicit publication of resource and referenced model required.')) return;
-      const result = await publishUiResourceWithDependency(payload.id, payload.baseEditRevision, payload.publicationHash);
+      const result = await publishUiResourceWithDependency(payload.id as string, payload.baseEditRevision as number, payload.publicationHash);
       sendJson(context.res, 200, { success: true, ...result, requestId: context.requestId });
       return;
     }
     sendJson(context.res, 200, {
       success: true,
-      resource: await publishWorkflowResource(payload.id, Date.now(), payload.baseEditRevision),
+      resource: await publishWorkflowResource(payload.id as string, Date.now(), payload.baseEditRevision as number | undefined),
       requestId: context.requestId,
     });
   } catch (error) {
@@ -2205,7 +2209,7 @@ async function tradingJournalExportHandler(context: RequestContext): Promise<voi
 }
 
 const updateTradingJournalHandler = (context: RequestContext) =>
-  tradingMutation(context, async (_control, payload) => uiJournalDetail(await updateTradeJournalReview(payload)));
+  tradingMutation(context, async (_control, payload) => uiJournalDetail(await updateTradeJournalReview(payload as Parameters<typeof updateTradeJournalReview>[0])));
 
 async function tradingIntentDetailHandler(context: RequestContext): Promise<void> {
   try {
@@ -2253,7 +2257,7 @@ async function uiAdaptiveRiskHandler(context: RequestContext): Promise<void> {
   try {
     if (context.req.method === 'POST') {
       if (!requireConfirmation(context, 'copy-legacy-risk-policy', 'Explicit reviewed Legacy policy copy required.')) return;
-      sendJson(context.res, 200, await copyLegacyRiskPolicy(await readJsonBody(context.req, 4096)));
+      sendJson(context.res, 200, await copyLegacyRiskPolicy((await readJsonBody(context.req, 4096)) as Parameters<typeof copyLegacyRiskPolicy>[0]));
     } else {
       const result = await uiAdaptiveRisk(context.parsedUrl.searchParams);
       if (!result) throw new HttpError(404, 'Adaptive evidence not found.');
@@ -2282,8 +2286,8 @@ async function uiWorkflowDraftHandler(context: RequestContext): Promise<void> {
       const payload = await readJsonBody(context.req, 1_048_576);
       if (context.req.method === 'DELETE') {
         if (!requireConfirmation(context, 'delete-workflow-draft', 'Explicit graph draft deletion confirmation required.')) return;
-        sendJson(context.res, 200, { result: await deleteUiWorkflowDraft(payload.id, payload.baseVersion) });
-      } else sendJson(context.res, 200, { draft: await saveUiWorkflowDraft(payload, requireActor(context).id) });
+        sendJson(context.res, 200, { result: await deleteUiWorkflowDraft(payload.id as string, payload.baseVersion) });
+      } else sendJson(context.res, 200, { draft: await saveUiWorkflowDraft(payload as Parameters<typeof saveUiWorkflowDraft>[0], requireActor(context).id) });
     }
   } catch (error) { sendError(context, new HttpError(409, errorMessage(error))); }
 }
@@ -2320,7 +2324,7 @@ async function uiParserLabHandler(context: RequestContext): Promise<void> {
     requireParserConsent(payload, prepared);
     const store = context.appState.uiOperations;
     if (!store) throw new HttpError(503, 'Durable operator jobs are unavailable.');
-    const accepted = await store.accept({ id: payload.jobId, kind: 'parser-test', actorId: requireActor(context).id,
+    const accepted = await store.accept({ id: payload.jobId as string, kind: 'parser-test', actorId: requireActor(context).id,
       scope: { pathId: prepared.preview.pathId, sourceSha256: prepared.preview.sourceSha256, sourceChars: prepared.preview.sourceChars, previewHash: prepared.preview.previewHash }, request: { previewHash: payload.previewHash } });
     sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
     if (accepted.created) store.run(accepted.job.id, () => runUiParserTest(prepared)).catch(() => addLog('[ERROR] Parser test result could not be persisted. Inspect the job; do not repeat automatically.'));
@@ -2334,7 +2338,7 @@ async function uiBackupDrillHandler(context: RequestContext): Promise<void> {
     if (!store || !context.appState.runBackupDrill) throw new HttpError(503, 'Isolated restore drills are unavailable.');
     const payload = await readJsonBody(context.req, 4096);
     const name = backupArtifactName(payload.name);
-    const accepted = await store.accept({ id: payload.jobId, kind: 'backup-drill', actorId: requireActor(context).id, scope: { artifactName: name }, request: { name } });
+    const accepted = await store.accept({ id: payload.jobId as string, kind: 'backup-drill', actorId: requireActor(context).id, scope: { artifactName: name }, request: { name } });
     sendJson(context.res, 202, { job: accepted.job, created: accepted.created, requestId: context.requestId });
     if (accepted.created) store.run(accepted.job.id, () => runBackupDrillJob(context, name)).catch(error => addLog(`[ERROR] Operator drill result persistence failed: ${errorMessage(error)}`));
   } catch (error) { sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error))); }
@@ -2394,7 +2398,7 @@ async function updateMcpRuntimeHandler(context: RequestContext): Promise<void> {
 async function createMcpAgentHandler(context: RequestContext): Promise<void> {
   try {
     const payload = await readJsonBody(context.req, 64 * 1024);
-    const result = await createMcpAgent(payload);
+    const result = await createMcpAgent(payload as Parameters<typeof createMcpAgent>[0]);
     sendJson(context.res, 201, {
       success: true,
       ...result,
@@ -2411,7 +2415,7 @@ async function updateMcpAgentHandler(context: RequestContext): Promise<void> {
     const payload = await readJsonBody(context.req, 64 * 1024);
     sendJson(context.res, 200, {
       success: true,
-      agent: await updateMcpAgent(payload),
+      agent: await updateMcpAgent(payload as Parameters<typeof updateMcpAgent>[0]),
       requestId: context.requestId,
     });
   } catch (error) {
@@ -2469,7 +2473,7 @@ async function approveMcpProposalHandler(context: RequestContext): Promise<void>
       success: true,
       proposal: redactReview(payload.reviewHash === undefined
         ? await approveMcpProposal(payload.id, context.actor?.id || 'dashboard:admin')
-        : await approveReviewedMcpProposal(payload.id, context.actor?.id || 'dashboard:admin', payload.reviewHash)),
+        : await approveReviewedMcpProposal(payload.id as string, context.actor?.id || 'dashboard:admin', payload.reviewHash)),
       requestId: context.requestId,
     });
   } catch (error) {

@@ -17,12 +17,12 @@ const UNSUPPORTED_LOOKAROUNDS = ['(?=', '(?!', '(?<=', '(?<!'] as const;
 const BACKSLASH = String.fromCodePoint(92);
 const NUMERIC_BACKREFERENCE_DIGITS = new Set('123456789');
 
-function record(value: unknown, label: string): Record<string, any> {
+function record(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object.`);
-  return value as Record<string, any>;
+  return value as Record<string, unknown>;
 }
 
-function exactKeys(value: Record<string, any>, label: string, keys: string[]): void {
+function exactKeys(value: Record<string, unknown>, label: string, keys: string[]): void {
   const extras = Object.keys(value).filter(key => !keys.includes(key));
   if (extras.length > 0) throw new Error(`${label} contains unsupported fields: ${extras.join(', ')}.`);
 }
@@ -106,7 +106,7 @@ function additionalField(value: unknown, index: number): SignalContractAdditiona
   exactKeys(field, `additionalFields[${index}]`, [
     'path', 'type', 'required', 'allowedValues', 'minimum', 'maximum', 'maximumLength', 'pattern',
   ]);
-  if (!FIELD_TYPES.has(field.type)) throw new Error(`additionalFields[${index}].type is invalid.`);
+  if (!FIELD_TYPES.has(field.type as SignalContractFieldType)) throw new Error(`additionalFields[${index}].type is invalid.`);
   const minimum = field.minimum === undefined || field.minimum === '' ? undefined : decimal(String(field.minimum));
   const maximum = field.maximum === undefined || field.maximum === '' ? undefined : decimal(String(field.maximum));
   if (minimum !== undefined && maximum !== undefined && compareDecimal(minimum, maximum) > 0) {
@@ -118,7 +118,7 @@ function additionalField(value: unknown, index: number): SignalContractAdditiona
   const allowedValues = strings(field.allowedValues ?? [], `additionalFields[${index}].allowedValues`, 50);
   return {
     path: pathValue(field.path, `additionalFields[${index}].path`),
-    type: field.type,
+    type: field.type as SignalContractFieldType,
     required: boolean(field.required, `additionalFields[${index}].required`),
     allowedValues,
     minimum,
@@ -131,7 +131,7 @@ function additionalField(value: unknown, index: number): SignalContractAdditiona
 function validateEntry(value: unknown): SignalContractDefinition['entry'] {
   const entry = record(value, 'entry');
   exactKeys(entry, 'entry', ['mode', 'typePath', 'marketValues', 'rangeValues', 'minimumPath', 'maximumPath']);
-  if (!ENTRY_MODES.has(entry.mode)) throw new Error('entry.mode is invalid.');
+  if (!ENTRY_MODES.has(entry.mode as SignalContractEntryMode)) throw new Error('entry.mode is invalid.');
   const typePath = optionalPath(entry.typePath, 'entry.typePath');
   const marketValues = strings(entry.marketValues ?? [], 'entry.marketValues');
   const rangeValues = strings(entry.rangeValues ?? [], 'entry.rangeValues');
@@ -142,7 +142,7 @@ function validateEntry(value: unknown): SignalContractDefinition['entry'] {
     throw new Error('Only typed entries may define entry type values.');
   }
   return {
-    mode: entry.mode,
+    mode: entry.mode as SignalContractEntryMode,
     typePath,
     marketValues,
     rangeValues,
@@ -157,13 +157,13 @@ function validateTargets(value: unknown): SignalContractDefinition['targets'] {
     'containerPath', 'itemTag', 'shape', 'minimumPath', 'maximumPath',
     'minimumItems', 'maximumItems', 'sequentialIds',
   ]);
-  if (!TARGET_SHAPES.has(targets.shape)) throw new Error('targets.shape is invalid.');
+  if (!TARGET_SHAPES.has(targets.shape as SignalContractTargetShape)) throw new Error('targets.shape is invalid.');
   const minimumItems = integer(targets.minimumItems, 'targets.minimumItems', 1, 20);
   const maximumItems = integer(targets.maximumItems, 'targets.maximumItems', minimumItems, 20);
   return {
     containerPath: pathValue(targets.containerPath, 'targets.containerPath'),
     itemTag: pathValue(targets.itemTag, 'targets.itemTag'),
-    shape: targets.shape,
+    shape: targets.shape as SignalContractTargetShape,
     minimumPath: pathValue(targets.minimumPath, 'targets.minimumPath'),
     maximumPath: pathValue(targets.maximumPath, 'targets.maximumPath'),
     minimumItems,

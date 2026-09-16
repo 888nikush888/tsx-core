@@ -145,8 +145,8 @@ async function syncDirectory(directory: string): Promise<void> {
   const handle = await fs.open(directory, 'r');
   try {
     await handle.sync();
-  } catch (error: any) {
-    if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes(error?.code)) throw error;
+  } catch (error: unknown) {
+    if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes((error as { code?: string } | null | undefined)?.code ?? '')) throw error;
   } finally {
     await handle.close();
   }
@@ -168,14 +168,14 @@ export class ManagedTelegramViewerSettingsStore {
         throw new Error('Telegram viewer settings must be a small regular file.');
       }
       this.settings = validateTelegramViewerSettings(JSON.parse(await fs.readFile(destination, 'utf8')));
-    } catch (error: any) {
-      if (error?.code === 'ENOENT') {
+    } catch (error: unknown) {
+      if ((error as { code?: unknown } | null | undefined)?.code === 'ENOENT') {
         await this.write(DEFAULT_TELEGRAM_VIEWER_SETTINGS);
         return;
       }
       if (!options.recoverInvalidFile) throw error;
       this.settings = structuredClone(DEFAULT_TELEGRAM_VIEWER_SETTINGS);
-      this.recoveryReason = error instanceof Error ? error.message : 'Telegram viewer settings could not be read.';
+      this.recoveryReason = error instanceof Error ? (error as { message?: string }).message : 'Telegram viewer settings could not be read.';
     }
   }
 

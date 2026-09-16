@@ -36,7 +36,7 @@ export async function uiModelPage(inputKind: unknown, query: URLSearchParams) {
     nextCursor: rows.length > limit && last ? encodeUiCursor({ version: 1, filter, observedAt, createdAt: last.createdAt, id: last.id }) : null };
 }
 
-async function modelObject(kind: UiModelKind, id: string): Promise<any> {
+async function modelObject(kind: UiModelKind, id: string): Promise<unknown> {
   if (kind === 'strategy') return getTradingStrategyVersion(id);
   if (kind === 'schema') return getTradingSignalSchemaById(id);
   const version = await getSignalContractVersion(id); if (!version) return null;
@@ -87,11 +87,12 @@ async function contractLifecycle(id: string, action: string, status: string) {
   throw new Error('Unsupported model action.');
 }
 
-async function modelLifecycle(kind: UiModelKind, id: string, action: string, current: any) {
-  if (action === 'attach') return { resource: await createWorkflowResourceDraft({ kind, name: current.model.name, description: current.model.description ?? '', configuration: { [MODELS[kind].reference]: id } }) };
+async function modelLifecycle(kind: UiModelKind, id: string, action: string, current: NonNullable<Awaited<ReturnType<typeof uiModelDetail>>>) {
+  const model = current.model as { name: string; description?: string; status: string };
+  if (action === 'attach') return { resource: await createWorkflowResourceDraft({ kind, name: model.name, description: model.description ?? '', configuration: { [MODELS[kind].reference]: id } }) };
   if (kind === 'schema') return schemaLifecycle(id, action);
   if (kind === 'strategy') return strategyLifecycle(id, action);
-  return contractLifecycle(id, action, current.model.status);
+  return contractLifecycle(id, action, model.status);
 }
 
 export function mutateUiModel(input: { kind: unknown; id: unknown; action: unknown; reviewHash: unknown }) {

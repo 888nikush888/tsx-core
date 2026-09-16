@@ -1,11 +1,11 @@
 import { getDatabase } from './db.js';
 import { reviewHash } from './ui_change_review.js';
 
-export function paperConfigurationRevision(kind: 'market' | 'balance', row: any): string | null {
+export function paperConfigurationRevision(kind: 'market' | 'balance', row: Record<string, unknown> | null): string | null {
   if (!row) return null;
   const keys = kind === 'market' ? ['accountId', 'symbol', 'markPrice', 'priceTick', 'quantityStep', 'minimumQuantity', 'minimumNotional', 'maxLeverage', 'updatedAt']
     : ['accountId', 'equity', 'availableBalance', 'realizedPnl', 'updatedAt'];
-  return reviewHash(Object.fromEntries(keys.map(key => [key, row[key]])));
+  return reviewHash(Object.fromEntries(keys.map((key): [string, unknown] => [key, row[key]])));
 }
 export async function readPaperConfiguration(accountId: string, symbol = '') {
   const database = getDatabase();
@@ -14,11 +14,12 @@ export async function readPaperConfiguration(accountId: string, symbol = '') {
   return { balance: balance ? { ...balance, revision: paperConfigurationRevision('balance', balance), reportingCurrency: 'USDT', source: 'paper-contract-v1' } : null,
     market: market ? { ...market, revision: paperConfigurationRevision('market', market) } : null };
 }
-export async function assertPaperConfigurationRevision(accountId: string, payload: any): Promise<void> {
-  const current = await readPaperConfiguration(accountId, String(payload.market?.symbol ?? ''));
+export async function assertPaperConfigurationRevision(accountId: string, payload: Record<string, unknown>): Promise<void> {
+  const current = await readPaperConfiguration(accountId, String((payload.market as { symbol?: unknown } | null | undefined)?.symbol ?? ''));
   for (const [kind, field] of [['market', 'baseMarketRevision'], ['balance', 'baseBalanceRevision']] as const) {
-    if (payload[field] === undefined) continue; // Existing service/CLI callers retain their contract; UI always binds the observed state.
-    if (payload[field] !== null && (typeof payload[field] !== 'string' || !/^[a-f0-9]{64}$/.test(payload[field]))) throw new Error('Invalid Paper configuration revision.');
-    if ((current[kind]?.revision ?? null) !== payload[field]) throw new Error('PAPER_CONFIGURATION_CONFLICT: Paper state changed. Reload and compare before applying.');
+    const expected = payload[field];
+    if (expected === undefined) continue; // Existing service/CLI callers retain their contract; UI always binds the observed state.
+    if (expected !== null && (typeof expected !== 'string' || !/^[a-f0-9]{64}$/.test(expected))) throw new Error('Invalid Paper configuration revision.');
+    if ((current[kind]?.revision ?? null) !== expected) throw new Error('PAPER_CONFIGURATION_CONFLICT: Paper state changed. Reload and compare before applying.');
   }
 }

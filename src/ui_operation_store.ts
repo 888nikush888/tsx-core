@@ -84,7 +84,7 @@ export class UiOperationStore {
       await fs.rename(temporary, destination);
       const directory = await fs.open(this.root, 'r');
       try { await directory.sync(); }
-      catch (error: any) { if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes(error?.code)) throw error; }
+      catch (error: unknown) { if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes((error as { code?: string } | null | undefined)?.code ?? '')) throw error; }
       finally { await directory.close(); }
       this.records.set(record.id, structuredClone(record));
     } finally { await handle?.close(); await fs.unlink(temporary).catch(() => undefined); }

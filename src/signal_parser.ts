@@ -166,7 +166,7 @@ function mergeLimits(overrides?: Partial<AiLimits>): AiLimits {
 
 function abortError(): Error {
   const error = new Error('Signal parsing aborted.');
-  error.name = 'AbortError';
+  (error as { name?: string }).name = 'AbortError';
   return error;
 }
 
@@ -193,8 +193,9 @@ async function abortableDelay(delayMs: number, signal?: AbortSignal): Promise<vo
   });
 }
 
-function safeProviderCode(error: any): string | undefined {
-  const value = String(error?.code ?? error?.cause?.code ?? '').trim();
+function safeProviderCode(error: unknown): string | undefined {
+  const source = (error ?? null) as { code?: unknown; cause?: { code?: unknown } } | null;
+  const value = String(source?.code ?? source?.cause?.code ?? '').trim();
   return /^[a-zA-Z0-9._-]{1,64}$/.test(value) ? value : undefined;
 }
 
@@ -210,18 +211,19 @@ const HTTP_STATUS_CATEGORIES = new Map<number, AiErrorCategory>([
 
 const NETWORK_ERROR_CODES = new Set(['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'ENOTFOUND']);
 
-function validHttpStatus(candidate: any): number | undefined {
-  const numericStatus = Number(candidate?.status);
+function validHttpStatus(candidate: unknown): number | undefined {
+  const numericStatus = Number((candidate as { status?: unknown } | null | undefined)?.status);
   return Number.isSafeInteger(numericStatus) && numericStatus >= 100 && numericStatus <= 599
     ? numericStatus
     : undefined;
 }
 
-function intrinsicAiError(candidate: any): AiErrorCategory | undefined {
-  if (candidate?.name === 'AbortError') return { code: 'aborted', retryable: false };
+function intrinsicAiError(candidate: unknown): AiErrorCategory | undefined {
+  const named = (candidate ?? null) as { name?: unknown } | null;
+  if (named?.name === 'AbortError') return { code: 'aborted', retryable: false };
   if (candidate instanceof AiBudgetExceededError) return { code: 'budget_exhausted', retryable: false };
   if (candidate instanceof SignalValidationError) return { code: 'invalid_model_output', retryable: true };
-  if (/timeout/i.test(String(candidate?.name ?? ''))) return { code: 'provider_timeout', retryable: true };
+  if (/timeout/i.test(String(named?.name ?? ''))) return { code: 'provider_timeout', retryable: true };
   return undefined;
 }
 
@@ -241,7 +243,7 @@ function networkAiError(providerCode: string | undefined): AiErrorCategory | und
 }
 
 export function classifyAiError(error: unknown): AiErrorClassification {
-  const candidate = error as any;
+  const candidate: unknown = error;
   const httpStatus = validHttpStatus(candidate);
   const providerCode = safeProviderCode(candidate);
   const category = [
@@ -267,15 +269,15 @@ function scalarHeaderValue(value: unknown): string | undefined {
   return undefined;
 }
 
-function headerValue(error: any, name: string): string | undefined {
-  const headers = error?.headers;
+function headerValue(error: unknown, name: string): string | undefined {
+  const headers = (error as { headers?: unknown } | null | undefined)?.headers;
   if (!headers) return undefined;
-  if (typeof headers.get === 'function') {
-    const value = headers.get(name);
+  if (typeof (headers as { get?: unknown }).get === 'function') {
+    const value = (headers as { get(name: string): unknown }).get(name);
     return scalarHeaderValue(value);
   }
   if (typeof headers === 'object') {
-    const entry = Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase());
+    const entry = Object.entries(headers as Record<string, unknown>).find(([key]) => key.toLowerCase() === name.toLowerCase());
     return scalarHeaderValue(entry?.[1]);
   }
   return undefined;
@@ -323,9 +325,9 @@ export async function loadSignalPromptTemplate(templateName?: string): Promise<{
       const override = await fsPromises.readFile(defaultPath, 'utf-8');
       if (!override.trim()) throw new Error('default template override is empty');
       return { promptTemplate: override.trim(), templateName: 'default' };
-    } catch (error: any) {
-      if (error?.code !== 'ENOENT') {
-        throw new Error(`Default signal template override cannot be loaded: ${error.message}`, { cause: error });
+    } catch (error: unknown) {
+      if ((error as { code?: unknown } | null | undefined)?.code !== 'ENOENT') {
+        throw new Error(`Default signal template override cannot be loaded: ${(error as { message?: string }).message}`, { cause: error });
       }
       return { promptTemplate: DEFAULT_SIGNAL_PROMPT, templateName: 'default' };
     }
@@ -339,8 +341,8 @@ export async function loadSignalPromptTemplate(templateName?: string): Promise<{
     const prompt = await fsPromises.readFile(templatePath, 'utf-8');
     if (!prompt.trim()) throw new Error('template is empty');
     return { promptTemplate: prompt.trim(), templateName: normalized };
-  } catch (error: any) {
-    throw new Error(`Signal template '${normalized}' cannot be loaded: ${error.message}`, { cause: error });
+  } catch (error: unknown) {
+    throw new Error(`Signal template '${normalized}' cannot be loaded: ${(error as { message?: string }).message}`, { cause: error });
   }
 }
 
@@ -394,9 +396,9 @@ function createCompletionClient(apiKey: string, limits: AiLimits): RequestComple
   });
   return (request, requestOptions) =>
     client.chat.completions.create(
-      request as any,
-      requestOptions as any
-    ) as Promise<CompletionResult>;
+      request as unknown as Parameters<typeof client.chat.completions.create>[0],
+      requestOptions as unknown as Parameters<typeof client.chat.completions.create>[1]
+    ) as unknown as Promise<CompletionResult>;
 }
 
 function modelPlan(
@@ -556,7 +558,7 @@ export async function parseSignalToXml(
     signal: options.signal,
   };
   const plans = modelPlan(models, limits);
-  let lastError: any;
+  let lastError: unknown;
   for (let planIndex = 0; planIndex < plans.length; planIndex += 1) {
     const plan = plans[planIndex];
     if (!plan) continue;
@@ -619,8 +621,8 @@ if (isMain) {
 
   try {
     await runCli();
-  } catch (error: any) {
-    console.error(`Signal parser failed: ${error.message}`);
-    process.exitCode = error.message?.includes('OPENROUTER_API_KEY') ? 2 : 3;
+  } catch (error: unknown) {
+    console.error(`Signal parser failed: ${(error as { message?: string }).message}`);
+    process.exitCode = (error as { message?: string }).message?.includes('OPENROUTER_API_KEY') ? 2 : 3;
   }
 }

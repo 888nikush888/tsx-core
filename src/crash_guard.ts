@@ -45,8 +45,8 @@ async function pathExists(filePath: string): Promise<boolean> {
   try {
     await fs.lstat(filePath);
     return true;
-  } catch (error: any) {
-    if (error.code === 'ENOENT') return false;
+  } catch (error: unknown) {
+    if ((error as { code?: unknown }).code === 'ENOENT') return false;
     throw error;
   }
 }
@@ -55,9 +55,9 @@ async function readCounter(filePath: string, label: string): Promise<CrashCounte
   try {
     await assertRegularFile(filePath);
     return validCounter(JSON.parse(await fs.readFile(filePath, 'utf8')));
-  } catch (error: any) {
-    if (error.code === 'ENOENT') return null;
-    throw new Error(`${label} cannot be read safely: ${error.message}`, { cause: error });
+  } catch (error: unknown) {
+    if ((error as { code?: unknown }).code === 'ENOENT') return null;
+    throw new Error(`${label} cannot be read safely: ${(error as { message?: string }).message}`, { cause: error });
   }
 }
 

@@ -198,7 +198,7 @@ function groupBy<T>(
   return grouped;
 }
 
-type JournalRow = Record<string, any>;
+type JournalRow = Record<string, unknown>;
 
 type JournalRelations = {
   ordersByIntent: Map<string, JournalRow[]>;
@@ -432,8 +432,8 @@ function journalPosition(row: JournalRow): Record<string, unknown> | null {
     quantity: String(row.position_quantity),
     averageEntryPrice: nullableString(row.average_entry_price),
     stopPrice: String(row.stop_price),
-    ...journalProjectedMoney({ realized_pnl: row.realized_pnl, value_json: row.value_json,
-      accounting_status: row.accounting_status, reporting_currency: row.reporting_currency }),
+    ...journalProjectedMoney({ realized_pnl: row.realized_pnl as string, value_json: row.value_json as string,
+      accounting_status: row.accounting_status as string, reporting_currency: row.reporting_currency as string }),
     openedAt: nullableNumber(row.opened_at),
     closedAt: nullableNumber(row.closed_at),
   };

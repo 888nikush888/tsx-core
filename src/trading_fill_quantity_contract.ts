@@ -4,16 +4,16 @@ import { compareDecimal, decimal } from './trading_decimal.js';
 import { validateFillIdentity } from './trading_fill_identity.js';
 import type { ExchangeFill, ExchangeFillIdentity, FillQuantityNormalization } from './trading_types.js';
 function invalid(): never { throw new Error('FILL_QUANTITY_EVIDENCE_INVALID'); }
-function object(value: unknown): Record<string, any> {
+function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return invalid();
-  return value as Record<string, any>;
+  return value as Record<string, unknown>;
 }
 function codeUnitOrder(left: string, right: string): number {
   if (left < right) return -1;
   if (left > right) return 1;
   return 0;
 }
-function shape(value: unknown, keys: string): Record<string, any> {
+function shape(value: unknown, keys: string): Record<string, unknown> {
   const row = object(value);
   if (!isDeepStrictEqual(Object.keys(row).sort(codeUnitOrder), keys.split(' ').sort(codeUnitOrder))) invalid();
   return row;
@@ -53,13 +53,13 @@ function exactProduct(input: string, factor: string, output: string): boolean {
   return inputCoefficient.value * factorCoefficient.value * 10n ** BigInt(outputCoefficient.scale)
     === outputCoefficient.value * 10n ** BigInt(inputCoefficient.scale + factorCoefficient.scale);
 }
-function arithmetic(value: unknown, row: Record<string, any>): void {
+function arithmetic(value: unknown, row: Record<string, unknown>): void {
   const arithmeticRow = shape(value, 'operation decimalPrecision decimalRounding exactProduct');
-  if (arithmeticRow.operation !== 'multiply' || !Number.isSafeInteger(arithmeticRow.decimalPrecision) || arithmeticRow.decimalPrecision < 1 || arithmeticRow.decimalPrecision > 10000
-    || !['ROUND_CEILING', 'ROUND_DOWN', 'ROUND_FLOOR', 'ROUND_HALF_DOWN', 'ROUND_HALF_EVEN', 'ROUND_HALF_UP', 'ROUND_UP', 'ROUND_05UP'].includes(arithmeticRow.decimalRounding)
-    || arithmeticRow.exactProduct !== exactProduct(row.inputQuantity, row.appliedFactor, row.outputQuantity)) invalid();
+  if (arithmeticRow.operation !== 'multiply' || !Number.isSafeInteger(arithmeticRow.decimalPrecision) || (arithmeticRow.decimalPrecision as number) < 1 || (arithmeticRow.decimalPrecision as number) > 10000
+    || !['ROUND_CEILING', 'ROUND_DOWN', 'ROUND_FLOOR', 'ROUND_HALF_DOWN', 'ROUND_HALF_EVEN', 'ROUND_HALF_UP', 'ROUND_UP', 'ROUND_05UP'].includes(arithmeticRow.decimalRounding as string)
+    || arithmeticRow.exactProduct !== exactProduct(row.inputQuantity as string, row.appliedFactor as string, row.outputQuantity as string)) invalid();
 }
-function originalBinding(row: Record<string, any>, fill: ExchangeFill): ExchangeFillIdentity {
+function originalBinding(row: Record<string, unknown>, fill: ExchangeFill): ExchangeFillIdentity {
   const identity = validateFillIdentity(row.nativeIdentity), raw = object(fill.raw), info = object(raw.info);
   if (identity.profile !== 'kraken_history_execution_v3' || !isDeepStrictEqual(identity, fill.identity)) invalid();
   const pairs = [[identity.providerFillId, fill.exchangeFillId], [identity.providerSymbol, fill.providerSymbol],
@@ -71,7 +71,7 @@ function originalBinding(row: Record<string, any>, fill: ExchangeFill): Exchange
   if (compareDecimal(positive(raw.price), fill.price) !== 0 || row.originalExecutionHash !== fillQuantityDigest('kraken-normalization-original-v1', raw)) invalid();
   return identity;
 }
-function marketBinding(value: unknown, row: Record<string, any>, fill: ExchangeFill, identity: ExchangeFillIdentity): void {
+function marketBinding(value: unknown, row: Record<string, unknown>, fill: ExchangeFill, identity: ExchangeFillIdentity): void {
   const market = shape(value, 'providerMarketId providerSymbol base quote settlementAsset contract linear inverse appliedContractSize source sourceHash observedAt providerContractSize providerOriginalStatus');
   for (const name of ['providerMarketId', 'providerSymbol', 'base', 'quote', 'settlementAsset']) token(market[name]);
   if (market.contract !== true || market.linear !== true || market.inverse !== false || market.source !== 'ccxt-4.5.75-loaded-market'
@@ -86,9 +86,9 @@ export function validateFillQuantityNormalization(value: unknown, fill: Exchange
   if (row.version !== 1 || row.source !== 'kraken-execution-normalization-v1' || row.inputField !== 'execution.quantity'
     || row.inputUnit !== 'kraken_native_execution_quantity' || row.outputUnit !== 'base') invalid();
   for (const field of ['inputQuantity', 'appliedFactor', 'outputQuantity']) positive(row[field]);
-  if (row.outputQuantity !== fill.quantity || !Number.isSafeInteger(row.normalizedAt) || row.normalizedAt < 0
-    || row.normalizedAt > Date.now() + 60000) invalid();
+  if (row.outputQuantity !== fill.quantity || !Number.isSafeInteger(row.normalizedAt) || (row.normalizedAt as number) < 0
+    || (row.normalizedAt as number) > Date.now() + 60000) invalid();
   arithmetic(row.arithmetic, row);
   marketBinding(row.market, row, fill, originalBinding(row, fill));
-  return row as FillQuantityNormalization;
+  return row as unknown as FillQuantityNormalization;
 }

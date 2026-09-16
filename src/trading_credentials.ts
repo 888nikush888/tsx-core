@@ -170,8 +170,8 @@ function normalizeStored(accountId: string, value: unknown): {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('Trading credential file is invalid.');
   }
-  const input = value as Record<string, any>;
-  if (input.accountId !== accountId || !Number.isSafeInteger(input.updatedAt) || input.updatedAt < 0) {
+  const input = value as Record<string, unknown>;
+  if (input.accountId !== accountId || !Number.isSafeInteger(input.updatedAt) || (input.updatedAt as number) < 0) {
     throw new Error('Trading credential file is invalid.');
   }
   if (input.version === 1) return normalizeLegacyStored(accountId, input);
@@ -180,9 +180,9 @@ function normalizeStored(accountId: string, value: unknown): {
     || Object.keys(input).length !== 5) {
     throw new Error('Trading credential file is invalid.');
   }
-  const normalized = normalizedInput({ exchange: input.exchange, credentials: input.credentials });
+  const normalized = normalizedInput({ exchange: input.exchange as string, credentials: input.credentials });
   return {
-    stored: { version: 2, accountId, ...normalized, updatedAt: input.updatedAt },
+    stored: { version: 2, accountId, ...normalized, updatedAt: input.updatedAt as number },
     migrated: false,
   };
 }
@@ -191,8 +191,8 @@ async function syncDirectory(directory: string): Promise<void> {
   const handle = await fs.open(directory, 'r');
   try {
     await handle.sync();
-  } catch (error: any) {
-    if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes(error?.code)) throw error;
+  } catch (error: unknown) {
+    if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes((error as { code?: string } | null | undefined)?.code ?? '')) throw error;
   } finally {
     await handle.close();
   }
@@ -263,15 +263,15 @@ export class TradingCredentialStore {
     try {
       const stored = await this.read(accountId);
       return { configured: true, exchange: stored.exchange, updatedAt: stored.updatedAt };
-    } catch (error: any) {
-      if (error?.code === 'ENOENT') return { configured: false, exchange: null, updatedAt: null };
+    } catch (error: unknown) {
+      if ((error as { code?: unknown } | null | undefined)?.code === 'ENOENT') return { configured: false, exchange: null, updatedAt: null };
       throw error;
     }
   }
 
   async remove(accountId: string): Promise<void> {
-    await fs.unlink(this.accountPath(assertAccountId(accountId))).catch((error: any) => {
-      if (error?.code !== 'ENOENT') throw error;
+    await fs.unlink(this.accountPath(assertAccountId(accountId))).catch((error: unknown) => {
+      if ((error as { code?: unknown } | null | undefined)?.code !== 'ENOENT') throw error;
     });
     await syncDirectory(this.accountsDirectory);
   }
@@ -284,8 +284,8 @@ export class TradingCredentialStore {
       }
       await fs.unlink(path.join(this.accountsDirectory, entry.name));
     }
-    await fs.unlink(this.executorTokenPath()).catch((error: any) => {
-      if (error?.code !== 'ENOENT') throw error;
+    await fs.unlink(this.executorTokenPath()).catch((error: unknown) => {
+      if ((error as { code?: unknown } | null | undefined)?.code !== 'ENOENT') throw error;
     });
     await syncDirectory(this.accountsDirectory);
     await syncDirectory(this.root);
@@ -296,14 +296,14 @@ export class TradingCredentialStore {
       const token = (await fs.readFile(this.executorTokenPath(), 'utf8')).trim();
       if (!/^[a-f0-9]{64}$/.test(token)) throw new Error('Exchange executor token is invalid.');
       return token;
-    } catch (error: any) {
-      if (error?.code !== 'ENOENT') throw error;
+    } catch (error: unknown) {
+      if ((error as { code?: unknown } | null | undefined)?.code !== 'ENOENT') throw error;
       const token = randomBytes(32).toString('hex');
       try {
         await TradingCredentialStore.writeAtomically(this.executorTokenPath(), `${token}\n`);
         return token;
-      } catch (writeError: any) {
-        if (writeError?.code !== 'EEXIST') throw writeError;
+      } catch (writeError: unknown) {
+        if ((writeError as { code?: unknown } | null | undefined)?.code !== 'EEXIST') throw writeError;
         return this.getOrCreateExecutorToken();
       }
     }

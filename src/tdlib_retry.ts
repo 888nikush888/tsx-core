@@ -1,5 +1,5 @@
 export interface TdlibInvoker {
-  invoke(query: unknown): Promise<any>;
+  invoke(query: unknown): Promise<unknown>;
 }
 
 export interface TdlibRetryOptions {
@@ -49,7 +49,7 @@ function retryLimits(options: TdlibRetryOptions): { maxAttempts: number; maxFloo
 }
 
 function floodWaitSeconds(error: unknown, maximum: number): number {
-  const message = String((error as any)?.message || error);
+  const message = String((error as { message?: unknown } | null | undefined)?.message || error);
   const match = /FLOOD_WAIT_(\d+)/.exec(message);
   if (!match) throw error;
   const seconds = Number(match[1]);
@@ -66,7 +66,7 @@ export async function invokeWithFloodWaitRetry(
   client: TdlibInvoker,
   query: unknown,
   options: TdlibRetryOptions = {}
-): Promise<any> {
+): Promise<unknown> {
   const { maxAttempts, maxFloodWaitSeconds } = retryLimits(options);
   let lastError: unknown;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {

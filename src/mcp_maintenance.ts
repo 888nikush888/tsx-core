@@ -44,7 +44,7 @@ export async function assertMcpMaintenanceLease(lease: unknown, targetDatabasePa
 }
 
 function processDefinitelyEnded(pid: number): boolean {
-  try { process.kill(pid, 0); return false; } catch (error: any) { return error?.code === 'ESRCH'; }
+  try { process.kill(pid, 0); return false; } catch (error: unknown) { return (error as { code?: unknown } | null | undefined)?.code === 'ESRCH'; }
 }
 
 async function assertOwnedRequest(owner: ProcessLock, request: McpMaintenanceRequest): Promise<void> {

@@ -24,7 +24,7 @@ export function snapshotFxAccount(account: FxAccount): FxAccount {
   }
   return result as FxAccount;
 }
-function parsedPayload(value: string, byteLimit: number): any {
+function parsedPayload(value: string, byteLimit: number): unknown {
   if (Buffer.byteLength(value) >= byteLimit || value.includes('\0')) invalidFx('STORED_PAYLOAD_INVALID');
   return JSON.parse(value);
 }

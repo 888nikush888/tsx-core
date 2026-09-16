@@ -5,7 +5,7 @@ import { listChannelRiskPolicies } from './trading_channel_risk.js';
 import { withDatabaseTransaction } from './db.js';
 import { redactReview, reviewHash } from './ui_change_review.js';
 
-async function currentProposalObject(action: string, payload: Record<string, any>, active: Awaited<ReturnType<typeof getActiveWorkflow>>) {
+async function currentProposalObject(action: string, payload: Record<string, unknown>, active: Awaited<ReturnType<typeof getActiveWorkflow>>) {
   if (action.startsWith('workflow.')) return currentWorkflowObject(action, payload, active);
   if (action.startsWith('contracts.')) return (await listSignalContracts()).flatMap(contract => contract.versions)
     .find(version => version.id === (payload.versionId ?? payload.sourceVersionId)) ?? null;
@@ -16,14 +16,14 @@ async function currentProposalObject(action: string, payload: Record<string, any
   return getTradingRuntimeState();
 }
 
-async function currentWorkflowObject(action: string, payload: Record<string, any>, active: Awaited<ReturnType<typeof getActiveWorkflow>>) {
+async function currentWorkflowObject(action: string, payload: Record<string, unknown>, active: Awaited<ReturnType<typeof getActiveWorkflow>>) {
   if (action === 'workflow.activate') return { baseRevisionId: active?.id ?? null, graph: active?.graph ?? null };
   return (await listWorkflowResources()).find(resource => resource.id === payload.id) ?? null;
 }
 
-function affectedProposalPaths(action: string, payload: Record<string, any>, before: any, active: Awaited<ReturnType<typeof getActiveWorkflow>>) {
+function affectedProposalPaths(action: string, payload: Record<string, unknown>, before: unknown, active: Awaited<ReturnType<typeof getActiveWorkflow>>) {
   const identifiers = new Set<string>();
-  const collect = (value: any): void => {
+  const collect = (value: unknown): void => {
     if (!value || typeof value !== 'object') return;
     for (const [key, item] of Object.entries(value)) {
       if ((key.endsWith('Id') || key === 'id') && typeof item === 'string') identifiers.add(item);
@@ -37,7 +37,7 @@ function affectedProposalPaths(action: string, payload: Record<string, any>, bef
 }
 
 // Requested fields are separate from server normalization and trade execution evidence.
-function requestedProjection(action: string, payload: Record<string, any>, before: any) {
+function requestedProjection(action: string, payload: Record<string, unknown>, before: Awaited<ReturnType<typeof currentProposalObject>>) {
   if (action.includes('delete')) return null;
   if (action.endsWith('publish')) return { ...before, status: 'published' };
   if (action.endsWith('archive')) return { ...before, status: 'archived' };
@@ -49,7 +49,7 @@ function requestedProjection(action: string, payload: Record<string, any>, befor
 export async function uiMcpProposalReview(id: string) {
   const proposal = await getMcpProposal(id);
   if (!proposal) return null;
-  const payload = proposal.payload as Record<string, any>;
+  const payload = proposal.payload as Record<string, unknown>;
   const action = proposal.action;
   const active = await getActiveWorkflow();
   const before = await currentProposalObject(action, payload, active);

@@ -59,11 +59,11 @@ function errorMessage(error: unknown): string {
   }
 }
 
-function payloadObject(request: McpControlRequest): Record<string, any> {
+function payloadObject(request: McpControlRequest): Record<string, unknown> {
   if (!request.payload || typeof request.payload !== 'object' || Array.isArray(request.payload)) {
     throw new Error('MCP control payload must be an object.');
   }
-  return request.payload as Record<string, any>;
+  return request.payload as Record<string, unknown>;
 }
 
 export class McpControlBridge {

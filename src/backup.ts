@@ -128,7 +128,7 @@ function normalizedConfigKey(key: string): string {
   return key.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 }
 
-function containsForbiddenConfigKey(value: any): boolean {
+function containsForbiddenConfigKey(value: unknown): boolean {
   if (Array.isArray(value)) return value.some(containsForbiddenConfigKey);
   if (!value || typeof value !== 'object') return false;
   return Object.entries(value).some(([key, nested]) =>
@@ -146,8 +146,8 @@ async function sha256File(filePath: string): Promise<BackupFileMetadata> {
 }
 
 function fileExists(filePath: string): Promise<boolean> {
-  return fs.stat(filePath).then(() => true).catch((error: any) => {
-    if (error.code === 'ENOENT') return false;
+  return fs.stat(filePath).then(() => true).catch((error: unknown) => {
+    if ((error as { code?: unknown }).code === 'ENOENT') return false;
     throw error;
   });
 }
@@ -493,7 +493,7 @@ async function installPinnedConfiguration(artifactRoot: string, generation: Pinn
 
 export async function createBackupArtifact(
   backupDirectory: string,
-  config: any,
+  config: unknown,
   now = Date.now()
 ): Promise<string> {
   if (!Number.isSafeInteger(now) || now <= 0) throw new Error('Backup timestamp is invalid.');
@@ -619,8 +619,8 @@ async function assertRestoreInactive(targetDatabasePath: string, stateDirectory:
   if (state !== await fs.realpath(path.dirname(path.resolve(targetDatabasePath)))) {
     throw new Error('Restore state directory differs from its maintenance database scope.');
   }
-  const routingActive = await fs.lstat(path.join(state, '.routing_active')).then(() => true).catch((error: any) => {
-    if (error.code === 'ENOENT') return false;
+  const routingActive = await fs.lstat(path.join(state, '.routing_active')).then(() => true).catch((error: unknown) => {
+    if ((error as { code?: unknown }).code === 'ENOENT') return false;
     throw error;
   });
   if (routingActive) {
@@ -892,7 +892,7 @@ export class BackupScheduler {
 
   constructor(
     private readonly backupDirectory: string,
-    private readonly configProvider: () => any,
+    private readonly configProvider: () => unknown,
     private readonly intervalMs = 15 * 60_000,
     private readonly retainCount = 672,
     private readonly logger: (message: string) => void = console.log,
@@ -912,7 +912,7 @@ export class BackupScheduler {
     if (this.interval) return;
     await this.runNow();
     this.interval = setInterval(() => {
-      this.runNow().catch(error => this.logger(`[ERROR] Scheduled backup failed: ${error.message}`));
+      this.runNow().catch(error => this.logger(`[ERROR] Scheduled backup failed: ${(error as { message?: string }).message}`));
     }, this.intervalMs);
     this.interval.unref();
   }
@@ -981,8 +981,8 @@ export class BackupScheduler {
         this.logger(`[INFO] Verified backup created: ${artifact}`);
         if (replication) this.logger(`[INFO] Encrypted off-site backup verified: ${replication.objectName}`);
         return artifact;
-      } catch (error: any) {
-        this.status = { ...this.status, lastError: error.message, running: false };
+      } catch (error: unknown) {
+        this.status = { ...this.status, lastError: (error as { message?: string }).message, running: false };
         throw error;
       }
     })();

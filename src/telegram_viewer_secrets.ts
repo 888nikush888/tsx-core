@@ -11,8 +11,8 @@ async function syncDirectory(directory: string): Promise<void> {
   const handle = await fs.open(directory, 'r');
   try {
     await handle.sync();
-  } catch (error: any) {
-    if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes(error?.code)) throw error;
+  } catch (error: unknown) {
+    if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes((error as { code?: string } | null | undefined)?.code ?? '')) throw error;
   } finally {
     await handle.close();
   }
@@ -78,8 +78,8 @@ export class TelegramViewerSecretStore {
       if (fileName === BOT_TOKEN_FILE) this.botTokenUpdatedAt = Math.floor(stats.mtimeMs);
       else this.serviceTokenUpdatedAt = Math.floor(stats.mtimeMs);
       return value;
-    } catch (error: any) {
-      if (error?.code === 'ENOENT') return null;
+    } catch (error: unknown) {
+      if ((error as { code?: unknown } | null | undefined)?.code === 'ENOENT') return null;
       throw error;
     }
   }
@@ -133,8 +133,8 @@ export class TelegramViewerSecretStore {
   }
 
   async deleteBotToken(): Promise<void> {
-    await fs.unlink(this.secretPath(BOT_TOKEN_FILE)).catch((error: any) => {
-      if (error?.code !== 'ENOENT') throw error;
+    await fs.unlink(this.secretPath(BOT_TOKEN_FILE)).catch((error: unknown) => {
+      if ((error as { code?: unknown } | null | undefined)?.code !== 'ENOENT') throw error;
     });
     await syncDirectory(this.rootPath());
     this.botTokenValue = null;
@@ -154,8 +154,8 @@ export class TelegramViewerSecretStore {
 
   async clear(): Promise<void> {
     await this.deleteBotToken();
-    await fs.unlink(this.secretPath(SERVICE_TOKEN_FILE)).catch((error: any) => {
-      if (error?.code !== 'ENOENT') throw error;
+    await fs.unlink(this.secretPath(SERVICE_TOKEN_FILE)).catch((error: unknown) => {
+      if ((error as { code?: unknown } | null | undefined)?.code !== 'ENOENT') throw error;
     });
     this.serviceTokenValue = '';
     this.serviceTokenUpdatedAt = null;

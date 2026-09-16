@@ -21,12 +21,13 @@ function accountRiskObservation(accountId: string, observationId: string | null)
     FROM trading_risk_observations observation LEFT JOIN trading_risk_current current ON current.account_id = observation.account_id
     WHERE observation.account_id = ? AND observation.id = COALESCE(?, current.observation_id)`, [accountId, observationId]);
 }
-function observationSummary(row: any, account: NonNullable<Awaited<ReturnType<typeof getTradingAccount>>>, now: number) {
-  if (!row) return null;
-  const { fingerprint, credentialGeneration, ...visible } = row;
+function observationSummary(row: unknown, account: NonNullable<Awaited<ReturnType<typeof getTradingAccount>>>, now: number) {
+  const record = (row ?? null) as Record<string, unknown> | null;
+  if (!record) return null;
+  const { fingerprint, credentialGeneration, ...visible } = record;
   return { ...redactReviewRecord(visible), identityMatches: fingerprint === riskFingerprint(account), credentialGenerationMatches: credentialGeneration === account.credentialGeneration,
-    timestampFresh: row.observedAt <= now && row.expiresAt > now && row.utcDay === new Date(now).setUTCHours(0, 0, 0, 0),
-    isCurrentObservation: row.id === row.currentObservationId,
+    timestampFresh: (record.observedAt as number) <= now && (record.expiresAt as number) > now && record.utcDay === new Date(now).setUTCHours(0, 0, 0, 0),
+    isCurrentObservation: record.id === record.currentObservationId,
     scope: 'Stored reconciliation projection. Timestamp/identity checks do not validate the current entry epoch, changed orders or FX proofs; not an entry authorization.' };
 }
 
@@ -54,7 +55,7 @@ function evidencePage(query: URLSearchParams, selection: Record<string, unknown>
   const filter = filterFingerprint({ ...selection, limit }); const cursor = decodeUiCursor(query.get('cursor'), filter);
   return { limit, filter, cursor, observedAt: cursor?.observedAt ?? Date.now() };
 }
-function nextEvidenceCursor(page: ReturnType<typeof evidencePage>, rows: any[], createdAt: number, id: string) {
+function nextEvidenceCursor(page: ReturnType<typeof evidencePage>, rows: unknown[], createdAt: number, id: string) {
   return rows.length > page.limit ? encodeUiCursor({ version: 1, filter: page.filter, observedAt: page.observedAt, createdAt, id }) : null;
 }
 

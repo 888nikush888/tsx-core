@@ -464,7 +464,7 @@
     {
       "route": "POST /api/backups/recover-offsite",
       "handler": "recoverOffsiteBackupHandler",
-      "handlerSha256": "1afd47fcf25856352c5631572f06eb7caf20552eafa3ba67347fc3c699902b83",
+      "handlerSha256": "7d8d8c4c570433165a1d4214871f84ff7b2734116ce1b3d9328304d9f3c986dd",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -486,7 +486,7 @@
     {
       "route": "GET /api/trading",
       "handler": "tradingSnapshotHandler",
-      "handlerSha256": "2a38c4c0626befb6759b1445c1c90be5260bf069d7fcae6bb707fdd8b5bcc0f6",
+      "handlerSha256": "6259793b7240faf0754b6b62b31a38c466ed7fe76fd8f9d62ec0ad81e8f2b49e",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -585,7 +585,7 @@
     {
       "route": "GET /api/trading/risk/adaptive",
       "handler": "uiAdaptiveRiskHandler",
-      "handlerSha256": "1dd1c487ddb66d8367cc07dcc41f772823d0fe3cebddc3136f4e01a397390e9f",
+      "handlerSha256": "f0c34d8b7b19bf718fbd548ba4d1a8350b9ecfb0ea28e0c3c6c5a6f4a2634b6e",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -596,7 +596,7 @@
     {
       "route": "POST /api/trading/risk/adaptive/copy-legacy",
       "handler": "uiAdaptiveRiskHandler",
-      "handlerSha256": "1dd1c487ddb66d8367cc07dcc41f772823d0fe3cebddc3136f4e01a397390e9f",
+      "handlerSha256": "f0c34d8b7b19bf718fbd548ba4d1a8350b9ecfb0ea28e0c3c6c5a6f4a2634b6e",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -607,7 +607,7 @@
     {
       "route": "GET /api/workflow/drafts",
       "handler": "uiWorkflowDraftHandler",
-      "handlerSha256": "ffad471c1d04f04a468353ef93294af1703fdfe5423e39d2e06ead13c94ac424",
+      "handlerSha256": "c4a42760047ee97152fe15bc695dc5609bda0679e42a4182cf3e9ed5cce4b909",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -627,7 +627,7 @@
     {
       "route": "POST /api/operations/backup-drill",
       "handler": "uiBackupDrillHandler",
-      "handlerSha256": "405df0dc85d130d4a804f537ae3087cfb0befdd98b81107a2b87dc46472c18c2",
+      "handlerSha256": "4ecf49b83b14647f40a53179c14045a8624e47b15a857a3dbfd54c90f4a26c05",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -638,7 +638,7 @@
     {
       "route": "GET /api/workflow/parser-test",
       "handler": "uiParserLabHandler",
-      "handlerSha256": "b2592c329c6a449285f813b7443974c2e25f46b36135dcbcc56f5d8747b7f5bc",
+      "handlerSha256": "9f3727c2535782ecc6d101309697f3737a51d9e8c6ace7f37995291c79ca9071",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -649,7 +649,7 @@
     {
       "route": "POST /api/workflow/parser-test/preview",
       "handler": "uiParserLabHandler",
-      "handlerSha256": "b2592c329c6a449285f813b7443974c2e25f46b36135dcbcc56f5d8747b7f5bc",
+      "handlerSha256": "9f3727c2535782ecc6d101309697f3737a51d9e8c6ace7f37995291c79ca9071",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -660,7 +660,7 @@
     {
       "route": "POST /api/workflow/parser-test",
       "handler": "uiParserLabHandler",
-      "handlerSha256": "b2592c329c6a449285f813b7443974c2e25f46b36135dcbcc56f5d8747b7f5bc",
+      "handlerSha256": "9f3727c2535782ecc6d101309697f3737a51d9e8c6ace7f37995291c79ca9071",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -671,7 +671,7 @@
     {
       "route": "POST /api/workflow/drafts",
       "handler": "uiWorkflowDraftHandler",
-      "handlerSha256": "ffad471c1d04f04a468353ef93294af1703fdfe5423e39d2e06ead13c94ac424",
+      "handlerSha256": "c4a42760047ee97152fe15bc695dc5609bda0679e42a4182cf3e9ed5cce4b909",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -682,7 +682,7 @@
     {
       "route": "DELETE /api/workflow/drafts",
       "handler": "uiWorkflowDraftHandler",
-      "handlerSha256": "ffad471c1d04f04a468353ef93294af1703fdfe5423e39d2e06ead13c94ac424",
+      "handlerSha256": "c4a42760047ee97152fe15bc695dc5609bda0679e42a4182cf3e9ed5cce4b909",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -702,7 +702,7 @@
     {
       "route": "POST /api/trading/journal",
       "handler": "updateTradingJournalHandler",
-      "handlerSha256": "67f305c3a74ddc96e98822f6335624e0c0f769d7bb67e6b816fc0af25ac2d23c",
+      "handlerSha256": "997fc2942412a6150f929ef0e129d66ddd38efca3fbde320ed78bd81aaa733d7",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -1043,7 +1043,7 @@
     {
       "route": "GET /api/workflow/models",
       "handler": "uiWorkflowModelsHandler",
-      "handlerSha256": "45a29433b19a0fe24873af63d700ecc7f3e03fdc760aa7e720ba033bf556cbfa",
+      "handlerSha256": "b25fd1ebbed53f1f84ee2165d54b9709ab5ada2160751b013fd25bb0c7b59d53",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -1054,7 +1054,7 @@
     {
       "route": "POST /api/workflow/models",
       "handler": "uiWorkflowModelsHandler",
-      "handlerSha256": "45a29433b19a0fe24873af63d700ecc7f3e03fdc760aa7e720ba033bf556cbfa",
+      "handlerSha256": "b25fd1ebbed53f1f84ee2165d54b9709ab5ada2160751b013fd25bb0c7b59d53",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -1074,7 +1074,7 @@
     {
       "route": "POST /api/workflow/mutate",
       "handler": "saveWorkflowHandler",
-      "handlerSha256": "d0931a39adcdef6f00a787ace59963a453fd7390daedae0813d82233d6e88a29",
+      "handlerSha256": "abf8bc768104cc47f2a417687666b23f84b49fdd87bd327e7f8da34b151f53a1",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -1083,7 +1083,7 @@
     {
       "route": "POST /api/workflow/impact",
       "handler": "previewWorkflowImpactHandler",
-      "handlerSha256": "9c58d5498246cb190f63a1dd51f516893e5049f3cab5190f0ee84d5cced7535e",
+      "handlerSha256": "b8653e11ff3f5bd6106c0af9757ee51bfe3402496b4f2f57385f6bd1758f8def",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -1092,7 +1092,7 @@
     {
       "route": "POST /api/workflow/history/impact",
       "handler": "previewWorkflowHistoryImpactHandler",
-      "handlerSha256": "07337c3651057a506e7b4aeeed489fbe0b998f188fa30e17c90c5fd61fbf2b94",
+      "handlerSha256": "59406f06b1ee1a2de0e42d13bec6d9795ea7ce3bb60dc0276798b13fe2ff8172",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -1101,7 +1101,7 @@
     {
       "route": "POST /api/workflow/history/apply",
       "handler": "applyWorkflowHistoryHandler",
-      "handlerSha256": "e31a28e4d08ab79dfefaa418ea4756d687241c44e6ded701c0ad5f92eb88d8b6",
+      "handlerSha256": "a3b5e66e9025112f85a7e22740b9896a3eed6238730057db75688bbd4c1eb1e9",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -1121,7 +1121,7 @@
     {
       "route": "POST /api/workflow/simulate",
       "handler": "simulateWorkflowHandler",
-      "handlerSha256": "a9742fbe586052e83473a3cb37ffbf8ad45e42057ae1cfec60b91348ead437ef",
+      "handlerSha256": "2b89e7829fe43fa6421c6b879291fe496d5e866673639e1a77c17f77c89bda85",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -1130,7 +1130,7 @@
     {
       "route": "POST /api/workflow/resources",
       "handler": "createWorkflowResourceHandler",
-      "handlerSha256": "39fec1409ca6c94a6c42112e8aab20a6a8352df0d372a6019d6343492cb70cf3",
+      "handlerSha256": "3d6bd281f38acf4ef72d8255b524eeba01f569968843e91cf04fddf02d30de9b",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -1139,7 +1139,7 @@
     {
       "route": "POST /api/workflow/resources/update",
       "handler": "updateWorkflowResourceHandler",
-      "handlerSha256": "006f15d9b197cd6a5568c2ffbcfea0413cbe99822ec66ad5306e92e1d64fad0f",
+      "handlerSha256": "1dd363c7c0e98867a06084a8b25b1131e015c0050698eb6617989d7b9b6fed2d",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -1148,7 +1148,7 @@
     {
       "route": "POST /api/workflow/resources/publish",
       "handler": "publishWorkflowResourceHandler",
-      "handlerSha256": "78c04e32fe12d10063e5b301c8bba9b84b089d2e262f097970a0973278596ab1",
+      "handlerSha256": "823853019a9e6106c622eca62178bf13bf6884e796e6ded0da9ae205cf0713a7",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -1198,7 +1198,7 @@
     {
       "route": "POST /api/mcp/agents",
       "handler": "createMcpAgentHandler",
-      "handlerSha256": "1d1228d5785e8aea23fdadfa6a49c5586753bb4002fa7c9b73822c22cc863f67",
+      "handlerSha256": "b1544c6d2099beda88f9e88944663d3f9eddbe4efa4719e0c695dfc76fecec94",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -1207,7 +1207,7 @@
     {
       "route": "POST /api/mcp/agents/update",
       "handler": "updateMcpAgentHandler",
-      "handlerSha256": "d437d6ed79a601405cb078c6fd218ee991ad18fb3b00ea8183d7ef62ee6d76f3",
+      "handlerSha256": "e8feb6e641cdc511ec967873d51fcdd705eaad75c19a48aaf5cf4ce1ba66e9ba",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -1238,7 +1238,7 @@
     {
       "route": "POST /api/mcp/proposals/approve",
       "handler": "approveMcpProposalHandler",
-      "handlerSha256": "2399f0576995eb007ce418f0456297456ba5afb3e8719bd73bf936893edf9d97",
+      "handlerSha256": "7226807853db134204a485c3522e5d781292bfc7e3b15f7926ea58165e8cc684",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [

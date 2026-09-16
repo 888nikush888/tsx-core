@@ -30,10 +30,10 @@ async function selection(query: URLSearchParams) {
   return { kind, limit, filters, filter, cursor, revisionId, observedAt: cursor?.observedAt ?? Date.now() };
 }
 type Selection = Awaited<ReturnType<typeof selection>>;
-function pageResult(page: Selection, rows: any[], entries: unknown[], timeKey = 'created_at', idKey = 'id') {
+function pageResult(page: Selection, rows: Record<string, unknown>[], entries: unknown[], timeKey = 'created_at', idKey = 'id') {
   const last = rows[Math.min(page.limit, rows.length) - 1]; const hasMore = rows.length > page.limit;
   return { contractVersion: 1, observedAt: page.observedAt, entries: redactReview(entries.slice(0, page.limit)), hasMore,
-    nextCursor: hasMore && last ? encodeUiCursor({ version: 1, filter: page.filter, observedAt: page.observedAt, createdAt: last[timeKey], id: String(last[idKey]) }) : null,
+    nextCursor: hasMore && last ? encodeUiCursor({ version: 1, filter: page.filter, observedAt: page.observedAt, createdAt: last[timeKey] as number, id: String(last[idKey]) }) : null,
     interpretation: 'Gespeicherte Belege; keine Neuauswertung und keine Handelsfreigabe. Zeitgrenze begrenzt die Auswahl, Invalidierungen und Runtimezustand werden aktuell gelesen.' };
 }
 function conditions(page: Selection, alias: string, timeKey: string, idKey: string) {
@@ -75,7 +75,7 @@ async function activePaths(page: Selection) {
   const entries = await Promise.all(rows.slice(0, page.limit).map(async row => {
     const resource = await getWorkflowResourceById(row.versionId);
     if (!resource) throw new Error('Active policy resource disappeared.');
-    const policySha256 = workflowPolicyHash(resource.configuration as any);
+    const policySha256 = workflowPolicyHash(resource.configuration as Parameters<typeof workflowPolicyHash>[0]);
     return { id: row.id, revisionId: row.revisionId, resource, policySha256, matchesStoredState: policySha256 === state.policy_sha256 };
   }));
   return { ...pageResult(page, rows.map(row => ({ ...row, created_at: 0 })), entries), activeRevisionId: active };
@@ -90,9 +90,9 @@ async function evaluationSources(page: Selection) {
   if (createHash('sha256').update(row.source_json).digest('hex') !== row.source_hash) throw new Error('Original evaluation source hash does not match.');
   const source = JSON.parse(row.source_json); const after = page.cursor ? Number(page.cursor.id) : -1;
   if (!Number.isSafeInteger(after) || after < -1) throw new Error('Invalid original source cursor.');
-  const rows = (source.positions ?? []).slice(after + 1, after + page.limit + 2).map((item: any, index: number) => ({ ...item, ordinal: after + index + 1, created_at: 0 }));
+  const rows = (source.positions ?? []).slice(after + 1, after + page.limit + 2).map((item: Record<string, unknown>, index: number) => ({ ...item, ordinal: after + index + 1, created_at: 0 }));
   const { fingerprint: _fingerprint, generation: _generation, ...capital } = source.capital ?? {};
-  return { ...pageResult(page, rows, rows.map(({ created_at: _time, ordinal: _ordinal, ...item }: any) => item), 'created_at', 'ordinal'),
+  return { ...pageResult(page, rows, rows.map(({ created_at: _time, ordinal: _ordinal, ...item }: Record<string, unknown>) => item), 'created_at', 'ordinal'),
     sourceAvailable: true, sourceHash: row.source_hash, integrityVerified: true, scope: source.scope, capital: redactReview(capital),
     invalidatedAt: row.invalidated_at, invalidationReason: redactReview(row.invalidation_reason), sourceCount: source.positions?.length ?? 0 };
 }

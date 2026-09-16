@@ -45,9 +45,9 @@ export function accountLogSource(exchange: string): { namespace: string; filterH
   const spec = SPECS[exchange];
   return spec ? { namespace: spec[0], filterHash: accountLogDigest(spec[1]) } : null;
 }
-function object(value: unknown): Record<string, any> {
+function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid account-log object.');
-  return value as Record<string, any>;
+  return value as Record<string, unknown>;
 }
 function integer(value: unknown): number {
   if (!Number.isSafeInteger(value) || Number(value) < 0) throw new Error('Invalid account-log timestamp/revision.');
@@ -59,7 +59,7 @@ function token(value: unknown, nullable = false, maximum = 4096): string | null 
   if (typeof value !== 'string' || !value || value.length > maximum || /[\x00-\x1f]/u.test(value)) throw new Error('Invalid account-log token.');
   return value;
 }
-function binding(row: Record<string, any>) {
+function binding(row: Record<string, unknown>) {
   const spec = Object.values(SPECS).find(([namespace]) => namespace === row.namespace);
   if (row.version !== 1 || !spec || row.filterHash !== accountLogDigest(spec[1])) throw new Error('Account-log source/filter is not allowlisted.');
   for (const field of ['accountFingerprint', 'credentialGeneration']) {
@@ -137,33 +137,33 @@ export function validateAccountLogProgress(value: unknown): AccountLogProgress {
     || item.accountFingerprint !== checkpoint.accountFingerprint || item.credentialGeneration !== checkpoint.credentialGeneration)) throw new Error('Account-log progress changed its source binding.');
   return { baseRevision, calls, checkpoint, receipts };
 }
-function skippedLogProgress(row: Record<string, any>, checkpoint: AccountLogCheckpoint, baseRevision: number, calls: number): AccountLogProgress {
-  if (!['budget_exhausted', 'transient', 'unsupported', 'invalid_evidence'].includes(row.readSkipped)
+function skippedLogProgress(row: Record<string, unknown>, checkpoint: AccountLogCheckpoint, baseRevision: number, calls: number): AccountLogProgress {
+  if (!['budget_exhausted', 'transient', 'unsupported', 'invalid_evidence'].includes(row.readSkipped as string)
     || checkpoint.revision !== baseRevision || calls !== 0 || !Array.isArray(row.receipts) || row.receipts.length !== 0) {
     throw new Error('Invalid skipped account-log read.');
   }
-  return { baseRevision, calls, checkpoint, receipts: [], readSkipped: row.readSkipped };
+  return { baseRevision, calls, checkpoint, receipts: [], readSkipped: row.readSkipped as 'budget_exhausted' | 'transient' | 'unsupported' | 'invalid_evidence' };
 }
 export function assertSkippedAccountLogUnchanged(previous: AccountLogCheckpoint, progress: AccountLogProgress): void {
   if (progress.readSkipped !== undefined && !isDeepStrictEqual(previous, progress.checkpoint)) {
     throw new Error('Skipped account-log read changed its original checkpoint.');
   }
 }
-export function accountLogAcquisitionFields(result: Record<string, any>): { accountLogs?: AccountLogProgress; targetedCalls?: number } {
+export function accountLogAcquisitionFields(result: Record<string, unknown>): { accountLogs?: AccountLogProgress; targetedCalls?: number } {
   if (['accountLogs', 'accountMode', 'recoverySchedule', 'fxEvidence'].every(field => result[field] === undefined)) return {};
   const accountLogs = result.accountLogs === undefined ? undefined : validateAccountLogProgress(result.accountLogs);
   if (accountLogs?.readSkipped !== undefined && result.recoverySchedule === undefined) throw new Error('Skipped account-log reads require an explicit schedule.');
   const targetedCalls = integer(result.targetedCalls);
   assertSharedBudget(result, targetedCalls, accountLogs?.calls ?? 0);
-  for (const receipt of accountLogs?.receipts ?? []) {
-    if (receipt.startedAt < result.startedAt || receipt.completedAt > result.completedAt) throw new Error('Account-log receipt is outside acquisition.');
+  for (const receipt of (accountLogs?.receipts ?? []) as Array<{ startedAt: number; completedAt: number }>) {
+    if (receipt.startedAt < (result.startedAt as number) || receipt.completedAt > (result.completedAt as number)) throw new Error('Account-log receipt is outside acquisition.');
   }
   return { ...(accountLogs ? { accountLogs } : {}), targetedCalls };
 }
-function assertSharedBudget(result: Record<string, any>, targetedCalls: number, logCalls: number): void {
-  const historyCalls = (result.history ?? []).reduce((sum: number, progress: { pages: number }) => sum + progress.pages, 0);
-  const modeCalls = integer(result.accountMode?.calls ?? 0);
-  const fxCalls = integer(result.fxEvidence?.calls ?? 0);
+function assertSharedBudget(result: Record<string, unknown>, targetedCalls: number, logCalls: number): void {
+  const historyCalls = (result.history as Array<{ pages: number }> | undefined ?? []).reduce((sum: number, progress) => sum + progress.pages, 0);
+  const modeCalls = integer((result.accountMode as { calls?: unknown } | null | undefined)?.calls ?? 0);
+  const fxCalls = integer((result.fxEvidence as { calls?: unknown } | null | undefined)?.calls ?? 0);
   if (!Number.isSafeInteger(historyCalls) || !Number.isSafeInteger(modeCalls)
     || targetedCalls + historyCalls + modeCalls + logCalls + fxCalls > 5) throw new Error('Shared history request exceeded five additional calls.');
 }

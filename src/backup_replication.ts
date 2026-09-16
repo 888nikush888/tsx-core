@@ -295,7 +295,7 @@ async function downloadExactly(response: Response, destination: string, expected
     }
   });
   await pipeline(
-    Readable.fromWeb(response.body as any),
+    Readable.fromWeb(response.body as unknown as Parameters<typeof Readable.fromWeb>[0]),
     limiter,
     createWriteStream(destination, { flags: 'wx', mode: 0o600 })
   );

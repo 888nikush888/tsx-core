@@ -681,7 +681,7 @@ async function supergroupFallback(idStr: string): Promise<string | null> {
   try {
     const supergroupId = Number(idStr.slice(4));
     const chat = await invokeWithRetry(client, { _: 'createSupergroupChat', supergroup_id: supergroupId, force: false });
-    return String(chat.id);
+    return String((chat as { id?: unknown }).id);
   } catch (error_) {
     addLog(`[DEBUG] Supergroup-Fallback für ${idStr} fehlgeschlagen: ${error_.message}`);
     return null;
@@ -694,12 +694,12 @@ async function resolveChatId(identifier) {
     const username = idStr.startsWith('@') ? idStr.slice(1) : idStr;
     try {
       const chat = await client.invoke({ _: 'searchPublicChat', username });
-      return String(chat.id);
+      return String((chat as { id?: unknown }).id);
     } catch (e) { throw new Error(`Kanal @${username} nicht gefunden (${e.message})`, { cause: e }); }
   }
   try {
     const chat = await invokeWithRetry(client, { _: 'getChat', chat_id: Number(idStr) });
-    return String(chat.id);
+    return String((chat as { id?: unknown }).id);
   } catch (e) {
     addLog(`[DEBUG] getChat für ${idStr} fehlgeschlagen: ${e.message}`);
     const fallback = await supergroupFallback(idStr);
