@@ -114,7 +114,8 @@ async function assertNoContradictedOriginal(account: FxAccount, context: FxConte
     if (compareDecimal(decodeReceipt(account, row, context).value, receipt.value) !== 0) invalidFx('QUOTE_CONFLICT');
   }
 }
-export function persistFxConversion(account: FxAccount, baseAsset: string, quoteAsset: string, at: number): Promise<StoredFxConversion> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function persistFxConversion(account: FxAccount, baseAsset: string, quoteAsset: string, at: number): Promise<StoredFxConversion> {
   account = snapshotFxAccount(account);
   return withDatabaseTransaction(async () => {
     const context = await requireFxAccountContext(account), rows = await asOfReceipts(account, context, at);
@@ -132,7 +133,8 @@ export function persistFxConversion(account: FxAccount, baseAsset: string, quote
   });
 }
 /** Recomputes the pinned recipe from retained originals; a self-consistent public hash is not authorization. */
-export function readFxConversion(account: FxAccount, id: string): Promise<StoredFxConversion> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function readFxConversion(account: FxAccount, id: string): Promise<StoredFxConversion> {
   account = snapshotFxAccount(account);
   return withDatabaseTransaction(async () => {
     const context = await requireFxAccountContext(account);

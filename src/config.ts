@@ -308,7 +308,7 @@ function normalizeForwardOptions(cfg: Record<string, unknown>): void {
 function normalizeModelNames(xmlParsing: Record<string, unknown>): void {
   for (const key of ['primaryModel', 'fallbackModel'] as const) {
     const rawValue = xmlParsing[key];
-    const value = rawValue === null || rawValue === undefined || typeof rawValue === 'object' ? '' : String(rawValue).trim();
+    const value = !rawValue || typeof rawValue === 'object' ? '' : String(rawValue).trim();
     xmlParsing[key] = /^[a-zA-Z0-9._:/-]{1,128}$/.test(value)
       ? value
       : DEFAULT_CONFIG.xmlParsing[key];
@@ -372,7 +372,7 @@ function normalizeSourceFilters(cfg: Record<string, unknown>): void {
     cfg.sourceFilters = {};
     return;
   }
-  const normalizedFilters: Record<string, unknown> = {};
+  const normalizedFilters: Array<[string, Record<string, unknown>]> = [];
   for (const [key, value] of Object.entries(cfg.sourceFilters)) {
     if (!isRecord(value)) {
       console.warn(`[WARN] sourceFilters["${key}"] is not an object and was removed.`);
@@ -382,9 +382,9 @@ function normalizeSourceFilters(cfg: Record<string, unknown>): void {
       console.warn(`[WARN] sourceFilters["${key}"].regexPatterns is not an array and was reset.`);
       value.regexPatterns = [];
     }
-    normalizedFilters[key] = value;
+    normalizedFilters.push([key, value]);
   }
-  cfg.sourceFilters = normalizedFilters;
+  cfg.sourceFilters = Object.fromEntries(normalizedFilters);
 }
 
 function normalizeSourceAliases(cfg: Record<string, unknown>): void {
@@ -392,15 +392,15 @@ function normalizeSourceAliases(cfg: Record<string, unknown>): void {
     cfg.sourceAliases = {};
     return;
   }
-  const normalizedAliases: Record<string, unknown> = {};
+  const normalizedAliases: Array<[string, string]> = [];
   for (const [key, value] of Object.entries(cfg.sourceAliases)) {
     if (typeof value !== 'string') {
       console.warn(`[WARN] sourceAliases["${key}"] is not a string and was removed.`);
       continue;
     }
-    normalizedAliases[key] = value;
+    normalizedAliases.push([key, value]);
   }
-  cfg.sourceAliases = normalizedAliases;
+  cfg.sourceAliases = Object.fromEntries(normalizedAliases);
 }
 
 function validateOptionalBoolean(container: Record<string, unknown>, key: string, qualifiedName: string): void {

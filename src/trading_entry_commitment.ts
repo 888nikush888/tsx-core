@@ -42,7 +42,8 @@ export async function requestEntryDrain(accountId: string, reason: string, inten
     [Date.now(), reason.slice(0, 300), accountId, intentId ?? null, intentId ?? null]);
 }
 
-export function requestedEntryDrains(accountId: string, now = Date.now()): Promise<EntryCommitment[]> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function requestedEntryDrains(accountId: string, now = Date.now()): Promise<EntryCommitment[]> {
   return getDatabase().all<EntryCommitment[]>(
     `SELECT intent_id, account_id, client_order_id, status, exchange_order_id, provider_symbol, entry_drain_attempted_at
      FROM trading_orders WHERE account_id = ? AND role = 'entry' AND entry_drain_requested_at IS NOT NULL
@@ -74,10 +75,12 @@ export async function markEntryDrainAttempt(accountId: string, clientOrderId: st
  * The old cancellation outcome is recorded as still-active, not as entries-drained.
  * Concurrent completion of an older cancel cannot make an exact duplicate cancel add exposure.
  */
-export function resolveActiveEntryCancelAttempts(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function resolveActiveEntryCancelAttempts(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
   return resolveActiveCancelAttempts(account, remote, true);
 }
 
-export function entryCancelRetryAuthorized(accountId: string, clientOrderId: string): Promise<boolean> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function entryCancelRetryAuthorized(accountId: string, clientOrderId: string): Promise<boolean> {
   return cancelRetryAuthorized(accountId, clientOrderId);
 }

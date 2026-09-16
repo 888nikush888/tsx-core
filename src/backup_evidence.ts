@@ -86,6 +86,16 @@ type RestorableBackupCandidate = {
   restoreEligibility?: (RestoreEligibility & { artifactSha256?: unknown }) | null;
 };
 
+function hasMatchingRestoreEligibility(
+  eligibility: RestorableBackupCandidate['restoreEligibility'],
+  sha: string,
+  fresh: (at: unknown) => boolean,
+): boolean {
+  return eligibility?.status === 'eligible' && eligibility.scope === RESTORE_ELIGIBILITY_SCOPE
+    && eligibility.artifactSha256 === sha && fresh(eligibility.checkedAt)
+    && Array.isArray(eligibility.reasons) && eligibility.reasons.length === 0;
+}
+
 /** Backup prerequisite only: roles, confirmation, current target safety and lease remain mandatory. */
 export function hasCurrentRestorableBackup(backup: unknown, now = Date.now()): boolean {
   const candidate = backup as RestorableBackupCandidate | null | undefined;
@@ -99,7 +109,5 @@ export function hasCurrentRestorableBackup(backup: unknown, now = Date.now()): b
   return proofs.every(proof => proof !== null && proof !== undefined
       && proof.artifactSha256 === sha && fresh(proof.verifiedAt)
       && proof.artifactCreatedAt === candidate.integrityVerified?.artifactCreatedAt)
-    && eligibility?.status === 'eligible' && eligibility.scope === RESTORE_ELIGIBILITY_SCOPE
-    && eligibility.artifactSha256 === sha && fresh(eligibility.checkedAt)
-    && Array.isArray(eligibility.reasons) && eligibility.reasons.length === 0;
+    && hasMatchingRestoreEligibility(eligibility, sha, fresh);
 }

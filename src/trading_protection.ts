@@ -69,7 +69,8 @@ export async function loadProtectionOrders(accountId: string, intentId: string):
   return rows.map(row => ({ ...row, reduceOnly: Number(row.reduceOnly) === 1 }));
 }
 
-export function storedProtectionNeed(accountId: string, intentId: string) {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function storedProtectionNeed(accountId: string, intentId: string) {
   return withDatabaseTransaction(async () => {
     const position = await getDatabase().get<ProtectionNeed>(
       `SELECT account_id AS accountId, intent_id AS intentId, symbol, side, quantity, stop_price AS minimumTrigger

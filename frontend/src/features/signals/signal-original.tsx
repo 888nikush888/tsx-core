@@ -87,7 +87,6 @@ export function SignalOriginal({ id, kind }: Readonly<{ id: string; kind: 'messa
     <DeleteStoredSignal id={id} kind={kind} onDeleted={() => setDeleted(true)} />
     {error && !deleted && <p role="alert">{error} · Vorhandener Abschnitt möglicherweise veraltet.</p>}
     {deleted ? <p>Das bestätigte Löschergebnis bleibt erhalten. Bereits gelesene Textabschnitte werden ausgeblendet.</p> : <>
-      {kind === 'processed' && <label>Originalfeld<select className="border bg-background p-2" value={field} onChange={event => select(event.target.value)}><option value="xml">Parserantwort (XML)</option><option value="normalized">Gespeicherte Normalisierung</option></select></label>}
       <SignalOriginalFieldSelect kind={kind} field={field} select={select} />
       <SignalOriginalResult data={data} cursor={cursor} field={field} select={select} />
     </>}

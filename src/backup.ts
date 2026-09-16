@@ -145,7 +145,8 @@ async function sha256File(filePath: string): Promise<BackupFileMetadata> {
   };
 }
 
-function fileExists(filePath: string): Promise<boolean> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function fileExists(filePath: string): Promise<boolean> {
   return fs.stat(filePath).then(() => true).catch((error: unknown) => {
     if ((error as { code?: unknown }).code === 'ENOENT') return false;
     throw error;

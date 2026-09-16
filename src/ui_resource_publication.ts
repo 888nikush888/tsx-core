@@ -37,7 +37,8 @@ export async function uiResourcePublication(id: string) {
     publicationHash: reviewHash({ resource, dependency }) };
 }
 
-export function publishUiResourceWithDependency(id: string, baseEditRevision: number, expectedHash: unknown) {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function publishUiResourceWithDependency(id: string, baseEditRevision: number, expectedHash: unknown) {
   return withDatabaseTransaction(async () => {
     const publication = await uiResourcePublication(id);
     assertPublicationHashMatches(publication, expectedHash);

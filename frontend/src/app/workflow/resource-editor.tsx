@@ -1648,7 +1648,7 @@ function EditorNotices({ readOnly, confirmedSteps, partialFailure, error }: Read
 function KindFieldsPrimary({ kind, configuration, set, templateContent, setTemplateContent, schemaDraft, parserSources, updateSchemaDraft, fieldGrid12, fieldGrid13, fieldGrid14 }: Readonly<{
   kind: WorkflowKind; configuration: Record<string, unknown>; set: (key: string, value: unknown) => void;
   templateContent: string; setTemplateContent: (value: string) => void; schemaDraft: SignalSchemaDraft | null; parserSources: BuilderParserSource[];
-  updateSchemaDraft: (changes: Partial<SignalSchemaDraft>) => void; fieldGrid12: ReactNode; fieldGrid13: ReactNode; fieldGrid14: ReactNode;
+  updateSchemaDraft: (changes: Partial<SignalSchemaDraft>) => void; fieldGrid12: () => ReactNode; fieldGrid13: () => ReactNode; fieldGrid14: () => ReactNode;
 }>) {
   return (
     <>
@@ -1676,7 +1676,7 @@ function KindFieldsPrimary({ kind, configuration, set, templateContent, setTempl
               />
             </Field>
           )}
-          {kind === "keyword_filter" && fieldGrid12}
+          {kind === "keyword_filter" && fieldGrid12()}
           {kind === "regex" && (
             <>
               <Field
@@ -1704,7 +1704,7 @@ function KindFieldsPrimary({ kind, configuration, set, templateContent, setTempl
           )}
           {kind === "parser" && (
             <>
-              {fieldGrid13}
+              {fieldGrid13()}
               <Field
                 label="Parser-Prompt"
                 hint="Diese Vorlage wird zusammen mit dem Parser-Baustein gespeichert. Serverseitige Schutzregeln bleiben zusätzlich aktiv."
@@ -1724,7 +1724,7 @@ function KindFieldsPrimary({ kind, configuration, set, templateContent, setTempl
               onChange={updateSchemaDraft}
             />
           )}
-          {kind === "dedupe" && fieldGrid14}
+          {kind === "dedupe" && fieldGrid14()}
           {kind === "output" && (
             <Field label="Ausgabe">
               <select
@@ -2418,7 +2418,7 @@ export function ResourceEditor({
           </div>
   );
 
-  const fieldGrid12 = (
+  const fieldGrid12 = () => (
             <div className="builder-field-grid">
               <Field
                 label="Erlaubte Schlüsselwörter"
@@ -2442,7 +2442,7 @@ export function ResourceEditor({
             </div>
   );
 
-  const fieldGrid13 = (
+  const fieldGrid13 = () => (
               <div className="builder-field-grid three">
                 <Field label="Zeitlimit in ms" hint="2.000 bis 120.000">
                   <input
@@ -2480,7 +2480,7 @@ export function ResourceEditor({
               </div>
   );
 
-  const fieldGrid14 = (
+  const fieldGrid14 = () => (
             <div className="builder-field-grid">
               <Toggle
                 checked={configuration.enabled !== false}

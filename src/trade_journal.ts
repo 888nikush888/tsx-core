@@ -247,7 +247,8 @@ function journalComponent(events: MoneyEvent[], projection: MoneySummary): Money
 }
 
 /** Canonical event reader shared by journal and viewer; never joins the legacy valuation table. */
-export function journalMoneyDetails(intentId: string): Promise<JournalMoneyDetails> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function journalMoneyDetails(intentId: string): Promise<JournalMoneyDetails> {
   return withDatabaseTransaction(async database => {
     const row = await database.get(`SELECT projection.realized_pnl, projection.value_json, projection.reporting_currency,
       CASE WHEN pending.intent_id IS NULL THEN projection.status ELSE 'unresolved' END AS accounting_status
@@ -287,7 +288,8 @@ function journalWhere(filters: NormalizedJournalFilters): { where: string; param
   };
 }
 
-function loadJournalRows(
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function loadJournalRows(
   database: Database,
   filters: NormalizedJournalFilters,
 ): Promise<JournalRow[]> {
@@ -331,7 +333,8 @@ function loadJournalRows(
   );
 }
 
-function loadJournalOrders(database: Database, intentIds: string[]): Promise<JournalRow[]> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function loadJournalOrders(database: Database, intentIds: string[]): Promise<JournalRow[]> {
   return database.all<JournalRow[]>(
     `SELECT id, intent_id AS intentId, client_order_id AS clientOrderId,
             exchange_order_id AS exchangeOrderId, role, side,
@@ -344,7 +347,8 @@ function loadJournalOrders(database: Database, intentIds: string[]): Promise<Jou
   );
 }
 
-function loadJournalFills(database: Database, orders: JournalRow[]): Promise<JournalRow[]> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function loadJournalFills(database: Database, orders: JournalRow[]): Promise<JournalRow[]> {
   const orderIds = orders.map(order => String(order.id));
   if (orderIds.length === 0) return Promise.resolve([]);
   return database.all<JournalRow[]>(
@@ -360,7 +364,8 @@ function loadJournalFills(database: Database, orders: JournalRow[]): Promise<Jou
   );
 }
 
-function loadJournalTimelines(database: Database, intentIds: string[]): Promise<JournalRow[]> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function loadJournalTimelines(database: Database, intentIds: string[]): Promise<JournalRow[]> {
   return database.all<JournalRow[]>(
     `SELECT intent_id AS intentId, event_type AS eventType, MIN(occurred_at) AS occurredAt
      FROM trading_execution_events
@@ -375,7 +380,8 @@ function executableSchemaId(value: unknown): string | null {
   return typeof executable.schema === 'string' ? executable.schema : null;
 }
 
-function loadJournalSchemas(database: Database, rows: JournalRow[]): Promise<JournalRow[]> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function loadJournalSchemas(database: Database, rows: JournalRow[]): Promise<JournalRow[]> {
   const schemaIds = [...new Set(rows.map(row => {
     return executableSchemaId(row.signal_json);
   }).filter((value): value is string => Boolean(value)))];

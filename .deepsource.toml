@@ -28,7 +28,7 @@ enabled = true
   environment = ["nodejs", "browser", "vitest"]
   plugins = ["react"]
   style_guide = "airbnb"
-  cyclomatic_complexity_threshold = "medium"
+  cyclomatic_complexity_threshold = "low"
 
 [[analyzers]]
 name = "python"

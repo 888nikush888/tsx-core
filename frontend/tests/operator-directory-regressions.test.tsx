@@ -6,6 +6,7 @@ import { NavigationProvider } from '@/lib/navigation';
 import { OperatorReadOnlyContext } from '@/shared/api/operator-session';
 import { CapabilitiesPage } from '@/features/operations/capabilities';
 import { SignalsPage } from '@/features/signals/signals-page';
+import { SignalOriginal } from '@/features/signals/signal-original';
 import { TestLab } from '@/features/workflows/test-lab';
 
 const api = vi.hoisted(() => ({ jsonRequest: vi.fn() }));
@@ -168,5 +169,30 @@ describe('test laboratory boundaries', () => {
     expect(JSON.parse(runs[0][1].body)).toMatchObject({ sourceText: 'Edited source', jobId: expect.any(String), previewHash: 'reviewed-preview', previewObservedAt: observedAt, externalDataConsent: true });
     expect(runs[0][1].headers['X-Destructive-Confirmation']).toBe('run-parser-test');
     expect(screen.getByText(/Nur der Auftrag ist angenommen/, { selector: 'p' })).toBeVisible();
+  });
+});
+
+
+describe('stored original field selection', () => {
+  it('renders one processed selector and resets text paging when switching the original field', async () => {
+    window.history.replaceState(null, '', '/signals/processed/17?field=xml&textCursor=second');
+    api.jsonRequest.mockImplementation((url: string) => Promise.resolve({
+      channelId: 'channel', messageId: 'message', createdAt: observedAt, interpretation: 'Originalbeleg',
+      offset: 0, totalCharacters: 8, text: new URL(url, window.location.origin).searchParams.get('field'), hasMore: false, nextCursor: null,
+    }));
+    mount(<SignalOriginal id="17" kind="processed" />);
+    const selector = screen.getByRole('combobox', { name: 'Originalfeld' });
+    await waitFor(() => expect(screen.getByLabelText('Originaltext')).toHaveTextContent('xml'));
+    fireEvent.change(selector, { target: { value: 'normalized' } });
+    await waitFor(() => expect(screen.getByLabelText('Originaltext')).toHaveTextContent('normalized'));
+    expect(screen.getAllByRole('combobox', { name: 'Originalfeld' })).toHaveLength(1);
+    expect(new URLSearchParams(window.location.search).get('field')).toBe('normalized');
+    expect(new URLSearchParams(window.location.search).has('textCursor')).toBe(false);
+    expect(writes()).toHaveLength(0);
+  });
+  it('does not offer parser field selection for a stored incoming message', () => {
+    api.jsonRequest.mockResolvedValue(null);
+    mount(<SignalOriginal id="17" kind="messages" />);
+    expect(screen.queryByRole('combobox', { name: 'Originalfeld' })).not.toBeInTheDocument();
   });
 });

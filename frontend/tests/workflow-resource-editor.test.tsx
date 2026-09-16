@@ -373,3 +373,25 @@ describe('workflow resource contracts', () => {
     await waitFor(() => expect(onDeleteResource).toHaveBeenCalledOnce())
   })
 })
+
+
+describe('resource-kind rendering boundaries', () => {
+  afterEach(cleanup)
+  it.each([
+    ['keyword fields', { allowedKeywords: [{ toString: null }], blockedKeywords: [] }],
+    ['parser fields', { timeoutMs: { toString: null } }],
+    ['dedupe fields', { cooldownHours: { toString: null } }],
+  ])('does not coerce preserved %s metadata while editing a channel', async (_label, extra) => {
+    const configuration = { channelId: '-1001234567', ...extra };
+    const resource = { id: 'channel-v1', resourceId: 'channel', version: 1, kind: 'channel', name: 'Channel with metadata',
+      description: '', status: 'draft', editRevision: 1, configuration } as EditorProps['resource'];
+    const onSave = vi.fn<EditorProps['onSave']>(() => Promise.resolve(true));
+    editor('channel', onSave, trading, resource);
+    expect(screen.getByDisplayValue('-1001234567')).toBeVisible();
+    expect(screen.queryByLabelText('Zeitlimit in ms')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Cooldown in Stunden')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /speichern/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0].configuration).toEqual(configuration);
+  });
+});

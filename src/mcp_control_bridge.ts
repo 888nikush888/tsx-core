@@ -83,7 +83,8 @@ export class McpControlBridge {
     }
   }
 
-  start(): Promise<void> {
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+  async start(): Promise<void> {
     if (this.worker !== null) return;
     this.recovered = false;
     this.abortController = new AbortController();
@@ -325,7 +326,8 @@ export class McpControlBridge {
     }
   }
 
-  private executeAuthorized(request: McpControlRequest): unknown {
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+  private async executeAuthorized(request: McpControlRequest): Promise<unknown> {
     const payload = payloadObject(request);
     const action = request.action;
     if (action.startsWith('contracts.')) {

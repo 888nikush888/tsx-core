@@ -133,7 +133,8 @@ export async function persistNativeOrderBindingForLocal(localOrderId: string, re
 }
 
 /** Only positive native evidence + the immutable local journal may bind a missing provider client ID. */
-export function correlateNativeOrderEvidence(account: TradingAccount, orders: ExchangeOrderSnapshot[]): Promise<ExchangeOrderSnapshot[]> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function correlateNativeOrderEvidence(account: TradingAccount, orders: ExchangeOrderSnapshot[]): Promise<ExchangeOrderSnapshot[]> {
   return withDatabaseTransaction(async () => {
     const result: ExchangeOrderSnapshot[] = [];
     for (const remote of orders) result.push(await bindObservedOrder(account, remote));

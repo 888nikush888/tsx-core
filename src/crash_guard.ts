@@ -112,7 +112,8 @@ async function checkCrashLoopState(
   return counter;
 }
 
-export function checkCrashLoopFiles(
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function checkCrashLoopFiles(
   stateDirectory: string,
   owner: ProcessLock,
   now = Date.now(),

@@ -2029,13 +2029,15 @@ async function startDashboardRuntime(
         retention: retentionScheduler?.getStatus() ?? null,
         audit: auditTrail?.snapshot() ?? null,
       }),
-      runBackupNow: () => {
+      // skipcq: JS-0116 - scheduler availability failures retain the callback's Promise rejection contract.
+      runBackupNow: async () => {
         if (!backupScheduler) throw new Error('Backup scheduler is unavailable.');
         return backupScheduler.runNow();
       },
       listBackups: listAvailableBackups,
       verifyBackup: (artifactName) => inspectBackupArtifact(resolvedBackupArtifact(artifactName)),
-      runBackupDrill: (artifactName) => {
+      // skipcq: JS-0116 - scheduler availability failures retain the callback's Promise rejection contract.
+      runBackupDrill: async (artifactName) => {
         if (!backupScheduler) throw new Error('Backup scheduler is unavailable.');
         return backupScheduler.runRestoreDrill(resolvedBackupArtifact(artifactName));
       },

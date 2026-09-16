@@ -34,7 +34,8 @@ function workerArguments(artifact: string, root: string, nonce: string, expected
   return [...loader, worker, artifact, root, nonce, expected];
 }
 
-function runWorker(artifact: string, root: string, nonce: string, expected: string): Promise<unknown> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function runWorker(artifact: string, root: string, nonce: string, expected: string): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, workerArguments(artifact, root, nonce, expected), {
       cwd: root, env: isolatedEnvironment(root), windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],

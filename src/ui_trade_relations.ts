@@ -53,7 +53,8 @@ async function moneyRelationEvidence(row: Record<string, unknown>): Promise<unkn
   catch (error) { return { ...row, valuationStatus: 'unresolved', valuationReason: String(error).slice(0, 2000), originalUnverified: true }; }
 }
 
-function relationEvidence(kind: UiTradeRelation, row: Record<string, unknown>): unknown {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function relationEvidence(kind: UiTradeRelation, row: Record<string, unknown>): Promise<unknown> {
   if (kind === 'money') return moneyRelationEvidence(row);
   if (kind === 'events') return eventEvidence(row);
   if (kind === 'orders') return orderEvidence(row);

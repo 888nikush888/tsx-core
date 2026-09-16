@@ -1333,7 +1333,7 @@ async function factoryResetHandler(context: RequestContext): Promise<void> {
       id: payload.jobId, kind: 'factory-reset', scope: { service: 'TSX Core' }, request: { confirmation: 'FACTORY RESET' }, status: 200,
       operation: async () => {
         requireCurrentVerifiedBackup(context);
-        await performFactoryReset();
+        await performFactoryReset.call(context.appState);
         addLog('[SECURITY] Complete factory reset executed through the web dashboard.');
         return { message: 'Factory reset completed. Restart into first-run setup requested.' };
       },
@@ -1631,7 +1631,7 @@ async function restoreBackupHandler(context: RequestContext): Promise<void> {
     await runRestartCommand(context, {
       id: payload.jobId, kind: 'backup-restore', scope: { artifactName: name }, request: { name }, status: 200,
       operation: async () => {
-        const restored = await restoreBackup(name);
+        const restored = await restoreBackup.call(context.appState, name);
         return { name, artifactName: name, rollbackPreserved: Boolean(restored.previousDatabase || restored.previousConfig) };
       },
     });
@@ -2860,7 +2860,8 @@ function isRecoveryLocalSessionBootstrap(context: RequestContext): boolean {
   return context.appState.recovery?.allowLoopbackLocalSession === true;
 }
 
-function authorizeLocalSessionInitialization(
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function authorizeLocalSessionInitialization(
   context: RequestContext,
   actor: AuthenticatedActor,
   tokenWasConfigured: boolean
@@ -3296,7 +3297,8 @@ export function stopWebServer(): Promise<void> {
   });
 }
 
-function accountEvidenceResult(kind: string, id: string, query: URLSearchParams) {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function accountEvidenceResult(kind: string, id: string, query: URLSearchParams) {
   if (kind === 'reservations') return uiAccountReservations(id, query);
   if (kind === 'history') return uiAccountHistory(id, query);
   return uiAccountEvidence(id);

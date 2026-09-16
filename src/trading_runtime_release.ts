@@ -31,7 +31,8 @@ async function assertAccountScope(expected: string[]): Promise<void> {
 }
 
 /** Canonical lock order; no account holder requests the outer @runtime lock. */
-function withAccountOwners<T>(
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function withAccountOwners<T>(
   dependencies: RuntimeReleaseDependencies, ids: string[], epochs: Map<string, string>,
   operation: (owners: Map<string, AccountOwner>) => Promise<T>,
   owners = new Map<string, AccountOwner>(), index = 0,
@@ -85,7 +86,8 @@ async function proveAccounts(dependencies: RuntimeReleaseDependencies, prepared:
   return proofs;
 }
 
-function commitGlobalRelease(dependencies: RuntimeReleaseDependencies, ids: string[], prepared: PreparedAccount[]) {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function commitGlobalRelease(dependencies: RuntimeReleaseDependencies, ids: string[], prepared: PreparedAccount[]) {
   return withDatabaseTransaction(async () => {
     await assertAccountScope(ids);
     if (!(await getTradingRuntimeState()).killSwitchActive) throw new Error('Global kill switch is no longer active.');

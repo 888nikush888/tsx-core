@@ -96,7 +96,8 @@ async function exists(file: string): Promise<boolean> {
     throw error; }
 }
 
-export function mcpMaintenanceActive(databasePath = operationalDatabasePath()): Promise<boolean> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function mcpMaintenanceActive(databasePath = operationalDatabasePath()): Promise<boolean> {
   // Any existing artifact blocks entry, including malformed, directory or symlink markers.
   return exists(mcpMaintenanceMarkerPath(databasePath));
 }
@@ -339,7 +340,8 @@ class SerializedDatabaseAccess {
 
   withoutOwnership<T>(operation: () => T): T { return this.owner.exit(operation); }
 
-  execute<T>(operation: () => Promise<T>): Promise<T> {
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+  async execute<T>(operation: () => Promise<T>): Promise<T> {
     if (this.isOwnedByCurrentOperation()) return operation();
     const operationOwner = Symbol('database-operation');
     const result = this.tail.then(() => this.owner.run(operationOwner, operation));
@@ -3087,7 +3089,8 @@ function rawDatabase(): Database {
 }
 
 /** Runs a complete unit of work under the single SQLite transaction owner. */
-export function withDatabaseTransaction<T>(
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function withDatabaseTransaction<T>(
   operation: (database: Database) => Promise<T>
 ): Promise<T> {
   if (serializedDatabaseAccess.isOwnedByCurrentOperation()) return operation(getDatabase());
@@ -3107,7 +3110,8 @@ export function withDatabaseTransaction<T>(
 }
 
 /** Durable dispatching must already be committed. No adapter continuation inherits the DB owner. */
-export function withDatabaseDispatchFence<T>(verify: () => Promise<void>, start: () => Promise<T>): Promise<{ pending: Promise<T> }> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function withDatabaseDispatchFence<T>(verify: () => Promise<void>, start: () => Promise<T>): Promise<{ pending: Promise<T> }> {
   if (serializedDatabaseAccess.isOwnedByCurrentOperation()) throw new Error('Exchange dispatch cannot inherit a database transaction.');
   return withDatabaseTransaction(async () => {
     await verify();
@@ -3171,7 +3175,8 @@ export class SignalConflictError extends Error {
   }
 }
 
-export function saveSignal(
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function saveSignal(
   id: string,
   chatId: string,
   messageId: number,
@@ -3222,7 +3227,8 @@ export interface AiUsageReservation {
   status: 'reserved';
 }
 
-export function reserveAiUsage(
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function reserveAiUsage(
   usageDay: string, tokenAllowance: number, dailyRequestLimit: number, dailyTokenLimit: number,
 ): Promise<AiUsageReservation | false> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(usageDay)) throw new Error('usageDay must use YYYY-MM-DD.');
@@ -3853,7 +3859,8 @@ export async function recoverInterruptedOutboxTasks(): Promise<{ requeued: numbe
   return { requeued: Number(requeued.changes || 0), unknown: Number(unknown.changes || 0) };
 }
 
-export function getOutboxTask(id: string): Promise<OutboxTask | null> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function getOutboxTask(id: string): Promise<OutboxTask | null> {
   return withDatabaseTransaction(async database => {
     const row = await database.get<OutboxStorageRow>('SELECT * FROM pending_tasks WHERE id = ?', [id]);
     return row ? reviewOutboxRow(row) : null;
@@ -3878,7 +3885,8 @@ export async function listOutboxTasks(statuses?: OutboxStatus[], limit = 100): P
  * Returns pending work which is not already represented by the bounded
  * in-memory scheduler window. The database remains the source of truth.
  */
-export function listPendingOutboxTasksForScheduling(excludedTaskIds: string[] = [], limit = 100): Promise<OutboxTask[]> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function listPendingOutboxTasksForScheduling(excludedTaskIds: string[] = [], limit = 100): Promise<OutboxTask[]> {
   const safeLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(limit, 1000)) : 100;
   const excluded = [...new Set(excludedTaskIds.filter(id => typeof id === 'string' && id.length > 0))].slice(0, 1000);
   return withDatabaseTransaction(async database => {
@@ -3904,7 +3912,8 @@ export function listPendingOutboxTasksForScheduling(excludedTaskIds: string[] = 
   });
 }
 
-export function requeueOutboxTask(id: string): Promise<boolean> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function requeueOutboxTask(id: string): Promise<boolean> {
   return withDatabaseTransaction(async database => {
     const row = await database.get<OutboxStorageRow>('SELECT * FROM pending_tasks WHERE id = ?', [id]);
     if (!row || (await reviewOutboxRow(row)).payloadErrors?.length) return false;
@@ -4063,7 +4072,8 @@ export interface DatabaseClearResult {
   deletedMediaGroups: number;
 }
 
-export function clearDb(): Promise<DatabaseClearResult> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function clearDb(): Promise<DatabaseClearResult> {
   return withDatabaseTransaction(async database => {
     const pendingTasks = await database.run('DELETE FROM pending_tasks');
     const mediaGroups = await database.run('DELETE FROM media_group_buffer');

@@ -216,7 +216,12 @@ try {
     50,
     startup,
   );
-  await bridge.start();
+  const firstStart = bridge.start();
+  assert.ok(firstStart instanceof Promise, 'Starting the bridge retains its Promise contract.');
+  await firstStart;
+  const repeatedStart = bridge.start();
+  assert.ok(repeatedStart instanceof Promise, 'Already-started bridge also returns a Promise.');
+  await repeatedStart;
   const controlRequest = await enqueueMcpControlRequest({
     agentId: created.agent.id,
     sessionId: session.id,

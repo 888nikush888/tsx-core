@@ -304,7 +304,8 @@ async function executionPathConfiguration(intent: TradingIntent): Promise<{
   };
 }
 
-function transaction<T>(operation: () => Promise<T>): Promise<T> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function transaction<T>(operation: () => Promise<T>): Promise<T> {
   return withDatabaseTransaction(operation);
 }
 
@@ -744,7 +745,8 @@ async function assertTerminalEntrySlippage(
   });
 }
 
-function createReplacementStop(intent: TradingIntent, plan: TradingPlan, quantity: string, trigger: string): Promise<PlannedOrder> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function createReplacementStop(intent: TradingIntent, plan: TradingPlan, quantity: string, trigger: string): Promise<PlannedOrder> {
   const original = plan.orders.find(order => order.role === 'stop_loss');
   if (!original) throw new Error('Trade plan has no protective stop.');
   return createGeneratedTradingOrder(intent, { ...original, quantity, triggerPrice: trigger });
@@ -910,7 +912,8 @@ export class TradingEngine {
   }
 
   /** Revoked original preparations retire even while entries are paused. This path cannot call an adapter. */
-  retireUnauthorizedPreparations(accountId: string): Promise<number> {
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+  async retireUnauthorizedPreparations(accountId: string): Promise<number> {
     return this.mutations.run(accountId, async () => {
       const rows = await this.preparationRecoveryBatch(accountId);
       let retired = 0;

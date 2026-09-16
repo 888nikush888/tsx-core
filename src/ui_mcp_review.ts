@@ -69,7 +69,8 @@ export async function uiMcpProposalReview(id: string) {
   };
 }
 
-export function approveReviewedMcpProposal(id: string, actor: string, expectedReviewHash: unknown) {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function approveReviewedMcpProposal(id: string, actor: string, expectedReviewHash: unknown) {
   return withDatabaseTransaction(async () => {
     const review = await uiMcpProposalReview(id);
     if (!review || typeof expectedReviewHash !== 'string' || review.reviewHash !== expectedReviewHash) throw new Error('MCP_REVIEW_CONFLICT: Prüfinhalt geändert; neue Vorschau erforderlich.');

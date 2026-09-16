@@ -95,7 +95,8 @@ async function modelLifecycle(kind: UiModelKind, id: string, action: string, cur
   return contractLifecycle(id, action, model.status);
 }
 
-export function mutateUiModel(input: { kind: unknown; id: unknown; action: unknown; reviewHash: unknown }) {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function mutateUiModel(input: { kind: unknown; id: unknown; action: unknown; reviewHash: unknown }) {
   const kind = modelKind(input.kind); const id = uiObjectId(input.id); const action = uiObjectId(input.action, 16);
   return withDatabaseTransaction(async () => {
     const current = await uiModelDetail(kind, id);

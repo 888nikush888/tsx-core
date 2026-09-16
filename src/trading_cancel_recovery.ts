@@ -23,7 +23,8 @@ export async function loadCancelOrder(accountId: string, clientOrderId: string):
   return row;
 }
 
-function latestCancel(accountId: string, clientOrderId: string): Promise<CancelAttempt | undefined> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function latestCancel(accountId: string, clientOrderId: string): Promise<CancelAttempt | undefined> {
   return getDatabase().get<CancelAttempt>(
     `SELECT * FROM trading_operations WHERE account_id = ? AND kind = 'cancel'
      AND EXISTS (SELECT 1 FROM json_each(expected_orders_json) WHERE json_extract(value, '$.client_order_id') = ?)

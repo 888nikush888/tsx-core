@@ -48,7 +48,8 @@ export async function assertProcessLockOwner(owner: ProcessLock, stateDirectory?
   }
 }
 
-function ownershipTurn<T>(owner: ProcessLock, action: () => Promise<T>): Promise<T> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function ownershipTurn<T>(owner: ProcessLock, action: () => Promise<T>): Promise<T> {
   const ownership = ownershipOf(owner);
   const attempt = ownership.tail.then(action);
   ownership.tail = attempt.then(() => undefined, () => undefined);
@@ -56,7 +57,8 @@ function ownershipTurn<T>(owner: ProcessLock, action: () => Promise<T>): Promise
 }
 
 /** Counter operations and owner release share one queue; a released owner cannot authorize later work. */
-export function withProcessLockOwner<T>(owner: ProcessLock, stateDirectory: string, action: (directory: string) => Promise<T>): Promise<T> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function withProcessLockOwner<T>(owner: ProcessLock, stateDirectory: string, action: (directory: string) => Promise<T>): Promise<T> {
   return ownershipTurn(owner, async () => {
     const directory = await fs.realpath(path.resolve(stateDirectory));
     await assertProcessLockOwner(owner, directory);

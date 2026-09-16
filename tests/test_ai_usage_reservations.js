@@ -57,6 +57,8 @@ const previousKey = process.env.OPENROUTER_API_KEY;
 process.env.OPENROUTER_API_KEY = 'local-test-no-network';
 try {
   await initDb(databasePath);
+  await assert.rejects(reserveAiUsage('invalid', 1, 1, 1), /YYYY-MM-DD/);
+  await assert.rejects(reserveAiUsage('2026-09-02', 0, 1, 1), /positive safe integers/);
   const reservation = await reserveAiUsage('2026-09-02', 600, 5, 2000);
   assert.equal(typeof reservation.id, 'string', 'Every provider attempt needs a durable reservation ID.');
   await commitAiUsage(reservation.id, 600, 450);

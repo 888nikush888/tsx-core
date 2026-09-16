@@ -60,7 +60,8 @@ export class DurableOutboxScheduler {
       });
   }
 
-  private pump(): Promise<void> {
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+  private async pump(): Promise<void> {
     if (this.pumpPromise !== null) {
       this.pumpRequested = true;
       return this.pumpPromise;

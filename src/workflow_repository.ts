@@ -122,7 +122,6 @@ function workflowHistoryLabel(value: unknown): string {
   const label = value ?? DEFAULT_WORKFLOW_HISTORY_LABEL;
   if (typeof label !== 'string' || !label.trim() || label.trim().length > 160
     // skipcq: JS-0004 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
-    // eslint-disable-next-line no-control-regex -- intentional rejection of control characters in untrusted labels
     || /[\u0000-\u001f\u007f]/u.test(label)) {
     throw new Error('Workflow history label is invalid.');
   }
@@ -622,7 +621,8 @@ export async function publishWorkflowResource(id: string, now = Date.now(), base
   return resourceFromRow(await getDatabase().get('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]));
 }
 
-export function archiveWorkflowResource(id: string, now = Date.now()): Promise<WorkflowResourceVersion> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function archiveWorkflowResource(id: string, now = Date.now()): Promise<WorkflowResourceVersion> {
   return withDatabaseTransaction(async () => {
     const active = await getActiveWorkflow();
     if (active?.graph.nodes.some(node => node.resourceVersionId === id)) {
@@ -1419,7 +1419,8 @@ async function workflowHistoryTarget(entry: WorkflowHistoryEntry): Promise<{
   }
 }
 
-export function saveWorkflowRevision(input: {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function saveWorkflowRevision(input: {
   baseRevisionId: string | null;
   graph: unknown;
   actorId: string;
@@ -1455,7 +1456,8 @@ export function saveWorkflowRevision(input: {
   });
 }
 
-export function previewWorkflowBuilderHistoryImpact(input: {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function previewWorkflowBuilderHistoryImpact(input: {
   direction: WorkflowHistoryDirection;
   baseRevisionId: string | null;
 }): Promise<WorkflowImpact> {

@@ -16,6 +16,24 @@ import {
 const root = await mkdtemp(path.join(os.tmpdir(), 'forwarder-config-'));
 
 try {
+  const specialKeys = structuredClone(DEFAULT_CONFIG);
+  specialKeys.sourceFilters = JSON.parse('{"__proto__":{"regexPatterns":["LONG"]}}');
+  specialKeys.sourceAliases = JSON.parse('{"__proto__":"custom"}');
+  const preservedKeys = validateConfig(specialKeys);
+  assert.equal(Object.getPrototypeOf(preservedKeys.sourceFilters), Object.prototype);
+  assert.equal(Object.hasOwn(preservedKeys.sourceFilters, '__proto__'), true);
+  assert.deepEqual(preservedKeys.sourceFilters['__proto__'], { regexPatterns: ['LONG'] });
+  assert.equal(Object.getPrototypeOf(preservedKeys.sourceAliases), Object.prototype);
+  assert.equal(Object.hasOwn(preservedKeys.sourceAliases, '__proto__'), true);
+  assert.equal(preservedKeys.sourceAliases['__proto__'], 'custom');
+  for (const model of [false, 0, null, undefined, '']) {
+    const candidate = structuredClone(DEFAULT_CONFIG);
+    candidate.xmlParsing.primaryModel = model;
+    candidate.xmlParsing.fallbackModel = model;
+    const normalized = validateConfig(candidate);
+    assert.equal(normalized.xmlParsing.primaryModel, DEFAULT_CONFIG.xmlParsing.primaryModel);
+    assert.equal(normalized.xmlParsing.fallbackModel, DEFAULT_CONFIG.xmlParsing.fallbackModel);
+  }
   const distributionConfig = validateConfig(JSON.parse(await readFile(path.resolve('config.json.example'), 'utf8')));
   assert.deepEqual(distributionConfig.sourceChannels, []);
   assert.equal(distributionConfig.targetChannel, '');

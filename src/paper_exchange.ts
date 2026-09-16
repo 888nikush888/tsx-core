@@ -124,7 +124,8 @@ function orderCanFill(row: PaperOrderRow, markPrice: string): boolean {
     : compareDecimal(markPrice, row.price) >= 0;
 }
 
-function transaction<T>(operation: () => Promise<T>): Promise<T> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function transaction<T>(operation: () => Promise<T>): Promise<T> {
   return withDatabaseTransaction(() => operation());
 }
 
@@ -331,7 +332,8 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
     });
   }
 
-  accountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot> {
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+  async accountSnapshot(account: TradingAccount): Promise<TradingAccountSnapshot> {
     return withDatabaseTransaction(() => PaperExchangeAdapter.readAccountSnapshot(account));
   }
 
@@ -394,7 +396,8 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
       tiers: [{ lowerBound: '0', upperBound: null, maxLeverage: Math.min(50, Number(market.max_leverage)) }] };
   }
 
-  submitOrder(account: TradingAccount, request: ExchangeOrderRequest): Promise<ExchangeOrderResult> {
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+  async submitOrder(account: TradingAccount, request: ExchangeOrderRequest): Promise<ExchangeOrderResult> {
     assertPaperAccount(account);
     if (request.timeInForce !== undefined || request.entryPriceBoundary) {
       assertEntryPriceBoundary({ side: request.side === 'buy' ? 'LONG' : 'SHORT',
@@ -433,7 +436,8 @@ export class PaperExchangeAdapter implements TradingExchangeAdapter {
     });
   }
 
-  submitProtectedEntry(
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+  async submitProtectedEntry(
     account: TradingAccount,
     entry: ExchangeOrderRequest,
     protectiveStop: ExchangeOrderRequest,

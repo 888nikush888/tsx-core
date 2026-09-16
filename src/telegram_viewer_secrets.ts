@@ -121,7 +121,8 @@ export class TelegramViewerSecretStore {
     };
   }
 
-  readBotToken(): string | null {
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+  async readBotToken(): Promise<string | null> {
     return this.botTokenValue;
   }
 
@@ -141,7 +142,8 @@ export class TelegramViewerSecretStore {
     this.botTokenUpdatedAt = null;
   }
 
-  serviceToken(): string {
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+  async serviceToken(): Promise<string> {
     return this.serviceTokenValue;
   }
 

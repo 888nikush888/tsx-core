@@ -1667,11 +1667,13 @@ async function createAppState(testDir, controls) {
       controls.offsiteRecoveryCalls += 1;
       return Promise.resolve('backup-2026-recovered');
     },
-    restoreBackup: () => {
+    restoreBackup() {
+      assert.equal(this, appState, 'Backup restore retains the application-state callback receiver.');
       controls.restoreCalls += 1;
       return Promise.resolve({ previousDatabase: path.join(testDir, 'previous.db'), previousConfig: null });
     },
-    performFactoryReset: async () => {
+    async performFactoryReset() {
+      assert.equal(this, appState, 'Factory reset retains the application-state callback receiver.');
       controls.factoryResetCalls += 1;
       await appState.stopForwarding();
     },

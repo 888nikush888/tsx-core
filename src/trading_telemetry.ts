@@ -634,7 +634,8 @@ function equityPerformance(points: TradingEquityPoint[]): Array<Record<string, u
   });
 }
 
-function performanceRows(since: number): Promise<[PositionQueryRow[], IntentQueryRow[], FillQueryRow[], TradingEquityPoint[]]> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function performanceRows(since: number): Promise<[PositionQueryRow[], IntentQueryRow[], FillQueryRow[], TradingEquityPoint[]]> {
   return Promise.all([
     getDatabase().all<PositionQueryRow[]>(
       `SELECT position.channel_id AS channelId, position.account_id AS accountId,

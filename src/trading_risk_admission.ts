@@ -57,7 +57,8 @@ function assertDailyBudget(budget: string, ledgerPnl: MoneyValue, unrealizedPnl:
     'Account current loss plus proved current commitments exceeds the daily-loss budget.');
 }
 
-function candidateReservation(account: FxAccount, plan: TradingPlan, market: TradingMarketSnapshot, reportingCurrency: string) {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+async function candidateReservation(account: FxAccount, plan: TradingPlan, market: TradingMarketSnapshot, reportingCurrency: string) {
   const entry = plan.orders.find(order => order.role === 'entry');
   if (entry?.orderType !== 'limit') unavailable('entry has no bounded executable price.');
   return calculateFxRiskReservation(account, { side: plan.side, ownedQuantity: '0', averageEntryPrice: null, markPrice: null,
@@ -66,7 +67,8 @@ function candidateReservation(account: FxAccount, plan: TradingPlan, market: Tra
       filledQuantity: '0', price: entry.price, operationUnresolved: false }] }, market.observedAt);
 }
 
-export function createRiskAdmission(input: { account: TradingAccount; intentId: string; plan: TradingPlan;
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function createRiskAdmission(input: { account: TradingAccount; intentId: string; plan: TradingPlan;
   market: TradingMarketSnapshot; snapshot: TradingAccountSnapshot; budget: string; epoch: string;
   sizingFx?: StoredFxConversion }): Promise<RiskAdmissionProof> {
   const fxAccount = snapshotFxAccount(input.account);

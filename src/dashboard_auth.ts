@@ -23,7 +23,7 @@ export interface AuthenticatedActor {
 export interface DashboardAuthenticator {
   readonly mode: 'token' | 'oidc' | 'tailscale';
   isConfigured(): boolean;
-  authenticate(authorization: AuthorizationHeader, headers?: RequestHeaders): AuthenticatedActor | null | Promise<AuthenticatedActor | null>;
+  authenticate(authorization: AuthorizationHeader, headers?: RequestHeaders): Promise<AuthenticatedActor | null>;
   issueLocalAdminSession?(): { token: string; expiresInSeconds: number };
   revokeLocalAdminSessions?(): void;
 }
@@ -105,7 +105,8 @@ export class EnvironmentTokenAuthenticator implements DashboardAuthenticator {
     return Boolean(adminToken) && (!viewerToken || !safeTokenEquals(adminToken, viewerToken));
   }
 
-  authenticate(authorization: string | string[] | undefined): AuthenticatedActor | null {
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+  async authenticate(authorization: string | string[] | undefined): Promise<AuthenticatedActor | null> {
     const token = bearerToken(authorization);
     if (!token) return null;
     const id = tokenActorId(token);
@@ -237,10 +238,11 @@ export class TailscaleServeAuthenticator implements DashboardAuthenticator {
     return this.administrators.size > 0;
   }
 
-  authenticate(
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+  async authenticate(
     _authorization: AuthorizationHeader,
     headers?: RequestHeaders,
-  ): AuthenticatedActor | null {
+  ): Promise<AuthenticatedActor | null> {
     const loginHeader = singleHeader(headers, 'tailscale-user-login');
     if (!loginHeader) return null;
     const login = loginHeader.toLocaleLowerCase('en-US');

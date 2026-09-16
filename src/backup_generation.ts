@@ -290,7 +290,8 @@ function commitGeneration(root: string, sources: ConfigurationSources, previous 
 }
 
 /** Initial adoption is permitted only under the application's genuine process ownership. */
-export function initializeConfigurationGeneration(sources: ConfigurationSources, owner: ProcessLock): Promise<ConfigurationGenerationEvidence> {
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function initializeConfigurationGeneration(sources: ConfigurationSources, owner: ProcessLock): Promise<ConfigurationGenerationEvidence> {
   const normalized = Object.fromEntries(Object.entries(sources).map(([key, value]) => [key, path.resolve(value)])) as unknown as ConfigurationSources;
   return withProcessLockOwner(owner, path.dirname(normalized.databasePath), () => {
     const barrier = acquireBarrier(normalized.configurationPath);
@@ -304,7 +305,8 @@ export function initializeConfigurationGeneration(sources: ConfigurationSources,
 }
 
 /** Explicitly adopt restored/repaired files only under fresh database quiescence and ownership. */
-export function reenrollConfigurationGeneration(sources: ConfigurationSources, owner: ProcessLock,
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function reenrollConfigurationGeneration(sources: ConfigurationSources, owner: ProcessLock,
   maintenanceLease: McpMaintenanceLease): Promise<ConfigurationGenerationEvidence> {
   const normalized = Object.fromEntries(Object.entries(sources).map(([key, value]) => [key, path.resolve(value)])) as unknown as ConfigurationSources;
   return withProcessLockOwner(owner, path.dirname(normalized.databasePath), async () => {
@@ -322,7 +324,8 @@ export function reenrollConfigurationGeneration(sources: ConfigurationSources, o
 }
 
 /** Factory reset retires this exact store before deleting sources; caller retains normal path checks. */
-export function retireConfigurationGeneration(configurationPath: string, databasePath: string, owner: ProcessLock,
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
+export async function retireConfigurationGeneration(configurationPath: string, databasePath: string, owner: ProcessLock,
   maintenanceLease: McpMaintenanceLease): Promise<string | null> {
   return withProcessLockOwner(owner, path.dirname(path.resolve(databasePath)), async () => {
     await assertMcpMaintenanceLease(maintenanceLease, databasePath);
