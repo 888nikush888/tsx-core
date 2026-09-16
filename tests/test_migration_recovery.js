@@ -64,7 +64,8 @@ await fixture(async ({ directory, target, snapshot, lease }) => {
   await writeFile(`${target}-wal`, 'fixture WAL ownership');
   await writeFile(`${target}-shm`, 'fixture SHM ownership');
   let failed = false;
-  fixtureFileSystem.rename = (source, destination) => {
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  fixtureFileSystem.rename = async (source, destination) => {
     if (!failed && source === `${target}-shm`) { failed = true; throw new Error('fixture third preserve rename failed'); }
     return originalRename(source, destination);
   };

@@ -80,7 +80,8 @@ try {
   assert.equal(await isWorkflowExecutionAuthorized(plan.executionPathIds[0]), false, 'A different path to the same channel/account cannot revive a revoked original route.');
   const paper = new PaperExchangeAdapter();
   let submits = 0;
-  paper.submitOrder = () => { submits += 1; throw new Error('Revoked workflow must not submit.'); };
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  paper.submitOrder = async () => { submits += 1; throw new Error('Revoked workflow must not submit.'); };
   const engine = new TradingEngine([paper]);
   await engine.processIntent(all[0].id);
   assert.equal(submits, 0);

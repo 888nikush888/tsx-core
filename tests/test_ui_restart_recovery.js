@@ -89,7 +89,8 @@ async function testBindingAndGates() {
     [{ ...valid.headers, 'X-Destructive-Confirmation': '' }, 412],
     [{ ...valid.headers, 'X-Requested-With': '' }, 400],
   ]) assert.equal((await request(current, command, id, { headers })).status, status);
-  current.controls.blockAudit = () => { throw new Error('audit unavailable'); };
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  current.controls.blockAudit = async () => { throw new Error('audit unavailable'); };
   assert.equal((await request(current, command, id)).status, 503);
   current.controls.blockAudit = null;
   const release = current.authority.holdMutations('existing maintenance');

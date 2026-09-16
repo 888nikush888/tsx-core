@@ -82,7 +82,8 @@ function fakeBot() {
   return {
     updates: [], sent: [], answered: [], failNext: false,
     getUpdates() { const updates = this.updates; this.updates = []; return Promise.resolve(updates); },
-    sendMessage(chatId, text, options) {
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    async sendMessage(chatId, text, options) {
       if (this.failNext) { this.failNext = false; throw new Error('temporary telegram failure'); }
       this.sent.push({ chatId, text, options }); return { message_id: this.sent.length };
     },
@@ -168,7 +169,8 @@ async function verifyCallbackFailure(directory) {
   await state.initialize();
   const bot = fakeBot();
   const core = fakeCore();
-  core.get = () => { throw new Error('projection unavailable'); };
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  core.get = async () => { throw new Error('projection unavailable'); };
   const service = new TelegramViewerService({ core, bot, state });
   await service.refreshSettings();
   bot.updates.push({

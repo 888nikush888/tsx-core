@@ -74,7 +74,8 @@ function transport(manifest = original) {
   const ledgers = [];
   const state = { issues, calls, ledgers, postMode: 'ok', getOverride: null, postCount: 0 };
   state.writeLedger = ledger => ledgers.push(ledger);
-  state.fetchImpl = (url, options) => {
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  state.fetchImpl = async (url, options) => {
     const parsed = new URL(url);
     assert.equal(parsed.origin, 'https://sonarcloud.io');
     assert.equal(options.redirect, 'error');

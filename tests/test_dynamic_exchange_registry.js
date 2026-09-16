@@ -536,8 +536,10 @@ try {
   assert.equal((await control.probeExchange('okx')).status, 'candidate');
 
   const unavailableCatalog = {
-    browserCatalog: () => { throw new Error('catalog offline'); },
-    probe: () => { throw new Error('catalog offline'); },
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    browserCatalog: async () => { throw new Error('catalog offline'); },
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    probe: async () => { throw new Error('catalog offline'); },
   };
   const existingAccountControl = new TradingWebControl(
     credentials, paper, [gateioAdapter], dynamicEngine, null, unavailableCatalog,

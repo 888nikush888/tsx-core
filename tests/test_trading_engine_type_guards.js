@@ -62,9 +62,12 @@ try {
     const persisted = await db.get('SELECT plan_json FROM trading_trade_intents WHERE id = ?', [intent.id]);
     let recoveryAccesses = 0, cancellations = 0, submissions = 0;
     const guardedAdapter = new PaperExchangeAdapter();
-    guardedAdapter.cancelOrder = () => { cancellations += 1; throw new Error('Unexpected exit cancellation.'); };
-    guardedAdapter.submitOrder = () => { submissions += 1; throw new Error('Unexpected exit submission.'); };
-    const failDatabaseAccess = () => { recoveryAccesses += 1; throw new Error('Unexpected exit recovery database access.'); };
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    guardedAdapter.cancelOrder = async () => { cancellations += 1; throw new Error('Unexpected exit cancellation.'); };
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    guardedAdapter.submitOrder = async () => { submissions += 1; throw new Error('Unexpected exit submission.'); };
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    const failDatabaseAccess = async () => { recoveryAccesses += 1; throw new Error('Unexpected exit recovery database access.'); };
     try {
       db.all = failDatabaseAccess;
       db.get = failDatabaseAccess;

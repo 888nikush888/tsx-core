@@ -23,7 +23,8 @@ const branchIdentity = { name: branch, type: 'LONG', isMain: false, commit: { sh
 const json = value => new Response(JSON.stringify(value));
 let openIssues = [{ key: 'existing-issue', severity: 'MINOR' }];
 
-function fakeFetch(url) {
+// skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+async function fakeFetch(url) {
   const parsed = new URL(url);
   assert.equal(parsed.searchParams.has('pullRequest'), false);
   switch (parsed.pathname) {

@@ -7,7 +7,8 @@ import { historyCheckpoints } from '../../src/trading_history_repository.js';
 import { nativeFillFixture } from './native_fill_identity.js';
 
 function emergencySubmitter(state, providerSymbol, fill) {
-  return (_account, request) => {
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  return async (_account, request) => {
     if (request.role !== 'flatten' || !request.reduceOnly || request.side !== 'sell') throw new Error('Emergency must only reduce owned exposure.');
     if (compareDecimal(request.quantity, state.owned()) > 0) throw new Error('Emergency attempted to reduce more than owned.');
     if (state.orders.has(request.clientOrderId)) throw new Error('Duplicate economic submission.');

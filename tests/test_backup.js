@@ -477,7 +477,8 @@ async function assertBackupScheduler(root, databasePath) {
     60_000,
     2,
     message => offsiteMessages.push(message),
-    { replicate: artifact => verifiedReplication('backup-2026-offsite.tgfb', artifact), recover: () => { throw new Error('not used'); } },
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    { replicate: artifact => verifiedReplication('backup-2026-offsite.tgfb', artifact), recover: async () => { throw new Error('not used'); } },
     true
   );
   await offsiteScheduler.runNow();
@@ -490,7 +491,8 @@ async function assertBackupScheduler(root, databasePath) {
     60_000,
     2,
     () => undefined,
-    { replicate: () => { throw new Error('replication unavailable'); }, recover: () => { throw new Error('not used'); } },
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    { replicate: async () => { throw new Error('replication unavailable'); }, recover: async () => { throw new Error('not used'); } },
     true
   );
   await assert.rejects(failedScheduler.runNow(), /replication unavailable/);
@@ -510,7 +512,8 @@ async function assertBackupScheduler(root, databasePath) {
         markReplicationStarted();
         return new Promise(resolve => { releaseReplication = () => resolve(verifiedReplication('backup-2026-draining.tgfb', artifact)); });
       },
-      recover: () => { throw new Error('not used'); }
+      // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+      recover: async () => { throw new Error('not used'); }
     }
   );
   const activeRun = drainingScheduler.runNow();

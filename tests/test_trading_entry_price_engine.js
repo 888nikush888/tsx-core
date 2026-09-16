@@ -80,7 +80,8 @@ async function assertFinalBoundaryFence(file) {
     return result;
   };
   let submits = 0;
-  paper.submitProtectedEntry = () => { submits += 1; throw new Error('Boundary fence failed'); };
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  paper.submitProtectedEntry = async () => { submits += 1; throw new Error('Boundary fence failed'); };
   try { await engine.processIntent(intent.id); } finally { database.run = run; }
   assert.equal(crossed, true);
   assert.equal(submits, 0);

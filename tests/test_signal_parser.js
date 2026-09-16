@@ -504,7 +504,8 @@ async function testAiBudgetAndAbort() {
   let deniedProviderCalls = 0;
   await assert.rejects(parseSignalToXml('valid input', undefined, { primaryModel: 'test/primary' }, {
     budget: memoryBudget(false), limits: { primaryAttempts: 1, fallbackAttempts: 0 },
-    requestCompletion: () => { deniedProviderCalls += 1; throw new Error('must not run'); }
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    requestCompletion: async () => { deniedProviderCalls += 1; throw new Error('must not run'); }
   }), AiBudgetExceededError);
   assert.strictEqual(deniedProviderCalls, 0);
   const controller = new AbortController();

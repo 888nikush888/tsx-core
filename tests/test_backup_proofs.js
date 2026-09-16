@@ -139,7 +139,8 @@ async function schedulerProofs(databasePath) {
   assert.equal(first.restoreDrill, null, 'An actual replica response is not a restore drill.');
   const drill = await scheduler.runRestoreDrill(artifact);
   assert.deepEqual(scheduler.getStatus().restoreDrill, drill);
-  replicator.replicate = () => { throw new Error('isolated offsite failure'); };
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  replicator.replicate = async () => { throw new Error('isolated offsite failure'); };
   await assert.rejects(scheduler.runNow(), /isolated offsite failure/);
   const failed = scheduler.getStatus();
   assert.notEqual(failed.integrityVerified.artifactSha256, first.integrityVerified.artifactSha256);

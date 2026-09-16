@@ -74,7 +74,8 @@ async function generationAndRollbackCases() {
   await delay(3);
   const database = getDatabase();
   const run = database.run.bind(database);
-  database.run = (sql, ...args) => {
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  database.run = async (sql, ...args) => {
     if (sql.includes('SET baseline_reviewed_at')) throw new Error('Simulated classification transaction failure');
     return run(sql, ...args);
   };
@@ -136,8 +137,10 @@ try {
   let state = snapshot([oldFill]);
   let mutations = 0;
   const adapter = { exchange: 'bybit', openState: () => Promise.resolve(state),
-    submitOrder: () => { mutations += 1; throw new Error('No real order permitted.'); },
-    cancelOrder: () => { mutations += 1; throw new Error('No real cancel permitted.'); } };
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    submitOrder: async () => { mutations += 1; throw new Error('No real order permitted.'); },
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    cancelOrder: async () => { mutations += 1; throw new Error('No real cancel permitted.'); } };
   const engine = new TradingEngine([adapter]);
   await assert.rejects(engine.reconcileAccount(created.id), /unresolved/);
   assert.equal(await unresolvedEvidenceCount(created.id), 1);

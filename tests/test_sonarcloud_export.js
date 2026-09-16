@@ -63,7 +63,8 @@ async function assertReadRetries(environment) {
     let attempts = 0;
     await exportFindings({
       environment, ...clock,
-      fetchImpl: (url, options) => {
+      // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+      fetchImpl: async (url, options) => {
         attempts += 1;
         if (attempts > 1) return sonarFetch(url, options);
         if (failure === 'network') throw new TypeError('socket failed: test-token');
@@ -78,7 +79,8 @@ async function assertReadRetries(environment) {
   let attempts = 0;
   await assert.rejects(exportFindings({
     environment, ...clock,
-    fetchImpl: () => { attempts += 1; throw new TypeError('test-token'); }
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    fetchImpl: async () => { attempts += 1; throw new TypeError('test-token'); }
   }), /failed after 3 attempts/);
   assert.equal(attempts, 3);
   assert.deepEqual(clock.delays, [250, 500]);

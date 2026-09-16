@@ -51,6 +51,7 @@ test('HTTP errors never expose the response body', async () => {
   await assert.rejects(exportDeepSource({ token: 't', fetchImpl: () => ({ ok: false, status: 401 }) }), /HTTP 401/);
 });
 test('network exceptions never expose authentication data', async () => {
-  await assert.rejects(exportDeepSource({ token: 't', fetchImpl: () => { throw new Error('secret'); } }),
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  await assert.rejects(exportDeepSource({ token: 't', fetchImpl: async () => { throw new Error('secret'); } }),
     error => error.message === 'DeepSource request failed; export is unverified.');
 });

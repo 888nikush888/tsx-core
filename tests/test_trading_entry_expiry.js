@@ -98,7 +98,8 @@ async function assertExpiredPreparedNeverSubmits(file) {
   const expired = { ...prepared.plan, entryExpiresAt: Date.now() - 1 };
   await getDatabase().run('UPDATE trading_trade_intents SET plan_json = ? WHERE id = ?', [JSON.stringify(expired), intent.id]);
   let submissions = 0;
-  paper.submitProtectedEntry = () => { submissions += 1; throw new Error('Expired entry must never submit'); };
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  paper.submitProtectedEntry = async () => { submissions += 1; throw new Error('Expired entry must never submit'); };
   await new TradingEngine([paper]).processIntent(intent.id);
   assert.equal(submissions, 0);
   assert.equal((await getTradingIntent(intent.id)).blockReason, 'ENTRY_INTENT_EXPIRED');
@@ -112,7 +113,8 @@ async function assertFinalDispatchDeadline(file) {
   const actualNow = Date.now;
   let reachedLastAwait = false;
   let submissions = 0;
-  paper.submitProtectedEntry = () => { submissions += 1; throw new Error('Expired dispatch must not be sent.'); };
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  paper.submitProtectedEntry = async () => { submissions += 1; throw new Error('Expired dispatch must not be sent.'); };
   database.run = async (...args) => {
     const result = await run(...args);
     if (String(args[0]).includes('UPDATE trading_operations SET phase = ?') && args[1][0] === 'dispatching') {
@@ -193,7 +195,8 @@ async function assertExpiredPreparedDrainsLocally(file) {
   const engine = new TradingEngine([paper]);
   await engine.preparePendingIntent(intent);
   let remoteWrites = 0;
-  paper.submitProtectedEntry = paper.cancelOrder = () => { remoteWrites += 1; throw new Error('Unsent expiry is local only.'); };
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  paper.submitProtectedEntry = paper.cancelOrder = async () => { remoteWrites += 1; throw new Error('Unsent expiry is local only.'); };
   assert.equal(await engine.cancelExpiredEntries(origin + ttl), 1);
   assert.equal(remoteWrites, 0);
   assert.equal((await getTradingIntent(intent.id)).status, 'failed');

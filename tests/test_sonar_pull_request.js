@@ -34,7 +34,8 @@ const hotspotResponse = { component: { key: 'project', pullRequest: '28', measur
   { metric: 'new_security_hotspots_reviewed', periods: [{ index: 1, value: '100.0', bestValue: true }] }
 ] } };
 
-function fakeFetch(url) {
+// skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+async function fakeFetch(url) {
   const parsed = new URL(url);
   calls.push(parsed);
   switch (parsed.pathname) {

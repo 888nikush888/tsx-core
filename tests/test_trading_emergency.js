@@ -137,7 +137,8 @@ async function provePositionFailureIsolation() {
     const engine = new TradingEngine([adapter]);
     const calls = [];
     engine.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
-    engine.reconcileOpenRemotePosition = (_account, _adapter, _remote, local) => {
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    engine.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
       calls.push(local.intent_id);
       if (local.intent_id === positions[failingIndex].intent_id) throw new Error(`position ${failingIndex} failed`);
       return false;
@@ -165,7 +166,8 @@ async function provePositionFailureIsolation() {
   const multiple = new TradingEngine([adapter]);
   const multipleCalls = [];
   multiple.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
-  multiple.reconcileOpenRemotePosition = (_account, _adapter, _remote, local) => {
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  multiple.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
     multipleCalls.push(local.intent_id);
     throw new Error(`failed ${local.intent_id}`);
   };
@@ -175,7 +177,8 @@ async function provePositionFailureIsolation() {
   const budget = new TradingEngine([adapter]);
   const budgetCalls = [];
   budget.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
-  budget.reconcileOpenRemotePosition = (_account, _adapter, _remote, local) => {
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  budget.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
     budgetCalls.push(local.intent_id);
     if (local.intent_id === positions[0].intent_id) throw new CancelBudgetExhaustedError();
     return false;
@@ -186,7 +189,8 @@ async function provePositionFailureIsolation() {
   const global = new TradingEngine([adapter]);
   const globalCalls = [];
   global.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
-  global.reconcileOpenRemotePosition = (_account, _adapter, _remote, local) => {
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  global.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
     globalCalls.push(local.intent_id);
     const error = new Error('database integrity failure');
     error.code = 'SQLITE_CORRUPT';

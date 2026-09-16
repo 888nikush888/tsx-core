@@ -33,7 +33,8 @@ class FakeOfficialAdapter {
   candidateCredentialGeneration = null;
   scopedCurrentReads = false;
   trace = [];
-  verifyAccount(account) {
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  async verifyAccount(account) {
     this.trace.push({ kind: 'verify', accountId: account.id });
     if (this.verificationError) throw this.verificationError;
     return {
@@ -58,9 +59,11 @@ class FakeOfficialAdapter {
     return Promise.resolve({ symbol, markPrice: '100', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, observedAt: Date.now() });
   }
   // skipcq: JS-0105 - fixture implements the exchange adapter surface consumed through instances.
-  submitOrder() { throw new Error('Not used by control-plane contract test.'); }
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  async submitOrder() { throw new Error('Not used by control-plane contract test.'); }
   // skipcq: JS-0105 - fixture implements the exchange adapter surface consumed through instances.
-  cancelOrder() { throw new Error('Not used by control-plane contract test.'); }
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  async cancelOrder() { throw new Error('Not used by control-plane contract test.'); }
   async openState(account) {
     this.trace.push({ kind: 'read', accountId: account.id, statuses: this.remote.orders.map(order => order.status) });
     // Synthetic source evidence exercises the real control-plane safety consumers, not provider acceptance.
@@ -203,7 +206,8 @@ try {
     enableCalls: 0,
     disableCalls: 0,
     failNextEnable: false,
-    enableEntries() {
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    async enableEntries() {
       this.enableCalls += 1;
       if (this.failNextEnable) {
         this.failNextEnable = false;

@@ -13,20 +13,23 @@ await assert.rejects(
 const preAborted = new AbortController();
 preAborted.abort('cancelled');
 await assert.rejects(
-  invokeWithFloodWaitRetry({ invoke() { throw new Error('must not run'); } }, {}, { signal: preAborted.signal }),
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  invokeWithFloodWaitRetry({ async invoke() { throw new Error('must not run'); } }, {}, { signal: preAborted.signal }),
   /TDLib operation aborted/
 );
 
 const providerError = new Error('permanent provider error');
 await assert.rejects(
-  invokeWithFloodWaitRetry({ invoke() { throw providerError; } }, {}),
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  invokeWithFloodWaitRetry({ async invoke() { throw providerError; } }, {}),
   error => error === providerError
 );
 
 let attempts = 0;
 const logs = [];
 const result = await invokeWithFloodWaitRetry({
-  invoke() {
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  async invoke() {
     attempts += 1;
     if (attempts === 1) throw new Error('FLOOD_WAIT_0');
     return { ok: true };
@@ -39,7 +42,8 @@ assert.equal(logs.length, 1);
 let unsafeCalls = 0;
 await assert.rejects(
   invokeWithFloodWaitRetry({
-    invoke() {
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    async invoke() {
       unsafeCalls += 1;
       throw new Error('FLOOD_WAIT_61');
     }
@@ -51,7 +55,8 @@ assert.equal(unsafeCalls, 1, 'An excessive FLOOD_WAIT must not be retried');
 const controller = new AbortController();
 let abortCalls = 0;
 const pending = invokeWithFloodWaitRetry({
-  invoke() {
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  async invoke() {
     abortCalls += 1;
     throw new Error('FLOOD_WAIT_30');
   }
@@ -61,7 +66,8 @@ await assert.rejects(pending, /operator shutdown/);
 assert.equal(abortCalls, 1, 'Abort during backoff must prevent another provider call');
 
 await assert.rejects(
-  invokeWithFloodWaitRetry({ invoke() { throw new Error('FLOOD_WAIT_0'); } }, {}, { maxAttempts: 2 }),
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+  invokeWithFloodWaitRetry({ async invoke() { throw new Error('FLOOD_WAIT_0'); } }, {}, { maxAttempts: 2 }),
   /failed after 2 rate-limit attempts/
 );
 

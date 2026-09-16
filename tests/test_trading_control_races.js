@@ -148,7 +148,8 @@ try {
           calls.push(`reconcile:${id}`);
           if (id === targets[0] && phase === 'reconciliation') throw makeMalformed();
         },
-        cancelExpiredEntries: () => { throw makeMalformed(); },
+        // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+        cancelExpiredEntries: async () => { throw makeMalformed(); },
       };
       const fixture = new TradingRuntime(engine);
       const failures = await fixture.reconcileAccounts(false);

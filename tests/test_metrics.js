@@ -107,7 +107,8 @@ async function runTests() {
   const server = startMetricsServer(0, {
     totalForwardedCountCallback: () => 7,
     getQueueStateCallback: () => ({ running: 1, queued: 2, maxConcurrency: 3 }),
-    getOperationalMetricsCallback: () => {
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    getOperationalMetricsCallback: async () => {
       if (operationalFailure !== null) throw operationalFailure;
       return operational;
     }

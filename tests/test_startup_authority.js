@@ -51,7 +51,8 @@ assert.equal(suspended.canProtect(), true, 'A later gate failure must not revoke
 
 const gateFailure = new StartupAuthority();
 gateFailure.beginRecovery();
-await assert.rejects(runStartupGate(gateFailure, 'dashboard', () => { throw new Error('EADDRINUSE fixture'); }), /EADDRINUSE/);
+// skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+await assert.rejects(runStartupGate(gateFailure, 'dashboard', async () => { throw new Error('EADDRINUSE fixture'); }), /EADDRINUSE/);
 assert.equal(gateFailure.snapshot().phase, 'blocked');
 assert.match(gateFailure.snapshot().reason, /dashboard.*EADDRINUSE/);
 await runStartupGate(gateFailure, 'backup', () => Promise.resolve());

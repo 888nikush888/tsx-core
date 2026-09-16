@@ -5,7 +5,8 @@ import { createProcessRestartRequest } from '../../src/ui_restart_coordinator.js
 import { createRestartFixture, deferred } from './ui_restart_fixture.js';
 
 const [directory, mode] = process.argv.slice(2);
-globalThis.fetch = () => { throw new Error('External/provider requests are disabled in the isolated restart fixture.'); };
+// skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+globalThis.fetch = async () => { throw new Error('External/provider requests are disabled in the isolated restart fixture.'); };
 const fixture = await createRestartFixture(directory);
 const { app, store, controls, authority } = fixture;
 const originalWork = { restart: app.stopForwarding, restore: app.restoreBackup, reset: app.performFactoryReset };

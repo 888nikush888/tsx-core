@@ -41,7 +41,8 @@ async function persistentCommitFailure() {
       providerCalls += 1;
       return Promise.resolve({ choices: [{ finish_reason: 'stop', message: { content: xml } }], usage: { total_tokens: 9 } });
     },
-    budget: { reserve: reserveAiUsage, commit: (_id, _allowance, actual) => {
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    budget: { reserve: reserveAiUsage, commit: async (_id, _allowance, actual) => {
       commitCalls += 1;
       assert.equal(actual, 9);
       throw new Error('Injected unavailable DB');
