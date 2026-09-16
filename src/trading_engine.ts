@@ -1654,7 +1654,7 @@ export class TradingEngine {
   private async reconcileAccountOwned(accountId: string, options?: ReconciliationOptions, entryDrainAttempted = false): Promise<ReconciledAccountEvidence | undefined> {
     const force = options?.force !== false;
     const now = Date.now();
-    if (await this.skipPeriodicReconciliation(accountId, force, now)) return;
+    if (await this.skipPeriodicReconciliation(accountId, force, now)) return undefined;
     const account = await getTradingAccount(accountId);
     if (!account) throw new Error('Trading account does not exist.');
     const adapter = this.adapter(account.exchange);

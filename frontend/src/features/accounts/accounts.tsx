@@ -88,7 +88,7 @@ export function Accounts({
     account: TradingAccount,
     change: Record<string, unknown>,
   ) => {
-    if (readOnly) return;
+    if (readOnly) return undefined;
     setBusy(account.id);
     setMessage("");
     try {

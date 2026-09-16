@@ -966,7 +966,7 @@ async function drainAndClose(deadlineAt: number): Promise<void> {
   for (const runtime of sessions.values()) if (runtime.notificationTimer) clearInterval(runtime.notificationTimer);
   const drained = databaseWork.stopAndDrain(deadlineAt);
   const httpClosed = new Promise<void>(resolve => {
-    if (!httpServer) return resolve();
+    if (!httpServer) { resolve(); return; }
     httpServer.close(() => resolve());
     httpServer.closeAllConnections();
   });

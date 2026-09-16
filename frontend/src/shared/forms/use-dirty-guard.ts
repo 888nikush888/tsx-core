@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 
 export function useDirtyGuard(dirty: boolean) {
   useEffect(() => {
-    if (!dirty) return;
+    if (!dirty) return undefined;
     const leave = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
     const navigate = (event: Event) => { event.preventDefault(); };
     window.addEventListener('beforeunload', leave);

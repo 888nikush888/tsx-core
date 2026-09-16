@@ -1778,7 +1778,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
   );
 
   useEffect(() => {
-    if (activeWorkspace !== "builder") return;
+    if (activeWorkspace !== "builder") return undefined;
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target;
       if (target instanceof Element && target.closest(

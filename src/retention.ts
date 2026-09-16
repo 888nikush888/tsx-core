@@ -113,6 +113,7 @@ export class OperationalDataRetention {
     } finally {
       this.running = null;
     }
+    return undefined;
   }
 
   getStatus(): RetentionStatus {

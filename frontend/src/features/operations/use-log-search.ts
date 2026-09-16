@@ -3,7 +3,7 @@ type LogEntry = { cursor: number; line: string };
 export function useLogSearch(entries: LogEntry[], pattern: string, regex: boolean) {
   const [result, setResult] = useState<{ entries: LogEntry[]; pattern: string; cursors?: number[]; error?: string } | null>(null);
   useEffect(() => {
-    if (!regex || !pattern) return;
+    if (!regex || !pattern) return undefined;
     let worker: Worker | undefined; let timeout: ReturnType<typeof setTimeout> | undefined;
     const delay = setTimeout(() => {
       const fail = (error: string) => { worker?.terminate(); clearTimeout(timeout); setResult({ entries, pattern, error }); };

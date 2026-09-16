@@ -1226,7 +1226,7 @@ async function preflightWorkflowAction(
   if (action === 'workflow.activate') return preflightWorkflowActivation(payload, blockers, impact);
   if (action === 'workflow.resource_create') {
     impact.push('Creates a new versioned workflow-resource draft without activating it.');
-    return;
+    return undefined;
   }
   return preflightWorkflowResourceLifecycle(action, payload, blockers, impact);
 }

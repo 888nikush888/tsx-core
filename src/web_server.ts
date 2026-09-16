@@ -1779,25 +1779,25 @@ const publishTradingStrategyHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.publishStrategy(payload.id));
 const archiveTradingStrategyHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.archiveStrategy(payload.id));
-const deleteTradingStrategyHandler = (context: RequestContext) => {
+const deleteTradingStrategyHandler = async (context: RequestContext) => {
   if (!requireConfirmation(
     context,
     'delete-trading-strategy',
     'Explicit trading strategy deletion confirmation required.',
   )) return;
-  return tradingMutation(context, (control, payload) => control.removeStrategy(payload.id));
+  await tradingMutation(context, (control, payload) => control.removeStrategy(payload.id));
 };
 const createTradingSignalSchemaHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.createSignalSchema(payload), 201);
 const updateTradingSignalSchemaHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.updateSignalSchema(payload));
-const deleteTradingSignalSchemaHandler = (context: RequestContext) => {
+const deleteTradingSignalSchemaHandler = async (context: RequestContext) => {
   if (!requireConfirmation(
     context,
     'delete-trading-signal-schema',
     'Explicit trading signal schema deletion confirmation required.',
   )) return;
-  return tradingMutation(context, (control, payload) => control.removeSignalSchema(payload.id));
+  await tradingMutation(context, (control, payload) => control.removeSignalSchema(payload.id));
 };
 const createSignalContractHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.createSignalContract(payload), 201);
@@ -1811,21 +1811,21 @@ const publishSignalContractHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.publishSignalContract(payload.versionId));
 const archiveSignalContractHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.archiveSignalContract(payload.versionId));
-const deleteSignalContractDraftHandler = (context: RequestContext) => {
+const deleteSignalContractDraftHandler = async (context: RequestContext) => {
   if (!requireConfirmation(
     context,
     'delete-signal-contract-draft',
     'Explicit signal contract draft deletion confirmation required.',
   )) return;
-  return tradingMutation(context, (control, payload) => control.removeSignalContractDraft(payload.versionId));
+  await tradingMutation(context, (control, payload) => control.removeSignalContractDraft(payload.versionId));
 };
-const deleteSignalContractVersionHandler = (context: RequestContext) => {
+const deleteSignalContractVersionHandler = async (context: RequestContext) => {
   if (!requireConfirmation(
     context,
     'delete-signal-contract-version',
     'Explicit published signal contract deletion confirmation required.',
   )) return;
-  return tradingMutation(context, (control, payload) => control.removeSignalContractVersion(payload.versionId));
+  await tradingMutation(context, (control, payload) => control.removeSignalContractVersion(payload.versionId));
 };
 const validateSignalContractHandler = (context: RequestContext) =>
   tradingMutation(context, (control, payload) => control.validateSignalContract(payload));

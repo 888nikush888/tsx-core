@@ -281,7 +281,7 @@ async function executeScheduledOutboxTask(
 ): Promise<void> {
   await (async () => {
     const task = await claimOutboxTask(taskId);
-    if (!task) return;
+    if (!task) return undefined;
     const effectiveConfig = task.config ? mergeConfigDefaults(task.config) : fallbackConfig;
     let deliveryAttempted = false;
     const context: OutboxExecutionContext = {

@@ -128,6 +128,7 @@ async function databaseTargetEvidence(databasePath: string, allowAbsent: boolean
 async function assertDatabaseTargetEvidence(request: McpMaintenanceRequest): Promise<void> {
   if (request.databaseState === 'absent') return assertDatabaseAbsent(request.databasePath);
   if (await databaseFileIdentity(request.databasePath) !== request.databaseIdentity) throw new Error('Database changed before maintenance quiescence.');
+  return undefined;
 }
 
 async function privateDirectory(directory: string): Promise<void> {

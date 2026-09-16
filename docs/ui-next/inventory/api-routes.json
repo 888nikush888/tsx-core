@@ -747,7 +747,7 @@
     {
       "route": "DELETE /api/trading/strategies",
       "handler": "deleteTradingStrategyHandler",
-      "handlerSha256": "8a8af353d536405958b21ee5ee2c57fe10a452619a195d9f57d965e5c7691ebe",
+      "handlerSha256": "a06cd17fb12adc8b1dd544307bab4cc7bf1f477d4cfea5769ece9325a548f674",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -776,7 +776,7 @@
     {
       "route": "DELETE /api/trading/signal-schemas",
       "handler": "deleteTradingSignalSchemaHandler",
-      "handlerSha256": "59e071466ccb0e4f9d870e2c5a706dca7baa84d6ff4721feda457fcefacc438e",
+      "handlerSha256": "2717004ee9b5e1eff115dcf9637a700a1a61da042393ee5fd51e99e2722581b0",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -841,7 +841,7 @@
     {
       "route": "DELETE /api/trading/signal-contracts/versions",
       "handler": "deleteSignalContractVersionHandler",
-      "handlerSha256": "5894e057ba31ecd52c5657c4f0fddb689b4e80c4e99ce60a2b1ff55be8a298c6",
+      "handlerSha256": "01c5571a792115414fa3ad6e8a1c3152a6d06ff5fd64bd0d72518de3f43d19f3",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
@@ -852,7 +852,7 @@
     {
       "route": "DELETE /api/trading/signal-contracts/drafts",
       "handler": "deleteSignalContractDraftHandler",
-      "handlerSha256": "33d4e1bef32477ecc4ab19b53ee104450d28ff7b4134508fb200f2562a0816a2",
+      "handlerSha256": "a5dd93c7e4d9f5b68c426495b29103f4d5ec2c9127aa596cd7ebe90cffdad133",
       "role": "admin",
       "recoveryAllowed": false,
       "confirmationHeaders": [
