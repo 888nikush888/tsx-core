@@ -1327,11 +1327,12 @@ async function factoryResetHandler(context: RequestContext): Promise<void> {
     if (!context.appState.performFactoryReset || !context.appState.requestRestart) {
       throw new HttpError(503, 'Complete factory reset is unavailable in this runtime.');
     }
+    const performFactoryReset = context.appState.performFactoryReset;
     await runRestartCommand(context, {
       id: payload.jobId, kind: 'factory-reset', scope: { service: 'TSX Core' }, request: { confirmation: 'FACTORY RESET' }, status: 200,
       operation: async () => {
         requireCurrentVerifiedBackup(context);
-        await context.appState.performFactoryReset!();
+        await performFactoryReset();
         addLog('[SECURITY] Complete factory reset executed through the web dashboard.');
         return { message: 'Factory reset completed. Restart into first-run setup requested.' };
       },
@@ -1622,13 +1623,14 @@ async function restoreBackupHandler(context: RequestContext): Promise<void> {
     sendJson(context.res, 503, { error: 'Backup restore is unavailable.', requestId: context.requestId });
     return;
   }
+  const restoreBackup = context.appState.restoreBackup;
   try {
     const payload = await readJsonBody(context.req, 4 * 1024);
     const name = backupArtifactName(payload.name);
     await runRestartCommand(context, {
       id: payload.jobId, kind: 'backup-restore', scope: { artifactName: name }, request: { name }, status: 200,
       operation: async () => {
-        const restored = await context.appState.restoreBackup!(name);
+        const restored = await restoreBackup(name);
         return { name, artifactName: name, rollbackPreserved: Boolean(restored.previousDatabase || restored.previousConfig) };
       },
     });

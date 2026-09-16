@@ -11,7 +11,11 @@ const LEG_ORDER: FxLegId[] = ['bybit:btc-usd-index:v1', 'bybit:btc-usdt-index:v1
 function assetLegs(asset: string): FxLegId[] {
   if (asset === 'USD') return [];
   if (asset === 'USDT') return LEG_ORDER.slice(0, 2);
-  if (asset === 'USDC') return [LEG_ORDER[2]!];
+  if (asset === 'USDC') {
+    const thirdLeg = LEG_ORDER[2];
+    if (thirdLeg === undefined) return invalidFx('ASSET_UNSUPPORTED');
+    return [thirdLeg];
+  }
   return invalidFx('ASSET_UNSUPPORTED');
 }
 function eligibleReceipts(values: unknown[], required: FxLegId[], at: number, context: FxContext): FxLegReceipt[] {
