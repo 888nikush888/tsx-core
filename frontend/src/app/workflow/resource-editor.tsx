@@ -55,9 +55,9 @@ type ResourceEditorProps = Readonly<{
     configuration: Record<string, unknown>;
     baseEditRevision?: number;
   }) => Promise<boolean>;
-  onDeleteNode?: () => Promise<void>;
-  onArchiveResource?: () => Promise<void>;
-  onDeleteResource?: () => Promise<void>;
+  onDeleteNode?: () => void | Promise<void>;
+  onArchiveResource?: () => void | Promise<void>;
+  onDeleteResource?: () => void | Promise<void>;
   onConfigureAccount?: (accountId: string, maximum: number, baseUpdatedAt?: number) => Promise<any>;
 }>;
 

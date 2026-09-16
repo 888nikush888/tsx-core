@@ -732,7 +732,7 @@ export function WorkspaceStatusbar({
   lastUpdated,
 }: Readonly<{
   workspace: Exclude<WorkflowWorkspace, "builder">;
-  onRefresh: () => Promise<void>;
+  onRefresh: () => void | Promise<void>;
   trading: TradingSnapshot | null;
   systemStatus: WorkflowSystemStatus | null;
   refreshing: boolean;
@@ -1265,7 +1265,7 @@ function workflowRenderMode(
 }
 
 function AnalyticsStatusbar({ lastUpdated, refreshing, onFilters, onRefresh }: Readonly<{
-  lastUpdated: number | null; refreshing: boolean; onFilters: () => void; onRefresh: () => Promise<void>;
+  lastUpdated: number | null; refreshing: boolean; onFilters: () => void; onRefresh: () => void | Promise<void>;
 }>) {
   return <section className="workflow-statusbar workspace-statusbar analytics-statusbar">
     <div className="workflow-status-tools">
@@ -1308,7 +1308,7 @@ function resourceAction(resource: WorkflowResource | null, action: (resource: Wo
   return resource ? () => action(resource) : undefined;
 }
 
-async function persistGraphDraft(graph: WorkflowGraph, meta: WorkflowDraftMeta | null) {
+function persistGraphDraft(graph: WorkflowGraph, meta: WorkflowDraftMeta | null) {
   if (!meta) throw new Error('Graphentwurf konnte nicht geladen werden. Keine Speicherung möglich.');
   return jsonRequest('/api/workflow/drafts', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },

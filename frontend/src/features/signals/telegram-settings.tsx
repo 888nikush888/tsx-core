@@ -43,7 +43,7 @@ export function TelegramSettings() {
     if (readOnly) return;
     setBusy(true); setMessage('');
     try {
-      await mutateAndObserve(() => jsonRequest(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) }), result => { const receipt = result.requestId ? ` · Anfrage ${result.requestId}` : ''; setMessage(`${description}${receipt}`); accepted(result); }, async () => setRefresh(value => value + 1));
+      await mutateAndObserve(() => jsonRequest(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) }), result => { const receipt = result.requestId ? ` · Anfrage ${result.requestId}` : ''; setMessage(`${description}${receipt}`); accepted(result); }, () => setRefresh(value => value + 1));
     } catch (error) { setMessage(`Nicht bestätigt. Keine automatische Wiederholung: ${error instanceof Error ? error.message : String(error)}`); }
     finally { setBusy(false); }
   };

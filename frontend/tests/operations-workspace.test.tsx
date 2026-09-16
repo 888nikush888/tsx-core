@@ -333,7 +333,7 @@ describe("operations workspace", () => {
     ))
   })
 
-  it("opens the incident workspace directly from the dashboard alert", async () => {
+  it("opens the incident workspace directly from the dashboard alert", () => {
     const onOpenIncidents = vi.fn()
     render(
       <OperationsWorkspace
@@ -418,7 +418,7 @@ describe("operations workspace", () => {
     expect(await screen.findByRole("heading", { name: "Börsenkonten" })).toBeInTheDocument()
   })
 
-  it("handles default props and single tab without header duplication", async () => {
+  it("handles default props and single tab without header duplication", () => {
     render(
       <OperationsWorkspace
         trading={trading}

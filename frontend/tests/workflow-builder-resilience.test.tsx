@@ -106,7 +106,7 @@ describe("workflow builder resilience", () => {
   });
 
   it("provides initial dimensions so nodes remain renderable before browser measurement callbacks", async () => {
-    api.apiFetch.mockImplementation(async (input: RequestInfo | URL) => {
+    api.apiFetch.mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
       const payload =
         url === "/api/workflow"
@@ -172,7 +172,7 @@ describe("workflow builder resilience", () => {
   });
 
   it("keeps only React Flow's single fit-view control", async () => {
-    api.apiFetch.mockImplementation(async (input: RequestInfo | URL) => {
+    api.apiFetch.mockImplementation((input: RequestInfo | URL) => {
       const payload =
         String(input) === "/api/workflow"
           ? {
@@ -251,7 +251,7 @@ describe("workflow builder resilience", () => {
       compiled: { paths: [], warnings: [] },
     };
     api.apiFetch.mockImplementation(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
+      (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const requestedGraph =
         url === "/api/workflow/mutate" && typeof init?.body === "string"
@@ -378,7 +378,7 @@ describe("workflow builder resilience", () => {
       compiled: { paths: [], warnings: [] },
     };
     api.apiFetch.mockImplementation(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
+      (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
         const requestedGraph =
           url === "/api/workflow/mutate" && typeof init?.body === "string"

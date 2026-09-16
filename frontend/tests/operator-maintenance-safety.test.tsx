@@ -22,7 +22,7 @@ function mount(element: ReactNode, readOnly = false) {
 }
 function writes() { return api.jsonRequest.mock.calls.filter(([, init]) => init?.method && init.method !== 'GET'); }
 async function refreshVisiblePage() {
-  await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
+  await act(() => { document.dispatchEvent(new Event('visibilitychange')); });
 }
 async function acceptRestore() {
   fireEvent.click(await screen.findByRole('button', { name: 'Wiederherstellen' }));
@@ -36,7 +36,7 @@ describe('operator maintenance safety', () => {
     vi.clearAllMocks();
     Object.defineProperty(document, 'hidden', { configurable: true, value: false });
     window.history.replaceState(null, '', '/operations/backups');
-    api.jsonRequest.mockImplementation(async (url: string) => {
+    api.jsonRequest.mockImplementation((url: string) => {
       if (url.startsWith('/api/backups/verify')) return { evidence: { artifactSha256: 'verified-sha', restoreEligibility: { status: 'eligible' } } };
       if (url === '/api/backups') return { backups: [artifact] };
       if (url.startsWith('/api/operations/jobs')) return { job };
@@ -71,7 +71,7 @@ describe('operator maintenance safety', () => {
 
   it('retains the restore receipt address after a lost response and only repeats reads', async () => {
     const read = fixtureValue(api.jsonRequest.getMockImplementation(), 'default API implementation');
-    api.jsonRequest.mockImplementation(async (url: string, init?: RequestInit) => {
+    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => {
       if (init?.method === 'POST') throw new TypeError('Verbindung verloren');
       return read(url, init);
     });
@@ -96,7 +96,7 @@ describe('operator maintenance safety', () => {
 
   it('reports an accepted backup as a pending job without inventing a completed artifact', async () => {
     const read = fixtureValue(api.jsonRequest.getMockImplementation(), 'default API implementation');
-    api.jsonRequest.mockImplementation(async (url: string, init?: RequestInit) => init?.method === 'POST' ? { job: { state: 'accepted' } } : read(url, init));
+    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => init?.method === 'POST' ? { job: { state: 'accepted' } } : read(url, init));
     mount(<BackupsPage />);
     fireEvent.click(screen.getByRole('button', { name: 'Jetzt sichern' }));
     expect(await screen.findByText(/Auftrag dauerhaft angenommen/)).toBeVisible();
@@ -125,7 +125,7 @@ describe('operator maintenance safety', () => {
     await waitFor(() => expect(resolveOld).toBeDefined());
     rerender(<NavigationProvider><JobsPage id="current" /></NavigationProvider>);
     expect(await screen.findByText('current-job-stage')).toBeVisible();
-    await act(async () => resolveOld({ job: { ...job, id: 'old', state: 'succeeded', stage: 'obsolete-success' } }));
+    await act(() => resolveOld({ job: { ...job, id: 'old', state: 'succeeded', stage: 'obsolete-success' } }));
     expect(screen.queryByText('obsolete-success')).not.toBeInTheDocument();
     expect(screen.getByText('current-job-stage')).toBeVisible();
     expect(writes()).toHaveLength(0);
@@ -133,7 +133,7 @@ describe('operator maintenance safety', () => {
 
   it('preserves a factory-reset job ID when acceptance is unknown, without replaying reset', async () => {
     const read = fixtureValue(api.jsonRequest.getMockImplementation(), 'default API implementation');
-    api.jsonRequest.mockImplementation(async (url: string, init?: RequestInit) => {
+    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => {
       if (url === '/api/factory-reset') throw new TypeError('Verbindung verloren');
       return read(url, init);
     });

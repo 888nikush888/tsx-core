@@ -65,7 +65,7 @@ export class ApiError extends Error {
 export async function mutateAndObserve<T>(
   operation: () => Promise<T>,
   accepted: (result: T) => void,
-  observe: () => Promise<unknown>,
+  observe: () => Promise<unknown> | void,
 ): Promise<{ result: T; refreshError: string | null }> {
   const result = await operation();
   accepted(result);

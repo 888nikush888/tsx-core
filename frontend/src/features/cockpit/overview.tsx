@@ -118,7 +118,7 @@ export function Overview({
 }: Readonly<{
   trading: TradingSnapshot | null;
   systemStatus: SystemStatus | null;
-  onRefresh: () => Promise<void>;
+  onRefresh: () => void | Promise<void>;
   onOpenIncidents?: () => void;
 }>) {
   const [busy, setBusy] = useState("");
@@ -131,7 +131,7 @@ export function Overview({
   const [sourceErrors, setSourceErrors] = useState<Record<string, string>>({});
   const [observations, setObservations] = useState<Record<string, number>>({});
   const [operations, setOperations] = useState<Operations | null>(null);
-  const readDashboard = useCallback(async (signal: AbortSignal) => {
+  const readDashboard = useCallback((signal: AbortSignal) => {
     return Promise.all(['/api/trading/portfolio', '/api/processed-signals', '/api/access', '/api/operations'].map(async source => {
       try { return { source, value: await jsonRequest(source, { signal }), error: '', observedAt: Date.now() }; }
       catch (reason) { return { source, value: null, error: reason instanceof Error ? reason.message : String(reason), observedAt: null }; }

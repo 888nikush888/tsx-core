@@ -63,7 +63,7 @@ function LegacyCard({ entry }: Readonly<{ entry: any }>) {
     if (readOnly || busy) return;
     if (!await confirm({ title: 'Legacy-Policy als Entwurf übernehmen', description: `Kanal ${policy.channelId}, Policyversion ${policy.policyVersion}. Die angezeigten Werte werden mit demselben Migrationsvalidator kopiert. Eine bestehende Sperre bleibt als manuelle Sperre erhalten. Keine Aktivierung und keine Änderung bestehender Intents.`, confirmLabel: 'Geprüften Entwurf anlegen' })) return;
     setBusy(true); setError('');
-    try { await mutateAndObserve(() => jsonRequest('/api/trading/risk/adaptive/copy-legacy', { method: 'POST', headers: { 'X-Destructive-Confirmation': 'copy-legacy-risk-policy' }, body: JSON.stringify({ channelId: policy.channelId, copyHash: entry.copyHash }) }), setReceipt, async () => undefined); }
+    try { await mutateAndObserve(() => jsonRequest('/api/trading/risk/adaptive/copy-legacy', { method: 'POST', headers: { 'X-Destructive-Confirmation': 'copy-legacy-risk-policy' }, body: JSON.stringify({ channelId: policy.channelId, copyHash: entry.copyHash }) }), setReceipt, () => undefined); }
     catch (error_) { setError(`Kopie nicht bestätigt: ${error_ instanceof Error ? error_.message : String(error_)}. Vor einer weiteren Aktion den gespeicherten Entwurf prüfen.`); }
     finally { setBusy(false); }
   };

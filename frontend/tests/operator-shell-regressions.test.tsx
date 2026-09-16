@@ -24,13 +24,13 @@ describe('operator shell permission and connection evidence', () => {
     expect(screen.getByText(/Verbindung wird geprüft/)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Edit routed view' })).toBeDisabled();
     expect(screen.getByRole('main').tagName).toBe('MAIN');
-    await act(async () => resolveSession({ session: { role: 'admin', actorId: 'fixture-admin' }, backendVersion: 'fixture' }));
+    await act(() => resolveSession({ session: { role: 'admin', actorId: 'fixture-admin' }, backendVersion: 'fixture' }));
     expect(screen.getByRole('button', { name: 'Edit routed view' })).toBeEnabled();
     expect(screen.getByText(/Backend fixture.*verbunden/)).toBeVisible();
   });
 
   it.each([true, false])('keeps global execution/live %s separate from account and trade proof', async enabled => {
-    api.jsonRequest.mockImplementation(async (url: string) => url === '/api/recovery'
+    api.jsonRequest.mockImplementation((url: string) => url === '/api/recovery'
       ? { session: { role: 'viewer' }, backendVersion: 'fixture', active: true }
       : { overview: { runtime: { executionEnabled: enabled, liveTradingEnabled: enabled } } });
     render(<NavigationProvider><OperatorApp /></NavigationProvider>);
@@ -54,7 +54,7 @@ describe('operator shell permission and connection evidence', () => {
   });
 
   it('searches through a private header, follows result paging and clears the term after closing', async () => {
-    api.jsonRequest.mockImplementation(async (url: string) => {
+    api.jsonRequest.mockImplementation((url: string) => {
       if (url.startsWith('/api/ui/search')) return { groups: [
         { kind: 'resources', observedAt: 1000, hasMore: true, nextCursor: 'next-search', entries: [{ id: 'result-id', title: 'Matching resource', url: '/workflows/resources/family' }] },
         { kind: 'accounts', observedAt: 1000, hasMore: false, entries: [] },

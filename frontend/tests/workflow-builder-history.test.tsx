@@ -86,7 +86,7 @@ function submittedBody(url: string) {
 function installApi(options?: { historyFails?: boolean; applyConflict?: boolean }) {
   let workflowLoads = 0;
   let pendingResource: Record<string, unknown> | null = null;
-  api.apiFetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+  api.apiFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url === "/api/workflow") {
       workflowLoads += 1;
@@ -364,7 +364,7 @@ describe("workflow builder history", () => {
     let resolveImpact!: (value: Response) => void;
     const pendingImpact = new Promise<Response>((resolve) => { resolveImpact = resolve; });
     installApi();
-    api.apiFetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+    api.apiFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url === "/api/workflow/history/impact") return pendingImpact;
       if (url === "/api/workflow") return response({ workflow, resources });

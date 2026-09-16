@@ -36,7 +36,7 @@ export function System({
   onRefresh,
 }: Readonly<{
   catalog: ExchangeCatalog | null;
-  onRefresh: () => Promise<void>;
+  onRefresh: () => void | Promise<void>;
 }>) {
   const [runtimePayload, setRuntimePayload] = useState<any>(null);
   const runtimeForm = useVersionedDraft<any>('runtime', runtimePayload?.settings ?? null, runtimePayload?.revision ?? null, {});
@@ -78,7 +78,7 @@ export function System({
   useEffect(() => {
     load().catch((reason) => setMessage(reason.message));
   }, [load]);
-  const observeRestart = useCallback(async (signal: AbortSignal) => restartInstance ? jsonRequest('/api/recovery', { signal }) : null, [restartInstance]);
+  const observeRestart = useCallback((signal: AbortSignal) => restartInstance ? jsonRequest('/api/recovery', { signal }) : null, [restartInstance]);
   usePoll(observeRestart, (value) => {
     if (value && value.serverInstanceId !== restartInstance) {
       setRestartInstance(null); setRecovery(value);

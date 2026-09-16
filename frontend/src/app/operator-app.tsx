@@ -29,7 +29,7 @@ export function OperatorApp() {
   const needsTrading = tab === "overview";
   const needsStatus = tab === "overview" || tab === "system";
   const needsCatalog = tab === "accounts" || tab === "analytics" || tab === "system";
-  const readPage = useCallback(async (signal: AbortSignal) => {
+  const readPage = useCallback((signal: AbortSignal) => {
     const requests = [
       ...(needsTrading ? [{ name: "trading", url: "/api/trading?view=cockpit" }] : []),
       ...(needsStatus ? [{ name: "status", url: "/api/status" }] : []),
@@ -49,7 +49,7 @@ export function OperatorApp() {
       if (result.name === "catalog") setCatalog(result.value);
     }
   }, (error) => setErrors((previous) => ({ ...previous, page: error.message })), 5000, refresh);
-  const onRefresh = useCallback(async () => { setRefresh((value) => value + 1); }, []);
+  const onRefresh = useCallback(() => { setRefresh((value) => value + 1); }, []);
   const readOnly = session?.session?.role !== "admin";
   const Content = pathname === "/workflows/builder" ? "div" : "main";
   const filteredTrading = needsTrading ? trading : null;

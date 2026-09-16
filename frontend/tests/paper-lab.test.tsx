@@ -25,7 +25,7 @@ it('restricts account selection to paper and keeps missing balance evidence uned
 
 it('saves a confirmed market once with its original revision and exact decimal normalization', async () => {
   const updated = { ...market, markPrice: '101.50', revision: 'b'.repeat(64) };
-  api.jsonRequest.mockImplementation(async (_url: string, init?: RequestInit) => init?.method === 'POST'
+  api.jsonRequest.mockImplementation((_url: string, init?: RequestInit) => init?.method === 'POST'
     ? { result: { accountId: account.id, market: updated } } : snapshot());
   render(<PaperLab readOnly={false} />);
   await screen.findByRole('option', { name: account.name });

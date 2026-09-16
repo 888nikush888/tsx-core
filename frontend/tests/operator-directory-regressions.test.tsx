@@ -89,7 +89,7 @@ describe('signal read routes and explicit delivery recovery', () => {
   });
 
   it('requires the duplicate-delivery warning and retains an unconfirmed retry without replay', async () => {
-    api.jsonRequest.mockImplementation(async (_url: string, init?: RequestInit) => {
+    api.jsonRequest.mockImplementation((_url: string, init?: RequestInit) => {
       if (init?.method) throw new TypeError('Delivery response lost');
       return { entries: [entry], observedAt };
     });
@@ -112,7 +112,7 @@ describe('signal read routes and explicit delivery recovery', () => {
 describe('test laboratory boundaries', () => {
   const metadata = { observedAt, usageDay: '2026-09-07', paths: [{ id: 'path-1', channelId: 'source', accountId: 'account' }], limits: { maxInputChars: 1000 }, usage: {}, queue: {} };
   it('runs a local filter test with the explicit source/channel and exposes no trading approval', async () => {
-    api.jsonRequest.mockImplementation(async (_url: string, init?: RequestInit) => init?.method ? { matched: true } : metadata);
+    api.jsonRequest.mockImplementation((_url: string, init?: RequestInit) => init?.method ? { matched: true } : metadata);
     mount(<TestLab />);
     expect(screen.getByRole('button', { name: 'Lokalen Test ausführen' })).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Kanal-ID'), { target: { value: 'channel' } });
@@ -126,7 +126,7 @@ describe('test laboratory boundaries', () => {
 
   it('validates XML against the selected published contract and preserves optional grounding text', async () => {
     window.history.replaceState(null, '', '/workflows/lab?mode=xml');
-    api.jsonRequest.mockImplementation(async (url: string, init?: RequestInit) => {
+    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => {
       if (init?.method) return { valid: true };
       if (url === '/api/trading') return { signalContracts: [{ name: 'Signal contract', versions: [{ id: 'published', version: 3, status: 'published', definition: { shape: 'fixture' } }, { id: 'draft', status: 'draft' }] }] };
       return metadata;
@@ -146,7 +146,7 @@ describe('test laboratory boundaries', () => {
 
   it('pins a paid parser run to the reviewed preview and invalidates consent after source edits', async () => {
     window.history.replaceState(null, '', '/workflows/lab?mode=ai');
-    api.jsonRequest.mockImplementation(async (url: string, init?: RequestInit) => {
+    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => {
       if (url.endsWith('/preview')) return { provider: 'Fixture provider', providerConfigured: true, externalDataPolicyAccepted: true, previewHash: 'reviewed-preview', observedAt, sourceChars: 6, sourceBytes: 6 };
       if (init?.method) return { job: { state: 'accepted' } };
       return metadata;

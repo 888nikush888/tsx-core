@@ -23,7 +23,7 @@ describe("dashboard authentication gate", () => {
   afterEach(() => cleanup())
 
   it("accepts an authenticated reverse-proxy identity without asking for a bearer token", async () => {
-    api.apiFetch.mockImplementation(async (path: string) => {
+    api.apiFetch.mockImplementation((path: string) => {
       if (path === "/api/bootstrap/status") {
         return new Response(JSON.stringify({
           required: false,

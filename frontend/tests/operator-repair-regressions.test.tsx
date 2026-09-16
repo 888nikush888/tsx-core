@@ -27,7 +27,7 @@ describe('recovery repair revision contracts', () => {
     ['runtime-settings', 'Runtime speichern', '8'],
     ['secrets', 'Secrets speichern', undefined],
   ] as const)('pins %s repairs to the applicable observed revision', async (kind, button, expectedRevision) => {
-    api.jsonRequest.mockImplementation(async (url: string) => repairResponse(url));
+    api.jsonRequest.mockImplementation((url: string) => repairResponse(url));
     mount(<RecoveryPage />);
     const control = await screen.findByRole('button', { name: button });
     if (kind === 'secrets') {
@@ -65,7 +65,7 @@ describe('recovery repair revision contracts', () => {
   });
 
   it('shows completed recovery without inferring trading approval and keeps unavailable repairs disabled', async () => {
-    api.jsonRequest.mockImplementation(async (url: string) => url === '/api/recovery'
+    api.jsonRequest.mockImplementation((url: string) => url === '/api/recovery'
       ? { active: false, session: { role: 'viewer' }, availableRepairs: [] } : repairResponse(url));
     mount(<RecoveryPage />);
     expect(await screen.findByText(/Recovery beendet; Betriebsfreigaben separat prüfen/)).toBeVisible();
@@ -77,7 +77,7 @@ describe('recovery repair revision contracts', () => {
 
 describe('Telegram login contracts', () => {
   function loginResponse(prompt: Record<string, unknown>) {
-    return async (url: string) => {
+    return (url: string) => {
       if (url === '/api/status') return { connectionState: 'authentication-required', telegramLogin: { state: 'waiting', prompt } };
       if (url === '/api/secrets') return { secrets: { telegramApiHash: { configured: true }, openRouterApiKey: { configured: false } } };
       return { configRevision: 1 };
@@ -120,7 +120,7 @@ describe('Telegram login contracts', () => {
 
   it.each(['password', 'code'])('preserves an unconfirmed %s submission for explicit follow-up', async kind => {
     const read = loginResponse({ kind, label: 'Login response' });
-    api.jsonRequest.mockImplementation(async (url: string, init?: RequestInit) => {
+    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => {
       if (init?.method) throw new Error('Login response unavailable');
       return read(url);
     });
@@ -150,7 +150,7 @@ describe('model library draft references', () => {
 
   it('attaches the reviewed model as a draft without activating a graph or bypassing reference locks', async () => {
     const data = { model: { name: 'Contract model', status: 'published' }, reviewHash: 'reviewed-model-hash', resources: [], resourceCount: 1, activeReferenceCount: 1 };
-    api.jsonRequest.mockImplementation(async (_url: string, init?: RequestInit) => init?.method
+    api.jsonRequest.mockImplementation((_url: string, init?: RequestInit) => init?.method
       ? { action: 'attach', resource: { id: 'draft/2', resourceId: 'family/2' } } : data);
     mount(<ModelLibrary kind="contract" id="model/1" />);
     const attach = await screen.findByRole('button', { name: 'Als Ressourcenentwurf übernehmen' });

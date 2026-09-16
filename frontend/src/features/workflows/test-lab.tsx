@@ -22,7 +22,7 @@ export function TestLab() {
   const readContracts = useCallback((signal: AbortSignal) => mode === 'xml' ? jsonRequest('/api/trading', { signal }) : Promise.resolve(null), [mode]);
   usePoll(readContracts, value => { if (value) setContracts((value.signalContracts ?? []).flatMap((contract: any) => (contract.versions ?? []).filter((version: any) => version.status === 'published').map((version: any) => ({ ...version, name: contract.name })))); }, reason => setError(reason.message), 30_000);
   const invalidate = () => { setPreview(null); setConsent(false); setResult(null); };
-  const send = async (endpoint: string, body: unknown, headers: Record<string, string> = {}) => jsonRequest(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+  const send = (endpoint: string, body: unknown, headers: Record<string, string> = {}) => jsonRequest(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
   const action = async (kind: 'filter' | 'xml' | 'preview' | 'run') => {
     if (readOnly || busy) return;
     setBusy(true); setError(''); setResult(null);

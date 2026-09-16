@@ -38,7 +38,7 @@ export function SignalsPage({ kind, readOnly = true }: Readonly<{ kind: "ingress
       await mutateAndObserve(() => jsonRequest(`/api/outbox/${action}`, {
         method: "POST", headers: { "Content-Type": "application/json", "X-Destructive-Confirmation": action === "retry" ? "retry-unknown-delivery" : "acknowledge-unknown-delivery" },
         body: JSON.stringify({ id: task.id, ...(action === "acknowledge" ? { reason: answer } : {}) }),
-      }), () => setMessage(action === "retry" ? "Wiederholung angenommen; tatsächlichen Versandstatus weiter beobachten." : "Operatorquittierung bestätigt. Keine bestätigte Zustellung daraus ableiten."), async () => { setRefresh((value) => value + 1); });
+      }), () => setMessage(action === "retry" ? "Wiederholung angenommen; tatsächlichen Versandstatus weiter beobachten." : "Operatorquittierung bestätigt. Keine bestätigte Zustellung daraus ableiten."), () => { setRefresh((value) => value + 1); });
     } catch (reason) { setError(`Aktion nicht bestätigt; keine automatische Wiederholung: ${reason instanceof Error ? reason.message : String(reason)}`); }
     finally { setBusy(""); }
   };

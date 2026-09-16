@@ -10,7 +10,7 @@ import { useOperatorReadOnly } from "@/shared/api/operator-session";
 import { AccountFilter } from '@/features/accounts/account-filter';
 
 const FILTER_KEYS = ["from", "to", "channelId", "accountId", "symbol", "status", "reviewed"] as const;
-export function JournalPage({ trading, onRefresh }: Readonly<{ trading: TradingSnapshot | null; onRefresh: () => Promise<void> }>) {
+export function JournalPage({ trading, onRefresh }: Readonly<{ trading: TradingSnapshot | null; onRefresh: () => void | Promise<void> }>) {
   const readOnly = useOperatorReadOnly();
   const [params, setParams] = useSearchParams();
   const filters = Object.fromEntries(FILTER_KEYS.map((key) => [key, params.get(key) ?? ""])) as Record<typeof FILTER_KEYS[number], string>;

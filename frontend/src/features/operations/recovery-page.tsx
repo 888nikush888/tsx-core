@@ -29,7 +29,7 @@ export function RecoveryPage() {
   const readStatus = useCallback((signal: AbortSignal) => jsonRequest("/api/recovery", { signal }), []);
   usePoll(readStatus, (value) => { setStatus(value); setErrors((previous) => ({ ...previous, status: "" })); },
     (error) => setErrors((previous) => ({ ...previous, status: error.message })), 3_000);
-  const readRepairs = useCallback(async (signal: AbortSignal) => Promise.all(['config', 'runtime-settings', 'secrets'].map(async name => {
+  const readRepairs = useCallback((signal: AbortSignal) => Promise.all(['config', 'runtime-settings', 'secrets'].map(async name => {
     try { return { name, value: await jsonRequest(`/api/${name}`, { signal }), error: '' }; }
     catch (reason) { return { name, value: null, error: reason instanceof Error ? reason.message : String(reason) }; }
   })), []);

@@ -35,7 +35,7 @@ describe("WorkspaceStatusbar rendering", () => {
     expect(screen.getByText("MCP")).toBeInTheDocument();
   });
 
-  it("renders analytics fallback and triggers refresh", async () => {
+  it("renders analytics fallback and triggers refresh", () => {
     const onRefresh = vi.fn(() => Promise.resolve());
     const { container } = render(
       <WorkspaceStatusbar workspace="analytics" onRefresh={onRefresh} trading={null} systemStatus={null} refreshing lastUpdated={null} />,

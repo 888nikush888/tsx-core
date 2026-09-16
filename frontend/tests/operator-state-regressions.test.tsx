@@ -32,7 +32,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   Object.defineProperty(document, 'hidden', { configurable: true, value: false });
   window.history.replaceState(null, '', '/');
-  api.jsonRequest.mockImplementation(async (url: string) => {
+  api.jsonRequest.mockImplementation((url: string) => {
     if (url === '/api/operations') return { operations: { backup: { healthy: false }, audit: { healthy: false } } };
     if (url === '/api/access') return { role: 'admin', remoteAccess: { connected: false } };
     return {};
@@ -58,7 +58,7 @@ describe('account command intent and status evidence', () => {
   });
 
   it('retains accepted verification when refreshing fails, without repeating the command', async () => {
-    mount(<Accounts trading={trading()} catalog={catalog} onRefresh={async () => { throw new Error('Observation unavailable'); }} />);
+    mount(<Accounts trading={trading()} catalog={catalog} onRefresh={() => { throw new Error('Observation unavailable'); }} />);
     fireEvent.click(screen.getByRole('button', { name: 'Verifizieren' }));
     expect(await screen.findByText(/Command bestätigt.*Nachladen fehlgeschlagen: Observation unavailable/)).toBeVisible();
     expect(writes()).toHaveLength(1);

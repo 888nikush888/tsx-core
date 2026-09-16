@@ -31,8 +31,8 @@ describe("UI Next correctness boundaries", () => {
 
   it("adopts the one-time token before observing and retains success when observation fails", async () => {
     setDashboardToken("old");
-    const operation = vi.fn(async () => ({ token: "new", requestId: "operation-1" }));
-    const outcome = await mutateAndObserve(operation, ({ token }) => setDashboardToken(token), async () => {
+    const operation = vi.fn(() => ({ token: "new", requestId: "operation-1" }));
+    const outcome = await mutateAndObserve(operation, ({ token }) => setDashboardToken(token), () => {
       expect(getDashboardToken()).toBe("new");
       throw new Error("unavailable");
     });
@@ -55,7 +55,7 @@ describe("UI Next correctness boundaries", () => {
   });
 
   it("never retries an unknown write outcome", async () => {
-    const operation = vi.fn(async () => { throw new TypeError("transport lost"); });
+    const operation = vi.fn(() => { throw new TypeError("transport lost"); });
     const accepted = vi.fn();
     const observe = vi.fn();
     await expect(mutateAndObserve(operation, accepted, observe)).rejects.toThrow("transport lost");
@@ -101,8 +101,8 @@ describe("UI Next correctness boundaries", () => {
     const accept = vi.fn();
     const reject = vi.fn();
     const { rerender } = renderHook(({ read }) => usePoll(read, accept, reject), { initialProps: { read: readOld } });
-    rerender({ read: async () => "current" });
-    await act(async () => { resolveOld("obsolete"); });
+    rerender({ read: () => "current" });
+    await act(() => { resolveOld("obsolete"); });
     expect(signalOld.aborted).toBe(true);
     expect(accept.mock.calls).toEqual([["current"]]);
   });

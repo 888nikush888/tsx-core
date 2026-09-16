@@ -47,7 +47,7 @@ type OperationsWorkspaceProps = {
   trading: TradingSnapshot | null;
   catalog: ExchangeCatalog | null;
   systemStatus: Record<string, any> | null;
-  onRefresh: () => Promise<void>;
+  onRefresh: () => void | Promise<void>;
   initialTab?: OperationTab;
   availableTabs?: OperationTab[];
   ariaLabel?: string;

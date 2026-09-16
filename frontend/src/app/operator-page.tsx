@@ -29,7 +29,7 @@ type PageProps = {
   trading: TradingSnapshot | null;
   catalog: ExchangeCatalog | null;
   status: Record<string, any> | null;
-  onRefresh: () => Promise<void>;
+  onRefresh: () => void | Promise<void>;
   areaLabel?: string;
 };
 function decodeId(value: string) {

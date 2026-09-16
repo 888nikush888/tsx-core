@@ -32,7 +32,7 @@ export function Accounts({
 }: Readonly<{
   trading: AccountManagementSnapshot | null;
   catalog: ExchangeCatalog | null;
-  onRefresh: () => Promise<void>;
+  onRefresh: () => void | Promise<void>;
 }>) {
   const readOnly = useOperatorReadOnly();
   const [creating, setCreating] = useState(false);
