@@ -3653,8 +3653,8 @@ export class OutboxMessageIdsError extends Error {
 
 function isSafeOutboxMessageIds(value: unknown): value is number[] {
   if (!Array.isArray(value) || value.length === 0) return false;
-  for (let index = 0; index < value.length; index++) {
-    if (!Number.isSafeInteger(value[index])) return false;
+  for (const item of value) {
+    if (!Number.isSafeInteger(item)) return false;
   }
   return true;
 }

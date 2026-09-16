@@ -89,7 +89,7 @@ export function System({
     key: string,
     operation: () => Promise<any>,
     success: string,
-    accepted: (result: any) => void = () => undefined,
+    accepted: (result: any) => void = (_result: any) => undefined,
   ) => {
     setBusy(key);
     setMessage("");

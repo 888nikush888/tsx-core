@@ -1300,7 +1300,7 @@ function ContractForm({
           <p className="builder-info">Keine zusätzlichen Felder definiert.</p>
         ) : (
           <div className="contract-additional-list">
-            {value.additionalFields.map((field, index) => {
+            {listEntries(value.additionalFields, field => field.path).map(({ item: field, key }, index) => {
               const update = (changes: Partial<typeof field>) =>
                 onChange({
                   ...value,
@@ -1309,7 +1309,7 @@ function ContractForm({
                   ),
                 });
               return (
-                <div className="contract-additional-field" key={`${index}-${field.path}`}>
+                <div className="contract-additional-field" key={key}>
                   <div className="builder-field-grid three">
                     <Field label="Pfad">
                       <input
