@@ -25,6 +25,35 @@ function values(kind: 'market' | 'balance', row: PaperRecord | null | undefined)
   const fields = kind === 'market' ? Object.keys(EMPTY_MARKET) : ['equity', 'availableBalance'];
   return Object.fromEntries(fields.map(key => [key, row?.[key as keyof (MarketDraft & BalanceDraft)] ?? (kind === 'market' ? (EMPTY_MARKET as Partial<Record<string, string | number>>)[key] : '')])) as EditorValues;
 }
+function PaperEditorFields({ kind, record, form, readOnly, busy, save }: Readonly<{
+  kind: 'market' | 'balance'; record: PaperRecord | null; form: ReturnType<typeof useVersionedDraft<EditorValues>>;
+  readOnly: boolean; busy: boolean; save: () => void | Promise<void>;
+}>) {
+  return (
+    <fieldset disabled={readOnly || busy || Boolean(record && !record.revision) || (kind === 'balance' && !record)}><div className="builder-field-grid">
+      {kind === 'market' ? <><label>Symbol<input readOnly={Boolean(record)} value={(form.draft as MarketDraft).symbol} onChange={event => form.setDraft({ ...form.draft, symbol: event.target.value })} placeholder="Beispiel: BTCUSDT" /></label>{MARKET_FIELDS.map(([key, label]) => <label key={key}>{label}<input inputMode="decimal" value={(form.draft as MarketDraft)[key]} onChange={event => form.setDraft({ ...form.draft, [key]: event.target.value })} /></label>)}<label>Maximaler Hebel<input type="number" min={1} max={125} step={1} value={(form.draft as MarketDraft).maxLeverage} onChange={event => form.setDraft({ ...form.draft, maxLeverage: Number(event.target.value) })} /></label></>
+        : <><label>Basis-Eigenkapital ({record?.reportingCurrency ?? 'Währung unbekannt'})<input inputMode="decimal" value={(form.draft as BalanceDraft).equity} onChange={event => form.setDraft({ ...form.draft, equity: event.target.value })} /></label><label>Verfügbarer Basisbestand ({record?.reportingCurrency ?? 'Währung unbekannt'})<input inputMode="decimal" value={(form.draft as BalanceDraft).availableBalance} onChange={event => form.setDraft({ ...form.draft, availableBalance: event.target.value })} /></label></>}
+    </div><button className="primary-button" disabled={form.conflict} onClick={() => { save(); }}>{kind === 'market' ? 'Paper-Markt speichern' : 'Paper-Bestand setzen'}</button></fieldset>
+  );
+}
+
+function PaperBalanceEvidence({ kind, record }: Readonly<{ kind: 'market' | 'balance'; record: PaperRecord | null }>) {
+  if (kind !== 'balance') return null;
+  return (
+    <>
+      <p>Quelle: {record?.source ?? 'unbekannt'} · Währung: {record?.reportingCurrency ?? 'unbekannt'}. Die gespeicherten Basisbestände enthalten keine zusätzliche Marktbewertung offener Positionen.</p><EvidenceFields fields={[["Beobachtete Revision", record?.revision], ["Basis-Eigenkapital", record?.equity], ["Verfügbarer Basisbestand", record?.availableBalance], ["Stand (Unix ms)", record?.updatedAt]]} />
+    </>
+  );
+}
+
+function PaperReceipt({ receipt }: Readonly<{ receipt: SaveReceipt | null }>) {
+  return (
+    <>
+    {receipt && (receipt.after ? <ChangeReview {...receipt} label="Bestätigte Paper-Normalisierung" /> : <p><output>Änderung angenommen; bestätigte Werte fehlen im Antwortvertrag. Aktuellen Stand vor einem weiteren Schreibvorgang prüfen.</output></p>)}
+    </>
+  );
+}
+
 function PaperEditor({ kind, account, record, readOnly, accepted, refresh, onState }: Readonly<{ kind: 'market' | 'balance'; account: PaperAccount; record: PaperRecord | null; readOnly: boolean; accepted: (result: PaperResult | null | undefined, kind: 'market' | 'balance') => void; refresh: () => Promise<void>; onState: (kind: string, dirty: boolean, busy: boolean) => void }>) {
   const form = useVersionedDraft(`${kind}:${account.id}:${record?.symbol ?? 'new'}`, values(kind, record), record?.revision ?? null, values(kind, null));
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [receipt, setReceipt] = useState<SaveReceipt | null>(null);
@@ -50,19 +79,13 @@ function PaperEditor({ kind, account, record, readOnly, accepted, refresh, onSta
     } catch (reason) { setError(`Änderung nicht bestätigt. Keine automatische Wiederholung: ${reason instanceof Error ? reason.message : String(reason)}`); }
     finally { setBusy(false); }
   };
-  const editorFieldset = (
-    <fieldset disabled={readOnly || busy || Boolean(record && !record.revision) || (kind === 'balance' && !record)}><div className="builder-field-grid">
-      {kind === 'market' ? <><label>Symbol<input readOnly={Boolean(record)} value={(form.draft as MarketDraft).symbol} onChange={event => form.setDraft({ ...form.draft, symbol: event.target.value })} placeholder="Beispiel: BTCUSDT" /></label>{MARKET_FIELDS.map(([key, label]) => <label key={key}>{label}<input inputMode="decimal" value={(form.draft as MarketDraft)[key]} onChange={event => form.setDraft({ ...form.draft, [key]: event.target.value })} /></label>)}<label>Maximaler Hebel<input type="number" min={1} max={125} step={1} value={(form.draft as MarketDraft).maxLeverage} onChange={event => form.setDraft({ ...form.draft, maxLeverage: Number(event.target.value) })} /></label></>
-        : <><label>Basis-Eigenkapital ({record?.reportingCurrency ?? 'Währung unbekannt'})<input inputMode="decimal" value={(form.draft as BalanceDraft).equity} onChange={event => form.setDraft({ ...form.draft, equity: event.target.value })} /></label><label>Verfügbarer Basisbestand ({record?.reportingCurrency ?? 'Währung unbekannt'})<input inputMode="decimal" value={(form.draft as BalanceDraft).availableBalance} onChange={event => form.setDraft({ ...form.draft, availableBalance: event.target.value })} /></label></>}
-    </div><button className="primary-button" disabled={form.conflict} onClick={() => { save(); }}>{kind === 'market' ? 'Paper-Markt speichern' : 'Paper-Bestand setzen'}</button></fieldset>
-  );
 
   return <section className="operations-card system-form">{confirmationDialog}<h2>{kind === 'market' ? 'Simulierten Markt bearbeiten' : 'Simulierten Basisbestand setzen'}</h2>
     {error && <p role="alert">{error}</p>}<DraftState label={kind === 'market' ? 'Paper-Markt' : 'Paper-Bestand'} form={form} server={values(kind, record)} />
-    {kind === 'balance' && <><p>Quelle: {record?.source ?? 'unbekannt'} · Währung: {record?.reportingCurrency ?? 'unbekannt'}. Die gespeicherten Basisbestände enthalten keine zusätzliche Marktbewertung offener Positionen.</p><EvidenceFields fields={[["Beobachtete Revision", record?.revision], ["Basis-Eigenkapital", record?.equity], ["Verfügbarer Basisbestand", record?.availableBalance], ["Stand (Unix ms)", record?.updatedAt]]} /></>}
-    {editorFieldset}
+    <PaperBalanceEvidence kind={kind} record={record} />
+    <PaperEditorFields kind={kind} record={record} form={form} readOnly={readOnly} busy={busy} save={save} />
     {record && !record.revision && <p role="alert">Versionsvertrag fehlt. Eine kompatible Serverversion ist zum Bearbeiten erforderlich.</p>}
-    {receipt && (receipt.after ? <ChangeReview {...receipt} label="Bestätigte Paper-Normalisierung" /> : <p><output>Änderung angenommen; bestätigte Werte fehlen im Antwortvertrag. Aktuellen Stand vor einem weiteren Schreibvorgang prüfen.</output></p>)}
+    <PaperReceipt receipt={receipt} />
   </section>;
 }
 export function PaperLab({ readOnly = true }: Readonly<{ readOnly?: boolean }>) {

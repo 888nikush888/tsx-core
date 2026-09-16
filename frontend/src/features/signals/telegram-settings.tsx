@@ -196,6 +196,22 @@ function SecretsSection({ readOnly, busy, secrets, secretInput, setSecretInput, 
   );
 }
 
+function telegramLimitsError(config: TelegramConfig, forward: TelegramForwardOptions, dupe: TelegramDupeBlocker, xml: TelegramXmlParsing) {
+  if (!Number.isSafeInteger(config.apiId) || (config.apiId as number) < 0 || !Number.isSafeInteger(forward.maxConcurrency) || (forward.maxConcurrency as number) < 1 || (forward.maxConcurrency as number) > 100 || !Number.isSafeInteger(forward.queueTimeoutSeconds) || (forward.queueTimeoutSeconds as number) < 0 || (forward.queueTimeoutSeconds as number) > 86400 || !Number.isFinite(dupe.cooldownHours) || (dupe.cooldownHours as number) < 0 || (xml.timeout !== undefined && (!Number.isSafeInteger(xml.timeout) || (xml.timeout as number) < 0))) {
+    return 'API ID, Queue und Legacy-Zeitlimits müssen innerhalb der angezeigten Grenzen liegen.';
+  }
+  return null;
+}
+
+function telegramAiLimitsError(xml: TelegramXmlParsing) {
+  for (const [key, [minimum, maximum]] of Object.entries(AI_LIMIT_RANGES)) {
+    if (!Number.isSafeInteger(xml.aiLimits?.[key]) || (xml.aiLimits?.[key] as number) < minimum || (xml.aiLimits?.[key] as number) > maximum) {
+      return `${key}: Ganzzahl zwischen ${minimum} und ${maximum} erforderlich.`;
+    }
+  }
+  return null;
+}
+
 export function TelegramSettings() {
   const readOnly = useOperatorReadOnly();
   const [server, setServer] = useState<TelegramServerConfig | null>(null); const [status, setStatus] = useState<TelegramStatus | null>(null); const [secrets, setSecrets] = useState<TelegramSecrets | null>(null);
@@ -226,12 +242,10 @@ export function TelegramSettings() {
   };
   const save = async () => {
     if (!form.baseRevision || form.conflict) return;
-    if (!Number.isSafeInteger(config.apiId) || (config.apiId as number) < 0 || !Number.isSafeInteger(forward.maxConcurrency) || (forward.maxConcurrency as number) < 1 || (forward.maxConcurrency as number) > 100 || !Number.isSafeInteger(forward.queueTimeoutSeconds) || (forward.queueTimeoutSeconds as number) < 0 || (forward.queueTimeoutSeconds as number) > 86400 || !Number.isFinite(dupe.cooldownHours) || (dupe.cooldownHours as number) < 0 || (xml.timeout !== undefined && (!Number.isSafeInteger(xml.timeout) || (xml.timeout as number) < 0))) {
-      setMessage('API ID, Queue und Legacy-Zeitlimits müssen innerhalb der angezeigten Grenzen liegen.'); return;
-    }
-    for (const [key, [minimum, maximum]] of Object.entries(AI_LIMIT_RANGES)) {
-      if (!Number.isSafeInteger(xml.aiLimits?.[key]) || (xml.aiLimits?.[key] as number) < minimum || (xml.aiLimits?.[key] as number) > maximum) { setMessage(`${key}: Ganzzahl zwischen ${minimum} und ${maximum} erforderlich.`); return; }
-    }
+    const limitsError = telegramLimitsError(config, forward, dupe, xml);
+    if (limitsError) { setMessage(limitsError); return; }
+    const aiError = telegramAiLimitsError(xml);
+    if (aiError) { setMessage(aiError); return; }
     const desired = configValues(config);
     await command('/api/config', desired, result => {
       const saved = configValues(result.configuration as Record<string, unknown>);

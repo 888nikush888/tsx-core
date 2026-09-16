@@ -2185,6 +2185,30 @@ function DestructiveConfirmations({ archiveConfirmation, setArchiveConfirmation,
   );
 }
 
+function initialStrategyState(trading: ResourceEditorProps['trading'], nextConfiguration: Record<string, unknown>) {
+  const selected = trading?.strategies.find((item) => item.id === nextConfiguration.strategyVersionId);
+  return { draft: selected ? structuredClone(selected.configuration) : defaultStrategyConfiguration(trading), touched: !selected };
+}
+
+function initialContractState(trading: ResourceEditorProps['trading'], nextConfiguration: Record<string, unknown>) {
+  const parent = trading?.signalContracts.find((contract) => contract.versions.some((version) => version.id === nextConfiguration.contractVersionId));
+  const selected = parent?.versions.find((item) => item.id === nextConfiguration.contractVersionId);
+  return { parentId: parent?.id || "new-contract", definitionSha256: selected?.definitionSha256, draft: selected ? structuredClone(selected.definition) : defaultContractDefinition(), touched: !selected };
+}
+
+function initialSchemaDraft(trading: ResourceEditorProps['trading'], nextConfiguration: Record<string, unknown>) {
+  const selected = trading?.signalSchemas.find((item) => item.id === nextConfiguration.schemaId);
+  return signalSchemaDraft(selected);
+}
+
+function initialKindDrafts(kind: ResourceEditorProps['kind'], trading: ResourceEditorProps['trading'], nextConfiguration: Record<string, unknown>) {
+  return {
+    strategy: kind === "strategy" ? initialStrategyState(trading, nextConfiguration) : null,
+    contract: kind === "contract" ? initialContractState(trading, nextConfiguration) : null,
+    schema: kind === "schema" ? initialSchemaDraft(trading, nextConfiguration) : null,
+  };
+}
+
 export function ResourceEditor({
   draftOnly = false,
   open,
@@ -2245,47 +2269,14 @@ export function ResourceEditor({
     );
     const nextConfiguration =
       resource?.configuration || defaultConfiguration(kind, trading);
-    if (kind === "strategy") {
-      const selected = trading?.strategies.find(
-        (item) => item.id === nextConfiguration.strategyVersionId,
-      );
-      setStrategyDraft(
-        selected
-          ? structuredClone(selected.configuration)
-          : defaultStrategyConfiguration(trading),
-      );
-      setStrategyTouched(!selected);
-    } else if (kind === "contract") {
-      const parent = trading?.signalContracts.find((contract) =>
-        contract.versions.some(
-          (version) => version.id === nextConfiguration.contractVersionId,
-        ),
-      );
-      const selected = parent?.versions.find(
-        (item) => item.id === nextConfiguration.contractVersionId,
-      );
-      baseDefinitionSha256.current = selected?.definitionSha256;
-      setContractDraft(
-        selected
-          ? structuredClone(selected.definition)
-          : defaultContractDefinition(),
-      );
-      setContractId(parent?.id || "new-contract");
-      setContractTouched(!selected);
-    }
-    if (kind !== "strategy") setStrategyDraft(null);
-    if (kind !== "contract") setContractDraft(null);
-    if (kind !== "strategy") setStrategyTouched(false);
-    if (kind !== "contract") {
-      setContractTouched(false);
-      setContractId("new-contract");
-    }
-    if (kind === "schema") {
-      const selected = trading?.signalSchemas.find(
-        (item) => item.id === nextConfiguration.schemaId,
-      );
-      setSchemaDraft(signalSchemaDraft(selected));
-    } else setSchemaDraft(null);
+    const drafts = initialKindDrafts(kind, trading, nextConfiguration);
+    setStrategyDraft(drafts.strategy?.draft ?? null);
+    setStrategyTouched(drafts.strategy?.touched ?? false);
+    if (drafts.contract) baseDefinitionSha256.current = drafts.contract.definitionSha256;
+    setContractDraft(drafts.contract?.draft ?? null);
+    setContractId(drafts.contract?.parentId ?? "new-contract");
+    setContractTouched(drafts.contract?.touched ?? false);
+    setSchemaDraft(drafts.schema);
     setTemplateContent(
       parserPrompt(kind, nextConfiguration),
     );

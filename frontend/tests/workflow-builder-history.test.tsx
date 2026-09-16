@@ -92,16 +92,18 @@ function submittedBody(url: string) {
 function installApi(options?: { historyFails?: boolean; applyConflict?: boolean }) {
   let workflowLoads = 0;
   let pendingResource: Record<string, unknown> | null = null;
-  api.apiFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
-    const url = String(input);
-    if (url === "/api/workflow") {
+  const routes: Array<(url: string, init: RequestInit | undefined) => Response | null> = [
+    (url) => {
+      if (url !== "/api/workflow") return null;
       workflowLoads += 1;
       return response({ workflow, resources });
-    }
-    if (url === "/api/workflow/resources" && init?.method === "DELETE") {
+    },
+    (url, init) => {
+      if (url !== "/api/workflow/resources" || init?.method !== "DELETE") return null;
       return response({ success: true, result: { deleted: 1 } });
-    }
-    if (url === "/api/workflow/resources" && init?.method === "POST") {
+    },
+    (url, init) => {
+      if (url !== "/api/workflow/resources" || init?.method !== "POST") return null;
       const body = JSON.parse(String(init.body));
       pendingResource = {
         id: `${body.resourceId || "new-resource"}-v2`,
@@ -114,30 +116,39 @@ function installApi(options?: { historyFails?: boolean; applyConflict?: boolean 
         configuration: body.configuration,
       };
       return response({ resource: pendingResource }, 201);
-    }
-    if (url === "/api/workflow/resources/publish") {
+    },
+    (url) => {
+      if (url !== "/api/workflow/resources/publish") return null;
       pendingResource = { ...pendingResource, status: "published" };
       return response({ resource: pendingResource });
-    }
-    if (url === "/api/workflow/impact") {
+    },
+    (url) => {
+      if (url !== "/api/workflow/impact") return null;
       return response({ impact: { destructive: false, changed: [], removed: [], confirmation: null } });
-    }
-    if (url === "/api/workflow/mutate") {
+    },
+    (url, init) => {
+      if (url !== "/api/workflow/mutate") return null;
       const body = JSON.parse(String(init?.body));
       return response({
         workflow: { ...workflow, id: "revision-2", revision: 2, graph: body.graph },
         history,
       }, 201);
-    }
-    if (url === "/api/workflow/history") {
+    },
+    (url) => {
+      if (url !== "/api/workflow/history") return null;
       if (options?.historyFails) return response({ error: "history unavailable" }, 503);
       return response(history);
-    }
-    if (["/api/trading", "/api/status", "/api/exchanges/catalog"].includes(url)) return response({});
-    if (url === "/api/workflow/history/impact") {
+    },
+    (url) => {
+      if (!["/api/trading", "/api/status", "/api/exchanges/catalog"].includes(url)) return null;
+      return response({});
+    },
+    (url) => {
+      if (url !== "/api/workflow/history/impact") return null;
       return response({ impact: { destructive: false, changed: [], removed: [], confirmation: null } });
-    }
-    if (url === "/api/workflow/history/apply") {
+    },
+    (url, init) => {
+      if (url !== "/api/workflow/history/apply") return null;
       if (options?.applyConflict) return response({ error: "WORKFLOW_REVISION_CONFLICT" }, 409);
       const direction = JSON.parse(String(init?.body)).direction;
       return response({
@@ -150,6 +161,13 @@ function installApi(options?: { historyFails?: boolean; applyConflict?: boolean 
         },
         history: { ...history, undoCount: 0, redoCount: 1, canUndo: false, redoLabel: "Verbindung entfernt" },
       });
+    },
+  ];
+  api.apiFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    for (const route of routes) {
+      const handled = route(url, init);
+      if (handled) return handled;
     }
     return response({});
   });

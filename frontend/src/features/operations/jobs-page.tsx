@@ -66,6 +66,48 @@ function JobResult({ job }: Readonly<{ job: JobEvidence }>) {
   return null;
 }
 
+function JobsNotices({ id, error }: Readonly<{ id?: string; error: string }>) {
+  return (
+    <>
+    {id && <Link to="/operations/jobs">Alle Aufträge</Link>}{error && <p role="alert">{error} · Letzte Anzeige möglicherweise veraltet; kein Abschlussbeleg.</p>}
+    </>
+  );
+}
+
+function JobsFilterSection({ params, filter, setParams }: Readonly<{
+  params: URLSearchParams; filter: (key: string, item: string) => void; setParams: (next: URLSearchParams) => void;
+}>) {
+  return (
+        <section className="operations-card system-form"><label>Zustand<select value={params.get('state') ?? ''} onChange={event => filter('state', event.target.value)}><option value="">Alle</option>{Object.entries(JOB_STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button onClick={() => setParams(new URLSearchParams())}>Filter zurücksetzen</button></section>
+  );
+}
+
+function JobDetailSection({ job }: Readonly<{ job: JobEvidence }>) {
+  return (
+    <section className="operations-card"><h2>{JOB_STATES[job.state] ?? job.state}</h2><EvidenceFields fields={[
+      ['Auftrag', job.id], ['Aktion', job.kind], ['Verantwortlich', job.actorId], ['Angenommen', new Date(job.acceptedAt).toLocaleString('de-DE')], ['Letzter Nachweis', new Date(job.updatedAt).toLocaleString('de-DE')], ['Teilschritt', job.stage], ['Fehler', job.error],
+      ...Object.entries(job.scope ?? {}).map(([key, entry]) => [`Scope · ${key}`, String(entry)] as [string, string]),
+    ]} /><p>Ein neuer Prozess belegt den Wiederanlauf. Betriebsbereitschaft, Kontoprüfung und Entry-Freigaben müssen danach separat im <Link to="/cockpit">Cockpit</Link> geprüft werden.</p>
+      {job.result?.artifactName && <Link to={`/operations/backups/${encodeURIComponent(job.result.artifactName)}`}>Bestätigtes Artefakt prüfen</Link>}
+      <JobResult job={job} />
+      {job.result != null && <details><summary>Technische Prüfbelege</summary><pre className="whitespace-pre-wrap break-all text-sm">{JSON.stringify(job.result, null, 2)}</pre></details>}
+    </section>
+  );
+}
+
+function JobsListSection({ current, id, params, filter, setParams }: Readonly<{
+  current: JobsResponse; id?: string; params: URLSearchParams; filter: (key: string, item: string) => void;
+  setParams: (next: URLSearchParams | ((previous: URLSearchParams) => URLSearchParams)) => void;
+}>) {
+  if (id || !('jobs' in current)) return null;
+  return (
+    <>
+    <EvidenceTable caption={`Aufträge · Beobachtung ${new Date(current.statesObservedAt ?? current.observedAt).toLocaleString('de-DE')}`} rows={current.jobs.map((entry) => ({ ...entry, link: <JobLink id={entry.id} />, stateLabel: JOB_STATES[entry.state] ?? entry.state, time: new Date(entry.updatedAt).toLocaleString('de-DE') }))} columns={[["link", "Auftrag"], ["kind", "Aktion"], ["stateLabel", "Zustand"], ["time", "Letzter Nachweis"]]} />
+      <p>Aufbewahrung: maximal 200 Aufträge; aktive Aufträge bleiben erhalten. Der Zustandsfilter verwendet den aktuellen Nachweis jeder Seite.</p><div className="system-actions"><button disabled={!params.has('cursor')} onClick={() => filter('cursor', '')}>Erste Seite</button><button disabled={!current.hasMore} onClick={() => { const nextCursor = current.nextCursor; if (nextCursor) setParams(previous => { previous.set('cursor', nextCursor); return previous; }); }}>Nächste Seite</button></div>
+    </>
+  );
+}
+
 export function JobsPage({ id }: Readonly<{ id?: string }>) {
   const [params, setParams] = useSearchParams(); const query = params.toString();
   const [value, setValue] = useState<JobsObservation | null>(null); const [error, setError] = useState('');
@@ -76,18 +118,10 @@ export function JobsPage({ id }: Readonly<{ id?: string }>) {
   const current = value?.context === context ? value.payload : null; const job = current && 'job' in current ? current.job : null;
   const filter = (key: string, item: string) => setParams(previous => { if (item) { previous.set(key, item); } else { previous.delete(key); } previous.delete('cursor'); return previous; }, { replace: true });
   return <div className="operations-stack"><h1>{id ? 'Wartungsauftrag' : 'Wartung & Aufträge'}</h1><p>Ein angenommener Auftrag ist noch kein Abschluss. Nach Verbindungsabbruch nur den Status lesen. Unbekannte Ergebnisse werden nicht automatisch erneut ausgeführt.</p>
-    {id && <Link to="/operations/jobs">Alle Aufträge</Link>}{error && <p role="alert">{error} · Letzte Anzeige möglicherweise veraltet; kein Abschlussbeleg.</p>}
-    {!id && <section className="operations-card system-form"><label>Zustand<select value={params.get('state') ?? ''} onChange={event => filter('state', event.target.value)}><option value="">Alle</option>{Object.entries(JOB_STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button onClick={() => setParams(new URLSearchParams())}>Filter zurücksetzen</button></section>}
-    {job && <section className="operations-card"><h2>{JOB_STATES[job.state] ?? job.state}</h2><EvidenceFields fields={[
-      ['Auftrag', job.id], ['Aktion', job.kind], ['Verantwortlich', job.actorId], ['Angenommen', new Date(job.acceptedAt).toLocaleString('de-DE')], ['Letzter Nachweis', new Date(job.updatedAt).toLocaleString('de-DE')], ['Teilschritt', job.stage], ['Fehler', job.error],
-      ...Object.entries(job.scope ?? {}).map(([key, entry]) => [`Scope · ${key}`, String(entry)] as [string, string]),
-    ]} /><p>Ein neuer Prozess belegt den Wiederanlauf. Betriebsbereitschaft, Kontoprüfung und Entry-Freigaben müssen danach separat im <Link to="/cockpit">Cockpit</Link> geprüft werden.</p>
-      {job.result?.artifactName && <Link to={`/operations/backups/${encodeURIComponent(job.result.artifactName)}`}>Bestätigtes Artefakt prüfen</Link>}
-      <JobResult job={job} />
-      {job.result != null && <details><summary>Technische Prüfbelege</summary><pre className="whitespace-pre-wrap break-all text-sm">{JSON.stringify(job.result, null, 2)}</pre></details>}
-    </section>}
-    {current && !id && 'jobs' in current && <><EvidenceTable caption={`Aufträge · Beobachtung ${new Date(current.statesObservedAt ?? current.observedAt).toLocaleString('de-DE')}`} rows={current.jobs.map((entry) => ({ ...entry, link: <JobLink id={entry.id} />, stateLabel: JOB_STATES[entry.state] ?? entry.state, time: new Date(entry.updatedAt).toLocaleString('de-DE') }))} columns={[["link", "Auftrag"], ["kind", "Aktion"], ["stateLabel", "Zustand"], ["time", "Letzter Nachweis"]]} />
-      <p>Aufbewahrung: maximal 200 Aufträge; aktive Aufträge bleiben erhalten. Der Zustandsfilter verwendet den aktuellen Nachweis jeder Seite.</p><div className="system-actions"><button disabled={!params.has('cursor')} onClick={() => filter('cursor', '')}>Erste Seite</button><button disabled={!current.hasMore} onClick={() => { const nextCursor = current.nextCursor; if (nextCursor) setParams(previous => { previous.set('cursor', nextCursor); return previous; }); }}>Nächste Seite</button></div></>}
+    <JobsNotices id={id} error={error} />
+    {!id && <JobsFilterSection params={params} filter={filter} setParams={setParams} />}
+    {job && <JobDetailSection job={job} />}
+    {current && <JobsListSection current={current} id={id} params={params} filter={filter} setParams={setParams} />}
     {!current && <p><output>Nachweis wird geladen …</output></p>}
   </div>;
 }

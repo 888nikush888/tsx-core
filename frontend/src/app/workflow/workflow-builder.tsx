@@ -1409,6 +1409,10 @@ function hiddenCanvasStyle(embedded: boolean, tableView: boolean) {
   return embedded && tableView ? { display: "none" } : undefined;
 }
 
+function activationBaseRevision(embedded: boolean, draftBaseRevisionId: string | null | undefined, workflowId: string | null | undefined) {
+  return embedded ? draftBaseRevisionId ?? null : workflowId ?? null;
+}
+
 export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {}) {
   const readOnly = useOperatorReadOnly();
   const [draftMeta, setDraftMeta] = useState<WorkflowDraftMeta | null>(null);
@@ -1694,16 +1698,17 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
       if (readOnly) { setNotice({ tone: 'warning', text: 'Viewer: Workflowänderungen sind gesperrt.' }); return false; }
       setSaving(true);
       setNotice(null);
+    const persistEmbeddedDraft = async () => {
+      setGraph(candidate); setDraftUnsaved(true);
+      const saved = await persistGraphDraft(candidate, draftMetaRef.current);
+      draftMetaRef.current = saved.draft; setDraftMeta(saved.draft); setDraftUnsaved(false);
+      setNotice({ tone: 'ok', text: `${successMessage} · Graphentwurf ${saved.draft.version} gespeichert. Die aktive Revision wurde nicht geändert.` });
+      return true;
+    };
       try {
-        if (embedded && !activate) {
-          setGraph(candidate); setDraftUnsaved(true);
-          const saved = await persistGraphDraft(candidate, draftMetaRef.current);
-          draftMetaRef.current = saved.draft; setDraftMeta(saved.draft); setDraftUnsaved(false);
-          setNotice({ tone: 'ok', text: `${successMessage} · Graphentwurf ${saved.draft.version} gespeichert. Die aktive Revision wurde nicht geändert.` });
-          return true;
-        }
+      if (embedded && !activate) return await persistEmbeddedDraft();
         if (embedded) await requireCurrentGraphDraft(draftMetaRef.current?.version, draftUnsaved);
-        const baseRevisionId = embedded ? draftMetaRef.current?.baseRevisionId ?? null : snapshot.workflow?.id ?? null;
+      const baseRevisionId = activationBaseRevision(embedded, draftMetaRef.current?.baseRevisionId, snapshot.workflow?.id);
         const impactPayload = await jsonRequest("/api/workflow/impact", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1732,10 +1737,11 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
         }));
         setGraph(structuredClone(payload.workflow.graph));
         setHistory(builderHistoryStatus(payload.history));
-        if (embedded) {
-          const next = payload.draft ?? { ...draftMetaRef.current, baseRevisionId: payload.workflow.id };
-          draftMetaRef.current = next; setDraftMeta(next);
-        }
+      const applyEmbeddedDraft = () => {
+        const next = payload.draft ?? { ...draftMetaRef.current, baseRevisionId: payload.workflow.id };
+        draftMetaRef.current = next; setDraftMeta(next);
+      };
+      if (embedded) applyEmbeddedDraft();
         setNotice({
           tone: impact.destructive ? "warning" : "ok",
           text: `${successMessage} · Revision ${payload.workflow.revision} ist aktiv.`,

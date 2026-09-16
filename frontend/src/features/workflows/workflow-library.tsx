@@ -58,6 +58,37 @@ type Kind = 'resources' | 'paths' | 'revisions';
 export const resourceUrl = (resource: { resourceId: string; id: string }) => `/workflows/resources/${encodeURIComponent(resource.resourceId)}/versions/${encodeURIComponent(resource.id)}`;
 const TITLES: Record<Kind, string> = { resources: 'Ressourcenbibliothek', paths: 'Ausführungspfade', revisions: 'Workflowrevisionen' };
 
+function WorkflowLibraryFilters({ kind, params, change, setParams }: Readonly<{
+  kind: Kind; params: URLSearchParams; change: (name: string, value: string) => void; setParams: (next: URLSearchParams) => void;
+}>) {
+  return (
+    <div className="flex flex-wrap gap-4">{kind === 'resources' && <label>Bausteinart<select className="block border bg-background p-2" value={params.get('resourceKind') ?? ''} onChange={event => change('resourceKind', event.target.value)}><option value="">Alle 13 Arten</option>{WORKFLOW_KINDS.map(kind => <option key={kind} value={kind}>{KIND_META[kind].short}</option>)}</select></label>}
+      {kind !== 'paths' && <label>Versionsstatus<select className="block border bg-background p-2" value={params.get('status') ?? ''} onChange={event => change('status', event.target.value)}><option value="">Alle</option>{(kind === 'resources' ? ['draft', 'published', 'archived'] : ['active', 'archived']).map(status => <option key={status}>{status}</option>)}</select></label>}
+      {kind === 'paths' && <><label>Revision-ID<input className="block border bg-background p-2" maxLength={128} value={params.get('revisionId') ?? ''} onChange={event => change('revisionId', event.target.value)} /></label><label><input type="checkbox" checked={params.get('active') !== 'false'} onChange={event => change('active', event.target.checked ? '' : 'false')} />Nur aktive Revision (ohne ausgewählte Revision-ID)</label></>}
+      <button className="secondary-button" onClick={() => setParams(new URLSearchParams())}>Filter zurücksetzen</button></div>
+  );
+}
+
+function WorkflowLibraryNotices({ error }: Readonly<{ error: string }>) {
+  return (
+    <>
+    {error && <p role="alert">{error} · Angezeigte Daten können veraltet sein.</p>}
+    </>
+  );
+}
+
+function WorkflowLibraryResults({ page, kind, rows, columns, change, params, setParams }: Readonly<{
+  page: WorkflowListPage; kind: Kind; rows: Parameters<typeof EvidenceTable>[0]['rows']; columns: Parameters<typeof EvidenceTable>[0]['columns'];
+  change: (name: string, value: string) => void; params: URLSearchParams; setParams: (next: URLSearchParams | ((previous: URLSearchParams) => URLSearchParams)) => void;
+}>) {
+  return (
+    <>
+    <p>Beobachtet {time(page.observedAt)} · {page.hasMore ? 'Weitere Serverseiten vorhanden' : 'Ende der Auswahl'}</p><EvidenceTable caption={TITLES[kind]} rows={rows} columns={[["id", "Objekt öffnen"], ...columns, ["createdAt", "Erstellt"]]} />
+      <div className="flex gap-3"><button className="secondary-button" disabled={!params.has('cursor')} onClick={() => change('cursor', '')}>Erste Seite</button><button className="secondary-button" disabled={!page.hasMore} onClick={() => { const next = new URLSearchParams(params); next.set('cursor', page.nextCursor); setParams(next); }}>Nächste Seite</button></div>
+    </>
+  );
+}
+
 export function WorkflowLibrary({ kind, resourceId }: Readonly<{ kind: Kind; resourceId?: string }>) {
   const [params, setParams] = useSearchParams(); const [state, setState] = useState<{ key: string; value: WorkflowListPage } | null>(null); const [error, setError] = useState('');
   const query = new URLSearchParams(params); query.set('kind', kind); if (resourceId) { query.set('resourceId', resourceId); } const key = query.toString();
@@ -91,13 +122,9 @@ export function WorkflowLibrary({ kind, resourceId }: Readonly<{ kind: Kind; res
   };
   const columns: Array<[string, string]> = workflowColumns();
   return <section className="space-y-4"><h1>{TITLES[kind]}</h1>{resourceId && <p>Alle Versionen der Ressource {resourceId}</p>}
-    <div className="flex flex-wrap gap-4">{kind === 'resources' && <label>Bausteinart<select className="block border bg-background p-2" value={params.get('resourceKind') ?? ''} onChange={event => change('resourceKind', event.target.value)}><option value="">Alle 13 Arten</option>{WORKFLOW_KINDS.map(kind => <option key={kind} value={kind}>{KIND_META[kind].short}</option>)}</select></label>}
-      {kind !== 'paths' && <label>Versionsstatus<select className="block border bg-background p-2" value={params.get('status') ?? ''} onChange={event => change('status', event.target.value)}><option value="">Alle</option>{(kind === 'resources' ? ['draft', 'published', 'archived'] : ['active', 'archived']).map(status => <option key={status}>{status}</option>)}</select></label>}
-      {kind === 'paths' && <><label>Revision-ID<input className="block border bg-background p-2" maxLength={128} value={params.get('revisionId') ?? ''} onChange={event => change('revisionId', event.target.value)} /></label><label><input type="checkbox" checked={params.get('active') !== 'false'} onChange={event => change('active', event.target.checked ? '' : 'false')} />Nur aktive Revision (ohne ausgewählte Revision-ID)</label></>}
-      <button className="secondary-button" onClick={() => setParams(new URLSearchParams())}>Filter zurücksetzen</button></div>
-    {error && <p role="alert">{error} · Angezeigte Daten können veraltet sein.</p>}
-    {page ? <><p>Beobachtet {time(page.observedAt)} · {page.hasMore ? 'Weitere Serverseiten vorhanden' : 'Ende der Auswahl'}</p><EvidenceTable caption={TITLES[kind]} rows={rows} columns={[["id", "Objekt öffnen"], ...columns, ["createdAt", "Erstellt"]]} />
-      <div className="flex gap-3"><button className="secondary-button" disabled={!params.has('cursor')} onClick={() => change('cursor', '')}>Erste Seite</button><button className="secondary-button" disabled={!page.hasMore} onClick={() => { const next = new URLSearchParams(params); next.set('cursor', page.nextCursor); setParams(next); }}>Nächste Seite</button></div></> : !error && <p><output>Bibliothek wird geladen …</output></p>}
+    <WorkflowLibraryFilters kind={kind} params={params} change={change} setParams={setParams} />
+    <WorkflowLibraryNotices error={error} />
+    {page ? <WorkflowLibraryResults page={page} kind={kind} rows={rows} columns={columns} change={change} params={params} setParams={setParams} /> : !error && <p><output>Bibliothek wird geladen …</output></p>}
     {kind === 'resources' && <Link to="/workflows/builder">Neuen Baustein im gemeinsamen Editor des Builders anlegen</Link>}
   </section>;
 }

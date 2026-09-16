@@ -72,6 +72,35 @@ function DirectoryEntries({ observation }: Readonly<{ observation: DirectoryObse
     : observation.value.entries.map(entry => <CapabilityCard key={entry.route} entry={entry} />);
 }
 
+function CapabilityDirectoryFilters({ parameters, query, update, setQuery, setResponse }: Readonly<{
+  parameters: boolean; query: URLSearchParams; update: (key: string, value: string) => void;
+  setQuery: (next: URLSearchParams | ((previous: URLSearchParams) => URLSearchParams)) => void; setResponse: (value: null) => void;
+}>) {
+  return (
+    <div className="builder-field-grid"><label>Verzeichnis<select value={parameters ? 'parameters' : 'capabilities'} onChange={event => {
+      setResponse(null); setQuery(new URLSearchParams({ view: event.target.value }));
+    }}><option value="capabilities">Verfügbare Aktionen</option><option value="parameters">Parameterverträge</option></select></label>
+      {parameters ? <label>Parameterfamilie<select value={query.get('prefix') ?? ''} onChange={event => update('prefix', event.target.value)}>
+        <option value="">Alle Familien</option>{['runtime', 'config', 'resource', 'strategy', 'schema', 'contract', 'account', 'paper', 'journal', 'graph', 'mcp', 'viewer', 'secrets', 'deployment'].map(name => <option key={name}>{name}</option>)}</select></label>
+        : <label>Bereich<select value={query.get('area') ?? ''} onChange={event => update('area', event.target.value)}><option value="">Alle Bereiche</option>
+          {[['cockpit', 'Cockpit'], ['trading', 'Trading'], ['workflows', 'Workflows'], ['signals', 'Signale'], ['risk', 'Risiko'], ['integrations', 'Integrationen'], ['operations', 'Betrieb'], ['recovery', 'Recovery']].map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>}</div>
+  );
+}
+
+function CapabilitiesResult({ observation, data, query, setQuery, update, setResponse }: Readonly<{
+  observation: DirectoryObservation | null; data: NonNullable<DirectoryObservation['value']>; query: URLSearchParams;
+  setQuery: (next: URLSearchParams | ((previous: URLSearchParams) => URLSearchParams)) => void; update: (key: string, value: string) => void; setResponse: (value: null) => void;
+}>) {
+  return (
+    <>
+    <p>Vertrag {data.contractVersion} · {data.total} passende Einträge · {data.entries.length} auf dieser Seite</p>
+      <DirectoryEntries observation={observation} />
+      <div className="flex gap-3">{query.has('cursor') && <button className="secondary-button" onClick={() => update('cursor', '')}>Erste Seite</button>}
+        {data.hasMore && <button className="primary-button" onClick={() => { setResponse(null); setQuery(current => { current.set('cursor', data.nextCursor); return current; }); }}>Weitere Einträge</button>}</div>
+    </>
+  );
+}
+
 export function CapabilitiesPage() {
   const [query, setQuery] = useSearchParams(); const parameters = query.get('view') === 'parameters';
   const [response, setResponse] = useState<DirectoryObservation | null>(null); const [error, setError] = useState('');
@@ -90,24 +119,12 @@ export function CapabilitiesPage() {
   const update = (key: string, value: string) => { setResponse(null); setQuery(current => {
       current.delete('cursor'); if (value) { current.set(key, value); } else { current.delete(key); } return current;
   }); };
-  const directoryFilters = (
-    <div className="builder-field-grid"><label>Verzeichnis<select value={parameters ? 'parameters' : 'capabilities'} onChange={event => {
-      setResponse(null); setQuery(new URLSearchParams({ view: event.target.value }));
-    }}><option value="capabilities">Verfügbare Aktionen</option><option value="parameters">Parameterverträge</option></select></label>
-      {parameters ? <label>Parameterfamilie<select value={query.get('prefix') ?? ''} onChange={event => update('prefix', event.target.value)}>
-        <option value="">Alle Familien</option>{['runtime', 'config', 'resource', 'strategy', 'schema', 'contract', 'account', 'paper', 'journal', 'graph', 'mcp', 'viewer', 'secrets', 'deployment'].map(name => <option key={name}>{name}</option>)}</select></label>
-        : <label>Bereich<select value={query.get('area') ?? ''} onChange={event => update('area', event.target.value)}><option value="">Alle Bereiche</option>
-          {[['cockpit', 'Cockpit'], ['trading', 'Trading'], ['workflows', 'Workflows'], ['signals', 'Signale'], ['risk', 'Risiko'], ['integrations', 'Integrationen'], ['operations', 'Betrieb'], ['recovery', 'Recovery']].map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>}</div>
-  );
 
   return <section className="operations-stack"><h1>Aktionen & Parameter</h1>
     <p>Dieses Verzeichnis erklärt Scope, Voraussetzungen und Wirkung. Den aktuellen Wert und die belegte Wirkung prüfen Sie in der jeweiligen Fachansicht. Der Server entscheidet bei jedem Befehl erneut über die Berechtigung.</p>
-    {directoryFilters}
+    <CapabilityDirectoryFilters parameters={parameters} query={query} update={update} setQuery={setQuery} setResponse={setResponse} />
     {error && <p role="alert">Verzeichnis nicht aktuell bestätigt: {error}</p>}
     {!data && !error && <p><output>Verzeichnis wird geladen …</output></p>}
-    {data && <><p>Vertrag {data.contractVersion} · {data.total} passende Einträge · {data.entries.length} auf dieser Seite</p>
-      <DirectoryEntries observation={observation} />
-      <div className="flex gap-3">{query.has('cursor') && <button className="secondary-button" onClick={() => update('cursor', '')}>Erste Seite</button>}
-        {data.hasMore && <button className="primary-button" onClick={() => { setResponse(null); setQuery(current => { current.set('cursor', data.nextCursor); return current; }); }}>Weitere Einträge</button>}</div></>}
+    {data && <CapabilitiesResult observation={observation} data={data} query={query} setQuery={setQuery} update={update} setResponse={setResponse} />}
   </section>;
 }

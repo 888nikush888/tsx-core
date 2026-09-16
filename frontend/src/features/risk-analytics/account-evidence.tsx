@@ -99,6 +99,36 @@ export function RiskAccounts() {
       <div className="flex gap-3"><button className="secondary-button" disabled={!params.has('cursor')} onClick={() => setParams(new URLSearchParams())}>Erste Seite</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => setParams(new URLSearchParams({ cursor: data.nextCursor ?? '' }))}>Nächste Seite</button></div></> : !error && <p><output>Konten werden geladen …</output></p>}</section>;
 }
 
+function evidenceRows(data: ReturnType<typeof useEvidence>['data'], kind: 'reservations' | 'history') {
+  return   data?.entries.map(row => kind === 'history' ? { ...row, source: <span>{row.source} · {row.providerSymbol || 'Kontoscope'}</span>, updatedAt: time(row.updatedAt), scannedThrough: time(row.scannedThrough),
+    details: <details><summary>Abdeckung und Grenzen</summary><ChangeReview label="Historienabdeckung" after={{ baselineSince: row.baselineSince, windowSince: row.windowSince, windowUntil: row.windowUntil, nextReadAt: row.nextReadAt, cursorPresent: row.cursorPresent, coverage: row.coverage, retention: row.retention }} /></details> }
+    : { ...row, intentId: <Link to={`/trading/trades/${encodeURIComponent(row.intentId as string)}`}>{row.intentId}</Link>, status: row.amounts?.status ?? 'unbekannt',
+      additional: <MoneyAmount value={row.amounts?.additionalRiskValue} amount={row.amounts?.additionalRisk} currency={row.amounts?.reportingCurrency} status={row.amounts?.status === 'complete' ? 'complete' : 'unresolved'} />,
+      details: <details><summary>Stoprisiko, Quelle und FX</summary><EvidenceFields fields={[["Quelle", row.sourceHash], ["Mark zum Beobachtungszeitpunkt", row.markPrice], ["Fill-Durchschnitt", row.averageEntryPrice], ["Stop", row.stopPrice], ["Schutz zum Beobachtungszeitpunkt", row.protectionProven == null ? null : row.protectionProven === 1], ["FX-ID", row.fxId], ["FX-Verfall", time(row.fxExpiresAt)], ["Über Budget ausgelassene Betragsdetails", row.amountsOmitted === 1]]} />
+        <ChangeReview label="Risikobeträge aus der Originalbeobachtung" after={row.amounts} /></details> })
+}
+
+function evidenceTitle(kind: 'reservations' | 'history') {
+  return kind === 'reservations' ? 'Gespeicherte Risikoreservierungen' : 'Provider-Historienfortschritt';
+}
+
+function evidenceColumnDefs(kind: 'reservations' | 'history'): Array<[string, string]> {
+  return kind === 'history' ? [['source', 'Quelle / Scope'], ['completeness', 'Vollständigkeit'], ['scannedThrough', 'Durchsucht bis'], ['updatedAt', 'Aktualisiert'], ['reason', 'Grund']] : [['intentId', 'Trade'], ['status', 'Bewertung'], ['additional', 'Zusätzlich reserviertes Risiko']];
+}
+
+function AccountEvidenceResult({ data, error, rows, columns, title, kind, params, cursorKey, go }: Readonly<{
+  data: ReturnType<typeof useEvidence>['data']; error: string;
+  rows: ReturnType<typeof evidenceRows>; columns: Array<[string, string]>; title: string;
+  kind: 'reservations' | 'history'; params: URLSearchParams; cursorKey: string; go: (nextPage: boolean) => void;
+}>) {
+  return (
+  <section className="operations-card space-y-3"><h2>{title}</h2>{error && <p role="alert">{error} Angezeigte Werte können veraltet sein.</p>}
+    {data ? <><p>{data.interpretation}</p>{data.observation && <p>Beobachtung {data.observation.id} · {time(data.observation.observedAt)} · {data.observation.timestampFresh ? 'Zeitgrenze noch gültig' : 'Zeitgrenze abgelaufen oder ungültig'} · {data.observation.isCurrentObservation ? 'aktuelle gespeicherte Projektion' : 'historische Projektion'}.</p>}
+      <EvidenceTable caption={title} rows={rows ?? []} columns={columns} /><div className="space-y-4">{rows?.map((row, index) => <div key={row.id ?? index} className="border-t pt-3"><p>{kind === "history" ? row.source : row.intentId}</p>{row.details}</div>)}</div><div className="flex gap-3"><button className="secondary-button" disabled={!params.has(cursorKey) && !(kind === 'reservations' && params.has('observationId'))} onClick={() => go(false)}>Aktuelle erste Seite</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => go(true)}>Weitere {kind === 'history' ? 'Historienbelege' : 'Reservierungen'}</button></div></> : !error && <p><output>Belege werden geladen …</output></p>}
+  </section>
+  );
+}
+
 function AccountEvidenceRows({ accountId, kind, observationId }: Readonly<{ accountId: string; kind: 'reservations' | 'history'; observationId?: string }>) {
   const [params, setParams] = useSearchParams(); const cursorKey = `${kind}Cursor`;
   const query = new URLSearchParams({ accountId, kind }); const cursor = params.get(cursorKey);
@@ -111,18 +141,10 @@ function AccountEvidenceRows({ accountId, kind, observationId }: Readonly<{ acco
     else { next.delete(cursorKey); if (kind === 'reservations') next.delete('observationId'); }
     setParams(next);
   };
-  const title = kind === 'reservations' ? 'Gespeicherte Risikoreservierungen' : 'Provider-Historienfortschritt';
-  const rows = data?.entries.map(row => kind === 'history' ? { ...row, source: <span>{row.source} · {row.providerSymbol || 'Kontoscope'}</span>, updatedAt: time(row.updatedAt), scannedThrough: time(row.scannedThrough),
-    details: <details><summary>Abdeckung und Grenzen</summary><ChangeReview label="Historienabdeckung" after={{ baselineSince: row.baselineSince, windowSince: row.windowSince, windowUntil: row.windowUntil, nextReadAt: row.nextReadAt, cursorPresent: row.cursorPresent, coverage: row.coverage, retention: row.retention }} /></details> }
-    : { ...row, intentId: <Link to={`/trading/trades/${encodeURIComponent(row.intentId as string)}`}>{row.intentId}</Link>, status: row.amounts?.status ?? 'unbekannt',
-      additional: <MoneyAmount value={row.amounts?.additionalRiskValue} amount={row.amounts?.additionalRisk} currency={row.amounts?.reportingCurrency} status={row.amounts?.status === 'complete' ? 'complete' : 'unresolved'} />,
-      details: <details><summary>Stoprisiko, Quelle und FX</summary><EvidenceFields fields={[["Quelle", row.sourceHash], ["Mark zum Beobachtungszeitpunkt", row.markPrice], ["Fill-Durchschnitt", row.averageEntryPrice], ["Stop", row.stopPrice], ["Schutz zum Beobachtungszeitpunkt", row.protectionProven == null ? null : row.protectionProven === 1], ["FX-ID", row.fxId], ["FX-Verfall", time(row.fxExpiresAt)], ["Über Budget ausgelassene Betragsdetails", row.amountsOmitted === 1]]} />
-        <ChangeReview label="Risikobeträge aus der Originalbeobachtung" after={row.amounts} /></details> });
-  const columns: Array<[string, string]> = kind === 'history' ? [['source', 'Quelle / Scope'], ['completeness', 'Vollständigkeit'], ['scannedThrough', 'Durchsucht bis'], ['updatedAt', 'Aktualisiert'], ['reason', 'Grund']] : [['intentId', 'Trade'], ['status', 'Bewertung'], ['additional', 'Zusätzlich reserviertes Risiko']];
-  return <section className="operations-card space-y-3"><h2>{title}</h2>{error && <p role="alert">{error} Angezeigte Werte können veraltet sein.</p>}
-    {data ? <><p>{data.interpretation}</p>{data.observation && <p>Beobachtung {data.observation.id} · {time(data.observation.observedAt)} · {data.observation.timestampFresh ? 'Zeitgrenze noch gültig' : 'Zeitgrenze abgelaufen oder ungültig'} · {data.observation.isCurrentObservation ? 'aktuelle gespeicherte Projektion' : 'historische Projektion'}.</p>}
-      <EvidenceTable caption={title} rows={rows ?? []} columns={columns} /><div className="space-y-4">{rows?.map((row, index) => <div key={row.id ?? index} className="border-t pt-3"><p>{kind === "history" ? row.source : row.intentId}</p>{row.details}</div>)}</div><div className="flex gap-3"><button className="secondary-button" disabled={!params.has(cursorKey) && !(kind === 'reservations' && params.has('observationId'))} onClick={() => go(false)}>Aktuelle erste Seite</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => go(true)}>Weitere {kind === 'history' ? 'Historienbelege' : 'Reservierungen'}</button></div></> : !error && <p><output>Belege werden geladen …</output></p>}
-  </section>;
+  const title = evidenceTitle(kind);
+  const rows = evidenceRows(data, kind);
+  const columns: Array<[string, string]> = evidenceColumnDefs(kind);
+  return <AccountEvidenceResult data={data} error={error} rows={rows} columns={columns} title={title} kind={kind} params={params} cursorKey={cursorKey} go={go} />;
 }
 
 export function RiskAccountEvidence({ accountId }: Readonly<{ accountId: string }>) {

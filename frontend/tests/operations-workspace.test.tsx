@@ -146,6 +146,10 @@ function bodyFor(url: string) {
     proposals: [{ id: "proposal-1", status: "pending", action: "trade.preview", agentName: "Auditor", expiresAt: now + 10_000, preflight: { allowed: true, blockers: [] } }],
     sessions: [{ id: "session-1", disconnectedAt: null }], actions: [{ id: "action-1", outcome: "succeeded", toolName: "trading.snapshot", agentName: "Auditor", durationMs: 15, completedAt: now }],
   }
+  return bodyForExtended(url);
+}
+
+function bodyForExtended(url: string) {
   if (url === "/api/telegram-viewer") return {
     settings: {
       enabled: false, allowedUserIds: ["1001"], timezone: "Europe/Berlin", locale: "de-DE",
