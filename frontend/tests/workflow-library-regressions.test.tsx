@@ -95,7 +95,8 @@ describe('resource lifecycle intent and confirmation', () => {
   });
 
   it('retains an unknown lifecycle outcome without retrying on the next poll', async () => {
-    api.jsonRequest.mockImplementation((_url: string, init?: RequestInit) => {
+    // skipcq: JS-0116 - native Promise rejection preserves asynchronous failure coverage.
+    api.jsonRequest.mockImplementation(async (_url: string, init?: RequestInit) => {
       if (init?.method) throw new TypeError('Transport lost');
       return { resource: { ...resource, status: 'published' }, activePaths: [], observedAt };
     });

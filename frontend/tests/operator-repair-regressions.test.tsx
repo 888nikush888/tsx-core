@@ -120,7 +120,8 @@ describe('Telegram login contracts', () => {
 
   it.each(['password', 'code'])('preserves an unconfirmed %s submission for explicit follow-up', async kind => {
     const read = loginResponse({ kind, label: 'Login response' });
-    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => {
+    // skipcq: JS-0116 - native Promise rejection preserves asynchronous failure coverage.
+    api.jsonRequest.mockImplementation(async (url: string, init?: RequestInit) => {
       if (init?.method) throw new Error('Login response unavailable');
       return read(url);
     });

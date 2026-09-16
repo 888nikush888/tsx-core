@@ -90,7 +90,8 @@ describe('signal read routes and explicit delivery recovery', () => {
   });
 
   it('requires the duplicate-delivery warning and retains an unconfirmed retry without replay', async () => {
-    api.jsonRequest.mockImplementation((_url: string, init?: RequestInit) => {
+    // skipcq: JS-0116 - native Promise rejection preserves asynchronous failure coverage.
+    api.jsonRequest.mockImplementation(async (_url: string, init?: RequestInit) => {
       if (init?.method) throw new TypeError('Delivery response lost');
       return { entries: [entry], observedAt };
     });

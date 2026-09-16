@@ -33,7 +33,8 @@ describe("UI Next correctness boundaries", () => {
   it("adopts the one-time token before observing and retains success when observation fails", async () => {
     setDashboardToken("old");
     const operation = vi.fn(() => ({ token: "new", requestId: "operation-1" }));
-    const outcome = await mutateAndObserve(operation, ({ token }) => setDashboardToken(token), () => {
+    // skipcq: JS-0116 - native Promise rejection preserves asynchronous failure coverage.
+    const outcome = await mutateAndObserve(operation, ({ token }) => setDashboardToken(token), async () => {
       expect(getDashboardToken()).toBe("new");
       throw new Error("unavailable");
     });
@@ -56,7 +57,8 @@ describe("UI Next correctness boundaries", () => {
   });
 
   it("never retries an unknown write outcome", async () => {
-    const operation = vi.fn(() => { throw new TypeError("transport lost"); });
+    // skipcq: JS-0116 - native Promise rejection preserves asynchronous failure coverage.
+    const operation = vi.fn(async () => { throw new TypeError("transport lost"); });
     const accepted = vi.fn();
     const observe = vi.fn();
     await expect(mutateAndObserve(operation, accepted, observe)).rejects.toThrow("transport lost");

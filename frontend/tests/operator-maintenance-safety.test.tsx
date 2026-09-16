@@ -71,7 +71,8 @@ describe('operator maintenance safety', () => {
 
   it('retains the restore receipt address after a lost response and only repeats reads', async () => {
     const read = fixtureValue(api.jsonRequest.getMockImplementation(), 'default API implementation');
-    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => {
+    // skipcq: JS-0116 - native Promise rejection preserves asynchronous failure coverage.
+    api.jsonRequest.mockImplementation(async (url: string, init?: RequestInit) => {
       if (init?.method === 'POST') throw new TypeError('Verbindung verloren');
       return read(url, init);
     });
@@ -133,7 +134,8 @@ describe('operator maintenance safety', () => {
 
   it('preserves a factory-reset job ID when acceptance is unknown, without replaying reset', async () => {
     const read = fixtureValue(api.jsonRequest.getMockImplementation(), 'default API implementation');
-    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => {
+    // skipcq: JS-0116 - native Promise rejection preserves asynchronous failure coverage.
+    api.jsonRequest.mockImplementation(async (url: string, init?: RequestInit) => {
       if (url === '/api/factory-reset') throw new TypeError('Verbindung verloren');
       return read(url, init);
     });

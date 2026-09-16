@@ -58,7 +58,8 @@ describe('account command intent and status evidence', () => {
   });
 
   it('retains accepted verification when refreshing fails, without repeating the command', async () => {
-    mount(<Accounts trading={trading()} catalog={catalog} onRefresh={() => { throw new Error('Observation unavailable'); }} />);
+    // skipcq: JS-0116 - native Promise rejection preserves asynchronous failure coverage.
+    mount(<Accounts trading={trading()} catalog={catalog} onRefresh={async () => { throw new Error('Observation unavailable'); }} />);
     fireEvent.click(screen.getByRole('button', { name: 'Verifizieren' }));
     expect(await screen.findByText(/Command bestätigt.*Nachladen fehlgeschlagen: Observation unavailable/)).toBeVisible();
     expect(writes()).toHaveLength(1);
