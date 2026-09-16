@@ -98,6 +98,7 @@ export class TelegramDeliveryTracker {
       throw new Error('Telegram send returned no destination messages to confirm.');
     }
 
+    // skipcq: JS-0116 - async is deliberate here: malformed members must reject through Promise.all so sibling waiter promises stay handled.
     const destinationMessageIds = await Promise.all(messages.map(async (message: DeliveryMessage) => {
       if (message?.id === undefined || message?.id === null) {
         throw new Error('Telegram send returned a message without an id.');

@@ -96,7 +96,7 @@ async function exists(file: string): Promise<boolean> {
     throw error; }
 }
 
-export async function mcpMaintenanceActive(databasePath = operationalDatabasePath()): Promise<boolean> {
+export function mcpMaintenanceActive(databasePath = operationalDatabasePath()): Promise<boolean> {
   // Any existing artifact blocks entry, including malformed, directory or symlink markers.
   return exists(mcpMaintenanceMarkerPath(databasePath));
 }
@@ -339,7 +339,7 @@ class SerializedDatabaseAccess {
 
   withoutOwnership<T>(operation: () => T): T { return this.owner.exit(operation); }
 
-  async execute<T>(operation: () => Promise<T>): Promise<T> {
+  execute<T>(operation: () => Promise<T>): Promise<T> {
     if (this.isOwnedByCurrentOperation()) return operation();
     const operationOwner = Symbol('database-operation');
     const result = this.tail.then(() => this.owner.run(operationOwner, operation));
@@ -3087,7 +3087,7 @@ function rawDatabase(): Database {
 }
 
 /** Runs a complete unit of work under the single SQLite transaction owner. */
-export async function withDatabaseTransaction<T>(
+export function withDatabaseTransaction<T>(
   operation: (database: Database) => Promise<T>
 ): Promise<T> {
   if (serializedDatabaseAccess.isOwnedByCurrentOperation()) return operation(getDatabase());
@@ -3107,7 +3107,7 @@ export async function withDatabaseTransaction<T>(
 }
 
 /** Durable dispatching must already be committed. No adapter continuation inherits the DB owner. */
-export async function withDatabaseDispatchFence<T>(verify: () => Promise<void>, start: () => Promise<T>): Promise<{ pending: Promise<T> }> {
+export function withDatabaseDispatchFence<T>(verify: () => Promise<void>, start: () => Promise<T>): Promise<{ pending: Promise<T> }> {
   if (serializedDatabaseAccess.isOwnedByCurrentOperation()) throw new Error('Exchange dispatch cannot inherit a database transaction.');
   return withDatabaseTransaction(async () => {
     await verify();
@@ -3171,7 +3171,7 @@ export class SignalConflictError extends Error {
   }
 }
 
-export async function saveSignal(
+export function saveSignal(
   id: string,
   chatId: string,
   messageId: number,
@@ -3222,7 +3222,7 @@ export interface AiUsageReservation {
   status: 'reserved';
 }
 
-export async function reserveAiUsage(
+export function reserveAiUsage(
   usageDay: string, tokenAllowance: number, dailyRequestLimit: number, dailyTokenLimit: number,
 ): Promise<AiUsageReservation | false> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(usageDay)) throw new Error('usageDay must use YYYY-MM-DD.');
@@ -3851,7 +3851,7 @@ export async function recoverInterruptedOutboxTasks(): Promise<{ requeued: numbe
   return { requeued: Number(requeued.changes || 0), unknown: Number(unknown.changes || 0) };
 }
 
-export async function getOutboxTask(id: string): Promise<OutboxTask | null> {
+export function getOutboxTask(id: string): Promise<OutboxTask | null> {
   return withDatabaseTransaction(async database => {
     const row = await database.get<OutboxStorageRow>('SELECT * FROM pending_tasks WHERE id = ?', [id]);
     return row ? reviewOutboxRow(row) : null;
@@ -3876,7 +3876,7 @@ export async function listOutboxTasks(statuses?: OutboxStatus[], limit = 100): P
  * Returns pending work which is not already represented by the bounded
  * in-memory scheduler window. The database remains the source of truth.
  */
-export async function listPendingOutboxTasksForScheduling(excludedTaskIds: string[] = [], limit = 100): Promise<OutboxTask[]> {
+export function listPendingOutboxTasksForScheduling(excludedTaskIds: string[] = [], limit = 100): Promise<OutboxTask[]> {
   const safeLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(limit, 1000)) : 100;
   const excluded = [...new Set(excludedTaskIds.filter(id => typeof id === 'string' && id.length > 0))].slice(0, 1000);
   return withDatabaseTransaction(async database => {
@@ -3902,7 +3902,7 @@ export async function listPendingOutboxTasksForScheduling(excludedTaskIds: strin
   });
 }
 
-export async function requeueOutboxTask(id: string): Promise<boolean> {
+export function requeueOutboxTask(id: string): Promise<boolean> {
   return withDatabaseTransaction(async database => {
     const row = await database.get<OutboxStorageRow>('SELECT * FROM pending_tasks WHERE id = ?', [id]);
     if (!row || (await reviewOutboxRow(row)).payloadErrors?.length) return false;
@@ -4061,7 +4061,7 @@ export interface DatabaseClearResult {
   deletedMediaGroups: number;
 }
 
-export async function clearDb(): Promise<DatabaseClearResult> {
+export function clearDb(): Promise<DatabaseClearResult> {
   return withDatabaseTransaction(async database => {
     const pendingTasks = await database.run('DELETE FROM pending_tasks');
     const mediaGroups = await database.run('DELETE FROM media_group_buffer');

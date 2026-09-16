@@ -410,7 +410,7 @@ export class ManagedRuntimeSettingsStore {
     return { active: this.recoveryReason !== null, reason: this.recoveryReason };
   }
 
-  async set(input: unknown, baseRevision?: string): Promise<RuntimeSettings> {
+  set(input: unknown, baseRevision?: string): Promise<RuntimeSettings> {
     const pending = this.updates.then(async () => {
       if (baseRevision !== undefined && baseRevision !== configurationRevision(this.settings)) {
         throw new Error('Runtime settings changed. Reload and compare before saving.');

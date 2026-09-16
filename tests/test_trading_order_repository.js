@@ -54,16 +54,16 @@ try {
   stored = await getDatabase().get("SELECT * FROM trading_orders WHERE id = 'client-a'");
   assert.equal(stored.status, 'cancelled');
   assert.equal(stored.filled_quantity, '0.6');
-  await assert.rejects(persistTradingOrderResult('cas-intent', 'client-a', { ...result, exchangeOrderId: 'wrong' }), /identifier.*match/i);
-  await assert.rejects(persistTradingOrderResult('cas-intent', 'client-a', { ...result, clientOrderId: 'other' }), /identifier.*match/i);
-  await assert.rejects(persistTradingOrderResult('cas-intent', 'missing', { ...result, clientOrderId: 'missing' }), /no matching local/);
+  await assert.rejects(async () => persistTradingOrderResult('cas-intent', 'client-a', { ...result, exchangeOrderId: 'wrong' }), /identifier.*match/i);
+  await assert.rejects(async () => persistTradingOrderResult('cas-intent', 'client-a', { ...result, clientOrderId: 'other' }), /identifier.*match/i);
+  await assert.rejects(async () => persistTradingOrderResult('cas-intent', 'missing', { ...result, clientOrderId: 'missing' }), /no matching local/);
   await persistTradingRemoteOrder('cas-intent', 'client-a', {
     ...result, status: 'cancelled', filledQuantity: null, averagePrice: null,
     symbol: 'BTCUSDT', role: 'entry', side: 'buy', quantity: '1', price: '100', triggerPrice: null, reduceOnly: false,
   }, Date.now());
   assert.equal((await getDatabase().get("SELECT filled_quantity FROM trading_orders WHERE id = 'client-a'")).filled_quantity, '0.6');
   await assert.rejects(
-    persistTradingOrderResult('cas-intent', 'client-b', { ...result, clientOrderId: 'client-b' }),
+    async () => persistTradingOrderResult('cas-intent', 'client-b', { ...result, clientOrderId: 'client-b' }),
     /UNIQUE constraint/,
   );
   assert.equal((await getDatabase().get("SELECT exchange_order_id FROM trading_orders WHERE id = 'client-b'")).exchange_order_id, null);

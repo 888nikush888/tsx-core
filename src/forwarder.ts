@@ -2029,13 +2029,13 @@ async function startDashboardRuntime(
         retention: retentionScheduler?.getStatus() ?? null,
         audit: auditTrail?.snapshot() ?? null,
       }),
-      runBackupNow: async () => {
+      runBackupNow: () => {
         if (!backupScheduler) throw new Error('Backup scheduler is unavailable.');
         return backupScheduler.runNow();
       },
       listBackups: listAvailableBackups,
       verifyBackup: (artifactName) => inspectBackupArtifact(resolvedBackupArtifact(artifactName)),
-      runBackupDrill: async (artifactName) => {
+      runBackupDrill: (artifactName) => {
         if (!backupScheduler) throw new Error('Backup scheduler is unavailable.');
         return backupScheduler.runRestoreDrill(resolvedBackupArtifact(artifactName));
       },

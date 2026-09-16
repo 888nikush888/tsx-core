@@ -70,7 +70,7 @@ async function testLegacyCopy(db) {
   const preview = (await read({ kind: 'legacy', channelId: 'old-channel' })).entries[0];
   assert.equal(preview.configuration.manuallyBlocked, true, 'Migration must retain an existing automatic block as an explicit manual policy block.');
   assert.equal(preview.configuration.lockedTier, null); assert.equal(preview.configuration.startingTier, 0);
-  await assert.rejects(copyLegacyRiskPolicy({ channelId: 'old-channel', copyHash: 'stale' }), /changed/);
+  await assert.rejects(async () => copyLegacyRiskPolicy({ channelId: 'old-channel', copyHash: 'stale' }), /changed/);
   const first = await copyLegacyRiskPolicy({ channelId: 'old-channel', copyHash: preview.copyHash });
   const repeat = await copyLegacyRiskPolicy({ channelId: 'old-channel', copyHash: preview.copyHash });
   assert.equal(first.resource.status, 'draft'); assert.equal(first.activated, false); assert.equal(repeat.alreadyCopied, true); assert.equal(repeat.resource.id, first.resource.id);

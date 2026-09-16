@@ -619,7 +619,7 @@ export async function publishWorkflowResource(id: string, now = Date.now(), base
   return resourceFromRow(await getDatabase().get('SELECT * FROM workflow_resource_versions WHERE id = ?', [id]));
 }
 
-export async function archiveWorkflowResource(id: string, now = Date.now()): Promise<WorkflowResourceVersion> {
+export function archiveWorkflowResource(id: string, now = Date.now()): Promise<WorkflowResourceVersion> {
   return withDatabaseTransaction(async () => {
     const active = await getActiveWorkflow();
     if (active?.graph.nodes.some(node => node.resourceVersionId === id)) {
@@ -1415,7 +1415,7 @@ async function workflowHistoryTarget(entry: WorkflowHistoryEntry): Promise<{
   }
 }
 
-export async function saveWorkflowRevision(input: {
+export function saveWorkflowRevision(input: {
   baseRevisionId: string | null;
   graph: unknown;
   actorId: string;
@@ -1451,7 +1451,7 @@ export async function saveWorkflowRevision(input: {
   });
 }
 
-export async function previewWorkflowBuilderHistoryImpact(input: {
+export function previewWorkflowBuilderHistoryImpact(input: {
   direction: WorkflowHistoryDirection;
   baseRevisionId: string | null;
 }): Promise<WorkflowImpact> {

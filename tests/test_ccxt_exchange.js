@@ -87,7 +87,7 @@ async function nonErrorTransportFailures(adapter, account, writeRequest) {
     counts.attempts = 0;
     globalThis.fetch = () => { counts.attempts += 1; return Promise.reject(transientFailure); };
     const mutationsBefore = requests.length;
-    await assert.rejects(adapter.submitOrder(account, writeRequest), error => error === transientFailure);
+    await assert.rejects(async () => adapter.submitOrder(account, writeRequest), error => error === transientFailure);
     assert.equal(counts.attempts, 1, 'A possibly submitted order is never replayed even for a known transient failure.');
     assert.equal(requests.length, mutationsBefore);
     assert.equal(counts.coercions, 0, 'Retry classification never invokes object conversion.');
@@ -363,21 +363,21 @@ try {
     filledQuantity: '0', averagePrice: null, error: null, raw: {},
   } };
   await assert.rejects(
-    adapter.submitOrder(account, { ...writeRequest, clientOrderId: 'expected-request-id', quantity: '1' }),
+    async () => adapter.submitOrder(account, { ...writeRequest, clientOrderId: 'expected-request-id', quantity: '1' }),
     /identifier.*match/i,
     'A structurally valid response for another request must never be accepted.',
   );
 
   nextResponse = { body: null };
-  await assert.rejects(adapter.submitOrder(account, writeRequest), /invalid contract/);
+  await assert.rejects(async () => adapter.submitOrder(account, writeRequest), /invalid contract/);
   nextResponse = { body: { status: 'open', exchangeOrderId: 'exchange-1' } };
-  await assert.rejects(adapter.submitOrder(account, writeRequest), /identifier/i);
+  await assert.rejects(async () => adapter.submitOrder(account, writeRequest), /identifier/i);
   nextResponse = { body: { clientOrderId: 'client-1', exchangeOrderId: 'exchange-1', status: 'impossible' } };
-  await assert.rejects(adapter.submitOrder(account, { ...writeRequest, clientOrderId: 'client-1' }), /invalid.*order status/i);
+  await assert.rejects(async () => adapter.submitOrder(account, { ...writeRequest, clientOrderId: 'client-1' }), /invalid.*order status/i);
   nextResponse = { body: { verified: false, equity: '1000', externalAccountId, accountFingerprint: externalAccountId } };
   await assert.rejects(adapter.verifyAccount(account), /invalid verified-account identity/);
   nextResponse = { body: { equity: '1000', availableBalance: '900', unrealizedPnl: '0', marginUsed: '0' } };
-  await assert.rejects(adapter.accountSnapshot(account), /omitted fundingPnlToday/);
+  await assert.rejects(async () => adapter.accountSnapshot(account), /omitted fundingPnlToday/);
   const accountingTime = Date.now();
   const unknownAccounting = { accountFingerprint: externalAccountId, reportingCurrency: 'USD', settlementAssets: ['USDT'],
     source: 'bybit-wallet-balance-v1', observedAt: accountingTime, unrealizedPnlSemantics: 'price_only',
@@ -391,9 +391,9 @@ try {
   assert.equal(receivedUnknown.accounting.funding.cursor, null, 'The transient balance-response cursor is not a durable producer checkpoint.');
   assert.equal(receivedUnknown.accounting.funding.observation.status, 'incomplete');
   nextResponse = { body: { ...unknownFundingSnapshot, fundingPnlToday: '0' } };
-  await assert.rejects(adapter.accountSnapshot(account), /contradicts/);
+  await assert.rejects(async () => adapter.accountSnapshot(account), /contradicts/);
   nextResponse = { body: { ...unknownFundingSnapshot, accounting: { ...unknownAccounting, accountFingerprint: 'b'.repeat(64) } } };
-  await assert.rejects(adapter.accountSnapshot(account), /fingerprint/);
+  await assert.rejects(async () => adapter.accountSnapshot(account), /fingerprint/);
   await assert.rejects(adapter.cancelOrder(account, 'unknown-local-order'), /without a local symbol mapping/);
   nextResponse = { body: { orders: {}, positions: [], fills: [], accountFingerprint: externalAccountId } };
   await assert.rejects(adapter.openState(account), /invalid open-state contract/);
@@ -518,7 +518,7 @@ try {
     },
   };
   await assert.rejects(
-    adapter.submitOrder(account, writeRequest),
+    async () => adapter.submitOrder(account, writeRequest),
     error => !(error instanceof TradingSymbolUnavailableError)
       && /422.*unsafe mutation endpoint.*SYMBOL_UNAVAILABLE/.test(error.message),
     'Only the read-only market-snapshot endpoint may activate account fallback.',
@@ -543,7 +543,7 @@ try {
   const mutationsBeforeFailure = requests.length;
   nextResponse = { status: 503, body: { error: 'executor unavailable', code: 'ORDER_SUBMIT_FAILED' } };
   await assert.rejects(
-    adapter.submitOrder(account, writeRequest),
+    async () => adapter.submitOrder(account, writeRequest),
     /503.*executor unavailable.*ORDER_SUBMIT_FAILED/,
   );
   assert.equal(

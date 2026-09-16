@@ -37,7 +37,7 @@ export async function uiResourcePublication(id: string) {
     publicationHash: reviewHash({ resource, dependency }) };
 }
 
-export async function publishUiResourceWithDependency(id: string, baseEditRevision: number, expectedHash: unknown) {
+export function publishUiResourceWithDependency(id: string, baseEditRevision: number, expectedHash: unknown) {
   return withDatabaseTransaction(async () => {
     const publication = await uiResourcePublication(id);
     assertPublicationHashMatches(publication, expectedHash);

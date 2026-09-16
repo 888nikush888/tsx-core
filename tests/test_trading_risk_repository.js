@@ -82,7 +82,7 @@ async function balanceAndAdmission(account, remote, strategy) {
   const proof = await createRiskAdmission(input);
   assert.equal(proof.candidateCommitment, '11', 'Real executable quantity/price, not configured plan.riskAmount=999, drives candidate commitment.');
   await verifyRiskAdmission(proof, plan);
-  await assert.rejects(createRiskAdmission({ ...input, budget: '30.999999999999999999' }), /budget/);
+  await assert.rejects(async () => createRiskAdmission({ ...input, budget: '30.999999999999999999' }), /budget/);
   await getDatabase().run("UPDATE trading_orders SET quantity = '2' WHERE id = 'candidate-entry'");
   await assert.rejects(verifyRiskAdmission(proof, plan), /economics changed/);
   await getDatabase().run("UPDATE trading_orders SET quantity = '1' WHERE id = 'candidate-entry'");
@@ -107,7 +107,7 @@ async function partialCancelAndLateFill(account, remote) {
   assert.equal((await risk.existingRiskCommitment(account, 'candidate', '0:0', 'USDT')).commitment, '10');
   await getDatabase().run("UPDATE trading_orders SET filled_quantity = '3' WHERE id = 'order-risk-entry'");
   await risk.observeRiskReservations(account, remote, '0:0');
-  await assert.rejects(risk.existingRiskCommitment(account, 'candidate', '0:0', 'USDT'), /unresolved/);
+  await assert.rejects(async () => risk.existingRiskCommitment(account, 'candidate', '0:0', 'USDT'), /unresolved/);
   await getDatabase().run(`INSERT INTO trading_fills (id, order_id, account_id, exchange_fill_id, price, quantity, fee, fee_asset, filled_at, raw_json, account_fingerprint, accounting_json)
     SELECT 'late-fill', order_id, account_id, 'late-remote-fill', price, '1', fee, fee_asset, filled_at + 1, raw_json, account_fingerprint, accounting_json FROM trading_fills WHERE id = 'fill-risk-entry'`);
   await getDatabase().run("UPDATE trading_positions SET quantity = '3' WHERE intent_id = 'risk-owned'");
@@ -152,7 +152,7 @@ try {
     DELETE FROM schema_migrations WHERE version >= 37;`);
   await closeDb(); await initDb(filename);
   assert.deepEqual(await originals(), beforeMigration, 'Migration37 never manufactures historical reserves or alters financial originals.');
-  await assert.rejects(risk.existingRiskCommitment(account, 'candidate', '0:0', 'USDT'), /missing observation/);
+  await assert.rejects(async () => risk.existingRiskCommitment(account, 'candidate', '0:0', 'USDT'), /missing observation/);
   await risk.observeRiskReservations(account, remote, '0:0');
   const proof = await risk.existingRiskCommitment(account, 'candidate', '0:0', 'USDT');
   assert.equal(proof.commitment, '10', 'Current mark risk, not original entry-to-stop risk, is reserved.');
@@ -163,9 +163,9 @@ try {
   await balanceAndAdmission(account, remote, strategy);
   await closeDb(); await initDb(filename);
   assert.equal((await risk.existingRiskCommitment(account, 'candidate', '0:0', 'USDT')).commitment, '10', 'Restart retains only still-fresh evidence.');
-  await assert.rejects(risk.existingRiskCommitment(account, 'candidate', '0:1', 'USDT'), /risk|epoch/i);
+  await assert.rejects(async () => risk.existingRiskCommitment(account, 'candidate', '0:1', 'USDT'), /risk|epoch/i);
   await getDatabase().run("UPDATE trading_orders SET trigger_price = '94' WHERE id = 'risk-stop'");
-  await assert.rejects(risk.existingRiskCommitment(account, 'candidate', '0:0', 'USDT'), /risk|changed/i);
+  await assert.rejects(async () => risk.existingRiskCommitment(account, 'candidate', '0:0', 'USDT'), /risk|changed/i);
   remote.orders[0].triggerPrice = '94';
   await risk.observeRiskReservations(account, remote, '0:0');
   assert.equal((await risk.existingRiskCommitment(account, 'candidate', '0:0', 'USDT')).commitment, '2');
@@ -174,7 +174,7 @@ try {
   await partialCancelAndLateFill(account, remote);
   delete remote.positions[0].markPrice;
   await risk.observeRiskReservations(account, remote, '0:0');
-  await assert.rejects(risk.existingRiskCommitment(account, 'candidate', '0:0', 'USDT'), /risk|unproven/i);
+  await assert.rejects(async () => risk.existingRiskCommitment(account, 'candidate', '0:0', 'USDT'), /risk|unproven/i);
   assert.equal((await getDatabase().all('PRAGMA foreign_key_check')).length, 0);
   console.log('Dynamic reservation provenance, replay, restart, stop tightening, stale identity and unknown mark passed.');
 } finally { await closeDb(); await rm(directory, { recursive: true, force: true }); }

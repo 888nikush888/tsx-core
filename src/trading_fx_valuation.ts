@@ -78,7 +78,7 @@ async function verifyValuation(account: FxAccount, row: OriginalEvent, stored: V
 }
 
 /** Pinned event-time valuation; elapsed wall time never reprices a historical event. */
-export async function readFxMoneyValuation(eventId: string): Promise<FxMoneyValuation | null> {
+export function readFxMoneyValuation(eventId: string): Promise<FxMoneyValuation | null> {
   return withDatabaseTransaction(async db => {
     const stored = await db.get<ValuationRow>('SELECT * FROM trading_fx_money_valuations WHERE event_id=?', [eventId]);
     if (!stored) return null;
@@ -87,7 +87,7 @@ export async function readFxMoneyValuation(eventId: string): Promise<FxMoneyValu
   });
 }
 /** Only an event ID and the held account are accepted. Amount, currencies, time and rate come from originals. */
-export async function valueFxMoneyEvent(account: FxAccount, eventId: string): Promise<FxMoneyValuation> {
+export function valueFxMoneyEvent(account: FxAccount, eventId: string): Promise<FxMoneyValuation> {
   account = snapshotFxAccount(account);
   return withDatabaseTransaction(async db => {
     const row = await originalEvent(eventId), binding = await reportingBinding(account, row);

@@ -304,7 +304,7 @@ async function executionPathConfiguration(intent: TradingIntent): Promise<{
   };
 }
 
-async function transaction<T>(operation: () => Promise<T>): Promise<T> {
+function transaction<T>(operation: () => Promise<T>): Promise<T> {
   return withDatabaseTransaction(operation);
 }
 
@@ -744,7 +744,7 @@ async function assertTerminalEntrySlippage(
   });
 }
 
-async function createReplacementStop(intent: TradingIntent, plan: TradingPlan, quantity: string, trigger: string): Promise<PlannedOrder> {
+function createReplacementStop(intent: TradingIntent, plan: TradingPlan, quantity: string, trigger: string): Promise<PlannedOrder> {
   const original = plan.orders.find(order => order.role === 'stop_loss');
   if (!original) throw new Error('Trade plan has no protective stop.');
   return createGeneratedTradingOrder(intent, { ...original, quantity, triggerPrice: trigger });
@@ -910,7 +910,7 @@ export class TradingEngine {
   }
 
   /** Revoked original preparations retire even while entries are paused. This path cannot call an adapter. */
-  async retireUnauthorizedPreparations(accountId: string): Promise<number> {
+  retireUnauthorizedPreparations(accountId: string): Promise<number> {
     return this.mutations.run(accountId, async () => {
       const rows = await this.preparationRecoveryBatch(accountId);
       let retired = 0;

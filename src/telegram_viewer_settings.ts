@@ -187,7 +187,7 @@ export class ManagedTelegramViewerSettingsStore {
     return { active: this.recoveryReason !== null, reason: this.recoveryReason };
   }
 
-  async set(input: unknown, baseRevision?: string): Promise<TelegramViewerSettings> {
+  set(input: unknown, baseRevision?: string): Promise<TelegramViewerSettings> {
     const pending = this.updates.then(async () => {
       if (baseRevision !== undefined && baseRevision !== configurationRevision(this.settings)) throw new Error('Telegram viewer settings changed. Compare the current server version before saving.');
       const settings = validateTelegramViewerSettings(input);

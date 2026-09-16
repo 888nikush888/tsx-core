@@ -13,8 +13,8 @@ async function testScopeAndLifetime(stateDir, owner) {
   const foreignDir = path.join(stateDir, 'foreign-db');
   const foreign = await acquireProcessLock(path.join(foreignDir, '.process_active'));
   try {
-    await assert.rejects(checkCrashLoopFiles(stateDir, { ...owner }), /ownership capability/);
-    await assert.rejects(checkCrashLoopFiles(stateDir, foreign), /different realpath scopes/);
+    await assert.rejects(async () => checkCrashLoopFiles(stateDir, { ...owner }), /ownership capability/);
+    await assert.rejects(async () => checkCrashLoopFiles(stateDir, foreign), /different realpath scopes/);
     assert.equal(await readFile(path.join(stateDir, '.crash_counter'), 'utf8'), original);
     const ownWork = withProcessLockOwner(foreign, foreignDir, async () => {
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -23,7 +23,7 @@ async function testScopeAndLifetime(stateDir, owner) {
     const releasing = foreign.release();
     assert.equal(await ownWork, 'counter-finished', 'Release must wait for already authorized counter work.');
     await releasing;
-    await assert.rejects(checkCrashLoopFiles(foreignDir, foreign), /was released/);
+    await assert.rejects(async () => checkCrashLoopFiles(foreignDir, foreign), /was released/);
     assert.deepEqual(await readdir(foreignDir), [], 'Rejected released ownership must not create counter state.');
   } finally {
     await foreign.release();
@@ -38,7 +38,7 @@ async function testNonFileStatePaths(stateDir) {
     const owner = await acquireProcessLock(path.join(directory, '.process_active'));
     try {
       await mkdir(path.join(directory, file));
-      await assert.rejects(checkCrashLoopFiles(directory, owner), /not a regular, non-symlink file/);
+      await assert.rejects(async () => checkCrashLoopFiles(directory, owner), /not a regular, non-symlink file/);
       assert.ok((await readdir(directory)).includes(file), 'Rejected paths must not be removed or converted.');
     } finally {
       await owner.release();
@@ -87,7 +87,7 @@ async function testHardCrashes(stateDir) {
       await unlink(path.join(directory, '.process_active'));
       const recovered = await acquireProcessLock(path.join(directory, '.process_active'));
       try {
-        await assert.rejects(checkCrashLoopFiles(directory, recovered, 123002), CrashLoopBlockedError);
+        await assert.rejects(async () => checkCrashLoopFiles(directory, recovered, 123002), CrashLoopBlockedError);
         assert.equal(JSON.parse(await readFile(path.join(directory, '.crash_blocked'), 'utf8')).count, 3);
       } finally {
         await recovered.release();
@@ -102,13 +102,13 @@ async function runTests() {
   const stateDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-crash-guard-'));
   let owner = null;
   try {
-    await assert.rejects(checkCrashLoopFiles(stateDir), /ownership capability/i,
+    await assert.rejects(async () => checkCrashLoopFiles(stateDir), /ownership capability/i,
       'Missing process ownership must not create/reset crash files.');
     owner = await acquireProcessLock(path.join(stateDir, '.process_active'));
     const check = (now, maximumCrashes, windowMs) => checkCrashLoopFiles(stateDir, owner, now, maximumCrashes, windowMs);
-    await assert.rejects(check(-1), /timestamp is invalid/);
-    await assert.rejects(check(1, 1), /at least 2/);
-    await assert.rejects(check(1, 3, 999), /at least one second/);
+    await assert.rejects(async () => check(-1), /timestamp is invalid/);
+    await assert.rejects(async () => check(1, 1), /at least 2/);
+    await assert.rejects(async () => check(1, 3, 999), /at least one second/);
     assert.deepStrictEqual(await check(10_000), { count: 0, lastCrash: 0 });
     await testScopeAndLifetime(stateDir, owner);
     await testNonFileStatePaths(stateDir);

@@ -51,8 +51,8 @@ try {
   const proof = await createRiskAdmission(input);
   assert.equal(proof.candidateCommitment, '5');
   await verifyRiskAdmission(proof, plan);
-  await assert.rejects(createRiskAdmission({ ...input, budget: '14.97' }), error => error.code === 'MAX_DAILY_RISK');
-  await assert.rejects(createRiskAdmission({ ...input, budget: '9.97' }), error => error.code === 'MAX_DAILY_LOSS');
+  await assert.rejects(async () => createRiskAdmission({ ...input, budget: '14.97' }), error => error.code === 'MAX_DAILY_RISK');
+  await assert.rejects(async () => createRiskAdmission({ ...input, budget: '9.97' }), error => error.code === 'MAX_DAILY_LOSS');
   const later = await recordMoneyEvent({ accountId: account.id, accountFingerprint: account.externalAccountId,
     providerEventId: 'new-tiny-fee', amount: '-0.000000000000000001', asset: 'USDT', occurredAt: at,
     kind: 'fee', basis: 'provider', source: 'fixture' });

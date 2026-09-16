@@ -634,7 +634,7 @@ function equityPerformance(points: TradingEquityPoint[]): Array<Record<string, u
   });
 }
 
-async function performanceRows(since: number): Promise<[PositionQueryRow[], IntentQueryRow[], FillQueryRow[], TradingEquityPoint[]]> {
+function performanceRows(since: number): Promise<[PositionQueryRow[], IntentQueryRow[], FillQueryRow[], TradingEquityPoint[]]> {
   return Promise.all([
     getDatabase().all<PositionQueryRow[]>(
       `SELECT position.channel_id AS channelId, position.account_id AS accountId,

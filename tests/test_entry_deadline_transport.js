@@ -38,24 +38,24 @@ try {
 
   now = plan.entryExpiresAt;
   const beforeToken = tokens;
-  await assert.rejects(adapter.submitOrder(account, request()), /ENTRY_INTENT_EXPIRED/);
+  await assert.rejects(async () => adapter.submitOrder(account, request()), /ENTRY_INTENT_EXPIRED/);
   assert.equal(tokens, beforeToken, 'Expired entry must not access even the executor token.');
   assert.equal(sent.length, 1);
 
   now -= 100;
   tokenWait = () => { now += 200; };
-  await assert.rejects(adapter.submitOrder(account, request()), /ENTRY_INTENT_EXPIRED/);
+  await assert.rejects(async () => adapter.submitOrder(account, request()), /ENTRY_INTENT_EXPIRED/);
   assert.equal(sent.length, 1, 'Expiry while awaiting the token must not reach transport.');
 
   now = plan.entryExpiresAt - 100;
   const changed = request();
   tokenWait = () => { changed.entryExpiresAt += 30_000; };
-  await assert.rejects(adapter.submitOrder(account, changed), /ENTRY_DEADLINE_CHANGED/);
+  await assert.rejects(async () => adapter.submitOrder(account, changed), /ENTRY_DEADLINE_CHANGED/);
   assert.equal(sent.length, 1);
 
   tokenWait = () => undefined;
   for (const entryExpiresAt of [undefined, null, true, '123', 1.5, 0, Number.MAX_SAFE_INTEGER + 1]) {
-    await assert.rejects(adapter.submitOrder(account, { ...request(), entryExpiresAt }), /ENTRY_DEADLINE_UNPROVEN/);
+    await assert.rejects(async () => adapter.submitOrder(account, { ...request(), entryExpiresAt }), /ENTRY_DEADLINE_UNPROVEN/);
   }
   now = plan.entryExpiresAt + 1;
   await adapter.submitOrder(account, stop);
@@ -66,13 +66,13 @@ try {
     now += 200;
     return new Response(JSON.stringify({ code: 'ORDER_OUTCOME_UNRESOLVED', sideEffects: true, details: { confirmedOrders: [] } }), { status: 409 });
   };
-  await assert.rejects(adapter.submitProtectedEntry(account, request(), stop), error => error.code === 'ORDER_OUTCOME_UNRESOLVED' && error.sideEffects === true);
+  await assert.rejects(async () => adapter.submitProtectedEntry(account, request(), stop), error => error.code === 'ORDER_OUTCOME_UNRESOLVED' && error.sideEffects === true);
   assert.equal(sent.length, 3, 'Possible send may not be retried or converted into expired absence.');
   for (const code of ['ENTRY_INTENT_EXPIRED', 'ENTRY_DEADLINE_CHANGED', 'ENTRY_DEADLINE_UNPROVEN']) {
     now = plan.entryExpiresAt - 100;
     const before = sent.length;
     respond = _requestBody => new Response(JSON.stringify({ error: 'Deadline rejected after an executor await.', code }), { status: 422 });
-    await assert.rejects(adapter.submitProtectedEntry(account, request(), stop), error => {
+    await assert.rejects(async () => adapter.submitProtectedEntry(account, request(), stop), error => {
       assert.equal(error instanceof TradingRiskError, false, 'An HTTP error code alone cannot prove that an operation was never dispatched.');
       assert.notEqual(error.sideEffects, false);
       assert.match(error.message, new RegExp(`${code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));

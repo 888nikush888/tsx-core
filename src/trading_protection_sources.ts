@@ -4,7 +4,7 @@ import { getDatabase } from './db.js';
 const hash = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
 /** Includes zero-quantity entry remainders and orphan entries. No absence/quantity-only no-duty inference. */
-export async function protectionScopes(accountId?: string): Promise<Array<{ accountId: string; intentId: string }>> {
+export function protectionScopes(accountId?: string): Promise<Array<{ accountId: string; intentId: string }>> {
   return getDatabase().all(`SELECT account_id AS accountId, intent_id AS intentId FROM trading_positions
       WHERE status <> 'closed' AND (? IS NULL OR account_id = ?)
     UNION SELECT account_id AS accountId, intent_id AS intentId FROM trading_orders

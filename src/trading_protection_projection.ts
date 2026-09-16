@@ -45,7 +45,7 @@ async function validatedReceipt(accountId: string): Promise<ProtectionReceipt | 
 }
 
 /** The same original verdict used by reconciliation, with invalidation only; never a second stop predicate. */
-export async function readProtectionProjection(filter: { accountId?: string; intentId?: string } = {}): Promise<ProtectionProjection[]> {
+export function readProtectionProjection(filter: { accountId?: string; intentId?: string } = {}): Promise<ProtectionProjection[]> {
   return withDatabaseTransaction(async () => {
     const scopes = (await projectionScopes()).filter(scope => (!filter.accountId || scope.accountId === filter.accountId) && (!filter.intentId || scope.intentId === filter.intentId));
     const accounts = new Map<string, ProtectionReceipt | null>();

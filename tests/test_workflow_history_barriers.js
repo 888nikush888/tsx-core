@@ -124,7 +124,7 @@ try {
     'Deleting an unpublished draft must not invalidate workflow history.');
 
   const beforeFailedBarrier = await getWorkflowBuilderHistoryStatus();
-  await assert.rejects(archiveWorkflowResource('missing-resource'), /published workflow resource/);
+  await assert.rejects(async () => archiveWorkflowResource('missing-resource'), /published workflow resource/);
   assert.deepEqual(await getWorkflowBuilderHistoryStatus(), beforeFailedBarrier,
     'A rejected invalidating operation must leave history unchanged.');
 

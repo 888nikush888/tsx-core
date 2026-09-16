@@ -69,7 +69,7 @@ export async function uiMcpProposalReview(id: string) {
   };
 }
 
-export async function approveReviewedMcpProposal(id: string, actor: string, expectedReviewHash: unknown) {
+export function approveReviewedMcpProposal(id: string, actor: string, expectedReviewHash: unknown) {
   return withDatabaseTransaction(async () => {
     const review = await uiMcpProposalReview(id);
     if (!review || typeof expectedReviewHash !== 'string' || review.reviewHash !== expectedReviewHash) throw new Error('MCP_REVIEW_CONFLICT: Prüfinhalt geändert; neue Vorschau erforderlich.');

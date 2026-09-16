@@ -27,7 +27,7 @@ export async function storedAccountLogCheckpoint(account: TradingAccount): Promi
   await assertBinding(account, checkpoint);
   return checkpoint;
 }
-export async function accountLogCheckpoint(account: TradingAccount): Promise<AccountLogCheckpoint | null> {
+export function accountLogCheckpoint(account: TradingAccount): Promise<AccountLogCheckpoint | null> {
   const source = accountLogSource(account.exchange);
   if (!source || !account.externalAccountId || !account.credentialGeneration) return null;
   return withDatabaseTransaction(async () => {

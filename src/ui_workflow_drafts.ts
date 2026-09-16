@@ -42,7 +42,7 @@ function serializeDraftGraph(graph: unknown): string {
   if (Buffer.byteLength(serialized) > 1_048_576) throw new Error('Graph draft exceeds 1 MiB.');
   return serialized;
 }
-export async function saveUiWorkflowDraft(input: { id: string; baseVersion: number | null; baseRevisionId: string | null; graph: unknown }, actorId: string) {
+export function saveUiWorkflowDraft(input: { id: string; baseVersion: number | null; baseRevisionId: string | null; graph: unknown }, actorId: string) {
   assertSaveDraftInput(input, actorId);
   const serialized = serializeDraftGraph(input.graph);
   return withDatabaseTransaction(async () => {
@@ -105,7 +105,7 @@ function assertDraftBinding(
 }
 
 /** Draft identity, graph, active revision and the new draft base commit under the same database owner. */
-export async function activateUiWorkflowDraft(input: Parameters<typeof saveWorkflowRevision>[0], binding: { id: string; version: number }) {
+export function activateUiWorkflowDraft(input: Parameters<typeof saveWorkflowRevision>[0], binding: { id: string; version: number }) {
   return withDatabaseTransaction(async () => {
     const current = await getUiWorkflowDraft(binding.id);
     assertDraftBinding(current, binding, input);

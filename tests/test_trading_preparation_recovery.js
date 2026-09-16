@@ -72,7 +72,7 @@ async function fairBoundedRecovery() {
 async function corruptNeighborCannotSuppressRetirement() {
   const fixture = await setup('corrupt-neighbor');
   const legacyId = await addUnprovedLegacyIntent(fixture, 0, '{');
-  await assert.rejects(fixture.engine.retireUnauthorizedPreparations(fixture.account.id), AggregateError,
+  await assert.rejects(async () => fixture.engine.retireUnauthorizedPreparations(fixture.account.id), AggregateError,
     'The corrupt original remains visible, but independent safe local work must still run.');
   await assertRetired(fixture);
   assert.deepEqual(await getDatabase().get('SELECT status,plan_json FROM trading_trade_intents WHERE id=?', [legacyId]),

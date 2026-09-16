@@ -66,7 +66,7 @@ try {
   assert.deepEqual(lost, { status: 'failed', calls: null, error_code: 'lease_expired' });
   assert.deepEqual(await sourceState(), originals);
   const before = await state();
-  await assert.rejects(withDatabaseTransaction(async () => {
+  await assert.rejects(async () => withDatabaseTransaction(async () => {
     await failScheduledRecovery(account, recovered.recoverySchedule.attemptId, 'read_failed', initial + 47010);
     throw new Error('simulated atomic rollback');
   }), /simulated atomic rollback/);

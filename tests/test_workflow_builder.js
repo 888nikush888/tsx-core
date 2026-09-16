@@ -155,7 +155,7 @@ try {
   const draftForArchive = await createWorkflowResourceDraft({
     kind: 'output', name: 'Draft cannot archive', configuration: { mode: 'none' },
   });
-  await assert.rejects(archiveWorkflowResource(draftForArchive.id), /Only a published workflow resource can be archived/);
+  await assert.rejects(async () => archiveWorkflowResource(draftForArchive.id), /Only a published workflow resource can be archived/);
   await assert.rejects(
     archiveWorkflowResourceFamily('missing-resource-family'),
     /No published workflow resource versions/,
@@ -558,7 +558,7 @@ try {
   assert.equal(initialImpact.added.length, 2);
   assert.equal(initialImpact.destructive, true);
   await assert.rejects(
-    saveWorkflowRevision({ baseRevisionId: null, graph, actorId: 'test:no-initial-confirmation' }),
+    async () => saveWorkflowRevision({ baseRevisionId: null, graph, actorId: 'test:no-initial-confirmation' }),
     /WORKFLOW_IMPACT_CONFIRMATION_REQUIRED/,
   );
   const workflow = await saveWorkflowRevision({
@@ -586,7 +586,7 @@ try {
   );
   assert.equal((await getActiveWorkflow()).definitionSha256, workflow.definitionSha256);
   await assert.rejects(
-    saveWorkflowRevision({ baseRevisionId: null, graph, actorId: 'test:stale' }),
+    async () => saveWorkflowRevision({ baseRevisionId: null, graph, actorId: 'test:stale' }),
     /WORKFLOW_REVISION_CONFLICT/,
   );
   const simulation = await simulateWorkflow({ channelId: '-100-workflow', text: 'BTCUSDT LONG' });
@@ -694,7 +694,7 @@ try {
   assert.equal(impact.changed.length, 1);
   assert.equal(impact.confirmation, WORKFLOW_IMPACT_CONFIRMATION);
   await assert.rejects(
-    saveWorkflowRevision({ baseRevisionId: workflow.id, graph: changedGraph, actorId: 'test:no-confirmation' }),
+    async () => saveWorkflowRevision({ baseRevisionId: workflow.id, graph: changedGraph, actorId: 'test:no-confirmation' }),
     /WORKFLOW_IMPACT_CONFIRMATION_REQUIRED/,
   );
   const changedWorkflow = await saveWorkflowRevision({
@@ -709,7 +709,7 @@ try {
     'Reading an earlier path after activation keeps its original sizing, strategy and source versions.');
   assert.equal((await getActiveWorkflow()).id, changedWorkflow.id, 'Path detail reads cannot reactivate a historical revision.');
   await assert.rejects(
-    archiveWorkflowResource(resources.channel.id),
+    async () => archiveWorkflowResource(resources.channel.id),
     /must stop referencing this resource/,
   );
   await assert.rejects(

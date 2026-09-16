@@ -145,7 +145,7 @@ async function sha256File(filePath: string): Promise<BackupFileMetadata> {
   };
 }
 
-async function fileExists(filePath: string): Promise<boolean> {
+function fileExists(filePath: string): Promise<boolean> {
   return fs.stat(filePath).then(() => true).catch((error: any) => {
     if (error.code === 'ENOENT') return false;
     throw error;

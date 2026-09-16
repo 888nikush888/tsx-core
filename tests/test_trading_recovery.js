@@ -60,7 +60,7 @@ try {
   const crashed = await fixture('crashed');
   const operationId = await prepareTradingOperation(crashed);
   assert.equal(await prepareTradingOperation(crashed), operationId, 'Repeated preparation retains the operation identity.');
-  await assert.rejects(prepareTradingOperation({ ...crashed, request: { changed: true } }), /request changed/);
+  await assert.rejects(async () => prepareTradingOperation({ ...crashed, request: { changed: true } }), /request changed/);
   await transitionTradingOperation(operationId, 'prepared', 'dispatching');
   await closeDb();
   await initDb(databasePath);

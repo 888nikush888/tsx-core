@@ -83,7 +83,7 @@ export class McpControlBridge {
     }
   }
 
-  async start(): Promise<void> {
+  start(): Promise<void> {
     if (this.worker !== null) return;
     this.recovered = false;
     this.abortController = new AbortController();
@@ -325,7 +325,7 @@ export class McpControlBridge {
     }
   }
 
-  private async executeAuthorized(request: McpControlRequest): Promise<unknown> {
+  private executeAuthorized(request: McpControlRequest): unknown {
     const payload = payloadObject(request);
     const action = request.action;
     if (action.startsWith('contracts.')) {

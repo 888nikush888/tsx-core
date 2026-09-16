@@ -913,7 +913,7 @@ async function testRepositoryValidation(defaults, accounts) {
   await assert.rejects(createTradingAccount({ name: 'Bad mode', exchange: 'bybit', mode: 'paper', credentialRef: 'x' }), /Paper mode may only/);
   await assert.rejects(createTradingAccount({ name: 'Missing credential', exchange: 'bybit', mode: 'testnet' }), /credential reference/);
   await assert.rejects(
-    updateTradingAccountState(accounts[0].id, { status: 'error', enabled: true }),
+    async () => updateTradingAccountState(accounts[0].id, { status: 'error', enabled: true }),
     /Only a verified ready account/,
   );
   await assert.rejects(updateTradingRuntimeState({ killSwitchActive: true, killSwitchReason: ' ' }), /requires a reason/);
@@ -933,14 +933,14 @@ async function testRepositoryValidation(defaults, accounts) {
     name: 'Identity-bound account', exchange: 'bybit', mode: 'testnet', credentialRef: 'managed-secret',
   });
   await assert.rejects(
-    updateTradingAccountState(firstExternal.id, {
+    async () => updateTradingAccountState(firstExternal.id, {
       status: 'ready', enabled: true, externalAccountId: `bybit:testnet:${'x'.repeat(243)}`,
     }),
     /at most 256 printable characters/,
     'External exchange identities must enforce the documented length boundary.',
   );
   await assert.rejects(
-    updateTradingAccountState(firstExternal.id, {
+    async () => updateTradingAccountState(firstExternal.id, {
       status: 'ready', enabled: true, externalAccountId: 'bybit:testnet:account\n123',
     }),
     /at most 256 printable characters/,
@@ -958,7 +958,7 @@ async function testRepositoryValidation(defaults, accounts) {
     name: 'Duplicate identity account', exchange: 'bybit', mode: 'testnet', credentialRef: 'managed-secret',
   });
   await assert.rejects(
-    updateTradingAccountState(secondExternal.id, {
+    async () => updateTradingAccountState(secondExternal.id, {
       status: 'ready', enabled: true, verifiedAt: Date.now(), externalAccountId: 'bybit:testnet:account-123',
     }),
     /UNIQUE constraint failed/,
@@ -1020,7 +1020,7 @@ async function testDynamicContracts() {
   assert.equal(validated.execution.schema, 'desk-alpha');
   assert.equal(validated.execution.symbol, 'BTCUSDT');
   await assert.rejects(
-    updateSignalContractDraft({
+    async () => updateSignalContractDraft({
       contractId: 'desk-alpha',
       versionId: published.id,
       name: 'Tampered',
@@ -1037,7 +1037,7 @@ async function testDynamicContracts() {
     enabled: false,
   });
   await assert.rejects(
-    deleteSignalContractVersion(published.id),
+    async () => deleteSignalContractVersion(published.id),
     /Signal schema profiles must be moved or deleted/,
   );
   const next = await createSignalContractDraftVersion('desk-alpha', published.id);
@@ -1207,7 +1207,7 @@ async function testSignalSchemaRepository() {
   assert.equal(await getTradingSignalSchemaForTemplate('desk-alpha-template'), null);
   await assert.rejects(publishTradingStrategyVersion(customDraft.id), /unavailable signal schemas: desk-alpha/);
   await deleteTradingStrategyVersion(customDraft.id);
-  await assert.rejects(createTradingStrategyDraft({
+  await assert.rejects(async () => createTradingStrategyDraft({
     name: 'Unavailable schema strategy',
     configuration: customConfiguration,
   }), /unavailable signal schemas: desk-alpha/);
@@ -1271,7 +1271,7 @@ async function testRepositoryRouting(defaults, accounts) {
   await assert.rejects(updateTradingSignalSchema('standard', {
     name: 'Standard edited', description: '', parserSchema: 'standard', templateName: 'default', enabled: true,
   }), /enabled route uses it/);
-  await assert.rejects(deleteTradingSignalSchema('standard'), /enabled route uses it/);
+  await assert.rejects(async () => deleteTradingSignalSchema('standard'), /enabled route uses it/);
   const routes = await listTradingRoutes();
   assert.equal(routes.length, 2, 'Two channels must route in parallel.');
   assert.notEqual(routes[0].strategyVersionId, routes[1].strategyVersionId);
@@ -1306,9 +1306,9 @@ async function testRepositoryRouting(defaults, accounts) {
   assert.equal(operational.enabledRoutes, 2);
   assert.equal(operational.pendingIntents, 1);
   assert.equal(operational.latestReconciliationAt, null);
-  await assert.rejects(archiveTradingStrategyVersion(published.id), /active routed strategy/);
+  await assert.rejects(async () => archiveTradingStrategyVersion(published.id), /active routed strategy/);
   await assert.rejects(deleteTradingRoute('-100002'), /active or unresolved trades/);
-  await assert.rejects(deleteTradingAccount('paper-default'), /all routes/);
+  await assert.rejects(async () => deleteTradingAccount('paper-default'), /all routes/);
 
   const removableAccount = await createTradingAccount({
     name: 'Referenced account', exchange: 'bybit', mode: 'testnet', credentialRef: 'managed-secret',
@@ -1320,7 +1320,7 @@ async function testRepositoryRouting(defaults, accounts) {
     channelId: '-temporary', strategyVersionId: defaults[0].id,
     accountId: removableAccount.id, enabled: true,
   });
-  await assert.rejects(deleteTradingAccount(removableAccount.id), /all routes to be removed/);
+  await assert.rejects(async () => deleteTradingAccount(removableAccount.id), /all routes to be removed/);
   assert.equal(await deleteTradingRoute('-temporary'), true);
   assert.equal(await deleteTradingAccount(removableAccount.id), true);
 
@@ -1395,7 +1395,7 @@ async function testRepositoryReadbackGuards() {
     const stored = await database.get('SELECT definition_json FROM trading_signal_contract_versions WHERE id = ?', ['standard:v1']);
     // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.equal(standard, undefined);
-    await assert.rejects(createSignalContract({ id: 'readback-contract', name: 'Readback', definition: JSON.parse(stored.definition_json) }), /Created signal contract is missing/);
+    await assert.rejects(async () => createSignalContract({ id: 'readback-contract', name: 'Readback', definition: JSON.parse(stored.definition_json) }), /Created signal contract is missing/);
     assert.equal(await database.get('SELECT id FROM trading_signal_contracts WHERE id = ?', ['readback-contract']), undefined,
       'Failed create readback must roll back its transaction.');
   } finally {
@@ -1425,7 +1425,7 @@ async function testRepositoryReadbackGuards() {
       if (String(sql) === 'SELECT * FROM trading_strategy_versions WHERE id = ?') return Promise.resolve();
       return originalGet.call(this, sql, ...parameters);
     };
-    await assert.rejects(archiveTradingStrategyVersion(guarded.id), /Archived strategy version is missing/);
+    await assert.rejects(async () => archiveTradingStrategyVersion(guarded.id), /Archived strategy version is missing/);
   } finally {
     database.get = originalGet;
   }

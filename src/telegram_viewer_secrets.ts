@@ -121,7 +121,7 @@ export class TelegramViewerSecretStore {
     };
   }
 
-  async readBotToken(): Promise<string | null> {
+  readBotToken(): string | null {
     return this.botTokenValue;
   }
 
@@ -141,7 +141,7 @@ export class TelegramViewerSecretStore {
     this.botTokenUpdatedAt = null;
   }
 
-  async serviceToken(): Promise<string> {
+  serviceToken(): string {
     return this.serviceTokenValue;
   }
 

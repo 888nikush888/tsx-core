@@ -18,7 +18,7 @@ assert.deepEqual(nonSecretConfigSnapshot({
 try {
   await initDb(databasePath);
   const db = getDatabase();
-  await assert.rejects(withDatabaseTransaction(async () => {
+  await assert.rejects(async () => withDatabaseTransaction(async () => {
     await acceptIncomingMessage(message(1), config);
     throw new Error('injected pre-commit crash');
   }), /injected/);

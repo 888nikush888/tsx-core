@@ -39,7 +39,7 @@ async function abandonPreparedOperations(operations: Array<{ id: string; phase: 
 }
 
 /** Prove an individual exit never dispatched. Caller must separately justify cleanup or safe replacement. */
-export async function retireUndispatchedExit(intentId: string, clientOrderId: string): Promise<boolean> {
+export function retireUndispatchedExit(intentId: string, clientOrderId: string): Promise<boolean> {
   return withDatabaseTransaction(async () => {
     const order = await getDatabase().get<{ id: string }>(
       `SELECT id FROM trading_orders WHERE intent_id = ? AND client_order_id = ? AND role <> 'entry'

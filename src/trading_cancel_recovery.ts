@@ -23,7 +23,7 @@ export async function loadCancelOrder(accountId: string, clientOrderId: string):
   return row;
 }
 
-async function latestCancel(accountId: string, clientOrderId: string): Promise<CancelAttempt | undefined> {
+function latestCancel(accountId: string, clientOrderId: string): Promise<CancelAttempt | undefined> {
   return getDatabase().get<CancelAttempt>(
     `SELECT * FROM trading_operations WHERE account_id = ? AND kind = 'cancel'
      AND EXISTS (SELECT 1 FROM json_each(expected_orders_json) WHERE json_extract(value, '$.client_order_id') = ?)

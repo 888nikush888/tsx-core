@@ -91,7 +91,7 @@ async function laterContradiction() {
   assert.equal(event.reportingAmount, '-0.01'); assert.equal(event.valuationStatus, 'unresolved');
   assert.equal((await moneyLedgerSnapshot(trade.account.id, 0, now + 1)).amount, null);
   assert.equal((await observedFundingEvidence(trade.account, now)).observation.status, 'incomplete');
-  await assert.rejects(createRiskAdmission({ account: trade.account, intentId: trade.intentId, plan: {}, market: {},
+  await assert.rejects(async () => createRiskAdmission({ account: trade.account, intentId: trade.intentId, plan: {}, market: {},
     snapshot: { accounting: {} }, budget: '400', epoch: 'local-fixture' }), error => error.code === 'ACCOUNTING_INCOMPLETE');
   assert.deepEqual(await getDatabase().get("SELECT * FROM trading_orders WHERE id='unchanged-protection'"), protection,
     'The monetary projection/negative Entry gate performs no protection mutation.');

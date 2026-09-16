@@ -89,7 +89,7 @@ async function ownerIsolation() {
   await pending;
   assert.equal(wrote, true);
   let starts = 0;
-  await assert.rejects(withDatabaseTransaction(() => withDatabaseDispatchFence(() => Promise.resolve(), () => { starts += 1; return Promise.resolve(); })), /inherit/);
+  await assert.rejects(async () => withDatabaseTransaction(() => withDatabaseDispatchFence(() => Promise.resolve(), () => { starts += 1; return Promise.resolve(); })), /inherit/);
   assert.equal(starts, 0);
 }
 async function commitFailure(account) {

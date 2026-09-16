@@ -2856,18 +2856,18 @@ function isRecoveryLocalSessionBootstrap(context: RequestContext): boolean {
   return context.appState.recovery?.allowLoopbackLocalSession === true;
 }
 
-async function authorizeLocalSessionInitialization(
+function authorizeLocalSessionInitialization(
   context: RequestContext,
   actor: AuthenticatedActor,
   tokenWasConfigured: boolean
 ): Promise<boolean> {
-  if (tokenWasConfigured) return true;
+  if (tokenWasConfigured) return Promise.resolve(true);
   if (isRecoveryLocalSessionBootstrap(context)) {
     addLog(`[CRITICAL] request_id=${context.requestId} Recovery-mode loopback session initialized without an audit trail.`, {
       request_id: context.requestId,
       event: 'recovery_local_session_bootstrap',
     });
-    return true;
+    return Promise.resolve(true);
   }
   return authorizeMutationAudit(context, actor, 'POST', '/api/local-session');
 }
@@ -3292,7 +3292,7 @@ export function stopWebServer(): Promise<void> {
   });
 }
 
-async function accountEvidenceResult(kind: string, id: string, query: URLSearchParams) {
+function accountEvidenceResult(kind: string, id: string, query: URLSearchParams) {
   if (kind === 'reservations') return uiAccountReservations(id, query);
   if (kind === 'history') return uiAccountHistory(id, query);
   return uiAccountEvidence(id);

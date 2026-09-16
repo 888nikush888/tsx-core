@@ -30,7 +30,7 @@ async function initialization() {
   await writeConfig(config, sources.configurationPath);
   await settings.initialize();
   await assert.rejects(pin(() => Promise.resolve()), /has not been enrolled/);
-  await assert.rejects(initializeConfigurationGeneration(sources, { path: path.join(root, '.process_active') }), /ownership|capability/i);
+  await assert.rejects(async () => initializeConfigurationGeneration(sources, { path: path.join(root, '.process_active') }), /ownership|capability/i);
   owner = await acquireProcessLock(path.join(root, '.process_active'));
   const first = await initializeConfigurationGeneration(sources, owner);
   assert.equal(first.generation, 1);
@@ -51,7 +51,7 @@ async function writerAndSnapshot(first) {
     assert.ok(!generation.files.get('config.json').toString().includes('must-not-be-exported'));
     assert.equal(JSON.parse(generation.files.get('runtime-settings.json')).shutdownGraceMs, 45_000);
     assert.throws(() => writeConfigSync(config, sources.configurationPath), /barrier is busy/);
-    await assert.rejects(settings.set(DEFAULT_RUNTIME_SETTINGS), /barrier is busy/);
+    await assert.rejects(async () => settings.set(DEFAULT_RUNTIME_SETTINGS), /barrier is busy/);
     assert.equal(settings.snapshot().shutdownGraceMs, 45_000, 'Failed writer must not publish an in-memory setting.');
     await backupDatabase(path.join(root, 'pinned.sqlite'));
     assert.equal(JSON.parse(await readFile(sources.configurationPath, 'utf8')).apiId, 18);
@@ -63,7 +63,7 @@ async function externalChanges() {
   const original = await readFile(template);
   await writeFile(template, '<signal>external</signal>');
   await assert.rejects(pin(() => Promise.resolve()), /outside their committed generation/);
-  await assert.rejects(initializeConfigurationGeneration(sources, owner), /outside their committed generation/,
+  await assert.rejects(async () => initializeConfigurationGeneration(sources, owner), /outside their committed generation/,
     'Ordinary startup ownership is not permission to silently adopt external edits.');
   await writeFile(template, original);
   await assert.rejects(pin(async () => { await writeFile(template, '<signal>changed-during-snapshot</signal>'); }), /outside their committed generation/);
@@ -149,7 +149,7 @@ async function requestedTargetBytes() {
       }
       return result;
     };
-    await assert.rejects(settings.set({ ...DEFAULT_RUNTIME_SETTINGS, shutdownGraceMs: 60_000 }), /does not match the requested bytes/);
+    await assert.rejects(async () => settings.set({ ...DEFAULT_RUNTIME_SETTINGS, shutdownGraceMs: 60_000 }), /does not match the requested bytes/);
     assert.equal(changed, true);
     assert.equal(settings.snapshot().shutdownGraceMs, 45_000);
     assert.deepEqual(await readFile(path.join(generationRoot, 'head.json')), headBefore);
@@ -162,12 +162,12 @@ async function requestedTargetBytes() {
 
 async function maintenanceRecovery() {
   await closeDb();
-  await assert.rejects(reenrollConfigurationGeneration(sources, owner, { assertQuiescent: () => Promise.resolve() }), /genuine.*lease/);
+  await assert.rejects(async () => reenrollConfigurationGeneration(sources, owner, { assertQuiescent: () => Promise.resolve() }), /genuine.*lease/);
   const lease = await beginMcpSharedMaintenance('configuration recovery fixture', sources.databasePath, owner);
   try {
     await lease.waitForQuiescence();
     await writeFile(sources.runtimeSettingsPath, JSON.stringify({ ...DEFAULT_RUNTIME_SETTINGS, shutdownGraceMs: 75_000 }));
-    await assert.rejects(initializeConfigurationGeneration(sources, owner), /outside their committed generation/);
+    await assert.rejects(async () => initializeConfigurationGeneration(sources, owner), /outside their committed generation/);
     const recovered = await reenrollConfigurationGeneration(sources, owner, lease);
     assert.equal(recovered.generation, 4);
     const retired = await retireConfigurationGeneration(sources.configurationPath, sources.databasePath, owner, lease);
