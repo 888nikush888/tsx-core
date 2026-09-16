@@ -3111,8 +3111,8 @@ export function withDatabaseDispatchFence<T>(verify: () => Promise<void>, start:
   if (serializedDatabaseAccess.isOwnedByCurrentOperation()) throw new Error('Exchange dispatch cannot inherit a database transaction.');
   return withDatabaseTransaction(async () => {
     await verify();
-    const pending = serializedDatabaseAccess.withoutOwnership(start);
-    // A promptly rejected provider promise is handled even while the short read fence commits.
+    // Normalizing to a promise keeps synchronous send implementations safe while the short read fence commits.
+    const pending = Promise.resolve(serializedDatabaseAccess.withoutOwnership(start));
     pending.catch(() => undefined);
     return { pending };
   });
