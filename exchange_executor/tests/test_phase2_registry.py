@@ -199,7 +199,10 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
             ccxt_version="4.5.75",
             certifications_directory=ROOT / "certifications",
         ).catalog()
-        kraken = next(entry for entry in catalog["exchanges"] if entry["id"] == "krakenfutures")
+        try:
+            kraken = next(entry for entry in catalog["exchanges"] if entry["id"] == "krakenfutures")
+        except StopIteration:
+            self.fail("krakenfutures must be present in the exchange catalog.")
         self.assertEqual(kraken["status"], "deprecated")
         self.assertFalse(kraken["ccxt"]["rest"])
         self.assertFalse(kraken["ccxt"]["pro"])

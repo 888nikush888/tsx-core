@@ -121,7 +121,11 @@ class PaginationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(seen["orders"]), 1205)
         self.assertEqual(len(seen["fills"]), 1205)
         self.assertTrue(all(row["scannedThrough"] is not None for row in states))
-        self.assertEqual(next(row for row in states if row["source"] == "orders")["completeness"], "unknown", "Shorter unfilled-order retention must stay explicit.")
+        try:
+            orders_state = next(row for row in states if row["source"] == "orders")
+        except StopIteration:
+            self.fail("Expected an orders pagination state.")
+        self.assertEqual(orders_state["completeness"], "unknown", "Shorter unfilled-order retention must stay explicit.")
         for source, params in rest.calls:
             self.assertLessEqual(params["endTime"] - params["startTime"], 7 * DAY)
             self.assertLessEqual(params["limit"], 50 if source == "orders" else 100)
