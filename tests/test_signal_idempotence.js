@@ -14,7 +14,7 @@ try {
   const before = await db.get('SELECT * FROM signals WHERE id = ?', ['signal']);
   await saveSignal('signal', '-1001', 1, '<signal />', 'canonical');
   assert.deepEqual(await db.get('SELECT * FROM signals WHERE id = ?', ['signal']), before);
-  await assert.rejects(async () => saveSignal('signal', '-1001', 1, '<changed/>', 'different'), /Signal.*conflict/i);
+  await assert.rejects(saveSignal('signal', '-1001', 1, '<changed/>', 'different'), /Signal.*conflict/i);
   assert.equal((await db.all('PRAGMA foreign_key_check')).length, 0);
   console.log('Signal immutable/idempotent persistence passed.');
 } finally {

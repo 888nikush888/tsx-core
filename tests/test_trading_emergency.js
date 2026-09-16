@@ -152,7 +152,8 @@ async function provePositionFailureIsolation() {
   const allocation = new TradingEngine([adapter]);
   const allocationCalls = [];
   allocation.ingestOwnedState = () => Promise.resolve(({ localPositions: positions, unrelatedUnmanagedExposure: false }));
-  allocation.reconcileOpenRemotePosition = (_account, _adapter, _remote, local) => {
+  // skipcq: JS-0116 - preserve the original asynchronous failure fixture, including indirect helper throws.
+  allocation.reconcileOpenRemotePosition = async (_account, _adapter, _remote, local) => {
     allocationCalls.push(local.intent_id);
     if (local.intent_id === positions[0].intent_id) requireTakeProfitAllocation([], ['0'], 0);
     return false;

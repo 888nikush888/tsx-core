@@ -432,7 +432,8 @@ async function testAiRetryAndInjection() {
     {
       budget: retryBudget,
       limits: { primaryAttempts: 1, fallbackAttempts: 1, backoffMs: 0 },
-      requestCompletion: request => {
+      // skipcq: JS-0116 - preserve the original asynchronous failure fixture, including indirect helper throws.
+      requestCompletion: async request => {
         retryModels.push(request.model);
         if (retryModels.length === 1) throw Object.assign(new Error('rate limited'), { status: 429 });
         return { choices: [{ finish_reason: 'stop', message: { content: STANDARD_LONG } }] };
@@ -453,7 +454,8 @@ async function testAiRetryAndInjection() {
     {
       budget: memoryBudget(),
       limits: { primaryAttempts: 1, fallbackAttempts: 1, backoffMs: 0 },
-      requestCompletion: request => {
+      // skipcq: JS-0116 - preserve the original asynchronous failure fixture, including indirect helper throws.
+      requestCompletion: async request => {
         retryAfterModels.push(request.model);
         if (retryAfterModels.length === 1) {
           throw Object.assign(new Error('provider response must not be persisted'), {

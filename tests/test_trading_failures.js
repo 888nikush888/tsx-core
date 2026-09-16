@@ -1034,7 +1034,8 @@ async function testRuntimeIsolatesAccountFailures(directory) {
   const calls = [];
   const engine = {
     mutations: new TradingMutationCoordinator(),
-    reconcileAccount: accountId => {
+    // skipcq: JS-0116 - preserve the original asynchronous failure fixture, including indirect helper throws.
+    reconcileAccount: async accountId => {
       calls.push(accountId);
       if (accountId === first.id) throw new Error('first account unavailable');
     },

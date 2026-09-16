@@ -33,7 +33,7 @@ try {
   const account = await fixture('money-a'), other = await fixture('money-b');
   const original = await event(account, 'fraction', '-10', 'USDT');
   assert.equal(original.valuationStatus, 'unresolved');
-  await assert.rejects(async () => valueFxMoneyEvent(account, original.id), /FX.*UNAVAILABLE/);
+  await assert.rejects(valueFxMoneyEvent(account, original.id), /FX.*UNAVAILABLE/);
   assert.equal(await count('trading_fx_money_valuations'), 0);
   const receipts = [fxReceipt('usd', at - 20), fxReceipt('usdt', at), fxReceipt('usdc', at - 10)];
   await captureFxReceipts(account, receipts, { startedAt: at - 100, completedAt: at + 100 });
@@ -52,20 +52,20 @@ try {
   assert.deepEqual(await valueFxMoneyEvent(account, original.id), proof);
   assert.equal(await count('trading_fx_money_valuations'), 1);
   assert.equal(await count('trading_money_valuations'), 0, 'Do not insert a rounded surrogate into the old decimal ledger.');
-  await assert.rejects(async () => valueFxMoneyEvent(other, original.id), /FX/);
+  await assert.rejects(valueFxMoneyEvent(other, original.id), /FX/);
   const future = await event(account, 'no-prior-usdt-quote', '-1', 'USDT', at - 1);
   const old = await event(account, 'stale', '-1', 'USDT', at + 10001);
   const bnb = await event(account, 'unsupported', '-1', 'BNB');
-  for (const item of [future, old, bnb]) await assert.rejects(async () => valueFxMoneyEvent(account, item.id), /FX/);
+  for (const item of [future, old, bnb]) await assert.rejects(valueFxMoneyEvent(account, item.id), /FX/);
   const rebate = await event(other, 'rebate', '0.025', 'USDC');
   await captureFxReceipts(other, receipts, { startedAt: at - 100, completedAt: at + 100 });
   assert.equal((await valueFxMoneyEvent(other, rebate.id)).value.decimal, '0.02505');
   const native = await event(other, 'native', '-2', 'USD');
   const nativeBytes = await getDatabase().get('SELECT content_json FROM trading_money_valuations WHERE event_id=?', [native.id]);
-  await assert.rejects(async () => valueFxMoneyEvent(other, native.id), /FX/);
+  await assert.rejects(valueFxMoneyEvent(other, native.id), /FX/);
   assert.deepEqual(await getDatabase().get('SELECT content_json FROM trading_money_valuations WHERE event_id=?', [native.id]), nativeBytes);
   const pending = await event(other, 'pending', '-0.000000000000000001', 'USDT');
-  await assert.rejects(async () => withDatabaseTransaction(async () => {
+  await assert.rejects(withDatabaseTransaction(async () => {
     await valueFxMoneyEvent(other, pending.id);
     throw new Error('forced outer rollback');
   }), /forced outer rollback/);
@@ -82,7 +82,7 @@ try {
   const contradictory = structuredClone(receipts[0]);
   contradictory.value = '61000'; contradictory.envelope.result.list[0].indexPrice = contradictory.value;
   await captureFxReceipts(account, [sealFxReceipt(contradictory)], { startedAt: at - 100, completedAt: at + 100 });
-  await assert.rejects(async () => readFxMoneyValuation(original.id), /FX.*CONFLICT/);
+  await assert.rejects(readFxMoneyValuation(original.id), /FX.*CONFLICT/);
   assert.equal((await getMoneyEvent(original.id)).valuationStatus, 'unresolved');
   await assert.rejects(getDatabase().run('UPDATE trading_fx_money_valuations SET recorded_at=recorded_at'), /immutable/);
   await assert.rejects(getDatabase().run('DELETE FROM trading_fx_money_valuations'), /retained/);

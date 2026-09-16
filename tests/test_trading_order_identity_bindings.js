@@ -58,7 +58,7 @@ try {
     await getDatabase().run('UPDATE trading_orders SET provider_symbol=? WHERE id=?', [`a${String.fromCodePoint(unit)}b`, ack.clientOrderId]);
     const injected = await getDatabase().get('SELECT * FROM trading_orders WHERE id=?', [ack.clientOrderId]);
     try {
-      await assert.rejects(async () => persistTradingOrderResult(batch.intentId, ack.clientOrderId,
+      await assert.rejects(persistTradingOrderResult(batch.intentId, ack.clientOrderId,
         { ...ack, providerSymbol: undefined, identityEvidence: undefined }),
       { message: 'Invalid provider symbol for remote order identity.' });
       assert.deepEqual(await getDatabase().get('SELECT * FROM trading_orders WHERE id=?', [ack.clientOrderId]), injected,
@@ -78,12 +78,12 @@ try {
   assert.deepEqual(await getDatabase().get('SELECT * FROM trading_order_identity_bindings WHERE order_id=?', [ack.clientOrderId]), binding);
   const operation = await getDatabase().get('SELECT * FROM trading_operations WHERE id=?', [batch.operationId]);
   await getDatabase().run('UPDATE trading_operations SET request_hash=? WHERE id=?', ['f'.repeat(64), batch.operationId]);
-  await assert.rejects(async () => persistTradingOrderResult(batch.intentId, ack.clientOrderId, ack), /original operation changed/);
+  await assert.rejects(persistTradingOrderResult(batch.intentId, ack.clientOrderId, ack), /original operation changed/);
   await getDatabase().run('UPDATE trading_operations SET request_hash=? WHERE id=?', [operation.request_hash, batch.operationId]);
   for (const [column, changed] of [['expected_orders_json', JSON.stringify([{ client_order_id: ack.clientOrderId }])],
     ['logical_key', 'c'.repeat(64)], ['generation', operation.generation + 1]]) {
     await getDatabase().run(`UPDATE trading_operations SET ${column}=? WHERE id=?`, [changed,batch.operationId]);
-    await assert.rejects(async () => persistTradingOrderResult(batch.intentId, ack.clientOrderId, ack), /Original expected leg|original operation changed/);
+    await assert.rejects(persistTradingOrderResult(batch.intentId, ack.clientOrderId, ack), /Original expected leg|original operation changed/);
     await getDatabase().run(`UPDATE trading_operations SET ${column}=? WHERE id=?`, [operation[column],batch.operationId]);
   }
   await getDatabase().run('UPDATE trading_accounts SET credential_generation=? WHERE id=?', ['e'.repeat(64), kraken.id]);
@@ -94,7 +94,7 @@ try {
   const trigger = await getDatabase().get("SELECT sql FROM sqlite_master WHERE name='trading_order_identity_immutable'");
   await getDatabase().exec('DROP TRIGGER trading_order_identity_immutable');
   await getDatabase().run('UPDATE trading_order_identity_bindings SET evidence_hash=? WHERE order_id=?', ['0'.repeat(64), ack.clientOrderId]);
-  await assert.rejects(async () => persistTradingOrderResult(batch.intentId, ack.clientOrderId, ack), /evidence hash changed/);
+  await assert.rejects(persistTradingOrderResult(batch.intentId, ack.clientOrderId, ack), /evidence hash changed/);
   await getDatabase().run('UPDATE trading_order_identity_bindings SET evidence_hash=? WHERE order_id=?', [binding.evidence_hash, ack.clientOrderId]);
   await getDatabase().exec(trigger.sql);
   const digest = await protectionSourceDigest(kraken.id);
@@ -137,7 +137,7 @@ try {
     const invalid = nativeIdRemote(oid, exchangeOrderId);
     const scopeError = { name: 'Error', message: 'Hyperliquid lookup scope contradicts its original order.' };
     assert.throws(() => validateOrderIdentityEvidence(invalid), scopeError);
-    await assert.rejects(async () => correlateNativeOrderEvidence(hl, [invalid]), scopeError);
+    await assert.rejects(correlateNativeOrderEvidence(hl, [invalid]), scopeError);
   }
   assert.equal(nativeIdCoercions, 0, 'Malformed native identity must not execute or read coercion hooks.');
   assert.equal((await getDatabase().get('SELECT exchange_order_id FROM trading_orders WHERE id=?', [cloid])).exchange_order_id, null);
@@ -147,16 +147,16 @@ try {
   const invalidWalletRemote = { ...remote, identityEvidence: { ...remote.identityEvidence, user: malformedWallet } };
   const invalidWalletError = { name: 'Error', message: 'Hyperliquid lookup scope contradicts its original order.' };
   assert.throws(() => validateOrderIdentityEvidence(invalidWalletRemote), invalidWalletError);
-  await assert.rejects(async () => correlateNativeOrderEvidence(hl, [invalidWalletRemote]), invalidWalletError);
+  await assert.rejects(correlateNativeOrderEvidence(hl, [invalidWalletRemote]), invalidWalletError);
   assert.equal(walletCoercions, 0, 'Malformed wallet evidence must never execute object coercion.');
   assert.equal((await getDatabase().get('SELECT exchange_order_id FROM trading_orders WHERE id=?', [cloid])).exchange_order_id, null);
   assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM trading_order_identity_bindings WHERE account_id=?', [hl.id])).count, 0);
   for (const changed of [{ quantity: '2' }, { identityEvidence: { ...remote.identityEvidence, user: `0x${'e'.repeat(40)}` } }]) {
-    await assert.rejects(async () => correlateNativeOrderEvidence(hl, [{ ...remote, ...changed }]));
+    await assert.rejects(correlateNativeOrderEvidence(hl, [{ ...remote, ...changed }]));
     assert.equal((await getDatabase().get('SELECT exchange_order_id FROM trading_orders WHERE id=?', [cloid])).exchange_order_id, null);
   }
   await getDatabase().run("UPDATE trading_operations SET request_hash=? WHERE id=?", ['0'.repeat(64), lookup.operationId]);
-  await assert.rejects(async () => correlateNativeOrderEvidence(hl, [remote]), /Original journal/);
+  await assert.rejects(correlateNativeOrderEvidence(hl, [remote]), /Original journal/);
   const { createHash } = await import('node:crypto');
   const original = await getDatabase().get('SELECT request_json FROM trading_operations WHERE id=?', [lookup.operationId]);
   await getDatabase().run('UPDATE trading_operations SET request_hash=? WHERE id=?', [createHash('sha256').update(original.request_json).digest('hex'), lookup.operationId]);
@@ -167,7 +167,7 @@ try {
   const bybitParentOnly = { ...remote, identityEvidence: undefined, raw: { info: { parentOrderLinkId: lookup.entry.clientOrderId } } };
   assert.equal((await correlateNativeOrderEvidence(hl, [bybitParentOnly]))[0].clientOrderId, null, 'Parent similarity alone never adopts an attached order.');
   await getDatabase().run("UPDATE trading_orders SET status='filled' WHERE id=?", [cloid]);
-  await assert.rejects(async () => correlateNativeOrderEvidence(hl, [{ ...remote, exchangeOrderId: '9999' }]), /scope changed|contradicts/);
+  await assert.rejects(correlateNativeOrderEvidence(hl, [{ ...remote, exchangeOrderId: '9999' }]), /scope changed|contradicts/);
   assert.deepEqual(await getDatabase().all('PRAGMA foreign_key_check'), []);
   console.log('Native order tags and cloid: journal/account binding, originals, source fence and restart passed.');
 } finally {

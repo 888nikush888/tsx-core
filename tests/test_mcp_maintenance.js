@@ -112,8 +112,8 @@ await fixture(async ({ directory, databasePath, owner }) => {
 await fixture(async ({ databasePath, owner }) => {
   assert.equal(await mcpMaintenanceActive(databasePath), false);
   assert.match(await databaseFileIdentity(databasePath), /^\d+:\d+$/);
-  await assert.rejects(async () => beginMcpSharedMaintenance('bad\nreason', databasePath, owner), /reason is invalid/);
-  await assert.rejects(async () => beginMcpSharedMaintenance('owner missing', databasePath), /ownership capability/);
+  await assert.rejects(beginMcpSharedMaintenance('bad\nreason', databasePath, owner), /reason is invalid/);
+  await assert.rejects(beginMcpSharedMaintenance('owner missing', databasePath), /ownership capability/);
   const before = Date.now();
   const lease = await beginMcpSharedMaintenance('bounded maintenance', databasePath, owner);
   assert.ok(Date.now() - before < 500, 'Begin must publish a request, not pretend a fixed sleep proves closure.');
@@ -126,7 +126,7 @@ await fixture(async ({ databasePath, owner }) => {
   await assert.rejects(assertMcpMaintenanceLease(lease, `${databasePath}.different`), /database scope/i);
   await assert.rejects(assertMcpMaintenanceLease(lease, databasePath), /not acknowledged/);
   await assert.rejects(clearMcpMaintenanceMarker(databasePath), /owning lease/);
-  await assert.rejects(async () => beginMcpSharedMaintenance('second owner', databasePath, owner), /already active/);
+  await assert.rejects(beginMcpSharedMaintenance('second owner', databasePath, owner), /already active/);
   await assert.rejects(registerDatabaseMaintenanceParticipant(databasePath), /before SQLite open/);
   await lease.waitForQuiescence();
   await lease.assertQuiescent();
@@ -324,7 +324,7 @@ await blocked;
 
 await fixture(async ({ databasePath, owner }) => {
   await rename(databasePath, `${databasePath}.preserved`);
-  await assert.rejects(async () => beginMcpSharedMaintenance('present only', databasePath, owner), /ENOENT/);
+  await assert.rejects(beginMcpSharedMaintenance('present only', databasePath, owner), /ENOENT/);
   const lease = await beginMcpOfflineMaintenance('absent destination', databasePath, owner);
   try {
     assert.equal(lease.request.databaseState, 'absent');
@@ -340,7 +340,7 @@ await fixture(async ({ databasePath, owner }) => {
 await fixture(async ({ databasePath, owner }) => {
   await rename(databasePath, `${databasePath}.preserved`);
   await writeFile(`${databasePath}-shm`, 'unresolved sidecar fixture');
-  await assert.rejects(async () => beginMcpOfflineMaintenance('unproved absence', databasePath, owner), /existing DB, WAL or SHM/);
+  await assert.rejects(beginMcpOfflineMaintenance('unproved absence', databasePath, owner), /existing DB, WAL or SHM/);
   assert.equal(await mcpMaintenanceActive(databasePath), false);
 });
 

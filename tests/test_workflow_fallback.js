@@ -805,7 +805,7 @@ try {
   assert.equal(policyImpact.destructive, true, 'A policy-only edit must be treated as a behavior change.');
   assert.ok(policyImpact.changed.length > 0);
   await assert.rejects(
-    async () => saveWorkflowRevision({ baseRevisionId: workflow.id, graph: pairOnlyGraph, actorId: 'test:policy-no-confirmation' }),
+    saveWorkflowRevision({ baseRevisionId: workflow.id, graph: pairOnlyGraph, actorId: 'test:policy-no-confirmation' }),
     /WORKFLOW_IMPACT_CONFIRMATION_REQUIRED/,
   );
   const policyWorkflow = await saveWorkflowRevision({

@@ -114,7 +114,7 @@ async function rationalAndTinyCandidates() {
   assert.equal(proof.candidateCommitment, null, 'Nonterminating rates never become rounded exact scalar aliases.');
   assert.deepEqual(proof.candidateValue.exact, { numerator: '20000', denominator: '401' });
   await verifyRiskAdmission(proof, input.plan);
-  await assert.rejects(async () => createRiskAdmission({ ...input, budget: proof.candidateValue.lower }), error => error.code === 'MAX_DAILY_RISK');
+  await assert.rejects(createRiskAdmission({ ...input, budget: proof.candidateValue.lower }), error => error.code === 'MAX_DAILY_RISK');
   await createRiskAdmission({ ...input, budget: proof.candidateValue.upper });
   const tinyAccount = await accountFixture('fx-risk-tiny');
   await capture(tinyAccount);
@@ -122,7 +122,7 @@ async function rationalAndTinyCandidates() {
   const tiny = await createRiskAdmission({ ...tinyInput, budget: '0.000000000000000001' });
   assert.deepEqual(tiny.candidateValue.exact, { numerator: '1', denominator: '1002500000000000000' });
   assert.equal(tiny.candidateValue.lower, '0'); assert.equal(tiny.candidateCommitment, null);
-  await assert.rejects(async () => createRiskAdmission({ ...tinyInput, budget: '0' }), error => error.code === 'MAX_DAILY_LOSS');
+  await assert.rejects(createRiskAdmission({ ...tinyInput, budget: '0' }), error => error.code === 'MAX_DAILY_LOSS');
   await verifyRiskAdmission(tiny, tinyInput.plan);
   return { input, proof };
 }
@@ -206,11 +206,11 @@ async function sizingBinding() {
   await capture(account);
   const input = await candidateFixture(account, 'candidate-sizing');
   const sizingFx = await persistFxConversion(account, 'USDT', 'USD', at);
-  await assert.rejects(async () => createRiskAdmission({ ...input, sizingFx }), /sizing/i, 'An unreferenced conversion cannot supply sizing authority.');
+  await assert.rejects(createRiskAdmission({ ...input, sizingFx }), /sizing/i, 'An unreferenced conversion cannot supply sizing authority.');
   input.plan.fxSizing = { version: 1, conversionId: sizingFx.id, conversion: sizingFx.conversion,
     reportingCurrency: 'USD', notionalCurrency: 'USDT', strategyMaximumNotionalCurrency: 'USDT', riskAmountCurrency: 'USD' };
   await getDatabase().run('UPDATE trading_trade_intents SET plan_json=? WHERE id=?', [JSON.stringify(input.plan), input.intentId]);
-  await assert.rejects(async () => createRiskAdmission(input), /sizing/i, 'The plan must not omit its original sizing recipe from the final fence.');
+  await assert.rejects(createRiskAdmission(input), /sizing/i, 'The plan must not omit its original sizing recipe from the final fence.');
   const proof = await createRiskAdmission({ ...input, sizingFx });
   await verifyRiskAdmission(proof, input.plan);
   await assert.rejects(verifyRiskAdmission({ ...proof, fxConversions: [] }, input.plan), /sizing/i,
@@ -219,13 +219,13 @@ async function sizingBinding() {
   for (const change of [{ conversionId: '0'.repeat(64) }, { reportingCurrency: 'USDC' }, { notionalCurrency: 'USD' },
     { strategyMaximumNotionalCurrency: 'USD' }, { riskAmountCurrency: 'BTC' },
     { conversion: { ...sizingFx.conversion, rate: { numerator: '1', denominator: '1' } } }]) {
-    await assert.rejects(async () => createRiskAdmission({ ...input, sizingFx, plan: { ...input.plan, fxSizing: { ...input.plan.fxSizing, ...change } } }), /sizing/i);
+    await assert.rejects(createRiskAdmission({ ...input, sizingFx, plan: { ...input.plan, fxSizing: { ...input.plan.fxSizing, ...change } } }), /sizing/i);
   }
-  await assert.rejects(async () => createRiskAdmission({ ...input, sizingFx: { ...sizingFx, id: '0'.repeat(64) } }), /sizing/i);
+  await assert.rejects(createRiskAdmission({ ...input, sizingFx: { ...sizingFx, id: '0'.repeat(64) } }), /sizing/i);
   const other = await accountFixture('fx-sizing-other-owner');
   await capture(other);
   const foreignFx = await persistFxConversion(other, 'USDT', 'USD', at);
-  await assert.rejects(async () => createRiskAdmission({ ...input, sizingFx: foreignFx, plan: { ...input.plan,
+  await assert.rejects(createRiskAdmission({ ...input, sizingFx: foreignFx, plan: { ...input.plan,
     fxSizing: { ...input.plan.fxSizing, conversionId: foreignFx.id, conversion: foreignFx.conversion } } }), /FX_CONVERSION_UNAVAILABLE/,
   'A correct original recipe retained by another account cannot authorize this account.');
 }
@@ -234,14 +234,14 @@ async function missingUnsupportedAndExpired() {
   const account = await accountFixture('fx-risk-unavailable'), remote = await pendingFixture(account, 'pending-unavailable');
   const args = { account, remote, epoch: '0:0', readBalance: () => Promise.resolve(snapshot(account)), budgetForIntent: () => Promise.resolve('1') };
   assert.equal(await refreshReconciledRisk(args), false);
-  await assert.rejects(async () => existingRiskCommitment(account, '', '0:0', 'USD'), /QUOTE_UNAVAILABLE/);
+  await assert.rejects(existingRiskCommitment(account, '', '0:0', 'USD'), /QUOTE_UNAVAILABLE/);
   await capture(account, '58800', '60000');
   await observeRiskReservations(account, remote, '0:0');
   now = at + 10000;
-  await assert.rejects(async () => existingRiskCommitment(account, '', '0:0', 'USD'), /stale/);
+  await assert.rejects(existingRiskCommitment(account, '', '0:0', 'USD'), /stale/);
   now = at + 10001;
   assert.equal(await refreshReconciledRisk(args), false, 'Expired FX does not prevent a completed protection loop.');
-  await assert.rejects(async () => existingRiskCommitment(account, '', '0:0', 'USD'), /EXPIRED/);
+  await assert.rejects(existingRiskCommitment(account, '', '0:0', 'USD'), /EXPIRED/);
   now = at + 100;
   const input = { side: 'LONG', ownedQuantity: '1', averageEntryPrice: '100', markPrice: '100', stopPrice: '90',
     reportingCurrency: 'USD', market: { ...metadata, settlementAsset: 'BTC' }, protectionProven: true, entries: [] };
@@ -274,7 +274,7 @@ async function boundedHistoricalLoss() {
   assert.equal((await getDatabase().get('SELECT balance_reason FROM trading_risk_current WHERE account_id=?', [account.id])).balance_reason,
     'RISK_PRECISION_UNCERTAIN');
   const input = await candidateFixture(account, 'candidate-bounded');
-  await assert.rejects(async () => createRiskAdmission({ ...input, budget: '98' }), error => error.code === 'RISK_PRECISION_UNCERTAIN');
+  await assert.rejects(createRiskAdmission({ ...input, budget: '98' }), error => error.code === 'RISK_PRECISION_UNCERTAIN');
   assert.equal((await getDatabase().get("SELECT status FROM trading_orders WHERE id='pending-bounded-stop_loss'")).status, 'open');
 }
 
@@ -291,7 +291,7 @@ async function stableUnitsAndReportingBinding() {
   const inverse = await calculateFxRiskReservation(account, { ...base, reportingCurrency: 'USDT', market: { ...metadata, settlementAsset: 'USD' } }, at);
   assert.deepEqual(inverse.amounts.additionalRiskValue.exact, { numerator: '2500', denominator: '49' });
   const input = await candidateFixture(account, 'candidate-units');
-  await assert.rejects(async () => createRiskAdmission({ ...input, budget: '1000', snapshot: { ...input.snapshot,
+  await assert.rejects(createRiskAdmission({ ...input, budget: '1000', snapshot: { ...input.snapshot,
     accounting: { ...input.snapshot.accounting, reportingCurrency: 'USDC' } } }), /reporting currency/i,
   'A valid rate cannot relabel the actual USD-bound ledger/account budget as USDC.');
 }
@@ -312,7 +312,7 @@ async function lateFeeAndRefresh(exact) {
   await assert.rejects(verifyRiskAdmission(proof, input.plan), /monetary evidence changed/);
   const refreshed = await createRiskAdmission({ ...input, budget: '50' });
   assert.equal(refreshed.candidateCommitment, '49');
-  await assert.rejects(async () => createRiskAdmission({ ...input, budget: '49.999999999999999999' }), error => error.code === 'MAX_DAILY_RISK');
+  await assert.rejects(createRiskAdmission({ ...input, budget: '49.999999999999999999' }), error => error.code === 'MAX_DAILY_RISK');
   await capture(account, '58801', '60000');
   assert.equal(await refreshReconciledRisk({ ...args, budgetForIntent: () => Promise.resolve('0') }), false,
     'Unknown FX is not evidence of a loss breach and cannot trigger a drain.');

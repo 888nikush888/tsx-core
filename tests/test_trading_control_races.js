@@ -140,11 +140,13 @@ try {
     for (const makeMalformed of malformedFactories) {
       const calls = [];
       const engine = {
-        retireUnauthorizedPreparations: id => {
+        // skipcq: JS-0116 - preserve the original asynchronous failure fixture, including indirect helper throws.
+        retireUnauthorizedPreparations: async id => {
           calls.push(`prepare:${id}`);
           if (id === targets[0] && phase === 'preparation') throw makeMalformed();
         },
-        reconcileAccount: id => {
+        // skipcq: JS-0116 - preserve the original asynchronous failure fixture, including indirect helper throws.
+        reconcileAccount: async id => {
           calls.push(`reconcile:${id}`);
           if (id === targets[0] && phase === 'reconciliation') throw makeMalformed();
         },

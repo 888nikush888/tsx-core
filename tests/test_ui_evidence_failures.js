@@ -82,16 +82,16 @@ async function publicationFailures(database) {
   const before = await uiResourcePublication(wrapper.id);
   await publishTradingStrategyVersion(model.id);
   await archiveTradingStrategyVersion(model.id);
-  await assert.rejects(async () => publishUiResourceWithDependency(wrapper.id, 0, before.publicationHash), /PUBLICATION_CONFLICT/);
+  await assert.rejects(publishUiResourceWithDependency(wrapper.id, 0, before.publicationHash), /PUBLICATION_CONFLICT/);
   const archived = await uiResourcePublication(wrapper.id);
-  await assert.rejects(async () => publishUiResourceWithDependency(wrapper.id, 0, archived.publicationHash), /Archived model/);
+  await assert.rejects(publishUiResourceWithDependency(wrapper.id, 0, archived.publicationHash), /Archived model/);
   assert.equal((await getWorkflowResourceById(wrapper.id)).status, 'draft');
   assert.equal((await getTradingStrategyVersion(model.id)).status, 'archived');
   // Simulate an imported legacy wrapper whose pinned dependency is unavailable.
   await database.run('DELETE FROM trading_strategy_versions WHERE id=?', [model.id]);
   const missing = await uiResourcePublication(wrapper.id);
   assert.equal(missing.dependencyRequired, true); assert.equal(missing.dependency, null);
-  await assert.rejects(async () => publishUiResourceWithDependency(wrapper.id, 0, missing.publicationHash), /model is unavailable/);
+  await assert.rejects(publishUiResourceWithDependency(wrapper.id, 0, missing.publicationHash), /model is unavailable/);
   assert.equal((await getWorkflowResourceById(wrapper.id)).status, 'draft');
 }
 

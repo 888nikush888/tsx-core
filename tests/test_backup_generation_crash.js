@@ -111,7 +111,7 @@ async function assertRestart(root, expected, marker, pin) {
   const owner = await acquireProcessLock(path.join(root, '.process_active'));
   try {
     if (expected.apiId === 18 && expected.generation === 1) {
-      await assert.rejects(async () => initializeConfigurationGeneration(sources, owner), /outside their committed generation/);
+      await assert.rejects(initializeConfigurationGeneration(sources, owner), /outside their committed generation/);
       await assert.rejects(pin(() => assert.fail('Mixed generations must not publish.')), /outside their committed generation/);
     } else {
       const resumed = await initializeConfigurationGeneration(sources, owner);

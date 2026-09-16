@@ -31,7 +31,7 @@ try {
   await paper.setMarket(account.id, { ...market, markPrice: '100' });
   const repeated = await paper.submitOrder(account, { ...entry, clientOrderId: 'ioc-partial' });
   assert.equal(repeated.filledQuantity, '0.5', 'IOC remainder must not chase or fill later.');
-  await assert.rejects(async () => paper.submitOrder(account, { ...entry, clientOrderId: 'bad-boundary', price: '100.6' }), /bound|price/i);
+  await assert.rejects(paper.submitOrder(account, { ...entry, clientOrderId: 'bad-boundary', price: '100.6' }), /bound|price/i);
 } finally {
   await closeDb();
   await rm(directory, { recursive: true, force: true });

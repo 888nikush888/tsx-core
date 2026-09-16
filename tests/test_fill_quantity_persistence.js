@@ -37,7 +37,7 @@ async function providerReadAndAccountBinding() {
   context.read.history = [{ baseRevision: checkpoint.revision, pages: 1,
     checkpoint: { ...checkpoint, revision: checkpoint.revision + 1, providerAccountUid: 'wrong-provider-account' } }];
   const before = await originalRows();
-  await assert.rejects(async () => persistCorrelatedFill(context.account, context.fill, context.read),
+  await assert.rejects(persistCorrelatedFill(context.account, context.fill, context.read),
     /FILL_QUANTITY_READ_PROVIDER_BINDING_MISMATCH/);
   assert.deepEqual(await originalRows(), before, 'Contradictory first-read UID must roll back the fill and every money change.');
   assert.deepEqual(await observations(context.account.id), [], 'Failed first capture cannot leave a normalization observation.');
@@ -53,7 +53,7 @@ async function providerReadAndAccountBinding() {
   assert.equal(proof[0].provider_account_uid, context.fill.raw.info.accountUid);
   assert.deepEqual(JSON.parse(proof[0].acquisition_json), context.read);
   for (const patch of [{ mode: 'live' }, { externalAccountId: 'e'.repeat(64) }]) {
-    await assert.rejects(async () => persistCorrelatedFill({ ...context.account, ...patch }, context.fill, context.read),
+    await assert.rejects(persistCorrelatedFill({ ...context.account, ...patch }, context.fill, context.read),
       /FILL_ACCOUNT_IDENTITY_CHANGED/);
     assert.deepEqual(await originalRows(), original, 'Wrong mode/fingerprint cannot change an original fill or money event.');
     assert.deepEqual(await observations(context.account.id), proof, 'Wrong account binding cannot add or rewrite normalization evidence.');
@@ -96,13 +96,13 @@ try {
   await assert.rejects(getDatabase().run("UPDATE trading_fill_quantity_evidence SET normalization_json='{}' WHERE id=?", [proof.id]), /immutable/);
   await assert.rejects(getDatabase().run('DELETE FROM trading_fill_quantity_evidence WHERE id=?', [proof.id]), /retained/);
   await assert.rejects(getDatabase().run('DELETE FROM trading_fills WHERE id=?', [first.fillId]), /FOREIGN KEY/);
-  await assert.rejects(async () => persistCorrelatedFill(fresh.account, fresh.fill), /QUANTITY.*READ/);
-  await assert.rejects(async () => persistCorrelatedFill(fresh.account, fresh.fill, quantityRead(fresh.read.completedAt + 1000)), /QUANTITY.*READ/);
+  await assert.rejects(persistCorrelatedFill(fresh.account, fresh.fill), /QUANTITY.*READ/);
+  await assert.rejects(persistCorrelatedFill(fresh.account, fresh.fill, quantityRead(fresh.read.completedAt + 1000)), /QUANTITY.*READ/);
   const wrongAccount = { ...fresh.account, credentialGeneration: 'c'.repeat(64) };
-  await assert.rejects(async () => persistCorrelatedFill(wrongAccount, fresh.fill, fresh.read), /QUANTITY.*BINDING/);
+  await assert.rejects(persistCorrelatedFill(wrongAccount, fresh.fill, fresh.read), /QUANTITY.*BINDING/);
   const changedOriginal = structuredClone(fresh.fill); changedOriginal.raw.info.providerEventId = 'different-original';
   changedOriginal.quantityNormalization.originalExecutionHash = quantityHash('kraken-normalization-original-v1', changedOriginal.raw);
-  await assert.rejects(async () => persistCorrelatedFill(fresh.account, changedOriginal, fresh.read), /QUANTITY.*ORIGINAL/);
+  await assert.rejects(persistCorrelatedFill(fresh.account, changedOriginal, fresh.read), /QUANTITY.*ORIGINAL/);
   await getDatabase().run('UPDATE trading_accounts SET credential_generation=? WHERE id=?', ['c'.repeat(64), fresh.account.id]);
   await persistCorrelatedFill(await getTradingAccount(fresh.account.id), fresh.fill, fresh.read);
   rows = await observations(fresh.account.id);
@@ -114,10 +114,10 @@ try {
   assert.deepEqual(await originalRows(), beforeLegacy);
   const rollback = await fixture('rollback-quantity');
   await getDatabase().exec("CREATE TRIGGER fail_quantity BEFORE INSERT ON trading_fill_quantity_evidence WHEN NEW.account_id='rollback-quantity' BEGIN SELECT RAISE(ABORT,'simulated quantity failure'); END;");
-  await assert.rejects(async () => persistCorrelatedFill(rollback.account, rollback.fill, rollback.read), /simulated quantity failure/);
+  await assert.rejects(persistCorrelatedFill(rollback.account, rollback.fill, rollback.read), /simulated quantity failure/);
   assert.equal((await getDatabase().get('SELECT COUNT(*) n FROM trading_fills WHERE account_id=?', [rollback.account.id])).n, 0, 'Failed observation rolls back the first fill and accounting atomically.');
   await getDatabase().exec('DROP TRIGGER fail_quantity');
-  await assert.rejects(async () => withDatabaseTransaction(async () => {
+  await assert.rejects(withDatabaseTransaction(async () => {
     await persistCorrelatedFill(rollback.account, rollback.fill, rollback.read); throw new Error('outer ingestion crash');
   }), /outer ingestion crash/);
   assert.equal((await observations(rollback.account.id)).length, 0);

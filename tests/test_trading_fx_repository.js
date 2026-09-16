@@ -56,8 +56,8 @@ try {
   assert.deepEqual(await persistFxConversion(account, 'USDT', 'USD', at), proof);
   assert.equal(await count('trading_fx_conversions'), 1);
   assert.equal(await count('trading_fx_conversion_receipts'), 2);
-  await assert.rejects(async () => readFxConversion(other, proof.id), /FX/);
-  await assert.rejects(async () => persistFxConversion(other, 'USDT', 'USD', at), /FX.*UNAVAILABLE/);
+  await assert.rejects(readFxConversion(other, proof.id), /FX/);
+  await assert.rejects(persistFxConversion(other, 'USDT', 'USD', at), /FX.*UNAVAILABLE/);
   await captureFxReceipts(other, receipts, read);
   assert.notEqual((await persistFxConversion(other, 'USDT', 'USD', at)).id, proof.id,
     'Public quote originals may be observed by two accounts, but never share account authority.');
@@ -71,10 +71,10 @@ try {
   await getDatabase().run(`INSERT INTO trading_fx_conversions (id,account_id,account_fingerprint,credential_generation,
     evidence_hash,payload_json,recorded_at) VALUES (?,?,?,?,?,?,?)`,
   [fakeId, account.id, account.externalAccountId, account.credentialGeneration, fake.evidenceHash, JSON.stringify(fake), at]);
-  await assert.rejects(async () => readFxConversion(account, fakeId), /FX.*ORIGINALS/);
+  await assert.rejects(readFxConversion(account, fakeId), /FX.*ORIGINALS/);
   await getDatabase().run(`INSERT INTO trading_fx_conversion_receipts(account_id,conversion_id,receipt_id,ordinal)
     SELECT account_id,?,receipt_id,ordinal FROM trading_fx_conversion_receipts WHERE conversion_id=?`, [fakeId, proof.id]);
-  await assert.rejects(async () => readFxConversion(account, fakeId), /FX.*CHANGED/);
+  await assert.rejects(readFxConversion(account, fakeId), /FX.*CHANGED/);
   await closeDb(); await initDb(filename);
   assert.deepEqual(await readFxConversion(account, proof.id), proof, 'Restart revalidates the pinned originals.');
   for (const table of ['trading_fx_receipts', 'trading_fx_conversions', 'trading_fx_conversion_receipts']) {
@@ -83,16 +83,16 @@ try {
   }
   await assert.rejects(captureFxReceipts(account, receipts, { startedAt: at, completedAt: at + 100 }), /FX/);
   await assert.rejects(captureFxReceipts(account, [receipts[0], { ...receipts[1], profileHash: 'd'.repeat(64) }], read), /FX/);
-  await assert.rejects(async () => persistFxConversion(account, 'USDT', 'USD', at + 10001), /FX/);
-  await assert.rejects(async () => persistFxConversion(account, 'USDT', 'USD', at - 1), /FX/);
-  await assert.rejects(async () => persistFxConversion(account, 'BNB', 'USD', at), /FX/);
+  await assert.rejects(persistFxConversion(account, 'USDT', 'USD', at + 10001), /FX/);
+  await assert.rejects(persistFxConversion(account, 'USDT', 'USD', at - 1), /FX/);
+  await assert.rejects(persistFxConversion(account, 'BNB', 'USD', at), /FX/);
   for (const patch of [{ mode: 'live' }, { exchange: 'hyperliquid' }, { credentialGeneration: 'f'.repeat(64) },
     { externalAccountId: 'd'.repeat(64) }, { capabilities: { ...account.capabilities, executionProfileHash: 'e'.repeat(64) } }]) {
     await assert.rejects(captureFxReceipts({ ...account, ...patch }, receipts, read), /FX/);
-    await assert.rejects(async () => readFxConversion({ ...account, ...patch }, proof.id), /FX/);
+    await assert.rejects(readFxConversion({ ...account, ...patch }, proof.id), /FX/);
   }
   const before = await count('trading_fx_receipts');
-  await assert.rejects(async () => withDatabaseTransaction(async () => {
+  await assert.rejects(withDatabaseTransaction(async () => {
     await captureFxReceipts(account, [fxReceipt('usd', at + 1)], read);
     throw new Error('simulated caller rollback');
   }), /simulated caller rollback/);
@@ -105,13 +105,13 @@ try {
   const conflicting = structuredClone(receipts[0]);
   conflicting.value = '61000'; conflicting.envelope.result.list[0].indexPrice = conflicting.value;
   await captureFxReceipts(account, [sealFxReceipt(conflicting)], read);
-  await assert.rejects(async () => persistFxConversion(account, 'USDT', 'USD', at), /FX.*CONFLICT/);
-  await assert.rejects(async () => readFxConversion(account, proof.id), /FX.*CONFLICT/,
+  await assert.rejects(persistFxConversion(account, 'USDT', 'USD', at), /FX.*CONFLICT/);
+  await assert.rejects(readFxConversion(account, proof.id), /FX.*CONFLICT/,
     'A later-discovered contradiction of the SAME original observation must invalidate its usable proof, without repricing it.');
   await getDatabase().run("UPDATE trading_accounts SET credential_generation=? WHERE id=?", ['f'.repeat(64), account.id]);
-  await assert.rejects(async () => readFxConversion(account, proof.id), /FX/);
+  await assert.rejects(readFxConversion(account, proof.id), /FX/);
   const changed = await getTradingAccount(account.id);
-  await assert.rejects(async () => persistFxConversion(changed, 'USDT', 'USD', at), /FX.*UNAVAILABLE/);
+  await assert.rejects(persistFxConversion(changed, 'USDT', 'USD', at), /FX.*UNAVAILABLE/);
   assert.deepEqual(await getDatabase().all('PRAGMA foreign_key_check'), []);
   console.log('Immutable FX account/profile bindings, original receipt proofs, replay, restart, expiry and rollback passed.');
 } finally {

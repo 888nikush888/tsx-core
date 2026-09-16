@@ -270,7 +270,7 @@ try {
   assert.equal(afterNormalEdit.undoLabel, 'Neue normale Änderung');
 
   await assert.rejects(
-    async () => saveWorkflowRevision({
+    saveWorkflowRevision({
       baseRevisionId: normalEdit.id,
       graph: normalEdit.graph,
       actorId: 'test:history',
@@ -290,7 +290,7 @@ try {
   );
   await assert.rejects(getWorkflowBuilderHistoryStatus(), /history.*invalid json/i);
   await assert.rejects(
-    async () => saveWorkflowRevision({
+    saveWorkflowRevision({
       baseRevisionId: normalEdit.id,
       graph: normalEdit.graph,
       actorId: 'test:history',

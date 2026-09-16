@@ -172,7 +172,8 @@ async function missingSelectionAndEmptyQueue() {
 async function unexpectedFailureDoesNotPinCursor() {
   const context = await fixture(), ids = await legacyRows(context, 2, 'failed');
   const attempts = [];
-  const runtime = await startRuntime(schedulerEngine(id => {
+  // skipcq: JS-0116 - preserve the original asynchronous failure fixture, including indirect helper throws.
+  const runtime = await startRuntime(schedulerEngine(async id => {
     attempts.push(id);
     if (id === ids[0]) throw new Error('Local scheduler fake: failed account attempt');
   }));

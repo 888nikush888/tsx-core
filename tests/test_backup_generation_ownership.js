@@ -62,7 +62,7 @@ try {
   assert.equal(evidence.generation, 1);
   assert.equal(released, true);
   await assert.rejects(readFile(owner.path), { code: 'ENOENT' });
-  await assert.rejects(async () => initializeConfigurationGeneration(sources, owner), /released/);
+  await assert.rejects(initializeConfigurationGeneration(sources, owner), /released/);
   await withPinnedConfigurationGeneration(sources.configurationPath, sources.databasePath, generation => {
     assert.equal(generation.evidence.commitId, evidence.commitId);
     assert.equal(JSON.parse(generation.files.get('config.json')).apiId, 17);

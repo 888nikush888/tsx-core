@@ -27,10 +27,10 @@ try {
     assert.equal((await paper.accountSnapshot(account)).unrealizedPnl, '20');
     await getDatabase().run('DELETE FROM trading_paper_markets WHERE account_id = ? AND symbol = ?', [account.id, market.symbol]);
     assert.equal((await paper.openState(account)).positions[0].unrealizedPnl, null);
-    await assert.rejects(async () => paper.accountSnapshot(account), /mark is missing/);
+    await assert.rejects(paper.accountSnapshot(account), /mark is missing/);
     if (side === 'sell') {
       await paper.setMarket(account.id, { ...market, markPrice: '10000' });
-      await assert.rejects(async () => paper.accountSnapshot(account), /nonpositive/);
+      await assert.rejects(paper.accountSnapshot(account), /nonpositive/);
       assert.equal((await paper.openState(account)).positions[0].unrealizedPnl, '-19800', 'Nonpositive equity is never fabricated into a safe value.');
     }
     await closeDb();

@@ -35,27 +35,27 @@ try {
   await store.set(bybitId, { exchange: 'bybit', apiKey: 'bybit-key-123', apiSecret: 'bybit-secret-123' });
   assert.equal((await store.status(bybitId)).configured, true);
   await assert.rejects(
-    async () => store.set('invalid/account', { exchange: 'bybit', apiKey: 'valid-key', apiSecret: 'valid-secret' }),
+    store.set('invalid/account', { exchange: 'bybit', apiKey: 'valid-key', apiSecret: 'valid-secret' }),
     /Invalid trading account identifier/,
   );
   await assert.rejects(
-    async () => store.set(bybitId, { exchange: 'hyperliquid', privateKey: 'bad', walletAddress: 'bad' }),
+    store.set(bybitId, { exchange: 'hyperliquid', privateKey: 'bad', walletAddress: 'bad' }),
     /private key/,
   );
   await assert.rejects(
-    async () => store.set(bybitId, { exchange: 'hyperliquid', privateKey: `0x${'z'.repeat(64)}`, walletAddress: `0x${'b'.repeat(40)}` }),
+    store.set(bybitId, { exchange: 'hyperliquid', privateKey: `0x${'z'.repeat(64)}`, walletAddress: `0x${'b'.repeat(40)}` }),
     /32-byte/,
   );
   await assert.rejects(
-    async () => store.set(bybitId, { exchange: 'hyperliquid', privateKey: `0x${'a'.repeat(64)}`, walletAddress: `0x${'z'.repeat(40)}` }),
+    store.set(bybitId, { exchange: 'hyperliquid', privateKey: `0x${'a'.repeat(64)}`, walletAddress: `0x${'z'.repeat(40)}` }),
     /20-byte/,
   );
   await assert.rejects(
-    async () => store.set(bybitId, { exchange: 'bybit', apiKey: undefined, apiSecret: 'valid-secret' }),
+    store.set(bybitId, { exchange: 'bybit', apiKey: undefined, apiSecret: 'valid-secret' }),
     /API key is required/,
   );
   await assert.rejects(
-    async () => store.set(bybitId, {
+    store.set(bybitId, {
       exchange: 'okx',
       credentials: { apiKey: 'valid-key', secret: 'valid-secret', customParams: '{}' },
     }),

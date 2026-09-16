@@ -136,7 +136,7 @@ try {
   assert.equal(initial.before.name, 'Initial'); assert.equal(initial.requested.name, 'Requested');
   assert.equal(initial.reviewHash, (await uiMcpProposalReview(proposal.id)).reviewHash, 'Read clocks must not invalidate unchanged content.');
   await updateWorkflowResourceDraft(resource.id, { name: 'Concurrent', configuration: resource.configuration, baseEditRevision: 0 });
-  await assert.rejects(async () => approveReviewedMcpProposal(proposal.id, 'test:admin', initial.reviewHash), /MCP_REVIEW_CONFLICT/);
+  await assert.rejects(approveReviewedMcpProposal(proposal.id, 'test:admin', initial.reviewHash), /MCP_REVIEW_CONFLICT/);
   assert.equal((await getMcpProposal(proposal.id)).status, 'pending');
   const fresh = await uiMcpProposalReview(proposal.id);
   assert.equal(fresh.before.name, 'Concurrent'); assert.notEqual(fresh.reviewHash, initial.reviewHash);
@@ -154,13 +154,13 @@ try {
   const active = await getActiveWorkflow(); const graph = { schemaVersion: 3, nodes: [], edges: [] };
   const saved = await saveUiWorkflowDraft({ id: 'operator', baseVersion: null, baseRevisionId: active?.id ?? null, graph }, 'test:admin');
   const input = { baseRevisionId: active?.id ?? null, graph, actorId: 'test:admin', confirmation: 'ACTIVATE WORKFLOW IMPACT', history: { mode: 'record', label: 'Reviewed activation' } };
-  await assert.rejects(async () => activateUiWorkflowDraft(input, { id: 'operator', version: saved.version + 1 }), /GRAPH_DRAFT_VERSION_CONFLICT/);
+  await assert.rejects(activateUiWorkflowDraft(input, { id: 'operator', version: saved.version + 1 }), /GRAPH_DRAFT_VERSION_CONFLICT/);
   const changedGraph = { ...graph, nodes: [{ id: 'node-1', resourceVersionId: resource.id, position: { x: 0, y: 0 } }] };
-  await assert.rejects(async () => activateUiWorkflowDraft({ ...input, graph: changedGraph }, { id: 'operator', version: saved.version }), /GRAPH_DRAFT_VERSION_CONFLICT|node/);
+  await assert.rejects(activateUiWorkflowDraft({ ...input, graph: changedGraph }, { id: 'operator', version: saved.version }), /GRAPH_DRAFT_VERSION_CONFLICT|node/);
   assert.deepEqual(await getActiveWorkflow(), active, 'Stale draft binding must not mutate the active revision.');
   const activated = await activateUiWorkflowDraft(input, { id: 'operator', version: saved.version });
   assert.equal(activated.draft.baseRevisionId, activated.workflow.id); assert.equal(activated.draft.version, saved.version + 1);
-  await assert.rejects(async () => activateUiWorkflowDraft(input, { id: 'operator', version: saved.version }), /GRAPH_DRAFT_VERSION_CONFLICT/);
+  await assert.rejects(activateUiWorkflowDraft(input, { id: 'operator', version: saved.version }), /GRAPH_DRAFT_VERSION_CONFLICT/);
   await closeDb(); await initDb(path.join(directory, 'fixture.db'));
   assert.equal((await getUiWorkflowDraft('operator')).baseRevisionId, (await getActiveWorkflow()).id, 'The activated base and draft commit durably together.');
   const published = (await listTradingStrategies()).find(item => item.status === 'published');
@@ -178,7 +178,7 @@ try {
   const wrapper = await createWorkflowResourceDraft({ kind: 'strategy', name: 'Publication wrapper', configuration: { strategyVersionId: model.id } });
   const publication = await uiResourcePublication(wrapper.id);
   assert.equal(publication.dependency.status, 'draft');
-  await assert.rejects(async () => publishUiResourceWithDependency(wrapper.id, 99, publication.publicationHash), /changed/);
+  await assert.rejects(publishUiResourceWithDependency(wrapper.id, 99, publication.publicationHash), /changed/);
   assert.equal((await getTradingStrategyVersion(model.id)).status, 'draft', 'Dependency publication rolls back if resource CAS fails.');
   const result = await publishUiResourceWithDependency(wrapper.id, 0, publication.publicationHash);
   assert.equal(result.dependency.status, 'published'); assert.equal(result.resource.status, 'published');
@@ -186,7 +186,7 @@ try {
   const contractDraft = await createSignalContractDraftVersion(parent.id, source.id);
   const changedDefinition = structuredClone(contractDraft.definition); changedDefinition.targets.maximumItems = 19;
   await updateSignalContractDraft({ contractId: parent.id, versionId: contractDraft.id, name: parent.name, definition: changedDefinition, baseDefinitionSha256: contractDraft.definitionSha256 });
-  await assert.rejects(async () => updateSignalContractDraft({ contractId: parent.id, versionId: contractDraft.id, name: parent.name, definition: contractDraft.definition, baseDefinitionSha256: contractDraft.definitionSha256 }), /CONTRACT_DRAFT_CONFLICT/);
+  await assert.rejects(updateSignalContractDraft({ contractId: parent.id, versionId: contractDraft.id, name: parent.name, definition: contractDraft.definition, baseDefinitionSha256: contractDraft.definitionSha256 }), /CONTRACT_DRAFT_CONFLICT/);
   const detail = await uiWorkflowDetail('resources', wrapper.id); assert.equal(detail.publication.dependency.id, model.id);
   assert.equal(await uiWorkflowDetail('resources', 'missing'), null);
   assert.equal((await uiWorkflowDetail('revisions', activated.workflow.id)).integrityVerified, true);
@@ -215,9 +215,9 @@ try {
   const attached = await mutateUiModel({ kind: 'strategy', id: orphan.id, action: 'attach', reviewHash: orphanReview.reviewHash });
   assert.equal(attached.resource.configuration.strategyVersionId, orphan.id); assert.equal(attached.resource.status, 'draft');
   assert.equal((await getTradingStrategyVersion(orphan.id)).status, 'draft', 'Recovery attaches exactly the accepted model without publishing or creating another model.');
-  await assert.rejects(async () => mutateUiModel({ kind: 'strategy', id: orphan.id, action: 'attach', reviewHash: orphanReview.reviewHash }), /MODEL_REVIEW_CONFLICT/);
+  await assert.rejects(mutateUiModel({ kind: 'strategy', id: orphan.id, action: 'attach', reviewHash: orphanReview.reviewHash }), /MODEL_REVIEW_CONFLICT/);
   const orphanFresh = await uiModelDetail('strategy', orphan.id); assert.equal(orphanFresh.resourceCount, 1);
-  await assert.rejects(async () => mutateUiModel({ kind: 'strategy', id: orphan.id, action: 'delete', reviewHash: orphanFresh.reviewHash }), /Retained resource/);
+  await assert.rejects(mutateUiModel({ kind: 'strategy', id: orphan.id, action: 'delete', reviewHash: orphanFresh.reviewHash }), /Retained resource/);
   const publishedModel = await mutateUiModel({ kind: 'strategy', id: orphan.id, action: 'publish', reviewHash: orphanFresh.reviewHash });
   assert.equal(publishedModel.model.status, 'published');
   for (let index = 0; index < 102; index++) await createTradingStrategyDraft({ name: `Unbound model ${index}`, configuration: model.configuration });
@@ -231,12 +231,12 @@ try {
   const schemaDetail = await uiModelDetail('schema', schemasPage.entries[0].id); assert.ok(schemaDetail.model.definition);
   const disabledSchema = await mutateUiModel({ kind: 'schema', id: schemaDetail.model.id, action: 'disable', reviewHash: schemaDetail.reviewHash });
   assert.equal(disabledSchema.model.enabled, false);
-  await assert.rejects(async () => mutateUiModel({ kind: 'schema', id: schemaDetail.model.id, action: 'enable', reviewHash: schemaDetail.reviewHash }), /MODEL_REVIEW_CONFLICT/);
+  await assert.rejects(mutateUiModel({ kind: 'schema', id: schemaDetail.model.id, action: 'enable', reviewHash: schemaDetail.reviewHash }), /MODEL_REVIEW_CONFLICT/);
   const disabledReview = await uiModelDetail('schema', schemaDetail.model.id);
   const enabledSchema = await mutateUiModel({ kind: 'schema', id: schemaDetail.model.id, action: 'enable', reviewHash: disabledReview.reviewHash });
   assert.equal(enabledSchema.model.enabled, true);
   const enabledReview = await uiModelDetail('schema', schemaDetail.model.id);
-  await assert.rejects(async () => mutateUiModel({ kind: 'schema', id: schemaDetail.model.id, action: 'publish', reviewHash: enabledReview.reviewHash }), /Unsupported model action/);
+  await assert.rejects(mutateUiModel({ kind: 'schema', id: schemaDetail.model.id, action: 'publish', reviewHash: enabledReview.reviewHash }), /Unsupported model action/);
   for (const [action, status] of [['publish', 'published'], ['archive', 'archived']]) {
     const review = await uiModelDetail('contract', contractDraft.id);
     const changed = await mutateUiModel({ kind: 'contract', id: contractDraft.id, action, reviewHash: review.reviewHash });

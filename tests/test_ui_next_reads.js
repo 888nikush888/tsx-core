@@ -197,7 +197,7 @@ try {
   assert.equal(account.account.mode, 'paper');
   const originalAccount = await getTradingAccount('paper-default');
   await updateTradingAccountConfiguration('paper-default', { maxConcurrentPositions: 18, baseUpdatedAt: originalAccount.updatedAt });
-  await assert.rejects(async () => updateTradingAccountConfiguration('paper-default', { maxConcurrentPositions: 19, baseUpdatedAt: originalAccount.updatedAt }), /configuration changed/);
+  await assert.rejects(updateTradingAccountConfiguration('paper-default', { maxConcurrentPositions: 19, baseUpdatedAt: originalAccount.updatedAt }), /configuration changed/);
   assert.equal((await getTradingAccount('paper-default')).maxConcurrentPositions, 18);
   // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(account.account.externalAccountId, undefined);
@@ -268,7 +268,7 @@ try {
   const activeBeforeDraft = await getActiveWorkflow();
   const draft = await saveUiWorkflowDraft({ id: 'operator', baseVersion: null, baseRevisionId: activeBeforeDraft?.id ?? null, graph }, 'test:admin');
   assert.equal(draft.version, 1);
-  await assert.rejects(async () => saveUiWorkflowDraft({ id: 'operator', baseVersion: null, baseRevisionId: null, graph }, 'test:admin'), /VERSION_CONFLICT/);
+  await assert.rejects(saveUiWorkflowDraft({ id: 'operator', baseVersion: null, baseRevisionId: null, graph }, 'test:admin'), /VERSION_CONFLICT/);
   assert.deepEqual(await getActiveWorkflow(), activeBeforeDraft, 'Graph drafts do not activate workflows.');
   const resource = await createWorkflowResourceDraft({ kind: 'channel', name: 'Draft channel', configuration: { channelId: 'ui-test' } });
   const edited = await updateWorkflowResourceDraft(resource.id, { name: 'Edited channel', configuration: resource.configuration, baseEditRevision: 0 });
