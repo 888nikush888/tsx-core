@@ -3698,8 +3698,10 @@ function mapOutboxRow(row: OutboxStorageRow): OutboxTask {
 async function reviewOutboxRow(row: OutboxStorageRow): Promise<OutboxTask> {
   const task = mapOutboxRow(row);
   if (!task.payloadErrors?.length) return task;
-  const status: OutboxStatus = task.status === 'sending' ? 'unknown'
-    : task.status === 'unknown' || task.status === 'completed' ? task.status : 'needs_review';
+  let status: OutboxStatus;
+  if (task.status === 'sending') status = 'unknown';
+  else if (task.status === 'unknown' || task.status === 'completed') status = task.status;
+  else status = 'needs_review';
   const lastError = `Invalid persisted outbox JSON in ${task.payloadErrors.join(', ')}; explicit data review required.`;
   if (task.status !== status || task.lastError !== lastError) {
     const updatedAt = Date.now();
