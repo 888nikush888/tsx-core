@@ -6,6 +6,7 @@ import {
   useState,
   type CSSProperties,
   type RefObject,
+  type ReactNode,
 } from "react";
 import { useDirtyGuard } from '@/shared/forms/use-dirty-guard';
 import { useOperatorReadOnly } from '@/shared/api/operator-session';
@@ -1345,6 +1346,69 @@ function bindSavedResourceToGraph(
   return addedNode;
 }
 
+function EmbeddedBuilderHeader({ embedded, snapshot, draftMeta, draftUnsaved, readOnly, saving, tableView, setTableView, graph, activateGraph, publishGraphResources, setServerDraftPreview, setNotice, serverDraftPreview, draftMetaRef, setDraftMeta, setGraph, setDraftUnsaved }: Readonly<{
+  embedded: boolean; snapshot: WorkflowSnapshot; draftMeta: WorkflowDraftMeta | null; draftUnsaved: boolean; readOnly: boolean; saving: boolean;
+  tableView: boolean; setTableView: (value: boolean) => void; graph: WorkflowGraph; activateGraph: (nextGraph: WorkflowGraph, label: string, activate?: boolean) => void;
+  publishGraphResources: () => void; setServerDraftPreview: (value: WorkflowDraftPreview | null) => void; setNotice: (value: BuilderNoticeValue | null) => void;
+  serverDraftPreview: WorkflowDraftPreview | null; draftMetaRef: RefObject<WorkflowDraftMeta | null>; setDraftMeta: (value: WorkflowDraftMeta | null) => void;
+  setGraph: (value: WorkflowGraph) => void; setDraftUnsaved: (value: boolean) => void;
+}>) {
+  if (!embedded) return null;
+  return (
+  <section className="operations-card"><h1>Workflows · Entwurf und Aktivierung</h1>
+        <p>Aktiv: Revision {snapshot.workflow?.revision ?? 'keine'} · Graphentwurf {draftMeta?.version ?? 'noch nicht gespeichert'} · Basis {draftMeta?.baseRevisionId ?? 'keine'} · {draftUnsaved ? 'ungespeicherte Änderungen' : 'keine unbestätigte Graphänderung'}.</p>
+        <p>Graphänderungen werden als Entwurf gespeichert. Ressourcenpublikation und Aktivierung sind separate Schritte. History betrifft ausschließlich Graphrevisionen, keine ausgeführten Trades.</p>
+        {readOnly && <p>Viewer: Workflows sind schreibgeschützt.</p>}
+        <div className="flex flex-wrap gap-3"><button className="secondary-button" onClick={() => setTableView(!tableView)}>{tableView ? 'Canvas anzeigen' : 'Tabellenansicht anzeigen'}</button>
+          <button className="secondary-button" disabled={saving || readOnly || !draftMeta} onClick={() => { activateGraph(graph, 'Graph'); }}>Graphentwurf speichern</button>
+          <button className="secondary-button" disabled={saving || readOnly} onClick={() => { publishGraphResources(); }}>Referenzierte Entwurfsversionen publizieren</button>
+          <button className="primary-button" disabled={saving || readOnly || draftUnsaved || !draftMeta?.version} onClick={() => { activateGraph(graph, 'Graph aktiviert', true); }}>Gespeicherten Graph aktivieren</button>
+          <button className="secondary-button" disabled={saving} onClick={() => { (async () => {
+            try { const [draft, active] = await Promise.all([jsonRequest('/api/workflow/drafts?id=operator'), jsonRequest('/api/workflow')]); setServerDraftPreview({ draft: draft.draft, workflow: active.workflow }); }
+            catch (error) { setNotice({ tone: 'error', text: `Vergleich nicht verfügbar: ${String(error)}` }); }
+          })(); }}>Serverstand vergleichen</button></div>
+    <ServerDraftPreview preview={serverDraftPreview} graph={graph} draftMetaRef={draftMetaRef} setDraftMeta={setDraftMeta} setGraph={setGraph} setDraftUnsaved={setDraftUnsaved} setServerDraftPreview={setServerDraftPreview} readOnly={readOnly} />
+  </section>
+  );
+}
+
+function ServerDraftPreview({ preview, graph, draftMetaRef, setDraftMeta, setGraph, setDraftUnsaved, setServerDraftPreview, readOnly }: Readonly<{
+  preview: WorkflowDraftPreview | null; graph: WorkflowGraph; draftMetaRef: RefObject<WorkflowDraftMeta | null>;
+  setDraftMeta: (value: WorkflowDraftMeta | null) => void; setGraph: (value: WorkflowGraph) => void; setDraftUnsaved: (value: boolean) => void;
+  setServerDraftPreview: (value: WorkflowDraftPreview | null) => void; readOnly: boolean;
+}>) {
+  if (!preview) return null;
+  return (
+        <div><p>Serverentwurf {preview.draft?.version ?? 'keiner'} · Basis {preview.draft?.baseRevisionId ?? 'keine'} · aktive Revision {preview.workflow?.id ?? 'keine'}. {preview.draft?.expired && 'Der Entwurf ist abgelaufen und muss bewusst neu gespeichert werden.'}</p>
+          <details><summary>Gespeicherten Graph mit eigenem Entwurf vergleichen</summary><p>Eigener Entwurf</p><pre className="whitespace-pre-wrap break-all">{JSON.stringify(graph, null, 2)}</pre><p>Serverentwurf</p><pre className="whitespace-pre-wrap break-all">{JSON.stringify(preview.draft?.graph ?? preview.workflow?.graph ?? EMPTY_GRAPH, null, 2)}</pre></details>
+          <button className="secondary-button" onClick={() => { const meta = preview.draft ?? { id: 'operator', version: null, baseRevisionId: preview.workflow?.id ?? null }; draftMetaRef.current = meta; setDraftMeta(meta); setGraph(meta.graph ?? preview.workflow?.graph ?? EMPTY_GRAPH); setDraftUnsaved(false); setServerDraftPreview(null); }}>Serverentwurf übernehmen · eigene Änderungen verwerfen</button>
+          <button className="secondary-button" disabled={readOnly} onClick={() => { const meta = { ...(preview.draft ?? { id: 'operator', version: null }), baseRevisionId: preview.workflow?.id ?? null }; draftMetaRef.current = meta; setDraftMeta(meta); setDraftUnsaved(true); setServerDraftPreview(null); }}>Verglichen · eigenen Graph auf neue Basis anwenden</button></div>
+  );
+}
+
+function CanvasPanel({ show, position, className, children }: Readonly<{ show: boolean; position: "top-left" | "top-center" | "top-right"; className: string; children: () => ReactNode }>) {
+  if (!show) return null;
+  return <Panel position={position} className={className}>{children()}</Panel>;
+}
+
+function builderNoSearchResults(search: string, nodes: ReadonlyArray<unknown>, displayNodes: ReadonlyArray<{ id: string; hidden?: boolean }>) {
+  return Boolean(
+    search.trim() &&
+      nodes.length > 0 &&
+      !displayNodes.some(
+        (node) => !node.id.startsWith("__column_") && !node.hidden,
+      ),
+  );
+}
+
+function editorKindFor(newKind: WorkflowKind | null, selectedNode: { kind: WorkflowKind } | null): WorkflowKind {
+  return newKind || selectedNode?.kind || "channel";
+}
+
+function hiddenCanvasStyle(embedded: boolean, tableView: boolean) {
+  return embedded && tableView ? { display: "none" } : undefined;
+}
+
 export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {}) {
   const readOnly = useOperatorReadOnly();
   const [draftMeta, setDraftMeta] = useState<WorkflowDraftMeta | null>(null);
@@ -2173,13 +2237,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
       selectedPathId,
     ],
   );
-  const noSearchResults = Boolean(
-    search.trim() &&
-      graph.nodes.length > 0 &&
-      !displayNodes.some(
-        (node) => !node.id.startsWith("__column_") && !node.hidden,
-      ),
-  );
+  const noSearchResults = builderNoSearchResults(search, graph.nodes, displayNodes);
 
   const selectedConnection = useMemo(() => {
     const edge = graph.edges.find((item) => item.id === selectedEdgeId);
@@ -2302,7 +2360,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
 
   const selectedNode = selectedGraphNode(graph, editorNodeId);
   const selectedResource = resourceForNode(selectedNode, resourceById);
-  const editorKind = newKind || selectedNode?.kind || "channel";
+  const editorKind = editorKindFor(newKind, selectedNode);
   const editorParserSources = useMemo(
     () => parserSourcesForSchema(
       graph,
@@ -2859,31 +2917,64 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
         </DialogContent>
       </Dialog>
   );
-  return (
-    <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
-      {!embedded && <WorkflowTopbar />}
-      {!embedded && <WorkflowNavigation
-        activeWorkspace={activeWorkspace}
-        onChange={setActiveWorkspace}
-      />}
-      {embedded && <section className="operations-card"><h1>Workflows · Entwurf und Aktivierung</h1>
-        <p>Aktiv: Revision {snapshot.workflow?.revision ?? 'keine'} · Graphentwurf {draftMeta?.version ?? 'noch nicht gespeichert'} · Basis {draftMeta?.baseRevisionId ?? 'keine'} · {draftUnsaved ? 'ungespeicherte Änderungen' : 'keine unbestätigte Graphänderung'}.</p>
-        <p>Graphänderungen werden als Entwurf gespeichert. Ressourcenpublikation und Aktivierung sind separate Schritte. History betrifft ausschließlich Graphrevisionen, keine ausgeführten Trades.</p>
-        {readOnly && <p>Viewer: Workflows sind schreibgeschützt.</p>}
-        <div className="flex flex-wrap gap-3"><button className="secondary-button" onClick={() => setTableView(!tableView)}>{tableView ? 'Canvas anzeigen' : 'Tabellenansicht anzeigen'}</button>
-          <button className="secondary-button" disabled={saving || readOnly || !draftMeta} onClick={() => { activateGraph(graph, 'Graph'); }}>Graphentwurf speichern</button>
-          <button className="secondary-button" disabled={saving || readOnly} onClick={() => { publishGraphResources(); }}>Referenzierte Entwurfsversionen publizieren</button>
-          <button className="primary-button" disabled={saving || readOnly || draftUnsaved || !draftMeta?.version} onClick={() => { activateGraph(graph, 'Graph aktiviert', true); }}>Gespeicherten Graph aktivieren</button>
-          <button className="secondary-button" disabled={saving} onClick={() => { (async () => {
-            try { const [draft, active] = await Promise.all([jsonRequest('/api/workflow/drafts?id=operator'), jsonRequest('/api/workflow')]); setServerDraftPreview({ draft: draft.draft, workflow: active.workflow }); }
-            catch (error) { setNotice({ tone: 'error', text: `Vergleich nicht verfügbar: ${String(error)}` }); }
-          })(); }}>Serverstand vergleichen</button></div>
-        {serverDraftPreview && <div><p>Serverentwurf {serverDraftPreview.draft?.version ?? 'keiner'} · Basis {serverDraftPreview.draft?.baseRevisionId ?? 'keine'} · aktive Revision {serverDraftPreview.workflow?.id ?? 'keine'}. {serverDraftPreview.draft?.expired && 'Der Entwurf ist abgelaufen und muss bewusst neu gespeichert werden.'}</p>
-          <details><summary>Gespeicherten Graph mit eigenem Entwurf vergleichen</summary><p>Eigener Entwurf</p><pre className="whitespace-pre-wrap break-all">{JSON.stringify(graph, null, 2)}</pre><p>Serverentwurf</p><pre className="whitespace-pre-wrap break-all">{JSON.stringify(serverDraftPreview.draft?.graph ?? serverDraftPreview.workflow?.graph ?? EMPTY_GRAPH, null, 2)}</pre></details>
-          <button className="secondary-button" onClick={() => { const meta = serverDraftPreview.draft ?? { id: 'operator', version: null, baseRevisionId: serverDraftPreview.workflow?.id ?? null }; draftMetaRef.current = meta; setDraftMeta(meta); setGraph(meta.graph ?? serverDraftPreview.workflow?.graph ?? EMPTY_GRAPH); setDraftUnsaved(false); setServerDraftPreview(null); }}>Serverentwurf übernehmen · eigene Änderungen verwerfen</button>
-          <button className="secondary-button" disabled={readOnly} onClick={() => { const meta = { ...(serverDraftPreview.draft ?? { id: 'operator', version: null }), baseRevisionId: serverDraftPreview.workflow?.id ?? null }; draftMetaRef.current = meta; setDraftMeta(meta); setDraftUnsaved(true); setServerDraftPreview(null); }}>Verglichen · eigenen Graph auf neue Basis anwenden</button></div>}
-      </section>}
-      {activeWorkspace === "builder" ? (
+  const dialogs = () => (<>
+      <WorkflowConnectionDialog
+        open={Boolean(connectionDialog) && !fallbackPolicyOpen}
+        sourceName={connectionDialog?.sourceName || "Quelle"}
+        targetName={connectionDialog?.targetName || "Ziel"}
+        channels={connectionDialog?.channels || []}
+        initialChannelNodeIds={connectionDialog?.initialChannelNodeIds}
+        requireChannelScope={connectionDialog?.kind === "account_fallback"}
+        saving={saving}
+        onClose={() => setConnectionDraft(null)}
+        onSave={(channelNodeIds) =>
+          { saveConnectionRouting(channelNodeIds); }
+        }
+      />
+      <WorkflowFallbackPolicyDialog
+        open={Boolean(connectionDialog) && fallbackPolicyOpen}
+        mode={connectionDraft?.edgeId ? "edit" : "create"}
+        sourceName={connectionDialog?.sourceName || "Quelle"}
+        targetName={connectionDialog?.targetName || "Ziel"}
+        initialFallbackOn={connectionDialog?.initialFallbackOn}
+        saving={saving}
+        onClose={() => {
+          setFallbackPolicyOpen(false);
+          // skipcq: JS-W1042 - React's typed Dispatch API requires the explicit argument; omission would not compile.
+          setPendingFallbackChannelNodeIds(undefined);
+          setConnectionDraft(null);
+        }}
+        onSave={(fallbackOn, applyToChain) =>
+          { saveFallbackPolicy(fallbackOn, applyToChain); }
+        }
+      />
+      {connectionInspectorDialog}
+      <ResourceEditor
+        open={Boolean(editorNodeId || newKind)}
+        kind={editorKind}
+        resource={selectedResource}
+        trading={trading}
+        parserSources={editorParserSources}
+        onClose={() => {
+          setEditorNodeId(null);
+          setNewKind(null);
+        }}
+        onSave={saveResource}
+        draftOnly={embedded}
+        onDeleteNode={selectedNode ? deleteNode : undefined}
+        onArchiveResource={resourceAction(selectedResource, archiveResourceFamily)}
+        onDeleteResource={resourceAction(selectedResource, deleteResourceFamily)}
+        onConfigureAccount={configureAccount}
+      />
+  </>);
+
+  const tableViewFallback = () => (embedded && tableView ? (<GraphTable graph={graph} resources={snapshot.resources} readOnly={readOnly || saving}
+            edit={setEditorNodeId} remove={edgeId => { removeEdge(edgeId); }}
+            connect={(source, target) => { activateGraph({ ...graph, edges: [...graph.edges, { id: newId('edge'), source, target }] }, 'Verbindung'); }} />) : null);
+
+  const noticeBanner = () => (notice ? <BuilderNotice notice={notice} onClose={() => setNotice(null)} /> : null);
+
+  const workspaceStatusbar = () => (activeWorkspace === "builder" ? (
         <WorkflowStatusbar
           snapshot={snapshot}
           graph={graph}
@@ -2913,21 +3004,46 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
           refreshing={refreshing}
           lastUpdated={lastUpdated}
         />
-      )}
+      ));
+
+  return (
+    <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
+      {!embedded && <WorkflowTopbar />}
+      {!embedded && <WorkflowNavigation
+        activeWorkspace={activeWorkspace}
+        onChange={setActiveWorkspace}
+      />}
+      <EmbeddedBuilderHeader
+        embedded={embedded}
+        snapshot={snapshot}
+        draftMeta={draftMeta}
+        draftUnsaved={draftUnsaved}
+        readOnly={readOnly}
+        saving={saving}
+        tableView={tableView}
+        setTableView={setTableView}
+        graph={graph}
+        activateGraph={activateGraph}
+        publishGraphResources={publishGraphResources}
+        setServerDraftPreview={setServerDraftPreview}
+        setNotice={setNotice}
+        serverDraftPreview={serverDraftPreview}
+        draftMetaRef={draftMetaRef}
+        setDraftMeta={setDraftMeta}
+        setGraph={setGraph}
+        setDraftUnsaved={setDraftUnsaved}
+      />
+      {workspaceStatusbar()}
       {activeWorkspace === "builder" ? (
         <>
-          {notice && (
-            <BuilderNotice notice={notice} onClose={() => setNotice(null)} />
-          )}
+          {noticeBanner()}
           <DuplicateResourceNotice
             removedNodeCount={duplicateSummary.removedNodeCount}
             saving={saving}
             onConsolidate={() => { consolidateDuplicates(); }}
           />
-          {embedded && tableView && <GraphTable graph={graph} resources={snapshot.resources} readOnly={readOnly || saving}
-            edit={setEditorNodeId} remove={edgeId => { removeEdge(edgeId); }}
-            connect={(source, target) => { activateGraph({ ...graph, edges: [...graph.edges, { id: newId('edge'), source, target }] }, 'Verbindung'); }} />}
-          <div ref={canvasRef} id="workflow-canvas" className="workflow-canvas" style={embedded && tableView ? { display: 'none' } : undefined}>
+          {tableViewFallback()}
+          <div ref={canvasRef} id="workflow-canvas" className="workflow-canvas" style={hiddenCanvasStyle(embedded, tableView)}>
         <ReactFlow<WorkflowCanvasNode, Edge>
           nodes={displayNodes}
           edges={displayEdges}
@@ -2996,21 +3112,9 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
             }
             maskColor="var(--minimap-mask)"
           />
-          {noSearchResults && (
-            <Panel position="top-center" className="canvas-empty-panel">
-              {searchEmptyCard}
-            </Panel>
-          )}
-          {selectedRoute && (
-            <Panel position="top-right" className="route-focus-panel">
-              {routeFocusCard()}
-            </Panel>
-          )}
-          {connectionSource && (
-            <Panel position="top-left" className="connection-panel">
-              {connectionPanelCard()}
-            </Panel>
-          )}
+          <CanvasPanel show={Boolean(noSearchResults)} position="top-center" className="canvas-empty-panel">{() => searchEmptyCard}</CanvasPanel>
+          <CanvasPanel show={Boolean(selectedRoute)} position="top-right" className="route-focus-panel">{() => routeFocusCard()}</CanvasPanel>
+          <CanvasPanel show={Boolean(connectionSource)} position="top-left" className="connection-panel">{() => connectionPanelCard()}</CanvasPanel>
             </ReactFlow>
           </div>
         </>
@@ -3026,54 +3130,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
         />
       )}
 
-      <WorkflowConnectionDialog
-        open={Boolean(connectionDialog) && !fallbackPolicyOpen}
-        sourceName={connectionDialog?.sourceName || "Quelle"}
-        targetName={connectionDialog?.targetName || "Ziel"}
-        channels={connectionDialog?.channels || []}
-        initialChannelNodeIds={connectionDialog?.initialChannelNodeIds}
-        requireChannelScope={connectionDialog?.kind === "account_fallback"}
-        saving={saving}
-        onClose={() => setConnectionDraft(null)}
-        onSave={(channelNodeIds) =>
-          { saveConnectionRouting(channelNodeIds); }
-        }
-      />
-      <WorkflowFallbackPolicyDialog
-        open={Boolean(connectionDialog) && fallbackPolicyOpen}
-        mode={connectionDraft?.edgeId ? "edit" : "create"}
-        sourceName={connectionDialog?.sourceName || "Quelle"}
-        targetName={connectionDialog?.targetName || "Ziel"}
-        initialFallbackOn={connectionDialog?.initialFallbackOn}
-        saving={saving}
-        onClose={() => {
-          setFallbackPolicyOpen(false);
-          // skipcq: JS-W1042 - React's typed Dispatch API requires the explicit argument; omission would not compile.
-          setPendingFallbackChannelNodeIds(undefined);
-          setConnectionDraft(null);
-        }}
-        onSave={(fallbackOn, applyToChain) =>
-          { saveFallbackPolicy(fallbackOn, applyToChain); }
-        }
-      />
-      {connectionInspectorDialog}
-      <ResourceEditor
-        open={Boolean(editorNodeId || newKind)}
-        kind={editorKind}
-        resource={selectedResource}
-        trading={trading}
-        parserSources={editorParserSources}
-        onClose={() => {
-          setEditorNodeId(null);
-          setNewKind(null);
-        }}
-        onSave={saveResource}
-        draftOnly={embedded}
-        onDeleteNode={selectedNode ? deleteNode : undefined}
-        onArchiveResource={resourceAction(selectedResource, archiveResourceFamily)}
-        onDeleteResource={resourceAction(selectedResource, deleteResourceFamily)}
-        onConfigureAccount={configureAccount}
-      />
+      {dialogs()}
       <ResourceLibraryDialog
         open={kindPickerOpen}
         selectedKind={libraryKind}
