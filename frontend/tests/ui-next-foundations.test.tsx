@@ -22,7 +22,8 @@ describe("UI Next correctness boundaries", () => {
     expect(portfolioTotal([{ ...row, observedAt: '1000' }, { ...row, equity: 1 }], 'equity')).toContain('2 Kontobeleg(e) ungeklärt');
   });
   it('rejects empty numeric runtime fields and unfamiliar parameter types', () => {
-    const field: any = { path: 'shutdownGraceMs', type: 'number', editable: true, secret: false, range: [1000, 120000] };
+    type RuntimeParameterContract = NonNullable<Parameters<typeof runtimeInputError>[1]>[number];
+    const field = { path: 'shutdownGraceMs', type: 'number', editable: true, secret: false, range: [1000, 120000] } as unknown as RuntimeParameterContract;
     expect(runtimeInputError({ shutdownGraceMs: NaN }, [field])).toContain('ganze Zahl');
     expect(runtimeInputError({ shutdownGraceMs: 120000 }, [field])).toBeNull();
     expect(runtimeInputError({ shutdownGraceMs: 120001 }, [field])).toContain('ganze Zahl');

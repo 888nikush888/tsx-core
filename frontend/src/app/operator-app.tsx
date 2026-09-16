@@ -10,17 +10,27 @@ import { OperatorReadOnlyContext } from "@/shared/api/operator-session";
 import { GlobalSearch } from '@/shared/components/global-search';
 
 import { OperatorPage } from "./operator-page";
+type ConnectionSession = {
+  session?: { actorId?: string; role?: string } | null;
+  backendVersion?: string;
+  active?: boolean;
+};
+type GlobalStatePayload = {
+  overview?: { runtime?: { liveTradingEnabled?: boolean; executionEnabled?: boolean } };
+  readAt: number;
+};
+
 export function OperatorApp() {
   const { pathname } = useLocation();
   const tab = operatorTab(pathname);
   const area = OPERATOR_AREAS.find((item) => item.id === pathname.split("/")[1]);
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<ConnectionSession | null>(null);
   const [trading, setTrading] = useState<TradingSnapshot | null>(null);
-  const [status, setStatus] = useState<Record<string, any> | null>(null);
+  const [status, setStatus] = useState<Record<string, unknown> | null>(null);
   const [catalog, setCatalog] = useState<ExchangeCatalog | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [refresh, setRefresh] = useState(0);
-  const [globalState, setGlobalState] = useState<any>(null);
+  const [globalState, setGlobalState] = useState<GlobalStatePayload | null>(null);
   const readGlobalState = useCallback((signal: AbortSignal) => jsonRequest('/api/trading?view=overview', { signal }), []);
   usePoll(readGlobalState, value => { setGlobalState({ ...value, readAt: Date.now() }); setErrors(previous => ({ ...previous, runtime: '' })); }, failure => setErrors(previous => ({ ...previous, runtime: failure.message })), 5000, refresh);
   const globalRuntime = globalState?.overview?.runtime;

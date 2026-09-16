@@ -2,14 +2,15 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WorkspaceStatusbar } from "@/app/workflow/workflow-builder";
+import type { TradingSnapshot } from "@/app/workflow/types";
 
 afterEach(cleanup);
 
-const baseTrading: any = {
+const baseTrading = {
   overview: { runtime: { executionEnabled: true, killSwitchActive: false } },
   accountIncidents: [],
-};
-const baseSystem: any = {
+} as unknown as TradingSnapshot;
+const baseSystem = {
   connectionState: "connected",
   state: "ok",
   operations: { backup: { integrityVerified: { verifiedAt: Date.now() }, healthy: true } },
@@ -55,11 +56,11 @@ describe("WorkspaceStatusbar rendering", () => {
   });
 
   it("renders degraded states", () => {
-    const degradedTrading: any = {
+    const degradedTrading = {
       overview: { runtime: { executionEnabled: false, killSwitchActive: true, killSwitchReason: "test" } },
       accountIncidents: [{ id: "1", status: "open" }],
-    };
-    const degradedSystem: any = {
+    } as unknown as TradingSnapshot;
+    const degradedSystem = {
       connectionState: "offline",
       error: "fail",
       operations: { backup: {} },

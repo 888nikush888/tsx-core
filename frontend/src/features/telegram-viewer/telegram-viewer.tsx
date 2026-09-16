@@ -44,8 +44,25 @@ function viewerServiceHealth(service: { reachable?: boolean; healthy?: boolean }
   return service.healthy === false ? 'gestört' : 'unbekannt';
 }
 
+type TelegramViewerService = {
+  ready?: boolean | null;
+  reachable?: boolean;
+  healthy?: boolean;
+  lastPollAt?: unknown;
+  allowedUsers?: number | null;
+  lastError?: string | null;
+  lastTest?: { status?: string | null; attemptedAt?: unknown } | null;
+};
+type TelegramViewerPayload = {
+  settings?: TelegramViewerSettings | null;
+  settingsRevision?: number | string | null;
+  settingsRecovery?: { active?: boolean | null; reason?: string | null } | null;
+  service?: TelegramViewerService | null;
+  secrets?: { botToken?: { configured?: boolean | null } | null } | null;
+};
+
 export function TelegramViewer() {
-  const [payload, setPayload] = useState<any>(null);
+  const [payload, setPayload] = useState<TelegramViewerPayload | null>(null);
   const readOnly = useOperatorReadOnly();
   const serverSettings = payload?.settings ? { ...payload.settings, allowedUsersText: (payload.settings.allowedUserIds ?? []).join('\n') } : null;
   const form = useVersionedDraft<TelegramViewerSettings & { allowedUsersText: string } | null>('telegram-viewer', serverSettings, payload?.settingsRevision ?? null, null);
@@ -65,7 +82,7 @@ export function TelegramViewer() {
   const read = useCallback((signal: AbortSignal) => jsonRequest('/api/telegram-viewer', { signal }), []);
   usePoll(read, next => { setPayload(next); setLoadError(''); }, reason => setLoadError(reason.message), 3_000);
 
-  const mutate = useCallback(async (label: string, url: string, init: RequestInit, accepted?: (value: any) => void) => {
+  const mutate = useCallback(async (label: string, url: string, init: RequestInit, accepted?: (value: Record<string, unknown>) => void) => {
     if (readOnly) return;
     setBusy(label);
     setMessage("");
@@ -86,7 +103,7 @@ export function TelegramViewer() {
     await mutate("Einstellungen gespeichert", "/api/telegram-viewer/settings", {
       method: "POST", headers: { "Content-Type": "application/json", ...(form.baseRevision ? { 'If-Match': String(form.baseRevision) } : {}) },
       body: JSON.stringify({ ...storedSettings, allowedUserIds: users }),
-    }, result => { if (result.settings) { setPayload((previous: any) => ({ ...previous, ...result })); form.saved({ ...result.settings, allowedUsersText: result.settings.allowedUserIds.join('\n') }, result.settingsRevision ?? null); } });
+    }, result => { const nextSettings = result.settings as TelegramViewerSettings | undefined; if (nextSettings) { setPayload((previous) => ({ ...previous, ...result })); form.saved({ ...nextSettings, allowedUsersText: nextSettings.allowedUserIds.join('\n') }, (result.settingsRevision ?? null) as number | string | null); } });
   };
 
   const setToken = async () => {
@@ -117,7 +134,7 @@ export function TelegramViewer() {
   };
 
   if (!settings || !payload) return <Empty text={loadError || message || "Telegram Viewer wird geladen …"} />;
-  const service = payload.service || {};
+  const service = (payload.service || {}) as TelegramViewerService;
   const botConfigured = payload.secrets?.botToken?.configured === true;
   const serviceReadiness = () => {
     if (service.ready === true) {

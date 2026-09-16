@@ -1,6 +1,6 @@
 import { valueText } from "@/shared/value-text";
 import { listEntries } from "@/shared/list-entries";
-import { AccountPositionLimit } from '@/features/accounts/account-position-limit';
+import { AccountPositionLimit, type PositionLimitSaveResult } from '@/features/accounts/account-position-limit';
 import {
   Children,
   isValidElement,
@@ -58,7 +58,7 @@ type ResourceEditorProps = Readonly<{
   onDeleteNode?: () => void | Promise<void>;
   onArchiveResource?: () => void | Promise<void>;
   onDeleteResource?: () => void | Promise<void>;
-  onConfigureAccount?: (accountId: string, maximum: number, baseUpdatedAt?: number) => Promise<any>;
+  onConfigureAccount?: (accountId: string, maximum: number, baseUpdatedAt?: number) => Promise<PositionLimitSaveResult>;
 }>;
 
 export type BuilderParserSource = Readonly<{
@@ -1997,7 +1997,7 @@ export function ResourceEditor({
                     value={
                       Array.isArray(configuration.tiers)
                         ? configuration.tiers
-                            .map((tier: any) => tier.riskPercent)
+                            .map((tier: { riskPercent?: string }) => tier.riskPercent)
                             .join("\n")
                         : ""
                     }

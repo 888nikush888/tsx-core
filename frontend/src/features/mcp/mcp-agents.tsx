@@ -8,10 +8,45 @@ import { useVersionedDraft } from '@/shared/forms/use-versioned-draft';
 import { useConfirmationDialog } from '@/components/confirmation-dialog';
 import { showIssuedCredential } from '@/shared/components/issued-credential';
 import { Empty, time } from '@/shared/components/operator-primitives';
+type McpAgentEntry = {
+  id: string;
+  name: string;
+  enabled?: boolean;
+  tokenPrefix?: string;
+  permissions: string[];
+  eventSubscriptions?: string[];
+  updatedAt?: number;
+};
+type McpProposalEntry = {
+  id: string;
+  action: string;
+  agentName?: string;
+  status: string;
+  expiresAt: number;
+  preflight?: { blockers?: string[] | null } | null;
+};
+type McpSessionEntry = { id: string; agentName?: string; agentId?: string; clientName?: string; disconnectedAt?: unknown; lastSeenAt?: number };
+type McpActionEntry = { id: string; outcome: string; toolName?: string; agentName?: string; durationMs?: number; completedAt?: number };
+type McpSnapshot = {
+  selectedAgent?: McpAgentEntry | null;
+  agents?: McpAgentEntry[];
+  proposals?: McpProposalEntry[];
+  sessions?: McpSessionEntry[];
+  actions?: McpActionEntry[];
+  eventTypes?: string[];
+  permissions?: string[];
+  activeSessionCount?: number;
+  interpretation?: string;
+  endpoint?: string;
+  runtime?: { mode?: string } | null;
+  pages?: Record<string, { hasMore?: boolean; nextCursor: string }>;
+};
+type McpSnapshotState = { key: string; value: McpSnapshot };
+
 export function Mcp() {
   const [params, setParams] = useSearchParams();
   const query = new URLSearchParams(params); query.set('view', 'operator'); const queryKey = query.toString();
-  const [snapshotState, setSnapshotState] = useState<any>(null);
+  const [snapshotState, setSnapshotState] = useState<McpSnapshotState | null>(null);
   const snapshot = snapshotState?.key === queryKey ? snapshotState.value : null;
   const [error, setError] = useState("");
   const [notice, setNotice] = useState('');
@@ -27,7 +62,7 @@ export function Mcp() {
     eventSubscriptions: [] as string[],
     enabled: true,
   };
-  const selected = snapshot?.selectedAgent || snapshot?.agents?.find((agent: any) => agent.id === selectedId) || null;
+  const selected = snapshot?.selectedAgent || snapshot?.agents?.find(agent => agent.id === selectedId) || null;
   const serverForm = selected ? { name: selected.name, permissions: selected.permissions as string[], eventSubscriptions: selected.eventSubscriptions as string[], enabled: selected.enabled as boolean } : null;
   const draft = useVersionedDraft(selectedId, serverForm, selected?.updatedAt ?? null, emptyAgentForm);
   const { draft: form, setDraft: setForm } = draft;
@@ -104,7 +139,7 @@ export function Mcp() {
     flushSync(() => { if (serverForm) draft.acceptServer(); else draft.saved(emptyAgentForm, null); });
     return true;
   };
-  const pageControls = (kind: string, label: string) => <div className="flex gap-3"><button className="secondary-button" disabled={draft.dirty || !params.has(`${kind}Cursor`)} onClick={() => setParams(previous => { previous.delete(`${kind}Cursor`); return previous; })}>Erste {label}</button><button className="secondary-button" disabled={draft.dirty || !snapshot?.pages?.[kind]?.hasMore} onClick={() => setParams(previous => { previous.set(`${kind}Cursor`, snapshot.pages[kind].nextCursor); return previous; })}>Weitere {label}</button></div>;
+  const pageControls = (kind: string, label: string) => <div className="flex gap-3"><button className="secondary-button" disabled={draft.dirty || !params.has(`${kind}Cursor`)} onClick={() => setParams(previous => { previous.delete(`${kind}Cursor`); return previous; })}>Erste {label}</button><button className="secondary-button" disabled={draft.dirty || !snapshot?.pages?.[kind]?.hasMore} onClick={() => setParams(previous => { previous.set(`${kind}Cursor`, snapshot?.pages?.[kind]?.nextCursor as string); return previous; })}>Weitere {label}</button></div>;
   const startNew = async () => {
     if (!await canLeaveDraft()) return;
     setCreating(true);
@@ -185,7 +220,7 @@ export function Mcp() {
       setCreating(false);
     }
   };
-  const decide = async (proposal: any, approve: boolean) => {
+  const decide = async (proposal: McpProposalEntry, approve: boolean) => {
     const reason = approve ? undefined : await confirm({
       title: "MCP-Vorschlag ablehnen",
       description: `Der Vorschlag „${proposal.action}“ wird nicht ausgeführt.`,
@@ -242,7 +277,7 @@ export function Mcp() {
       <section className="operations-card">
         <h3>Agenten</h3>
         <div className="agent-grid">
-          {snapshot?.agents?.map((agent: any) => (
+          {snapshot?.agents?.map(agent => (
             <button
               type="button"
               key={agent.id}
@@ -364,7 +399,7 @@ export function Mcp() {
         <h3>Freigabe-Warteschlange</h3>
         <label>Vorschlagsstatus<select className="border bg-background p-2" disabled={draft.dirty} value={params.get('proposalsStatus') || 'pending'} onChange={event => setParams(previous => { previous.set('proposalsStatus', event.target.value); previous.delete('proposalsCursor'); return previous; })}>{['pending', 'approved', 'executing', 'completed', 'rejected', 'failed', 'expired', 'all'].map(status => <option key={status}>{status}</option>)}</select></label>
         {snapshot?.proposals
-          ?.map((proposal: any) => (
+          ?.map(proposal => (
             <div className="proposal-row" key={proposal.id}>
               <div>
                 <strong>{proposal.action}</strong>
@@ -400,9 +435,9 @@ export function Mcp() {
             {snapshot?.activeSessionCount ?? 'unbekannt'}
           </strong>
         </div>
-        {snapshot?.sessions?.map((session: any) => <p key={session.id}>{session.agentName || session.agentId} · {session.clientName} · {session.disconnectedAt == null ? 'verbunden' : 'getrennt'} · zuletzt {time(session.lastSeenAt)}</p>)}
+        {snapshot?.sessions?.map(session => <p key={session.id}>{session.agentName || session.agentId} · {session.clientName} · {session.disconnectedAt == null ? 'verbunden' : 'getrennt'} · zuletzt {time(session.lastSeenAt)}</p>)}
         {pageControls('sessions', 'Sitzungen')}
-        {snapshot?.actions?.map((action: any) => {
+        {snapshot?.actions?.map(action => {
           const actionBadge = () => {
             if (action.outcome === "succeeded") {
               return "healthy";

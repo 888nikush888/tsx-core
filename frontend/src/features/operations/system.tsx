@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { apiFetch, jsonRequest, mutateAndObserve, setDashboardToken } from "@/lib/api";
 import { JobLink } from "@/features/operations/jobs-page";
-import { RuntimeParameters, runtimeInputError } from "@/features/operations/runtime-parameters";
+import { RuntimeParameters, runtimeInputError, type RuntimeParameterPayload } from "@/features/operations/runtime-parameters";
 import { ChangeReview } from "@/shared/components/change-review";
 import { useConfirmationDialog } from "@/components/confirmation-dialog";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import { useDirtyGuard } from "@/shared/forms/use-dirty-guard";
 import { usePoll } from "@/shared/api/use-poll";
 import { showIssuedCredential } from "@/shared/components/issued-credential";
 
-function RuntimeEvidence({ payload }: Readonly<{ payload: any }>) {
+function RuntimeEvidence({ payload }: Readonly<{ payload: RuntimeParameterPayload }>) {
   const restartRequirement = () => {
     if (payload.restartRequired === true) {
       return 'ja';
@@ -31,6 +31,17 @@ function RuntimeEvidence({ payload }: Readonly<{ payload: any }>) {
   return <details><summary>Gespeicherte und aktive Werte · Quelle und Wirkung</summary><p>{payload.precedence ?? 'Quellenvertrag nicht verfügbar.'}</p><p>Quelle: {payload.source ?? 'unbekannt'} · Neustart erforderlich: {restartRequirement()}</p><div className="overflow-x-auto"><table><thead><tr><th>Parameter</th><th>Gespeichert</th><th>Beim Start angewendet</th></tr></thead><tbody>{Object.entries(payload.settings ?? {}).map(([key, value]) => <tr key={key}><th>{key}</th><td>{JSON.stringify(value)}</td><td>{payload.active ? JSON.stringify(payload.active[key]) : 'nicht beobachtet'}</td></tr>)}</tbody></table></div></details>;
 }
 
+type SetupPreviewPayload = {
+  previewKey: string;
+  expiresAt: number;
+  bundleHash: unknown;
+  confirmation: string;
+  diff: { current: { nodes: number }; imported: { nodes: number; edges: number; resources: number } };
+  contentReview?: { effect?: string; paged?: boolean; before?: unknown; after?: unknown; existingLibrary?: unknown } | null;
+  accountReferences?: Array<{ sourceAccountId: string; name: string; exchange: string; mode: string }>;
+  accountMapping?: { automatic?: Record<string, string>; candidates?: Array<{ id: string; name: string; exchange: string; mode: string }> } | null;
+};
+
 export function System({
   catalog,
   onRefresh,
@@ -38,14 +49,14 @@ export function System({
   catalog: ExchangeCatalog | null;
   onRefresh: () => void | Promise<void>;
 }>) {
-  const [runtimePayload, setRuntimePayload] = useState<any>(null);
-  const runtimeForm = useVersionedDraft<any>('runtime', runtimePayload?.settings ?? null, runtimePayload?.revision ?? null, {});
+  const [runtimePayload, setRuntimePayload] = useState<RuntimeParameterPayload | null>(null);
+  const runtimeForm = useVersionedDraft<Record<string, unknown>>('runtime', runtimePayload?.settings ?? null, runtimePayload?.revision ?? null, {});
   const { draft: runtime, setDraft: setRuntime } = runtimeForm;
   const [secrets, setSecrets] = useState<ManagedSecretStatuses | null>(null);
   const [recovery, setRecovery] = useState<RecoveryObservation | null>(null);
   const [operations, setOperations] = useState<OperationsObservation | null>(null);
   const [access, setAccess] = useState<AccessObservation | null>(null);
-  const [setupPreview, setSetupPreview] = useState<any>(null);
+  const [setupPreview, setSetupPreview] = useState<SetupPreviewPayload | null>(null);
   const [setupMappings, setSetupMappings] = useState<Record<string, string>>({});
   const [setupConfirmation, setSetupConfirmation] = useState("");
   const [dangerConfirmation, setDangerConfirmation] = useState("");
@@ -85,11 +96,11 @@ export function System({
       setMessage(`Neue Dienstinstanz beobachtet. ${value.active ? 'Recovery ist weiterhin aktiv.' : 'Neustart abgeschlossen; Handel benötigt seine eigenen Freigaben.'}`);
     }
   }, () => { if (restartInstance) setMessage('Neustart angefordert. Verbindung unterbrochen; Abschluss noch nicht beobachtet. Es wird kein zweiter Neustart gesendet.'); }, 2_000);
-  const execute = async (
+  const execute = async <T,>(
     key: string,
-    operation: () => Promise<any>,
+    operation: () => Promise<T>,
     success: string,
-    accepted: (result: any) => void = (_result: any) => undefined,
+    accepted: (result: T) => void = () => undefined,
   ) => {
     setBusy(key);
     setMessage("");
@@ -431,12 +442,12 @@ export function System({
               {setupPreview.contentReview.paged ? <SetupReviewTree previewKey={setupPreview.previewKey} /> : <><ChangeReview before={setupPreview.contentReview.before} after={setupPreview.contentReview.after} label="Setup-Inhalte vor und nach dem Import" />
               <details><summary>Vorhandene Bibliothek einschließlich ungebundener Entwürfe prüfen</summary><ChangeReview after={setupPreview.contentReview.existingLibrary} showAll label="Vorhandene Bibliothek" /></details></>}
               <p>Änderungen an Konfiguration, Bibliothek, Kontostand oder aktivem Workflow machen diese Vorschau ungültig. Vor dem Ersetzen erstellt der Server ein Backup.</p></> : <p role="alert">Inhaltlicher Vergleich nicht verfügbar. Neue Serverversion bzw. neue Vorschau erforderlich.</p>}
-            {(setupPreview.accountReferences || []).map((reference: any) => (
+            {(setupPreview.accountReferences || []).map(reference => (
               <label key={reference.sourceAccountId}>
                 <span>{reference.name} · {reference.exchange}/{reference.mode}</span>
                 <select value={setupMappings[reference.sourceAccountId] || ""} onChange={(event) => setSetupMappings((value) => ({ ...value, [reference.sourceAccountId]: event.target.value }))}>
                   <option value="">Lokales Konto zuordnen</option>
-                  {(setupPreview.accountMapping?.candidates || []).filter((candidate: any) => candidate.exchange === reference.exchange && candidate.mode === reference.mode).map((candidate: any) => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
+                  {(setupPreview.accountMapping?.candidates || []).filter(candidate => candidate.exchange === reference.exchange && candidate.mode === reference.mode).map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
                 </select>
               </label>
             ))}
@@ -444,7 +455,7 @@ export function System({
               <span>Zum Ersetzen exakt „{setupPreview.confirmation}“ eingeben</span>
               <Input autoComplete="off" value={setupConfirmation} onChange={(event) => setSetupConfirmation(event.target.value)} />
             </label>
-            <Button type="button" variant="destructive" disabled={Boolean(busy) || !setupPreview.contentReview || setupConfirmation !== setupPreview.confirmation || (setupPreview.accountReferences || []).some((reference: any) => !setupMappings[reference.sourceAccountId])} onClick={() => { applySetup(); }}>
+            <Button type="button" variant="destructive" disabled={Boolean(busy) || !setupPreview.contentReview || setupConfirmation !== setupPreview.confirmation || (setupPreview.accountReferences || []).some(reference => !setupMappings[reference.sourceAccountId])} onClick={() => { applySetup(); }}>
               {busy === "setup-apply" ? "Sichere und ersetze…" : "Bestehendes Setup sicher ersetzen"}
             </Button>
           </div>

@@ -1,6 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+type MockJson = Record<string, unknown>;
+type MockDraft = MockJson & { version?: number };
+
 const TOKEN = 'a'.repeat(32);
 const trading = { overview: { runtime: { executionEnabled: false, liveTradingEnabled: false, killSwitchActive: true } }, accounts: [], strategies: [], signalSchemas: [], signalContracts: [], intents: [], activity: { positions: [], orders: [], fills: [], riskEvents: [], reconciliations: [], paperMarkets: [] }, workflowAdaptiveRisk: { states: [], evaluations: [] }, exchangeStreams: [], accountIncidents: [], fallbackRuns: [] };
 
@@ -441,8 +444,8 @@ test('global search keeps its text outside URLs and lets a viewer open the origi
   await page.getByRole('button', { name: 'Global suchen' }).click(); await expect(page.getByRole('dialog').getByLabel('Suchbegriff')).toHaveValue('');
 });
 type Reply = { status?: number; body: unknown };
-async function api(page: Page, override?: (url: URL, method: string, body: any) => Reply | undefined | Promise<Reply | undefined>) {
-  const requests: Array<{ path: string; query: string; method: string; body: any; authorization?: string }> = [];
+async function api(page: Page, override?: (url: URL, method: string, body: MockJson) => Reply | undefined | Promise<Reply | undefined>) {
+  const requests: Array<{ path: string; query: string; method: string; body: MockJson; authorization?: string }> = [];
   await page.addInitScript((token) => sessionStorage.setItem('forwarder-dashboard-token', token), TOKEN);
   await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
     const request = route.request();
@@ -528,7 +531,7 @@ test('MCP polling preserves the draft and exposes concurrent edits', async ({ pa
 });
 
 test('trade review preserves null, false and empty values without changing its pinned plan', async ({ page }) => {
-  let current = structuredClone(entry);
+  let current: MockJson = structuredClone(entry);
   const requests = await api(page, (url, method, body) => {
     if (url.pathname === '/api/trading/intents/detail') return { body: { entry: current, observedAt: Date.now() } };
     if (url.pathname === '/api/trading/journal' && method === 'POST') { current = { ...current, review: { ...body, updatedAt: Date.now() } }; return { body: { success: true } }; }
@@ -587,8 +590,8 @@ for (const status of [403, 412]) {
 
 test('graph drafts survive reload and activate only through the explicit activation step', async ({ page }) => {
   const graph = { schemaVersion: 3, nodes: [], edges: [] };
-  let draft: any = null;
-  let workflow: any = null;
+  let draft: MockDraft | null = null;
+  let workflow: MockJson | null = null;
   const requests = await api(page, (url, method, body) => {
     if (url.pathname === '/api/workflow') return { body: { workflow, resources: [] } };
     if (url.pathname === '/api/workflow/history') return { body: { history: { undo: [], redo: [], maxDepth: 5 } } };
@@ -619,14 +622,14 @@ test('graph drafts survive reload and activate only through the explicit activat
 test('History cancellation preserves a distinct graph draft and accepted restoration saves the new base explicitly', async ({ page }) => {
   const empty = { schemaVersion: 3, nodes: [], edges: [] };
   const resource = { id: 'history-channel-v1', resourceId: 'history-channel', version: 1, kind: 'channel', name: 'Eigenständiger Entwurf', description: '', status: 'published', configuration: { channelId: '-1001234567' } };
-  let workflow: any = { id: 'history-active-1', revision: 1, graph: empty, compiled: { paths: [], warnings: [] } };
-  let draft: any = { id: 'operator', version: 1, baseRevisionId: workflow.id, graph: { ...empty, nodes: [{ id: 'history-node', kind: 'channel', resourceVersionId: resource.id, position: { x: 0, y: 0 } }] } };
+  let workflow: MockJson & { id: string } = { id: 'history-active-1', revision: 1, graph: empty, compiled: { paths: [], warnings: [] } };
+  let draft: MockDraft = { id: 'operator', version: 1, baseRevisionId: workflow.id, graph: { ...empty, nodes: [{ id: 'history-node', kind: 'channel', resourceVersionId: resource.id, position: { x: 0, y: 0 } }] } };
   const history = { limit: 5, undoCount: 1, redoCount: 0, canUndo: true, canRedo: false, undoLabel: 'Historischer Stand', redoLabel: null };
   const requests = await api(page, (url, method, body) => {
     if (url.pathname === '/api/workflow') return { body: { workflow, resources: [resource] } };
     if (url.pathname === '/api/workflow/history') return { body: history };
     if (url.pathname === '/api/workflow/drafts') {
-      if (method === 'POST') { expect(body.baseRevisionId).toBe('history-active-2'); expect(body.graph.nodes).toEqual([]); draft = { ...body, version: 2 }; }
+      if (method === 'POST') { expect(body.baseRevisionId).toBe('history-active-2'); expect((body.graph as { nodes?: unknown }).nodes).toEqual([]); draft = { ...body, version: 2 }; }
       return { body: { draft } };
     }
     if (url.pathname === '/api/workflow/history/impact') return { body: { impact: { destructive: false, changed: [], removed: [] } } };
@@ -650,7 +653,7 @@ test('backup transport failure preserves a job lookup and never repeats the comm
   let requestedId = '';
   const requests = await api(page, (url, method, body) => {
     if (url.pathname === '/api/backups') return { body: { backups: ['backup-2026-fixture'] } };
-    if (url.pathname === '/api/operations/backup' && method === 'POST') { requestedId = body.jobId; return { status: 503, body: { error: 'Result acknowledgement unavailable' } }; }
+    if (url.pathname === '/api/operations/backup' && method === 'POST') { requestedId = body.jobId as string; return { status: 503, body: { error: 'Result acknowledgement unavailable' } }; }
     if (url.pathname === '/api/operations/jobs') return { body: { job: { id: requestedId, kind: 'backup-create', state: 'unknown', actorId: 'test:admin', scope: {}, acceptedAt: 1000, updatedAt: 2000, stage: 'Process ended before confirmation.', result: null }, observedAt: Date.now() } };
     return undefined;
   });
@@ -682,11 +685,11 @@ test('trade relation pages retain independent cursors and exact native money aft
 });
 
 test('Paper market edits bind their version, keep decimals and cannot select a live account', async ({ page }) => {
-  let market: any = { accountId: 'paper-1', symbol: 'BTCUSDT', markPrice: '60000', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, revision: 'a'.repeat(64), updatedAt: 1000 };
+  let market: MockJson = { accountId: 'paper-1', symbol: 'BTCUSDT', markPrice: '60000', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, revision: 'a'.repeat(64), updatedAt: 1000 };
   const balance = { accountId: 'paper-1', equity: '10000', availableBalance: '9000', revision: 'b'.repeat(64), source: 'paper-contract-v1', reportingCurrency: 'USDT', updatedAt: 1000 };
   const requests = await api(page, (url, method, body) => {
     if (url.pathname === '/api/trading') return { body: { ...trading, accounts: [{ id: 'paper-1', name: 'Paper 1', exchange: 'paper', mode: 'paper' }, { id: 'live-1', name: 'Live 1', exchange: 'bybit', mode: 'live' }], activity: { ...trading.activity, paperMarkets: [market], paperAccounts: [balance] } } };
-    if (url.pathname === '/api/trading/paper' && method === 'POST') { expect(body.baseMarketRevision).toBe('a'.repeat(64)); expect(body.market.markPrice).toBe('60000.00000001'); market = { ...market, ...body.market, revision: 'c'.repeat(64), updatedAt: 2000 }; return { body: { result: { market, balance, accountId: 'paper-1', simulated: true } } }; }
+    if (url.pathname === '/api/trading/paper' && method === 'POST') { expect(body.baseMarketRevision).toBe('a'.repeat(64)); expect((body.market as { markPrice?: unknown }).markPrice).toBe('60000.00000001'); market = { ...market, ...(body.market as MockJson), revision: 'c'.repeat(64), updatedAt: 2000 }; return { body: { result: { market, balance, accountId: 'paper-1', simulated: true } } }; }
     return undefined;
   });
   await page.goto('/trading/paper'); await page.getByRole('combobox', { name: 'Paper-Konto', exact: true }).selectOption('paper-1');
@@ -702,12 +705,12 @@ test('Paper market edits bind their version, keep decimals and cannot select a l
 });
 
 test('Telegram settings observe normalization, retain unrelated fields and preserve a conflicting draft', async ({ page }) => {
-  let config: any = { apiId: 1234, configRevision: 'config-1', targetChannel: '', sourceChannels: ['-1001234567'], sourceFilters: { '-1001234567': { regexPatterns: ['original'] } }, sourceAliases: {},
+  let config: MockJson = { apiId: 1234, configRevision: 'config-1', targetChannel: '', sourceChannels: ['-1001234567'], sourceFilters: { '-1001234567': { regexPatterns: ['original'] } }, sourceAliases: {},
     forwardOptions: { maxConcurrency: 2, queueTimeoutSeconds: 255, forwardToTarget: false, sendCopy: false, removeCaption: true }, filters: { allowedTypes: ['text'], allowedKeywords: [], blockedKeywords: [], regexPatterns: ['global'] },
     xmlParsing: { enabled: true, primaryModel: 'fixture/model', fallbackModel: 'fixture/fallback', aiLimits, saveToFile: true, signalsDir: './original-signals', sourceTemplates: {} }, dupeBlocker: { enabled: false, cooldownHours: 0 } };
   const requests = await api(page, (url, method, body) => {
     if (url.pathname === '/api/config') {
-      if (method === 'POST') { expect(body.sourceFilters['-1001234567']).toBeNull(); config = { ...body, sourceFilters: {}, configRevision: 'config-2', forwardOptions: { ...body.forwardOptions, queueTimeoutSeconds: 255 } }; return { body: { configuration: config, configRevision: 'config-2' } }; }
+      if (method === 'POST') { expect((body.sourceFilters as MockJson)['-1001234567']).toBeNull(); config = { ...body, sourceFilters: {}, configRevision: 'config-2', forwardOptions: { ...(body.forwardOptions as MockJson), queueTimeoutSeconds: 255 } }; return { body: { configuration: config, configRevision: 'config-2' } }; }
       return { body: config };
     }
     if (url.pathname === '/api/secrets') return { body: { secrets: { telegramApiHash: { configured: true }, openRouterApiKey: { configured: true } } } };
@@ -723,7 +726,7 @@ test('Telegram settings observe normalization, retain unrelated fields and prese
   await expect(page.getByLabel('Queue · Zeitlimit (Sekunden)', { exact: true })).toHaveValue('255');
   const savedRequest = requests.find(request => request.path === '/api/config' && request.method === 'POST');
   if (!savedRequest) throw new Error('Expected recorded config save request.');
-  const saved = savedRequest.body;
+  const saved = savedRequest.body as { xmlParsing: { aiLimits: { requestTimeoutMs: unknown }; signalsDir: unknown; saveToFile: unknown }; forwardOptions: { forwardToTarget: unknown }; dupeBlocker: { cooldownHours: unknown } };
   expect(saved.xmlParsing.aiLimits.requestTimeoutMs).toBe(250000); expect(saved.xmlParsing.signalsDir).toBe('./original-signals'); expect(saved.xmlParsing.saveToFile).toBe(true); expect(saved.forwardOptions.forwardToTarget).toBe(false); expect(saved.dupeBlocker.cooldownHours).toBe(0);
   await page.getByLabel(/Telegram API Hash ·/).fill('telegram-hash-fixture'); await page.getByRole('button', { name: 'Telegram-/KI-Zugangsdaten speichern' }).click();
   expect(requests.filter(request => request.path === '/api/config' && request.method === 'POST')).toHaveLength(1);
@@ -738,8 +741,8 @@ test('AI lab requires preview and consent, invalidates edits and shows the durab
   const source = 'LONG BTCUSDT entry 60000 target 62000 stoploss 59000'; let requestedId = '';
   const requests = await api(page, (url, method, body) => {
     if (url.pathname === '/api/workflow/parser-test' && method === 'GET') return { body: { paths: [], limits: aiLimits, usageDay: '2026-09-05', usage: { requestCount: 1, usedTokens: 100, reservedTokens: 20 }, queue: { running: 0, queued: 0, maxConcurrency: 2, paused: false }, observedAt: Date.now() } };
-    if (url.pathname === '/api/workflow/parser-test/preview') return { body: { provider: 'OpenRouter', sourceChars: body.sourceText.length, sourceBytes: body.sourceText.length, sourceSha256: 'source-hash', promptSha256: 'prompt-hash', models: { primaryModel: 'fixture/model' }, limits: aiLimits, totalTimeoutMs: 30000, previewHash: 'preview-hash', observedAt: Date.now(), externalDataPolicyAccepted: true, providerConfigured: true } };
-    if (url.pathname === '/api/workflow/parser-test' && method === 'POST') { requestedId = body.jobId; return { status: 202, body: { job: { id: requestedId } } }; }
+    if (url.pathname === '/api/workflow/parser-test/preview') return { body: { provider: 'OpenRouter', sourceChars: (body.sourceText as string).length, sourceBytes: (body.sourceText as string).length, sourceSha256: 'source-hash', promptSha256: 'prompt-hash', models: { primaryModel: 'fixture/model' }, limits: aiLimits, totalTimeoutMs: 30000, previewHash: 'preview-hash', observedAt: Date.now(), externalDataPolicyAccepted: true, providerConfigured: true } };
+    if (url.pathname === '/api/workflow/parser-test' && method === 'POST') { requestedId = body.jobId as string; return { status: 202, body: { job: { id: requestedId } } }; }
     if (url.pathname === '/api/operations/jobs') return { body: { job: { id: requestedId, kind: 'parser-test', state: 'succeeded', actorId: 'test:admin', scope: {}, acceptedAt: 1000, updatedAt: 2000, stage: 'Completed', result: { stages: ['provider-response', 'xml-validation', 'source-grounding'], tradeExecuted: false, deliveryCreated: false, xml: '<signal>fixture</signal>', provenance: { model: 'fixture/model' } } }, observedAt: Date.now() } };
     return undefined;
   });

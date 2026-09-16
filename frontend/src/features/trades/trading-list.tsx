@@ -15,15 +15,30 @@ const LISTS = {
 } as const;
 export type TradingListKind = keyof typeof LISTS;
 
+type TradingListEntry = Record<string, unknown> & {
+  id?: string;
+  intentId?: string | null;
+  accountId?: string | null;
+  acknowledgedAt?: number;
+};
+type TradingListPayload = {
+  entries: TradingListEntry[];
+  states?: string[];
+  observedAt: number;
+  hasMore: boolean;
+  nextCursor: string;
+};
+type TradingListObservation = { key: string; value: TradingListPayload };
+
 export function TradingList({ kind }: Readonly<{ kind: TradingListKind }>) {
   const [params, setParams] = useSearchParams();
-  const [state, setState] = useState<any>(null); const [error, setError] = useState('');
+  const [state, setState] = useState<TradingListObservation | null>(null); const [error, setError] = useState('');
   const query = new URLSearchParams(params); query.set('kind', kind); const key = query.toString();
   const read = useCallback((signal: AbortSignal) => jsonRequest(`/api/trading/objects?${key}`, { signal }), [key]);
   usePoll(read, (value) => { setState({ key, value }); setError(''); }, (reason) => setError(reason.message));
   const page = state?.key === key ? state.value : null;
   const change = (name: string, value: string) => { const next = new URLSearchParams(params); next.delete('cursor'); if (value) { next.set(name, value); } else { next.delete(name); } setParams(next); };
-  const entries = (page?.entries ?? []).map((entry: any) => ({ ...entry, id: entry.intentId ? <Link to={`/trading/trades/${encodeURIComponent(entry.intentId)}`}>{entry.id}</Link> : entry.id, accountId: entry.accountId ? <Link to={`/trading/accounts/${encodeURIComponent(entry.accountId)}`}>{entry.accountId}</Link> : 'global', acknowledgment: kind === 'risk-events' ? <RiskAcknowledgment key={entry.id} id={entry.id} acknowledgedAt={entry.acknowledgedAt} /> : null }));
+  const entries = (page?.entries ?? []).map(entry => ({ ...entry, id: entry.intentId ? <Link to={`/trading/trades/${encodeURIComponent(entry.intentId)}`}>{entry.id}</Link> : entry.id, accountId: entry.accountId ? <Link to={`/trading/accounts/${encodeURIComponent(entry.accountId)}`}>{entry.accountId}</Link> : 'global', acknowledgment: kind === 'risk-events' ? <RiskAcknowledgment key={entry.id} id={entry.id} acknowledgedAt={entry.acknowledgedAt} /> : null }));
   return <div className="operations-stack"><h1>{LISTS[kind].title}</h1>
     <div className="operations-card system-form flex flex-wrap gap-4"><label>Konto-ID<input value={params.get('accountId') ?? ''} onChange={(event) => change('accountId', event.target.value)} maxLength={128} /></label>
       <label>Objekt-ID<input value={params.get('objectId') ?? ''} onChange={event => change('objectId', event.target.value)} maxLength={128} /></label>

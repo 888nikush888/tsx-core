@@ -28,7 +28,7 @@ type PageProps = {
   readOnly: boolean;
   trading: TradingSnapshot | null;
   catalog: ExchangeCatalog | null;
-  status: Record<string, any> | null;
+  status: Record<string, unknown> | null;
   onRefresh: () => void | Promise<void>;
   areaLabel?: string;
 };

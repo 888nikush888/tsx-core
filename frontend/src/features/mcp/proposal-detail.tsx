@@ -8,8 +8,36 @@ import { ChangeReview } from '@/shared/components/change-review';
 import { EvidenceFields } from '@/shared/components/evidence';
 import { time } from '@/shared/components/operator-primitives';
 
+type ProposalReview = {
+  reviewHash: string;
+  observedAt: number;
+  interpretation: string;
+  proposal: {
+    action: string;
+    agentName?: string;
+    status: string;
+    requestedAt: number;
+    expiresAt: number;
+    payload?: unknown;
+    result?: unknown;
+    error?: string | null;
+    decidedBy?: string | null;
+    executedAt?: number | null;
+    preflight: { checkedAt: number };
+  };
+  scope: {
+    globalEntryEffects: boolean;
+    accountIds: string[];
+    activeRevisionId?: string | null;
+    paths: Array<{ id: string; channelId: string }>;
+  };
+  freshPreflight: { checkedAt: number; allowed: boolean; blockers?: string[] | null; impact?: string[] | null };
+  before?: unknown;
+  requested: unknown;
+};
+
 export function ProposalDetail({ id }: Readonly<{ id: string }>) {
-  const readOnly = useOperatorReadOnly(); const [review, setReview] = useState<any>(null); const [error, setError] = useState('');
+  const readOnly = useOperatorReadOnly(); const [review, setReview] = useState<ProposalReview | null>(null); const [error, setError] = useState('');
   const [acceptedHash, setAcceptedHash] = useState(''); const [reason, setReason] = useState(''); const [busy, setBusy] = useState(false); const [message, setMessage] = useState('');
   const load = useCallback((signal?: AbortSignal) => jsonRequest(`/api/mcp/proposals/detail?id=${encodeURIComponent(id)}`, { signal }), [id]);
   usePoll(load, value => { setReview(value); setError(''); }, failure => setError(failure.message), 5000);
@@ -20,7 +48,7 @@ export function ProposalDetail({ id }: Readonly<{ id: string }>) {
       const result = await mutateAndObserve(() => jsonRequest(`/api/mcp/proposals/${approve ? 'approve' : 'reject'}`, { method: 'POST',
         headers: approve ? { 'X-Destructive-Confirmation': 'approve-mcp-proposal' } : undefined,
         body: JSON.stringify(approve ? { id, reviewHash: acceptedHash } : { id, reason }) }),
-      value => { setReview((current: any) => ({ ...current, proposal: value.proposal })); setMessage(approve ? 'Freigabe bestätigt. Die Ausführung erfolgt separat; Ergebnis hier weiter prüfen.' : 'Ablehnung bestätigt.'); setAcceptedHash(''); },
+      value => { setReview((current) => ({ ...current, proposal: value.proposal })); setMessage(approve ? 'Freigabe bestätigt. Die Ausführung erfolgt separat; Ergebnis hier weiter prüfen.' : 'Ablehnung bestätigt.'); setAcceptedHash(''); },
       async () => setReview(await load()));
       if (result.refreshError) setError(`Entscheidung bestätigt, Nachladen fehlgeschlagen: ${result.refreshError}`);
     } catch (error_) { setMessage(`Entscheidung nicht bestätigt: ${error_ instanceof Error ? error_.message : String(error_)}. Status prüfen; keine automatische Wiederholung.`); }
@@ -35,7 +63,7 @@ export function ProposalDetail({ id }: Readonly<{ id: string }>) {
     <p>{review.scope.globalEntryEffects ? 'Globale Änderung der Entry-Sperre. Konten benötigen weiterhin ihre eigenen Freigaben und Schutzbelege.' : 'Zukünftige Konfiguration des ausgewählten Objekts; bestehende Trades behalten ihre ursprünglichen Pläne.'}</p>
     <ul>{review.scope.accountIds.map((account: string) => <li key={account}><Link to={`/trading/accounts/${encodeURIComponent(account)}`}>Konto {account}</Link></li>)}</ul>
     <p>{review.scope.paths.length} betroffene aktive Pfade · Revision {review.scope.activeRevisionId ?? 'nicht vorhanden'}</p>
-    <ul>{review.scope.paths.map((path: any) => <li key={path.id}><Link to={`/workflows/paths/${encodeURIComponent(path.id)}`}>{path.id}</Link> · Kanal {path.channelId}</li>)}</ul>
+    <ul>{review.scope.paths.map(path => <li key={path.id}><Link to={`/workflows/paths/${encodeURIComponent(path.id)}`}>{path.id}</Link> · Kanal {path.channelId}</li>)}</ul>
     <section><h2>Voraussetzungen</h2><p>Ursprünglicher Preflight: {time(proposal.preflight?.checkedAt)} · Alter {Math.max(0, Math.floor((review.observedAt - proposal.preflight?.checkedAt) / 1000))} s</p>
       <p>Neu geprüft: {time(review.freshPreflight.checkedAt)} · {review.freshPreflight.allowed ? 'Vorschau ohne Blocker' : 'gesperrt'}. Auch eine Freigabe ersetzt die Prüfung bei Ausführung nicht.</p>
       <ul>{listEntries<string>([...(review.freshPreflight.blockers ?? []), ...(review.freshPreflight.impact ?? [])], item => item).map(({ item, key }) => <li key={key}>{item}</li>)}</ul></section>

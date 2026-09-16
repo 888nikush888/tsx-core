@@ -21,11 +21,11 @@ async function mockDashboardApi(
 ) {
   let currentWorkflow = workflow;
   let revisionSequence = Number(currentWorkflow?.revision || 0);
-  type HistoryEntry = { workflow: Record<string, any> | null; label: string };
+  type HistoryEntry = { workflow: Record<string, unknown> | null; label: string };
   const undo: HistoryEntry[] = [];
   const redo: HistoryEntry[] = [];
-  let pendingResource: Record<string, any> | null = null;
-  let graphDraft: any = null;
+  let pendingResource: Record<string, unknown> | null = null;
+  let graphDraft: (Record<string, unknown> & { version?: number }) | null = null;
   const historyStatus = () => ({
     limit: 5,
     undoCount: undo.length,
@@ -169,7 +169,7 @@ async function mockDashboardApi(
     }
     if (url.pathname === "/api/workflow/mutate") {
       const body = request.postDataJSON() as { graph: Record<string, unknown>; historyLabel?: string };
-      const previous = currentWorkflow as Record<string, any> | null;
+      const previous = currentWorkflow as Record<string, unknown> | null;
       pushHistory(undo, {
         workflow: copyWorkflow(previous),
         label: body.historyLabel || "Workflow geändert",
@@ -189,7 +189,7 @@ async function mockDashboardApi(
       return;
     }
     if (url.pathname === "/api/workflow/resources" && request.method() === "POST") {
-      const body = request.postDataJSON() as Record<string, any>;
+      const body = request.postDataJSON() as Record<string, unknown>;
       const versions = workflowResources.filter((item) => item.resourceId === body.resourceId);
       const version = Math.max(0, ...versions.map((item) => Number(item.version || 0))) + 1;
       const resourceId = body.resourceId || `resource-${body.kind}`;

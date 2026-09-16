@@ -17,6 +17,8 @@ vi.mock('@/lib/api', () => api)
 import { defaultConfiguration, ResourceEditor } from '@/app/workflow/resource-editor'
 import { KIND_META, WORKFLOW_KINDS } from '@/app/workflow/types'
 
+type EditorProps = Parameters<typeof ResourceEditor>[0]
+
 const trading = {
   accounts: [{ id: 'account-1', name: 'Paper', exchange: 'paper', mode: 'paper', status: 'ready', enabled: true, maxConcurrentPositions: 7, killSwitchActive: false, killSwitchReason: null, lastReconciledAt: null, lastError: null }],
   strategies: [{
@@ -67,18 +69,18 @@ const trading = {
       grounding: { action: true, pair: true, entry: true, targets: true, stopLoss: true, leverage: false, riskPercent: false, averagingPrice: false },
     },
   }] }],
-} as any
+} as unknown as EditorProps['trading']
 
 function response(body: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }))
 }
 
 function editor(
-  kind: any,
+  kind: EditorProps['kind'],
   onSave = vi.fn(() => Promise.resolve(true)),
-  snapshot: any = trading,
-  resource: any = null,
-  parserSources: any[] = [{
+  snapshot: EditorProps['trading'] = trading,
+  resource: EditorProps['resource'] = null,
+  parserSources: EditorProps['parserSources'] = [{
     nodeId: 'parser-node',
     resourceVersionId: 'parser-resource-v1',
     name: 'Parser 1',
@@ -98,7 +100,7 @@ function editor(
   return onSave
 }
 
-function workflowResource(kind: any, configuration: Record<string, unknown>) {
+function workflowResource(kind: EditorProps['kind'], configuration: Record<string, unknown>): NonNullable<EditorProps['resource']> {
   return {
     id: `${kind}-resource-v1`, resourceId: `${kind}-resource`, version: 1, kind,
     name: `Existing ${kind}`, description: '', status: 'published', configuration,

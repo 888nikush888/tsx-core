@@ -12,7 +12,7 @@ import { AiLimitsForm } from '@/features/operations/ai-limits-form';
 import { AI_LIMIT_RANGES } from '../../../../src/ui_contracts';
 
 const CONFIG_KEYS = ['apiId', 'sourceChannels', 'targetChannel', 'forwardOptions', 'filters', 'sourceFilters', 'sourceAliases', 'xmlParsing', 'dupeBlocker'];
-const configValues = (value: any) => Object.fromEntries(CONFIG_KEYS.filter(key => value?.[key] !== undefined).map(key => [key, value[key]]));
+const configValues = (value: Record<string, unknown>) => Object.fromEntries(CONFIG_KEYS.filter(key => value?.[key] !== undefined).map((key): [string, unknown] => [key, value[key]]));
 function Lines({ label, value, onChange }: Readonly<{ label: string; value?: string[]; onChange: (value: string[]) => void }>) {
   return <label>{label}<textarea rows={3} value={(value ?? []).join('\n')} onChange={event => onChange(event.target.value.split('\n'))} onBlur={event => onChange(event.target.value.split('\n').filter(line => line !== ''))} /><small>Ein Eintrag je Zeile; leer bedeutet keine Einträge.</small></label>;
 }
@@ -21,15 +21,64 @@ function Toggle({ label, value, onChange }: Readonly<{ label: string; value: boo
 }
 
 /** One configuration/control surface, embedded by System and independently addressable under Signals. */
+type TelegramStatus = {
+  connectionState?: string | null;
+  isRunning?: boolean | null;
+  resolvedSources?: unknown[] | null;
+  queue?: { running?: number | null; queued?: number | null } | null;
+  telegramLogin?: { state?: string | null; prompt?: { kind?: string | null; label?: string | null; link?: string | null } | null } | null;
+};
+type TelegramServerConfig = { values: Record<string, unknown>; revision: number | string | null };
+type TelegramSecrets = Record<string, { configured?: boolean | null } | undefined>;
+type TelegramXmlParsing = {
+  primaryModel?: string | null;
+  fallbackModel?: string | null;
+  externalDataPolicyAccepted?: boolean | null;
+  aiLimits?: Record<string, number> | null;
+  enabled?: boolean | null;
+  forwardXmlToTarget?: boolean | null;
+  saveToFile?: boolean | null;
+  signalsDir?: string | null;
+  timeout?: number | null;
+  sourceTemplates?: Record<string, string | null> | null;
+};
+type TelegramForwardOptions = {
+  maxConcurrency?: number | null;
+  queueTimeoutSeconds?: number | null;
+  forwardToTarget?: boolean | null;
+  sendCopy?: boolean | null;
+  removeCaption?: boolean | null;
+};
+type TelegramFilters = {
+  allowedKeywords?: string[] | undefined;
+  blockedKeywords?: string[] | undefined;
+  allowedTypes?: string[] | undefined;
+  regexPatterns?: string[] | undefined;
+};
+type TelegramDupeBlocker = { enabled?: boolean | null; cooldownHours?: number | null };
+type TelegramSourceFilter = { regexPatterns?: string[] | undefined } | null;
+type TelegramConfig = {
+  apiId?: number | null;
+  targetChannel?: string | null;
+  sourceChannels?: string[] | undefined;
+  sourceFilters?: Record<string, TelegramSourceFilter> | null;
+  sourceAliases?: Record<string, string | null> | null;
+  filters?: TelegramFilters | null;
+  forwardOptions?: TelegramForwardOptions | null;
+  xmlParsing?: TelegramXmlParsing | null;
+  dupeBlocker?: TelegramDupeBlocker | null;
+};
+type TelegramNormalization = { before: Record<string, unknown>; after: Record<string, unknown> };
+
 export function TelegramSettings() {
   const readOnly = useOperatorReadOnly();
-  const [server, setServer] = useState<any>(null); const [status, setStatus] = useState<any>(null); const [secrets, setSecrets] = useState<any>(null);
+  const [server, setServer] = useState<TelegramServerConfig | null>(null); const [status, setStatus] = useState<TelegramStatus | null>(null); const [secrets, setSecrets] = useState<TelegramSecrets | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({}); const [refresh, setRefresh] = useState(0);
-  const form = useVersionedDraft<any>('telegram-config', server?.values ?? null, server?.revision ?? null, {});
-  const config = form.draft; const xml = config.xmlParsing ?? {}; const forward = config.forwardOptions ?? {}; const filters = config.filters ?? {}; const dupe = config.dupeBlocker ?? {};
+  const form = useVersionedDraft<TelegramConfig>('telegram-config', (server?.values ?? null) as TelegramConfig | null, server?.revision ?? null, {});
+  const config = form.draft; const xml = (config.xmlParsing ?? {}) as TelegramXmlParsing; const forward = (config.forwardOptions ?? {}) as TelegramForwardOptions; const filters = (config.filters ?? {}) as TelegramFilters; const dupe = (config.dupeBlocker ?? {}) as TelegramDupeBlocker;
   const [secretInput, setSecretInput] = useState<Record<string, string>>({}); const [loginInput, setLoginInput] = useState({ value: '', firstName: '', lastName: '' });
   useDirtyGuard(Object.values(secretInput).some(Boolean) || Object.values(loginInput).some(Boolean));
-  const [busy, setBusy] = useState(false); const [message, setMessage] = useState(''); const [normalization, setNormalization] = useState<any>(null); const [source, setSource] = useState('');
+  const [busy, setBusy] = useState(false); const [message, setMessage] = useState(''); const [normalization, setNormalization] = useState<TelegramNormalization | null>(null); const [source, setSource] = useState('');
   const readConfig = useCallback((signal: AbortSignal) => jsonRequest('/api/config', { signal }), []);
   const readStatus = useCallback((signal: AbortSignal) => jsonRequest('/api/status', { signal }), []);
   const readSecrets = useCallback((signal: AbortSignal) => readOnly ? Promise.resolve(null) : jsonRequest('/api/secrets', { signal }), [readOnly]);
@@ -39,7 +88,7 @@ export function TelegramSettings() {
   usePoll(readSecrets, value => { setSecrets(value?.secrets ?? null); failure('Zugangsdaten', ''); }, error => failure('Zugangsdaten', error.message), 5000, refresh);
   const edit = (key: string, value: unknown) => form.setDraft({ ...config, [key]: value });
   const editXml = (key: string, value: unknown) => edit('xmlParsing', { ...xml, [key]: value });
-  const command = async (url: string, body: unknown, accepted: (result: any) => void, description: string, headers: Record<string, string> = {}) => {
+  const command = async (url: string, body: unknown, accepted: (result: Record<string, unknown>) => void, description: string, headers: Record<string, string> = {}) => {
     if (readOnly) return;
     setBusy(true); setMessage('');
     try {
@@ -49,27 +98,27 @@ export function TelegramSettings() {
   };
   const save = async () => {
     if (!form.baseRevision || form.conflict) return;
-    if (!Number.isSafeInteger(config.apiId) || config.apiId < 0 || !Number.isSafeInteger(forward.maxConcurrency) || forward.maxConcurrency < 1 || forward.maxConcurrency > 100 || !Number.isSafeInteger(forward.queueTimeoutSeconds) || forward.queueTimeoutSeconds < 0 || forward.queueTimeoutSeconds > 86400 || !Number.isFinite(dupe.cooldownHours) || dupe.cooldownHours < 0 || (xml.timeout !== undefined && (!Number.isSafeInteger(xml.timeout) || xml.timeout < 0))) {
+    if (!Number.isSafeInteger(config.apiId) || (config.apiId as number) < 0 || !Number.isSafeInteger(forward.maxConcurrency) || (forward.maxConcurrency as number) < 1 || (forward.maxConcurrency as number) > 100 || !Number.isSafeInteger(forward.queueTimeoutSeconds) || (forward.queueTimeoutSeconds as number) < 0 || (forward.queueTimeoutSeconds as number) > 86400 || !Number.isFinite(dupe.cooldownHours) || (dupe.cooldownHours as number) < 0 || (xml.timeout !== undefined && (!Number.isSafeInteger(xml.timeout) || (xml.timeout as number) < 0))) {
       setMessage('API ID, Queue und Legacy-Zeitlimits müssen innerhalb der angezeigten Grenzen liegen.'); return;
     }
     for (const [key, [minimum, maximum]] of Object.entries(AI_LIMIT_RANGES)) {
-      if (!Number.isSafeInteger(xml.aiLimits?.[key]) || xml.aiLimits[key] < minimum || xml.aiLimits[key] > maximum) { setMessage(`${key}: Ganzzahl zwischen ${minimum} und ${maximum} erforderlich.`); return; }
+      if (!Number.isSafeInteger(xml.aiLimits?.[key]) || (xml.aiLimits?.[key] as number) < minimum || (xml.aiLimits?.[key] as number) > maximum) { setMessage(`${key}: Ganzzahl zwischen ${minimum} und ${maximum} erforderlich.`); return; }
     }
     const desired = configValues(config);
     await command('/api/config', desired, result => {
-      const saved = configValues(result.configuration);
+      const saved = configValues(result.configuration as Record<string, unknown>);
       if (!result.configuration || !result.configRevision) { setMessage('Speichern bestätigt, aber normalisierter Antwortvertrag fehlt. Konfiguration neu laden und vergleichen.'); return; }
-      setNormalization({ before: desired, after: saved }); setServer({ values: saved, revision: result.configRevision }); form.saved(saved, result.configRevision);
+      setNormalization({ before: desired, after: saved }); setServer({ values: saved, revision: result.configRevision as number | string }); form.saved(saved as TelegramConfig, result.configRevision as number | string);
     }, 'Telegram- und KI-Grundkonfiguration gespeichert. Zurückgegebene Werte und Queue-Zustand prüfen.', { 'If-Match': String(form.baseRevision) });
   };
   const prompt = status?.telegramLogin?.prompt;
-  const canStop = status?.isRunning === true || ['connecting', 'authentication-required'].includes(status?.connectionState);
+  const canStop = status?.isRunning === true || ['connecting', 'authentication-required'].includes(status?.connectionState ?? '');
   const sourceIds = [...new Set<string>([...(config.sourceChannels ?? []), ...Object.keys(config.sourceFilters ?? {}), ...Object.keys(config.sourceAliases ?? {}), ...Object.keys(xml.sourceTemplates ?? {})])].filter(Boolean);
   const sourceFilter = config.sourceFilters?.[source];
   const loginPrompt = () => {
     if (prompt?.kind === 'otherDeviceConfirmation') {
       if (/^tg:\/\/|^https:\/\/(?:[a-z]+\.)?telegram\.org\//i.test(prompt.link ?? '')) {
-        return <a href={prompt.link} target="_blank" rel="noreferrer">In Telegram bestätigen</a>;
+        return <a href={prompt.link ?? undefined} target="_blank" rel="noreferrer">In Telegram bestätigen</a>;
       }
       return <p>Telegram-Link nicht als zulässiger Anmeldelink erkennbar.</p>;
     }
@@ -98,21 +147,21 @@ export function TelegramSettings() {
     {server ? <section className="operations-card system-form"><h3>Globale Quellen, Parser und Queue</h3>
       <p>Queue und globale KI-Grenzen gelten für künftige Arbeit. Telegram-Verbindungsdaten und Quellen werden beim nächsten Verbindungsaufbau aufgelöst. <Link to="/workflows/paths">Aktive Workflow-Pfade</Link> besitzen eigene gepinnte Filter, Parser-, Dedupe- und Ausgabeparameter; neue globale Legacy-Werte schreiben bestehende Nachrichten und Trades nicht um.</p>
       <fieldset disabled={readOnly || busy || !form.baseRevision}>{settingsCoreGrid}
-        <Toggle label="Externe KI-Datenverarbeitung freigegeben" value={xml.externalDataPolicyAccepted} onChange={value => editXml('externalDataPolicyAccepted', value)} />
+        <Toggle label="Externe KI-Datenverarbeitung freigegeben" value={xml.externalDataPolicyAccepted ?? false} onChange={value => editXml('externalDataPolicyAccepted', value)} />
         <AiLimitsForm value={xml.aiLimits ?? {}} onChange={value => editXml('aiLimits', value)} />
         <details><summary>Globaler Legacy-Signalweg · Quellen, Filter und Ausgabe</summary><p>Wirkt für neu angenommene Nachrichten ohne aktive Workflowrevision. Workflow-Bausteine werden im Builder geändert. Dateiausgabe ist ausschließlich eine Legacy-Option.</p>
           <Lines label="Globale Quellkanäle" value={config.sourceChannels} onChange={value => edit('sourceChannels', value)} />
           {legacyKeywordGrid}
-          <Toggle label="Originalnachrichten an das globale Ziel weiterleiten" value={forward.forwardToTarget ?? true} onChange={value => edit('forwardOptions', { ...forward, forwardToTarget: value })} /><Toggle label="Als Kopie senden" value={forward.sendCopy} onChange={value => edit('forwardOptions', { ...forward, sendCopy: value })} /><Toggle label="Mediencaption entfernen" value={forward.removeCaption} onChange={value => edit('forwardOptions', { ...forward, removeCaption: value })} />
-          <Toggle label="Globalen Legacy-Parser verwenden" value={xml.enabled} onChange={value => editXml('enabled', value)} /><Toggle label="Legacy-XML an globales Ziel senden" value={xml.forwardXmlToTarget} onChange={value => editXml('forwardXmlToTarget', value)} /><Toggle label="Legacy-Signaldateien speichern" value={xml.saveToFile} onChange={value => editXml('saveToFile', value)} />
+          <Toggle label="Originalnachrichten an das globale Ziel weiterleiten" value={forward.forwardToTarget ?? true} onChange={value => edit('forwardOptions', { ...forward, forwardToTarget: value })} /><Toggle label="Als Kopie senden" value={forward.sendCopy ?? false} onChange={value => edit('forwardOptions', { ...forward, sendCopy: value })} /><Toggle label="Mediencaption entfernen" value={forward.removeCaption ?? false} onChange={value => edit('forwardOptions', { ...forward, removeCaption: value })} />
+          <Toggle label="Globalen Legacy-Parser verwenden" value={xml.enabled ?? false} onChange={value => editXml('enabled', value)} /><Toggle label="Legacy-XML an globales Ziel senden" value={xml.forwardXmlToTarget ?? false} onChange={value => editXml('forwardXmlToTarget', value)} /><Toggle label="Legacy-Signaldateien speichern" value={xml.saveToFile ?? false} onChange={value => editXml('saveToFile', value)} />
           <label>Legacy-Signalverzeichnis<input value={xml.signalsDir ?? ''} onChange={event => editXml('signalsDir', event.target.value)} /><small>Speicherort für erzeugte Legacy-Signaldateien; kein Shell- oder Wartungsbefehl.</small></label>
           <label>Legacy-Parser-Gesamtzeitlimit (ms)<input type="number" min={0} step={1} value={xml.timeout ?? ''} onChange={event => editXml('timeout', event.target.value === '' ? 0 : Number(event.target.value))} /><small>Leer oder 0 verwendet den bestehenden Parserstandard. Globaler Requesttimeout und Workflow-Parserzeitlimit gelten separat.</small></label>
-          <Toggle label="Globale Duplikatsperre" value={dupe.enabled} onChange={value => edit('dupeBlocker', { ...dupe, enabled: value })} /><label>Duplikat-Cooldown (Stunden)<input type="number" min={0} value={dupe.cooldownHours ?? ''} onChange={event => edit('dupeBlocker', { ...dupe, cooldownHours: Number(event.target.value) })} /><small>0 sperrt identische Signale dauerhaft. Keine Wiederholung bereits angenommener Orders oder unbekannter Sendungen.</small></label>
+          <Toggle label="Globale Duplikatsperre" value={dupe.enabled ?? false} onChange={value => edit('dupeBlocker', { ...dupe, enabled: value })} /><label>Duplikat-Cooldown (Stunden)<input type="number" min={0} value={dupe.cooldownHours ?? ''} onChange={event => edit('dupeBlocker', { ...dupe, cooldownHours: Number(event.target.value) })} /><small>0 sperrt identische Signale dauerhaft. Keine Wiederholung bereits angenommener Orders oder unbekannter Sendungen.</small></label>
           <h4>Kanalbezogene globale Vorgaben</h4><label>Konfigurierter Quellkanal<select value={source} onChange={event => setSource(event.target.value)}><option value="">Kanal wählen</option>{sourceIds.map(id => <option key={id}>{id}</option>)}</select></label>
           {source && <div className="system-form"><label>Quellalias<input value={config.sourceAliases?.[source] ?? ''} onChange={event => edit('sourceAliases', { ...config.sourceAliases, [source]: event.target.value })} /><small>Leer zeigt die Kanal-ID. Der Alias dient auch der Eingangsanzeige.</small></label>
             <label>Legacy-Parservorlage<input value={xml.sourceTemplates?.[source] ?? ''} onChange={event => editXml('sourceTemplates', { ...xml.sourceTemplates, [source]: event.target.value })} /><small>Leer verwendet die Standardvorlage.</small></label>
             <Toggle label="Globale Regex-Muster für diesen Kanal überschreiben" value={Array.isArray(sourceFilter?.regexPatterns)} onChange={value => edit('sourceFilters', { ...config.sourceFilters, [source]: value ? { ...sourceFilter, regexPatterns: [] } : null })} />
-            {Array.isArray(sourceFilter?.regexPatterns) ? <Lines label="Kanal-Regex-Muster" value={sourceFilter.regexPatterns} onChange={value => edit('sourceFilters', { ...config.sourceFilters, [source]: { ...sourceFilter, regexPatterns: value } })} /> : <p>Erbt die globalen Regex-Muster. Beim Speichern entfernt der Server die aufgehobene Kanalvorgabe.</p>}
+            {Array.isArray(sourceFilter?.regexPatterns) ? <Lines label="Kanal-Regex-Muster" value={sourceFilter?.regexPatterns} onChange={value => edit('sourceFilters', { ...config.sourceFilters, [source]: { ...sourceFilter, regexPatterns: value } })} /> : <p>Erbt die globalen Regex-Muster. Beim Speichern entfernt der Server die aufgehobene Kanalvorgabe.</p>}
           </div>}
         </details>
         <ChangeReview before={server.values} after={config} label="Zu speichernde Konfigurationsänderungen" />

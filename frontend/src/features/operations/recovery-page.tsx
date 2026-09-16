@@ -5,17 +5,20 @@ import { jsonRequest, mutateAndObserve } from "@/lib/api";
 import { useConfirmationDialog } from "@/components/confirmation-dialog";
 import { usePoll } from "@/shared/api/use-poll";
 import { AiLimitsForm } from "./ai-limits-form";
-import { RuntimeParameters, runtimeInputError } from './runtime-parameters';
+import { RuntimeParameters, runtimeInputError, type RuntimeParameterPayload } from './runtime-parameters';
 import { useVersionedDraft } from '@/shared/forms/use-versioned-draft';
 import { useDirtyGuard } from '@/shared/forms/use-dirty-guard';
 import { DraftState } from '@/shared/forms/draft-state';
 
+type RecoveryXmlParsing = { primaryModel?: string | null; fallbackModel?: string | null; aiLimits?: Record<string, number> | null };
+type RecoveryConfigValue = { apiId?: number | null; xmlParsing?: RecoveryXmlParsing | null; configRevision?: number | string | null };
+
 export function RecoveryPage() {
   const [status, setStatus] = useState<RecoveryObservation | null>(null);
-  const [serverConfig, setServerConfig] = useState<any>(null);
-  const [runtimePayload, setRuntimePayload] = useState<any>(null);
-  const configForm = useVersionedDraft<any>('recovery-config', serverConfig, serverConfig?.configRevision ?? null, {});
-  const runtimeForm = useVersionedDraft<any>('recovery-runtime', runtimePayload?.settings ?? null, runtimePayload?.revision ?? null, {});
+  const [serverConfig, setServerConfig] = useState<RecoveryConfigValue | null>(null);
+  const [runtimePayload, setRuntimePayload] = useState<RuntimeParameterPayload | null>(null);
+  const configForm = useVersionedDraft<RecoveryConfigValue>('recovery-config', serverConfig, serverConfig?.configRevision ?? null, {});
+  const runtimeForm = useVersionedDraft<Record<string, unknown>>('recovery-runtime', runtimePayload?.settings ?? null, runtimePayload?.revision ?? null, {});
   const { draft: config, setDraft: setConfig } = configForm;
   const { draft: runtime, setDraft: setRuntime } = runtimeForm;
   const [secrets, setSecrets] = useState<ManagedSecretStatuses>({});

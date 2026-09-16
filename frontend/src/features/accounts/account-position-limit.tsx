@@ -3,7 +3,14 @@ import type { TradingAccount } from '@/app/workflow/types';
 import { useVersionedDraft } from '@/shared/forms/use-versioned-draft';
 import { DraftState } from '@/shared/forms/draft-state';
 
-export function AccountPositionLimit({ account, disabled, onSave }: Readonly<{ account: TradingAccount; disabled: boolean; onSave: (maximum: number, baseUpdatedAt?: number) => Promise<any> }>) {
+export type PositionLimitSaveResult = {
+  maxConcurrentPositions?: number;
+  updatedAt?: number;
+  account?: PositionLimitSaveResult;
+  result?: PositionLimitSaveResult;
+} | null;
+
+export function AccountPositionLimit({ account, disabled, onSave }: Readonly<{ account: TradingAccount; disabled: boolean; onSave: (maximum: number, baseUpdatedAt?: number) => Promise<PositionLimitSaveResult> }>) {
   const form = useVersionedDraft(account.id, { maximum: account.maxConcurrentPositions }, account.updatedAt ?? account.maxConcurrentPositions, { maximum: account.maxConcurrentPositions });
   const [message, setMessage] = useState(''); const [busy, setBusy] = useState(false);
   const maximum = form.draft.maximum;

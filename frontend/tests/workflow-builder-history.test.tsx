@@ -4,6 +4,12 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+type CapturedFlowNode = {
+  id: string;
+  data: { connectionState?: string; onStartConnection: (id: string, mode?: string) => void };
+};
+type CapturedFlowProps = { nodes?: unknown; onNodeClick?: (...args: unknown[]) => void };
+
 const api = vi.hoisted(() => {
   const apiFetch = vi.fn();
   const jsonRequest = vi.fn(async (url: string, init?: RequestInit) => {
@@ -14,7 +20,7 @@ const api = vi.hoisted(() => {
   });
   return { apiFetch, jsonRequest };
 });
-const flow = vi.hoisted(() => ({ props: null as Record<string, any> | null }));
+const flow = vi.hoisted(() => ({ props: null as CapturedFlowProps | null }));
 
 vi.mock("@/lib/api", () => api);
 vi.mock("@xyflow/react", () => ({
@@ -282,7 +288,7 @@ describe("workflow builder history", () => {
     render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilder();
     if (!flow.props) throw new Error("React Flow props unavailable.");
-    const channel = (flow.props.nodes as Array<any>).find((item) => item.id === "node-channel");
+    const channel = (flow.props.nodes as CapturedFlowNode[]).find((item) => item.id === "node-channel");
     act(() => flow.props?.onNodeClick({}, channel));
     fireEvent.change(await screen.findByLabelText(/Telegram-Kanal-ID/), {
       target: { value: "-1002" },
@@ -322,7 +328,7 @@ describe("workflow builder history", () => {
     expect(api.apiFetch).not.toHaveBeenCalledWith("/api/workflow/history/impact", expect.anything());
 
     if (!flow.props) throw new Error("React Flow props unavailable.");
-    const node = (flow.props.nodes as Array<any>).find((item) => item.id === "node-channel");
+    const node = (flow.props.nodes as CapturedFlowNode[]).find((item) => item.id === "node-channel");
     act(() => flow.props?.onNodeClick({}, node));
     await screen.findByRole("dialog");
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "z", ctrlKey: true });
@@ -393,7 +399,8 @@ describe("workflow builder history", () => {
     render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilder();
     if (!flow.props) throw new Error("React Flow props unavailable.");
-    const source = (flow.props.nodes as Array<any>).find((item) => item.id === "node-channel");
+    const source = (flow.props.nodes as CapturedFlowNode[]).find((item) => item.id === "node-channel");
+    if (!source) throw new Error("Connection source was not rendered.");
     act(() => source.data.onStartConnection("node-channel"));
     expect(await screen.findByText(/Wähle rechts im Canvas/)).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /rückgängig/ }));

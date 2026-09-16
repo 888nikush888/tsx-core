@@ -46,7 +46,7 @@ const OPERATION_TABS = new Map(TABS.map((tab) => [tab.id, tab]));
 type OperationsWorkspaceProps = {
   trading: TradingSnapshot | null;
   catalog: ExchangeCatalog | null;
-  systemStatus: Record<string, any> | null;
+  systemStatus: Record<string, unknown> | null;
   onRefresh: () => void | Promise<void>;
   initialTab?: OperationTab;
   availableTabs?: OperationTab[];
