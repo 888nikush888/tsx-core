@@ -426,7 +426,7 @@ async function testPersistedJsonSyntaxBoundary() {
     assert.strictEqual(viewed.payloadErrors, undefined);
     assert.deepStrictEqual(viewed.config, { repaired: true });
   }
-  const deep = '['.repeat(1500) + '0' + ']'.repeat(1500);
+  const deep = `${'['.repeat(1500)}0${']'.repeat(1500)}`;
   await enqueueOutboxTask(task('syntax-native-depth', 814));
   await database.run('UPDATE pending_tasks SET config_json = ? WHERE id = ?', [deep, 'syntax-native-depth']);
   assert.strictEqual((await claimOutboxTask('syntax-native-depth')).status, 'preparing', 'Native accepted JSON must not inherit SQLite depth rejection.');

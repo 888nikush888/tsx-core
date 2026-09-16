@@ -211,7 +211,7 @@ test('ingress relation paging includes album siblings and retains original links
 test('log regex timeout keeps navigation responsive and exposes connection and cursor gaps', async ({ page, browserName }) => {
   let failed = false;
   const requests = await api(page, url => {
-    if (url.pathname === '/api/logs') return failed ? { status: 503, body: { error: 'Log source unavailable' } } : { body: { entries: [{ cursor: 10, line: '[INFO] original line' }, { cursor: 11, line: 'a'.repeat(1000) + '!' }], nextCursor: 11, dropped: true, serverInstanceId: 'logs-instance' } };
+    if (url.pathname === '/api/logs') return failed ? { status: 503, body: { error: 'Log source unavailable' } } : { body: { entries: [{ cursor: 10, line: '[INFO] original line' }, { cursor: 11, line: `${'a'.repeat(1000)}!` }], nextCursor: 11, dropped: true, serverInstanceId: 'logs-instance' } };
   });
   await page.goto('/operations/logs');
   await expect(page.getByRole('alert')).toContainText('Cursorlücke');
@@ -720,7 +720,7 @@ test('AI lab requires preview and consent, invalidates edits and shows the durab
   await page.getByRole('button', { name: 'Provideraufruf vorbereiten' }).click();
   await expect(page.getByRole('button', { name: 'KI-Test einmal beauftragen' })).toBeDisabled();
   await page.getByLabel(/Ich stimme der Übermittlung/).check();
-  await page.getByLabel('Quelltext', { exact: true }).fill(source + ' changed');
+  await page.getByLabel('Quelltext', { exact: true }).fill(`${source} changed`);
   await expect(page.getByRole('heading', { name: 'Provideraufruf prüfen' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Provideraufruf vorbereiten' }).click();
   await page.getByLabel(/Ich stimme der Übermittlung/).check();

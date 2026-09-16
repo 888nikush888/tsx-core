@@ -45,7 +45,7 @@ function testReviewCredentialRedaction() {
   assert.deepEqual(redactReview({ links: ['http://:pass@example.invalid', 'https://user:@example.invalid'] }),
     { links: ['http://[redigiert]@example.invalid', 'https://[redigiert]@example.invalid'] });
   for (const suffix of ['@example.invalid', '']) {
-    const source = 'https://' + ':'.repeat(100000) + suffix;
+    const source = `https://${':'.repeat(100000)}${suffix}`;
     const expected = suffix ? 'https://[redigiert]@example.invalid' : source;
     assert.equal(redactReview(source, 0, false), expected);
   }

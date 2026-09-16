@@ -47,7 +47,7 @@ export async function createRestartFixture(directory, generation) {
     controls.entered.resolve();
     if (controls.barrier) await controls.barrier;
     if (controls.failWork) throw new Error('Isolated command rejected by safety gate.');
-    await appendFile(path.join(directory, 'effects.log'), kind + '\n');
+    await appendFile(path.join(directory, 'effects.log'), `${kind}\n`);
     return { previousDatabase: 'isolated-rollback' };
   };
   const app = {
@@ -59,7 +59,7 @@ export async function createRestartFixture(directory, generation) {
     reloadConfig: () => { /* fixture no-op: reload is not exercised before the restart boundary */ }, getOperationsStatus: () => ({ backup: backupProof() }),
     auditTrail: { snapshot: () => ({ healthy: true }), record: async event => {
       if (controls.blockAudit) await controls.blockAudit(event);
-      await appendFile(path.join(directory, 'audit.log'), JSON.stringify(event) + '\n');
+      await appendFile(path.join(directory, 'audit.log'), `${JSON.stringify(event)}\n`);
     } },
     requestRestart: () => { controls.restart++; controls.restarted.resolve(); },
   };

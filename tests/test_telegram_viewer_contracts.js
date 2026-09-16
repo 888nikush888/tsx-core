@@ -11,7 +11,7 @@ let payload = null;
 globalThis.fetch = async () => new Response(JSON.stringify(payload), { status: 200 });
 try {
   const core = new TelegramViewerCoreApiClient('http://127.0.0.1:12345', 's'.repeat(43));
-  const bot = new TelegramBotApiClient('123456789:' + 'x'.repeat(30), 'http://127.0.0.1:12345/bot');
+  const bot = new TelegramBotApiClient(`123456789:${'x'.repeat(30)}`, 'http://127.0.0.1:12345/bot');
   payload = null;
   await assert.rejects(core.get('summary'), /invalid object/);
   payload = { settings: { enabled: true } };

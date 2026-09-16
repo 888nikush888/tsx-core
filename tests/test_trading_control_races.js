@@ -141,22 +141,22 @@ try {
       const calls = [];
       const engine = {
         retireUnauthorizedPreparations: async id => {
-          calls.push('prepare:' + id);
+          calls.push(`prepare:${id}`);
           if (id === targets[0] && phase === 'preparation') throw makeMalformed();
         },
         reconcileAccount: async id => {
-          calls.push('reconcile:' + id);
+          calls.push(`reconcile:${id}`);
           if (id === targets[0] && phase === 'reconciliation') throw makeMalformed();
         },
         cancelExpiredEntries: async () => { throw makeMalformed(); },
       };
       const fixture = new TradingRuntime(engine);
       const failures = await fixture.reconcileAccounts(false);
-      assert.deepEqual(calls, targets.flatMap(id => ['prepare:' + id, 'reconcile:' + id]));
-      const prefix = phase === 'preparation' ? targets[0] + ' preparation-recovery: ' : targets[0] + ': ';
-      assert.deepEqual(failures, [prefix + 'Runtime failure could not be formatted safely.']);
+      assert.deepEqual(calls, targets.flatMap(id => [`prepare:${id}`, `reconcile:${id}`]));
+      const prefix = phase === 'preparation' ? `${targets[0]} preparation-recovery: ` : `${targets[0]}: `;
+      assert.deepEqual(failures, [`${prefix}Runtime failure could not be formatted safely.`]);
       await fixture.captureEntryExpiryFailure(failures);
-      assert.deepEqual(failures, [prefix + 'Runtime failure could not be formatted safely.',
+      assert.deepEqual(failures, [`${prefix}Runtime failure could not be formatted safely.`,
         'entry-expiry: Runtime failure could not be formatted safely.']);
       assert.equal(fixture.isProtectionScanComplete(), false, 'Direct diagnostics must not grant scan completion.');
     }

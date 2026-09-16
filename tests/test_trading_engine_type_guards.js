@@ -49,7 +49,7 @@ try {
   assert.equal(outcome.blockReason, 'TRADE_PLAN_INVALID');
   assert.equal(providerCalls, 0);
   for (const table of ['trading_orders', 'trading_operations']) {
-    assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM ' + table)).count, 0,
+    assert.equal((await getDatabase().get(`SELECT COUNT(*) AS count FROM ${table}`)).count, 0,
       'An invalid resumed plan must not create dispatch artifacts.');
   }
   // Exercise the actual reconciliation method against a persisted damaged plan.

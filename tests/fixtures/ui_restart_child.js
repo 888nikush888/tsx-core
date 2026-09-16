@@ -54,7 +54,7 @@ if (mode.startsWith('stalled-flush')) {
 }
 
 app.requestRestart = createProcessRestartRequest(async () => {
-  await fs.appendFile(path.join(directory, 'shutdown.log'), store.processInstanceId + '\n');
+  await fs.appendFile(path.join(directory, 'shutdown.log'), `${store.processInstanceId}\n`);
   process.send({ type: 'shutdown-started' });
   await stopWebServer();
   await app.auditTrail.flush?.();
