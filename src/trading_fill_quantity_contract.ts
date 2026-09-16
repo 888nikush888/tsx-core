@@ -20,6 +20,7 @@ function shape(value: unknown, keys: string): Record<string, any> {
 }
 function token(value: unknown): asserts value is string {
   if (typeof value !== 'string' || value.length === 0 || value.length > 256 || value.trim() !== value
+    // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
     || /[\x00-\x1f\x7f]/u.test(value) || /[\uD800-\uDFFF]/u.test(value)) invalid();
 }
 function positive(value: unknown): string {

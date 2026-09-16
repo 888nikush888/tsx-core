@@ -3,6 +3,7 @@ import { sonarGet } from './sonar_read.js';
 // Refs are data: API requests encode query parameters and scanner arguments
 // use fixed environment placeholders. Reject interpolation, not shell punctuation.
 function branchScope(environment) {
+  // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
   if (environment.SONAR_BRANCH && /[\x00-\x20\x7f]|\$\{/u.test(environment.SONAR_BRANCH)) {
     throw new Error('SonarCloud branch refs contain whitespace, control characters or scanner property expressions.');
   }
@@ -22,6 +23,7 @@ function pullRequestScope(environment, key) {
   // The scanner recursively expands ${...}, including inside environment values.
   // Such refs cannot be represented literally without changing their identity.
   if ([environment.SONAR_PULL_REQUEST_BRANCH, environment.SONAR_PULL_REQUEST_BASE]
+    // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
     .some(ref => /[\x00-\x20\x7f]|\$\{/u.test(ref))) {
     throw new Error('SonarCloud pull request refs contain whitespace, control characters or scanner property expressions.');
   }

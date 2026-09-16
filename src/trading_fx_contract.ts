@@ -55,6 +55,7 @@ function canonical(value: unknown, depth: number, budget: { remaining: number })
   if (Array.isArray(value)) return canonicalArray(value, depth, budget);
   const row = object(value);
   return `{${Object.keys(row).sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b))).map(key => {
+    // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
     if ([...key].length > 256 || /[\x00-\x1f\x7f-\x9f]/u.test(key) || /[\uD800-\uDFFF]/u.test(key)) return invalidFx();
     return `${canonical(key, depth + 1, budget)}:${canonical(row[key], depth + 1, budget)}`;
   }).join(',')}}`;

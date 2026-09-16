@@ -166,6 +166,7 @@ function isSafeTemplatePathSegment(segment: string): boolean {
     && segment !== '.'
     && segment !== '..'
     && segment === segment.trim()
+    // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
     && !/[\\/<>:"|?*\x00-\x1f]/u.test(segment);
 }
 

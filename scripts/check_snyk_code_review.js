@@ -38,6 +38,7 @@ function requireEvidence(condition, message) {
 
 function sourcePath(value) {
   requireEvidence(typeof value === 'string' && value.length > 0, 'Missing source path.');
+  // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
   requireEvidence(!/[\\:\x00-\x1f\x7f%]/u.test(value), 'Invalid source path.');
   requireEvidence(value.split('/').every(segment => segment && segment !== '.' && segment !== '..'), 'Unsafe source path.');
   return value;

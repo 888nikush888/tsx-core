@@ -171,6 +171,7 @@ function safeMember(name: string): boolean {
   if (['config.json', 'runtime-settings.json'].includes(name)) return true;
   if (!name.startsWith('templates/') || name.length > 250) return false;
   return name.slice(10).split('/').every(segment => segment.length > 0 && segment.length <= 128
+    // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
     && segment === segment.trim() && segment !== '.' && segment !== '..' && !/[\\/<>:"|?*\x00-\x1f]/u.test(segment));
 }
 

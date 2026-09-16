@@ -23,6 +23,7 @@ type LogContextValue = string | number | boolean | null | undefined;
 export type LogContext = Record<string, LogContextValue>;
 
 function stripAnsi(value: string): string {
+  // skipcq: JS-0004, JS-W1035 - intentional ANSI escape matcher for log sanitization
   return value.replace(/\x1b\[[0-9;]*m/g, '');
 }
 

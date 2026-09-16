@@ -34,6 +34,7 @@ function dataNode(value, state, depth) {
   const keys = Reflect.ownKeys(descriptors).filter(key => !(Array.isArray(value) && key === 'length'));
   if (Array.isArray(value)) requireAcceptance(keys.length === value.length && keys.every((key, index) => key === String(index)), 'sparse implementation array');
   for (const key of keys) {
+    // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
     requireAcceptance(typeof key === 'string' && !/[\x00-\x1f\x7f]/u.test(key)
       && !/^(?:__proto__|constructor|prototype|apiKey|secret|password|privateKey|authorization|signature)$/iu.test(key), 'unsafe implementation key');
     const descriptor = descriptors[key];

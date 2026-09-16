@@ -64,6 +64,7 @@ function canonicalDirectory(directory) {
 
 function safeRelative(relative) {
   requireBuild(typeof relative === 'string' && relative.length > 0 && relative.length <= 512
+    // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
     && !/[\\:\x00-\x1f\x7f]/u.test(relative) && !path.posix.isAbsolute(relative)
     && relative.split('/').every(part => part && part !== '.' && part !== '..'), 'invalid source path');
 }
