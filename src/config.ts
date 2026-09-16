@@ -319,12 +319,13 @@ function normalizeSourceTemplates(xmlParsing: Record<string, unknown>): void {
     xmlParsing.sourceTemplates = {};
     return;
   }
-  for (const [key, value] of Object.entries(xmlParsing.sourceTemplates)) {
-    if (typeof value !== 'string') {
+  xmlParsing.sourceTemplates = Object.fromEntries(
+    Object.entries(xmlParsing.sourceTemplates).filter(([key, value]) => {
+      if (typeof value === 'string') return true;
       console.warn(`[WARN] xmlParsing.sourceTemplates["${key}"] is not a string and was removed.`);
-      delete (xmlParsing.sourceTemplates as Record<string, unknown>)[key];
-    }
-  }
+      return false;
+    }),
+  );
 }
 
 function normalizeAiLimits(xmlParsing: Record<string, unknown>): void {
@@ -370,15 +371,19 @@ function normalizeSourceFilters(cfg: Record<string, unknown>): void {
     cfg.sourceFilters = {};
     return;
   }
+  const normalizedFilters: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(cfg.sourceFilters)) {
     if (!isRecord(value)) {
       console.warn(`[WARN] sourceFilters["${key}"] is not an object and was removed.`);
-      delete cfg.sourceFilters[key];
-    } else if (value.regexPatterns && !Array.isArray(value.regexPatterns)) {
+      continue;
+    }
+    if (value.regexPatterns && !Array.isArray(value.regexPatterns)) {
       console.warn(`[WARN] sourceFilters["${key}"].regexPatterns is not an array and was reset.`);
       value.regexPatterns = [];
     }
+    normalizedFilters[key] = value;
   }
+  cfg.sourceFilters = normalizedFilters;
 }
 
 function normalizeSourceAliases(cfg: Record<string, unknown>): void {
@@ -386,12 +391,15 @@ function normalizeSourceAliases(cfg: Record<string, unknown>): void {
     cfg.sourceAliases = {};
     return;
   }
+  const normalizedAliases: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(cfg.sourceAliases)) {
     if (typeof value !== 'string') {
       console.warn(`[WARN] sourceAliases["${key}"] is not a string and was removed.`);
-      delete cfg.sourceAliases[key];
+      continue;
     }
+    normalizedAliases[key] = value;
   }
+  cfg.sourceAliases = normalizedAliases;
 }
 
 function validateOptionalBoolean(container: Record<string, unknown>, key: string, qualifiedName: string): void {

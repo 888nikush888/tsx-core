@@ -1239,6 +1239,7 @@ function setupBundleAccountMappings(payload: any, preview: SetupBundlePreview): 
 }
 
 function activateSetupConfiguration(context: RequestContext, replacement: Config): void {
+  // skipcq: JS-0320 - in-place key removal preserves the shared appState.config identity consumed across modules.
   for (const key of Object.keys(context.appState.config)) delete context.appState.config[key];
   Object.assign(context.appState.config, replacement);
   context.appState.reloadConfig();

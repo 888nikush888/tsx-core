@@ -1808,6 +1808,7 @@ async function performCompleteFactoryReset(
   writeConfigSync(candidateConfig);
   await initializeConfigurationGeneration(backupConfigurationSources(operationalDatabasePath()), requiredProcessOwner());
   await sharedMcpMaintenance.release();
+  // skipcq: JS-0320 - in-place key removal preserves the shared runtime.config identity consumed across modules.
   for (const key of Object.keys(runtime.config)) delete runtime.config[key];
   Object.assign(runtime.config, candidateConfig);
   state.isRunning = false;

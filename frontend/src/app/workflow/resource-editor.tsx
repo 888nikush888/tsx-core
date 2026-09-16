@@ -987,9 +987,13 @@ function ContractForm({
     next: string,
   ) => {
     const updated = { ...value };
-    if (next.trim()) updated[name] = next;
-    else delete updated[name];
-    onChange(updated);
+    if (next.trim()) {
+      updated[name] = next;
+      onChange(updated);
+      return;
+    }
+    const { [name]: _omitted, ...remaining } = updated;
+    onChange(remaining);
   };
 
   return (
