@@ -16,7 +16,7 @@ import { resolveDisplayedLeverage } from '@/features/trades/plan-display';
 import { EquityChart } from '@/features/risk-analytics/equity-chart';
 import { OperatorAttention } from './attention';
 
-type SystemStatus = { connectionState?: string; queue?: { running?: unknown; queued?: unknown } };
+type SystemStatus = { connectionState?: string; queue?: { running?: number; queued?: number } };
 type Operations = { startup?: { phase?: string }; protectionScanComplete?: boolean; backup?: { healthy?: unknown } | null; audit?: { healthy?: unknown } | null };
 type PortfolioAccount = Record<string, unknown> & { accountId: string; name?: string; exchange?: string; mode?: string; error?: string | null; equity?: string | null; reportingCurrency?: string | null; observedAt?: number | null };
 type Portfolio = { accounts?: PortfolioAccount[]; observedAt?: number; cached?: boolean };

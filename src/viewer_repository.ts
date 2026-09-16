@@ -18,26 +18,26 @@ const SENSITIVE_KEY = /(secret|token|password|private.?key|api.?key|api.?hash|au
 const MAXIMUM_DETAILS_BYTES = 32 * 1024;
 
 interface NotificationEventRow {
-  seq: unknown;
-  id: unknown;
-  dedupe_key: unknown;
-  event_type: unknown;
-  intent_id: unknown;
-  channel_id: unknown;
-  account_id: unknown;
-  exchange: unknown;
+  seq: number;
+  id: string;
+  dedupe_key: string;
+  event_type: string;
+  intent_id: string | null;
+  channel_id: string | null;
+  account_id: string | null;
+  exchange: string | null;
   mode: TradingNotificationEvent['mode'];
-  occurred_at: unknown;
-  created_at: unknown;
-  details_json: unknown;
+  occurred_at: number;
+  created_at: number;
+  details_json: string;
 }
 
 interface ViewerTestEventRow {
-  seq: unknown;
-  id: unknown;
-  created_at: unknown;
-  created_by: unknown;
-  message: unknown;
+  seq: number;
+  id: string;
+  created_at: number;
+  created_by: string;
+  message: string;
 }
 
 function identifier(value: unknown, label: string, nullable = false): string | null {

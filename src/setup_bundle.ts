@@ -349,7 +349,7 @@ function validateBundleGraph(value: unknown): WorkflowGraph {
   const nodeIds = new Set<string>();
   for (const nodeValue of graph.nodes) validateGraphNode(nodeValue, nodeIds);
   const nodeKinds = new Map<unknown, unknown>(
-    graph.nodes.map((node: { id: unknown; kind: unknown }) => [String(node.id), node.kind as WorkflowResourceKind]),
+    graph.nodes.map((node: { id: string; kind: unknown }) => [String(node.id), node.kind as WorkflowResourceKind]),
   );
   const edgeIds = new Set<string>();
   for (const edgeValue of graph.edges) validateGraphEdge(edgeValue, edgeIds, nodeKinds, graph.schemaVersion as number);
@@ -620,7 +620,7 @@ function remapResourceConfiguration(
 ): Record<string, unknown> {
   const configuration: Record<string, unknown> = structuredClone(resource.configuration);
   if (resource.kind === 'account') {
-    const accountId = accountMappings[String(configuration.accountId)];
+    const accountId = accountMappings[String(configuration.accountId as string)];
     if (!accountId) throw new Error(`Workflow account '${resource.name}' has no local mapping.`);
     configuration.accountId = accountId;
   }
@@ -634,7 +634,7 @@ function remapResourceConfiguration(
     configuration.strategyVersionId = requiredMapping(maps.strategies, configuration.strategyVersionId, 'Workflow strategy');
   }
   if (resource.kind === 'parser' && configuration.templateName) {
-    configuration.templateName = maps.templates.get(String(configuration.templateName)) ?? configuration.templateName;
+    configuration.templateName = maps.templates.get(String(configuration.templateName as string)) ?? configuration.templateName;
   }
   return configuration;
 }

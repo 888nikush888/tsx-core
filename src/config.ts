@@ -282,7 +282,7 @@ function normalizeApiId(cfg: Record<string, unknown>): void {
   if (cfg.apiId === undefined) return;
   const parsed = Number(cfg.apiId);
   if (!Number.isSafeInteger(parsed) || parsed < 0) {
-    console.warn(`[WARN] Invalid apiId "${cfg.apiId}" in config.json. Resetting to 0.`);
+    console.warn(`[WARN] Invalid apiId "${String(cfg.apiId)}" in config.json. Resetting to 0.`);
     cfg.apiId = 0;
     return;
   }
@@ -307,7 +307,8 @@ function normalizeForwardOptions(cfg: Record<string, unknown>): void {
 
 function normalizeModelNames(xmlParsing: Record<string, unknown>): void {
   for (const key of ['primaryModel', 'fallbackModel'] as const) {
-    const value = String(xmlParsing[key] || '').trim();
+    const rawValue = xmlParsing[key];
+    const value = rawValue === null || rawValue === undefined || typeof rawValue === 'object' ? '' : String(rawValue).trim();
     xmlParsing[key] = /^[a-zA-Z0-9._:/-]{1,128}$/.test(value)
       ? value
       : DEFAULT_CONFIG.xmlParsing[key];
@@ -539,7 +540,7 @@ export function readConfigSync(destination = configPath): Config {
       writeConfigSync(DEFAULT_CONFIG, destination);
       return mergeConfigDefaults({});
     }
-    throw new Error(`Failed to read configuration from ${destination}: ${(error as { message?: unknown }).message}`, { cause: error });
+    throw new Error(`Failed to read configuration from ${destination}: ${(error as { message?: string }).message}`, { cause: error });
   }
 }
 
@@ -556,7 +557,7 @@ export async function readConfig(destination = configPath): Promise<Config> {
       await writeConfig(DEFAULT_CONFIG, destination);
       return mergeConfigDefaults({});
     }
-    throw new Error(`Failed to read configuration from ${destination}: ${(error as { message?: unknown }).message}`, { cause: error });
+    throw new Error(`Failed to read configuration from ${destination}: ${(error as { message?: string }).message}`, { cause: error });
   }
 }
 
@@ -610,7 +611,7 @@ function writeConfigFileSync(content: string, destination: string): void {
     try {
       fs.unlinkSync(temporary);
     } catch (cleanupError: unknown) {
-      if ((cleanupError as { code?: unknown })?.code !== 'ENOENT') console.error(`Failed to remove temporary config ${temporary}: ${(cleanupError as { message?: unknown }).message}`);
+      if ((cleanupError as { code?: unknown })?.code !== 'ENOENT') console.error(`Failed to remove temporary config ${temporary}: ${(cleanupError as { message?: string }).message}`);
     }
     throw error;
   }

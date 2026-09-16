@@ -180,12 +180,36 @@ export interface McpRuntimeTransition {
 }
 
 
-type AgentRow = Record<'id' | 'name' | 'tokenPrefix' | 'permissionsJson' | 'eventSubscriptionsJson' | 'enabled' | 'createdAt' | 'updatedAt' | 'lastSeenAt', unknown>;
-type SessionRow = Record<'id' | 'agentId' | 'clientName' | 'clientVersion' | 'connectedAt' | 'lastSeenAt' | 'disconnectedAt', unknown>;
-type ControlRequestRow = Record<'id' | 'agentId' | 'sessionId' | 'action' | 'payloadJson' | 'resultJson' | 'error' | 'createdAt' | 'startedAt' | 'completedAt', unknown> & { status: McpControlRequest['status'] };
-type ProposalRow = Record<'id' | 'agentId' | 'agentName' | 'sessionId' | 'action' | 'payloadJson' | 'preflightJson' | 'requestedAt' | 'expiresAt' | 'decidedAt' | 'decidedBy' | 'executedAt' | 'resultJson' | 'error', unknown> & { status: McpAgentProposal['status'] };
-type ActionRow = Record<'id' | 'agentId' | 'agentName' | 'sessionId' | 'toolName' | 'permission' | 'requestJson' | 'resultJson' | 'error' | 'startedAt' | 'completedAt' | 'durationMs', unknown> & { outcome: McpAgentAction['outcome'] };
-type EventRow = Record<'id' | 'intentId' | 'channelId' | 'accountId' | 'exchange' | 'mode' | 'eventType' | 'occurredAt' | 'detailsJson' | 'correlationId', unknown>;
+type AgentRow = {
+  id: string; name: string; tokenPrefix: string;
+  permissionsJson: string; eventSubscriptionsJson: string;
+  enabled: number; createdAt: number; updatedAt: number; lastSeenAt: number | null;
+};
+type SessionRow = {
+  id: string; agentId: string; clientName: string; clientVersion: string;
+  connectedAt: number; lastSeenAt: number; disconnectedAt: number | null;
+};
+type ControlRequestRow = {
+  id: string; agentId: string; sessionId: string | null; action: string;
+  payloadJson: string; resultJson: string; error: string | null;
+  createdAt: number; startedAt: number | null; completedAt: number | null;
+} & { status: McpControlRequest['status'] };
+type ProposalRow = {
+  id: string; agentId: string; agentName: string; sessionId: string | null; action: string;
+  payloadJson: string; preflightJson: string; requestedAt: number; expiresAt: number;
+  decidedAt: number | null; decidedBy: string | null; executedAt: number | null;
+  resultJson: string; error: string | null;
+} & { status: McpAgentProposal['status'] };
+type ActionRow = {
+  id: string; agentId: string; agentName: string; sessionId: string | null;
+  toolName: string; permission: string; requestJson: string; resultJson: string;
+  error: string | null; startedAt: number; completedAt: number; durationMs: number;
+} & { outcome: McpAgentAction['outcome'] };
+type EventRow = {
+  id: string; intentId: string | null; channelId: string | null; accountId: string | null;
+  exchange: string | null; mode: string | null; eventType: string;
+  occurredAt: number; detailsJson: string; correlationId: string | null;
+};
 
 const PERMISSION_SET = new Set<string>(MCP_PERMISSIONS);
 const RUNTIME_MODE_SET = new Set<string>(MCP_RUNTIME_MODES);
@@ -663,7 +687,7 @@ export async function deleteMcpAgent(idValue: unknown): Promise<boolean> {
 export async function authenticateMcpToken(value: unknown): Promise<AuthenticatedMcpAgent | null> {
   if (typeof value !== 'string' || !value.startsWith(TOKEN_PREFIX) || value.length > 128) return null;
   const digest = tokenDigest(value);
-  const row = await getDatabase().get<AgentRow & { tokenSha256: unknown }>(
+  const row = await getDatabase().get<AgentRow & { tokenSha256: string }>(
     `SELECT id, name, token_sha256 AS tokenSha256, token_prefix AS tokenPrefix,
             permissions_json AS permissionsJson, event_subscriptions_json AS eventSubscriptionsJson,
             enabled, created_at AS createdAt, updated_at AS updatedAt, last_seen_at AS lastSeenAt

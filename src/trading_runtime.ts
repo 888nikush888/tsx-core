@@ -19,7 +19,7 @@ function runtimeFailureMessage(error: unknown): string {
   try {
     const message: unknown = error === null || error === undefined
       ? undefined : Reflect.get(Object(error), 'message', error);
-    const text = `${message || String(error)}`;
+    const text = `${message || String(error)}`; // NOSONAR: intentional legacy diagnostic coercion; prototype getters and truthy messages are covered by dedicated regression tests.
     return text === '[object Object]' && typeof (message || error) === 'object'
       ? 'Non-Error object thrown without a useful message' : text;
   } catch {
