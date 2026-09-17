@@ -66,13 +66,11 @@ function RecoverySecretsSection({ secrets, secretInput, setSecretInput, can, sav
   can: (action: string) => boolean; save: (name: string, body: unknown) => void | Promise<void>;
 }>) {
   return (
-    <>
     <section className="operations-card system-form"><h2>Secrets reparieren</h2><p>Write-only. Leeres Feld behält den Wert bei. Extern verwaltete Werte werden an ihrer Quelle geändert.</p>
       {Object.entries(secrets).filter(([name]) => !name.startsWith("dashboard")).map(([name, state]) => <label key={name}>{name} · {state.configured ? "konfiguriert" : "fehlt"} · {state.source}
         <input type="password" autoComplete="off" disabled={!can('secrets') || state.source === "external" || state.editable === false} value={secretInput[name] ?? ""} onChange={(event) => setSecretInput({ ...secretInput, [name]: event.target.value })} /></label>)}
       <button className="primary-button" disabled={!can("secrets") || !Object.values(secretInput).some((value) => value.trim())} onClick={() => { save("secrets", Object.fromEntries(Object.entries(secretInput).filter(([, value]) => value.trim()))); }}>Secrets speichern</button>
     </section>
-    </>
   );
 }
 

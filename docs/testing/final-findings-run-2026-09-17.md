@@ -31,13 +31,25 @@ node tests/run_all.js test_exchange_fill_identity.js test_trading_fill_identity.
 ALL 7 TEST FILES PASSED
 ```
 
-This focused result is not a full-run or scanner completion claim. Independent review, integrated verification, renewed implementation evidence and final cloud scans remain pending.
+This focused result is not a full-run or scanner completion claim. Independent review found an additional null-sentinel comparison risk in the Hyperliquid order proof; a red-before/green-after regression now requires both normalized native identifiers to be non-null before equality. All seven suites passed again. The independent review is recorded in `final-fill-identity-independent-review-2026-09-17.md`. Integrated verification, renewed implementation evidence and final cloud scans remain pending.
 
 ## Python lookup assertions
 
 The twelve open Sonar `python:S8714` occurrences in eight executor test modules now use `next(iterator, sentinel)` followed by `assertIsNot` with the original failure message. A unique object sentinel preserves the distinction between exhaustion and any actual yielded value. The scripted position reader returns its actual page only after the assertion; no missing-data fallback or weakened assertion was introduced.
 
 Focused verification passed: execution constraints (18 tests), history coverage/pagination/reader (30), and FX evidence/Hyperliquid retention/phase2 registry/recovery schedule (70), totaling 118 tests on Python 3.12.14. Ruff passed on all eight edited files. Fresh Sonar confirmation remains pending.
+
+## Reviewed backend and frontend packages
+
+The backend Sonar package covers 46 occurrences: 40 source changes pending scan confirmation and six individually evidenced compatibility/classification decisions. Root reviewed the nine source diffs and six affected test diffs, including actual SQL SELECT projections, inner/left joins, nullable columns, MCP schema and adaptive cursor keys. Query text, transaction boundaries and persisted money representations remain unchanged. TDLib, contract-bound and paper-symbol validation now rejects structured values before identity/amount coercion. Thirteen focused suites, backend TypeScript and targeted ESLint passed.
+
+The UI/Python/mechanical package covers 57 DeepSource and 18 Sonar occurrences, with source changes distinguished from individual exception candidates in its companion ledger. A separate agent reviewed all 17 changed frontend source files and the new viewer regression without a blocking finding. The viewer regression verifies stable focused controls and one revision-bound settings write. Focused evidence comprises 173 frontend tests, 21 Python tests, six root suites, frontend types/lint, and a separately versioned mypy reproduction. The three KuCoin typing reports still require provider reconciliation; local non-reproduction is not proof of a completed DeepSource scan.
+
+Two private TradingEngine helpers that have no instance dependency or override callers are now static. Their three call sites retain the same awaited behavior. Six engine/evidence suites passed. Instance methods used as adapter interfaces or fault-injection seams remain unchanged. Additional control tests prove native Promise rejection/adoption, immediate mutation ownership and synchronous operator fencing; four control/race suites passed. The occurrence ledger must record these retained contracts individually.
+
+## Codacy analyzer status
+
+A fresh main reanalysis on 2026-09-17 completed at 12:15:07 UTC and reproduced both provider failures: Trivy rejects missing line metadata, and the deployed ESLint security-node rule crashes on valid try/finally statements. The same revision still contains Go 1.26.6 while retained Trivy findings describe Go 1.26.0. These 33 records remain stale/incomplete, rather than being falsely classified as fixed or false positive. Neither rules nor files were excluded to conceal analyzer failures.
 
 ## Remaining completion work
 

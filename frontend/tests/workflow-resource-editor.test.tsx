@@ -204,7 +204,7 @@ describe('workflow resource contracts', () => {
   it('keeps a model as a draft and reuses its confirmed result after resource saving fails', async () => {
     api.apiFetch.mockImplementation((url: string) => url === '/api/trading/strategies' ? response({ result: { id: 'strategy-draft-v2' } }, 201) : response({}))
     const onSave = vi.fn().mockResolvedValue(false)
-    render(<ResourceEditor draftOnly open kind="strategy" resource={workflowResource('strategy', { strategyVersionId: 'strategy-v1' })} trading={trading as any} onClose={() => { /* dialog close is not exercised in this scenario */ }} onSave={onSave} />)
+    render(<ResourceEditor draftOnly open kind="strategy" resource={workflowResource('strategy', { strategyVersionId: 'strategy-v1' })} trading={trading} onClose={() => { /* dialog close is not exercised in this scenario */ }} onSave={onSave} />)
     fireEvent.change(screen.getByLabelText(/Standard-Hebel/), { target: { value: '7' } })
     fireEvent.click(screen.getByRole('button', { name: 'Ressourcen- und Graphentwurf speichern' }))
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))

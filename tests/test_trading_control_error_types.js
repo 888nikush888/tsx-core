@@ -23,6 +23,52 @@ try {
   const engine = new TradingEngine([paper, adapter]);
   const control = new TradingWebControl(credentials, paper, [adapter], engine);
   const account = await createTradingAccount({ name: 'Error fixture', exchange: 'bybit', mode: 'testnet', credentialRef: 'managed-secret' });
+  const boundaries = [
+    { name: 'replace credentials', call: id => control.replaceAccountCredentials({ id }), fences: true },
+    { name: 'verify account', call: id => control.verifyAccount(id), fences: false },
+    { name: 'disable account', call: id => control.setAccountEnabled(id, false), fences: true },
+    { name: 'release kill switch', call: id => control.releaseAccountKillSwitch({ id }), fences: false },
+    { name: 'remove account', call: id => control.removeAccount(id), fences: true },
+    { name: 'configure paper', call: id => control.configurePaper({ accountId: id }), fences: false },
+  ];
+  const originalRun = engine.mutations.run;
+  try {
+    for (const boundary of boundaries) {
+      let runs = 0;
+      engine.mutations.run = () => { runs += 1; throw new Error('Unexpected invalid-input dispatch'); };
+      let result;
+      assert.doesNotThrow(() => { result = boundary.call(''); }, `${boundary.name} returns rejected promises for validation errors.`);
+      assert.ok(result instanceof Promise);
+      await assert.rejects(result, /Account identifier/);
+      assert.equal(runs, 0);
+
+      const value = { status: 'injected mutation completion' };
+      const returned = Promise.resolve(value);
+      engine.mutations.run = id => { runs += 1; assert.equal(id, account.id); return returned; };
+      const before = engine.mutations.entryEpoch(account.id);
+      result = boundary.call(account.id);
+      assert.equal(runs, 1, 'Mutation ownership is requested before the control method returns.');
+      assert.equal(engine.mutations.entryEpoch(account.id) !== before, boundary.fences,
+        'Operator fences remain synchronous and retain their account/global scope.');
+      assert.ok(result instanceof Promise);
+      assert.notEqual(result, returned, 'The existing native async boundary adopts the mutation result.');
+      assert.equal(await result, value);
+
+      const thrown = new Error('Synchronous mutation dependency failure');
+      engine.mutations.run = () => { throw thrown; };
+      assert.doesNotThrow(() => { result = boundary.call(account.id); });
+      await assert.rejects(result, error => error === thrown);
+      const rejected = new Error('Asynchronous mutation dependency failure');
+      engine.mutations.run = () => Promise.reject(rejected);
+      await assert.rejects(boundary.call(account.id), error => error === rejected);
+    }
+  } finally {
+    engine.mutations.run = originalRun;
+  }
+  let invalidPaper;
+  assert.doesNotThrow(() => { invalidPaper = paper.openState({ ...account, exchange: 'bybit' }); });
+  assert.ok(invalidPaper instanceof Promise);
+  await assert.rejects(invalidPaper, /paper/i);
   const ready = () => updateTradingAccountState(account.id, { status: 'ready', enabled: true });
   await ready();
   let snapshot = await control.portfolioSnapshot(true);

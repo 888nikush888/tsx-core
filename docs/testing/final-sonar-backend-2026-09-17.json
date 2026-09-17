@@ -1,0 +1,751 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-17T12:26:03.639Z",
+  "scope": "Backend Sonar implementation and individual exception evidence; excludes fill identity, frontend, scripts and Python.",
+  "baseline": {
+    "export": "reports/final-findings/sonar-baseline",
+    "analysis": {
+      "key": "dc4e3d23-4cad-4d91-abaf-b8c1e239815e",
+      "date": "2026-09-17T11:39:29+0000",
+      "revision": "58c01bc74f83cc212849ddcd7e487412ff06b2b7",
+      "projectVersion": "3.3.0"
+    },
+    "complete": true,
+    "analysisStableDuringCapture": true,
+    "issueCount": 1307,
+    "openIssueCount": 79,
+    "hotspotCount": 0
+  },
+  "summary": {
+    "assigned": 46,
+    "sourceChangesPendingRescan": 40,
+    "individualFalsePositiveCandidates": 6,
+    "sqlProjectionOccurrences": 31
+  },
+  "issues": [
+    {
+      "issueKey": "AaCvLE7QFuOCeZdBf0dv",
+      "rule": "typescript:S6551",
+      "path": "src/config.ts",
+      "baselineLine": 311,
+      "baselineStatus": "OPEN",
+      "disposition": "individual_false_positive_candidate",
+      "changeKind": "preserved_compatibility",
+      "rationale": "normalizeModelNames excludes null, arrays and every object before String(rawValue). The remaining primitive/function compatibility is intentional and the allowlist rejects invalid text. Fresh tests prove default and custom object conversion is never called, while string/number/boolean/bigint and the existing custom function conversion retain their exact prior result.",
+      "tests": [
+        "tests/test_config.js"
+      ],
+      "producerReferences": [
+        "src/config.ts:308",
+        "src/config.ts:311"
+      ]
+    },
+    {
+      "issueKey": "AaCvLE7oFuOCeZdBf0dw",
+      "rule": "typescript:S6582",
+      "path": "src/backup_evidence.ts",
+      "baselineLine": 102,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "equivalent_optional_chaining",
+      "rationale": "Equivalent optional chaining; missing proof cannot match the already-validated nonempty SHA, so health/freshness/artifact/eligibility checks still fail closed."
+    },
+    {
+      "issueKey": "AaCvLE7oFuOCeZdBf0dx",
+      "rule": "typescript:S6582",
+      "path": "src/backup_evidence.ts",
+      "baselineLine": 109,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "equivalent_optional_chaining",
+      "rationale": "Equivalent optional chaining; missing proof cannot match the already-validated nonempty SHA, so health/freshness/artifact/eligibility checks still fail closed."
+    },
+    {
+      "issueKey": "AaCvLE4KFuOCeZdBf0dp",
+      "rule": "typescript:S6551",
+      "path": "src/forwarder.ts",
+      "baselineLine": 684,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "boundary_or_diagnostic_change",
+      "rationale": "Provider-returned chat.id accepts primitive strings verbatim and safe integer numbers, including zero and negatives. Other structures reject before creating a routing identity; numeric lookup still executes the existing supergroup fallback."
+    },
+    {
+      "issueKey": "AaCvLE4KFuOCeZdBf0dq",
+      "rule": "typescript:S6551",
+      "path": "src/forwarder.ts",
+      "baselineLine": 697,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "boundary_or_diagnostic_change",
+      "rationale": "Provider-returned chat.id accepts primitive strings verbatim and safe integer numbers, including zero and negatives. Other structures reject before creating a routing identity; numeric lookup still executes the existing supergroup fallback."
+    },
+    {
+      "issueKey": "AaCvLE4KFuOCeZdBf0dr",
+      "rule": "typescript:S6551",
+      "path": "src/forwarder.ts",
+      "baselineLine": 702,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "boundary_or_diagnostic_change",
+      "rationale": "Provider-returned chat.id accepts primitive strings verbatim and safe integer numbers, including zero and negatives. Other structures reject before creating a routing identity; numeric lookup still executes the existing supergroup fallback."
+    },
+    {
+      "issueKey": "AaCvLE_4FuOCeZdBf0d2",
+      "rule": "typescript:S6551",
+      "path": "src/signal_parser.ts",
+      "baselineLine": 198,
+      "baselineStatus": "OPEN",
+      "disposition": "individual_false_positive_candidate",
+      "changeKind": "preserved_compatibility",
+      "rationale": "providerCode is diagnostic classification of an unknown Error-like value. Existing bounded allowlist rejects default object text; Error-like custom code conversion and numeric cause.code remain compatible. Tests verify default object exclusion, valid custom conversion, invalid text exclusion and propagation of a throwing converter. No identity, amount or authorization key is derived here.",
+      "tests": [
+        "tests/test_signal_parser.js"
+      ],
+      "producerReferences": [
+        "src/signal_parser.ts:190",
+        "src/signal_parser.ts:198"
+      ]
+    },
+    {
+      "issueKey": "AaCvLE_4FuOCeZdBf0d3",
+      "rule": "typescript:S6551",
+      "path": "src/signal_parser.ts",
+      "baselineLine": 226,
+      "baselineStatus": "OPEN",
+      "disposition": "individual_false_positive_candidate",
+      "changeKind": "preserved_compatibility",
+      "rationale": "Error-like name is intentionally converted for timeout classification. Default object text does not match timeout; a legacy custom name returning ProviderTimeoutError does. Restricting names to primitive strings would change established retry behavior. Fresh tests cover both outcomes without modifying source.",
+      "tests": [
+        "tests/test_signal_parser.js"
+      ],
+      "producerReferences": [
+        "src/signal_parser.ts:209",
+        "src/signal_parser.ts:226"
+      ]
+    },
+    {
+      "issueKey": "AaCvLE_bFuOCeZdBf0d1",
+      "rule": "typescript:S6551",
+      "path": "src/tdlib_retry.ts",
+      "baselineLine": 52,
+      "baselineStatus": "OPEN",
+      "disposition": "individual_false_positive_candidate",
+      "changeKind": "preserved_compatibility",
+      "rationale": "The bounded TDLib retry classifier intentionally accepts Error-like message or whole-error conversion. Default object text is not FLOOD_WAIT and rethrows the original value after one attempt. Fresh tests retain primitive and custom message/whole-error FLOOD_WAIT_0 retries and original-error identity for ordinary errors.",
+      "tests": [
+        "tests/test_tdlib_retry.js"
+      ],
+      "producerReferences": [
+        "src/tdlib_retry.ts:45",
+        "src/tdlib_retry.ts:52"
+      ]
+    },
+    {
+      "issueKey": "AaCvLE6jFuOCeZdBf0du",
+      "rule": "typescript:S6551",
+      "path": "src/ui_adaptive_risk.ts",
+      "baselineLine": 36,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLE-1FuOCeZdBf0d0",
+      "rule": "typescript:S6551",
+      "path": "src/ui_paper_configuration.ts",
+      "baselineLine": 18,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "boundary_or_diagnostic_change",
+      "rationale": "Revision lookup accepts primitive symbol strings and retains missing/null empty fallback. Arrays/boxed/custom objects reject before lookup or combined balance mutation; existing trimming and uppercase happen in the same read/write functions."
+    },
+    {
+      "issueKey": "AaCvLE5sFuOCeZdBf0ds",
+      "rule": "typescript:S6551",
+      "path": "src/web_server.ts",
+      "baselineLine": 1699,
+      "baselineStatus": "OPEN",
+      "disposition": "individual_false_positive_candidate",
+      "changeKind": "preserved_compatibility",
+      "rationale": "Production Config.sourceChannels is string[] and validateSideEffectContracts rejects any non-string element before persistence/use. The private snapshot compatibility path also supports legacy records with primitive id/name or channelId/title fields. Existing web-server tests were rerun and preserve exact primitive identifiers. No new malformed-legacy metadata policy is introduced for this read-only display endpoint.",
+      "tests": [
+        "tests/test_config.js",
+        "tests/test_web_server.js"
+      ],
+      "producerReferences": [
+        "src/config.ts:52",
+        "src/config.ts:412",
+        "src/config.ts:430",
+        "src/web_server.ts:1695",
+        "tests/test_web_server.js:178"
+      ]
+    },
+    {
+      "issueKey": "AaCvLE5sFuOCeZdBf0dt",
+      "rule": "typescript:S6551",
+      "path": "src/web_server.ts",
+      "baselineLine": 1700,
+      "baselineStatus": "OPEN",
+      "disposition": "individual_false_positive_candidate",
+      "changeKind": "preserved_compatibility",
+      "rationale": "Production sourceChannels entries are validated primitive strings. Tested legacy display records supply primitive name/title (or id fallback). The snapshot keeps these existing display labels unchanged; rejecting or recasting unsupported legacy metadata merely to satisfy S6551 would introduce a new runtime policy. Fresh execution of the current web-server compatibility test confirms exact labels.",
+      "tests": [
+        "tests/test_config.js",
+        "tests/test_web_server.js"
+      ],
+      "producerReferences": [
+        "src/config.ts:52",
+        "src/config.ts:412",
+        "src/config.ts:430",
+        "src/web_server.ts:1695",
+        "tests/test_web_server.js:178"
+      ]
+    },
+    {
+      "issueKey": "AaCvLE1CFuOCeZdBf0di",
+      "rule": "typescript:S6551",
+      "path": "src/ui_search.ts",
+      "baselineLine": 35,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLE1CFuOCeZdBf0dj",
+      "rule": "typescript:S6551",
+      "path": "src/ui_search.ts",
+      "baselineLine": 35,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLE1CFuOCeZdBf0dk",
+      "rule": "typescript:S6551",
+      "path": "src/ui_search.ts",
+      "baselineLine": 37,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLE1CFuOCeZdBf0dl",
+      "rule": "typescript:S6551",
+      "path": "src/ui_search.ts",
+      "baselineLine": 37,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eQ",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 607,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCm5kY9IdGJGds-ubLY",
+      "rule": "typescript:S6551",
+      "path": "src/mcp_repository.ts",
+      "baselineLine": 348,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0d4",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 352,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0d5",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 400,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0d6",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 409,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0d7",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 410,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0d8",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 411,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0d9",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 412,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0d-",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 436,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0d_",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 437,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eA",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 438,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eB",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 440,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eC",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 450,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eD",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 473,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eE",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 489,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eF",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 490,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eG",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 491,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eH",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 492,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eI",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 493,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eJ",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 494,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eK",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 495,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eL",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 496,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eM",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 500,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eN",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 501,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eO",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 503,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLFDlFuOCeZdBf0eP",
+      "rule": "typescript:S6551",
+      "path": "src/trade_journal.ts",
+      "baselineLine": 504,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "sql_projection_types",
+      "rationale": "Concrete SELECT fields now have scalar types and SQL nullability; existing SQL, conversions, output values, ordering and transactions remain unchanged."
+    },
+    {
+      "issueKey": "AaCvLE9UFuOCeZdBf0dy",
+      "rule": "typescript:S6551",
+      "path": "src/signal_contract.ts",
+      "baselineLine": 110,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "boundary_or_diagnostic_change",
+      "rationale": "Optional decimal bounds retain undefined/empty omission and string/number/bigint decimal normalization. Arrays, boxed values and custom objects cannot manufacture a valid decimal bound."
+    },
+    {
+      "issueKey": "AaCvLE9UFuOCeZdBf0dz",
+      "rule": "typescript:S6551",
+      "path": "src/signal_contract.ts",
+      "baselineLine": 111,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "boundary_or_diagnostic_change",
+      "rationale": "Optional decimal bounds retain undefined/empty omission and string/number/bigint decimal normalization. Arrays, boxed values and custom objects cannot manufacture a valid decimal bound."
+    },
+    {
+      "issueKey": "AaCm5kTsIdGJGds-ubLG",
+      "rule": "typescript:S6551",
+      "path": "src/config.ts",
+      "baselineLine": 285,
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "changeKind": "boundary_or_diagnostic_change",
+      "rationale": "Invalid API-ID warning reports the input type instead of converting the rejected value. Number conversion, safe-integer validation, fallback and supported legacy coercions are unchanged."
+    }
+  ],
+  "modifiedSources": [
+    "src/backup_evidence.ts",
+    "src/config.ts",
+    "src/forwarder.ts",
+    "src/mcp_repository.ts",
+    "src/signal_contract.ts",
+    "src/trade_journal.ts",
+    "src/ui_adaptive_risk.ts",
+    "src/ui_paper_configuration.ts",
+    "src/ui_search.ts"
+  ],
+  "modifiedTests": [
+    "tests/test_config.js",
+    "tests/test_forwarder_error_types.js",
+    "tests/test_signal_contract_validation.js",
+    "tests/test_signal_parser.js",
+    "tests/test_tdlib_retry.js",
+    "tests/test_trading_web_control.js"
+  ],
+  "validation": {
+    "generatedAt": "2026-09-17T12:23:52.900Z",
+    "nodeVersion": "v22.23.2",
+    "results": [
+      {
+        "path": "tests/test_trade_journal_streams.js",
+        "exitCode": 0,
+        "durationMs": 767
+      },
+      {
+        "path": "tests/test_trading_fx_journal_viewer.js",
+        "exitCode": 0,
+        "durationMs": 728
+      },
+      {
+        "path": "tests/test_mcp_control_plane.js",
+        "exitCode": 0,
+        "durationMs": 1220
+      },
+      {
+        "path": "tests/test_ui_change_reviews.js",
+        "exitCode": 0,
+        "durationMs": 982
+      },
+      {
+        "path": "tests/test_ui_adaptive_risk.js",
+        "exitCode": 0,
+        "durationMs": 686
+      },
+      {
+        "path": "tests/test_backup_evidence.js",
+        "exitCode": 0,
+        "durationMs": 353
+      },
+      {
+        "path": "tests/test_config.js",
+        "exitCode": 0,
+        "durationMs": 251
+      },
+      {
+        "path": "tests/test_forwarder_error_types.js",
+        "exitCode": 0,
+        "durationMs": 708
+      },
+      {
+        "path": "tests/test_signal_contract_validation.js",
+        "exitCode": 0,
+        "durationMs": 2315
+      },
+      {
+        "path": "tests/test_signal_parser.js",
+        "exitCode": 0,
+        "durationMs": 407
+      },
+      {
+        "path": "tests/test_tdlib_retry.js",
+        "exitCode": 0,
+        "durationMs": 215
+      },
+      {
+        "path": "tests/test_trading_web_control.js",
+        "exitCode": 0,
+        "durationMs": 1505
+      },
+      {
+        "path": "tests/test_web_server.js",
+        "exitCode": 0,
+        "durationMs": 4678
+      }
+    ],
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "exitCode": 0
+    },
+    "targetedEslint": {
+      "command": "node node_modules/eslint/bin/eslint.js <9 changed backend sources and 6 changed backend tests> --quiet",
+      "exitCode": 0
+    },
+    "redEvidence": [
+      "Before adding resolvedTdlibChatId, test_forwarder_error_types.js failed Missing expected rejection for malformed returned IDs; current regression passes.",
+      "Before adding additionalFieldBound, test_signal_contract_validation.js failed Missing expected exception for coercible structured bounds; current regression passes.",
+      "An in-memory function extracted from baseline 58c01bc7 and current source showed baseline paper revision lookup coerces arrays and boxed strings into BTC; current source rejects before lookup. Integration verifies supported primitive normalization and unchanged combined balance after rejected symbols."
+    ],
+    "followUp": {
+      "test": "tests/test_forwarder_error_types.js",
+      "reason": "Independent Codacy review requested a fixed-declaration extraction-completeness assertion; added it and reran the focused suite and its ESLint check.",
+      "exitCode": 0,
+      "completedAt": "2026-09-17T12:27:48.612Z"
+    }
+  },
+  "observedBindings": [
+    {
+      "path": "src/backup_evidence.ts",
+      "sha256": "9bf08dd21e340d0f00d0502d0d16a470dd8b1a3e05ba2942b0fc84911afc8ff3"
+    },
+    {
+      "path": "src/config.ts",
+      "sha256": "4bc9c1ea86fec53eb2580a32c7cd3d8e4631e631cac4a96e50eee956cd4a4ae4"
+    },
+    {
+      "path": "src/forwarder.ts",
+      "sha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0"
+    },
+    {
+      "path": "src/mcp_repository.ts",
+      "sha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046"
+    },
+    {
+      "path": "src/signal_contract.ts",
+      "sha256": "eb024bc91844963c667f958b17c20bafb5c7d21465f6ca4adfe4bd1a73a3e833"
+    },
+    {
+      "path": "src/trade_journal.ts",
+      "sha256": "f98ec0e9de203adf195fe5f6169bc3c156d72770a0501703ca1c827bc0763f1d"
+    },
+    {
+      "path": "src/ui_adaptive_risk.ts",
+      "sha256": "810753fb1d3f458a735e4a5655034173db5993a437963160963c1bf8680e86a0"
+    },
+    {
+      "path": "src/ui_paper_configuration.ts",
+      "sha256": "73d8e19c26dc0cf3760bd729f43175fd299d4307e1f2f8e2b58a3da614cfff3a"
+    },
+    {
+      "path": "src/ui_search.ts",
+      "sha256": "d5a70048e222f1d8a392368cf4f9097c2c9eca9d3150db72293e6b5699e57cef"
+    },
+    {
+      "path": "src/signal_parser.ts",
+      "sha256": "d72b7a27439e2f5801e982af18fd802bfd1cb331338569533e686bd50bb78378"
+    },
+    {
+      "path": "src/tdlib_retry.ts",
+      "sha256": "80820f4f51906a2df489270260229b5686f0b73c56832fa2f2bb67789582433a"
+    },
+    {
+      "path": "src/web_server.ts",
+      "sha256": "1c664539f34acf6190136415ffb0e032a807a95f2e5a8e43d73ee1c220385094"
+    },
+    {
+      "path": "tests/test_trade_journal_streams.js",
+      "sha256": "3619ae4f15c475c1c6433bc82072bf3da14a996a9a05580803b122ceb1ca92a5"
+    },
+    {
+      "path": "tests/test_trading_fx_journal_viewer.js",
+      "sha256": "5b2d03362316e8dbbca4af043bdd5d758619dbee3464dacee4de43073d68dad0"
+    },
+    {
+      "path": "tests/test_mcp_control_plane.js",
+      "sha256": "be26930bfc3efec472dec7b4e420275a7f050b92cca7690edd8ee13741d39652"
+    },
+    {
+      "path": "tests/test_ui_change_reviews.js",
+      "sha256": "d7c8970d51a13ee4319a1f529646118ca7616f4f72e52fbca161cea048d16933"
+    },
+    {
+      "path": "tests/test_ui_adaptive_risk.js",
+      "sha256": "150535b104719d7cdd1b56b1a2a999863eea9f4f01bf770fb550273bc1d512fc"
+    },
+    {
+      "path": "tests/test_backup_evidence.js",
+      "sha256": "7cfa2c38a36d7d12d9c7d2bb64fd22fb0cb7d04312c630bb302a1bcdc5163396"
+    },
+    {
+      "path": "tests/test_config.js",
+      "sha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a"
+    },
+    {
+      "path": "tests/test_forwarder_error_types.js",
+      "sha256": "d9ed50ca4edf57b327f0018ab4aafe28c2ee57871aa4bb058b117689e0e0d3ed"
+    },
+    {
+      "path": "tests/test_signal_contract_validation.js",
+      "sha256": "0568555252ad3b0a9ce7d008b1f8b267d175161ac57e0092ce46cae203cfe675"
+    },
+    {
+      "path": "tests/test_signal_parser.js",
+      "sha256": "c58c262e5e691df1a200def7f62214b6b51500702e6da7905520ad7fa228176f"
+    },
+    {
+      "path": "tests/test_tdlib_retry.js",
+      "sha256": "22e85a91e1870e16d1fdb075e3ac6ddff5a097a6096d3372d429330ca1fd6439"
+    },
+    {
+      "path": "tests/test_trading_web_control.js",
+      "sha256": "3f9f38ed1b450ad3306e776037c721e558541b58f9e513bebbcfc34a1f43dde4"
+    },
+    {
+      "path": "tests/test_web_server.js",
+      "sha256": "2cd157913dd7dfe3691fb2c60c45c65f4f163321290877df1b307570df763231"
+    }
+  ],
+  "bindingMeaning": "SHA-256 values record this working-tree evidence capture only. They are not cryptographic review approval or renewed scanner attestation.",
+  "remoteScannerChanges": [],
+  "remaining": "Independent integration review, candidate scanner results and individually authorized remote dispositions are owned by root; baseline issue status remains authoritative until rescanned."
+}

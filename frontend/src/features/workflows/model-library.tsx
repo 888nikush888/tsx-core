@@ -34,9 +34,7 @@ function ModelSchemaToggle({ data, kind, readOnly, busy, command }: Readonly<{
   data: ModelDetail; kind: Kind; readOnly: boolean; busy: boolean; command: (action: string) => void | Promise<void>;
 }>) {
   return (
-    <>
-          {kind === 'schema' && <button className="secondary-button" disabled={readOnly || busy || data.activeReferenceCount > 0} onClick={() => { command(data.model.enabled ? 'disable' : 'enable'); }}>{data.model.enabled ? 'Profil deaktivieren' : 'Profil aktivieren'}</button>}
-    </>
+    kind === 'schema' && <button className="secondary-button" disabled={readOnly || busy || data.activeReferenceCount > 0} onClick={() => { command(data.model.enabled ? 'disable' : 'enable'); }}>{data.model.enabled ? 'Profil deaktivieren' : 'Profil aktivieren'}</button>
   );
 }
 

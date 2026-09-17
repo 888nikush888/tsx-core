@@ -358,7 +358,7 @@ export function System({
     key: string,
     operation: () => Promise<T>,
     success: string,
-    accepted: (result: T) => void = () => undefined,
+    accepted: (result: T) => void = (_result: T) => undefined,
   ) => {
     setBusy(key);
     setMessage("");

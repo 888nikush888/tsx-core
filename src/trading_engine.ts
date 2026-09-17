@@ -1621,7 +1621,7 @@ export class TradingEngine {
     }
     try { await this.drainRequestedEntriesOwned(account.id); } catch { /* Own reduction is independent of incomplete entry drain. */ }
     const remote = await this.observeSafetyState(account, adapter);
-    await this.assertRemoteAccountIdentity(account, remote);
+    await TradingEngine.assertRemoteAccountIdentity(account, remote);
     await this.ingestOwnedState(account, remote, { protectKnownPositions: true, riskReductionIntentId: intent.id });
     const position = remote.positions.find(candidate => candidate.symbol === intent.symbol);
     if (!position || compareDecimal(position.quantity, '0') <= 0) return;
@@ -1691,7 +1691,7 @@ export class TradingEngine {
     for (let pass = 0; pass < 3; pass += 1) {
       const remote = await this.observeSafetyState(account, adapter);
       try {
-        await this.assertRemoteAccountIdentity(account, remote);
+        await TradingEngine.assertRemoteAccountIdentity(account, remote);
         if (!await this.applyRemoteState(account, adapter, remote)) return remote;
       } catch (error) {
         if (remote.acquisition?.recoverySchedule) {
@@ -1841,7 +1841,7 @@ export class TradingEngine {
     );
   }
 
-  private async assertRemoteAccountIdentity(
+  private static async assertRemoteAccountIdentity(
     account: TradingAccount,
     remote: RemoteStateWithIdentity,
   ): Promise<void> {
@@ -2092,7 +2092,7 @@ export class TradingEngine {
       incompleteManagedExecution ||= order.filledQuantity === null;
     }
     for (const fill of remote.fills) {
-      await this.persistRemoteFill(account, fill, remote.acquisition);
+      await TradingEngine.persistRemoteFill(account, fill, remote.acquisition);
     }
     await projectAccountFillAccounting(account.id);
     await resolveManagedHistoricalEvidence(account.id);
@@ -2103,7 +2103,7 @@ export class TradingEngine {
     }
   }
 
-  private async persistRemoteFill(account: TradingAccount, fill: ExchangeOpenState['fills'][number], read?: ExchangeOpenState['acquisition']): Promise<void> {
+  private static async persistRemoteFill(account: TradingAccount, fill: ExchangeOpenState['fills'][number], read?: ExchangeOpenState['acquisition']): Promise<void> {
     const { order: localOrder, inserted, fillId } = await persistCorrelatedFill(account, fill, read);
     if (!localOrder || !inserted) return;
     const intent = await getTradingIntent(localOrder.intent_id);

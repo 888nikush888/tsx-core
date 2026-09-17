@@ -19,6 +19,7 @@ const allTests = [
   'test_ui_operator_commands.js',
   'test_ui_change_reviews.js',
   'test_exchange_implementation_bridge.js',
+  'test_final_codacy_review.js',
   'test_exchange_profile_parity.js',
   'test_mutation_shards.js',
   'test_trading_rational.js',

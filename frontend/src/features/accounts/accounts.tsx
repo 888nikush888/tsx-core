@@ -380,6 +380,7 @@ export function Accounts({
       return result;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
+      return undefined;
     } finally {
       setBusy("");
     }

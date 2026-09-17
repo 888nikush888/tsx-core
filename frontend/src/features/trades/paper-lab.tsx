@@ -48,9 +48,7 @@ function PaperBalanceEvidence({ kind, record }: Readonly<{ kind: 'market' | 'bal
 
 function PaperReceipt({ receipt }: Readonly<{ receipt: SaveReceipt | null }>) {
   return (
-    <>
-    {receipt && (receipt.after ? <ChangeReview {...receipt} label="Bestätigte Paper-Normalisierung" /> : <p><output>Änderung angenommen; bestätigte Werte fehlen im Antwortvertrag. Aktuellen Stand vor einem weiteren Schreibvorgang prüfen.</output></p>)}
-    </>
+    receipt && (receipt.after ? <ChangeReview {...receipt} label="Bestätigte Paper-Normalisierung" /> : <p><output>Änderung angenommen; bestätigte Werte fehlen im Antwortvertrag. Aktuellen Stand vor einem weiteren Schreibvorgang prüfen.</output></p>)
   );
 }
 

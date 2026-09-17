@@ -1,0 +1,1063 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-09-17T12:18:19.666Z",
+  "baseRevision": "58c01bc74f83cc212849ddcd7e487412ff06b2b7",
+  "scope": "Owned frontend, three Python inference occurrences plus account-log comparison, and named root mechanical DeepSource sites. No JS-R1005 remediation, blanket suppression, remote disposition, commit, staging or push.",
+  "baseline": {
+    "deepSourcePath": "reports/final-findings/deepsource-baseline-2026-09-17.json",
+    "sha256": "20e8e8e6977c03d2f49c0bb70f1a9c0da32b2b4273e06dc64a073e5789cede52",
+    "count": 1315,
+    "ignoredComplexity": 1178,
+    "remainingNonComplexity": 137
+  },
+  "counts": {
+    "DeepSource:source_change_pending_rescan": 47,
+    "DeepSource:reviewed_expected_behavior": 6,
+    "DeepSource:reviewed_false_positive": 1,
+    "DeepSource:reviewed_false_positive_pending_full_rescan": 3,
+    "SonarCloud:source_change_pending_rescan": 17,
+    "SonarCloud:reviewed_expected_behavior": 1
+  },
+  "verification": [
+    {
+      "check": "frontend TypeScript app noEmit",
+      "result": "passed"
+    },
+    {
+      "check": "frontend oxlint --quiet",
+      "result": "passed"
+    },
+    {
+      "check": "15 affected frontend Vitest suites",
+      "result": "172 tests passed"
+    },
+    {
+      "check": "telegram-viewer-display.test.tsx",
+      "result": "1 test passed; stable focused select, paired fields and exactly one revision-bound write"
+    },
+    {
+      "check": "six root mechanical suites via Node22 --import tsx",
+      "result": "all passed: test_config, test_exchange_contract_validation, test_supply_chain, test_monitoring_artifacts, test_sonar_branch, test_sonar_pull_request"
+    },
+    {
+      "check": "Python3.12 account-log reader",
+      "result": "13 tests passed"
+    },
+    {
+      "check": "Python3.12 KuCoin provider-control from executor working directory",
+      "result": "8 tests passed; initial invocation from repository root failed to import common and was corrected without source edits"
+    },
+    {
+      "check": "mypy2.3.1 Python3.12 kucoin_execution, follow-imports=silent, ignore-missing-imports",
+      "result": "no issues; default token return reveals str, nullable=True reveals str | None",
+      "limitation": "This reproduces a declared local checker version, not an undocumented DeepSource checker version."
+    },
+    {
+      "check": "Final combined tests/test_config.js binding",
+      "result": "Refreshed after root independently reviewed the combined own-property and additional characterization tests."
+    }
+  ],
+  "limits": [
+    "Source-change rows await completed remote analysis at the integrated final revision.",
+    "Expected-behavior/false-positive rows are occurrence-specific review recommendations, not remote closures.",
+    "No new inline skipcq comments or analyzer configuration changes.",
+    "Other agents may independently extend shared tests; hashes bind the contents at this ledger creation."
+  ],
+  "entries": [
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTphbmFqdmxqZ2w=",
+      "rule": "JS-R1004",
+      "path": "tests/test_supply_chain.js",
+      "baselineLine": 361,
+      "baselineColumn": 3,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "a748f6d6110d647378177d0bb29aed38c66b9440824586f065f43c01f75fbabf",
+      "afterSha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpsbXF4ZGx4ZXc=",
+      "rule": "JS-R1004",
+      "path": "tests/test_supply_chain.js",
+      "baselineLine": 282,
+      "baselineColumn": 58,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "a748f6d6110d647378177d0bb29aed38c66b9440824586f065f43c01f75fbabf",
+      "afterSha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpkYWtqd2xqZWc=",
+      "rule": "JS-R1004",
+      "path": "tests/test_supply_chain.js",
+      "baselineLine": 278,
+      "baselineColumn": 33,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "a748f6d6110d647378177d0bb29aed38c66b9440824586f065f43c01f75fbabf",
+      "afterSha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpxcGVnbmRnYXY=",
+      "rule": "JS-R1004",
+      "path": "tests/test_supply_chain.js",
+      "baselineLine": 273,
+      "baselineColumn": 29,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "a748f6d6110d647378177d0bb29aed38c66b9440824586f065f43c01f75fbabf",
+      "afterSha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpnZXZqZHhqb2w=",
+      "rule": "JS-R1004",
+      "path": "tests/test_sonar_pull_request.js",
+      "baselineLine": 79,
+      "baselineColumn": 24,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "4640f96f93998d9916c98b06882ef189f460bf328a28fa64b3c61cd320ee6dd1",
+      "afterSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpyZWt5bmd5bHk=",
+      "rule": "JS-R1004",
+      "path": "tests/test_sonar_pull_request.js",
+      "baselineLine": 71,
+      "baselineColumn": 69,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "4640f96f93998d9916c98b06882ef189f460bf328a28fa64b3c61cd320ee6dd1",
+      "afterSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTptcmRvbmxveXI=",
+      "rule": "JS-R1004",
+      "path": "tests/test_sonar_pull_request.js",
+      "baselineLine": 71,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "4640f96f93998d9916c98b06882ef189f460bf328a28fa64b3c61cd320ee6dd1",
+      "afterSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp2dm1hbmRheG4=",
+      "rule": "JS-R1004",
+      "path": "tests/test_sonar_pull_request.js",
+      "baselineLine": 70,
+      "baselineColumn": 35,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "4640f96f93998d9916c98b06882ef189f460bf328a28fa64b3c61cd320ee6dd1",
+      "afterSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpveWFtZHZtcW8=",
+      "rule": "JS-R1004",
+      "path": "tests/test_sonar_pull_request.js",
+      "baselineLine": 68,
+      "baselineColumn": 26,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "4640f96f93998d9916c98b06882ef189f460bf328a28fa64b3c61cd320ee6dd1",
+      "afterSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp4cmdhbmphdnY=",
+      "rule": "JS-R1004",
+      "path": "tests/test_sonar_branch.js",
+      "baselineLine": 70,
+      "baselineColumn": 22,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "ce372a4c3e33300421c8a13b9df3bc8ae90523c310fd88edc4e39afee372b8fa",
+      "afterSha256": "c8f3805aac591b0a72888aa8120d793d92700077cb7efb8df268d18edd45c4d6"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTprdnlrZGdranE=",
+      "rule": "JS-R1004",
+      "path": "tests/test_sonar_branch.js",
+      "baselineLine": 54,
+      "baselineColumn": 16,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "ce372a4c3e33300421c8a13b9df3bc8ae90523c310fd88edc4e39afee372b8fa",
+      "afterSha256": "c8f3805aac591b0a72888aa8120d793d92700077cb7efb8df268d18edd45c4d6"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpsbXF4ZGx4eXc=",
+      "rule": "JS-R1004",
+      "path": "tests/test_monitoring_artifacts.js",
+      "baselineLine": 140,
+      "baselineColumn": 89,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "1d5cffa78d6dbcc95e75cf7eb665a9910e26ed4f4fd8ad393598a226abe8ab77",
+      "afterSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpkYWtqd2xqdmc=",
+      "rule": "JS-R1004",
+      "path": "tests/test_monitoring_artifacts.js",
+      "baselineLine": 105,
+      "baselineColumn": 83,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "1d5cffa78d6dbcc95e75cf7eb665a9910e26ed4f4fd8ad393598a226abe8ab77",
+      "afterSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpxcGVnbmRnb3Y=",
+      "rule": "JS-R1004",
+      "path": "tests/test_monitoring_artifacts.js",
+      "baselineLine": 61,
+      "baselineColumn": 29,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "1d5cffa78d6dbcc95e75cf7eb665a9910e26ed4f4fd8ad393598a226abe8ab77",
+      "afterSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp5Z3lqbmxqcXk=",
+      "rule": "JS-R1004",
+      "path": "tests/test_monitoring_artifacts.js",
+      "baselineLine": 60,
+      "baselineColumn": 29,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "1d5cffa78d6dbcc95e75cf7eb665a9910e26ed4f4fd8ad393598a226abe8ab77",
+      "afterSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpnZXZqZHhqYWw=",
+      "rule": "JS-R1004",
+      "path": "tests/test_monitoring_artifacts.js",
+      "baselineLine": 53,
+      "baselineColumn": 29,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "1d5cffa78d6dbcc95e75cf7eb665a9910e26ed4f4fd8ad393598a226abe8ab77",
+      "afterSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTplYXhqeXZqbWQ=",
+      "rule": "JS-W1042",
+      "path": "tests/test_exchange_contract_validation.js",
+      "baselineLine": 81,
+      "baselineColumn": 129,
+      "disposition": "source_change_pending_rescan",
+      "reason": "The active site is Symbol(undefined); Symbol() produces the same symbol with an undefined description. No assertion argument was removed.",
+      "evidence": [],
+      "beforeSha256": "308ef2282b9a197fe5a3ed93c7a4c77a0eec8074fe6180850968f8dee12241d8",
+      "afterSha256": "e4cb2a8bcd7490dae31f9cdd7c708f3dc46c64de2ff472559cd2fc521125caf2"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpsbXF4ZGx4bnc=",
+      "rule": "JS-0049",
+      "path": "tests/test_config.js",
+      "baselineLine": 28,
+      "baselineColumn": 44,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Assert the own property descriptor value for the deliberately named prototype-like data key; existing own-key and actual-prototype checks remain.",
+      "evidence": [
+        "Root independently reviewed the combined final test_config.js diff: own-data-property assertions and the added primitive/object/apiId characterization retain the security contract."
+      ],
+      "beforeSha256": "9f6729375f541ef9a51278cd90d8b4d3705fa394518d2cb0344cbfaa3f2f090f",
+      "afterSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpkYWtqd2xqZGc=",
+      "rule": "JS-0084",
+      "path": "tests/test_config.js",
+      "baselineLine": 28,
+      "baselineColumn": 16,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Assert the own property descriptor value, not the prototype accessor. The security regression still proves the input key survives as an own data property without prototype mutation.",
+      "evidence": [
+        "Root independently reviewed the combined final test_config.js diff: own-data-property assertions and the added primitive/object/apiId characterization retain the security contract."
+      ],
+      "beforeSha256": "9f6729375f541ef9a51278cd90d8b4d3705fa394518d2cb0344cbfaa3f2f090f",
+      "afterSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpxcGVnbmRneHY=",
+      "rule": "JS-0049",
+      "path": "tests/test_config.js",
+      "baselineLine": 25,
+      "baselineColumn": 48,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Assert the own property descriptor value for the deliberately named prototype-like data key; existing own-key and actual-prototype checks remain.",
+      "evidence": [
+        "Root independently reviewed the combined final test_config.js diff: own-data-property assertions and the added primitive/object/apiId characterization retain the security contract."
+      ],
+      "beforeSha256": "9f6729375f541ef9a51278cd90d8b4d3705fa394518d2cb0344cbfaa3f2f090f",
+      "afterSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp5Z3lqbmxqcnk=",
+      "rule": "JS-0084",
+      "path": "tests/test_config.js",
+      "baselineLine": 25,
+      "baselineColumn": 20,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Assert the own property descriptor value, not the prototype accessor. The security regression still proves the input key survives as an own data property without prototype mutation.",
+      "evidence": [
+        "Root independently reviewed the combined final test_config.js diff: own-data-property assertions and the added primitive/object/apiId characterization retain the security contract."
+      ],
+      "beforeSha256": "9f6729375f541ef9a51278cd90d8b4d3705fa394518d2cb0344cbfaa3f2f090f",
+      "afterSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpwcXdybmpyZWU=",
+      "rule": "JS-R1004",
+      "path": "scripts/sonar_scan_arguments.js",
+      "baselineLine": 19,
+      "baselineColumn": 48,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "7dd5a0759009e6cd38347fe9360af1434c63dc15530384bc538317572bd16e27",
+      "afterSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp3bXJhd3BhamU=",
+      "rule": "JS-R1004",
+      "path": "scripts/sonar_scan_arguments.js",
+      "baselineLine": 17,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "7dd5a0759009e6cd38347fe9360af1434c63dc15530384bc538317572bd16e27",
+      "afterSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpqd2dlZG1lcHk=",
+      "rule": "JS-R1004",
+      "path": "scripts/sonar_scan_arguments.js",
+      "baselineLine": 16,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "7dd5a0759009e6cd38347fe9360af1434c63dc15530384bc538317572bd16e27",
+      "afterSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpuZ3d2ZGp2b24=",
+      "rule": "JS-R1004",
+      "path": "scripts/sonar_scan_arguments.js",
+      "baselineLine": 15,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "7dd5a0759009e6cd38347fe9360af1434c63dc15530384bc538317572bd16e27",
+      "afterSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTphbmFqdmxqZWw=",
+      "rule": "JS-R1004",
+      "path": "scripts/sonar_scan_arguments.js",
+      "baselineLine": 13,
+      "baselineColumn": 17,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+      "evidence": [],
+      "beforeSha256": "7dd5a0759009e6cd38347fe9360af1434c63dc15530384bc538317572bd16e27",
+      "afterSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpsbXF4ZGx4a3c=",
+      "rule": "JS-0114",
+      "path": "frontend/tests/telegram-settings-coverage.test.tsx",
+      "baselineLine": 200,
+      "baselineColumn": 103,
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The rejected string deliberately exercises the non-Error branch of a failed credential write or post-rotation observation. Replacing it with Error would remove that branch coverage. Existing assertions verify retained draft/credential, released busy state and no repeated write.",
+      "evidence": [
+        "frontend/tests/telegram-settings-coverage.test.tsx"
+      ],
+      "beforeSha256": "7b50eb5b561c443d5ed4ed2b6973ceabd7b6f8025072017c339f08a4505d8769",
+      "afterSha256": "3e00a2c900a1086aa33d0af9b1f4d786fcd56c7387843e090ade62ea2bc9a685"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpkYWtqd2xqbWc=",
+      "rule": "JS-0339",
+      "path": "frontend/tests/telegram-settings-coverage.test.tsx",
+      "baselineLine": 199,
+      "baselineColumn": 30,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Require the configured mock implementation to exist before calling it, preserving the request fixture and providing an explicit setup failure.",
+      "evidence": [],
+      "beforeSha256": "7b50eb5b561c443d5ed4ed2b6973ceabd7b6f8025072017c339f08a4505d8769",
+      "afterSha256": "3e00a2c900a1086aa33d0af9b1f4d786fcd56c7387843e090ade62ea2bc9a685"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpxcGVnbmRnbHY=",
+      "rule": "JS-0339",
+      "path": "frontend/tests/telegram-settings-coverage.test.tsx",
+      "baselineLine": 142,
+      "baselineColumn": 30,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Require the configured mock implementation to exist before calling it, preserving the request fixture and providing an explicit setup failure.",
+      "evidence": [],
+      "beforeSha256": "7b50eb5b561c443d5ed4ed2b6973ceabd7b6f8025072017c339f08a4505d8769",
+      "afterSha256": "3e00a2c900a1086aa33d0af9b1f4d786fcd56c7387843e090ade62ea2bc9a685"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpyZWt5bmd5cHk=",
+      "rule": "JS-0114",
+      "path": "frontend/tests/mcp-agents-coverage.test.tsx",
+      "baselineLine": 176,
+      "baselineColumn": 29,
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The rejected string deliberately exercises the non-Error branch of a failed credential write or post-rotation observation. Replacing it with Error would remove that branch coverage. Existing assertions verify retained draft/credential, released busy state and no repeated write.",
+      "evidence": [
+        "frontend/tests/mcp-agents-coverage.test.tsx"
+      ],
+      "beforeSha256": "f7cd94ae80143f02598941ae2a17f2d607cd96884aa18ac40d0a908fccb563bb",
+      "afterSha256": "f7cd94ae80143f02598941ae2a17f2d607cd96884aa18ac40d0a908fccb563bb"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTptcmRvbmxvbXI=",
+      "rule": "JS-0333",
+      "path": "frontend/src/lib/api.ts",
+      "baselineLine": 68,
+      "baselineColumn": 37,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Observer return values are intentionally ignored after await; () => unknown describes both synchronous and asynchronous observers without the void union. Runtime code and accepted-before-observe ordering are unchanged.",
+      "evidence": [],
+      "beforeSha256": "ae0994e37b281326bcb34d97ad3057d7a061c78b17cb9635c15e189bd5c75002",
+      "afterSha256": "6dd37f662a3f3fc62e2cb7f375e70773163be0ee804303c60e88a7389ea537fa"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp4cmdhbmpha3Y=",
+      "rule": "JS-0424",
+      "path": "frontend/src/features/workflows/workflow-library.tsx",
+      "baselineLine": 153,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "8ee83d4d9820de97a224b2755ad1c9a9452024cdcbf9e85962276fd0e87fc198",
+      "afterSha256": "2f83aa3d536c61d80a1042b6b4937d3b4ba28fea788ad9a3a2ee72dd6a276b0c"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpwcXdybmpybWU=",
+      "rule": "JS-0424",
+      "path": "frontend/src/features/workflows/workflow-library.tsx",
+      "baselineLine": 74,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "8ee83d4d9820de97a224b2755ad1c9a9452024cdcbf9e85962276fd0e87fc198",
+      "afterSha256": "2f83aa3d536c61d80a1042b6b4937d3b4ba28fea788ad9a3a2ee72dd6a276b0c"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTphbmFqdmxqeGw=",
+      "rule": "JS-0424",
+      "path": "frontend/src/features/workflows/test-lab.tsx",
+      "baselineLine": 66,
+      "baselineColumn": 11,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "44c77bd4859bddb382da28dfef1112c933ce3a16d5e8c94161d4584800bbacc0",
+      "afterSha256": "5f6cbc318ed54fa96529c01a266fcfba9eeb84ea94bd976b6859b201ecdcb18a"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpsbXF4ZGx4dnc=",
+      "rule": "JS-0424",
+      "path": "frontend/src/features/workflows/test-lab.tsx",
+      "baselineLine": 62,
+      "baselineColumn": 11,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "44c77bd4859bddb382da28dfef1112c933ce3a16d5e8c94161d4584800bbacc0",
+      "afterSha256": "5f6cbc318ed54fa96529c01a266fcfba9eeb84ea94bd976b6859b201ecdcb18a"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp5Z3lqbmxqZHk=",
+      "rule": "JS-0424",
+      "path": "frontend/src/features/workflows/model-library.tsx",
+      "baselineLine": 37,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "11d8061c8fba6cc7fabfed7baabbd6bb03ae03fc9909620e809ac53771462a60",
+      "afterSha256": "db46b9b2a2251fe1e6d3705413cec77c9bea300f1ccac6b9558e049810e1b10e"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp4cmdhbmphcXY=",
+      "rule": "JS-0424",
+      "path": "frontend/src/features/trades/paper-lab.tsx",
+      "baselineLine": 51,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "e128e08cb0264d0d8eeea5b8107f7bf0ee983010faaeec3f4106cebc436a0819",
+      "afterSha256": "7ba6ed71a75eb0fbc2dc7981e8715985d33b2807fa29c989a3a21781f3b5d74b"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpwcXdybmpyZGU=",
+      "rule": "JS-0415",
+      "path": "frontend/src/features/telegram-viewer/telegram-viewer.tsx",
+      "baselineLine": 130,
+      "baselineColumn": 7,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Extracted ViewerDisplayFields at module scope with explicit settings/setSettings props. DOM markup and mutation handling are unchanged; a regression checks focus/node identity and one revision-bound settings write.",
+      "evidence": [],
+      "beforeSha256": "25eaacd33ec261a62b14afd7ccf51c831cd75c53818a70ffe673ac98ae852498",
+      "afterSha256": "15c439e34ddaa602fd5cec0eceee4da0bd43919b702becc035bf06fd7e4e727e"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp2dm1hbmRhZ2E=",
+      "rule": "JS-0424",
+      "path": "frontend/src/features/signals/signal-original.tsx",
+      "baselineLine": 66,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "de285d39fa2130528a31db9b4ca75c416214bc2ff6566ea2e58ceb636a0a9b99",
+      "afterSha256": "906e9e001d5abaafc901d5c2369f1127faf7e4cd262134b0e89c723ed08da1cf"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpwcXdybmpybHg=",
+      "rule": "JS-0424",
+      "path": "frontend/src/features/risk-analytics/analytics.tsx",
+      "baselineLine": 72,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "f17d93dc59f50091cd44998ba0bdd77cd3c78ab92dd81050ed6af952d3f8c668",
+      "afterSha256": "19d04fe7a98c8c9ae3f195812f4973b7fc354d2fbd807d4a3ddc4fb171d959a8"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTptcmRvbmxvbHY=",
+      "rule": "JS-0424",
+      "path": "frontend/src/features/operations/recovery-page.tsx",
+      "baselineLine": 69,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "3e941e77d399f61ca9b58a463b4caa2df223e79fd8f2f3861ea20bfde2d72b98",
+      "afterSha256": "bb05019dfba452ff3f55cdd522d66b1f0d23b30825b37ee65866dd0a164272d6"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpqd2dlZG1lbXA=",
+      "rule": "JS-0424",
+      "path": "frontend/src/features/mcp/proposal-detail.tsx",
+      "baselineLine": 80,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "91b558cce53d22bb92569545db805e6ae661162f831c3410b438186718ff1d82",
+      "afterSha256": "4226d09e119bf2542bde59ced4c85cf87386e89f67597847f627c72dcf30fb7f"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpwcXdybmpyYXg=",
+      "rule": "JS-0045",
+      "path": "frontend/src/features/accounts/accounts.tsx",
+      "baselineLine": 369,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Made the existing unsuccessful return path explicitly return undefined while preserving successful result, catch message and finally cleanup.",
+      "evidence": [],
+      "beforeSha256": "bb97036523e0021a394c3e9bf1ddc17cdbea775b8f7010fd13042f88d419239f",
+      "afterSha256": "10590f55710c19a2349dd8b11dc5125c216eee9a985cc2734cc8a047cef41803"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp4cmdhbmpycG4=",
+      "rule": "JS-0424",
+      "path": "frontend/src/app/workflow/resource-editor.tsx",
+      "baselineLine": 2111,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "aac121a9f20864021d3b2fffb396c1848c4a82b7568d1008b7c1ba591915020b",
+      "afterSha256": "f3f657ebc197b56e0768f945918b7fc658d0201ce6ac6baf979c0c7b39efad9c"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpwcXdybmpxcHg=",
+      "rule": "JS-0424",
+      "path": "frontend/src/app/workflow/resource-editor.tsx",
+      "baselineLine": 1796,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "aac121a9f20864021d3b2fffb396c1848c4a82b7568d1008b7c1ba591915020b",
+      "afterSha256": "f3f657ebc197b56e0768f945918b7fc658d0201ce6ac6baf979c0c7b39efad9c"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp3bXJhd3BtbnE=",
+      "rule": "JS-0424",
+      "path": "frontend/src/app/workflow/resource-editor.tsx",
+      "baselineLine": 1752,
+      "baselineColumn": 5,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "aac121a9f20864021d3b2fffb396c1848c4a82b7568d1008b7c1ba591915020b",
+      "afterSha256": "f3f657ebc197b56e0768f945918b7fc658d0201ce6ac6baf979c0c7b39efad9c"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTphbmFqdmxnb28=",
+      "rule": "JS-0116",
+      "path": "frontend/src/features/trades/paper-lab.tsx",
+      "baselineLine": 101,
+      "baselineColumn": 19,
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The refresh callback intentionally implements PaperEditor Promise<void> and keeps its native Promise/rejection scheduling. Paper editor save/refresh behavior passed without changing the callback.",
+      "evidence": [
+        "frontend/tests/paper-lab.test.tsx"
+      ],
+      "beforeSha256": "e128e08cb0264d0d8eeea5b8107f7bf0ee983010faaeec3f4106cebc436a0819",
+      "afterSha256": "7ba6ed71a75eb0fbc2dc7981e8715985d33b2807fa29c989a3a21781f3b5d74b"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp3bXJhd3B4bHk=",
+      "rule": "JS-0116",
+      "path": "frontend/tests/operator-shell-regressions.test.tsx",
+      "baselineLine": 16,
+      "baselineColumn": 38,
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The async act callback intentionally keeps React asynchronous update flushing; removing async would change the test contract. The unchanged affected regression suite passed.",
+      "evidence": [
+        "frontend/tests/operator-shell-regressions.test.tsx"
+      ],
+      "beforeSha256": "9319e9518204f7aed553f5b894e0e8fb36addb577c61556bac4a6ad5d04aab01",
+      "afterSha256": "9319e9518204f7aed553f5b894e0e8fb36addb577c61556bac4a6ad5d04aab01"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpqd2dlZG1ubGo=",
+      "rule": "JS-0116",
+      "path": "frontend/tests/workflow-library-regressions.test.tsx",
+      "baselineLine": 18,
+      "baselineColumn": 38,
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The async act callback intentionally keeps React asynchronous update flushing; removing async would change the test contract. The unchanged affected regression suite passed.",
+      "evidence": [
+        "frontend/tests/workflow-library-regressions.test.tsx"
+      ],
+      "beforeSha256": "fcabecf1532603f4e3d3ff5315218d80323041fc6dfcfa6a175da4c11672e464",
+      "afterSha256": "fcabecf1532603f4e3d3ff5315218d80323041fc6dfcfa6a175da4c11672e464"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpuZ3d2ZGp4cW8=",
+      "rule": "JS-0116",
+      "path": "frontend/tests/operator-directory-regressions.test.tsx",
+      "baselineLine": 19,
+      "baselineColumn": 38,
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The async act callback intentionally keeps React asynchronous update flushing; removing async would change the test contract. The unchanged affected regression suite passed.",
+      "evidence": [
+        "frontend/tests/operator-directory-regressions.test.tsx"
+      ],
+      "beforeSha256": "d75382866502a6841172251e245a23e1ca57705f42faaf7060212bb8dd3362af",
+      "afterSha256": "d75382866502a6841172251e245a23e1ca57705f42faaf7060212bb8dd3362af"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTphbmFqdmxncng=",
+      "rule": "JS-0323",
+      "path": "frontend/tests/workflow-resource-editor.test.tsx",
+      "baselineLine": 207,
+      "baselineColumn": 157,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed a redundant as-any use; the fixture already has EditorProps[trading] type. No runtime values changed.",
+      "evidence": [],
+      "beforeSha256": "56a3cddce2f7f80f58182975cf8f48722dd6bac8959b8d5124434eca7c9658dd",
+      "afterSha256": "39231b03f0d856caeca3adc023a6ae23ae1cf70c681ae082136aca43a7fcedc3"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpsbXF4ZGxld3I=",
+      "rule": "JS-W1038",
+      "path": "frontend/src/features/operations/system.tsx",
+      "baselineLine": 367,
+      "baselineColumn": 9,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Gave the default no-op callback its existing generic parameter so analyzer inference matches the annotated callback signature. The accepted result and call order remain unchanged.",
+      "evidence": [],
+      "beforeSha256": "d34d11fe864a3f008eaeb202133dd3778209a843657578b7c5de7373d4819fc0",
+      "afterSha256": "c3b33b85de6a00a1ec936436598c444e51fb91d4350e3d4123ffdc5cc23cc465"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTptcmRvbmxhYXI=",
+      "rule": "SCT-A000",
+      "path": "frontend/src/lib/api.ts",
+      "baselineLine": 1,
+      "baselineColumn": 12,
+      "disposition": "reviewed_false_positive",
+      "reason": "The flagged constant is a browser sessionStorage key identifier. The credential is supplied separately at runtime; changing this identifier would discard the active session. No secret value is copied into this review.",
+      "evidence": [
+        "frontend/src/lib/api.ts:4",
+        "frontend/src/lib/api.ts:8",
+        "frontend/tests/api.test.ts"
+      ],
+      "beforeSha256": "ae0994e37b281326bcb34d97ad3057d7a061c78b17cb9635c15e189bd5c75002",
+      "afterSha256": "6dd37f662a3f3fc62e2cb7f375e70773163be0ee804303c60e88a7389ea537fa"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTphbmFudnZ2d3k=",
+      "rule": "PYL-R1716",
+      "path": "exchange_executor/account_log_reader.py",
+      "baselineLine": 101,
+      "baselineColumn": 7,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Combined comparisons around a local integer today value without changing operands, short circuiting or strict/inclusive boundaries.",
+      "evidence": [],
+      "beforeSha256": "99e72de502d2bd6b2819afe67db7478c82ce55e637469ee2e81b165bcf13ea4b",
+      "afterSha256": "6d2c86cce0ee528b9ada22b387e2761fd84174ac92ce7770b4b08e1e4ad5b05c"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpxcGVvbndqcWs=",
+      "rule": "TYP-050",
+      "path": "exchange_executor/kucoin_execution.py",
+      "baselineLine": 102,
+      "baselineColumn": 29,
+      "disposition": "reviewed_false_positive_pending_full_rescan",
+      "reason": "The imported token helper already has an overload returning str when nullable is omitted. Isolated mypy 2.3.1 reports no issues for kucoin_execution.py and reveal_type confirms str for the default call versus str | None only for nullable=True. The scanner checker version/cache is not exposed; keep provider validation unchanged and verify the full rescan.",
+      "evidence": [
+        "exchange_executor/kucoin_provider_common.py:36",
+        "exchange_executor/kucoin_provider_common.py:45",
+        "exchange_executor/tests/test_kucoin_provider_control.py"
+      ],
+      "beforeSha256": "e17de810143838df8220d5a2835f7afe462bbcce998b602a7092ecbfafbc0f51",
+      "afterSha256": "e17de810143838df8220d5a2835f7afe462bbcce998b602a7092ecbfafbc0f51"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp5Z3lxbnB3ZGE=",
+      "rule": "TYP-054",
+      "path": "exchange_executor/kucoin_execution.py",
+      "baselineLine": 98,
+      "baselineColumn": 50,
+      "disposition": "reviewed_false_positive_pending_full_rescan",
+      "reason": "The imported token helper already has an overload returning str when nullable is omitted. Isolated mypy 2.3.1 reports no issues for kucoin_execution.py and reveal_type confirms str for the default call versus str | None only for nullable=True. The scanner checker version/cache is not exposed; keep provider validation unchanged and verify the full rescan.",
+      "evidence": [
+        "exchange_executor/kucoin_provider_common.py:36",
+        "exchange_executor/kucoin_provider_common.py:45",
+        "exchange_executor/tests/test_kucoin_provider_control.py"
+      ],
+      "beforeSha256": "e17de810143838df8220d5a2835f7afe462bbcce998b602a7092ecbfafbc0f51",
+      "afterSha256": "e17de810143838df8220d5a2835f7afe462bbcce998b602a7092ecbfafbc0f51"
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpnZXZhZGttcHY=",
+      "rule": "TYP-050",
+      "path": "exchange_executor/kucoin_execution.py",
+      "baselineLine": 26,
+      "baselineColumn": 12,
+      "disposition": "reviewed_false_positive_pending_full_rescan",
+      "reason": "The imported token helper already has an overload returning str when nullable is omitted. Isolated mypy 2.3.1 reports no issues for kucoin_execution.py and reveal_type confirms str for the default call versus str | None only for nullable=True. The scanner checker version/cache is not exposed; keep provider validation unchanged and verify the full rescan.",
+      "evidence": [
+        "exchange_executor/kucoin_provider_common.py:36",
+        "exchange_executor/kucoin_provider_common.py:45",
+        "exchange_executor/tests/test_kucoin_provider_control.py"
+      ],
+      "beforeSha256": "e17de810143838df8220d5a2835f7afe462bbcce998b602a7092ecbfafbc0f51",
+      "afterSha256": "e17de810143838df8220d5a2835f7afe462bbcce998b602a7092ecbfafbc0f51"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFHFFuOCeZdBf0ee",
+      "rule": "typescript:S6749",
+      "path": "frontend/src/features/signals/signal-original.tsx",
+      "baselineLine": 66,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "de285d39fa2130528a31db9b4ca75c416214bc2ff6566ea2e58ceb636a0a9b99",
+      "afterSha256": "906e9e001d5abaafc901d5c2369f1127faf7e4cd262134b0e89c723ed08da1cf"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFHXFuOCeZdBf0ef",
+      "rule": "typescript:S4323",
+      "path": "frontend/src/features/signals/signals-page.tsx",
+      "baselineLine": 48,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Named the repeated union with a shared local type alias; emitted JavaScript is unchanged.",
+      "evidence": [],
+      "beforeSha256": "b9f219c55b3bf1e0a35e9fc0c81ffb1307acde2655302722d458e452d6358430",
+      "afterSha256": "bfdb8ba2dc89abb8dfe834b4ffa6446c7bfca074b0888ffaf949b248955ea301"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFEFFuOCeZdBf0eR",
+      "rule": "typescript:S6749",
+      "path": "frontend/src/features/operations/recovery-page.tsx",
+      "baselineLine": 69,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "3e941e77d399f61ca9b58a463b4caa2df223e79fd8f2f3861ea20bfde2d72b98",
+      "afterSha256": "bb05019dfba452ff3f55cdd522d66b1f0d23b30825b37ee65866dd0a164272d6"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFFIFuOCeZdBf0eS",
+      "rule": "typescript:S6551",
+      "path": "frontend/src/features/trades/trade-detail.tsx",
+      "baselineLine": 117,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Aligned the trusted read-model leverage fields with the numeric LeverageDecision contract in src/trading_types.ts:625. Missing/historical fields remain optional and nullable. No coercion or validation behavior changed.",
+      "evidence": [],
+      "beforeSha256": "e437064c3c032d839d62041ad2541883d4c608a248cb9afd123103c5a2c3fd37",
+      "afterSha256": "84a3d77232b8897b353b6ce428ae3cadf68826a602a437a714e15fa8b52a150f"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFFIFuOCeZdBf0eT",
+      "rule": "typescript:S6551",
+      "path": "frontend/src/features/trades/trade-detail.tsx",
+      "baselineLine": 118,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Aligned the trusted read-model leverage fields with the numeric LeverageDecision contract in src/trading_types.ts:625. Missing/historical fields remain optional and nullable. No coercion or validation behavior changed.",
+      "evidence": [],
+      "beforeSha256": "e437064c3c032d839d62041ad2541883d4c608a248cb9afd123103c5a2c3fd37",
+      "afterSha256": "84a3d77232b8897b353b6ce428ae3cadf68826a602a437a714e15fa8b52a150f"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFFIFuOCeZdBf0eU",
+      "rule": "typescript:S6551",
+      "path": "frontend/src/features/trades/trade-detail.tsx",
+      "baselineLine": 118,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Aligned the trusted read-model leverage fields with the numeric LeverageDecision contract in src/trading_types.ts:625. Missing/historical fields remain optional and nullable. No coercion or validation behavior changed.",
+      "evidence": [],
+      "beforeSha256": "e437064c3c032d839d62041ad2541883d4c608a248cb9afd123103c5a2c3fd37",
+      "afterSha256": "84a3d77232b8897b353b6ce428ae3cadf68826a602a437a714e15fa8b52a150f"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFFeFuOCeZdBf0eV",
+      "rule": "typescript:S6749",
+      "path": "frontend/src/features/workflows/test-lab.tsx",
+      "baselineLine": 62,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "44c77bd4859bddb382da28dfef1112c933ce3a16d5e8c94161d4584800bbacc0",
+      "afterSha256": "5f6cbc318ed54fa96529c01a266fcfba9eeb84ea94bd976b6859b201ecdcb18a"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFFeFuOCeZdBf0eW",
+      "rule": "typescript:S6749",
+      "path": "frontend/src/features/workflows/test-lab.tsx",
+      "baselineLine": 66,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed only the flagged single-child fragment. Preserved the child expression, conditions, keys, event handlers and containing component identity.",
+      "evidence": [],
+      "beforeSha256": "44c77bd4859bddb382da28dfef1112c933ce3a16d5e8c94161d4584800bbacc0",
+      "afterSha256": "5f6cbc318ed54fa96529c01a266fcfba9eeb84ea94bd976b6859b201ecdcb18a"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFF0FuOCeZdBf0eX",
+      "rule": "typescript:S4323",
+      "path": "frontend/src/features/workflows/workflow-library.tsx",
+      "baselineLine": 150,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Named the repeated union with a shared local type alias; emitted JavaScript is unchanged.",
+      "evidence": [],
+      "beforeSha256": "8ee83d4d9820de97a224b2755ad1c9a9452024cdcbf9e85962276fd0e87fc198",
+      "afterSha256": "2f83aa3d536c61d80a1042b6b4937d3b4ba28fea788ad9a3a2ee72dd6a276b0c"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFJNFuOCeZdBf0eg",
+      "rule": "typescript:S6845",
+      "path": "frontend/src/shared/components/change-review.tsx",
+      "baselineLine": 32,
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The named overflow region intentionally remains keyboard focusable so keyboard users can reach and scroll its evidence table. Existing sonar-ui-semantics regression verifies accessible region name, tabindex, overflow class and actual focus. Removing tabindex would regress accessibility.",
+      "evidence": [
+        "frontend/tests/sonar-ui-semantics.test.tsx:52"
+      ],
+      "beforeSha256": "9edf5f6a881461180073c050a13fce9605bae1a624289b48a1e19a4befba463b",
+      "afterSha256": "9edf5f6a881461180073c050a13fce9605bae1a624289b48a1e19a4befba463b"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFGvFuOCeZdBf0eY",
+      "rule": "typescript:S4782",
+      "path": "frontend/src/features/signals/telegram-settings.tsx",
+      "baselineLine": 53,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed redundant undefined alternatives from optional properties with the existing compiler configuration; emitted JavaScript is unchanged.",
+      "evidence": [],
+      "beforeSha256": "3e21c7d208292ab9f69dc5bc9473b30442d2ed6de18d335a0e890f3604c389a7",
+      "afterSha256": "08fa75f95c313e65fd33143b87d9a16694f2d924edd1d773046b5e14ea7dd3ff"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFGvFuOCeZdBf0eZ",
+      "rule": "typescript:S4782",
+      "path": "frontend/src/features/signals/telegram-settings.tsx",
+      "baselineLine": 54,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed redundant undefined alternatives from optional properties with the existing compiler configuration; emitted JavaScript is unchanged.",
+      "evidence": [],
+      "beforeSha256": "3e21c7d208292ab9f69dc5bc9473b30442d2ed6de18d335a0e890f3604c389a7",
+      "afterSha256": "08fa75f95c313e65fd33143b87d9a16694f2d924edd1d773046b5e14ea7dd3ff"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFGvFuOCeZdBf0ea",
+      "rule": "typescript:S4782",
+      "path": "frontend/src/features/signals/telegram-settings.tsx",
+      "baselineLine": 55,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed redundant undefined alternatives from optional properties with the existing compiler configuration; emitted JavaScript is unchanged.",
+      "evidence": [],
+      "beforeSha256": "3e21c7d208292ab9f69dc5bc9473b30442d2ed6de18d335a0e890f3604c389a7",
+      "afterSha256": "08fa75f95c313e65fd33143b87d9a16694f2d924edd1d773046b5e14ea7dd3ff"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFGvFuOCeZdBf0eb",
+      "rule": "typescript:S4782",
+      "path": "frontend/src/features/signals/telegram-settings.tsx",
+      "baselineLine": 56,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed redundant undefined alternatives from optional properties with the existing compiler configuration; emitted JavaScript is unchanged.",
+      "evidence": [],
+      "beforeSha256": "3e21c7d208292ab9f69dc5bc9473b30442d2ed6de18d335a0e890f3604c389a7",
+      "afterSha256": "08fa75f95c313e65fd33143b87d9a16694f2d924edd1d773046b5e14ea7dd3ff"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFGvFuOCeZdBf0ec",
+      "rule": "typescript:S4782",
+      "path": "frontend/src/features/signals/telegram-settings.tsx",
+      "baselineLine": 59,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed redundant undefined alternatives from optional properties with the existing compiler configuration; emitted JavaScript is unchanged.",
+      "evidence": [],
+      "beforeSha256": "3e21c7d208292ab9f69dc5bc9473b30442d2ed6de18d335a0e890f3604c389a7",
+      "afterSha256": "08fa75f95c313e65fd33143b87d9a16694f2d924edd1d773046b5e14ea7dd3ff"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFGvFuOCeZdBf0ed",
+      "rule": "typescript:S4782",
+      "path": "frontend/src/features/signals/telegram-settings.tsx",
+      "baselineLine": 63,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Removed redundant undefined alternatives from optional properties with the existing compiler configuration; emitted JavaScript is unchanged.",
+      "evidence": [],
+      "beforeSha256": "3e21c7d208292ab9f69dc5bc9473b30442d2ed6de18d335a0e890f3604c389a7",
+      "afterSha256": "08fa75f95c313e65fd33143b87d9a16694f2d924edd1d773046b5e14ea7dd3ff"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFKVFuOCeZdBf0eh",
+      "rule": "typescript:S2681",
+      "path": "frontend/src/app/workflow/workflow-builder.tsx",
+      "baselineLine": 1710,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Added explicit braces and consistent indentation without changing which statements are conditional or their execution order.",
+      "evidence": [],
+      "beforeSha256": "f0392afc1e568cdbbbbce31dc9bda7cdd90bec4f9a611ff6ab1fd352dd5108ed",
+      "afterSha256": "95c9096bb70eb6a9c22256dbfb0595fb7721f6a6a0b473bdd376125eadce6180"
+    },
+    {
+      "provider": "SonarCloud",
+      "id": "AaCvLFKVFuOCeZdBf0ei",
+      "rule": "typescript:S2681",
+      "path": "frontend/src/app/workflow/workflow-builder.tsx",
+      "baselineLine": 1745,
+      "disposition": "source_change_pending_rescan",
+      "reason": "Added explicit braces and consistent indentation without changing which statements are conditional or their execution order.",
+      "evidence": [],
+      "beforeSha256": "f0392afc1e568cdbbbbce31dc9bda7cdd90bec4f9a611ff6ab1fd352dd5108ed",
+      "afterSha256": "95c9096bb70eb6a9c22256dbfb0595fb7721f6a6a0b473bdd376125eadce6180"
+    }
+  ]
+}

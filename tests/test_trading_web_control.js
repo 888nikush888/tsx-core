@@ -487,7 +487,7 @@ try {
     accountId: paperAccount.id,
     equity: '15000',
     availableBalance: '14000',
-    market: { symbol: 'BTC', markPrice: '60000', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20 },
+    market: { symbol: ' btc ', markPrice: '60000', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20 },
   });
   await control.configurePaper({
     accountId: paperAccount.id,
@@ -502,6 +502,14 @@ try {
   assert.equal(paperResult.simulated, true); assert.equal(paperResult.balance.reportingCurrency, 'USDT');
   await assert.rejects(control.configurePaper({ accountId: paperAccount.id, baseMarketRevision: btcBefore.revision, market: { ...btcBefore, markPrice: '5' } }), /PAPER_CONFIGURATION_CONFLICT/);
   await assert.rejects(control.configurePaper({ accountId: paperAccount.id, baseBalanceRevision: balanceBefore.revision, equity: '999', availableBalance: '999', market: { ...btcBefore, markPrice: '-1' } }), /decimal/i);
+  let paperSymbolCoercions = 0;
+  for (const symbol of [['BTC'], {}, 42, Object('BTC'), { toString() { paperSymbolCoercions += 1; return 'BTC'; } }]) {
+    await assert.rejects(control.configurePaper({
+      accountId: paperAccount.id, baseBalanceRevision: balanceBefore.revision,
+      equity: '999', availableBalance: '999', market: { ...btcBefore, symbol },
+    }), /Paper market symbol must be a string/);
+  }
+  assert.equal(paperSymbolCoercions, 0, 'Revision lookup must not invoke a structured symbol coercion.');
   const paperAfter = (await control.snapshot()).activity;
   assert.equal(paperAfter.paperAccounts.find(item => item.accountId === paperAccount.id).equity, balanceBefore.equity, 'A failing market update must roll back a combined balance change.');
   assert.equal(paperAfter.paperMarkets.find(item => item.symbol === 'BTC').markPrice, '60001.12345678');

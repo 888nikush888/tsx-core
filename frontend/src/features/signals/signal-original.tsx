@@ -63,15 +63,13 @@ function SignalOriginalResult({ data, cursor, field, select }: Readonly<{
 }>) {
   if (!data) return <p><output>Original wird geladen …</output></p>;
   return (
-    <>
-      <section className="operations-card space-y-4"><EvidenceFields fields={[["Kanal / Nachricht", `${data.channelId} / ${data.messageId}`], ['Modell', data.model], ['Vorlage', data.templateName], ['Schema', data.schemaName], ['Prompthash', data.promptSha256], ['Parser', data.parserVersion], ['Originalrevision', data.workflowRevisionId], ['Gespeichert', new Date(data.createdAt).toLocaleString('de-DE')]]} />
+    <section className="operations-card space-y-4"><EvidenceFields fields={[["Kanal / Nachricht", `${data.channelId} / ${data.messageId}`], ['Modell', data.model], ['Vorlage', data.templateName], ['Schema', data.schemaName], ['Prompthash', data.promptSha256], ['Parser', data.parserVersion], ['Originalrevision', data.workflowRevisionId], ['Gespeichert', new Date(data.createdAt).toLocaleString('de-DE')]]} />
         <p>{data.interpretation}</p><p>Abschnitt ab Zeichen {data.offset + 1} · insgesamt {data.totalCharacters ?? 'unbekannt'} Zeichen vor Redigierung</p>
         {data.channelId != null && data.messageId != null && <Link to={`/signals/messages?channelId=${encodeURIComponent(data.channelId)}&messageId=${encodeURIComponent(data.messageId)}`}>Eingangsspur dieser Originalnachricht öffnen</Link>}
         <pre aria-label="Originaltext" className="whitespace-pre-wrap break-all max-h-96 overflow-auto border p-3">{data.text ?? 'Kein gespeicherter Text vorhanden.'}</pre>
         <div className="flex gap-3"><button className="secondary-button" disabled={!cursor} onClick={() => select(field)}>Erster Textabschnitt</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => select(field, data.nextCursor)}>Weiterer Textabschnitt</button></div>
         {data.workflowRevisionId && <Link to={`/workflows/revisions/${encodeURIComponent(data.workflowRevisionId)}`}>Originalrevision öffnen</Link>}
       </section>
-    </>
   );
 }
 

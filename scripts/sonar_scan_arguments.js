@@ -10,13 +10,13 @@ export function sonarScanArguments(environment) {
   const { pullRequest } = sonarScope(environment);
   // The action parses this fixed string before the scanner resolves environment
   // properties. Ref names never enter either a shell or its argument parser.
-  const args = [`-Dsonar.scm.revision=\${env.SONAR_EXPECTED_REVISION}`];
+  const args = ["-Dsonar.scm.revision=${env.SONAR_EXPECTED_REVISION}"];
   if (pullRequest) args.push(
-    `-Dsonar.pullrequest.key=\${env.SONAR_PULL_REQUEST}`,
-    `-Dsonar.pullrequest.branch=\${env.SONAR_PULL_REQUEST_BRANCH}`,
-    `-Dsonar.pullrequest.base=\${env.SONAR_PULL_REQUEST_BASE}`
+    "-Dsonar.pullrequest.key=${env.SONAR_PULL_REQUEST}",
+    "-Dsonar.pullrequest.branch=${env.SONAR_PULL_REQUEST_BRANCH}",
+    "-Dsonar.pullrequest.base=${env.SONAR_PULL_REQUEST_BASE}"
   );
-  else if (environment.SONAR_BRANCH) args.push(`-Dsonar.branch.name=\${env.SONAR_BRANCH}`);
+  else if (environment.SONAR_BRANCH) args.push("-Dsonar.branch.name=${env.SONAR_BRANCH}");
   return args.join(' ');
 }
 

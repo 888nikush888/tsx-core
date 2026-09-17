@@ -1749,8 +1749,7 @@ function ContractFields({ kind, configuration, contractId, setContractId, contra
   contractDraft: SignalContractDefinition | null; setContractDraft: (value: SignalContractDefinition | null) => void; setContractTouched: (value: boolean) => void;
 }>) {
   return (
-    <>
-          {kind === "contract" && (
+    kind === "contract" && (
             <>
               <Field
                 label="Vertrags-ID"
@@ -1784,8 +1783,7 @@ function ContractFields({ kind, configuration, contractId, setContractId, contra
                 </Alert>
               )}
             </>
-          )}
-    </>
+          )
   );
 }
 
@@ -1793,8 +1791,7 @@ function StrategyFields({ kind, strategyDraft, setStrategyDraft, setStrategyTouc
   kind: WorkflowKind; strategyDraft: StrategyConfiguration | null; setStrategyDraft: (value: StrategyConfiguration | null) => void; setStrategyTouched: (value: boolean) => void;
 }>) {
   return (
-    <>
-          {kind === "strategy" && (
+    kind === "strategy" && (
             strategyDraft ? (
                 <>
                   {strategyDraft.allowedSignalSchemas.length === 0 && (
@@ -1822,8 +1819,7 @@ function StrategyFields({ kind, strategyDraft, setStrategyDraft, setStrategyTouc
                   </AlertDescription>
                 </Alert>
               )
-          )}
-    </>
+          )
   );
 }
 
@@ -2107,9 +2103,7 @@ function AccountFields({ kind, draftOnly, configuration, set, trading, accountLi
               )}
             </div>
   );
-  return (
-    <>{fieldGrid17}</>
-  );
+  return fieldGrid17;
 }
 
 function DestructiveConfirmations({ archiveConfirmation, setArchiveConfirmation, deleteConfirmation, setDeleteConfirmation, name, archiveResource, deleteResource }: Readonly<{

@@ -11,6 +11,8 @@ import { useConfirmationDialog } from '@/components/confirmation-dialog';
 import { ResourceEditor } from '@/app/workflow/resource-editor';
 import { KIND_META, WORKFLOW_KINDS, type WorkflowKind, type WorkflowResource, type TradingSnapshot, type WorkflowGraph } from '@/app/workflow/types';
 
+type WorkflowLifecycleOperation = 'publish' | 'archive' | 'delete';
+
 // Read models for uiWorkflowPage/uiWorkflowDetail. These are the trusted
 // server DTO boundary, not validation of arbitrary response JSON.
 type WorkflowListEntry = {
@@ -71,9 +73,7 @@ function WorkflowLibraryFilters({ kind, params, change, setParams }: Readonly<{
 
 function WorkflowLibraryNotices({ error }: Readonly<{ error: string }>) {
   return (
-    <>
-    {error && <p role="alert">{error} · Angezeigte Daten können veraltet sein.</p>}
-    </>
+    error && <p role="alert">{error} · Angezeigte Daten können veraltet sein.</p>
   );
 }
 
@@ -147,15 +147,13 @@ function ObjectNotices({ error, message, savedResource }: Readonly<{ error: stri
 
 function ResourceActions({ resource, data, readOnly, busy, setEditing, lifecycle }: Readonly<{
   resource: WorkflowResource; data: WorkflowObjectRead; readOnly: boolean; busy: boolean; setEditing: (value: boolean) => void;
-  lifecycle: (operation: 'publish' | 'archive' | 'delete', family?: boolean) => Promise<void>;
+  lifecycle: (operation: WorkflowLifecycleOperation, family?: boolean) => Promise<void>;
 }>) {
   return (
-    <>
-      {WORKFLOW_KINDS.includes(resource.kind) ? <div className="flex flex-wrap gap-3"><button className="secondary-button" disabled={readOnly || busy || data.editingBlockedByRedaction} onClick={() => setEditing(true)}>{resource.status === 'draft' ? 'Entwurf bearbeiten' : 'Neue Version als Entwurf'}</button>
+    WORKFLOW_KINDS.includes(resource.kind) ? <div className="flex flex-wrap gap-3"><button className="secondary-button" disabled={readOnly || busy || data.editingBlockedByRedaction} onClick={() => setEditing(true)}>{resource.status === 'draft' ? 'Entwurf bearbeiten' : 'Neue Version als Entwurf'}</button>
         {resource.status === 'draft' && <button className="primary-button" disabled={readOnly || busy} onClick={() => { lifecycle('publish'); }}>Version publizieren</button>}
         {resource.status !== 'archived' && <button className="secondary-button" disabled={readOnly || busy} onClick={() => { lifecycle('archive'); }}>{resourceArchiveLabel(resource)}</button>}
-        <button className="secondary-button" disabled={readOnly || busy} onClick={() => { lifecycle('archive', true); }}>Familie archivieren</button><button className="danger-button" disabled={readOnly || busy} onClick={() => { lifecycle('delete', true); }}>Familie dauerhaft löschen</button></div> : <p>Unbekannte Bausteinart: Diese UI-Version bietet ausschließlich Lesezugriff.</p>}
-    </>
+        <button className="secondary-button" disabled={readOnly || busy} onClick={() => { lifecycle('archive', true); }}>Familie archivieren</button><button className="danger-button" disabled={readOnly || busy} onClick={() => { lifecycle('delete', true); }}>Familie dauerhaft löschen</button></div> : <p>Unbekannte Bausteinart: Diese UI-Version bietet ausschließlich Lesezugriff.</p>
   );
 }
 
@@ -177,7 +175,7 @@ function ResourceObjectView({ data, resource, readOnly, busy, editing, setEditin
   trading: TradingSnapshot | null; comparison: WorkflowResource | null; comparisonId: string;
   setComparisonId: (value: string) => void; setComparison: (value: WorkflowResource) => void; setError: (value: string) => void;
   save: (value: { name: string; description: string; configuration: Record<string, unknown>; baseEditRevision?: number }) => Promise<boolean>;
-  lifecycle: (operation: 'publish' | 'archive' | 'delete', family?: boolean) => Promise<void>;
+  lifecycle: (operation: WorkflowLifecycleOperation, family?: boolean) => Promise<void>;
 }>) {
   return (
     <>
@@ -261,7 +259,7 @@ export function WorkflowObject({ kind, id, resourceId }: Readonly<{ kind: Kind; 
     } catch (error_) { setError(`Aktion nicht bestätigt: ${error_ instanceof Error ? error_.message : String(error_)}. Keine automatische Wiederholung.`); return null; }
     finally { setBusy(false); }
   };
-  const lifecycle = async (operation: 'publish' | 'archive' | 'delete', family = false) => {
+  const lifecycle = async (operation: WorkflowLifecycleOperation, family = false) => {
     if (!resource) return;
     const operationDescription = operation === 'publish' ? `Wird unveränderlich; referenziertes Modell ${data.publication?.dependency?.id ?? 'keines'} wird gegebenenfalls mitpubliziert. Die Aktivierung im Signalweg folgt separat.` : 'Der Server prüft alle aktiven und historischen Referenzen. Eine Referenzsperre kann hier nicht umgangen werden.';
     const removal = operation === 'delete' || resource.status === 'draft' && operation === 'archive';

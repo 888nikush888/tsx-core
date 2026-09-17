@@ -122,13 +122,10 @@ function ViewerAccessSection({ allowedUsers, setAllowedUsers }: Readonly<{ allow
   );
 }
 
-function ViewerDisplaySection({ settings, setSettings, busy, conflict, readOnly, saveSettings }: Readonly<{
-  settings: TelegramViewerDraft; setSettings: (value: TelegramViewerDraft) => void; busy: string; conflict: boolean; readOnly: boolean;
-  saveSettings: () => void | Promise<void>;
+function ViewerDisplayFields({ settings, setSettings }: Readonly<{
+  settings: TelegramViewerDraft; setSettings: (value: TelegramViewerDraft) => void;
 }>) {
   return (
-      <section className="operations-card system-form">
-        <h3>Darstellung</h3>
         <div className="builder-field-grid">
           <label>Detailstufe<select value={settings.display.detailLevel}
             onChange={(event) => setSettings({ ...settings, display: { ...settings.display, detailLevel: event.target.value as TelegramViewerSettings["display"]["detailLevel"] } })}>
@@ -139,6 +136,17 @@ function ViewerDisplaySection({ settings, setSettings, busy, conflict, readOnly,
             <option value="absolute">Absolut</option><option value="absolute_and_percent">Absolut und Prozent</option>
           </select></label>
         </div>
+  );
+}
+
+function ViewerDisplaySection({ settings, setSettings, busy, conflict, readOnly, saveSettings }: Readonly<{
+  settings: TelegramViewerDraft; setSettings: (value: TelegramViewerDraft) => void; busy: string; conflict: boolean; readOnly: boolean;
+  saveSettings: () => void | Promise<void>;
+}>) {
+  return (
+      <section className="operations-card system-form">
+        <h3>Darstellung</h3>
+        <ViewerDisplayFields settings={settings} setSettings={setSettings} />
         <div className="system-actions"><Button type="button" disabled={Boolean(busy) || conflict || readOnly} onClick={() => { saveSettings(); }}>Einstellungen speichern</Button></div>
       </section>
   );

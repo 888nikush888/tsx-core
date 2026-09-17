@@ -46,7 +46,6 @@ function runNormalizationTests(testPass, testFail) {
   try {
     assert.strictEqual(normalizeSignalXml(''), '');
     assert.strictEqual(normalizeSignalXml(null), '');
-    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.strictEqual(normalizeSignalXml(), '');
     testPass('Leere/null/undefined Eingaben werden behandelt');
   } catch (error) { testFail('Leere Eingaben', error); }

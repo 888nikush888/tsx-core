@@ -154,3 +154,35 @@ async function verifyLegacyMediaMigration(source) {
 
 await verifyLegacyMediaMigration(await readFile(new URL('../src/forwarder.ts', import.meta.url), 'utf8'));
 console.log('Legacy media migration scalar IDs, retained files and sequential writes passed.');
+
+async function verifyResolvedChatIds(source) {
+  const parsed = ts.createSourceFile('forwarder.ts', source, ts.ScriptTarget.Latest, true);
+  const names = ['resolveChatId', 'supergroupFallback', 'resolvedTdlibChatId'];
+  const functions = parsed.statements.filter(node => ts.isFunctionDeclaration(node) && names.includes(node.name?.text));
+  assert.equal(functions.length, names.length, 'Every reviewed TDLib identity declaration must be extracted.');
+  const executable = ts.transpileModule(functions.map(node => node.getText(parsed)).join('\n'), {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+  }).outputText;
+  let response;
+  const requests = [];
+  const client = { invoke(query) { requests.push(query._); return Promise.resolve(response); } };
+  const resolve = new Function('client', 'invokeWithRetry', 'addLog', `${executable}\nreturn resolveChatId;`)(
+    client, (target, query) => target.invoke(query), () => undefined,
+  );
+  for (const id of [-100123, 0, Number.MAX_SAFE_INTEGER, '-100123', '000123']) {
+    response = { id };
+    assert.equal(await resolve('@fixture_channel'), String(id));
+    assert.equal(await resolve('-100123'), String(id));
+  }
+  let idCoercions = 0;
+  for (const id of [null, undefined, true, [-100123], Object(-100123),
+    { toString() { idCoercions += 1; return '-100123'; } }, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    response = { id };
+    await assert.rejects(resolve('@fixture_channel'), /TDLib chat ID/);
+    await assert.rejects(resolve('-100123'), /konnte nicht geladen/);
+  }
+  assert.equal(idCoercions, 0, 'A returned object must not manufacture a resolved chat identity.');
+  assert.ok(requests.includes('createSupergroupChat'), 'The numeric lookup retains its supergroup fallback.');
+}
+await verifyResolvedChatIds(await readFile(new URL('../src/forwarder.ts', import.meta.url), 'utf8'));
+console.log('Resolved TDLib chat IDs retain primitive spelling and reject fabricated object identities.');

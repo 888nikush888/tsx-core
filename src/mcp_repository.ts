@@ -337,7 +337,7 @@ function runtimeMode(value: unknown): McpRuntimeMode {
 }
 
 async function runtimeStateFrom(database: ReturnType<typeof getDatabase>): Promise<McpRuntimeState> {
-  const row = await database.get<Record<'mode' | 'updatedAt' | 'updatedBy', unknown>>(
+  const row = await database.get<{ mode: string; updatedAt: number; updatedBy: string }>(
     `SELECT mode, updated_at AS updatedAt, updated_by AS updatedBy
      FROM mcp_runtime_state WHERE singleton_id = 1`,
   );
