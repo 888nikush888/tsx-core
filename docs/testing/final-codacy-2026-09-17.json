@@ -65754,7 +65754,7 @@
       "contracts": "node tests/test_final_codacy_review.js: passed",
       "eslint": "node node_modules/eslint/bin/eslint.js scripts/check_final_codacy_review.js tests/test_final_codacy_review.js --max-warnings 0: passed",
       "applicationRegressionOwnership": "Parent and source-owning agents run and record the full/focused application suites; this review does not substitute static evidence for those results.",
-      "integrity": "node scripts/check_final_codacy_review.js: passed for439 occurrences and116 source/context files."
+      "integrity": "node scripts/check_final_codacy_review.js: passed for 439 occurrences and 116 source/context files."
     },
     "providerAnalysis": "incomplete: Trivy and ESLint failed both baseline analyses; no new scan of final source revision claimed",
     "remoteDispositions": "No changes applied by this package. Existing ignored states retained; new per-ID candidates await matching provider evidence after final verification."
