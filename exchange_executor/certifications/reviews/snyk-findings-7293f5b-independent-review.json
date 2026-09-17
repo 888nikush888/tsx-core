@@ -1,0 +1,38 @@
+{
+  "kind": "independent-read-only-snyk-candidate-archive-verification",
+  "revision": "7293f5b578a1e32ecada1e40d6d92ddd0f08ef66",
+  "scannedRevision": "b28d2f799c31edf531c0ddbfe22af44c048492d3",
+  "candidateSha256": "0275a34dbe07fb9604a07c70a889d408392560db1bab3d083d944748361bb94b",
+  "archiveSha256": "5140c773b639176b5a0eda86410769b722521e603f234313679cd2607c8fc90e",
+  "verifierSha256": "35cd2a7a2e780233a6c7efd3716b568d30d8146384c9c2c643fc433817e87f1b",
+  "checks": {
+    "membersRead": 151,
+    "sourceBindingsReadAndMatchedToGit": 103,
+    "reportFilesRead": 46,
+    "declaredReferencesVerified": 22,
+    "exactSameGitTree": true,
+    "priorIdentitiesPreserved": 86,
+    "structuralHistoricalFlowsPreserved": 85,
+    "onlyReviewedAuthorityAndWebSourceBindingsChanged": [
+      "ca8d4075-1f15-40f9-9432-667e0a033660",
+      "d1163842-b198-4156-ab79-efd0cd8da57d",
+      "438c84b9-ea83-4e9d-8bdc-d2032e31ae59",
+      "38bece03-53dc-4566-a862-e4d59a573c82",
+      "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
+      "4494650c-4f77-4efc-9956-2a491467ddaf",
+      "7039073d-34a6-4901-9897-4c0a40ca7b0a"
+    ],
+    "existingExplicitIndependentFixtureReview": "40aa77d4-0842-4520-885d-a108e083d3a0",
+    "falsePositives": 82,
+    "unchangedOpenHttpRisks": 4,
+    "acceptanceExpires": "2026-10-08",
+    "all86ExactSourceContextFlowFingerprintCommitments": true,
+    "operativeUnchanged": true
+  },
+  "limitations": [
+    "No tests or scanner rerun. Existing completed scanner and root semantic reviews were bound and checked.",
+    "Not operative adoption or risk renewal; four HTTP risks remain OPEN."
+  ],
+  "operativeApproved": false,
+  "providerAcceptanceVerified": false
+}
