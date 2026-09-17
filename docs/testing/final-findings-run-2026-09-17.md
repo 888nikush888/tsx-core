@@ -33,6 +33,12 @@ ALL 7 TEST FILES PASSED
 
 This focused result is not a full-run or scanner completion claim. Independent review, integrated verification, renewed implementation evidence and final cloud scans remain pending.
 
+## Python lookup assertions
+
+The twelve open Sonar `python:S8714` occurrences in eight executor test modules now use `next(iterator, sentinel)` followed by `assertIsNot` with the original failure message. A unique object sentinel preserves the distinction between exhaustion and any actual yielded value. The scripted position reader returns its actual page only after the assertion; no missing-data fallback or weakened assertion was introduced.
+
+Focused verification passed: execution constraints (18 tests), history coverage/pagination/reader (30), and FX evidence/Hyperliquid retention/phase2 registry/recovery schedule (70), totaling 118 tests on Python 3.12.14. Ruff passed on all eight edited files. Fresh Sonar confirmation remains pending.
+
 ## Remaining completion work
 
 - Renew every Codacy decision and establish successful Trivy/ESLint execution; reconcile retained Go alerts with fresh scan evidence.

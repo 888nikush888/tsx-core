@@ -53,10 +53,9 @@ class FxEvidenceTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(set(query), {'category', 'symbol'})
             self.assertFalse(any(str(key).lower().startswith('x-bapi') for key in (headers or {})),
                              'Public FX reads do not acquire or send account credentials.')
-            try:
-                leg = next(key for key, row in REQUESTS.items() if query == {'category': [row[0]], 'symbol': [row[1]]})
-            except StopIteration:
-                self.fail(f"Unexpected FX query: {query!r}")
+            missing = object()
+            leg = next((key for key, row in REQUESTS.items() if query == {'category': [row[0]], 'symbol': [row[1]]}), missing)
+            self.assertIsNot(leg, missing, f"Unexpected FX query: {query!r}")
             self.calls.append((parsed.netloc, leg))
             raw = self.transform(leg, response(leg, self.clock))
             self.envelopes.append(copy.deepcopy(raw))
