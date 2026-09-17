@@ -10,10 +10,106 @@ import { time } from '@/shared/components/operator-primitives';
 import { useConfirmationDialog } from '@/components/confirmation-dialog';
 import { resourceUrl } from '@/features/workflows/workflow-library';
 
+type PolicyConfiguration = {
+  mode?: string | null;
+  startingTier?: unknown;
+  lockedTier?: unknown;
+  manuallyBlocked?: boolean | null;
+  enabled?: boolean | null;
+};
+type PolicyResource = {
+  resourceId: string;
+  id: string;
+  name?: string | null;
+  version?: string | number | null;
+  configuration: PolicyConfiguration;
+};
+type SourceRow = Record<string, unknown> & { intentId: string; closedAt?: unknown };
+type ActivePolicyRow = {
+  id: string;
+  matchesStoredState?: boolean | null;
+  policySha256?: string | null;
+  resource: PolicyResource;
+};
+type EvaluationRow = {
+  id: string;
+  accountName?: string | null;
+  mode?: string | null;
+  channelId?: string | null;
+  weekStartedAt?: unknown;
+  weekEndedAt?: unknown;
+  closedTrades?: string | number | null;
+  previousTier?: unknown;
+  recommendedTier?: unknown;
+  appliedTier?: unknown;
+  action?: string | null;
+  reason?: string | null;
+  policySha256?: string | null;
+  policyVersion?: string | number | null;
+  matchesCurrentStatePolicy?: boolean | null;
+  createdAt?: unknown;
+  invalidatedAt?: unknown;
+  invalidationReason?: string | null;
+  sourceHash?: string | null;
+  realizedPnlValue?: unknown;
+  realizedPnl?: unknown;
+  reportingCurrency?: string | null;
+  startingEquity?: string | null;
+  returnPercentValue?: unknown;
+  returnPercent?: unknown;
+  returnPercentReason?: string | null;
+};
+type LegacyPolicy = {
+  channelId: string;
+  mode?: string | null;
+  currentTier?: unknown;
+  lockedTier?: unknown;
+  blocked?: boolean | null;
+  blockReason?: string | null;
+  policyVersion?: string | number | null;
+  updatedAt?: unknown;
+};
+type LegacyEntry = {
+  policy: LegacyPolicy;
+  configuration?: unknown;
+  copyHash?: string | null;
+  copiedResourceId: string;
+  copiedVersionId: string | null;
+};
+type AdaptiveEntry = Record<string, unknown> & {
+  stateKey: string;
+  accountName?: string | null;
+  mode?: string | null;
+  channelId?: string | null;
+  resourceId?: string | null;
+  currentTier?: unknown;
+  lockedTier?: unknown;
+  blocked?: boolean | null;
+  blockReason?: string | null;
+  policySha256?: string | null;
+  updatedAt?: unknown;
+  latestEvaluationId?: string | null;
+};
+type AdaptivePayload = {
+  entries: AdaptiveEntry[];
+  interpretation?: string;
+  observedAt?: unknown;
+  hasMore?: boolean;
+  nextCursor?: string | null;
+  sourceAvailable?: boolean;
+  sourceHash?: string;
+  capital?: unknown;
+  scope?: unknown;
+  sourceCount?: number;
+  reason?: string | null;
+};
+type AdaptiveObservation = { query: string; value: AdaptivePayload };
+type LegacyCopyReceipt = { alreadyCopied?: boolean; resource: { resourceId: string; id: string } };
+
 const tier = (value: unknown) => typeof value === 'number' ? `Stufe ${value + 1}` : 'nicht festgehalten';
 const href = (params: Record<string, string>) => `/risk/adaptive?${new URLSearchParams(params)}`;
 function useAdaptive(query: string) {
-  const [state, setState] = useState<any>(null); const [error, setError] = useState('');
+  const [state, setState] = useState<AdaptiveObservation | null>(null); const [error, setError] = useState('');
   const load = useCallback((signal?: AbortSignal) => jsonRequest(`/api/trading/risk/adaptive?${query}`, { signal }), [query]);
   usePoll(load, value => { setState({ query, value }); setError(''); }, failure => setError(failure.message));
   return { data: state?.query === query ? state.value : null, error, load };
@@ -25,25 +121,25 @@ function SourceEvidence({ id, channelId }: Readonly<{ id: string; channelId?: st
   return <section className="space-y-3"><h3>Originale Datenbasis</h3>{error && <p role="alert">{error}</p>}
     {data && (data.sourceAvailable ? <><p>Originalhash geprüft: {data.sourceHash}. Das prüft die gespeicherte Herkunft; nachträgliche Änderungen an Geldereignissen werden von der Engine gesondert geprüft.</p>
       <ChangeReview label="Kapitalbasis und Auswertungszeitraum" after={{ capital: data.capital, scope: data.scope }} />
-      <EvidenceTable caption={`Ursprüngliche Positionsquellen (${data.sourceCount})`} columns={[['intentId', 'Trade'], ['closedAt', 'Abgeschlossen'], ['projectionHash', 'Abrechnungshash'], ['valuationHash', 'Bewertungshash']]} rows={data.entries.map((row: any) => ({ ...row, intentId: <Link to={`/trading/trades/${encodeURIComponent(row.intentId)}`}>{row.intentId}</Link>, closedAt: time(row.closedAt) }))} />
-      <div className="flex gap-3"><button className="secondary-button" disabled={!cursor} onClick={() => setCursor('')}>Erste Quellen</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => setCursor(data.nextCursor)}>Weitere Quellen</button></div></> : <p>{data.reason}</p>)}
+      <EvidenceTable caption={`Ursprüngliche Positionsquellen (${data.sourceCount})`} columns={[['intentId', 'Trade'], ['closedAt', 'Abgeschlossen'], ['projectionHash', 'Abrechnungshash'], ['valuationHash', 'Bewertungshash']]} rows={(data.entries as unknown as SourceRow[]).map(row => ({ ...row, intentId: <Link to={`/trading/trades/${encodeURIComponent(row.intentId)}`}>{row.intentId}</Link>, closedAt: time(row.closedAt) }))} />
+      <div className="flex gap-3"><button className="secondary-button" disabled={!cursor} onClick={() => setCursor('')}>Erste Quellen</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => setCursor(data.nextCursor ?? '')}>Weitere Quellen</button></div></> : <p>{data.reason}</p>)}
   </section>;
 }
 function ActivePolicyPaths({ stateKey }: Readonly<{ stateKey: string }>) {
   const [cursor, setCursor] = useState(''); const query = new URLSearchParams({ kind: 'paths', stateKey }); if (cursor) query.set('cursor', cursor);
   const { data, error } = useAdaptive(query.toString());
   return <section className="space-y-4"><h3>Aktive Pfade und gespeicherte Konfiguration</h3>{error && <p role="alert">{error} Nach einer Graphänderung die erste Seite neu laden.</p>}
-    {data?.entries.map((row: any) => <article key={row.id} className="border-t pt-3"><Link to={`/workflows/paths/${encodeURIComponent(row.id)}`}>Pfad {row.id}</Link>
+    {(data?.entries as unknown as ActivePolicyRow[] | undefined)?.map(row => <article key={row.id} className="border-t pt-3"><Link to={`/workflows/paths/${encodeURIComponent(row.id)}`}>Pfad {row.id}</Link>
       <p>{row.matchesStoredState ? 'Die aktive Policy stimmt mit dem gespeicherten Runtimehash überein.' : 'Die aktive Policy unterscheidet sich vom gespeicherten Runtimehash. Die Anzeige setzt den Runtimezustand nicht zurück.'}</p>
       <Link to={resourceUrl(row.resource)}>Policy {row.resource.name} · Version {row.resource.version} öffnen und neuen Entwurf bearbeiten</Link>
       <EvidenceFields fields={[['Modus', row.resource.configuration.mode], ['Startstufe', tier(row.resource.configuration.startingTier)], ['Feste Stufe', tier(row.resource.configuration.lockedTier)], ['Manuell gesperrt', row.resource.configuration.manuallyBlocked], ['Aktiv', row.resource.configuration.enabled], ['Policyhash', row.policySha256]]} />
       <ChangeReview label="Parameter dieser aktiven Policyversion" after={row.resource.configuration} /></article>)}
     {data && !data.entries.length && <p>Kein aktuell aktiver Pfad mit dieser Kanal-/Konto-/Ressourcenbindung. Der gespeicherte Zustand bleibt als Historie sichtbar.</p>}
-    <div className="flex gap-3"><button className="secondary-button" onClick={() => setCursor('')}>Erste Pfade</button><button className="secondary-button" disabled={!data?.hasMore} onClick={() => setCursor(data.nextCursor)}>Weitere Pfade</button></div>
+    <div className="flex gap-3"><button className="secondary-button" onClick={() => setCursor('')}>Erste Pfade</button><button className="secondary-button" disabled={!data?.hasMore} onClick={() => setCursor(data?.nextCursor ?? '')}>Weitere Pfade</button></div>
     <p>Fixed und Shadow verwenden das Strategie-Sizing. Automatic wählt die Stufe innerhalb der Strategiegrenze. Sperren bleiben separat. Stufen werden hier ab 1 angezeigt; das Entfernen einer festen Stufe speichert null.</p>
   </section>;
 }
-function EvaluationCard({ row, legacyChannel }: Readonly<{ row: any; legacyChannel?: string }>) {
+function EvaluationCard({ row, legacyChannel }: Readonly<{ row: EvaluationRow; legacyChannel?: string }>) {
   const [showSources, setShowSources] = useState(false);
   return <article className="operations-card space-y-4"><h2>Auswertung {row.id}</h2><p>{row.accountName} {row.mode} · {row.channelId} · {time(row.weekStartedAt)} bis {time(row.weekEndedAt)} · {row.closedTrades} abgeschlossene Trades</p>
     <EvidenceFields fields={[['Vorher', tier(row.previousTier)], ['Empfohlen', tier(row.recommendedTier)], ['Angewendet', tier(row.appliedTier)], ['Aktion', row.action], ['Grund', row.reason], ['Originaler Policyhash', row.policySha256], ['Legacy-Policyversion', row.policyVersion], ['Passt zum heutigen Runtimehash', row.matchesCurrentStatePolicy], ['Ausgewertet', time(row.createdAt)], ['Ungültig seit', time(row.invalidatedAt)], ['Invalidierungsgrund', row.invalidationReason], ['Ursprungshash', row.sourceHash]]} />
@@ -56,14 +152,14 @@ function EvaluationCard({ row, legacyChannel }: Readonly<{ row: any; legacyChann
     {showSources && <SourceEvidence id={row.id} channelId={legacyChannel} />}
   </article>;
 }
-function LegacyCard({ entry }: Readonly<{ entry: any }>) {
+function LegacyCard({ entry }: Readonly<{ entry: LegacyEntry }>) {
   const { policy, configuration } = entry; const readOnly = useOperatorReadOnly(); const [busy, setBusy] = useState(false);
-  const [receipt, setReceipt] = useState<any>(null); const [error, setError] = useState(''); const { confirm, confirmationDialog } = useConfirmationDialog();
+  const [receipt, setReceipt] = useState<LegacyCopyReceipt | null>(null); const [error, setError] = useState(''); const { confirm, confirmationDialog } = useConfirmationDialog();
   const copy = async () => {
     if (readOnly || busy) return;
     if (!await confirm({ title: 'Legacy-Policy als Entwurf übernehmen', description: `Kanal ${policy.channelId}, Policyversion ${policy.policyVersion}. Die angezeigten Werte werden mit demselben Migrationsvalidator kopiert. Eine bestehende Sperre bleibt als manuelle Sperre erhalten. Keine Aktivierung und keine Änderung bestehender Intents.`, confirmLabel: 'Geprüften Entwurf anlegen' })) return;
     setBusy(true); setError('');
-    try { await mutateAndObserve(() => jsonRequest('/api/trading/risk/adaptive/copy-legacy', { method: 'POST', headers: { 'X-Destructive-Confirmation': 'copy-legacy-risk-policy' }, body: JSON.stringify({ channelId: policy.channelId, copyHash: entry.copyHash }) }), setReceipt, async () => undefined); }
+    try { await mutateAndObserve(() => jsonRequest('/api/trading/risk/adaptive/copy-legacy', { method: 'POST', headers: { 'X-Destructive-Confirmation': 'copy-legacy-risk-policy' }, body: JSON.stringify({ channelId: policy.channelId, copyHash: entry.copyHash }) }), setReceipt, () => undefined); }
     catch (error_) { setError(`Kopie nicht bestätigt: ${error_ instanceof Error ? error_.message : String(error_)}. Vor einer weiteren Aktion den gespeicherten Entwurf prüfen.`); }
     finally { setBusy(false); }
   };
@@ -86,12 +182,14 @@ export function AdaptiveRiskPage() {
     <p>Auswertung, aktuelle Konfiguration und ausgeführter Trade sind getrennte Belege. Änderungen erfolgen über neue Ressourcenentwürfe, Publikation und ausdrückliche Graphaktivierung.</p>
     {error && <p role="alert">{error} Vorhandene Daten können veraltet sein.</p>}
     {data ? <><p>{data.interpretation} Gelesen {time(data.observedAt)}.</p>
-      {data.entries.map((row: any) => {
+      {data.entries.map(row => {
         if (kind === 'legacy') {
-          return <LegacyCard key={row.policy.channelId} entry={row} />;
+          const legacy = row as unknown as LegacyEntry;
+          return <LegacyCard key={legacy.policy.channelId} entry={legacy} />;
         }
         if (kind.includes('evaluations')) {
-          return <EvaluationCard key={row.id} row={row} legacyChannel={kind === 'legacy-evaluations' ? params.get('channelId') ?? undefined : undefined} />;
+          const evaluation = row as unknown as EvaluationRow;
+          return <EvaluationCard key={evaluation.id} row={evaluation} legacyChannel={kind === 'legacy-evaluations' ? params.get('channelId') ?? undefined : undefined} />;
         }
         return <article key={row.stateKey} className="operations-card space-y-4"><h2>{row.accountName} · {row.mode} · {row.channelId}</h2>
           <EvidenceFields fields={[['Ressource', row.resourceId], ['Aktuelle Stufe', tier(row.currentTier)], ['Feste Stufe', tier(row.lockedTier)], ['Gesperrt', row.blocked], ['Sperrgrund', row.blockReason], ['Policyhash des Zustands', row.policySha256], ['Aktualisiert', time(row.updatedAt)]]} />

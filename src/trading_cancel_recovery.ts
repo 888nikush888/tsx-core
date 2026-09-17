@@ -23,6 +23,7 @@ export async function loadCancelOrder(accountId: string, clientOrderId: string):
   return row;
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 async function latestCancel(accountId: string, clientOrderId: string): Promise<CancelAttempt | undefined> {
   return getDatabase().get<CancelAttempt>(
     `SELECT * FROM trading_operations WHERE account_id = ? AND kind = 'cancel'

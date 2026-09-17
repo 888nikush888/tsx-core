@@ -45,7 +45,7 @@ function testReviewCredentialRedaction() {
   assert.deepEqual(redactReview({ links: ['http://:pass@example.invalid', 'https://user:@example.invalid'] }),
     { links: ['http://[redigiert]@example.invalid', 'https://[redigiert]@example.invalid'] });
   for (const suffix of ['@example.invalid', '']) {
-    const source = 'https://' + ':'.repeat(100000) + suffix;
+    const source = `https://${':'.repeat(100000)}${suffix}`;
     const expected = suffix ? 'https://[redigiert]@example.invalid' : source;
     assert.equal(redactReview(source, 0, false), expected);
   }
@@ -68,10 +68,11 @@ function testBoundedReviewTree() {
   assert.throws(() => uiReviewTree(root, new URLSearchParams({ path: '["password"]' }), 'review-1'), /unavailable/);
   assert.throws(() => uiReviewTree(root, new URLSearchParams({ path: '["__proto__"]' }), 'review-1'), /unavailable/);
   assert.throws(() => uiReviewTree(root, new URLSearchParams({ path: '["library"]', cursor: first.nextCursor }), 'review-2'), /match/);
-  let cursor; let text = '';
+  let cursor = null; let text = '';
   do { const result = uiReviewTree(root, new URLSearchParams({ path: '["text"]', ...(cursor ? { cursor } : {}) }), 'review-1'); text += result.text; cursor = result.nextCursor; } while (cursor);
   assert.equal(text, root.text, 'Review text slices must not split or lose Unicode original data.');
   const large = setupContentReview({ content: { workflow: root }, library: { resources: ['x'.repeat(300000)] } }, { systemConfig: {}, workflow: {}, models: {}, accountReferences: [] });
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(large.paged, true); assert.ok(Buffer.byteLength(JSON.stringify(large)) < 2000); assert.equal(large.existingLibrary, undefined);
 }
 async function testMcpMetadata(agent, resource) {

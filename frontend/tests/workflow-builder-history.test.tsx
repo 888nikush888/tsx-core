@@ -4,6 +4,12 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+type CapturedFlowNode = {
+  id: string;
+  data: { connectionState?: string; onStartConnection: (id: string, mode?: string) => void };
+};
+type CapturedFlowProps = { nodes?: unknown; onNodeClick?: (...args: unknown[]) => void };
+
 const api = vi.hoisted(() => {
   const apiFetch = vi.fn();
   const jsonRequest = vi.fn(async (url: string, init?: RequestInit) => {
@@ -14,7 +20,7 @@ const api = vi.hoisted(() => {
   });
   return { apiFetch, jsonRequest };
 });
-const flow = vi.hoisted(() => ({ props: null as Record<string, any> | null }));
+const flow = vi.hoisted(() => ({ props: null as CapturedFlowProps | null }));
 
 vi.mock("@/lib/api", () => api);
 vi.mock("@xyflow/react", () => ({
@@ -86,16 +92,18 @@ function submittedBody(url: string) {
 function installApi(options?: { historyFails?: boolean; applyConflict?: boolean }) {
   let workflowLoads = 0;
   let pendingResource: Record<string, unknown> | null = null;
-  api.apiFetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = String(input);
-    if (url === "/api/workflow") {
+  const routes: Array<(url: string, init: RequestInit | undefined) => Response | null> = [
+    (url) => {
+      if (url !== "/api/workflow") return null;
       workflowLoads += 1;
       return response({ workflow, resources });
-    }
-    if (url === "/api/workflow/resources" && init?.method === "DELETE") {
+    },
+    (url, init) => {
+      if (url !== "/api/workflow/resources" || init?.method !== "DELETE") return null;
       return response({ success: true, result: { deleted: 1 } });
-    }
-    if (url === "/api/workflow/resources" && init?.method === "POST") {
+    },
+    (url, init) => {
+      if (url !== "/api/workflow/resources" || init?.method !== "POST") return null;
       const body = JSON.parse(String(init.body));
       pendingResource = {
         id: `${body.resourceId || "new-resource"}-v2`,
@@ -108,30 +116,39 @@ function installApi(options?: { historyFails?: boolean; applyConflict?: boolean 
         configuration: body.configuration,
       };
       return response({ resource: pendingResource }, 201);
-    }
-    if (url === "/api/workflow/resources/publish") {
+    },
+    (url) => {
+      if (url !== "/api/workflow/resources/publish") return null;
       pendingResource = { ...pendingResource, status: "published" };
       return response({ resource: pendingResource });
-    }
-    if (url === "/api/workflow/impact") {
+    },
+    (url) => {
+      if (url !== "/api/workflow/impact") return null;
       return response({ impact: { destructive: false, changed: [], removed: [], confirmation: null } });
-    }
-    if (url === "/api/workflow/mutate") {
+    },
+    (url, init) => {
+      if (url !== "/api/workflow/mutate") return null;
       const body = JSON.parse(String(init?.body));
       return response({
         workflow: { ...workflow, id: "revision-2", revision: 2, graph: body.graph },
         history,
       }, 201);
-    }
-    if (url === "/api/workflow/history") {
+    },
+    (url) => {
+      if (url !== "/api/workflow/history") return null;
       if (options?.historyFails) return response({ error: "history unavailable" }, 503);
       return response(history);
-    }
-    if (["/api/trading", "/api/status", "/api/exchanges/catalog"].includes(url)) return response({});
-    if (url === "/api/workflow/history/impact") {
+    },
+    (url) => {
+      if (!["/api/trading", "/api/status", "/api/exchanges/catalog"].includes(url)) return null;
+      return response({});
+    },
+    (url) => {
+      if (url !== "/api/workflow/history/impact") return null;
       return response({ impact: { destructive: false, changed: [], removed: [], confirmation: null } });
-    }
-    if (url === "/api/workflow/history/apply") {
+    },
+    (url, init) => {
+      if (url !== "/api/workflow/history/apply") return null;
       if (options?.applyConflict) return response({ error: "WORKFLOW_REVISION_CONFLICT" }, 409);
       const direction = JSON.parse(String(init?.body)).direction;
       return response({
@@ -144,6 +161,13 @@ function installApi(options?: { historyFails?: boolean; applyConflict?: boolean 
         },
         history: { ...history, undoCount: 0, redoCount: 1, canUndo: false, redoLabel: "Verbindung entfernt" },
       });
+    },
+  ];
+  api.apiFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    for (const route of routes) {
+      const handled = route(url, init);
+      if (handled) return handled;
     }
     return response({});
   });
@@ -282,7 +306,7 @@ describe("workflow builder history", () => {
     render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilder();
     if (!flow.props) throw new Error("React Flow props unavailable.");
-    const channel = (flow.props.nodes as Array<any>).find((item) => item.id === "node-channel");
+    const channel = (flow.props.nodes as CapturedFlowNode[]).find((item) => item.id === "node-channel");
     act(() => flow.props?.onNodeClick({}, channel));
     fireEvent.change(await screen.findByLabelText(/Telegram-Kanal-ID/), {
       target: { value: "-1002" },
@@ -322,7 +346,7 @@ describe("workflow builder history", () => {
     expect(api.apiFetch).not.toHaveBeenCalledWith("/api/workflow/history/impact", expect.anything());
 
     if (!flow.props) throw new Error("React Flow props unavailable.");
-    const node = (flow.props.nodes as Array<any>).find((item) => item.id === "node-channel");
+    const node = (flow.props.nodes as CapturedFlowNode[]).find((item) => item.id === "node-channel");
     act(() => flow.props?.onNodeClick({}, node));
     await screen.findByRole("dialog");
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "z", ctrlKey: true });
@@ -364,7 +388,7 @@ describe("workflow builder history", () => {
     let resolveImpact!: (value: Response) => void;
     const pendingImpact = new Promise<Response>((resolve) => { resolveImpact = resolve; });
     installApi();
-    api.apiFetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+    api.apiFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url === "/api/workflow/history/impact") return pendingImpact;
       if (url === "/api/workflow") return response({ workflow, resources });
@@ -393,7 +417,8 @@ describe("workflow builder history", () => {
     render(<NavigationProvider><WorkflowBuilder /></NavigationProvider>);
     await openBuilder();
     if (!flow.props) throw new Error("React Flow props unavailable.");
-    const source = (flow.props.nodes as Array<any>).find((item) => item.id === "node-channel");
+    const source = (flow.props.nodes as CapturedFlowNode[]).find((item) => item.id === "node-channel");
+    if (!source) throw new Error("Connection source was not rendered.");
     act(() => source.data.onStartConnection("node-channel"));
     expect(await screen.findByText(/Wähle rechts im Canvas/)).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /rückgängig/ }));

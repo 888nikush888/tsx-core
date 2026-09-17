@@ -40,7 +40,7 @@ try {
   await getDatabase().run("UPDATE trading_signal_contract_versions SET status = 'archived' WHERE id = 'standard:v1'");
   const parsed = await parseSignalToXml(message.content.caption.text, plan.templateName, { primaryModel: 'test-fake' }, {
     promptTemplate: plan.prompt, executableSchema: selection,
-    requestCompletion: async request => {
+    requestCompletion: request => {
       assert.match(request.messages[0].content, /PINNED ORIGINAL PROMPT/);
       assert.doesNotMatch(request.messages[0].content, /NEW PROMPT/);
       return { choices: [{ finish_reason: 'stop', message: { content: '<signal><action>LONG</action><pair>BTCUSDT</pair><entry_range><min>90</min><max>90</max></entry_range><targets><target id="1">95</target></targets><stoploss>85</stoploss></signal>' } }], usage: { total_tokens: 12 } };
@@ -80,6 +80,7 @@ try {
   assert.equal(await isWorkflowExecutionAuthorized(plan.executionPathIds[0]), false, 'A different path to the same channel/account cannot revive a revoked original route.');
   const paper = new PaperExchangeAdapter();
   let submits = 0;
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   paper.submitOrder = async () => { submits += 1; throw new Error('Revoked workflow must not submit.'); };
   const engine = new TradingEngine([paper]);
   await engine.processIntent(all[0].id);

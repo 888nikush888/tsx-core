@@ -75,6 +75,7 @@ async function runCoverageCli(childStatus, fixtureSummary, fixtureBaseline) {
     const result = spawnSync(process.execPath, ['scripts/check_module_coverage.js'], {
       cwd: directory, encoding: 'utf8', timeout: 15_000, shell: false,
     });
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.equal(result.error, undefined);
     assert.equal(result.signal, null);
     return result;

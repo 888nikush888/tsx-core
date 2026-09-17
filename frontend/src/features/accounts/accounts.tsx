@@ -25,6 +25,285 @@ type AccountCreationDraft = {
   credentials: Record<string, string>;
 };
 
+function accountDraftDirty(creating: boolean, form: AccountCreationDraft, replacement: Record<string, string>) {
+  return Boolean(creating && (form.name || form.initialBalance !== '10000' || form.maxConcurrentPositions !== 20 || Object.values(form.credentials).some(Boolean))) || Object.values(replacement).some(Boolean);
+}
+
+function IncidentOverviewSection({ openIncidents, trading, busy, accountAction }: Readonly<{
+  openIncidents: NonNullable<AccountManagementSnapshot['accountIncidents']>; trading: AccountManagementSnapshot | null; busy: string;
+  accountAction: (account: TradingAccount, action: 'verify' | 'reconcile' | 'toggle' | 'delete') => Promise<void>;
+}>) {
+  return (
+      <section className="operations-card account-incident-overview" aria-label="Offene Konto-Incidents">
+        <div className="operations-section-heading">
+          <div>
+            <h3>Offene Konto-Incidents</h3>
+            <p>
+              Warnungen werden bei einem sauberen Kontoabgleich automatisch gelöst. Bei einer Kontosperre zuerst abgleichen und anschließend „Prüfen &amp; freigeben“ verwenden.
+            </p>
+          </div>
+          <Badge variant={openIncidents.some((incident) => incident.severity === "critical") ? "destructive" : "outline"}>
+            {openIncidents.length} offen
+          </Badge>
+        </div>
+        {openIncidents.map((incident) => {
+          const account = trading?.accounts.find((candidate) => candidate.id === incident.accountId);
+          return (
+            <div className="account-incident" key={`overview-${incident.id}`}>
+              <div>
+                <strong>{account?.name || incident.accountId} · {incident.message}</strong>
+                <small>{incident.category} · {incident.occurrenceCount} Beobachtungen · zuletzt {time(incident.lastSeenAt)}</small>
+              </div>
+              <div className="incident-actions">
+                <Badge variant={incident.severity === "critical" ? "destructive" : "outline"}>
+                  {incident.severity === "critical" ? "kritisch" : "Warnung"}
+                </Badge>
+                {account && (
+                  <Button type="button" variant="outline" size="sm" disabled={busy === account.id} onClick={() => { accountAction(account, "reconcile"); }}>
+                    Abgleichen
+                  </Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {openIncidents.length === 0 && <Empty text="Keine offenen Konto-Incidents." />}
+      </section>
+  );
+}
+
+function KillSwitchReleaseDialog({ releaseTarget, releaseConfirmation, setReleaseConfirmation, busy, confirmKillSwitchRelease, setReleaseTarget }: Readonly<{
+  releaseTarget: TradingAccount | null; releaseConfirmation: string; setReleaseConfirmation: (value: string) => void; busy: string;
+  confirmKillSwitchRelease: () => void | Promise<void>; setReleaseTarget: (value: TradingAccount | null) => void;
+}>) {
+  return (
+      <Dialog
+        open={Boolean(releaseTarget)}
+        onOpenChange={(open) => {
+          if (!open && !busy) {
+            setReleaseTarget(null);
+            setReleaseConfirmation("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <Badge variant="destructive">Kontoschutz</Badge>
+            <DialogTitle>Kill-Switch sicher freigeben</DialogTitle>
+            <DialogDescription>
+              TSX Core führt vor der Freigabe zwei vollständige Börsenabgleiche
+              durch. Unverwaltete Orders, Positionen oder fehlender Stop-Schutz
+              verhindern die Freigabe.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="kill-switch-confirmation">
+            Zur Bestätigung exakt „RELEASE ACCOUNT KILL SWITCH“ eingeben
+            <Input
+              autoComplete="off"
+              value={releaseConfirmation}
+              onChange={(event) => setReleaseConfirmation(event.target.value)}
+            />
+          </label>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={Boolean(busy)}
+              onClick={() => setReleaseTarget(null)}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={
+                Boolean(busy) ||
+                releaseConfirmation !== "RELEASE ACCOUNT KILL SWITCH"
+              }
+              onClick={() => { confirmKillSwitchRelease(); }}
+            >
+              {busy ? "Prüfe Schutz…" : "Prüfen und freigeben"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+  );
+}
+
+function CatalogGroupsSection({ catalogGroups, busy, probeCandidate }: Readonly<{
+  catalogGroups: ReturnType<typeof groupExchangeCatalog>; busy: string; probeCandidate: (exchangeId: string) => Promise<void>;
+}>) {
+  return (
+        <div className="exchange-catalog-groups">
+          <section className="operations-card">
+            <h4>Zertifiziert</h4>
+            {catalogGroups.certified.map((item) => (
+              <div className="system-line" key={item.id}>
+                <span>{item.name}</span>
+                <strong>{item.modes.join(" · ")}</strong>
+              </div>
+            ))}
+          </section>
+          <section className="operations-card">
+            <h4>Kandidaten</h4>
+            {catalogGroups.candidates.map((item) => (
+              <div className="system-line" key={item.id}>
+                <span>{item.name}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={Boolean(busy)}
+                  onClick={() => { probeCandidate(item.id); }}
+                >
+                  {busy === `probe:${item.id}` ? "Prüfe…" : "Öffentlich testen"}
+                </Button>
+              </div>
+            ))}
+            {catalogGroups.candidates.length === 0 && <Empty text="Keine Kandidaten." />}
+          </section>
+          <section className="operations-card">
+            <h4>Weitere / nicht kompatibel</h4>
+            {catalogGroups.others.map((item) => (
+              <div className="system-line" key={item.id}>
+                <span>{item.name} · {item.status}</span>
+                <strong>{item.reason || "Noch nicht für TSX zertifiziert"}</strong>
+              </div>
+            ))}
+            {catalogGroups.others.length === 0 && <Empty text="Keine weiteren Einträge." />}
+          </section>
+        </div>
+  );
+}
+
+function AccountCreateSection({ form, setForm, exchange, catalogGroups, busy, create, setCreating }: Readonly<{
+  form: AccountCreationDraft; setForm: (value: AccountCreationDraft) => void; exchange: ExchangeCatalog['exchanges'][number] | undefined;
+  catalogGroups: ReturnType<typeof groupExchangeCatalog> | null; busy: string; create: () => void | Promise<void>; setCreating: (value: boolean) => void;
+}>) {
+  return (
+        <section className="operations-card account-create">
+          <label>
+              Name{" "}
+            <input
+              value={form.name}
+              onChange={(event) =>
+                setForm({ ...form, name: event.target.value })
+              }
+            />
+          </label>
+          <label>
+              Börse{" "}
+            <select
+              value={form.exchange}
+              onChange={(event) => {
+                const next = event.target.value;
+                setForm({
+                  ...form,
+                  exchange: next,
+                  mode: next === "paper" ? "paper" : "testnet",
+                  credentials: {},
+                });
+              }}
+            >
+              {catalogGroups?.creatable.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+              Modus{" "}
+            <select
+              value={form.mode}
+              onChange={(event) =>
+                setForm({ ...form, mode: event.target.value })
+              }
+            >
+              {exchange?.modes.map((mode) => (
+                <option key={mode} value={mode}>
+                  {mode}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+              Max. Positionen{" "}
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={form.maxConcurrentPositions}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  maxConcurrentPositions: Number(event.target.value),
+                })
+              }
+            />
+          </label>
+          {form.exchange === "paper" && (
+            <label>
+                Startkapital{" "}
+              <input
+                value={form.initialBalance}
+                onChange={(event) =>
+                  setForm({ ...form, initialBalance: event.target.value })
+                }
+              />
+            </label>
+          )}
+          {exchange?.credentialFields.map((field) => (
+            <label key={field.id}>
+              {field.label}
+              <input
+                type={field.secret ? "password" : "text"}
+                autoComplete="off"
+                required={field.required}
+                value={form.credentials[field.id] || ""}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    credentials: {
+                      ...form.credentials,
+                      [field.id]: event.target.value,
+                    },
+                  })
+                }
+              />
+            </label>
+          ))}
+          <div className="account-create-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={busy === "create"}
+              onClick={() => {
+                setCreating(false);
+                setForm({
+                  name: "",
+                  exchange: "paper",
+                  mode: "paper",
+                  initialBalance: "10000",
+                  maxConcurrentPositions: 20,
+                  credentials: {},
+                });
+              }}
+            >
+              Abbrechen
+            </button>
+            <button
+              type="button"
+              className="primary-button"
+              disabled={busy === "create" || !form.name.trim()}
+              onClick={create}
+            >
+              {busy === "create" ? "Prüfe…" : "Konto anlegen & verifizieren"}
+            </button>
+          </div>
+        </section>
+  );
+}
+
 export function Accounts({
   trading,
   catalog,
@@ -32,7 +311,7 @@ export function Accounts({
 }: Readonly<{
   trading: AccountManagementSnapshot | null;
   catalog: ExchangeCatalog | null;
-  onRefresh: () => Promise<void>;
+  onRefresh: () => void | Promise<void>;
 }>) {
   const readOnly = useOperatorReadOnly();
   const [creating, setCreating] = useState(false);
@@ -48,7 +327,7 @@ export function Accounts({
   const [message, setMessage] = useState("");
   const [credentialFor, setCredentialFor] = useState("");
   const [replacement, setReplacement] = useState<Record<string, string>>({});
-  useDirtyGuard(Boolean(creating && (form.name || form.initialBalance !== '10000' || form.maxConcurrentPositions !== 20 || Object.values(form.credentials).some(Boolean))) || Object.values(replacement).some(Boolean));
+  useDirtyGuard(accountDraftDirty(creating, form, replacement));
   const [releaseTarget, setReleaseTarget] = useState<TradingAccount | null>(null);
   const [releaseConfirmation, setReleaseConfirmation] = useState("");
   const { confirm, confirmationDialog } = useConfirmationDialog();
@@ -88,7 +367,7 @@ export function Accounts({
     account: TradingAccount,
     change: Record<string, unknown>,
   ) => {
-    if (readOnly) return;
+    if (readOnly) return undefined;
     setBusy(account.id);
     setMessage("");
     try {
@@ -246,10 +525,7 @@ export function Accounts({
     }
   };
 
-  return (
-    <>
-      <div className="operations-stack">
-      {confirmationDialog}
+  const accountsHeading = (
       <div className="operations-section-heading">
         <div>
           <h3>Börsenkonten</h3>
@@ -267,216 +543,27 @@ export function Accounts({
           <Plus size={15} /> Konto
         </button>
       </div>
+  );
+  return (
+    <>
+      <div className="operations-stack">
+      {confirmationDialog}
+      {accountsHeading}
       {!catalogGroups && (
         <div className="account-warning">
           <AlertTriangle size={15} />
           <span>Exchange-Katalog nicht erreichbar. Bestehende Konten bleiben davon unberührt; neue Konten sind gesperrt.</span>
         </div>
       )}
-      {catalogGroups && (
-        <div className="exchange-catalog-groups">
-          <section className="operations-card">
-            <h4>Zertifiziert</h4>
-            {catalogGroups.certified.map((item) => (
-              <div className="system-line" key={item.id}>
-                <span>{item.name}</span>
-                <strong>{item.modes.join(" · ")}</strong>
-              </div>
-            ))}
-          </section>
-          <section className="operations-card">
-            <h4>Kandidaten</h4>
-            {catalogGroups.candidates.map((item) => (
-              <div className="system-line" key={item.id}>
-                <span>{item.name}</span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={Boolean(busy)}
-                  onClick={() => { probeCandidate(item.id); }}
-                >
-                  {busy === `probe:${item.id}` ? "Prüfe…" : "Öffentlich testen"}
-                </Button>
-              </div>
-            ))}
-            {catalogGroups.candidates.length === 0 && <Empty text="Keine Kandidaten." />}
-          </section>
-          <section className="operations-card">
-            <h4>Weitere / nicht kompatibel</h4>
-            {catalogGroups.others.map((item) => (
-              <div className="system-line" key={item.id}>
-                <span>{item.name} · {item.status}</span>
-                <strong>{item.reason || "Noch nicht für TSX zertifiziert"}</strong>
-              </div>
-            ))}
-            {catalogGroups.others.length === 0 && <Empty text="Keine weiteren Einträge." />}
-          </section>
-        </div>
-      )}
+      {catalogGroups && <CatalogGroupsSection catalogGroups={catalogGroups} busy={busy} probeCandidate={probeCandidate} />}
       {message && (
         <div className="builder-error">
           <AlertTriangle size={16} />
           {message}
         </div>
       )}
-      <section className="operations-card account-incident-overview" aria-label="Offene Konto-Incidents">
-        <div className="operations-section-heading">
-          <div>
-            <h3>Offene Konto-Incidents</h3>
-            <p>
-              Warnungen werden bei einem sauberen Kontoabgleich automatisch gelöst. Bei einer Kontosperre zuerst abgleichen und anschließend „Prüfen &amp; freigeben“ verwenden.
-            </p>
-          </div>
-          <Badge variant={openIncidents.some((incident) => incident.severity === "critical") ? "destructive" : "outline"}>
-            {openIncidents.length} offen
-          </Badge>
-        </div>
-        {openIncidents.map((incident) => {
-          const account = trading?.accounts.find((candidate) => candidate.id === incident.accountId);
-          return (
-            <div className="account-incident" key={`overview-${incident.id}`}>
-              <div>
-                <strong>{account?.name || incident.accountId} · {incident.message}</strong>
-                <small>{incident.category} · {incident.occurrenceCount} Beobachtungen · zuletzt {time(incident.lastSeenAt)}</small>
-              </div>
-              <div className="incident-actions">
-                <Badge variant={incident.severity === "critical" ? "destructive" : "outline"}>
-                  {incident.severity === "critical" ? "kritisch" : "Warnung"}
-                </Badge>
-                {account && (
-                  <Button type="button" variant="outline" size="sm" disabled={busy === account.id} onClick={() => { accountAction(account, "reconcile"); }}>
-                    Abgleichen
-                  </Button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-        {openIncidents.length === 0 && <Empty text="Keine offenen Konto-Incidents." />}
-      </section>
-      {creating && (
-        <section className="operations-card account-create">
-          <label>
-              Name{" "}
-            <input
-              value={form.name}
-              onChange={(event) =>
-                setForm({ ...form, name: event.target.value })
-              }
-            />
-          </label>
-          <label>
-              Börse{" "}
-            <select
-              value={form.exchange}
-              onChange={(event) => {
-                const next = event.target.value;
-                setForm({
-                  ...form,
-                  exchange: next,
-                  mode: next === "paper" ? "paper" : "testnet",
-                  credentials: {},
-                });
-              }}
-            >
-              {catalogGroups?.creatable.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-              Modus{" "}
-            <select
-              value={form.mode}
-              onChange={(event) =>
-                setForm({ ...form, mode: event.target.value })
-              }
-            >
-              {exchange?.modes.map((mode) => (
-                <option key={mode} value={mode}>
-                  {mode}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-              Max. Positionen{" "}
-            <input
-              type="number"
-              min={1}
-              max={20}
-              value={form.maxConcurrentPositions}
-              onChange={(event) =>
-                setForm({
-                  ...form,
-                  maxConcurrentPositions: Number(event.target.value),
-                })
-              }
-            />
-          </label>
-          {form.exchange === "paper" && (
-            <label>
-                Startkapital{" "}
-              <input
-                value={form.initialBalance}
-                onChange={(event) =>
-                  setForm({ ...form, initialBalance: event.target.value })
-                }
-              />
-            </label>
-          )}
-          {exchange?.credentialFields.map((field) => (
-            <label key={field.id}>
-              {field.label}
-              <input
-                type={field.secret ? "password" : "text"}
-                autoComplete="off"
-                required={field.required}
-                value={form.credentials[field.id] || ""}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    credentials: {
-                      ...form.credentials,
-                      [field.id]: event.target.value,
-                    },
-                  })
-                }
-              />
-            </label>
-          ))}
-          <div className="account-create-actions">
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={busy === "create"}
-              onClick={() => {
-                setCreating(false);
-                setForm({
-                  name: "",
-                  exchange: "paper",
-                  mode: "paper",
-                  initialBalance: "10000",
-                  maxConcurrentPositions: 20,
-                  credentials: {},
-                });
-              }}
-            >
-              Abbrechen
-            </button>
-            <button
-              type="button"
-              className="primary-button"
-              disabled={busy === "create" || !form.name.trim()}
-              onClick={create}
-            >
-              {busy === "create" ? "Prüfe…" : "Konto anlegen & verifizieren"}
-            </button>
-          </div>
-        </section>
-      )}
+      <IncidentOverviewSection openIncidents={openIncidents} trading={trading} busy={busy} accountAction={accountAction} />
+      {creating && <AccountCreateSection form={form} setForm={setForm} exchange={exchange} catalogGroups={catalogGroups} busy={busy} create={create} setCreating={setCreating} />}
         {trading?.accounts.map((account) => {
           const accountBadge = () => {
             if (account.killSwitchActive) {
@@ -487,15 +574,18 @@ export function Accounts({
             }
             return "";
           };
-          return ((
-            <section className="operations-card account-card" key={account.id}>
-              <div className="account-card-title">
+          const accountTitle = (
                 <div>
                   <strong><Link to={`/trading/accounts/${encodeURIComponent(account.id)}`}>{account.name}</Link></strong>
                   <span>
                     {account.exchange} · {account.mode}
                   </span>
                 </div>
+          );
+          return ((
+            <section className="operations-card account-card" key={account.id}>
+              <div className="account-card-title">
+                {accountTitle}
                 <span
                   className={`state-badge ${accountBadge()}`}
                 >
@@ -653,56 +743,7 @@ export function Accounts({
           ));
         })}
       </div>
-      <Dialog
-        open={Boolean(releaseTarget)}
-        onOpenChange={(open) => {
-          if (!open && !busy) {
-            setReleaseTarget(null);
-            setReleaseConfirmation("");
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <Badge variant="destructive">Kontoschutz</Badge>
-            <DialogTitle>Kill-Switch sicher freigeben</DialogTitle>
-            <DialogDescription>
-              TSX Core führt vor der Freigabe zwei vollständige Börsenabgleiche
-              durch. Unverwaltete Orders, Positionen oder fehlender Stop-Schutz
-              verhindern die Freigabe.
-            </DialogDescription>
-          </DialogHeader>
-          <label className="kill-switch-confirmation">
-            Zur Bestätigung exakt „RELEASE ACCOUNT KILL SWITCH“ eingeben
-            <Input
-              autoComplete="off"
-              value={releaseConfirmation}
-              onChange={(event) => setReleaseConfirmation(event.target.value)}
-            />
-          </label>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={Boolean(busy)}
-              onClick={() => setReleaseTarget(null)}
-            >
-              Abbrechen
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={
-                Boolean(busy) ||
-                releaseConfirmation !== "RELEASE ACCOUNT KILL SWITCH"
-              }
-              onClick={() => { confirmKillSwitchRelease(); }}
-            >
-              {busy ? "Prüfe Schutz…" : "Prüfen und freigeben"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <KillSwitchReleaseDialog releaseTarget={releaseTarget} releaseConfirmation={releaseConfirmation} setReleaseConfirmation={setReleaseConfirmation} busy={busy} confirmKillSwitchRelease={confirmKillSwitchRelease} setReleaseTarget={setReleaseTarget} />
     </>
   );
 }

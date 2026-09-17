@@ -27,6 +27,7 @@ export async function storedAccountLogCheckpoint(account: TradingAccount): Promi
   await assertBinding(account, checkpoint);
   return checkpoint;
 }
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function accountLogCheckpoint(account: TradingAccount): Promise<AccountLogCheckpoint | null> {
   const source = accountLogSource(account.exchange);
   if (!source || !account.externalAccountId || !account.credentialGeneration) return null;

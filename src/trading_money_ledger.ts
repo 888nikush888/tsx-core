@@ -243,6 +243,7 @@ export async function getMoneyEvent(id: string): Promise<MoneyEvent | null> {
 }
 
 /** Shared projection reader; a complete rational valuation may have no exact decimal scalar. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function moneyEventsForIntent(intentId: string): Promise<MoneyEvent[]> {
   return withDatabaseTransaction(async db => {
     const rows = await db.all<MoneyReadRow[]>(`${MONEY_READ} WHERE event.intent_id=? ORDER BY event.occurred_at,event.id`, [intentId]);
@@ -343,6 +344,7 @@ export interface MoneyLedgerSnapshot {
   value: MoneyValue | null; valuedSubtotalValue: MoneyValue; pricePnlValue: MoneyValue | null;
   feesValue: MoneyValue | null; fundingValue: MoneyValue | null; valuationHash: string;
 }
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function moneyLedgerSnapshot(accountId: string, since: number, until: number): Promise<MoneyLedgerSnapshot> {
   timestamp(since); timestamp(until);
   if (until <= since) throw new Error('Monetary snapshot window is inverted.');

@@ -161,6 +161,7 @@ function intentFromRow(row: IntentRow): TradingIntent {
   };
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 async function transaction<T>(operation: () => Promise<T>): Promise<T> {
   return withDatabaseTransaction(() => operation());
 }
@@ -230,6 +231,7 @@ export async function getSignalContractVersion(id: string): Promise<SignalContra
   return row ? contractVersionFromRow(row) : null;
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function createSignalContract(input: {
   id: unknown;
   name: unknown;
@@ -259,6 +261,7 @@ export async function createSignalContract(input: {
   });
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function createSignalContractDraftVersion(
   contractId: unknown,
   sourceVersionId: unknown,
@@ -295,6 +298,7 @@ export async function createSignalContractDraftVersion(
   });
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function updateSignalContractDraft(input: {
   contractId: unknown;
   versionId: unknown;
@@ -344,6 +348,7 @@ export async function publishSignalContractVersion(versionId: unknown, now = Dat
   ));
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function archiveSignalContractVersion(versionId: unknown, now = Date.now()): Promise<SignalContractVersion> {
   const id = contractVersionIdentifier(versionId);
   return transaction(async () => {
@@ -391,6 +396,7 @@ async function removeSignalContractVersionRecord(id: string, contractId: string)
   }
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function deleteSignalContractDraft(versionId: unknown): Promise<boolean> {
   const id = contractVersionIdentifier(versionId);
   return transaction(async () => {
@@ -402,6 +408,7 @@ export async function deleteSignalContractDraft(versionId: unknown): Promise<boo
   });
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function deleteSignalContractVersion(versionId: unknown): Promise<boolean> {
   const id = contractVersionIdentifier(versionId);
   return transaction(async () => {
@@ -567,6 +574,7 @@ export async function updateTradingSignalSchema(id: string, input: {
   });
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function deleteTradingSignalSchema(id: string): Promise<boolean> {
   const normalizedId = signalSchemaIdentifier(id);
   return transaction(async () => {
@@ -588,6 +596,7 @@ export async function getTradingStrategyVersion(id: string): Promise<TradingStra
   return row ? strategyFromRow(row) : null;
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function createTradingStrategyDraft(input: {
   strategyId?: string;
   name: string;
@@ -753,7 +762,8 @@ function validateAccountStateUpdate(state: TradingAccountStateUpdate): void {
   if (!['unverified', 'ready', 'disabled', 'error', 'degraded'].includes(state.status)) throw new Error('Unsupported account status.');
   if (state.enabled && state.status !== 'ready') throw new Error('Only a verified ready account can be enabled.');
   const externalAccountId = state.externalAccountId?.trim() || null;
-  if (externalAccountId && (externalAccountId.length > 256 || /[\x00-\x1f\x7f]/.test(externalAccountId))) {
+  // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
+  if (externalAccountId && (externalAccountId.length > 256 || /[\x00-\x1f\x7f]/u.test(externalAccountId))) {
     throw new Error('External account identity must contain at most 256 printable characters.');
   }
   if (state.credentialGeneration != null && !/^[a-f0-9]{64}$/.test(state.credentialGeneration)) {
@@ -761,6 +771,7 @@ function validateAccountStateUpdate(state: TradingAccountStateUpdate): void {
   }
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function updateTradingAccountState(id: string, state: TradingAccountStateUpdate): Promise<TradingAccount> {
   validateAccountStateUpdate(state);
   return withDatabaseTransaction(() => updateTradingAccountStateOwned(id, state));
@@ -840,6 +851,7 @@ function accountReconciledAt(value: number | null | undefined, current: TradingA
   return timestamp;
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function updateTradingAccountConfiguration(
   id: string,
   input: TradingAccountConfigurationUpdate,
@@ -1503,6 +1515,7 @@ export async function acknowledgeTradingRiskEvent(id: string, now = Date.now()):
   return Number(result.changes || 0) === 1;
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function archiveTradingStrategyVersion(id: string): Promise<TradingStrategyVersion> {
   return transaction(async () => {
     const activeRoute = await getDatabase().get<{ count: number }>(
@@ -1556,6 +1569,7 @@ function assertTradingAccountRemovalSafe(references: Record<string, unknown>): v
   }
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function deleteTradingAccount(id: string): Promise<boolean> {
   return transaction(async () => {
     const existing = await getDatabase().get<{ id: string }>(

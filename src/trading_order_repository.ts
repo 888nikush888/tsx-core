@@ -54,6 +54,7 @@ function providerOrderKey(local: LocalOrderRow, result: IdentifiedOrderEvidence)
 }
 
 /** A write acknowledgement must address exactly the order that was submitted/cancelled. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function persistTradingOrderResult(
   intentId: string, expectedClientOrderId: string, result: ExchangeOrderResult, observedAt = Date.now(),
 ): Promise<void> {
@@ -61,6 +62,7 @@ export async function persistTradingOrderResult(
   return persistOrderEvidence(intentId, expectedClientOrderId, result, observedAt);
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function persistTradingRemoteOrder(
   intentId: string, expectedClientOrderId: string, result: ExchangeOrderSnapshot, observedAt: number,
 ): Promise<void> {
@@ -117,6 +119,7 @@ function samePlannedReplacement(left: PlannedOrder, right: PlannedOrder): boolea
 }
 
 /** Persist a replacement generation with its row, so a crash cannot manufacture a second replacement. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function createGeneratedTradingOrder(intent: Pick<TradingIntent, 'id' | 'accountId'>, template: PlannedOrder): Promise<PlannedOrder> {
   return withDatabaseTransaction(async () => {
     const slot = replacementSlot(template);

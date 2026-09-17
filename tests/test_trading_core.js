@@ -175,7 +175,7 @@ function testDecimalAndStrategyContracts() {
   invalidConfiguration(value => { value.allowedSignalSchemas = ['standard', 7]; }, /array of strings/);
   invalidConfiguration(value => { value.allowedSignalSchemas = ['standard', 'STANDARD']; }, /duplicates/);
   invalidConfiguration(value => { value.allowedSignalSchemas = ['bad schema']; }, /identifier/);
-  assert.throws(() => signalSchemaIdentifier(undefined), /identifier is invalid/);
+  assert.throws(() => signalSchemaIdentifier(), /identifier is invalid/);
   invalidConfiguration(value => { value.allowedSymbols = ['BTC-USDT']; }, /invalid normalized symbol/);
   invalidConfiguration(value => { value.allowedSides = []; }, /LONG and\/or SHORT/);
   invalidConfiguration(value => { value.entry.orderType = 'stop'; }, /market or limit/);
@@ -205,6 +205,7 @@ function testDecimalAndStrategyContracts() {
 
 function testSignalLeverageContracts() {
   const withoutLeverage = STANDARD_SIGNAL.replace('<leverage>3</leverage>\n', '');
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(validateSignalXml(withoutLeverage, 'default').execution.suggestedLeverage, undefined);
   for (const leverage of [1, 125]) {
     const xml = STANDARD_SIGNAL.replace('<leverage>3</leverage>', `<leverage>${leverage}</leverage>`);
@@ -1392,6 +1393,7 @@ async function testRepositoryReadbackGuards() {
     // Obtain the known fixture definition directly because the collection read
     // is deliberately unavailable during this test.
     const stored = await database.get('SELECT definition_json FROM trading_signal_contract_versions WHERE id = ?', ['standard:v1']);
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.equal(standard, undefined);
     await assert.rejects(createSignalContract({ id: 'readback-contract', name: 'Readback', definition: JSON.parse(stored.definition_json) }), /Created signal contract is missing/);
     assert.equal(await database.get('SELECT id FROM trading_signal_contracts WHERE id = ?', ['readback-contract']), undefined,

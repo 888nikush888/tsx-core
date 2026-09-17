@@ -191,6 +191,7 @@ function evidenceMatchesProvenFill(evidence: Record<string, unknown>, fill: Exch
 }
 
 /** A reused provider fill ID with changed economics is a conflict, never INSERT OR IGNORE. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function persistCorrelatedFill(account: TradingAccount, fill: ExchangeFill, read?: ExchangeAcquisitionEvidence): Promise<FillResult> {
   const proof = provenFillIdentity(account, fill);
   if (proof) fill = { ...fill, identity: proof.identity };

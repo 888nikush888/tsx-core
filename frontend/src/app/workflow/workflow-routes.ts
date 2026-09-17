@@ -104,6 +104,70 @@ function routeUsage(
   };
 }
 
+function resolveRouteIds(
+  path: WorkflowRevision["compiled"]["paths"][number],
+  graph: WorkflowGraph,
+  resources: Map<string, WorkflowResource>,
+  accounts: Map<string, TradingAccount>,
+) {
+  const channelNodeId = nodeIdForKind(path, graph, "channel");
+  const accountNodeId = nodeIdForKind(path, graph, "account");
+  const strategyNodeId = nodeIdForKind(path, graph, "strategy");
+  const channelResource = resourceForNode(channelNodeId, graph, resources);
+  const accountResource = resourceForNode(accountNodeId, graph, resources);
+  const strategyResource = resourceForNode(strategyNodeId, graph, resources);
+  const channelId = path.channelId || configuredId(channelResource, "channelId");
+  const accountId = path.accountId || configuredId(accountResource, "accountId");
+  const strategyVersionId = path.strategyVersionId || configuredId(strategyResource, "strategyVersionId");
+  return { channelResource, accountResource, strategyResource, channelId, accountId, strategyVersionId, account: accounts.get(accountId) };
+}
+
+function routeAccountName(resolved: ReturnType<typeof resolveRouteIds>) {
+  return resolved.accountResource?.name || resolved.account?.name || resolved.accountId;
+}
+
+function routeAccountDetail(resolved: ReturnType<typeof resolveRouteIds>) {
+  return resolved.account ? `${resolved.account.exchange} · ${resolved.account.mode}` : resolved.accountId;
+}
+
+function routeStrategyName(resolved: ReturnType<typeof resolveRouteIds>, strategyNames: Map<string, string>) {
+  return resolved.strategyResource?.name || strategyNames.get(resolved.strategyVersionId) || resolved.strategyVersionId;
+}
+
+function rawFallbackAccount(path: WorkflowRevision["compiled"]["paths"][number], resolved: ReturnType<typeof resolveRouteIds>) {
+  return {
+    accountId: resolved.accountId,
+    accountName: routeAccountName(resolved),
+    accountDetail: routeAccountDetail(resolved),
+    rank: path.fallbackRank ?? 0,
+    enabled: path.enabled,
+    fallbackOn: [...(path.fallbackOn || [])],
+  };
+}
+
+function rawRouteRow(
+  path: WorkflowRevision["compiled"]["paths"][number],
+  index: number,
+  resolved: ReturnType<typeof resolveRouteIds>,
+  strategyNames: Map<string, string>,
+  graph: WorkflowGraph,
+  resources: Map<string, WorkflowResource>,
+): WorkflowRoute {
+  return {
+    id: path.id || `path-${index + 1}`,
+    enabled: path.enabled,
+    channelId: resolved.channelId,
+    channelName: resolved.channelResource?.name || resolved.channelId,
+    accountId: resolved.accountId,
+    accountName: routeAccountName(resolved),
+    accountDetail: routeAccountDetail(resolved),
+    strategyName: routeStrategyName(resolved, strategyNames),
+    nodeIds: [...path.nodeIds],
+    nodeNames: path.nodeIds.map((nodeId) => resourceForNode(nodeId, graph, resources)?.name || nodeId),
+    fallbackAccounts: [rawFallbackAccount(path, resolved)],
+  };
+}
+
 export function buildWorkflowRouteTopology(
   paths: WorkflowRevision["compiled"]["paths"],
   graph: WorkflowGraph,
@@ -126,47 +190,7 @@ export function buildWorkflowRouteTopology(
     );
   }
 
-  const rawRoutes: WorkflowRoute[] = paths.map((path, index) => {
-    const channelNodeId = nodeIdForKind(path, graph, "channel");
-    const accountNodeId = nodeIdForKind(path, graph, "account");
-    const strategyNodeId = nodeIdForKind(path, graph, "strategy");
-    const channelResource = resourceForNode(channelNodeId, graph, resources);
-    const accountResource = resourceForNode(accountNodeId, graph, resources);
-    const strategyResource = resourceForNode(strategyNodeId, graph, resources);
-    const channelId = path.channelId || configuredId(channelResource, "channelId");
-    const accountId = path.accountId || configuredId(accountResource, "accountId");
-    const strategyVersionId =
-      path.strategyVersionId ||
-      configuredId(strategyResource, "strategyVersionId");
-    const account = accounts.get(accountId);
-    return {
-      id: path.id || `path-${index + 1}`,
-      enabled: path.enabled,
-      channelId,
-      channelName: channelResource?.name || channelId,
-      accountId,
-      accountName: accountResource?.name || account?.name || accountId,
-      accountDetail: account
-        ? `${account.exchange} · ${account.mode}`
-        : accountId,
-      strategyName:
-        strategyResource?.name ||
-        strategyNames.get(strategyVersionId) ||
-        strategyVersionId,
-      nodeIds: [...path.nodeIds],
-      nodeNames: path.nodeIds.map(
-        (nodeId) => resourceForNode(nodeId, graph, resources)?.name || nodeId,
-      ),
-      fallbackAccounts: [{
-        accountId,
-        accountName: accountResource?.name || account?.name || accountId,
-        accountDetail: account ? `${account.exchange} · ${account.mode}` : accountId,
-        rank: path.fallbackRank ?? 0,
-        enabled: path.enabled,
-        fallbackOn: [...(path.fallbackOn || [])],
-      }],
-    };
-  });
+  const rawRoutes: WorkflowRoute[] = paths.map((path, index) => rawRouteRow(path, index, resolveRouteIds(path, graph, resources, accounts), strategyNames, graph, resources));
   const routeGroups = new Map<string, WorkflowRoute[]>();
   rawRoutes.forEach((route, index) => {
     const path = paths[index];

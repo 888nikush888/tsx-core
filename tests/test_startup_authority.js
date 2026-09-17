@@ -51,6 +51,7 @@ assert.equal(suspended.canProtect(), true, 'A later gate failure must not revoke
 
 const gateFailure = new StartupAuthority();
 gateFailure.beginRecovery();
+// skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
 await assert.rejects(runStartupGate(gateFailure, 'dashboard', async () => { throw new Error('EADDRINUSE fixture'); }), /EADDRINUSE/);
 assert.equal(gateFailure.snapshot().phase, 'blocked');
 assert.match(gateFailure.snapshot().reason, /dashboard.*EADDRINUSE/);
@@ -107,6 +108,7 @@ try {
   // Revocation during an awaited authorization audit must also stop actual execution.
   const auditRace = new StartupAuthority();
   ready(auditRace);
+  // skipcq: JS-0116 - async is deliberate: the audit callback's promise timing participates in the revocation race under test.
   bridge = new McpControlBridge(control, { record: async event => {
     if (event.phase === 'authorized') auditRace.block('shutdown during audit');
   } }, () => undefined, 50, auditRace);

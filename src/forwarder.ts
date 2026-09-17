@@ -5,7 +5,7 @@ import { forwarderErrorCode, isForwardRestrictedError } from './forwarder_errors
 import type { WorkflowSignalPlan } from './workflow_repository.js';
 import type { TradingIntent, TradingSignalSchema } from './trading_types.js';
 import type { Config } from './config.js';
-import * as tdl from 'tdl';
+import { configure, createClient } from 'tdl';
 import { getTdjson } from 'prebuilt-tdlib';
 import { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
@@ -137,6 +137,7 @@ process.on('uncaughtException', (error: unknown) => {
   } catch {
     /* ignore logging failure during fatal crash */
   }
+  // skipcq: JS-0263 - last-resort crash handler: continuing after an uncaught exception is unsafe; exit is required.
   process.exit(1);
 });
 
@@ -151,6 +152,7 @@ process.on('unhandledRejection', (reason: unknown) => {
   } catch {
     /* ignore logging failure during fatal rejection */
   }
+  // skipcq: JS-0263 - unhandled rejection is fatal by policy; exit is required to avoid a degraded process.
   process.exit(1);
 });
 
@@ -160,6 +162,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SESSION_DIRECTORY = path.resolve(__dirname, '../session_data');
 const ROUTING_ACTIVE_MARKER = path.join(SESSION_DIRECTORY, '.routing_active');
 const startupAuthority = new StartupAuthority();
+
+let processLockPath = path.join(process.cwd(), 'session_data', '.process_active');
+let processLock: ProcessLock | null = null;
 
 async function checkCrashLoop() {
   try {
@@ -171,9 +176,9 @@ async function checkCrashLoop() {
   }
 }
 
-try { tdl.configure({ tdjson: getTdjson() }); } catch (error) {
+try { configure({ tdjson: getTdjson() }); } catch (error) {
   console.error("Fehler beim Initialisieren der TDLib-Bibliothek:", error.message);
-  process.exit(1);
+  throw new Error(`TDLib initialization failed: ${error.message}`, { cause: error });
 }
 
 const OUTBOX_MAX_IN_MEMORY_TASKS = 200;
@@ -267,6 +272,8 @@ async function executePersistedOutboxTask(task: OutboxTask, config: ForwarderCon
   return forwardMediaGroup(task.mediaGroupId, config, { messages, fromChatId: Number(task.chatId) }, context);
 }
 
+const deliverySlo = new DeliverySloTracker();
+
 async function executeScheduledOutboxTask(
   taskId: string,
   fallbackConfig: Config | null,
@@ -274,7 +281,7 @@ async function executeScheduledOutboxTask(
 ): Promise<void> {
   await (async () => {
     const task = await claimOutboxTask(taskId);
-    if (!task) return;
+    if (!task) return undefined;
     const effectiveConfig = task.config ? mergeConfigDefaults(task.config) : fallbackConfig;
     let deliveryAttempted = false;
     const context: OutboxExecutionContext = {
@@ -331,6 +338,19 @@ async function executeScheduledOutboxTask(
 let activeOutboxConfig: Config | null = null;
 let ingressWakeup: ReturnType<typeof setTimeout> | null = null;
 
+const outboxScheduler = new DurableOutboxScheduler({
+  queue: forwardQueue,
+  listPending: async (excludedTaskIds, limit) => {
+    await processIncomingWork(limit);
+    await flushIncomingAlbums();
+    await scheduleRemainingIngress();
+    return listPendingOutboxTasksForScheduling(excludedTaskIds, limit);
+  },
+  execute: (taskId, signal) => executeScheduledOutboxTask(taskId, activeOutboxConfig, signal),
+  logError: message => addLog(`[ERROR] ${message}`),
+  batchSize: 100
+});
+
 async function scheduleRemainingIngress(): Promise<void> {
   if (ingressWakeup) return;
   const remaining = await getDatabase().get<{ count: number }>(
@@ -344,19 +364,6 @@ async function scheduleRemainingIngress(): Promise<void> {
   }, 850);
   ingressWakeup.unref();
 }
-
-const outboxScheduler = new DurableOutboxScheduler({
-  queue: forwardQueue,
-  listPending: async (excludedTaskIds, limit) => {
-    await processIncomingWork(limit);
-    await flushIncomingAlbums();
-    await scheduleRemainingIngress();
-    return listPendingOutboxTasksForScheduling(excludedTaskIds, limit);
-  },
-  execute: (taskId, signal) => executeScheduledOutboxTask(taskId, activeOutboxConfig, signal),
-  logError: message => addLog(`[ERROR] ${message}`),
-  batchSize: 100
-});
 
 function scheduleOutboxTask(taskId: string, fallbackConfig: Config): void {
   activeOutboxConfig = fallbackConfig;
@@ -421,8 +428,6 @@ let tradingWebControl: TradingWebControl | null = null;
 let mcpControlBridge: McpControlBridge | null = null;
 let activeMaintenanceOperation: string | null = null;
 let auditTrail: EnterpriseAuditTrail | null = null;
-let processLockPath = path.join(process.cwd(), 'session_data', '.process_active');
-let processLock: ProcessLock | null = null;
 let routingMarkerOwned = false;
 const state = {
   isRunning: false,
@@ -437,7 +442,6 @@ const telegramLogin = new TelegramLoginCoordinator((snapshot) => {
   if (snapshot.state === 'waiting') state.connectionState = 'authentication-required';
   if (snapshot.state === 'authenticating' && !state.isRunning) state.connectionState = 'connecting';
 });
-const deliverySlo = new DeliverySloTracker();
 
 async function recordForwardedMessages(amount = 1) {
   const forwardedAt = Date.now();
@@ -677,7 +681,7 @@ async function supergroupFallback(idStr: string): Promise<string | null> {
   try {
     const supergroupId = Number(idStr.slice(4));
     const chat = await invokeWithRetry(client, { _: 'createSupergroupChat', supergroup_id: supergroupId, force: false });
-    return String(chat.id);
+    return String((chat as { id?: unknown }).id);
   } catch (error_) {
     addLog(`[DEBUG] Supergroup-Fallback für ${idStr} fehlgeschlagen: ${error_.message}`);
     return null;
@@ -690,12 +694,12 @@ async function resolveChatId(identifier) {
     const username = idStr.startsWith('@') ? idStr.slice(1) : idStr;
     try {
       const chat = await client.invoke({ _: 'searchPublicChat', username });
-      return String(chat.id);
+      return String((chat as { id?: unknown }).id);
     } catch (e) { throw new Error(`Kanal @${username} nicht gefunden (${e.message})`, { cause: e }); }
   }
   try {
     const chat = await invokeWithRetry(client, { _: 'getChat', chat_id: Number(idStr) });
-    return String(chat.id);
+    return String((chat as { id?: unknown }).id);
   } catch (e) {
     addLog(`[DEBUG] getChat für ${idStr} fehlgeschlagen: ${e.message}`);
     const fallback = await supergroupFallback(idStr);
@@ -1307,7 +1311,7 @@ async function connectAndActivateRouting(
   requiresTelegramTarget = true,
 ): Promise<void> {
   state.connectionState = 'connecting';
-  client = tdl.createClient({ apiId, apiHash, databaseDirectory: SESSION_DIRECTORY, filesDirectory: './session_files' });
+  client = createClient({ apiId, apiHash, databaseDirectory: SESSION_DIRECTORY, filesDirectory: './session_files' });
   client.on('error', err => {
     state.connectionState = 'error';
     addLog(`[TDLib Fehler] ${err.message || err}`);
@@ -1547,8 +1551,10 @@ function shutdown(exitCode = 0): Promise<void> {
   return shutdownPromise;
 }
 
-process.on('SIGINT', () => { void shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
-process.on('SIGTERM', () => { void shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
+// skipcq: JS-0263 - signal shutdown must guarantee termination; lingering native handles would otherwise keep the process alive.
+process.on('SIGINT', () => { shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
+// skipcq: JS-0263 - signal shutdown must guarantee termination; lingering native handles would otherwise keep the process alive.
+process.on('SIGTERM', () => { shutdown(0).finally(() => process.exit(process.exitCode || 0)); });
 
 interface RuntimeConfiguration {
   config: Config;
@@ -1808,6 +1814,7 @@ async function performCompleteFactoryReset(
   writeConfigSync(candidateConfig);
   await initializeConfigurationGeneration(backupConfigurationSources(operationalDatabasePath()), requiredProcessOwner());
   await sharedMcpMaintenance.release();
+  // skipcq: JS-0320 - in-place key removal preserves the shared runtime.config identity consumed across modules.
   for (const key of Object.keys(runtime.config)) delete runtime.config[key];
   Object.assign(runtime.config, candidateConfig);
   state.isRunning = false;
@@ -2022,12 +2029,14 @@ async function startDashboardRuntime(
         retention: retentionScheduler?.getStatus() ?? null,
         audit: auditTrail?.snapshot() ?? null,
       }),
+      // skipcq: JS-0116 - scheduler availability failures retain the callback's Promise rejection contract.
       runBackupNow: async () => {
         if (!backupScheduler) throw new Error('Backup scheduler is unavailable.');
         return backupScheduler.runNow();
       },
       listBackups: listAvailableBackups,
       verifyBackup: (artifactName) => inspectBackupArtifact(resolvedBackupArtifact(artifactName)),
+      // skipcq: JS-0116 - scheduler availability failures retain the callback's Promise rejection contract.
       runBackupDrill: async (artifactName) => {
         if (!backupScheduler) throw new Error('Backup scheduler is unavailable.');
         return backupScheduler.runRestoreDrill(resolvedBackupArtifact(artifactName));
@@ -2179,5 +2188,6 @@ try {
 } catch (err: unknown) {
   console.error("Kritischer Fehler:", unknownErrorMessage(err));
   await shutdown(1);
+  // skipcq: JS-0263 - fatal startup error must terminate deterministically; native handles can block a natural exit.
   process.exit(process.exitCode || 1);
 }

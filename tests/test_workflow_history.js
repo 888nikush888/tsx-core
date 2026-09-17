@@ -325,6 +325,6 @@ try {
 
   console.log('Workflow builder history tests passed.');
 } finally {
-  await closeDb().catch(() => undefined);
+  await (async () => closeDb())().catch(() => undefined);
   await rm(directory, { recursive: true, force: true });
 }

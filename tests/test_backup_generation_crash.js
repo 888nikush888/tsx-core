@@ -75,7 +75,7 @@ async function assertLocksPreserved(root, marker, pin) {
   const bytes = await Promise.all(locks.map(lock => readFile(lock)));
   for (const payload of bytes) assert.equal(JSON.parse(payload).pid, marker.pid);
   await assert.rejects(acquireProcessLock(locks[0]), ProcessLockRecoveryRequiredError);
-  await assert.rejects(pin(async () => assert.fail('An abandoned barrier must not authorize a snapshot.')), /barrier is busy/);
+  await assert.rejects(pin(() => assert.fail('An abandoned barrier must not authorize a snapshot.')), /barrier is busy/);
   for (let index = 0; index < locks.length; index++) assert.deepEqual(await readFile(locks[index]), bytes[index]);
   return { locks, bytes };
 }
@@ -112,11 +112,11 @@ async function assertRestart(root, expected, marker, pin) {
   try {
     if (expected.apiId === 18 && expected.generation === 1) {
       await assert.rejects(initializeConfigurationGeneration(sources, owner), /outside their committed generation/);
-      await assert.rejects(pin(async () => assert.fail('Mixed generations must not publish.')), /outside their committed generation/);
+      await assert.rejects(pin(() => assert.fail('Mixed generations must not publish.')), /outside their committed generation/);
     } else {
       const resumed = await initializeConfigurationGeneration(sources, owner);
       assert.equal(resumed.generation, expected.generation);
-      await pin(async generation => {
+      await pin(generation => {
         assert.equal(generation.evidence.commitId, head.commitId);
         assert.equal(JSON.parse(generation.files.get('config.json')).apiId, expected.apiId);
       });

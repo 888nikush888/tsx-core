@@ -11,7 +11,7 @@ import { reserveScheduledRecovery, failScheduledRecovery, scheduledRecoveryDue }
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-recovery-schedule-'));
 const filename = path.join(directory, 'schedule.db');
 const initial = Date.now() - 1000000;
-async function state() { return getDatabase().get('SELECT * FROM trading_recovery_schedules'); }
+function state() { return getDatabase().get('SELECT * FROM trading_recovery_schedules'); }
 async function sourceState() {
   return { history: await getDatabase().all('SELECT * FROM trading_history_checkpoints ORDER BY source'),
     logs: await getDatabase().all('SELECT * FROM trading_account_log_checkpoints') };

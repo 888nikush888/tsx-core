@@ -282,7 +282,7 @@ function normalizeApiId(cfg: Record<string, unknown>): void {
   if (cfg.apiId === undefined) return;
   const parsed = Number(cfg.apiId);
   if (!Number.isSafeInteger(parsed) || parsed < 0) {
-    console.warn(`[WARN] Invalid apiId "${cfg.apiId}" in config.json. Resetting to 0.`);
+    console.warn(`[WARN] Invalid apiId "${String(cfg.apiId)}" in config.json. Resetting to 0.`);
     cfg.apiId = 0;
     return;
   }
@@ -307,7 +307,8 @@ function normalizeForwardOptions(cfg: Record<string, unknown>): void {
 
 function normalizeModelNames(xmlParsing: Record<string, unknown>): void {
   for (const key of ['primaryModel', 'fallbackModel'] as const) {
-    const value = String(xmlParsing[key] || '').trim();
+    const rawValue = xmlParsing[key];
+    const value = !rawValue || typeof rawValue === 'object' ? '' : String(rawValue).trim();
     xmlParsing[key] = /^[a-zA-Z0-9._:/-]{1,128}$/.test(value)
       ? value
       : DEFAULT_CONFIG.xmlParsing[key];
@@ -319,12 +320,13 @@ function normalizeSourceTemplates(xmlParsing: Record<string, unknown>): void {
     xmlParsing.sourceTemplates = {};
     return;
   }
-  for (const [key, value] of Object.entries(xmlParsing.sourceTemplates)) {
-    if (typeof value !== 'string') {
+  xmlParsing.sourceTemplates = Object.fromEntries(
+    Object.entries(xmlParsing.sourceTemplates).filter(([key, value]) => {
+      if (typeof value === 'string') return true;
       console.warn(`[WARN] xmlParsing.sourceTemplates["${key}"] is not a string and was removed.`);
-      delete (xmlParsing.sourceTemplates as Record<string, unknown>)[key];
-    }
-  }
+      return false;
+    }),
+  );
 }
 
 function normalizeAiLimits(xmlParsing: Record<string, unknown>): void {
@@ -370,15 +372,19 @@ function normalizeSourceFilters(cfg: Record<string, unknown>): void {
     cfg.sourceFilters = {};
     return;
   }
+  const normalizedFilters: Array<[string, Record<string, unknown>]> = [];
   for (const [key, value] of Object.entries(cfg.sourceFilters)) {
     if (!isRecord(value)) {
       console.warn(`[WARN] sourceFilters["${key}"] is not an object and was removed.`);
-      delete cfg.sourceFilters[key];
-    } else if (value.regexPatterns && !Array.isArray(value.regexPatterns)) {
+      continue;
+    }
+    if (value.regexPatterns && !Array.isArray(value.regexPatterns)) {
       console.warn(`[WARN] sourceFilters["${key}"].regexPatterns is not an array and was reset.`);
       value.regexPatterns = [];
     }
+    normalizedFilters.push([key, value]);
   }
+  cfg.sourceFilters = Object.fromEntries(normalizedFilters);
 }
 
 function normalizeSourceAliases(cfg: Record<string, unknown>): void {
@@ -386,12 +392,15 @@ function normalizeSourceAliases(cfg: Record<string, unknown>): void {
     cfg.sourceAliases = {};
     return;
   }
+  const normalizedAliases: Array<[string, string]> = [];
   for (const [key, value] of Object.entries(cfg.sourceAliases)) {
     if (typeof value !== 'string') {
       console.warn(`[WARN] sourceAliases["${key}"] is not a string and was removed.`);
-      delete cfg.sourceAliases[key];
+      continue;
     }
+    normalizedAliases.push([key, value]);
   }
+  cfg.sourceAliases = Object.fromEntries(normalizedAliases);
 }
 
 function validateOptionalBoolean(container: Record<string, unknown>, key: string, qualifiedName: string): void {
@@ -531,7 +540,7 @@ export function readConfigSync(destination = configPath): Config {
       writeConfigSync(DEFAULT_CONFIG, destination);
       return mergeConfigDefaults({});
     }
-    throw new Error(`Failed to read configuration from ${destination}: ${(error as { message?: unknown }).message}`, { cause: error });
+    throw new Error(`Failed to read configuration from ${destination}: ${(error as { message?: string }).message}`, { cause: error });
   }
 }
 
@@ -548,7 +557,7 @@ export async function readConfig(destination = configPath): Promise<Config> {
       await writeConfig(DEFAULT_CONFIG, destination);
       return mergeConfigDefaults({});
     }
-    throw new Error(`Failed to read configuration from ${destination}: ${(error as { message?: unknown }).message}`, { cause: error });
+    throw new Error(`Failed to read configuration from ${destination}: ${(error as { message?: string }).message}`, { cause: error });
   }
 }
 
@@ -602,7 +611,7 @@ function writeConfigFileSync(content: string, destination: string): void {
     try {
       fs.unlinkSync(temporary);
     } catch (cleanupError: unknown) {
-      if ((cleanupError as { code?: unknown })?.code !== 'ENOENT') console.error(`Failed to remove temporary config ${temporary}: ${(cleanupError as { message?: unknown }).message}`);
+      if ((cleanupError as { code?: unknown })?.code !== 'ENOENT') console.error(`Failed to remove temporary config ${temporary}: ${(cleanupError as { message?: string }).message}`);
     }
     throw error;
   }

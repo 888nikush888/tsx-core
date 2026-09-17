@@ -23,7 +23,7 @@ function ack(order) {
 let respond = body => new Response(JSON.stringify(body.entry ? { entry: ack(body.entry), protectiveStop: ack(body.protectiveStop) } : ack(body.request)), { status: 200 });
 try {
   Date.now = () => now;
-  globalThis.fetch = async (_url, options) => {
+  globalThis.fetch = (_url, options) => {
     const body = JSON.parse(options.body);
     sent.push(body);
     return respond(body);

@@ -78,6 +78,7 @@ async function verifyValuation(account: FxAccount, row: OriginalEvent, stored: V
 }
 
 /** Pinned event-time valuation; elapsed wall time never reprices a historical event. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function readFxMoneyValuation(eventId: string): Promise<FxMoneyValuation | null> {
   return withDatabaseTransaction(async db => {
     const stored = await db.get<ValuationRow>('SELECT * FROM trading_fx_money_valuations WHERE event_id=?', [eventId]);
@@ -87,6 +88,7 @@ export async function readFxMoneyValuation(eventId: string): Promise<FxMoneyValu
   });
 }
 /** Only an event ID and the held account are accepted. Amount, currencies, time and rate come from originals. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function valueFxMoneyEvent(account: FxAccount, eventId: string): Promise<FxMoneyValuation> {
   account = snapshotFxAccount(account);
   return withDatabaseTransaction(async db => {

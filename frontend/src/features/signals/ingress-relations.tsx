@@ -25,22 +25,31 @@ function ingressObjectLink(kind: string, id: string) {
   return route ? <Link to={`${route}${encodeURIComponent(id)}`}>{id}</Link> : id;
 }
 
+type IngressEntry = Record<string, unknown> & {
+  id: string;
+  workflowRevisionId?: string | null;
+  executionPathId?: string | null;
+  intentId?: string | null;
+};
+type IngressPayload = { entries: IngressEntry[]; interpretation: string; hasMore: boolean; nextCursor?: string };
+type IngressObservation = { key: string; value: IngressPayload };
+
 export function IngressRelations({ id }: Readonly<{ id: string }>) {
   const [params, setParams] = useSearchParams(); const kind = params.get('relation') || 'signals';
   const query = new URLSearchParams({ id, kind }); const cursor = params.get('relationCursor');
   if (cursor !== null) query.set('cursor', cursor);
-  const key = query.toString(); const [state, setState] = useState<any>(null); const [error, setError] = useState('');
+  const key = query.toString(); const [state, setState] = useState<IngressObservation | null>(null); const [error, setError] = useState('');
   const read = useCallback((signal: AbortSignal) => jsonRequest(`/api/signals/ingress/relations?${key}`, { signal }), [key]);
   usePoll(read, value => { setState({ key, value }); setError(''); }, failure => setError(failure.message)); const data = state?.key === key ? state.value : null;
   const go = (relation: string, cursor?: string) => { const next = new URLSearchParams(params); next.set('relation', relation); if (cursor) { next.set('relationCursor', cursor); } else { next.delete('relationCursor'); } setParams(next); };
-  const rows = data?.entries.map((row: any) => ({ ...row,
+  const rows = data?.entries.map(row => ({ ...row,
     id: ingressObjectLink(kind, row.id),
     workflowRevisionId: row.workflowRevisionId ? <Link to={`/workflows/revisions/${encodeURIComponent(row.workflowRevisionId)}`}>{row.workflowRevisionId}</Link> : null,
     executionPathId: row.executionPathId ? <Link to={`/workflows/paths/${encodeURIComponent(row.executionPathId)}`}>{row.executionPathId}</Link> : null,
     intentId: row.intentId ? <Link to={`/trading/trades/${encodeURIComponent(row.intentId)}`}>{row.intentId}</Link> : null,
     readyAt: time(row.readyAt), rank: typeof row.rank === 'number' ? row.rank + 1 : null, currentRank: typeof row.currentRank === 'number' ? row.currentRank + 1 : null,
     dedupeEnabled: row.dedupeEnabled == null ? null : row.dedupeEnabled === 1, acknowledged: row.acknowledged == null ? null : row.acknowledged === 1,
-  }));
+  })) ?? [];
   return <section className="operations-card space-y-4"><h2>Verarbeitungsspur</h2>
     <label>Beziehung auswählen<select className="border bg-background p-2 block" value={kind} onChange={event => go(event.target.value)}>{Object.entries(titles).map(([value, title]) => <option key={value} value={value}>{title}</option>)}</select></label>
     {error && <p role="alert">{error} Andere Beziehungen bleiben unabhängig lesbar.</p>}

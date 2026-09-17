@@ -54,7 +54,7 @@ function tracedAdapter(paper, hooks = {}) {
   const events = [];
   const adapter = { exchange: 'paper' };
   for (const method of ['openState', 'submitOrder', 'cancelOrder', 'marketSnapshot', 'accountSnapshot']) {
-    adapter[method] = async (...args) => {
+    adapter[method] = (...args) => {
       events.push({ method, order: args[1] });
       return hooks[method] ? hooks[method](...args) : paper[method](...args);
     };
@@ -151,6 +151,7 @@ async function proveAmbiguousLegacyReview() {
   assert.equal(protectedState.orders.filter(order => order.role === 'stop_loss' && order.status === 'open').length, 1,
     'Legacy review never blocks independent restoration of the proved own stop.');
   assert.equal((await getTradingAccount(context.account.id)).killSwitchActive, true);
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(await getDatabase().get('SELECT intent_id FROM trading_take_profit_allocations WHERE intent_id = ?', [context.intent.id]), undefined);
   assert.equal((await getDatabase().get("SELECT COUNT(*) AS n FROM trading_risk_events WHERE code = 'TP_ALLOCATION_RECOVERED' AND intent_id = ?", [context.intent.id])).n, 0);
   await closeDb();

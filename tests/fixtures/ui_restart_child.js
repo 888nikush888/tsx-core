@@ -5,6 +5,7 @@ import { createProcessRestartRequest } from '../../src/ui_restart_coordinator.js
 import { createRestartFixture, deferred } from './ui_restart_fixture.js';
 
 const [directory, mode] = process.argv.slice(2);
+// skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
 globalThis.fetch = async () => { throw new Error('External/provider requests are disabled in the isolated restart fixture.'); };
 const fixture = await createRestartFixture(directory);
 const { app, store, controls, authority } = fixture;
@@ -23,7 +24,7 @@ if (mode === 'crash-after-receipt') {
   store.runRestart = async (...args) => {
     await run(...args);
     process.send({ type: 'boundary', boundary: 'after-durable-receipt-before-restart' });
-    return new Promise(() => {});
+    return new Promise(() => { /* never settles: parks after the durable-receipt boundary */ });
   };
 }
 if (mode === 'crash-before-receipt') {
@@ -31,30 +32,30 @@ if (mode === 'crash-before-receipt') {
   fs.rename = async (from, to) => {
     if (to.endsWith('.json') && JSON.parse(await fs.readFile(from, 'utf8')).restart) {
       process.send({ type: 'boundary', boundary: 'after-command-before-durable-receipt' });
-      await new Promise(() => {});
+      await new Promise(() => { /* never settles: parks before the durable receipt for this crash mode */ });
     }
     return rename(from, to);
   };
 }
 if (mode === 'disconnect') {
   const release = deferred(); controls.barrier = release.promise;
-  void controls.entered.promise.then(() => process.send({ type: 'entered' }));
+  controls.entered.promise.then(() => process.send({ type: 'entered' }));
   process.on('message', message => { if (message.type === 'release') release.resolve(); });
 }
 if (mode === 'stalled-response') {
   controls.blockAudit = async event => {
-    if (event.phase === 'completed') await new Promise(() => {});
+    if (event.phase === 'completed') await new Promise(() => { /* never settles: stalls the audit phase for this fixture mode */ });
   };
 }
 if (mode.startsWith('stalled-flush')) {
   app.auditTrail.flush = async () => {
     if (mode === 'stalled-flush-existing-error') process.exitCode = 23;
-    await new Promise(() => {});
+    await new Promise(() => { /* never settles: stalls the audit flush for this fixture mode */ });
   };
 }
 
 app.requestRestart = createProcessRestartRequest(async () => {
-  await fs.appendFile(path.join(directory, 'shutdown.log'), store.processInstanceId + '\n');
+  await fs.appendFile(path.join(directory, 'shutdown.log'), `${store.processInstanceId}\n`);
   process.send({ type: 'shutdown-started' });
   await stopWebServer();
   await app.auditTrail.flush?.();

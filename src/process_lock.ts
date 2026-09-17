@@ -48,6 +48,7 @@ export async function assertProcessLockOwner(owner: ProcessLock, stateDirectory?
   }
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 async function ownershipTurn<T>(owner: ProcessLock, action: () => Promise<T>): Promise<T> {
   const ownership = ownershipOf(owner);
   const attempt = ownership.tail.then(action);
@@ -56,6 +57,7 @@ async function ownershipTurn<T>(owner: ProcessLock, action: () => Promise<T>): P
 }
 
 /** Counter operations and owner release share one queue; a released owner cannot authorize later work. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function withProcessLockOwner<T>(owner: ProcessLock, stateDirectory: string, action: (directory: string) => Promise<T>): Promise<T> {
   return ownershipTurn(owner, async () => {
     const directory = await fs.realpath(path.resolve(stateDirectory));
@@ -96,8 +98,8 @@ async function readPayload(lockPath: string): Promise<LockPayload> {
     const parsed = JSON.parse(await fs.readFile(lockPath, 'utf8'));
     if (!isValidPayload(parsed)) throw new Error('invalid lock payload');
     return parsed;
-  } catch (error: any) {
-    if (error?.code === 'ENOENT') throw error;
+  } catch (error: unknown) {
+    if ((error as { code?: unknown } | null | undefined)?.code === 'ENOENT') throw error;
     throw new Error(`Process lock '${lockPath}' cannot be interpreted safely; refusing startup.`, { cause: error });
   }
 }
@@ -106,8 +108,8 @@ function processIsActive(pid: number): boolean {
   try {
     process.kill(pid, 0);
     return true;
-  } catch (error: any) {
-    return error?.code !== 'ESRCH';
+  } catch (error: unknown) {
+    return (error as { code?: unknown } | null | undefined)?.code !== 'ESRCH';
   }
 }
 
@@ -115,8 +117,8 @@ async function releaseOwnedLock(lockPath: string, token: string): Promise<void> 
   let existing: LockPayload;
   try {
     existing = await readPayload(lockPath);
-  } catch (error: any) {
-    if (error?.code === 'ENOENT') return;
+  } catch (error: unknown) {
+    if ((error as { code?: unknown } | null | undefined)?.code === 'ENOENT') return;
     throw error;
   }
   if (!constantTimeStringEqual(token, existing.token)) {
@@ -149,8 +151,8 @@ async function createProcessLock(lockPath: string, payload: LockPayload): Promis
   return owner;
 }
 
-async function handleLockCollision(lockPath: string, error: any): Promise<void> {
-  if (error?.code !== 'EEXIST') throw error;
+async function handleLockCollision(lockPath: string, error: unknown): Promise<void> {
+  if ((error as { code?: unknown } | null | undefined)?.code !== 'EEXIST') throw error;
   const existing = await readPayload(lockPath);
   if (processIsActive(existing.pid)) throw new ProcessLockActiveError(lockPath, existing.pid);
   // A read-then-rename/unlink would race a second starter and could delete its
@@ -166,7 +168,7 @@ export async function acquireProcessLock(lockPath: string): Promise<ProcessLock>
 
   try {
     return await createProcessLock(lockPath, payload);
-  } catch (error: any) {
+  } catch (error: unknown) {
     await handleLockCollision(lockPath, error);
     throw error;
   }

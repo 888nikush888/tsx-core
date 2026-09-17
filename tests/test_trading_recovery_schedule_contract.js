@@ -126,7 +126,9 @@ function testRequestBoundary() {
       assert.throws(() => validate(row), /RECOVERY_SCHEDULE/);
     }
   }
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(validateRecoveryScheduleInputs({ history: [] }, expected), undefined);
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(validateRecoveryScheduleProgress(undefined, {}, read, expected), undefined);
   assert.throws(() => validateRecoveryScheduleProgress({}, {}, read, expected), /RECOVERY_SCHEDULE/);
   assert.throws(() => validateRecoveryScheduleProgress(undefined, {}, { ...read, fxEvidence: {} }, expected), /RECOVERY_SCHEDULE/);

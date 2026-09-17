@@ -143,7 +143,7 @@ async function fractionalPipeline(filename) {
   await assertEntryAccountingReady(account, clone(snapshot));
   assert.deepEqual(await getDatabase().get('SELECT content_json FROM trading_money_events WHERE id=?', [event.id]), original);
   const adapter = new CcxtExchangeAdapter('bybit', {});
-  adapter.post = async endpoint => {
+  adapter.post = endpoint => {
     assert.equal(endpoint, '/v1/account-snapshot');
     return clone(incomplete);
   };

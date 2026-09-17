@@ -4,9 +4,10 @@ import { EvidenceFields } from '@/shared/components/evidence';
 import { useSettingFocus } from '@/shared/forms/use-setting-focus';
 
 type Parameter = { path: string; group: string; type: string; unit: string | null; default: unknown; range: [number, number] | null; values: string[] | null; maxLength: number; nullable: boolean; editable: boolean; secret: boolean; environmentName: string; source: string; requiresRestart: boolean };
-interface RuntimeParameterPayload {
+export interface RuntimeParameterPayload {
   parameters?: Parameter[];
   source?: string;
+  precedence?: string;
   restartRequired?: boolean;
   revision?: string;
   settings?: Record<string, unknown>;
@@ -48,9 +49,9 @@ export function runtimeInputError(value: Record<string, unknown>, parameters: Pa
   return null;
 }
 
-function runtimeFieldValue(field: Parameter, value: any) {
+function runtimeFieldValue(field: Parameter, value: unknown): string | number {
   if (field.secret || !['string', 'number', 'boolean'].includes(field.type)) return 'Unbekannter Feldtyp / schreibgeschützt';
-  return Number.isNaN(value) ? '' : value ?? '';
+  return Number.isNaN(value) ? '' : (value ?? '') as string | number;
 }
 function parseRuntimeField(field: Parameter, value: string) {
   if (field.type !== 'number') return value;

@@ -35,7 +35,7 @@ try {
       leg.orderType, Number(leg.reduceOnly), JSON.stringify(leg)]);
     return { entry, protectiveStop };
   }
-  async function journal(id, request) {
+  function journal(id, request) {
     return prepareTradingOperation({ account, intentId: id, kind: 'protected_entry', clientOrderIds: [request.entry.clientOrderId, request.protectiveStop.clientOrderId], request });
   }
   const fresh = await fixture('fresh');

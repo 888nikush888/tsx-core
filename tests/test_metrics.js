@@ -107,6 +107,7 @@ async function runTests() {
   const server = startMetricsServer(0, {
     totalForwardedCountCallback: () => 7,
     getQueueStateCallback: () => ({ running: 1, queued: 2, maxConcurrency: 3 }),
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     getOperationalMetricsCallback: async () => {
       if (operationalFailure !== null) throw operationalFailure;
       return operational;
@@ -210,8 +211,8 @@ async function runTests() {
   console.log('ALL HONEST OBSERVABILITY TESTS PASSED!');
 }
 
-await runTests().catch(async error => {
-  await stopMetricsServer().catch(() => undefined);
+await (async () => runTests())().catch(async error => {
+  await (async () => stopMetricsServer())().catch(() => undefined);
   console.error(error);
   process.exitCode = 1;
 });

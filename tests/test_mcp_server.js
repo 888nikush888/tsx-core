@@ -177,12 +177,14 @@ try {
     assert.ok(tools.tools.some(tool => tool.name === toolName), `${toolName} must be registered`);
   }
   const status = await client.callTool({ name: 'tsx_system_status', arguments: {} });
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(status.isError, undefined);
   const content = status.content;
   assert.ok(Array.isArray(content));
   const parsed = JSON.parse(content[0].text);
   assert.equal(parsed.overview.openPositionCount, 0);
   const contractsResult = await client.callTool({ name: 'tsx_contracts_list', arguments: {} });
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(contractsResult.isError, undefined);
   const contracts = JSON.parse(contractsResult.content[0].text);
   const standardDefinition = contracts.find(contract => contract.id === 'standard').versions[0].definition;
@@ -194,11 +196,13 @@ try {
       sourceText: 'LONG BTCUSDT entry 60000 to 61000 target 62000 stoploss 59000',
     },
   });
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(validated.isError, undefined);
   const preflight = await client.callTool({
     name: 'tsx_preflight',
     arguments: { action: 'risk.update', payload: { channelId: '-protocol-channel' } },
   });
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(preflight.isError, undefined);
   const preflightPayload = JSON.parse(preflight.content[0].text);
   assert.equal(preflightPayload.allowed, true);
@@ -230,6 +234,7 @@ try {
       enabled: false,
     },
   });
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(schemaProposal.isError, undefined);
   const schemaProposalPayload = JSON.parse(schemaProposal.content[0].text);
   assert.equal(schemaProposalPayload.status, 'completed');
@@ -237,6 +242,7 @@ try {
     name: 'tsx_proposal_status',
     arguments: { proposalId: schemaProposalPayload.proposalId },
   });
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(proposalStatus.isError, undefined);
   const missingProposal = await client.callTool({
     name: 'tsx_proposal_status',
@@ -244,6 +250,7 @@ try {
   });
   assert.equal(missingProposal.isError, true);
   const reconcile = await client.callTool({ name: 'tsx_reconcile', arguments: {} });
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(reconcile.isError, undefined);
   const failedReconcile = await client.callTool({
     name: 'tsx_reconcile', arguments: { accountId: 'fail-account' },
@@ -259,6 +266,7 @@ try {
     name: 'tsx_set_kill_switch',
     arguments: { active: true, reason: 'protocol test' },
   });
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(killSwitch.isError, undefined);
   const missingReason = await client.callTool({
     name: 'tsx_set_kill_switch', arguments: { active: true },
@@ -339,7 +347,7 @@ try {
     child.kill();
     await new Promise(resolve => child.once('exit', resolve));
   }
-  await closeDb().catch(() => undefined);
+  await (async () => closeDb())().catch(() => undefined);
   await processOwner.release();
   await rm(directory, { recursive: true, force: true });
 }

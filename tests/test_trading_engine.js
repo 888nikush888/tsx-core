@@ -390,7 +390,7 @@ async function verifyLegacySnapshotVersion(account, engine, id, payload) {
   assert.equal(JSON.parse((await getDatabase().get('SELECT remote_snapshot_json FROM trading_reconciliation_runs WHERE id=?', [id])).remote_snapshot_json).version, 2);
 }
 
-async function verifyBoundedReconciliationHistory(paper, account, engine) {
+async function verifyBoundedReconciliationHistory(paper, account, _engine) {
   const now = Date.now();
   for (let index = 0; index < 300; index += 1) {
     await getDatabase().run(
@@ -400,7 +400,7 @@ async function verifyBoundedReconciliationHistory(paper, account, engine) {
       [`bounded-${index}`, account.id, now + index, now + index],
     );
   }
-  await engine.pruneReconciliationRuns(account.id);
+  await TradingEngine.pruneReconciliationRuns(account.id);
   const boundedRuns = await getDatabase().get(
     'SELECT COUNT(*) AS count FROM trading_reconciliation_runs WHERE account_id = ?', [account.id],
   );

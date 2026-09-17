@@ -16,6 +16,24 @@ import {
 const root = await mkdtemp(path.join(os.tmpdir(), 'forwarder-config-'));
 
 try {
+  const specialKeys = structuredClone(DEFAULT_CONFIG);
+  specialKeys.sourceFilters = JSON.parse('{"__proto__":{"regexPatterns":["LONG"]}}');
+  specialKeys.sourceAliases = JSON.parse('{"__proto__":"custom"}');
+  const preservedKeys = validateConfig(specialKeys);
+  assert.equal(Object.getPrototypeOf(preservedKeys.sourceFilters), Object.prototype);
+  assert.equal(Object.hasOwn(preservedKeys.sourceFilters, '__proto__'), true);
+  assert.deepEqual(preservedKeys.sourceFilters['__proto__'], { regexPatterns: ['LONG'] });
+  assert.equal(Object.getPrototypeOf(preservedKeys.sourceAliases), Object.prototype);
+  assert.equal(Object.hasOwn(preservedKeys.sourceAliases, '__proto__'), true);
+  assert.equal(preservedKeys.sourceAliases['__proto__'], 'custom');
+  for (const model of [false, 0, null, undefined, '']) {
+    const candidate = structuredClone(DEFAULT_CONFIG);
+    candidate.xmlParsing.primaryModel = model;
+    candidate.xmlParsing.fallbackModel = model;
+    const normalized = validateConfig(candidate);
+    assert.equal(normalized.xmlParsing.primaryModel, DEFAULT_CONFIG.xmlParsing.primaryModel);
+    assert.equal(normalized.xmlParsing.fallbackModel, DEFAULT_CONFIG.xmlParsing.fallbackModel);
+  }
   const distributionConfig = validateConfig(JSON.parse(await readFile(path.resolve('config.json.example'), 'utf8')));
   assert.deepEqual(distributionConfig.sourceChannels, []);
   assert.equal(distributionConfig.targetChannel, '');
@@ -33,6 +51,7 @@ try {
 
   const savedSync = JSON.parse(await readFile(syncPath, 'utf8'));
   assert.equal(savedSync.apiId, 12345);
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(savedSync.apiHash, undefined);
   assert.equal(readConfigSync(syncPath).apiId, 12345);
   assert.deepEqual((await readdir(root)).filter(name => name.endsWith('.tmp')), []);
@@ -66,6 +85,7 @@ try {
   malformedValues.sourceAliases = ['not-a-map'];
   const sanitized = validateConfig(malformedValues);
   assert.equal(sanitized.apiId, 0);
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(sanitized.apiHash, undefined);
   assert.equal(sanitized.forwardOptions.maxConcurrency, DEFAULT_CONFIG.forwardOptions.maxConcurrency);
   assert.equal(sanitized.forwardOptions.queueTimeoutSeconds, DEFAULT_CONFIG.forwardOptions.queueTimeoutSeconds);
@@ -135,6 +155,7 @@ try {
   assert.deepEqual(canonicalized.config.sourceFilters['-1001'], { regexPatterns: ['LONG'] });
   assert.equal(canonicalized.config.sourceAliases['-1001'], 'Alpha');
   assert.equal(canonicalized.config.xmlParsing.sourceTemplates['-1001'], 'alpha-template');
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(canonicalized.config.sourceFilters['@alpha_source'], undefined);
 
   const automaticAlias = structuredClone(DEFAULT_CONFIG);

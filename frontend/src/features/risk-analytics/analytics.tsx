@@ -35,51 +35,16 @@ function duration(value: unknown): string {
 
 type AnalyticsRange = "24h" | "7d" | "30d" | "90d" | "all" | "custom";
 
-export function Analytics({
-  trading,
-  catalog,
-  filtersOpen,
-}: Readonly<{
-  trading: TradingSnapshot | null;
-  catalog: ExchangeCatalog | null;
-  filtersOpen?: boolean;
-}>) {
-  const [query, setQuery] = useSearchParams();
+function analyticsFilterValues(query: URLSearchParams) {
   const selectedRange = query.get('range') ?? '30d';
   const range: AnalyticsRange = ['24h', '7d', '30d', '90d', 'all', 'custom'].includes(selectedRange) ? selectedRange as AnalyticsRange : '30d';
-  const updateFilter = (key: string, value: string) => setQuery(current => {
-    if (value) current.set(key, value); else current.delete(key);
-    return current;
-  });
-  const setRange = (value: AnalyticsRange) => updateFilter('range', value);
-  const customFrom = query.get('customFrom') ?? '';
-  const customUntil = query.get('customUntil') ?? '';
-  const channelId = query.get('channelId') ?? '';
-  const accountId = query.get('accountId') ?? '';
-  const exchange = query.get('exchange') ?? '';
-  const mode = query.get('mode') ?? '';
-  const status = query.get('status') ?? '';
-  const setCustomFrom = (value: string) => updateFilter('customFrom', value);
-  const setCustomUntil = (value: string) => updateFilter('customUntil', value);
-  const setChannelId = (value: string) => updateFilter('channelId', value);
-  const setAccountId = (value: string) => updateFilter('accountId', value);
-  const setExchange = (value: string) => updateFilter('exchange', value);
-  const setMode = (value: string) => updateFilter('mode', value);
-  const setStatus = (value: string) => updateFilter('status', value);
-  const [analyticsResponse, setAnalyticsResponse] = useState<{ context: string; value: AnalyticsResponse } | null>(null);
-  const analyticsContext = JSON.stringify([range, customFrom, customUntil, channelId, accountId, exchange, mode, status]);
-  const analytics = analyticsResponse?.context === analyticsContext ? analyticsResponse.value : null;
-  const [error, setError] = useState("");
-  const [expectancy, setExpectancy] = useState({
-    winRate: "50",
-    averageWin: "2",
-    averageLoss: "1",
-  });
-  const readAnalytics = useCallback(async (signal: AbortSignal) => {
-    const query = analyticsQuery({ range, customFrom, customUntil, channelId, accountId, exchange, mode, status }, Date.now());
-    return { context: analyticsContext, value: await jsonRequest(`/api/trading/analytics?${query}`, { signal }) };
-  }, [range, customFrom, customUntil, channelId, accountId, exchange, mode, status, analyticsContext]);
-  usePoll(readAnalytics, (value) => { setAnalyticsResponse(value); setError(""); }, (reason) => setError(reason.message));
+  return {
+    range, customFrom: query.get('customFrom') ?? '', customUntil: query.get('customUntil') ?? '', channelId: query.get('channelId') ?? '',
+    accountId: query.get('accountId') ?? '', exchange: query.get('exchange') ?? '', mode: query.get('mode') ?? '', status: query.get('status') ?? '',
+  };
+}
+
+function analyticsDataFor(analytics: AnalyticsResponse | null, trading: TradingSnapshot | null) {
   const channels = analytics?.performance?.channels || [];
   const exchanges = analytics?.performance?.exchanges || [];
   const equity = analytics?.performance?.equity || [];
@@ -88,44 +53,23 @@ export function Analytics({
   const executionIncomplete = analytics?.execution?.coverage?.complete === false;
   const execution: ExecutionAnalytics = executionIncomplete ? {} : analytics?.execution || {};
   const fallback = analytics?.fallback || {};
-  const fallbackSkipReasons = [
-    ["SYMBOL_UNAVAILABLE", "Pair fehlt"],
-    ["MAX_CONCURRENT_POSITIONS", "Account voll"],
-    ["SYMBOL_ALREADY_OWNED", "Pair bereits offen"],
-  ] as const;
   const totalMoney = analytics?.performance?.total;
   const channelMoneyCharts = moneyChartGroups(channels);
-  const closedTrades = channels.reduce(
-    (total, item) => total + Number(item.closedTrades || 0),
-    0,
-  );
+  const closedTrades = channels.reduce((total, item) => total + Number(item.closedTrades || 0), 0);
   const drawdowns = equity.filter((point) => point.drawdownPercent != null && Number.isFinite(Number(point.drawdownPercent))).map((point) => Number(point.drawdownPercent));
   const peakDrawdown = drawdowns.length ? Math.max(...drawdowns) : null;
-  const funnel = Object.entries(execution.funnel || {}).map(([name, value]) => ({
-    name: name.replaceAll("_", " "),
-    value: Number(value),
-  }));
-  const expectancyValue =
-    (Number(expectancy.winRate) / 100) * Number(expectancy.averageWin) -
-    (1 - Number(expectancy.winRate) / 100) * Number(expectancy.averageLoss);
-  const channelOptions = useMemo(
-    () => [...new Set<string>((analytics?.performance?.channels || []).map((item) => String(item.id)))],
-    [analytics?.performance?.channels],
-  );
-  const exchangeOptions = useMemo(() => {
-    const labels = new Map<string, string>();
-    for (const entry of catalog?.exchanges || []) labels.set(entry.id, entry.name);
-    for (const account of trading?.accounts || []) {
-      if (!labels.has(account.exchange)) labels.set(account.exchange, account.exchange);
-    }
-    for (const item of trading?.channelAnalytics?.exchanges || []) {
-      const id = String(item.id || item.exchange || "");
-      if (id && !labels.has(id)) labels.set(id, id);
-    }
-    return [...labels].sort((left, right) => left[1].localeCompare(right[1]));
-  }, [catalog, trading?.accounts, trading?.channelAnalytics?.exchanges]);
+  const funnel = Object.entries(execution.funnel || {}).map(([name, value]) => ({ name: name.replaceAll("_", " "), value: Number(value) }));
+  return { channels, exchanges, equity, adaptiveStates, evaluations, executionIncomplete, execution, fallback, totalMoney, channelMoneyCharts, closedTrades, peakDrawdown, funnel };
+}
+
+function AnalyticsFilterBar({ filtersOpen, range, setRange, customFrom, setCustomFrom, customUntil, setCustomUntil, channelId, setChannelId, channelOptions, accountId, setAccountId, exchange, setExchange, exchangeOptions, mode, setMode, status, setStatus }: Readonly<{
+  filtersOpen?: boolean; range: AnalyticsRange; setRange: (value: AnalyticsRange) => void; customFrom: string; setCustomFrom: (value: string) => void;
+  customUntil: string; setCustomUntil: (value: string) => void; channelId: string; setChannelId: (value: string) => void; channelOptions: string[];
+  accountId: string; setAccountId: (value: string) => void; exchange: string; setExchange: (value: string) => void; exchangeOptions: [string, string][];
+  mode: string; setMode: (value: string) => void; status: string; setStatus: (value: string) => void;
+}>) {
   return (
-    <div className="operations-stack">
+    <>
       {filtersOpen && (
         <section className="operations-card analytics-filterbar" aria-label="Analysefilter">
         <label>
@@ -152,10 +96,26 @@ export function Analytics({
         <label><span>Intentstatus</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Alle Intentstatus</option>{JOURNAL_INTENT_STATUSES.map(value => <option key={value}>{value}</option>)}</select></label>
       </section>
       )}
+    </>
+  );
+}
+
+function AnalyticsNotices({ error, analytics, status, executionIncomplete }: Readonly<{ error: string; analytics: AnalyticsResponse | null; status: string; executionIncomplete: boolean }>) {
+  return (
+    <>
       {error && <div role="alert" className="builder-error">{error}</div>}
       {!analytics && <p><output>Für diese Filter ist noch kein Analyseergebnis bestätigt.</output></p>}
       {status && <p>Der Statusfilter bezieht sich auf Intents. Ereignisse und Fallbackkandidaten ohne zugeordneten Intentstatus sind dabei ausgeschlossen.</p>}
       {executionIncomplete && <p role="alert">Mehr als 20.000 passende Ausführungsereignisse. Funnel und Latenz bleiben ohne vollständigen Nachweis ausgeblendet; Zeitraum oder Dimensionen weiter eingrenzen.</p>}
+    </>
+  );
+}
+
+function AnalyticsMetrics({ analytics, totalMoney, closedTrades, peakDrawdown, execution, fallback }: Readonly<{
+  analytics: AnalyticsResponse | null; totalMoney: AnalyticsResponse["performance"]["total"]; closedTrades: number; peakDrawdown: number | null;
+  execution: ExecutionAnalytics; fallback: AnalyticsResponse["fallback"];
+}>) {
+  return (
       <div className="operations-metrics">
         <Metric label="Realisierter PnL" value={<MoneySummaryAmount summary={totalMoney} />} />
         <Metric label="Geschlossene Trades" value={analytics ? closedTrades : '–'} />
@@ -174,6 +134,13 @@ export function Analytics({
         <Metric label="Fallback gewählt" value={fallback.selected ?? '–'} />
         <Metric label="Kette ausgeschöpft" value={fallback.exhausted ?? '–'} danger={(fallback.exhausted || 0) > 0} />
       </div>
+  );
+}
+
+function AnalyticsCharts({ equity, trading, channelMoneyCharts, funnel }: Readonly<{
+  equity: AnalyticsResponse["performance"]["equity"]; trading: TradingSnapshot | null; channelMoneyCharts: ReturnType<typeof moneyChartGroups>; funnel: Array<{ name: string; value: number }>;
+}>) {
+  return (
       <div className="analytics-chart-grid">
         <section className="operations-card analytics-chart">
           <h3>Equity-Verlauf</h3>
@@ -221,6 +188,11 @@ export function Analytics({
           ) : <Empty text="Keine Ausführungsereignisse in dieser Auswahl." />}
         </section>
       </div>
+  );
+}
+
+function ChannelPerformanceSection({ channels }: Readonly<{ channels: AnalyticsResponse["performance"]["channels"] }>) {
+  return (
       <section className="operations-card">
         <h3>Kanalperformance</h3>
         <div
@@ -257,6 +229,11 @@ export function Analytics({
           )}
         </div>
       </section>
+  );
+}
+
+function ExchangeComparisonSection({ exchanges }: Readonly<{ exchanges: AnalyticsResponse["performance"]["exchanges"] }>) {
+  return (
       <section className="operations-card">
         <h3>Börsenvergleich</h3>
         {exchanges.map((item) => (
@@ -276,15 +253,11 @@ export function Analytics({
           <Empty text="Noch keine Börsenausführungen." />
         )}
       </section>
-      <section className="operations-card">
-        <h3>Fallback-Übersprünge</h3>
-        {fallbackSkipReasons.map(([reason, label]) => (
-          <div className="system-line" key={reason}>
-            <span>{label}</span>
-            <strong>{fallback.skippedByReason?.[reason] || 0}</strong>
-          </div>
-        ))}
-      </section>
+  );
+}
+
+function FallbackAccountSection({ fallback }: Readonly<{ fallback: AnalyticsResponse["fallback"] }>) {
+  return (
       <section className="operations-card">
         <h3>Fallback-Auswahl je Börsenkonto</h3>
         {(fallback.byAccount || []).map((item) => (
@@ -297,6 +270,11 @@ export function Analytics({
           <Empty text="Für den gewählten Zeitraum liegen keine Fallback-Versuche vor." />
         )}
       </section>
+  );
+}
+
+function AdaptiveStatesSection({ adaptiveStates }: Readonly<{ adaptiveStates: TradingSnapshot["workflowAdaptiveRisk"]["states"] }>) {
+  return (
       <section className="operations-card">
         <h3>Aktives adaptives Risiko je Pfad</h3>
         {adaptiveStates.map((item) => (
@@ -322,6 +300,11 @@ export function Analytics({
           <Link to="/risk/adaptive">Aktive Policen mit vollständiger Seitenauswahl und Originalbelegen öffnen</Link>
         )}
       </section>
+  );
+}
+
+function EvaluationsSection({ evaluations, channelId, accountId }: Readonly<{ evaluations: TradingSnapshot["workflowAdaptiveRisk"]["evaluations"]; channelId: string; accountId: string }>) {
+  return (
       <section className="operations-card">
         <h3>Letzte adaptive Bewertungen</h3>
         {evaluations.filter((item) => (!channelId || item.channelId === channelId) && (!accountId || item.accountId === accountId)).slice(0, 30).map((item) => (
@@ -345,15 +328,107 @@ export function Analytics({
           <Link to="/risk/adaptive?kind=evaluations">Adaptive Originalbewertungen seitenweise lesen</Link>
         )}
       </section>
-      <section className="operations-card">
-        <h3>Erwartungswert-Rechner</h3>
+  );
+}
+
+type ExpectancyInput = { winRate: string; averageWin: string; averageLoss: string };
+function ExpectancySection({ expectancy, setExpectancy, expectancyValue }: Readonly<{ expectancy: ExpectancyInput; setExpectancy: (value: ExpectancyInput | ((previous: ExpectancyInput) => ExpectancyInput)) => void; expectancyValue: number }>) {
+  return (
+    <section className="operations-card">
+      <h3>Erwartungswert-Rechner</h3>
         <div className="expectancy-grid">
           <label><span>Trefferquote %</span><Input type="number" min="0" max="100" value={expectancy.winRate} onChange={(event) => setExpectancy((value) => ({ ...value, winRate: event.target.value }))} /></label>
           <label><span>Ø Gewinn (R)</span><Input type="number" min="0" step="0.1" value={expectancy.averageWin} onChange={(event) => setExpectancy((value) => ({ ...value, averageWin: event.target.value }))} /></label>
           <label><span>Ø Verlust (R)</span><Input type="number" min="0" step="0.1" value={expectancy.averageLoss} onChange={(event) => setExpectancy((value) => ({ ...value, averageLoss: event.target.value }))} /></label>
           <div className={`expectancy-result ${expectancyValue < 0 ? "danger" : "healthy"}`}><strong>{metricNumber(expectancyValue, 3)} R</strong><span>Erwartungswert je Trade</span></div>
         </div>
+    </section>
+  );
+}
+
+export function Analytics({
+  trading,
+  catalog,
+  filtersOpen,
+}: Readonly<{
+  trading: TradingSnapshot | null;
+  catalog: ExchangeCatalog | null;
+  filtersOpen?: boolean;
+}>) {
+  const [query, setQuery] = useSearchParams();
+  const { range, customFrom, customUntil, channelId, accountId, exchange, mode, status } = analyticsFilterValues(query);
+  const updateFilter = (key: string, value: string) => setQuery(current => {
+    if (value) current.set(key, value); else current.delete(key);
+    return current;
+  });
+  const setRange = (value: AnalyticsRange) => updateFilter('range', value);
+  const setCustomFrom = (value: string) => updateFilter('customFrom', value);
+  const setCustomUntil = (value: string) => updateFilter('customUntil', value);
+  const setChannelId = (value: string) => updateFilter('channelId', value);
+  const setAccountId = (value: string) => updateFilter('accountId', value);
+  const setExchange = (value: string) => updateFilter('exchange', value);
+  const setMode = (value: string) => updateFilter('mode', value);
+  const setStatus = (value: string) => updateFilter('status', value);
+  const [analyticsResponse, setAnalyticsResponse] = useState<{ context: string; value: AnalyticsResponse } | null>(null);
+  const analyticsContext = JSON.stringify([range, customFrom, customUntil, channelId, accountId, exchange, mode, status]);
+  const analytics = analyticsResponse?.context === analyticsContext ? analyticsResponse.value : null;
+  const [error, setError] = useState("");
+  const [expectancy, setExpectancy] = useState({
+    winRate: "50",
+    averageWin: "2",
+    averageLoss: "1",
+  });
+  const readAnalytics = useCallback(async (signal: AbortSignal) => {
+    const query = analyticsQuery({ range, customFrom, customUntil, channelId, accountId, exchange, mode, status }, Date.now());
+    return { context: analyticsContext, value: await jsonRequest(`/api/trading/analytics?${query}`, { signal }) };
+  }, [range, customFrom, customUntil, channelId, accountId, exchange, mode, status, analyticsContext]);
+  usePoll(readAnalytics, (value) => { setAnalyticsResponse(value); setError(""); }, (reason) => setError(reason.message));
+  const fallbackSkipReasons = [
+    ["SYMBOL_UNAVAILABLE", "Pair fehlt"],
+    ["MAX_CONCURRENT_POSITIONS", "Account voll"],
+    ["SYMBOL_ALREADY_OWNED", "Pair bereits offen"],
+  ] as const;
+  const { channels, exchanges, equity, adaptiveStates, evaluations, executionIncomplete, execution, fallback, totalMoney, channelMoneyCharts, closedTrades, peakDrawdown, funnel } = analyticsDataFor(analytics, trading);
+  const expectancyValue =
+    (Number(expectancy.winRate) / 100) * Number(expectancy.averageWin) -
+    (1 - Number(expectancy.winRate) / 100) * Number(expectancy.averageLoss);
+  const channelOptions = useMemo(
+    () => [...new Set<string>((analytics?.performance?.channels || []).map((item) => String(item.id)))],
+    [analytics?.performance?.channels],
+  );
+  const exchangeOptions = useMemo(() => {
+    const labels = new Map<string, string>();
+    for (const entry of catalog?.exchanges || []) labels.set(entry.id, entry.name);
+    for (const account of trading?.accounts || []) {
+      if (!labels.has(account.exchange)) labels.set(account.exchange, account.exchange);
+    }
+    for (const item of trading?.channelAnalytics?.exchanges || []) {
+      const id = String(item.id || item.exchange || "");
+      if (id && !labels.has(id)) labels.set(id, id);
+    }
+    return [...labels].sort((left, right) => left[1].localeCompare(right[1]));
+  }, [catalog, trading?.accounts, trading?.channelAnalytics?.exchanges]);
+  return (
+    <div className="operations-stack">
+      <AnalyticsFilterBar filtersOpen={filtersOpen} range={range} setRange={setRange} customFrom={customFrom} setCustomFrom={setCustomFrom} customUntil={customUntil} setCustomUntil={setCustomUntil} channelId={channelId} setChannelId={setChannelId} channelOptions={channelOptions} accountId={accountId} setAccountId={setAccountId} exchange={exchange} setExchange={setExchange} exchangeOptions={exchangeOptions} mode={mode} setMode={setMode} status={status} setStatus={setStatus} />
+      <AnalyticsNotices error={error} analytics={analytics} status={status} executionIncomplete={executionIncomplete} />
+      <AnalyticsMetrics analytics={analytics} totalMoney={totalMoney} closedTrades={closedTrades} peakDrawdown={peakDrawdown} execution={execution} fallback={fallback} />
+      <AnalyticsCharts equity={equity} trading={trading} channelMoneyCharts={channelMoneyCharts} funnel={funnel} />
+      <ChannelPerformanceSection channels={channels} />
+      <ExchangeComparisonSection exchanges={exchanges} />
+      <section className="operations-card">
+        <h3>Fallback-Übersprünge</h3>
+        {fallbackSkipReasons.map(([reason, label]) => (
+          <div className="system-line" key={reason}>
+            <span>{label}</span>
+            <strong>{fallback.skippedByReason?.[reason] || 0}</strong>
+          </div>
+        ))}
       </section>
+      <FallbackAccountSection fallback={fallback} />
+      <AdaptiveStatesSection adaptiveStates={adaptiveStates} />
+      <EvaluationsSection evaluations={evaluations} channelId={channelId} accountId={accountId} />
+      <ExpectancySection expectancy={expectancy} setExpectancy={setExpectancy} expectancyValue={expectancyValue} />
     </div>
   );
 }

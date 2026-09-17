@@ -23,6 +23,7 @@ export function createProcessRestartRequest(shutdown: () => Promise<unknown>, sh
     if (requested) return;
     requested = true;
     const previousExitCode = process.exitCode;
+    // skipcq: JS-0263 - restart watchdog must guarantee termination when response completion and audit flush never settle.
     const exit = (fallbackCode: number): never => process.exit(process.exitCode || previousExitCode || fallbackCode);
     // Response completion and audit flush can both remain pending forever. Keep
     // the watchdog independent of either promise; do not remove locks or claim

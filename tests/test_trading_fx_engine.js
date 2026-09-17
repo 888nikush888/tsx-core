@@ -24,7 +24,9 @@ for (const phase of ['before_dispatch', 'after_dispatch']) {
     await paper.setMarket('paper-default', { symbol: 'BTCUSDT', markPrice: '100', priceTick: '0.1', quantityStep: '0.01',
       minimumQuantity: '0.01', minimumNotional: '1', maxLeverage: 10 });
     let sends = 0;
+    // skipcq: JS-0116 - preserve the original asynchronous failure fixture, including indirect helper throws.
     if (phase === 'before_dispatch') paper.marketSnapshot = async () => invalidFx('SIZING_CONVERSION_UNPROVEN');
+    // skipcq: JS-0116 - preserve the original asynchronous failure fixture, including indirect helper throws.
     paper.submitProtectedEntry = async () => { sends += 1; return invalidFx('SIZING_CONVERSION_UNPROVEN'); };
     await new TradingEngine([paper]).processIntent(intent.id);
     const actual = await getTradingIntent(intent.id);

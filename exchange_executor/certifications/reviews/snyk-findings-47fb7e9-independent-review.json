@@ -1,0 +1,34 @@
+{
+  "kind": "independent-read-only-snyk-candidate-archive-verification",
+  "revision": "47fb7e9cf2060079427574980b54955673fe793d",
+  "scannedRevision": "def1ec14006a75830e2ef608fd8e7e5d3b8567bc",
+  "candidateSha256": "eb6a504b989763514efacadf55a520df6679ca4bfa224086b77d34b40f1af354",
+  "archiveSha256": "2d4e7f8836a3e7742fd8c7df42855252708f74210343ecb483e5d5bbaf74423a",
+  "verifierSha256": "226d00f870e1f83964953e8008150f75600bae540b16df8aa2a13275abc41141",
+  "checks": {
+    "membersRead": 147,
+    "sourceBindingsReadAndMatchedToGit": 102,
+    "reportFilesRead": 43,
+    "declaredReferencesVerified": 16,
+    "exactSameGitTree": true,
+    "historicalIdentitiesPreserved": 85,
+    "structuralHistoricalFlowsPreserved": 85,
+    "onlyAuthorityContextBindingsChanged": [
+      "ca8d4075-1f15-40f9-9432-667e0a033660",
+      "4494650c-4f77-4efc-9956-2a491467ddaf",
+      "7039073d-34a6-4901-9897-4c0a40ca7b0a"
+    ],
+    "newExplicitIndependentFixtureReview": "40aa77d4-0842-4520-885d-a108e083d3a0",
+    "falsePositives": 82,
+    "unchangedOpenHttpRisks": 4,
+    "acceptanceExpires": "2026-10-08",
+    "all86ExactSourceContextFlowFingerprintCommitments": true,
+    "operativeUnchanged": true
+  },
+  "limitations": [
+    "No tests or scanner rerun. Existing completed scanner and root semantic reviews were bound and checked.",
+    "Not operative adoption or risk renewal; four HTTP risks remain OPEN."
+  ],
+  "operativeApproved": false,
+  "providerAcceptanceVerified": false
+}

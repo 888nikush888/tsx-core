@@ -67,6 +67,7 @@ async function testErrorsAndTimeouts() {
   const errorQueue = new ConcurrencyQueue(2);
   
   const successfulJob = () => Promise.resolve("success");
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   const throwingJob = async () => {
     throw new Error("Job failed");
   };
@@ -284,7 +285,7 @@ async function runTests() {
   await testHostileSettingsInput();
 }
 
-await runTests().catch(err => {
+await (async () => runTests())().catch(err => {
   console.error("ConcurrencyQueue test execution failed:", err);
   process.exit(1);
 });

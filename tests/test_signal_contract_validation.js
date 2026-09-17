@@ -257,6 +257,7 @@ assert.deepEqual(marketSignal.groundingFields, [
 ]);
 
 const withoutLeverageXml = marketXml.replace('<leverage>5</leverage>', '');
+// skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
 assert.equal(validateSignalXml(withoutLeverageXml, undefined, typedSelection).execution.suggestedLeverage, undefined);
 for (const leverage of ['1', '125']) {
   const accepted = marketXml.replace('<leverage>5</leverage>', `<leverage>${leverage}</leverage>`);
@@ -433,6 +434,14 @@ function testContractPatternExecution() {
 
   // The outer process owns the deadline even if the runtime guard regresses.
   const fixture = fileURLToPath(new URL('./fixtures/signal_contract_regex_child.js', import.meta.url));
+  // Saving a valid pattern must compile it without executing even an empty match.
+  // This expression can exhaust the native regexp stack, independently of a VM timeout.
+  const validation = spawnSync(process.execPath, ['--import', 'tsx', fixture, '(a?){1000000000}', 'validate-only'], {
+    encoding: 'utf8', timeout: 5_000,
+  });
+  assert.equal(validation.error, undefined, 'Pattern validation must not hang its subprocess.');
+  assert.equal(validation.status, 0, validation.stderr);
+  assert.match(validation.stdout, /contract-validated/u);
   for (const pattern of ['^(a+)+$', '^(a|aa)+$', '^((a+))+$']) {
     for (const placement of ['first', 'late']) {
       const result = spawnSync(process.execPath, ['--import', 'tsx', fixture, pattern, placement], {

@@ -6,6 +6,7 @@ import { NavigationProvider } from '@/lib/navigation';
 import { OperatorReadOnlyContext } from '@/shared/api/operator-session';
 import { CapabilitiesPage } from '@/features/operations/capabilities';
 import { SignalsPage } from '@/features/signals/signals-page';
+import { SignalOriginal } from '@/features/signals/signal-original';
 import { TestLab } from '@/features/workflows/test-lab';
 
 const api = vi.hoisted(() => ({ jsonRequest: vi.fn() }));
@@ -89,6 +90,7 @@ describe('signal read routes and explicit delivery recovery', () => {
   });
 
   it('requires the duplicate-delivery warning and retains an unconfirmed retry without replay', async () => {
+    // skipcq: JS-0116 - native Promise rejection preserves asynchronous failure coverage.
     api.jsonRequest.mockImplementation(async (_url: string, init?: RequestInit) => {
       if (init?.method) throw new TypeError('Delivery response lost');
       return { entries: [entry], observedAt };
@@ -112,7 +114,7 @@ describe('signal read routes and explicit delivery recovery', () => {
 describe('test laboratory boundaries', () => {
   const metadata = { observedAt, usageDay: '2026-09-07', paths: [{ id: 'path-1', channelId: 'source', accountId: 'account' }], limits: { maxInputChars: 1000 }, usage: {}, queue: {} };
   it('runs a local filter test with the explicit source/channel and exposes no trading approval', async () => {
-    api.jsonRequest.mockImplementation(async (_url: string, init?: RequestInit) => init?.method ? { matched: true } : metadata);
+    api.jsonRequest.mockImplementation((_url: string, init?: RequestInit) => init?.method ? { matched: true } : metadata);
     mount(<TestLab />);
     expect(screen.getByRole('button', { name: 'Lokalen Test ausführen' })).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Kanal-ID'), { target: { value: 'channel' } });
@@ -126,7 +128,7 @@ describe('test laboratory boundaries', () => {
 
   it('validates XML against the selected published contract and preserves optional grounding text', async () => {
     window.history.replaceState(null, '', '/workflows/lab?mode=xml');
-    api.jsonRequest.mockImplementation(async (url: string, init?: RequestInit) => {
+    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => {
       if (init?.method) return { valid: true };
       if (url === '/api/trading') return { signalContracts: [{ name: 'Signal contract', versions: [{ id: 'published', version: 3, status: 'published', definition: { shape: 'fixture' } }, { id: 'draft', status: 'draft' }] }] };
       return metadata;
@@ -146,7 +148,7 @@ describe('test laboratory boundaries', () => {
 
   it('pins a paid parser run to the reviewed preview and invalidates consent after source edits', async () => {
     window.history.replaceState(null, '', '/workflows/lab?mode=ai');
-    api.jsonRequest.mockImplementation(async (url: string, init?: RequestInit) => {
+    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => {
       if (url.endsWith('/preview')) return { provider: 'Fixture provider', providerConfigured: true, externalDataPolicyAccepted: true, previewHash: 'reviewed-preview', observedAt, sourceChars: 6, sourceBytes: 6 };
       if (init?.method) return { job: { state: 'accepted' } };
       return metadata;
@@ -168,5 +170,30 @@ describe('test laboratory boundaries', () => {
     expect(JSON.parse(runs[0][1].body)).toMatchObject({ sourceText: 'Edited source', jobId: expect.any(String), previewHash: 'reviewed-preview', previewObservedAt: observedAt, externalDataConsent: true });
     expect(runs[0][1].headers['X-Destructive-Confirmation']).toBe('run-parser-test');
     expect(screen.getByText(/Nur der Auftrag ist angenommen/, { selector: 'p' })).toBeVisible();
+  });
+});
+
+
+describe('stored original field selection', () => {
+  it('renders one processed selector and resets text paging when switching the original field', async () => {
+    window.history.replaceState(null, '', '/signals/processed/17?field=xml&textCursor=second');
+    api.jsonRequest.mockImplementation((url: string) => Promise.resolve({
+      channelId: 'channel', messageId: 'message', createdAt: observedAt, interpretation: 'Originalbeleg',
+      offset: 0, totalCharacters: 8, text: new URL(url, window.location.origin).searchParams.get('field'), hasMore: false, nextCursor: null,
+    }));
+    mount(<SignalOriginal id="17" kind="processed" />);
+    const selector = screen.getByRole('combobox', { name: 'Originalfeld' });
+    await waitFor(() => expect(screen.getByLabelText('Originaltext')).toHaveTextContent('xml'));
+    fireEvent.change(selector, { target: { value: 'normalized' } });
+    await waitFor(() => expect(screen.getByLabelText('Originaltext')).toHaveTextContent('normalized'));
+    expect(screen.getAllByRole('combobox', { name: 'Originalfeld' })).toHaveLength(1);
+    expect(new URLSearchParams(window.location.search).get('field')).toBe('normalized');
+    expect(new URLSearchParams(window.location.search).has('textCursor')).toBe(false);
+    expect(writes()).toHaveLength(0);
+  });
+  it('does not offer parser field selection for a stored incoming message', () => {
+    api.jsonRequest.mockResolvedValue(null);
+    mount(<SignalOriginal id="17" kind="messages" />);
+    expect(screen.queryByRole('combobox', { name: 'Originalfeld' })).not.toBeInTheDocument();
   });
 });

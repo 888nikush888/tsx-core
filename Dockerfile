@@ -4,6 +4,7 @@ ARG DEBIAN_SNAPSHOT=20260713T150000Z
 
 FROM ${NODE_IMAGE} AS base
 ARG DEBIAN_SNAPSHOT
+# skipcq: DOK-DL3008 - apt sources are pinned to DEBIAN_SNAPSHOT; the frozen snapshot already guarantees exact, reproducible package versions, and explicit package=version pins would block snapshot security revisions.
 RUN sed -ri "s|deb.debian.org/debian-security|snapshot.debian.org/archive/debian-security/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources \
     && sed -ri "s|deb.debian.org/debian|snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}|g" /etc/apt/sources.list.d/debian.sources \
     && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99snapshot \
@@ -26,6 +27,7 @@ RUN npm run build
 FROM base AS production-dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
+# skipcq: DOK-DL3008 - package versions are frozen by the pinned Debian snapshot configured in the base stage; explicit version pins would duplicate that guarantee and block snapshot security revisions.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential python3 \
     && rm -rf /var/lib/apt/lists/* \

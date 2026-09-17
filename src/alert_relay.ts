@@ -161,9 +161,9 @@ async function handleAlertRequest(
     const summary = await deliverAlert(options, timeoutMs, await readBody(request));
     writeJsonLog('INFO', 'alert_delivered', { alert_count: summary.alertCount, alert_status: summary.status });
     response.writeHead(202).end();
-  } catch (error: any) {
-    writeJsonLog('ERROR', 'alert_delivery_failed', { error_code: String(error.name || 'Error') });
-    response.writeHead(Number(error.statusCode) || 502).end();
+  } catch (error: unknown) {
+    writeJsonLog('ERROR', 'alert_delivery_failed', { error_code: String((error as { name?: string }).name || 'Error') });
+    response.writeHead(Number((error as { statusCode?: number }).statusCode) || 502).end();
   }
 }
 
@@ -171,7 +171,11 @@ export function createAlertRelay(options: AlertRelayOptions): http.Server {
   validateOptions(options);
   const timeoutMs = options.timeoutMs ?? 10_000;
   validateTimeout(timeoutMs);
-  const server = http.createServer((request, response) => void handleAlertRequest(request, response, options, timeoutMs));
+  const server = http.createServer((request, response) => {
+    handleAlertRequest(request, response, options, timeoutMs).catch(() => {
+      response.destroy();
+    });
+  });
   server.requestTimeout = 15_000;
   server.headersTimeout = 5_000;
   server.keepAliveTimeout = 5_000;
@@ -209,8 +213,8 @@ async function startFromEnvironment(): Promise<void> {
 if (path.resolve(process.argv[1] || '') === path.resolve(fileURLToPath(import.meta.url))) {
   try {
     await startFromEnvironment();
-  } catch (error: any) {
-    console.error(`[FATAL] Alert relay startup failed: ${error.message}`);
+  } catch (error: unknown) {
+    console.error(`[FATAL] Alert relay startup failed: ${(error as { message?: string }).message}`);
     process.exitCode = 1;
   }
 }

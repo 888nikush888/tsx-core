@@ -61,11 +61,11 @@ const CREDENTIAL_IDS = new Set([
   'privateKey', 'walletAddress', 'token',
 ]);
 
-function object(value: unknown, label: string): Record<string, any> {
+function object(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new TypeError(`${label} returned an invalid contract.`);
   }
-  return value as Record<string, any>;
+  return value as Record<string, unknown>;
 }
 
 function safeReason(value: unknown): string | null {
@@ -95,7 +95,7 @@ function catalogEntry(value: unknown): ExchangeCatalogEntry {
   if (typeof input.name !== 'string' || input.name.trim().length < 1 || input.name.length > 100) {
     throw new Error('Exchange catalog returned an invalid exchange name.');
   }
-  if (!STATUS_VALUES.has(input.status)) throw new Error('Exchange catalog returned an invalid status.');
+  if (!STATUS_VALUES.has(input.status as ExchangeCertificationStatus)) throw new Error('Exchange catalog returned an invalid status.');
   if (input.provider !== 'ccxt') throw new Error('Executor catalog may only contain CCXT exchanges.');
   const ccxt = object(input.ccxt, 'Exchange catalog CCXT metadata');
   if (typeof ccxt.rest !== 'boolean' || typeof ccxt.pro !== 'boolean') {
@@ -110,7 +110,7 @@ function catalogEntry(value: unknown): ExchangeCatalogEntry {
   }
   const credentialFields = input.credentialFields.map((value: unknown) => {
     const field = object(value, 'Exchange credential field');
-    if (!CREDENTIAL_IDS.has(field.id) || typeof field.label !== 'string'
+    if (!CREDENTIAL_IDS.has(field.id as string) || typeof field.label !== 'string'
       || field.label.length < 1 || field.label.length > 80
       || typeof field.required !== 'boolean' || typeof field.secret !== 'boolean') {
       throw new Error('Exchange catalog returned an invalid credential field.');
@@ -132,12 +132,12 @@ function catalogEntry(value: unknown): ExchangeCatalogEntry {
   return {
     id,
     name: input.name.trim(),
-    status: input.status,
+    status: input.status as ExchangeCertificationStatus,
     reason: safeReason(input.reason),
     provider: 'ccxt',
     ccxt: { rest: ccxt.rest, pro: ccxt.pro },
-    markets: { linearSwap: markets.linearSwap },
-    credentialFields,
+    markets: { linearSwap: markets.linearSwap as boolean },
+    credentialFields: credentialFields as ExchangeCredentialField[],
     modes,
     capabilities: safeCapabilities(input.capabilities),
   };

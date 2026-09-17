@@ -156,6 +156,7 @@ try {
 
   const failing = await fixture('open', 'a-failing');
   const healthy = await fixture('open', 'z-healthy');
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   adapter.cancelOrder = async (_account, id) => {
     sends.push(id);
     if (id === failing.id) throw new Error('simulated timeout after cancel dispatch');
@@ -167,7 +168,7 @@ try {
   assert.equal((await getDatabase().get('SELECT status FROM trading_orders WHERE id = ?', [healthy.id])).status, 'cancelled');
 
   const zero = await fixture('open', 'zero-position');
-  adapter.cancelOrder = async (_account, id) => { sends.push(id); assert.equal(id, zero.id); return zero.result; };
+  adapter.cancelOrder = (_account, id) => { sends.push(id); assert.equal(id, zero.id); return zero.result; };
   adapter.openState = syntheticTerminalHistory;
   await engine.emergencyFlattenManaged(zero.accountId);
   assert.ok(sends.includes(zero.id), 'Emergency flatten must drain an entry even when local position quantity is zero.');
@@ -194,6 +195,7 @@ try {
   await crashDuringCancel(crashed.accountId);
   await initDb(databasePath);
   assert.equal((await getDatabase().get('SELECT phase FROM trading_operations WHERE account_id = ?', [crashed.accountId])).phase, 'dispatching');
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   const restarted = new TradingEngine([{ exchange: 'paper', cancelOrder: async () => { throw new Error('No blind cancel after hard crash'); } }]);
   await assert.rejects(restarted.cancelOpenEntries(crashed.accountId), /unresolved/);
   assert.equal((await getDatabase().get('SELECT status FROM trading_orders WHERE id = ?', [crashed.id])).status, 'cancel_pending');
@@ -252,6 +254,7 @@ try {
   const expired = [];
   for (let index = 0; index < 6; index += 1) expired.push(await fixture('open', 'ttl-bounded', `TTL${index}USDT`));
   let expiryCalls = 0;
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   const expiryEngine = new TradingEngine([{ exchange: 'paper', cancelOrder: async (_account, id) => {
     const row = expired.find(item => item.id === id);
     if (!row) throw new Error('Other test accounts stay isolated.');

@@ -217,7 +217,7 @@ async function testOperatorReadContracts(baseUrl, appState) {
 
 async function testConfigurationNormalization(baseUrl, appState) {
   const previous = { config: appState.config, persist: appState.persistConfig, apply: appState.applyRuntimeConfig };
-  let persisted; let applied;
+  let persisted = null; let applied = null;
   appState.config = structuredClone(DEFAULT_CONFIG);
   appState.config.sourceFilters = { '-1001': { regexPatterns: ['original'] }, '-1002': { regexPatterns: ['untouched'] } };
   appState.persistConfig = value => { persisted = structuredClone(value); };
@@ -228,6 +228,7 @@ async function testConfigurationNormalization(baseUrl, appState) {
     assert.equal(response.status, 200); const result = await response.json();
     assert.equal(result.configuration.forwardOptions.queueTimeoutSeconds, 255);
     assert.equal(persisted.forwardOptions.queueTimeoutSeconds, 255); assert.equal(applied.forwardOptions.queueTimeoutSeconds, 255);
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.equal(result.configuration.sourceFilters['-1001'], undefined); assert.deepEqual(result.configuration.sourceFilters['-1002'], { regexPatterns: ['untouched'] });
     assert.equal((await (await fetch(`${baseUrl}/api/config`, { headers: headers(ADMIN_TOKEN) })).json()).configRevision, result.configRevision, 'Read, persistence and queue must share the normalized revision.');
     const stale = await fetch(`${baseUrl}/api/config`, { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json', 'If-Match': before.configRevision }), body: JSON.stringify({ targetChannel: '@stale_target' }) });
@@ -927,8 +928,8 @@ async function testTradingSignalSchemaControl(baseUrl, appState) {
   const calls = [];
   const original = appState.tradingControl;
   appState.tradingControl = {
-    createSignalSchema: async payload => { calls.push(['create', payload.id]); return payload; },
-    updateSignalSchema: async payload => { calls.push(['update', payload.id]); return payload; },
+    createSignalSchema: payload => { calls.push(['create', payload.id]); return payload; },
+    updateSignalSchema: payload => { calls.push(['update', payload.id]); return payload; },
     removeSignalSchema: id => { calls.push(['delete', id]); return Promise.resolve(true); },
   };
   try {
@@ -1634,7 +1635,7 @@ async function createAppState(testDir, controls) {
     applyRuntimeConfig: () => undefined,
     persistConfig: () => undefined,
     getMetricsHistory: () => [],
-    getOutboxTasks: async statuses => [{ id: 'unknown-task', status: statuses?.[0] || 'unknown' }],
+    getOutboxTasks: statuses => [{ id: 'unknown-task', status: statuses?.[0] || 'unknown' }],
     retryOutboxTask: id => { controls.retryCalls += 1; return Promise.resolve(id === 'unknown-task'); },
     acknowledgeOutboxTask: id => { controls.acknowledgeCalls += 1; return Promise.resolve(id === 'unknown-task'); },
     getTelegramLoginState: () => ({
@@ -1646,10 +1647,10 @@ async function createAppState(testDir, controls) {
       return { state: 'authenticating' };
     },
     auditTrail: {
-      record: async event => {
+      record: event => Promise.resolve().then(() => {
         controls.auditEvents.push(event);
         if (controls.auditShouldFail) throw new Error('audit unavailable');
-      },
+      }),
       snapshot: () => ({ healthy: true, remoteRequired: false, lastRemoteSuccessAt: null, recordCount: controls.auditEvents.length }),
       replayRemote: () => { controls.auditReplayCalls += 1; return Promise.resolve(controls.auditEvents.length); }
     },
@@ -1666,11 +1667,13 @@ async function createAppState(testDir, controls) {
       controls.offsiteRecoveryCalls += 1;
       return Promise.resolve('backup-2026-recovered');
     },
-    restoreBackup: () => {
+    restoreBackup() {
+      assert.equal(this, appState, 'Backup restore retains the application-state callback receiver.');
       controls.restoreCalls += 1;
       return Promise.resolve({ previousDatabase: path.join(testDir, 'previous.db'), previousConfig: null });
     },
-    performFactoryReset: async () => {
+    async performFactoryReset() {
+      assert.equal(this, appState, 'Factory reset retains the application-state callback receiver.');
       controls.factoryResetCalls += 1;
       await appState.stopForwarding();
     },
@@ -2059,7 +2062,7 @@ async function runTests() {
   }
 }
 
-await runTests().catch(error => {
+await (async () => runTests())().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

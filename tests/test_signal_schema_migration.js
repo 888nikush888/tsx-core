@@ -92,6 +92,6 @@ try {
   );
   console.log('Builder signal schema migration test passed.');
 } finally {
-  await closeDb().catch(() => undefined);
+  await (async () => closeDb())().catch(() => undefined);
   await rm(directory, { recursive: true, force: true });
 }

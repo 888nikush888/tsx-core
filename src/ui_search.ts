@@ -18,22 +18,22 @@ const SETTING_TARGETS = [
   ...WORKFLOW_RESOURCE_KINDS.map(kind => ({ id: `workflow.${kind}`, title: `Workflow-Baustein ${kind}`, url: `/workflows/resources?resourceKind=${kind}` })),
 ];
 
-function searchUrl(kind: string, row: any): string {
-  const id = encodeURIComponent(row.id);
+function searchUrl(kind: string, row: Record<string, unknown>): string {
+  const id = encodeURIComponent(row.id as string);
   switch (kind) {
     case 'accounts': return `/trading/accounts/${id}`;
     case 'ingress': return `/signals/messages/${id}`;
     case 'signals': return `/signals/processed?objectId=${id}`;
     case 'intents': return `/trading/trades/${id}`;
-    case 'resources': return `/workflows/resources/${encodeURIComponent(row.resourceId)}/versions/${id}`;
+    case 'resources': return `/workflows/resources/${encodeURIComponent(row.resourceId as string)}/versions/${id}`;
     default: return `/trading/incidents?objectId=${id}`;
   }
 }
 
-function searchTitle(kind: string, row: any): string {
-  if (kind === 'accounts' || kind === 'resources') return row.name;
+function searchTitle(kind: string, row: Record<string, unknown>): string {
+  if (kind === 'accounts' || kind === 'resources') return row.name as string;
   if (kind === 'intents') return `${row.symbol} · ${row.side}`;
-  if (kind === 'incidents') return row.category;
+  if (kind === 'incidents') return row.category as string;
   return `${row.channelId} · Nachricht ${row.messageId}`;
 }
 

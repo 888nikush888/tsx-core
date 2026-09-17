@@ -46,21 +46,21 @@ function assertOriginalLeg(original: Original, local: Local, proof: ExchangeOrde
   if (proof.profile === 'kraken_batch_tag_v1' && (original.kind !== 'protected_entry'
     || !isDeepStrictEqual(leg.providerBatchTag, { version: 1, tag: proof.tag }))) fail('Tag was not in the actual dispatched request.');
 }
-function assertExpectedLegs(original: Original, intentId: string, legs: Array<Record<string, any>>): void {
+function assertExpectedLegs(original: Original, intentId: string, legs: Array<Record<string, unknown>>): void {
   const expected = JSON.parse(original.expected_orders_json);
-  const ids = legs.map(leg => leg.clientOrderId).sort(codePointOrder);
+  const ids = legs.map(leg => leg.clientOrderId as string).sort(codePointOrder);
   if (!Array.isArray(expected) || expected.length !== ids.length || new Set(ids).size !== ids.length
     || !isDeepStrictEqual(expected.map(row => row.client_order_id).sort(codePointOrder), ids)) fail('Original expected leg set changed.');
   if (!Number.isSafeInteger(original.generation) || original.generation < 1
     || original.logical_key !== hash(JSON.stringify([original.kind, intentId, ids]))) fail('Original journal generation or logical key changed.');
 }
-function assertLegFields(leg: Record<string, any>, local: Local, accountId: string): void {
+function assertLegFields(leg: Record<string, unknown>, local: Local, accountId: string): void {
   if (leg.accountId !== accountId || leg.symbol !== local.symbol || leg.role !== local.role || leg.side !== local.side
     || leg.orderType !== local.order_type || leg.reduceOnly !== (local.reduce_only === 1)
-    || compareDecimal(leg.quantity, local.quantity) !== 0) fail('Original request leg differs from its local order.');
+    || compareDecimal(leg.quantity as string, local.quantity) !== 0) fail('Original request leg differs from its local order.');
   if (local.role === 'stop_loss' && (leg.triggerPrice === null || local.trigger_price === null
-    || compareDecimal(leg.triggerPrice, local.trigger_price) !== 0)) fail('Original stop trigger changed.');
-  assertOriginalPrice(leg.price, local.price);
+    || compareDecimal(leg.triggerPrice as string, local.trigger_price) !== 0)) fail('Original stop trigger changed.');
+  assertOriginalPrice(leg.price as string, local.price);
 }
 function assertOriginalPrice(original: string | null | undefined, current: string | null): void {
   if (original !== current && (original == null || current === null || compareDecimal(original, current) !== 0)) fail('Original order price changed.');
@@ -133,6 +133,7 @@ export async function persistNativeOrderBindingForLocal(localOrderId: string, re
 }
 
 /** Only positive native evidence + the immutable local journal may bind a missing provider client ID. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function correlateNativeOrderEvidence(account: TradingAccount, orders: ExchangeOrderSnapshot[]): Promise<ExchangeOrderSnapshot[]> {
   return withDatabaseTransaction(async () => {
     const result: ExchangeOrderSnapshot[] = [];

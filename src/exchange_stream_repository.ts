@@ -228,6 +228,7 @@ export async function markExchangeStreamsStopped(): Promise<void> {
   );
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function listExchangeStreamStates(): Promise<Array<Record<string, unknown>>> {
   return getDatabase().all<Array<Record<string, unknown>>>(
     `SELECT state.account_id AS accountId, account.name AS accountName,

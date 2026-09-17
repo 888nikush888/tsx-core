@@ -8,8 +8,8 @@ function codeUnitOrder(left: string, right: string): number {
   if (left > right) return 1;
   return 0;
 }
-function object(value: unknown): Record<string, any> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
+function object(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 function identifier(value: unknown): asserts value is string {
   if (typeof value !== 'string' || value.length === 0 || value.trim() !== value || value.length > 256 || [...value].some(character => character < ' ')) {
@@ -20,13 +20,13 @@ export function validateFillIdentity(value: unknown): ExchangeFillIdentity {
   const row = object(value);
   if (!isDeepStrictEqual(Object.keys(row).sort(codeUnitOrder),
     ['marketNamespace', 'profile', 'providerFillId', 'providerMarketId', 'providerSymbol', 'scopeTimestamp', 'version'])
-    || row.version !== 1 || !Object.hasOwn(PROFILES, row.profile)
-    || !PROFILES[row.profile as keyof typeof PROFILES].includes(row.marketNamespace)) throw new Error('Invalid fill identity profile.');
+    || row.version !== 1 || !Object.hasOwn(PROFILES, row.profile as PropertyKey)
+    || !PROFILES[row.profile as keyof typeof PROFILES].includes(row.marketNamespace as string)) throw new Error('Invalid fill identity profile.');
   for (const key of ['providerMarketId', 'providerSymbol', 'providerFillId']) identifier(row[key]);
   if (row.profile === 'hyperliquid_user_fill_v1') {
-    if (!Number.isSafeInteger(row.scopeTimestamp) || row.scopeTimestamp < 0) throw new Error('Invalid Hyperliquid fill time identity.');
+    if (!Number.isSafeInteger(row.scopeTimestamp) || (row.scopeTimestamp as number) < 0) throw new Error('Invalid Hyperliquid fill time identity.');
   } else if (row.scopeTimestamp !== null) throw new Error('Only the Hyperliquid native identity includes its timestamp.');
-  return row as ExchangeFillIdentity;
+  return row as unknown as ExchangeFillIdentity;
 }
 
 function nativeMatches(fill: ExchangeFill, identity: ExchangeFillIdentity): boolean {
@@ -39,16 +39,16 @@ function nativeMatches(fill: ExchangeFill, identity: ExchangeFillIdentity): bool
     default: return false;
   }
 }
-function matchesBybit(info: Record<string, any>, fill: ExchangeFill, identity: ExchangeFillIdentity): boolean {
+function matchesBybit(info: Record<string, unknown>, fill: ExchangeFill, identity: ExchangeFillIdentity): boolean {
   return info.execId === fill.exchangeFillId && info.orderId === fill.exchangeOrderId
     && info.symbol === identity.providerMarketId && String(info.execTime) === String(fill.filledAt)
     && (!Object.hasOwn(info, 'category') || info.category === identity.marketNamespace);
 }
-function matchesHyperliquid(info: Record<string, any>, fill: ExchangeFill, identity: ExchangeFillIdentity): boolean {
+function matchesHyperliquid(info: Record<string, unknown>, fill: ExchangeFill, identity: ExchangeFillIdentity): boolean {
   return String(info.tid) === fill.exchangeFillId && String(info.oid) === fill.exchangeOrderId
     && info.coin === identity.providerMarketId && info.time === fill.filledAt && identity.scopeTimestamp === fill.filledAt;
 }
-function matchesKraken(info: Record<string, any>, fill: ExchangeFill, identity: ExchangeFillIdentity): boolean {
+function matchesKraken(info: Record<string, unknown>, fill: ExchangeFill, identity: ExchangeFillIdentity): boolean {
   return info.identitySource === 'kraken_history_execution_v3' && info.executionUid === fill.exchangeFillId
     && info.orderUid === fill.exchangeOrderId && info.tradeable === identity.providerMarketId
     && typeof info.accountUid === 'string' && Boolean(info.accountUid) && info.executionTimestamp === fill.filledAt;

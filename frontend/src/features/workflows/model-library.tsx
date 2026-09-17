@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { jsonRequest, mutateAndObserve } from '@/lib/api';
 import { Link, useSearchParams } from '@/lib/navigation';
 import { usePoll } from '@/shared/api/use-poll';
@@ -13,9 +13,75 @@ type Kind = 'strategy' | 'schema' | 'contract';
 const titles = { strategy: 'Strategien', schema: 'Schemaprofile', contract: 'Signalverträge' };
 const modelUrl = (kind: Kind, id: string) => `/workflows/models/${kind}/${encodeURIComponent(id)}`;
 
+type ModelResourceRow = { resourceId: string; id: string; name?: ReactNode; version?: string | number | null };
+type ModelEntry = { id: string; name?: ReactNode; createdAt?: unknown };
+type ModelDetail = {
+  reviewHash?: string;
+  effect?: string | null;
+  observedAt?: unknown;
+  model: { name?: string | null; status?: string | null; enabled?: boolean | null };
+  resources: ModelResourceRow[];
+  entries: ModelEntry[];
+  resourceCount: number;
+  activeReferenceCount: number;
+  activeRevisionId?: string | null;
+  hasMore?: boolean;
+  nextCursor?: string | null;
+};
+type ModelReceipt = { action: string; resource?: { resourceId: string; id: string } | null };
+
+function ModelSchemaToggle({ data, kind, readOnly, busy, command }: Readonly<{
+  data: ModelDetail; kind: Kind; readOnly: boolean; busy: boolean; command: (action: string) => void | Promise<void>;
+}>) {
+  return (
+    <>
+          {kind === 'schema' && <button className="secondary-button" disabled={readOnly || busy || data.activeReferenceCount > 0} onClick={() => { command(data.model.enabled ? 'disable' : 'enable'); }}>{data.model.enabled ? 'Profil deaktivieren' : 'Profil aktivieren'}</button>}
+    </>
+  );
+}
+
+function ModelDetailActions({ data, kind, readOnly, busy, command }: Readonly<{
+  data: ModelDetail; kind: Kind; readOnly: boolean; busy: boolean; command: (action: string) => void | Promise<void>;
+}>) {
+  return (
+        <div className="flex flex-wrap gap-3"><button className="primary-button" disabled={readOnly || busy || data.model.status === 'archived'} onClick={() => { command('attach'); }}>Als Ressourcenentwurf übernehmen</button>
+          {kind !== 'schema' && data.model.status === 'draft' && <button className="secondary-button" disabled={readOnly || busy} onClick={() => { command('publish'); }}>Modell publizieren</button>}
+          {kind !== 'schema' && data.model.status === 'published' && <button className="secondary-button" disabled={readOnly || busy || data.activeReferenceCount > 0} onClick={() => { command('archive'); }}>Modell archivieren</button>}
+          <ModelSchemaToggle data={data} kind={kind} readOnly={readOnly} busy={busy} command={command} />
+          <button className="secondary-button" disabled={readOnly || busy || data.resourceCount > 0} onClick={() => { command('delete'); }}>Modell löschen</button></div>
+  );
+}
+
+function ModelDetailView({ data, kind, id, readOnly, busy, command }: Readonly<{
+  data: ModelDetail; kind: Kind; id: string; readOnly: boolean; busy: boolean; command: (action: string) => void | Promise<void>;
+}>) {
+  return (
+      <>
+        <h2>{data.model.name} · {id}</h2><p>{data.effect}</p>
+        <EvidenceFields fields={[["Zustand", data.model.status ?? (data.model.enabled ? 'enabled' : 'disabled')], ["Beobachtet", time(data.observedAt)], ["Prüfhash", data.reviewHash], ["Ressourcenreferenzen", data.resourceCount], ["Aktive Referenzen", data.activeReferenceCount], ["Aktive Revision", data.activeRevisionId]]} />
+        <ChangeReview label="Gespeicherte Modelldefinition" after={data.model} />
+    <ModelDetailActions data={data} kind={kind} readOnly={readOnly} busy={busy} command={command} />
+        {readOnly && <p>Viewer können Modelle und Referenzen lesen; Änderungen benötigen die Adminrolle.</p>}
+        <EvidenceTable caption={`Ressourcen mit dieser Modellversion (${data.resources.length} von ${data.resourceCount})`} columns={[["name", "Ressource öffnen"], ["status", "Status"]]} rows={data.resources.map(resource => ({ ...resource, name: <Link to={resourceUrl(resource)}>{resource.name} v{resource.version}</Link> }))} />
+        {data.resourceCount > data.resources.length && <p>Weitere Referenzen sind in der Ressourcenbibliothek über die Bausteinart erreichbar.</p>}
+      </>
+  );
+}
+
+function ModelListView({ data, kind, params, setParams }: Readonly<{
+  data: ModelDetail; kind: Kind; params: URLSearchParams; setParams: (next: URLSearchParams) => void;
+}>) {
+  return (
+    <><p>Beobachtet {time(data.observedAt)} · {data.hasMore ? 'Weitere Seiten vorhanden' : 'Ende der Auswahl'}</p>
+      <EvidenceTable caption={titles[kind]} columns={[["name", "Modell öffnen"], ["id", "ID"], ["status", "Status"], ["createdAt", "Erstellt"]]} rows={data.entries.map(model => ({ ...model, name: <Link to={modelUrl(kind, model.id)}>{model.name}</Link>, createdAt: time(model.createdAt) }))} />
+      <div className="flex gap-3"><button className="secondary-button" disabled={!params.has('cursor')} onClick={() => setParams(new URLSearchParams())}>Erste Seite</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => setParams(new URLSearchParams({ cursor: data.nextCursor ?? '' }))}>Nächste Seite</button></div>
+      <Link to="/workflows/builder">Neues Modell im Bausteineditor anlegen</Link></>
+  );
+}
+
 export function ModelLibrary({ kind, id }: Readonly<{ kind: Kind; id?: string }>) {
-  const [params, setParams] = useSearchParams(); const [data, setData] = useState<any>(null); const [error, setError] = useState('');
-  const [receipt, setReceipt] = useState<any>(null); const [busy, setBusy] = useState(false); const readOnly = useOperatorReadOnly();
+  const [params, setParams] = useSearchParams(); const [data, setData] = useState<ModelDetail | null>(null); const [error, setError] = useState('');
+  const [receipt, setReceipt] = useState<ModelReceipt | null>(null); const [busy, setBusy] = useState(false); const readOnly = useOperatorReadOnly();
   const { confirm, confirmationDialog } = useConfirmationDialog();
   const query = new URLSearchParams(params); query.set('kind', kind); if (id) { query.set('id', id); } else { query.delete('id'); } const key = query.toString();
   const load = useCallback((signal?: AbortSignal) => jsonRequest(`/api/workflow/models?${key}`, { signal }), [key]);
@@ -46,24 +112,9 @@ export function ModelLibrary({ kind, id }: Readonly<{ kind: Kind; id?: string }>
       return !error && <p><output>Modelle werden geladen …</output></p>;
     }
     if (id) {
-      return <>
-        <h2>{data.model.name} · {id}</h2><p>{data.effect}</p>
-        <EvidenceFields fields={[["Zustand", data.model.status ?? (data.model.enabled ? 'enabled' : 'disabled')], ["Beobachtet", time(data.observedAt)], ["Prüfhash", data.reviewHash], ["Ressourcenreferenzen", data.resourceCount], ["Aktive Referenzen", data.activeReferenceCount], ["Aktive Revision", data.activeRevisionId]]} />
-        <ChangeReview label="Gespeicherte Modelldefinition" after={data.model} />
-        <div className="flex flex-wrap gap-3"><button className="primary-button" disabled={readOnly || busy || data.model.status === 'archived'} onClick={() => { command('attach'); }}>Als Ressourcenentwurf übernehmen</button>
-          {kind !== 'schema' && data.model.status === 'draft' && <button className="secondary-button" disabled={readOnly || busy} onClick={() => { command('publish'); }}>Modell publizieren</button>}
-          {kind !== 'schema' && data.model.status === 'published' && <button className="secondary-button" disabled={readOnly || busy || data.activeReferenceCount > 0} onClick={() => { command('archive'); }}>Modell archivieren</button>}
-          {kind === 'schema' && <button className="secondary-button" disabled={readOnly || busy || data.activeReferenceCount > 0} onClick={() => { command(data.model.enabled ? 'disable' : 'enable'); }}>{data.model.enabled ? 'Profil deaktivieren' : 'Profil aktivieren'}</button>}
-          <button className="secondary-button" disabled={readOnly || busy || data.resourceCount > 0} onClick={() => { command('delete'); }}>Modell löschen</button></div>
-        {readOnly && <p>Viewer können Modelle und Referenzen lesen; Änderungen benötigen die Adminrolle.</p>}
-        <EvidenceTable caption={`Ressourcen mit dieser Modellversion (${data.resources.length} von ${data.resourceCount})`} columns={[["name", "Ressource öffnen"], ["status", "Status"]]} rows={data.resources.map((resource: any) => ({ ...resource, name: <Link to={resourceUrl(resource)}>{resource.name} v{resource.version}</Link> }))} />
-        {data.resourceCount > data.resources.length && <p>Weitere Referenzen sind in der Ressourcenbibliothek über die Bausteinart erreichbar.</p>}
-      </>;
+      return <ModelDetailView data={data} kind={kind} id={id} readOnly={readOnly} busy={busy} command={command} />;
     }
-    return <><p>Beobachtet {time(data.observedAt)} · {data.hasMore ? 'Weitere Seiten vorhanden' : 'Ende der Auswahl'}</p>
-      <EvidenceTable caption={titles[kind]} columns={[["name", "Modell öffnen"], ["id", "ID"], ["status", "Status"], ["createdAt", "Erstellt"]]} rows={data.entries.map((model: any) => ({ ...model, name: <Link to={modelUrl(kind, model.id)}>{model.name}</Link>, createdAt: time(model.createdAt) }))} />
-      <div className="flex gap-3"><button className="secondary-button" disabled={!params.has('cursor')} onClick={() => setParams(new URLSearchParams())}>Erste Seite</button><button className="secondary-button" disabled={!data.hasMore} onClick={() => setParams(new URLSearchParams({ cursor: data.nextCursor }))}>Nächste Seite</button></div>
-      <Link to="/workflows/builder">Neues Modell im Bausteineditor anlegen</Link></>;
+    return <ModelListView data={data} kind={kind} params={params} setParams={setParams} />;
   };
   return <section className="space-y-5">{confirmationDialog}<h1>Modellbibliothek · {titles[kind]}</h1>
     <nav aria-label="Modellarten" className="flex flex-wrap gap-4">{Object.entries(titles).map(([value, label]) => <Link key={value} to={`/workflows/models/${value}`}>{label}</Link>)}<Link to="/workflows/resources">Ressourcenbibliothek</Link></nav>

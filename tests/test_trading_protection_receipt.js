@@ -100,8 +100,8 @@ async function timeoutReopenAndCorruption() {
   const { account, paper, engine } = await setup('reopen');
   const read = paper.openState.bind(paper);
   const { promise: reading, resolve: entered } = Promise.withResolvers();
-  let rejectRead;
-  paper.openState = async () => { entered(); return new Promise((_resolve, reject) => { rejectRead = reject; }); };
+  let rejectRead = null;
+  paper.openState = () => { entered(); return new Promise((_resolve, reject) => { rejectRead = reject; }); };
   const attempt = engine.reconcileAccount(account.id);
   await reading;
   assert.equal((await getTradingOperationalSnapshot()).unprotectedPositions, 1, 'Invalidation occurs before the pending provider read returns.');
@@ -128,6 +128,7 @@ async function historyDoesNotRemoveProtection() {
   const read = paper.openState.bind(paper);
   const oldStop = (await read(account)).orders.find(order => order.role === 'stop_loss');
   await paper.cancelOrder(account, oldStop.clientOrderId);
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   paper.accountSnapshot = async () => { throw new Error('unknown money'); };
   paper.openState = async bound => {
     const remote = await read(bound);

@@ -31,7 +31,7 @@ async function requestPage(fetchImpl, token, variables) {
     });
   } catch { fail('DeepSource request failed; export is unverified.'); }
   if (!response.ok) fail(`DeepSource HTTP ${response.status}; export is unverified.`);
-  let payload;
+  let payload = null;
   try { payload = await response.json(); } catch { fail('DeepSource returned invalid JSON.'); }
   // Never print server error messages: they can echo request data or sensitive findings.
   if (!payload || (payload.errors !== undefined && (!Array.isArray(payload.errors) || payload.errors.length))) {
@@ -103,7 +103,8 @@ export async function exportDeepSource({ token, login = '888nikush888', name = '
   if (!/^[A-Za-z0-9_.-]+$/.test(login) || !/^[A-Za-z0-9_.-]+$/.test(name)) fail('Invalid repository name.');
   if (expectedRevision !== undefined && !/^[a-f0-9]{40,64}$/i.test(expectedRevision)) fail('Invalid expected revision.');
   const pages = [], occurrences = [], ids = new Set(), cursors = new Set();
-  let after = null, identity, total;
+  // skipcq: JS-0119 - total must start undefined; validatePage distinguishes the first call via undefined.
+  let after = null, identity = null, total;
   for (;;) {
     const payload = await requestPage(fetchImpl, token, { login, name, after });
     const repository = payload.data?.repository;

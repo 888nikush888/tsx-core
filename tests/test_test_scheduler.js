@@ -209,6 +209,7 @@ async function testDeterministicBarriersAndFailure() {
   assert.equal(await failed, 7);
   const errors = [];
   assert.equal(await runTestSchedule([names[0], names[1]], {
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     concurrency: 1, runTest: async () => { throw new Error('fixture rejection'); }, error: message => errors.push(message),
   }), 1);
   assert.match(errors[0], /fixture rejection/);

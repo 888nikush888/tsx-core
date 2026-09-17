@@ -156,7 +156,11 @@ class HistoryReaderTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(state["acquisition"]["sources"]), 4)
         self.assertTrue(all(state["acquisition"]["startedAt"] <= row["startedAt"] <= row["completedAt"] <= state["acquisition"]["completedAt"]
                             for row in state["acquisition"]["sources"]))
-        self.assertEqual(next(row for row in state["acquisition"]["sources"] if row["source"] == "fills")["completeness"], "unknown")
+        try:
+            fills = next(row for row in state["acquisition"]["sources"] if row["source"] == "fills")
+        except StopIteration:
+            self.fail("Expected a fills acquisition source.")
+        self.assertEqual(fills["completeness"], "unknown")
 
     async def test_history_work_is_serial_per_provider_but_other_providers_are_independent(self):
         rest = HistoryRest()
@@ -197,10 +201,16 @@ class HistoryReaderTests(unittest.IsolatedAsyncioTestCase):
                 state = await CcxtAdapter(SimpleNamespace(account=account)).open_state(request, self.deadline(), {"since": old, "orders": []})
                 if exchange == "bybit":
                     self.assertIn(("open", None, None, 50), rest.calls)
-                    listing = next(call for call in rest.calls if call[0] == "terminal")
+                    try:
+                        listing = next(call for call in rest.calls if call[0] == "terminal")
+                    except StopIteration:
+                        self.fail("Expected a terminal listing call.")
                     self.assertEqual(listing[3], 50)
                     self.assertLessEqual(listing[4]["until"] - listing[2], 7 * 86_400_000)
-                    trades = next(call for call in rest.calls if call[0] == "trades")
+                    try:
+                        trades = next(call for call in rest.calls if call[0] == "trades")
+                    except StopIteration:
+                        self.fail("Expected a trades history call.")
                     self.assertEqual(trades[3], 100)
                     self.assertGreater(trades[2], old)
                 else:
@@ -209,7 +219,11 @@ class HistoryReaderTests(unittest.IsolatedAsyncioTestCase):
                         self.assertFalse(any(call[0] == "history" for call in rest.calls), "Kraken fetchOrders is not an unscoped history API.")
                     else:
                         self.assertIn(("history", None, None, None), rest.calls)
-                self.assertEqual(next(row for row in state["acquisition"]["sources"] if row["source"] == "orders")["completeness"], "unknown")
+                try:
+                    orders_source = next(row for row in state["acquisition"]["sources"] if row["source"] == "orders")
+                except StopIteration:
+                    self.fail("Expected an orders acquisition source.")
+                self.assertEqual(orders_source["completeness"], "unknown")
 
     def test_recovery_request_is_bounded_and_contains_only_order_scope(self):
         value = {"since": 1, "orders": [{**reference(), "credentials": "MUST_NOT_CROSS"}]}

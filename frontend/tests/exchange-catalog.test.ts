@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { groupExchangeCatalog } from "@/app/workflow/exchange-catalog";
+import type { ExchangeCatalog } from "@/app/workflow/types";
 
 const entry = (id: string, status: string) => ({
   id,
@@ -26,7 +27,7 @@ describe("groupExchangeCatalog", () => {
         entry("legacy", "deprecated"),
         entry("drifted", "quarantined"),
       ],
-    } as any);
+    } as unknown as ExchangeCatalog);
     expect(grouped.certified.map((item) => item.id)).toEqual(["bybit"]);
     expect(grouped.candidates.map((item) => item.id)).toEqual(["okx", "binance"]);
     expect(grouped.others.map((item) => item.id)).toEqual(["restonly", "legacy", "drifted"]);
@@ -36,7 +37,7 @@ describe("groupExchangeCatalog", () => {
     const grouped = groupExchangeCatalog({
       implementation: { library: "ccxt", version: "4.5.75", streaming: "ccxt-pro", orderAuthority: "rest" },
       exchanges: [entry("paper", "certified"), entry("okx", "candidate")],
-    } as any);
+    } as unknown as ExchangeCatalog);
     expect(grouped.creatable.map((item) => item.id)).toEqual(["paper"]);
   });
 });

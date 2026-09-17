@@ -7,6 +7,7 @@ import { historyCheckpoints } from '../../src/trading_history_repository.js';
 import { nativeFillFixture } from './native_fill_identity.js';
 
 function emergencySubmitter(state, providerSymbol, fill) {
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   return async (_account, request) => {
     if (request.role !== 'flatten' || !request.reduceOnly || request.side !== 'sell') throw new Error('Emergency must only reduce owned exposure.');
     if (compareDecimal(request.quantity, state.owned()) > 0) throw new Error('Emergency attempted to reduce more than owned.');
@@ -103,7 +104,7 @@ export async function emergencyFixture(id, { partial = true, exchange = 'paper',
       }
       return snapshot;
     },
-    cancelOrder: async (_account, clientId) => {
+    cancelOrder: (_account, clientId) => {
       state.cancelCalls.push(clientId);
       const order = state.orders.get(clientId);
       if (order.role !== 'entry' || state.cancelEntry) order.status = 'cancelled';

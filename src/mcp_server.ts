@@ -8,7 +8,7 @@ import { McpServer, type ToolCallback } from '@modelcontextprotocol/sdk/server/m
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { closeDb, getDatabase, initDb } from './db.js';
 import { loadEnv } from './env.js';
 import {
@@ -966,7 +966,7 @@ async function drainAndClose(deadlineAt: number): Promise<void> {
   for (const runtime of sessions.values()) if (runtime.notificationTimer) clearInterval(runtime.notificationTimer);
   const drained = databaseWork.stopAndDrain(deadlineAt);
   const httpClosed = new Promise<void>(resolve => {
-    if (!httpServer) return resolve();
+    if (!httpServer) { resolve(); return; }
     httpServer.close(() => resolve());
     httpServer.closeAllConnections();
   });
@@ -1160,9 +1160,11 @@ function startMaintenanceMonitor(databasePath: string, initialDatabaseIdentity: 
       await shutdown(maintenance?.deadlineAt ?? Date.now() + 30000);
       // Successful close is acknowledged by the DB lifecycle hook. If it fails,
       // only actual process death (not this log or a timer) can prove quiescence.
+      // skipcq: JS-0263 - maintenance close contract: only real process death proves quiescence.
       process.exit(1);
     }).catch(() => {
       console.error('[CRITICAL] MCP service lost the operational database path and is closing.');
+      // skipcq: JS-0263 - maintenance close contract: only real process death proves quiescence.
       process.exit(1);
     }).finally(() => {
       maintenanceCheckBusy = false;
@@ -1205,8 +1207,10 @@ async function main(): Promise<void> {
 }
 
 function shutdownFromSignal(): void {
+  // skipcq: JS-0263 - signal shutdown must guarantee termination after the handle-close acknowledgment.
   shutdown().then(() => process.exit(0), error => {
     console.error(`[CRITICAL] MCP handle closure failed: ${errorMessage(error)}`);
+    // skipcq: JS-0263 - a failed handle close must still terminate deterministically.
     process.exit(1);
   });
 }

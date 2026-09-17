@@ -69,14 +69,14 @@ export class EnvironmentTokenAuthenticator implements DashboardAuthenticator {
     this.localAdminSessions.clear();
   }
 
-  private localSessionsEnabled(): boolean {
+  private static localSessionsEnabled(): boolean {
     return process.env.DASHBOARD_LOCAL_TRUST?.trim().toLowerCase() === 'true'
       && process.env.ENTERPRISE_MODE?.trim().toLowerCase() !== 'true';
   }
 
   issueLocalAdminSession(): { token: string; expiresInSeconds: number } {
     const adminToken = configuredToken('DASHBOARD_ADMIN_TOKEN');
-    if (!adminToken || !this.localSessionsEnabled()) {
+    if (!adminToken || !EnvironmentTokenAuthenticator.localSessionsEnabled()) {
       this.revokeLocalAdminSessions();
       throw new Error('Local administrator sessions are disabled or no administrator token is configured.');
     }
@@ -98,12 +98,14 @@ export class EnvironmentTokenAuthenticator implements DashboardAuthenticator {
     return { token, expiresInSeconds };
   }
 
+  // skipcq: JS-0105 - shared authenticator interface conformance across implementations.
   isConfigured(): boolean {
     const adminToken = configuredToken('DASHBOARD_ADMIN_TOKEN');
     const viewerToken = configuredToken('DASHBOARD_VIEWER_TOKEN');
     return Boolean(adminToken) && (!viewerToken || !safeTokenEquals(adminToken, viewerToken));
   }
 
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
   async authenticate(authorization: string | string[] | undefined): Promise<AuthenticatedActor | null> {
     const token = bearerToken(authorization);
     if (!token) return null;
@@ -115,7 +117,7 @@ export class EnvironmentTokenAuthenticator implements DashboardAuthenticator {
     const localSessionDigest = createHash('sha256').update(token).digest('hex');
     const localSession = this.localAdminSessions.get(localSessionDigest);
     const currentAdminDigest = adminToken && createHash('sha256').update(adminToken).digest('hex');
-    if (localSession && this.localSessionsEnabled() && currentAdminDigest === localSession.adminTokenDigest
+    if (localSession && EnvironmentTokenAuthenticator.localSessionsEnabled() && currentAdminDigest === localSession.adminTokenDigest
       && localSession.expiresAt > Date.now()) {
       return { role: 'admin', id: `local-session:${localSessionDigest.slice(0, 16)}` };
     }
@@ -178,6 +180,7 @@ export class OidcDashboardAuthenticator implements DashboardAuthenticator {
     });
   }
 
+  // skipcq: JS-0105 - shared authenticator interface conformance across implementations.
   isConfigured(): boolean {
     return true;
   }
@@ -235,6 +238,7 @@ export class TailscaleServeAuthenticator implements DashboardAuthenticator {
     return this.administrators.size > 0;
   }
 
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
   async authenticate(
     _authorization: AuthorizationHeader,
     headers?: RequestHeaders,

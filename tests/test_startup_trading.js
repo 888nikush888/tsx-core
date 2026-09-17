@@ -78,6 +78,7 @@ async function finalDispatchFence(file) {
   const run = database.run.bind(database);
   let submissions = 0;
   let reachedFence = false;
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   paper.submitProtectedEntry = async () => { submissions += 1; throw new Error('Revoked entry must never submit.'); };
   database.run = async (...args) => {
     const result = await run(...args);

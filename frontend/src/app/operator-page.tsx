@@ -28,8 +28,8 @@ type PageProps = {
   readOnly: boolean;
   trading: TradingSnapshot | null;
   catalog: ExchangeCatalog | null;
-  status: Record<string, any> | null;
-  onRefresh: () => Promise<void>;
+  status: Record<string, unknown> | null;
+  onRefresh: () => void | Promise<void>;
   areaLabel?: string;
 };
 function decodeId(value: string) {

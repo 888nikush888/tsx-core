@@ -84,6 +84,7 @@ async function verifyResilientLoop() {
   await resilientLoop(() => Promise.resolve(), () => 250, loopService, 1);
   await resilientLoop(() => Promise.resolve(), () => 0, loopService, 2);
   await resilientLoop(() => Promise.reject(new Error('short failure')), () => 250, loopService, 1);
+  // skipcq: JS-0114 - deliberate non-Error rejection fixture: the loop's string-rejection handling is under test.
   await resilientLoop(() => Promise.reject('non-error failure'), () => 250, loopService, 1);
   assert.strictEqual(loopState.healthy, 3);
   assert.strictEqual(loopState.failures.length, 2);
@@ -242,7 +243,7 @@ async function run() {
   }
 }
 
-run().catch(error => {
+(async () => run())().catch(error => {
   console.error(error);
   process.exit(1);
 });

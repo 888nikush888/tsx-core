@@ -27,6 +27,7 @@ function modeVerification() {
       executionModeObservation: { verified: true, entryAllowed: false, requiresSymbolRead: true, reason: null,
         scope: 'account_observation', origin: 'authenticated', observedAt: Date.now(), ccxtVersion: '4.5.75' } } };
 }
+// skipcq: JS-0119 - undefined is the no-override sentinel consumed by the fetch fixture below.
 let nextResponse;
 await initDb(path.join(directory, 'forwarder.db'));
 await seedTradingFixtures();
@@ -65,6 +66,7 @@ async function nonErrorTransportFailures(adapter, account, writeRequest) {
   const counts = { attempts: 0, coercions: 0 };
   const transientFailure = 'Fixture transport timed out';
   try {
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     globalThis.fetch = async (...args) => {
       counts.attempts += 1;
       if (counts.attempts === 1) throw transientFailure;

@@ -80,6 +80,6 @@ try {
   assert.equal(destructive.confirmation, WORKFLOW_IMPACT_CONFIRMATION);
   console.log('Legacy workflow migration and impact tests passed.');
 } finally {
-  await closeDb().catch(() => undefined);
+  await (async () => closeDb())().catch(() => undefined);
   await rm(directory, { recursive: true, force: true });
 }

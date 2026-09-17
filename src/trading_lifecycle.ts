@@ -39,6 +39,7 @@ async function abandonPreparedOperations(operations: Array<{ id: string; phase: 
 }
 
 /** Prove an individual exit never dispatched. Caller must separately justify cleanup or safe replacement. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function retireUndispatchedExit(intentId: string, clientOrderId: string): Promise<boolean> {
   return withDatabaseTransaction(async () => {
     const order = await getDatabase().get<{ id: string }>(

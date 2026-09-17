@@ -57,20 +57,20 @@ function codeUnitOrder(left: string, right: string): number {
   return 0;
 }
 
-export function sanitizeBackupConfiguration(value: any): any {
+export function sanitizeBackupConfiguration(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sanitizeBackupConfiguration);
   if (!value || typeof value !== 'object') return value;
   return Object.fromEntries(Object.entries(value)
     .filter(([key]) => !FORBIDDEN_CONFIG_KEYS.has(key.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()))
-    .map(([key, nested]) => [key, sanitizeBackupConfiguration(nested)]));
+    .map(([key, nested]): [string, unknown] => [key, sanitizeBackupConfiguration(nested)]));
 }
 
-function canonicalJson(value: any): string {
-  const ordered = (candidate: any): any => {
+function canonicalJson(value: unknown): string {
+  const ordered = (candidate: unknown): unknown => {
     if (Array.isArray(candidate)) return candidate.map(ordered);
     if (!candidate || typeof candidate !== 'object') return candidate;
     return Object.fromEntries(Object.keys(candidate).sort(codeUnitOrder)
-      .map(key => [key, ordered(candidate[key])]));
+      .map((key): [string, unknown] => [key, ordered((candidate as Record<string, unknown>)[key])]));
   };
   return JSON.stringify(ordered(value));
 }
@@ -96,7 +96,7 @@ export function validateConfigurationGenerationEvidence(value: ConfigurationGene
 
 function exists(destination: string): boolean {
   try { fs.lstatSync(destination); return true; }
-  catch (error: any) { if (error?.code === 'ENOENT') return false;
+  catch (error: unknown) { if ((error as { code?: unknown } | null | undefined)?.code === 'ENOENT') return false;
     throw error; }
 }
 
@@ -119,7 +119,7 @@ function generationDirectory(configurationPath: string): string {
 function syncDirectory(directory: string): void {
   let descriptor: number | undefined;
   try { descriptor = fs.openSync(directory, 'r'); fs.fsyncSync(descriptor); }
-  catch (error: any) { if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes(error?.code)) throw error; }
+  catch (error: unknown) { if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes((error as { code?: string } | null | undefined)?.code ?? '')) throw error; }
   finally { if (descriptor !== undefined) fs.closeSync(descriptor); }
 }
 
@@ -135,8 +135,8 @@ function acquireBarrier(configurationPath: string): { root: string; release(): v
   const lock = `${root}.lock`;
   const payload = JSON.stringify({ version: 1, pid: process.pid, nonce: randomUUID() });
   try { exclusiveWrite(lock, payload); }
-  catch (error: any) {
-    if (error?.code === 'EEXIST') throw new Error('Configuration generation barrier is busy or requires offline recovery.', { cause: error });
+  catch (error: unknown) {
+    if ((error as { code?: unknown } | null | undefined)?.code === 'EEXIST') throw new Error('Configuration generation barrier is busy or requires offline recovery.', { cause: error });
     throw error;
   }
   const identity = fs.lstatSync(lock);
@@ -171,6 +171,7 @@ function safeMember(name: string): boolean {
   if (['config.json', 'runtime-settings.json'].includes(name)) return true;
   if (!name.startsWith('templates/') || name.length > 250) return false;
   return name.slice(10).split('/').every(segment => segment.length > 0 && segment.length <= 128
+    // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
     && segment === segment.trim() && segment !== '.' && segment !== '..' && !/[\\/<>:"|?*\x00-\x1f]/u.test(segment));
 }
 
@@ -289,6 +290,7 @@ function commitGeneration(root: string, sources: ConfigurationSources, previous 
 }
 
 /** Initial adoption is permitted only under the application's genuine process ownership. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function initializeConfigurationGeneration(sources: ConfigurationSources, owner: ProcessLock): Promise<ConfigurationGenerationEvidence> {
   const normalized = Object.fromEntries(Object.entries(sources).map(([key, value]) => [key, path.resolve(value)])) as unknown as ConfigurationSources;
   return withProcessLockOwner(owner, path.dirname(normalized.databasePath), () => {
@@ -303,6 +305,7 @@ export async function initializeConfigurationGeneration(sources: ConfigurationSo
 }
 
 /** Explicitly adopt restored/repaired files only under fresh database quiescence and ownership. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function reenrollConfigurationGeneration(sources: ConfigurationSources, owner: ProcessLock,
   maintenanceLease: McpMaintenanceLease): Promise<ConfigurationGenerationEvidence> {
   const normalized = Object.fromEntries(Object.entries(sources).map(([key, value]) => [key, path.resolve(value)])) as unknown as ConfigurationSources;
@@ -321,6 +324,7 @@ export async function reenrollConfigurationGeneration(sources: ConfigurationSour
 }
 
 /** Factory reset retires this exact store before deleting sources; caller retains normal path checks. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function retireConfigurationGeneration(configurationPath: string, databasePath: string, owner: ProcessLock,
   maintenanceLease: McpMaintenanceLease): Promise<string | null> {
   return withProcessLockOwner(owner, path.dirname(path.resolve(databasePath)), async () => {

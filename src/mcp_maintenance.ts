@@ -44,7 +44,7 @@ export async function assertMcpMaintenanceLease(lease: unknown, targetDatabasePa
 }
 
 function processDefinitelyEnded(pid: number): boolean {
-  try { process.kill(pid, 0); return false; } catch (error: any) { return error?.code === 'ESRCH'; }
+  try { process.kill(pid, 0); return false; } catch (error: unknown) { return (error as { code?: unknown } | null | undefined)?.code === 'ESRCH'; }
 }
 
 async function assertOwnedRequest(owner: ProcessLock, request: McpMaintenanceRequest): Promise<void> {
@@ -94,17 +94,20 @@ function createLease(owner: ProcessLock, request: McpMaintenanceRequest, initial
 }
 
 /** Publish first, close the local handle, then explicitly wait before any file replacement. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function beginMcpSharedMaintenance(reason: string, databasePath: string, owner: ProcessLock,
   options: { timeoutMs?: number } = {}): Promise<McpMaintenanceLease> {
   return beginMaintenance(reason, databasePath, owner, options, false);
 }
 
 /** Offline callers may prove absence; this never fabricates a file identity or ignores participants. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function beginMcpOfflineMaintenance(reason: string, databasePath: string, owner: ProcessLock,
   options: { timeoutMs?: number } = {}): Promise<McpMaintenanceLease> {
   return beginMaintenance(reason, databasePath, owner, options, true);
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 async function beginMaintenance(reason: string, databasePath: string, owner: ProcessLock,
   options: { timeoutMs?: number }, allowAbsent: boolean): Promise<McpMaintenanceLease> {
   const normalized = reason.trim();

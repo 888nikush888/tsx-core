@@ -1,6 +1,6 @@
 import { valueText } from "@/shared/value-text";
 import { listEntries } from "@/shared/list-entries";
-import { AccountPositionLimit } from '@/features/accounts/account-position-limit';
+import { AccountPositionLimit, type PositionLimitSaveResult } from '@/features/accounts/account-position-limit';
 import {
   Children,
   isValidElement,
@@ -55,10 +55,10 @@ type ResourceEditorProps = Readonly<{
     configuration: Record<string, unknown>;
     baseEditRevision?: number;
   }) => Promise<boolean>;
-  onDeleteNode?: () => Promise<void>;
-  onArchiveResource?: () => Promise<void>;
-  onDeleteResource?: () => Promise<void>;
-  onConfigureAccount?: (accountId: string, maximum: number, baseUpdatedAt?: number) => Promise<any>;
+  onDeleteNode?: () => void | Promise<void>;
+  onArchiveResource?: () => void | Promise<void>;
+  onDeleteResource?: () => void | Promise<void>;
+  onConfigureAccount?: (accountId: string, maximum: number, baseUpdatedAt?: number) => Promise<PositionLimitSaveResult>;
 }>;
 
 export type BuilderParserSource = Readonly<{
@@ -601,13 +601,7 @@ function StrategyForm({
     setAccess("allowedSides", next);
   };
 
-  return (
-    <div className="strategy-form">
-      <section>
-        <div className="strategy-section-heading">
-          <strong>Freigaben</strong>
-          <small>Welche Signale diese Strategie überhaupt annehmen darf.</small>
-        </div>
+  const fieldGrid1 = (
         <div className="builder-field-grid three">
           <Field label="Erlaubte Signal-Schemas" hint="Eine Schema-ID je Zeile.">
             <textarea
@@ -642,13 +636,9 @@ function StrategyForm({
             />
           </div>
         </div>
-      </section>
+  );
 
-      <section>
-        <div className="strategy-section-heading">
-          <strong>Entry</strong>
-          <small>Orderart, Preiswahl und maximale Wartezeit.</small>
-        </div>
+  const fieldGrid2 = (
         <div className="builder-field-grid three">
           <Field label="Orderart">
             <select
@@ -703,16 +693,9 @@ function StrategyForm({
             label="Post-only (nur bei Limit)"
           />
         </div>
-      </section>
+  );
 
-      <section>
-        <div className="strategy-section-heading">
-          <strong>Fallback-Positionsgröße</strong>
-          <small>
-            Ein nachgeschalteter Positionsgrößen-Baustein überschreibt diese
-            Grundwerte für seinen konkreten Pfad.
-          </small>
-        </div>
+  const fieldGrid3 = (
         <div className="builder-field-grid three">
           <Field label="Größenmodus">
             <select
@@ -797,13 +780,9 @@ function StrategyForm({
             />
           </Field>
         </div>
-      </section>
+  );
 
-      <section>
-        <div className="strategy-section-heading">
-          <strong>Take Profit & Stop</strong>
-          <small>Verteilung der Targets und Verhalten des Schutz-Stops.</small>
-        </div>
+  const fieldGrid4 = (
         <div className="builder-field-grid three">
           <Field label="Target-Verteilung">
             <select
@@ -885,16 +864,9 @@ function StrategyForm({
             geschlossen.
           </div>
         </div>
-      </section>
+  );
 
-      <section>
-        <div className="strategy-section-heading">
-          <strong>Sicherheitsgrenzen</strong>
-          <small>
-            Verlust-, Slippage- und Ablaufgrenzen. Die Positionsanzahl wird am
-            Börsenkonto verwaltet.
-          </small>
-        </div>
+  const fieldGrid5 = (
         <div className="builder-field-grid three">
           <Field label="Daily-Loss-Modus">
             <select
@@ -962,6 +934,54 @@ function StrategyForm({
             <Check size={16} /> Ein Schutz-Stop ist immer verpflichtend.
           </div>
         </div>
+  );
+
+  return (
+    <div className="strategy-form">
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Freigaben</strong>
+          <small>Welche Signale diese Strategie überhaupt annehmen darf.</small>
+        </div>
+        {fieldGrid1}
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Entry</strong>
+          <small>Orderart, Preiswahl und maximale Wartezeit.</small>
+        </div>
+        {fieldGrid2}
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Fallback-Positionsgröße</strong>
+          <small>
+            Ein nachgeschalteter Positionsgrößen-Baustein überschreibt diese
+            Grundwerte für seinen konkreten Pfad.
+          </small>
+        </div>
+        {fieldGrid3}
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Take Profit & Stop</strong>
+          <small>Verteilung der Targets und Verhalten des Schutz-Stops.</small>
+        </div>
+        {fieldGrid4}
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>Sicherheitsgrenzen</strong>
+          <small>
+            Verlust-, Slippage- und Ablaufgrenzen. Die Positionsanzahl wird am
+            Börsenkonto verwaltet.
+          </small>
+        </div>
+        {fieldGrid5}
       </section>
     </div>
   );
@@ -987,22 +1007,16 @@ function ContractForm({
     next: string,
   ) => {
     const updated = { ...value };
-    if (next.trim()) updated[name] = next;
-    else delete updated[name];
-    onChange(updated);
+    if (next.trim()) {
+      updated[name] = next;
+      onChange(updated);
+      return;
+    }
+    const { [name]: _omitted, ...remaining } = updated;
+    onChange(remaining);
   };
 
-  return (
-    <div className="strategy-form contract-form">
-      <section>
-        <div className="strategy-section-heading">
-          <strong>{mode === "schema" ? "Normalisierte Signal-Felder" : "Signal-Felder"}</strong>
-          <small>
-            {mode === "schema"
-              ? "Diese Pfade und Typen bilden die Ausgabe des verbundenen Parser-Bausteins. Das Root-Element bleibt aus Sicherheitsgründen „signal“."
-              : "XML-Pfade für Richtung, Paar, Stop sowie optionale Angaben. Das Root-Element bleibt aus Sicherheitsgründen „signal“."}
-          </small>
-        </div>
+  const fieldGrid6 = (
         <div className="builder-field-grid three">
           <Field label="Richtungspfad">
             <input
@@ -1053,13 +1067,9 @@ function ContractForm({
             />
           </Field>
         </div>
-      </section>
+  );
 
-      <section>
-        <div className="strategy-section-heading">
-          <strong>{mode === "schema" ? "Entry-Struktur" : "Entry-Vertrag"}</strong>
-          <small>{mode === "schema" ? "Wie der Parser Market- und Range-Entries normalisiert." : "Welche Entry-Formen und XML-Pfade zulässig sind."}</small>
-        </div>
+  const fieldGrid7 = (
         <div className="builder-field-grid three">
           <Field label="Entry-Modus">
             <select
@@ -1118,13 +1128,9 @@ function ContractForm({
             />
           </Field>
         </div>
-      </section>
+  );
 
-      <section>
-        <div className="strategy-section-heading">
-          <strong>{mode === "schema" ? "Target-Struktur" : "Target-Vertrag"}</strong>
-          <small>{mode === "schema" ? "Wie Take-Profits in der normalisierten Parserausgabe aufgebaut sind." : "Form, Anzahl und Reihenfolge der Take-Profits."}</small>
-        </div>
+  const fieldGrid8 = (
         <div className="builder-field-grid three">
           <Field label="Container-Pfad">
             <input
@@ -1201,6 +1207,65 @@ function ContractForm({
             label="Fortlaufende Target-IDs verlangen"
           />
         </div>
+  );
+
+  const additionalFieldsHeading = (
+        <div className="strategy-section-heading contract-additional-heading">
+          <span>
+            <strong>Zusätzliche Felder</strong>
+            <small>Optionale, typisierte Erweiterungen des Signalvertrags.</small>
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              onChange({
+                ...value,
+                additionalFields: [
+                  ...value.additionalFields,
+                  {
+                    path: "",
+                    type: "text",
+                    required: false,
+                    allowedValues: [],
+                  },
+                ],
+              })
+            }
+          >
+            <Plus data-icon="inline-start" /> Feld hinzufügen
+          </Button>
+        </div>
+  );
+  return (
+    <div className="strategy-form contract-form">
+      <section>
+        <div className="strategy-section-heading">
+          <strong>{mode === "schema" ? "Normalisierte Signal-Felder" : "Signal-Felder"}</strong>
+          <small>
+            {mode === "schema"
+              ? "Diese Pfade und Typen bilden die Ausgabe des verbundenen Parser-Bausteins. Das Root-Element bleibt aus Sicherheitsgründen „signal“."
+              : "XML-Pfade für Richtung, Paar, Stop sowie optionale Angaben. Das Root-Element bleibt aus Sicherheitsgründen „signal“."}
+          </small>
+        </div>
+        {fieldGrid6}
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>{mode === "schema" ? "Entry-Struktur" : "Entry-Vertrag"}</strong>
+          <small>{mode === "schema" ? "Wie der Parser Market- und Range-Entries normalisiert." : "Welche Entry-Formen und XML-Pfade zulässig sind."}</small>
+        </div>
+        {fieldGrid7}
+      </section>
+
+      <section>
+        <div className="strategy-section-heading">
+          <strong>{mode === "schema" ? "Target-Struktur" : "Target-Vertrag"}</strong>
+          <small>{mode === "schema" ? "Wie Take-Profits in der normalisierten Parserausgabe aufgebaut sind." : "Form, Anzahl und Reihenfolge der Take-Profits."}</small>
+        </div>
+        {fieldGrid8}
       </section>
 
       <section>
@@ -1265,38 +1330,12 @@ function ContractForm({
       </section>
 
       <section>
-        <div className="strategy-section-heading contract-additional-heading">
-          <span>
-            <strong>Zusätzliche Felder</strong>
-            <small>Optionale, typisierte Erweiterungen des Signalvertrags.</small>
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              onChange({
-                ...value,
-                additionalFields: [
-                  ...value.additionalFields,
-                  {
-                    path: "",
-                    type: "text",
-                    required: false,
-                    allowedValues: [],
-                  },
-                ],
-              })
-            }
-          >
-            <Plus data-icon="inline-start" /> Feld hinzufügen
-          </Button>
-        </div>
+        {additionalFieldsHeading}
         {value.additionalFields.length === 0 ? (
           <p className="builder-info">Keine zusätzlichen Felder definiert.</p>
         ) : (
           <div className="contract-additional-list">
-            {value.additionalFields.map((field, index) => {
+            {listEntries(value.additionalFields, field => field.path).map(({ item: field, key }, index) => {
               const update = (changes: Partial<typeof field>) =>
                 onChange({
                   ...value,
@@ -1304,8 +1343,7 @@ function ContractForm({
                     itemIndex === index ? { ...candidate, ...changes } : candidate,
                   ),
                 });
-              return (
-                <div className="contract-additional-field" key={`${index}-${field.path}`}>
+  const fieldGrid9 = (
                   <div className="builder-field-grid three">
                     <Field label="Pfad">
                       <input
@@ -1380,6 +1418,11 @@ function ContractForm({
                       />
                     </Field>
                   </div>
+  );
+
+              return (
+                <div className="contract-additional-field" key={key}>
+                  {fieldGrid9}
                   <Button
                     type="button"
                     variant="ghost"
@@ -1418,20 +1461,7 @@ function SignalSchemaResourceFields({
   const copiedSchema = Boolean(schemaDraft.originalId && schemaDraft.copying);
   const schemaIdLabel = copiedSchema ? "Neue Schema-ID" : "Schema-ID";
 
-  return (
-    <div className="schema-copy-editor">
-      <div className="strategy-section-heading">
-        <strong>
-          {schemaDraft.originalId
-            ? "Signal-Schema bearbeiten"
-            : "Neues Signal-Schema"}
-        </strong>
-        <small>
-          {schemaDraft.originalId
-            ? "Eine Änderung erzeugt automatisch eine neue unveränderliche Schema-ID."
-            : "Baue hier die normalisierte Ausgabestruktur des Signals. Der konkrete Parser kommt aus den Verbindungen im Builder."}
-        </small>
-      </div>
+  const fieldGrid10 = (
       <div className="builder-field-grid three">
         <Field
           label={schemaIdLabel}
@@ -1462,6 +1492,23 @@ function SignalSchemaResourceFields({
           label="Schema aktiv"
         />
       </div>
+  );
+
+  return (
+    <div className="schema-copy-editor">
+      <div className="strategy-section-heading">
+        <strong>
+          {schemaDraft.originalId
+            ? "Signal-Schema bearbeiten"
+            : "Neues Signal-Schema"}
+        </strong>
+        <small>
+          {schemaDraft.originalId
+            ? "Eine Änderung erzeugt automatisch eine neue unveränderliche Schema-ID."
+            : "Baue hier die normalisierte Ausgabestruktur des Signals. Der konkrete Parser kommt aus den Verbindungen im Builder."}
+        </small>
+      </div>
+      {fieldGrid10}
       <section
         className="schema-parser-sources"
         aria-label="Parserquelle aus Builder"
@@ -1515,6 +1562,653 @@ function parserPrompt(kind: WorkflowKind, configuration: Record<string, unknown>
   return kind === 'parser' && typeof configuration.prompt === 'string' ? configuration.prompt : '';
 }
 
+function EditorHeader({ meta, resource, draftOnly }: Readonly<{ meta: (typeof KIND_META)[WorkflowKind]; resource: WorkflowResource | null; draftOnly: boolean }>) {
+  return (
+        <DialogHeader>
+          <Badge variant="secondary" style={{ color: meta.color }}>
+            {meta.label}
+          </Badge>
+          <DialogTitle id="resource-editor-title">
+            {resource ? "Baustein bearbeiten" : "Baustein erstellen"}
+          </DialogTitle>
+          <DialogDescription>
+            {draftOnly ? 'Speichert bearbeitbare Ressourcen- und Modelldrafts. Publikation und Aktivierung erfolgen ausdrücklich in getrennten Schritten.' : 'Änderungen werden als unveränderliche Version gespeichert und anschließend atomar aktiviert.'}
+          </DialogDescription>
+        </DialogHeader>
+  );
+}
+
+function EditorFooter({ saving, readOnly, partialFailure, name, onDeleteNode, onArchiveResource, onDeleteResource, setArchiveConfirmation, setDeleteConfirmation, closeEditor, submit, draftOnly }: Readonly<{
+  saving: boolean; readOnly: boolean; partialFailure: boolean; name: string; onDeleteNode?: () => void | Promise<void>; onArchiveResource?: () => void | Promise<void>;
+  onDeleteResource?: () => void | Promise<void>; setArchiveConfirmation: (value: boolean) => void; setDeleteConfirmation: (value: boolean) => void;
+  closeEditor: () => void | Promise<void>; submit: () => void | Promise<void>; draftOnly: boolean;
+}>) {
+  return (
+        <DialogFooter className="builder-modal-footer">
+          {onDeleteNode && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={saving || readOnly}
+              onClick={onDeleteNode}
+            >
+              <Archive data-icon="inline-start" /> Nur vom Canvas lösen
+            </Button>
+          )}
+          {onArchiveResource && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={saving || readOnly}
+              onClick={() => setArchiveConfirmation(true)}
+            >
+              <Archive data-icon="inline-start" /> Dauerhaft archivieren
+            </Button>
+          )}
+          {onDeleteResource && (
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={saving || readOnly}
+              onClick={() => setDeleteConfirmation(true)}
+            >
+              <Trash2 data-icon="inline-start" /> Endgültig löschen
+            </Button>
+          )}
+          <span />
+          <Button type="button" variant="outline" onClick={closeEditor}>
+            Abbrechen
+          </Button>
+          <Button
+            type="button"
+            disabled={readOnly || saving || partialFailure || !name.trim()}
+            onClick={submit}
+          >
+            {resourceSaveLabel(saving, draftOnly)}
+          </Button>
+        </DialogFooter>
+  );
+}
+
+function EditorNotices({ readOnly, confirmedSteps, partialFailure, error }: Readonly<{ readOnly: boolean; confirmedSteps: string[]; partialFailure: boolean; error: string }>) {
+  return (
+    <>
+          {readOnly && <p>Viewer: Ressourcen sind schreibgeschützt.</p>}
+          {confirmedSteps.length > 0 && <section aria-label="Bestätigte Teilschritte"><p>Bereits bestätigt:</p><ul>{listEntries(confirmedSteps, step => step).map(({ item: step, key }) => <li key={key}>{step}</li>)}</ul>{partialFailure && <p>Ein Folgeschritt ist fehlgeschlagen. Die aufgeführten Objekte bleiben gespeichert. Dialog schließen und vorhandene Entwürfe prüfen, bevor eine weitere Änderung begonnen wird.</p>}</section>}
+          {error && (
+            <Alert variant="destructive">
+              <AlertTriangle />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+    </>
+  );
+}
+
+function KindFieldsPrimary({ kind, configuration, set, templateContent, setTemplateContent, schemaDraft, parserSources, updateSchemaDraft, fieldGrid12, fieldGrid13, fieldGrid14 }: Readonly<{
+  kind: WorkflowKind; configuration: Record<string, unknown>; set: (key: string, value: unknown) => void;
+  templateContent: string; setTemplateContent: (value: string) => void; schemaDraft: SignalSchemaDraft | null; parserSources: BuilderParserSource[];
+  updateSchemaDraft: (changes: Partial<SignalSchemaDraft>) => void; fieldGrid12: () => ReactNode; fieldGrid13: () => ReactNode; fieldGrid14: () => ReactNode;
+}>) {
+  return (
+    <>
+          {kind === "channel" && (
+            <Field
+              label="Telegram-Kanal-ID"
+              hint="Numerische Chat-ID, zum Beispiel -1002417439383."
+            >
+              <input
+                value={textValue(configuration.channelId)}
+                onChange={(event) => set("channelId", event.target.value)}
+              />
+            </Field>
+          )}
+          {kind === "content_filter" && (
+            <Field
+              label="Erlaubte Inhaltstypen"
+              hint="Je Zeile ein Typ: text, photo, video, document …"
+            >
+              <textarea
+                value={lines(configuration.allowedTypes)}
+                onChange={(event) =>
+                  set("allowedTypes", list(event.target.value))
+                }
+              />
+            </Field>
+          )}
+          {kind === "keyword_filter" && fieldGrid12()}
+          {kind === "regex" && (
+            <>
+              <Field
+                label="Regex-Muster"
+                hint="Je Zeile ein Muster. Alle Muster laufen mit Zeitlimit und ReDoS-Prüfung."
+              >
+                <textarea
+                  className="code-input"
+                  value={lines(configuration.patterns)}
+                  onChange={(event) =>
+                    set("patterns", list(event.target.value))
+                  }
+                />
+              </Field>
+              <Field label="Verknüpfung">
+                <select
+                  value={textValue(configuration.mode, "all")}
+                  onChange={(event) => set("mode", event.target.value)}
+                >
+                  <option value="all">Alle Muster müssen passen</option>
+                  <option value="any">Mindestens ein Muster muss passen</option>
+                </select>
+              </Field>
+            </>
+          )}
+          {kind === "parser" && (
+            <>
+              {fieldGrid13()}
+              <Field
+                label="Parser-Prompt"
+                hint="Diese Vorlage wird zusammen mit dem Parser-Baustein gespeichert. Serverseitige Schutzregeln bleiben zusätzlich aktiv."
+              >
+                <textarea
+                  className="code-input prompt-input"
+                  value={templateContent}
+                  onChange={(event) => setTemplateContent(event.target.value)}
+                />
+              </Field>
+            </>
+          )}
+          {kind === "schema" && (
+            <SignalSchemaResourceFields
+              schemaDraft={schemaDraft}
+              parserSources={parserSources}
+              onChange={updateSchemaDraft}
+            />
+          )}
+          {kind === "dedupe" && fieldGrid14()}
+          {kind === "output" && (
+            <Field label="Ausgabe">
+              <select
+                value={textValue(configuration.mode, "audit_only")}
+                onChange={(event) => set("mode", event.target.value)}
+              >
+                <option value="audit_only">Nur Audit & Journal</option>
+                <option value="telegram_xml">XML an Telegram-Ziel</option>
+                <option value="telegram_original">
+                  Original an Telegram-Ziel
+                </option>
+                <option value="none">Keine zusätzliche Ausgabe</option>
+              </select>
+            </Field>
+          )}
+    </>
+  );
+}
+
+function ContractFields({ kind, configuration, contractId, setContractId, contractDraft, setContractDraft, setContractTouched }: Readonly<{
+  kind: WorkflowKind; configuration: Record<string, unknown>; contractId: string; setContractId: (value: string) => void;
+  contractDraft: SignalContractDefinition | null; setContractDraft: (value: SignalContractDefinition | null) => void; setContractTouched: (value: boolean) => void;
+}>) {
+  return (
+    <>
+          {kind === "contract" && (
+            <>
+              <Field
+                label="Vertrags-ID"
+                hint={
+                  configuration.contractVersionId
+                    ? "Die logische ID eines veröffentlichten Vertrags bleibt unveränderlich."
+                    : "Kleinbuchstaben, Zahlen, Unterstrich oder Bindestrich."
+                }
+              >
+                <input
+                  aria-label="Vertrags-ID"
+                  value={contractId}
+                  disabled={Boolean(configuration.contractVersionId)}
+                  onChange={(event) => setContractId(event.target.value)}
+                />
+              </Field>
+              {contractDraft ? (
+                <ContractForm
+                  value={contractDraft}
+                  onChange={(next) => {
+                    setContractDraft(next);
+                    setContractTouched(true);
+                  }}
+                />
+              ) : (
+                <Alert variant="destructive">
+                  <AlertTriangle />
+                  <AlertDescription>
+                    Die gewählte Vertragsversion ist nicht verfügbar.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </>
+          )}
+    </>
+  );
+}
+
+function StrategyFields({ kind, strategyDraft, setStrategyDraft, setStrategyTouched }: Readonly<{
+  kind: WorkflowKind; strategyDraft: StrategyConfiguration | null; setStrategyDraft: (value: StrategyConfiguration | null) => void; setStrategyTouched: (value: boolean) => void;
+}>) {
+  return (
+    <>
+          {kind === "strategy" && (
+            strategyDraft ? (
+                <>
+                  {strategyDraft.allowedSignalSchemas.length === 0 && (
+                    <Alert variant="destructive">
+                      <AlertTriangle />
+                      <AlertDescription>
+                        Erstelle zuerst mindestens einen aktiven
+                        Signal-Schema-Baustein.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  <StrategyForm
+                    value={strategyDraft}
+                    onChange={(next) => {
+                      setStrategyDraft(next);
+                      setStrategyTouched(true);
+                    }}
+                  />
+                </>
+              ) : (
+                <Alert variant="destructive">
+                  <AlertTriangle />
+                  <AlertDescription>
+                    Die gewählte Strategieversion ist nicht verfügbar.
+                  </AlertDescription>
+                </Alert>
+              )
+          )}
+    </>
+  );
+}
+
+function SizingFields({ kind, configuration, set }: Readonly<{ kind: WorkflowKind; configuration: Record<string, unknown>; set: (key: string, value: unknown) => void }>) {
+  if (kind !== "sizing") return null;
+  const fieldGrid15 = (
+            <div className="builder-field-grid three">
+              <Field label="Größenmodus">
+                <select
+                  value={valueText(
+                    configuration.positionSizingMode || "equity_percent_margin",
+                  )}
+                  onChange={(event) =>
+                    set("positionSizingMode", event.target.value)
+                  }
+                >
+                  <option value="equity_percent_margin">
+                    Portfolioanteil als eingesetztes Kapital
+                  </option>
+                  <option value="equity_percent_notional">
+                    Portfolioanteil als Positionswert
+                  </option>
+                  <option value="risk_percent">Risiko bis Stop-Loss</option>
+                </select>
+              </Field>
+              <Field label="Basis pro Trade (%)">
+                <input
+                  type="number"
+                  min="0.01"
+                  max="10"
+                  step="0.01"
+                  value={textValue(configuration.riskPerTradePercent, "5")}
+                  onChange={(event) =>
+                    set("riskPerTradePercent", event.target.value)
+                  }
+                />
+              </Field>
+              <Field label="Max. adaptiv (%)">
+                <input
+                  type="number"
+                  min="0.01"
+                  max="10"
+                  step="0.01"
+                  value={textValue(configuration.maxAdaptiveRiskPercent, "10")}
+                  onChange={(event) =>
+                    set("maxAdaptiveRiskPercent", event.target.value)
+                  }
+                />
+              </Field>
+              <Field
+                label="Standard-Hebel"
+                hint="Wird verwendet, wenn das Signal keinen Hebel enthält."
+              >
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={numberValue(
+                    configuration.defaultLeverage,
+                    numberValue(configuration.maxLeverage, 50),
+                  )}
+                  onChange={(event) =>
+                    set("defaultLeverage", Number(event.target.value))
+                  }
+                />
+              </Field>
+              <Field
+                label="Maximaler Hebel"
+                hint="Begrenzt Signal-Leverage; das Exchange-Limit kann zusätzlich niedriger sein."
+              >
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={numberValue(configuration.maxLeverage, 50)}
+                  onChange={(event) =>
+                    set("maxLeverage", Number(event.target.value))
+                  }
+                />
+              </Field>
+              <Field label="Notional-Obergrenze">
+                <input
+                  value={valueText(
+                    configuration.maxPositionNotional || "1000000000",
+                  )}
+                  onChange={(event) =>
+                    set("maxPositionNotional", event.target.value)
+                  }
+                />
+              </Field>
+            </div>
+  );
+  return fieldGrid15;
+}
+
+function AdaptiveFields({ kind, configuration, set }: Readonly<{ kind: WorkflowKind; configuration: Record<string, unknown>; set: (key: string, value: unknown) => void }>) {
+  if (kind !== "adaptive_risk") return null;
+  const fieldGrid16 = (
+              <div className="builder-field-grid three">
+                <Toggle
+                  checked={configuration.enabled !== false}
+                  onChange={(value) => set("enabled", value)}
+                  label="Adaptives Risiko aktiv"
+                />
+                <Field label="Modus">
+                  <select
+                    value={textValue(configuration.mode, "automatic")}
+                    onChange={(event) => set("mode", event.target.value)}
+                  >
+                    <option value="automatic">Automatisch anwenden</option>
+                    <option value="shadow">Nur Empfehlung</option>
+                    <option value="fixed">Starr auf Basiswert</option>
+                  </select>
+                </Field>
+                <Field
+                  label="Risikostufen (%)"
+                  hint="Aufsteigend, je Zeile eine Stufe."
+                >
+                  <textarea
+                    value={
+                      Array.isArray(configuration.tiers)
+                        ? configuration.tiers
+                            .map((tier: { riskPercent?: string }) => tier.riskPercent)
+                            .join("\n")
+                        : ""
+                    }
+                    onChange={(event) =>
+                      set(
+                        "tiers",
+                        list(event.target.value).map((riskPercent) => ({
+                          riskPercent,
+                        })),
+                      )
+                    }
+                  />
+                </Field>
+                <Field label="Startstufe (1 bis N)">
+                  <input
+                    type="number"
+                    min={1}
+                    max={Array.isArray(configuration.tiers) ? configuration.tiers.length : 1}
+                    value={numberValue(configuration.startingTier, 0) + 1}
+                    onChange={(event) =>
+                      set("startingTier", Number(event.target.value) - 1)
+                    }
+                  />
+                </Field>
+                <Field label="Stufe festhalten" hint="Gilt pro Kanal, Konto und Policy nach Publikation und Aktivierung. Bestehende Handelspläne bleiben unverändert.">
+                  <select value={configuration.lockedTier == null ? "auto" : valueText(configuration.lockedTier)}
+                    onChange={(event) => set("lockedTier", event.target.value === "auto" ? null : Number(event.target.value))}>
+                    <option value="auto">Automatische Stufenauswahl zulassen</option>
+                    {listEntries(Array.isArray(configuration.tiers) ? configuration.tiers : [], tier => String(tier.riskPercent)).map(({ item: tier, key }, index) => <option key={key} value={String(index)}>Stufe {index + 1} · {tier.riskPercent}%</option>)}
+                  </select>
+                </Field>
+                <Field label="Lookback in Wochen">
+                  <input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={numberValue(configuration.lookbackWeeks, 1)}
+                    onChange={(event) =>
+                      set("lookbackWeeks", Number(event.target.value))
+                    }
+                  />
+                </Field>
+                <Field label="Mindestens geschlossene Trades">
+                  <input
+                    type="number"
+                    min={1}
+                    max={1000}
+                    value={numberValue(configuration.minimumClosedTrades, 5)}
+                    onChange={(event) =>
+                      set("minimumClosedTrades", Number(event.target.value))
+                    }
+                  />
+                </Field>
+                <Field label="Verlustschwelle (%)">
+                  <input
+                    value={textValue(configuration.lossThresholdPercent, "2")}
+                    onChange={(event) =>
+                      set("lossThresholdPercent", event.target.value)
+                    }
+                  />
+                </Field>
+                <Field label="Gewinnschwelle (%)">
+                  <input
+                    value={textValue(configuration.profitThresholdPercent, "2")}
+                    onChange={(event) =>
+                      set("profitThresholdPercent", event.target.value)
+                    }
+                  />
+                </Field>
+                <Field label="Schwacher Kanal">
+                  <select
+                    value={textValue(configuration.weakChannelAction, "reduce")}
+                    onChange={(event) =>
+                      set("weakChannelAction", event.target.value)
+                    }
+                  >
+                    <option value="none">Keine Sonderaktion</option>
+                    <option value="reduce">Risiko reduzieren</option>
+                    <option value="block">Nach schwachen Wochen sperren</option>
+                  </select>
+                </Field>
+                <Field label="Schwache Wochen bis Sperre">
+                  <input
+                    type="number"
+                    min={1}
+                    max={52}
+                    value={numberValue(configuration.weakWeeksBeforeBlock, 3)}
+                    onChange={(event) =>
+                      set("weakWeeksBeforeBlock", Number(event.target.value))
+                    }
+                  />
+                </Field>
+                <Toggle
+                  checked={configuration.manuallyBlocked === true}
+                  onChange={(value) => set("manuallyBlocked", value)}
+                  label="Pfad manuell sperren"
+                />
+              </div>
+  );
+  return (
+    <>
+      {fieldGrid16}
+      <p className="builder-info">
+                Die Stufe wird getrennt pro Kanal, Börsenkonto und
+                Risiko-Baustein geführt. Eine andere Börsenroute kann dadurch
+                unabhängig reagieren.
+              </p>
+    </>
+  );
+}
+
+function AccountFields({ kind, draftOnly, configuration, set, trading, accountLimit, setAccountLimit, selectedAccount, saving, readOnly, onConfigureAccount }: Readonly<{
+  kind: WorkflowKind; draftOnly: boolean; configuration: Record<string, unknown>; set: (key: string, value: unknown) => void;
+  trading: TradingSnapshot | null; accountLimit: number; setAccountLimit: (value: number) => void; selectedAccount: TradingSnapshot["accounts"][number] | undefined; saving: boolean; readOnly: boolean;
+  onConfigureAccount?: ResourceEditorProps["onConfigureAccount"];
+}>) {
+  if (kind !== "account") return null;
+  const fieldGrid17 = (
+            <div className="builder-field-grid">
+              <Field label="Börsenkonto">
+                <select
+                  value={textValue(configuration.accountId)}
+                  onChange={(event) => set("accountId", event.target.value)}
+                >
+                  {trading?.accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name} · {account.exchange} · {account.mode}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {!draftOnly && <Field
+                label="Maximale gleichzeitige Positionen"
+                hint="Diese Grenze gilt für das gesamte konkrete Börsenkonto – über alle Strategien hinweg."
+              >
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={accountLimit}
+                  onChange={(event) =>
+                    setAccountLimit(Number(event.target.value))
+                  }
+                />
+              </Field>}
+              {draftOnly && selectedAccount && onConfigureAccount && <AccountPositionLimit account={selectedAccount} disabled={saving || readOnly} onSave={(maximum, baseUpdatedAt) => onConfigureAccount(selectedAccount.id, maximum, baseUpdatedAt)} />}
+              {selectedAccount && (
+                <div
+                  className={`account-inline-status ${selectedAccount.killSwitchActive ? "danger" : ""}`}
+                >
+                  <strong>{selectedAccount.status}</strong>
+                  <span>
+                    {selectedAccount.killSwitchActive
+                      ? selectedAccount.killSwitchReason || "Kontosperre aktiv"
+                      : `${selectedAccount.maxConcurrentPositions} Positionen maximal`}
+                  </span>
+                </div>
+              )}
+            </div>
+  );
+  return (
+    <>{fieldGrid17}</>
+  );
+}
+
+function DestructiveConfirmations({ archiveConfirmation, setArchiveConfirmation, deleteConfirmation, setDeleteConfirmation, name, archiveResource, deleteResource }: Readonly<{
+  archiveConfirmation: boolean; setArchiveConfirmation: (value: boolean) => void; deleteConfirmation: boolean; setDeleteConfirmation: (value: boolean) => void;
+  name: string; archiveResource: () => void | Promise<void>; deleteResource: () => void | Promise<void>;
+}>) {
+  return (
+    <>
+          {archiveConfirmation && (
+            <Alert className="builder-delete-confirmation">
+              <AlertTriangle />
+              <AlertDescription>
+                <strong>„{name}“ aus der aktiven Bibliothek archivieren?</strong>
+                <p>
+                  Der Baustein und seine Verbindungen werden aus dem aktiven
+                  Canvas entfernt. Alte Revisionen bleiben für Audit und
+                  Wiederherstellung unverändert erhalten.
+                </p>
+                <span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setArchiveConfirmation(false)}
+                  >
+                    Abbrechen
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => { archiveResource(); }}
+                  >
+                    Ja, dauerhaft archivieren
+                  </Button>
+                </span>
+              </AlertDescription>
+            </Alert>
+          )}
+          {deleteConfirmation && (
+            <Alert variant="destructive" className="builder-delete-confirmation">
+              <AlertTriangle />
+              <AlertDescription>
+                <strong>„{name}“ unwiderruflich aus der Bibliothek löschen?</strong>
+                <p>
+                  Das ist nur möglich, wenn keine aktive oder historische
+                  Workflowrevision eine Version dieses Bausteins verwendet.
+                  Verwendete Bausteine können aus Auditgründen nur archiviert
+                  werden.
+                </p>
+                <span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDeleteConfirmation(false)}
+                  >
+                    Abbrechen
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => { deleteResource(); }}
+                  >
+                    Ja, endgültig löschen
+                  </Button>
+                </span>
+              </AlertDescription>
+            </Alert>
+          )}
+    </>
+  );
+}
+
+function initialStrategyState(trading: ResourceEditorProps['trading'], nextConfiguration: Record<string, unknown>) {
+  const selected = trading?.strategies.find((item) => item.id === nextConfiguration.strategyVersionId);
+  return { draft: selected ? structuredClone(selected.configuration) : defaultStrategyConfiguration(trading), touched: !selected };
+}
+
+function initialContractState(trading: ResourceEditorProps['trading'], nextConfiguration: Record<string, unknown>) {
+  const parent = trading?.signalContracts.find((contract) => contract.versions.some((version) => version.id === nextConfiguration.contractVersionId));
+  const selected = parent?.versions.find((item) => item.id === nextConfiguration.contractVersionId);
+  return { parentId: parent?.id || "new-contract", definitionSha256: selected?.definitionSha256, draft: selected ? structuredClone(selected.definition) : defaultContractDefinition(), touched: !selected };
+}
+
+function initialSchemaDraft(trading: ResourceEditorProps['trading'], nextConfiguration: Record<string, unknown>) {
+  const selected = trading?.signalSchemas.find((item) => item.id === nextConfiguration.schemaId);
+  return signalSchemaDraft(selected);
+}
+
+function initialKindDrafts(kind: ResourceEditorProps['kind'], trading: ResourceEditorProps['trading'], nextConfiguration: Record<string, unknown>) {
+  return {
+    strategy: kind === "strategy" ? initialStrategyState(trading, nextConfiguration) : null,
+    contract: kind === "contract" ? initialContractState(trading, nextConfiguration) : null,
+    schema: kind === "schema" ? initialSchemaDraft(trading, nextConfiguration) : null,
+  };
+}
+
 export function ResourceEditor({
   draftOnly = false,
   open,
@@ -1531,6 +2225,7 @@ export function ResourceEditor({
 }: ResourceEditorProps) {
   const readOnly = useOperatorReadOnly();
   const initialized = useRef<string | null>(null);
+  // skipcq: JS-W1042 - React's typed useRef API requires the explicit argument; omission would not compile.
   const initialRevision = useRef<number | undefined>(undefined);
   const [touched, setTouched] = useState(false);
   const { confirm, confirmationDialog } = useConfirmationDialog();
@@ -1552,6 +2247,7 @@ export function ResourceEditor({
     useState<SignalContractDefinition | null>(null);
   const [contractTouched, setContractTouched] = useState(false);
   const [contractId, setContractId] = useState("new-contract");
+  // skipcq: JS-W1042 - React's typed useRef API requires the explicit argument; omission would not compile.
   const baseDefinitionSha256 = useRef<string | undefined>(undefined);
   const [schemaDraft, setSchemaDraft] = useState<SignalSchemaDraft | null>(null);
   const [archiveConfirmation, setArchiveConfirmation] = useState(false);
@@ -1573,47 +2269,14 @@ export function ResourceEditor({
     );
     const nextConfiguration =
       resource?.configuration || defaultConfiguration(kind, trading);
-    if (kind === "strategy") {
-      const selected = trading?.strategies.find(
-        (item) => item.id === nextConfiguration.strategyVersionId,
-      );
-      setStrategyDraft(
-        selected
-          ? structuredClone(selected.configuration)
-          : defaultStrategyConfiguration(trading),
-      );
-      setStrategyTouched(!selected);
-    } else if (kind === "contract") {
-      const parent = trading?.signalContracts.find((contract) =>
-        contract.versions.some(
-          (version) => version.id === nextConfiguration.contractVersionId,
-        ),
-      );
-      const selected = parent?.versions.find(
-        (item) => item.id === nextConfiguration.contractVersionId,
-      );
-      baseDefinitionSha256.current = selected?.definitionSha256;
-      setContractDraft(
-        selected
-          ? structuredClone(selected.definition)
-          : defaultContractDefinition(),
-      );
-      setContractId(parent?.id || "new-contract");
-      setContractTouched(!selected);
-    }
-    if (kind !== "strategy") setStrategyDraft(null);
-    if (kind !== "contract") setContractDraft(null);
-    if (kind !== "strategy") setStrategyTouched(false);
-    if (kind !== "contract") {
-      setContractTouched(false);
-      setContractId("new-contract");
-    }
-    if (kind === "schema") {
-      const selected = trading?.signalSchemas.find(
-        (item) => item.id === nextConfiguration.schemaId,
-      );
-      setSchemaDraft(signalSchemaDraft(selected));
-    } else setSchemaDraft(null);
+    const drafts = initialKindDrafts(kind, trading, nextConfiguration);
+    setStrategyDraft(drafts.strategy?.draft ?? null);
+    setStrategyTouched(drafts.strategy?.touched ?? false);
+    if (drafts.contract) baseDefinitionSha256.current = drafts.contract.definitionSha256;
+    setContractDraft(drafts.contract?.draft ?? null);
+    setContractId(drafts.contract?.parentId ?? "new-contract");
+    setContractTouched(drafts.contract?.touched ?? false);
+    setSchemaDraft(drafts.schema);
     setTemplateContent(
       parserPrompt(kind, nextConfiguration),
     );
@@ -1736,37 +2399,7 @@ export function ResourceEditor({
     });
   };
 
-  return (
-    <><Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) closeEditor();
-      }}
-    >
-      <DialogContent
-        className="builder-modal sm:max-w-4xl"
-        closeLabel="Baustein-Editor schließen"
-      >
-        <DialogHeader>
-          <Badge variant="secondary" style={{ color: meta.color }}>
-            {meta.label}
-          </Badge>
-          <DialogTitle id="resource-editor-title">
-            {resource ? "Baustein bearbeiten" : "Baustein erstellen"}
-          </DialogTitle>
-          <DialogDescription>
-            {draftOnly ? 'Speichert bearbeitbare Ressourcen- und Modelldrafts. Publikation und Aktivierung erfolgen ausdrücklich in getrennten Schritten.' : 'Änderungen werden als unveränderliche Version gespeichert und anschließend atomar aktiviert.'}
-          </DialogDescription>
-        </DialogHeader>
-        <fieldset disabled={readOnly} className="builder-modal-content" onChangeCapture={() => setTouched(true)}>
-          {readOnly && <p>Viewer: Ressourcen sind schreibgeschützt.</p>}
-          {confirmedSteps.length > 0 && <section aria-label="Bestätigte Teilschritte"><p>Bereits bestätigt:</p><ul>{listEntries(confirmedSteps, step => step).map(({ item: step, key }) => <li key={key}>{step}</li>)}</ul>{partialFailure && <p>Ein Folgeschritt ist fehlgeschlagen. Die aufgeführten Objekte bleiben gespeichert. Dialog schließen und vorhandene Entwürfe prüfen, bevor eine weitere Änderung begonnen wird.</p>}</section>}
-          {error && (
-            <Alert variant="destructive">
-              <AlertTriangle />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+  const fieldGrid11 = (
           <div className="builder-field-grid">
             <Field label="Name">
               <input
@@ -1783,32 +2416,9 @@ export function ResourceEditor({
               />
             </Field>
           </div>
+  );
 
-          {kind === "channel" && (
-            <Field
-              label="Telegram-Kanal-ID"
-              hint="Numerische Chat-ID, zum Beispiel -1002417439383."
-            >
-              <input
-                value={textValue(configuration.channelId)}
-                onChange={(event) => set("channelId", event.target.value)}
-              />
-            </Field>
-          )}
-          {kind === "content_filter" && (
-            <Field
-              label="Erlaubte Inhaltstypen"
-              hint="Je Zeile ein Typ: text, photo, video, document …"
-            >
-              <textarea
-                value={lines(configuration.allowedTypes)}
-                onChange={(event) =>
-                  set("allowedTypes", list(event.target.value))
-                }
-              />
-            </Field>
-          )}
-          {kind === "keyword_filter" && (
+  const fieldGrid12 = () => (
             <div className="builder-field-grid">
               <Field
                 label="Erlaubte Schlüsselwörter"
@@ -1830,34 +2440,9 @@ export function ResourceEditor({
                 />
               </Field>
             </div>
-          )}
-          {kind === "regex" && (
-            <>
-              <Field
-                label="Regex-Muster"
-                hint="Je Zeile ein Muster. Alle Muster laufen mit Zeitlimit und ReDoS-Prüfung."
-              >
-                <textarea
-                  className="code-input"
-                  value={lines(configuration.patterns)}
-                  onChange={(event) =>
-                    set("patterns", list(event.target.value))
-                  }
-                />
-              </Field>
-              <Field label="Verknüpfung">
-                <select
-                  value={textValue(configuration.mode, "all")}
-                  onChange={(event) => set("mode", event.target.value)}
-                >
-                  <option value="all">Alle Muster müssen passen</option>
-                  <option value="any">Mindestens ein Muster muss passen</option>
-                </select>
-              </Field>
-            </>
-          )}
-          {kind === "parser" && (
-            <>
+  );
+
+  const fieldGrid13 = () => (
               <div className="builder-field-grid three">
                 <Field label="Zeitlimit in ms" hint="2.000 bis 120.000">
                   <input
@@ -1893,61 +2478,9 @@ export function ResourceEditor({
                   Datenbank gespeichert – niemals als Datei.
                 </div>
               </div>
-              <Field
-                label="Parser-Prompt"
-                hint="Diese Vorlage wird zusammen mit dem Parser-Baustein gespeichert. Serverseitige Schutzregeln bleiben zusätzlich aktiv."
-              >
-                <textarea
-                  className="code-input prompt-input"
-                  value={templateContent}
-                  onChange={(event) => setTemplateContent(event.target.value)}
-                />
-              </Field>
-            </>
-          )}
-          {kind === "schema" && (
-            <SignalSchemaResourceFields
-              schemaDraft={schemaDraft}
-              parserSources={parserSources}
-              onChange={updateSchemaDraft}
-            />
-          )}
-          {kind === "contract" && (
-            <>
-              <Field
-                label="Vertrags-ID"
-                hint={
-                  configuration.contractVersionId
-                    ? "Die logische ID eines veröffentlichten Vertrags bleibt unveränderlich."
-                    : "Kleinbuchstaben, Zahlen, Unterstrich oder Bindestrich."
-                }
-              >
-                <input
-                  aria-label="Vertrags-ID"
-                  value={contractId}
-                  disabled={Boolean(configuration.contractVersionId)}
-                  onChange={(event) => setContractId(event.target.value)}
-                />
-              </Field>
-              {contractDraft ? (
-                <ContractForm
-                  value={contractDraft}
-                  onChange={(next) => {
-                    setContractDraft(next);
-                    setContractTouched(true);
-                  }}
-                />
-              ) : (
-                <Alert variant="destructive">
-                  <AlertTriangle />
-                  <AlertDescription>
-                    Die gewählte Vertragsversion ist nicht verfügbar.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </>
-          )}
-          {kind === "dedupe" && (
+  );
+
+  const fieldGrid14 = () => (
             <div className="builder-field-grid">
               <Toggle
                 checked={configuration.enabled !== false}
@@ -1966,420 +2499,36 @@ export function ResourceEditor({
                 />
               </Field>
             </div>
-          )}
-          {kind === "strategy" && (
-            strategyDraft ? (
-                <>
-                  {strategyDraft.allowedSignalSchemas.length === 0 && (
-                    <Alert variant="destructive">
-                      <AlertTriangle />
-                      <AlertDescription>
-                        Erstelle zuerst mindestens einen aktiven
-                        Signal-Schema-Baustein.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  <StrategyForm
-                    value={strategyDraft}
-                    onChange={(next) => {
-                      setStrategyDraft(next);
-                      setStrategyTouched(true);
-                    }}
-                  />
-                </>
-              ) : (
-                <Alert variant="destructive">
-                  <AlertTriangle />
-                  <AlertDescription>
-                    Die gewählte Strategieversion ist nicht verfügbar.
-                  </AlertDescription>
-                </Alert>
-              )
-          )}
-          {kind === "sizing" && (
-            <div className="builder-field-grid three">
-              <Field label="Größenmodus">
-                <select
-                  value={valueText(
-                    configuration.positionSizingMode || "equity_percent_margin",
-                  )}
-                  onChange={(event) =>
-                    set("positionSizingMode", event.target.value)
-                  }
-                >
-                  <option value="equity_percent_margin">
-                    Portfolioanteil als eingesetztes Kapital
-                  </option>
-                  <option value="equity_percent_notional">
-                    Portfolioanteil als Positionswert
-                  </option>
-                  <option value="risk_percent">Risiko bis Stop-Loss</option>
-                </select>
-              </Field>
-              <Field label="Basis pro Trade (%)">
-                <input
-                  type="number"
-                  min="0.01"
-                  max="10"
-                  step="0.01"
-                  value={textValue(configuration.riskPerTradePercent, "5")}
-                  onChange={(event) =>
-                    set("riskPerTradePercent", event.target.value)
-                  }
-                />
-              </Field>
-              <Field label="Max. adaptiv (%)">
-                <input
-                  type="number"
-                  min="0.01"
-                  max="10"
-                  step="0.01"
-                  value={textValue(configuration.maxAdaptiveRiskPercent, "10")}
-                  onChange={(event) =>
-                    set("maxAdaptiveRiskPercent", event.target.value)
-                  }
-                />
-              </Field>
-              <Field
-                label="Standard-Hebel"
-                hint="Wird verwendet, wenn das Signal keinen Hebel enthält."
-              >
-                <input
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={numberValue(
-                    configuration.defaultLeverage,
-                    numberValue(configuration.maxLeverage, 50),
-                  )}
-                  onChange={(event) =>
-                    set("defaultLeverage", Number(event.target.value))
-                  }
-                />
-              </Field>
-              <Field
-                label="Maximaler Hebel"
-                hint="Begrenzt Signal-Leverage; das Exchange-Limit kann zusätzlich niedriger sein."
-              >
-                <input
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={numberValue(configuration.maxLeverage, 50)}
-                  onChange={(event) =>
-                    set("maxLeverage", Number(event.target.value))
-                  }
-                />
-              </Field>
-              <Field label="Notional-Obergrenze">
-                <input
-                  value={valueText(
-                    configuration.maxPositionNotional || "1000000000",
-                  )}
-                  onChange={(event) =>
-                    set("maxPositionNotional", event.target.value)
-                  }
-                />
-              </Field>
-            </div>
-          )}
-          {kind === "adaptive_risk" && (
-            <>
-              <div className="builder-field-grid three">
-                <Toggle
-                  checked={configuration.enabled !== false}
-                  onChange={(value) => set("enabled", value)}
-                  label="Adaptives Risiko aktiv"
-                />
-                <Field label="Modus">
-                  <select
-                    value={textValue(configuration.mode, "automatic")}
-                    onChange={(event) => set("mode", event.target.value)}
-                  >
-                    <option value="automatic">Automatisch anwenden</option>
-                    <option value="shadow">Nur Empfehlung</option>
-                    <option value="fixed">Starr auf Basiswert</option>
-                  </select>
-                </Field>
-                <Field
-                  label="Risikostufen (%)"
-                  hint="Aufsteigend, je Zeile eine Stufe."
-                >
-                  <textarea
-                    value={
-                      Array.isArray(configuration.tiers)
-                        ? configuration.tiers
-                            .map((tier: any) => tier.riskPercent)
-                            .join("\n")
-                        : ""
-                    }
-                    onChange={(event) =>
-                      set(
-                        "tiers",
-                        list(event.target.value).map((riskPercent) => ({
-                          riskPercent,
-                        })),
-                      )
-                    }
-                  />
-                </Field>
-                <Field label="Startstufe (1 bis N)">
-                  <input
-                    type="number"
-                    min={1}
-                    max={Array.isArray(configuration.tiers) ? configuration.tiers.length : 1}
-                    value={numberValue(configuration.startingTier, 0) + 1}
-                    onChange={(event) =>
-                      set("startingTier", Number(event.target.value) - 1)
-                    }
-                  />
-                </Field>
-                <Field label="Stufe festhalten" hint="Gilt pro Kanal, Konto und Policy nach Publikation und Aktivierung. Bestehende Handelspläne bleiben unverändert.">
-                  <select value={configuration.lockedTier == null ? "auto" : valueText(configuration.lockedTier)}
-                    onChange={(event) => set("lockedTier", event.target.value === "auto" ? null : Number(event.target.value))}>
-                    <option value="auto">Automatische Stufenauswahl zulassen</option>
-                    {listEntries(Array.isArray(configuration.tiers) ? configuration.tiers : [], tier => String(tier.riskPercent)).map(({ item: tier, key }, index) => <option key={key} value={String(index)}>Stufe {index + 1} · {tier.riskPercent}%</option>)}
-                  </select>
-                </Field>
-                <Field label="Lookback in Wochen">
-                  <input
-                    type="number"
-                    min={1}
-                    max={12}
-                    value={numberValue(configuration.lookbackWeeks, 1)}
-                    onChange={(event) =>
-                      set("lookbackWeeks", Number(event.target.value))
-                    }
-                  />
-                </Field>
-                <Field label="Mindestens geschlossene Trades">
-                  <input
-                    type="number"
-                    min={1}
-                    max={1000}
-                    value={numberValue(configuration.minimumClosedTrades, 5)}
-                    onChange={(event) =>
-                      set("minimumClosedTrades", Number(event.target.value))
-                    }
-                  />
-                </Field>
-                <Field label="Verlustschwelle (%)">
-                  <input
-                    value={textValue(configuration.lossThresholdPercent, "2")}
-                    onChange={(event) =>
-                      set("lossThresholdPercent", event.target.value)
-                    }
-                  />
-                </Field>
-                <Field label="Gewinnschwelle (%)">
-                  <input
-                    value={textValue(configuration.profitThresholdPercent, "2")}
-                    onChange={(event) =>
-                      set("profitThresholdPercent", event.target.value)
-                    }
-                  />
-                </Field>
-                <Field label="Schwacher Kanal">
-                  <select
-                    value={textValue(configuration.weakChannelAction, "reduce")}
-                    onChange={(event) =>
-                      set("weakChannelAction", event.target.value)
-                    }
-                  >
-                    <option value="none">Keine Sonderaktion</option>
-                    <option value="reduce">Risiko reduzieren</option>
-                    <option value="block">Nach schwachen Wochen sperren</option>
-                  </select>
-                </Field>
-                <Field label="Schwache Wochen bis Sperre">
-                  <input
-                    type="number"
-                    min={1}
-                    max={52}
-                    value={numberValue(configuration.weakWeeksBeforeBlock, 3)}
-                    onChange={(event) =>
-                      set("weakWeeksBeforeBlock", Number(event.target.value))
-                    }
-                  />
-                </Field>
-                <Toggle
-                  checked={configuration.manuallyBlocked === true}
-                  onChange={(value) => set("manuallyBlocked", value)}
-                  label="Pfad manuell sperren"
-                />
-              </div>
-              <p className="builder-info">
-                Die Stufe wird getrennt pro Kanal, Börsenkonto und
-                Risiko-Baustein geführt. Eine andere Börsenroute kann dadurch
-                unabhängig reagieren.
-              </p>
-            </>
-          )}
-          {kind === "account" && (
-            <div className="builder-field-grid">
-              <Field label="Börsenkonto">
-                <select
-                  value={textValue(configuration.accountId)}
-                  onChange={(event) => set("accountId", event.target.value)}
-                >
-                  {trading?.accounts.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name} · {account.exchange} · {account.mode}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              {!draftOnly && <Field
-                label="Maximale gleichzeitige Positionen"
-                hint="Diese Grenze gilt für das gesamte konkrete Börsenkonto – über alle Strategien hinweg."
-              >
-                <input
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={accountLimit}
-                  onChange={(event) =>
-                    setAccountLimit(Number(event.target.value))
-                  }
-                />
-              </Field>}
-              {draftOnly && selectedAccount && onConfigureAccount && <AccountPositionLimit account={selectedAccount} disabled={saving || readOnly} onSave={(maximum, baseUpdatedAt) => onConfigureAccount(selectedAccount.id, maximum, baseUpdatedAt)} />}
-              {selectedAccount && (
-                <div
-                  className={`account-inline-status ${selectedAccount.killSwitchActive ? "danger" : ""}`}
-                >
-                  <strong>{selectedAccount.status}</strong>
-                  <span>
-                    {selectedAccount.killSwitchActive
-                      ? selectedAccount.killSwitchReason || "Kontosperre aktiv"
-                      : `${selectedAccount.maxConcurrentPositions} Positionen maximal`}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-          {kind === "output" && (
-            <Field label="Ausgabe">
-              <select
-                value={textValue(configuration.mode, "audit_only")}
-                onChange={(event) => set("mode", event.target.value)}
-              >
-                <option value="audit_only">Nur Audit & Journal</option>
-                <option value="telegram_xml">XML an Telegram-Ziel</option>
-                <option value="telegram_original">
-                  Original an Telegram-Ziel
-                </option>
-                <option value="none">Keine zusätzliche Ausgabe</option>
-              </select>
-            </Field>
-          )}
-          {archiveConfirmation && (
-            <Alert className="builder-delete-confirmation">
-              <AlertTriangle />
-              <AlertDescription>
-                <strong>„{name}“ aus der aktiven Bibliothek archivieren?</strong>
-                <p>
-                  Der Baustein und seine Verbindungen werden aus dem aktiven
-                  Canvas entfernt. Alte Revisionen bleiben für Audit und
-                  Wiederherstellung unverändert erhalten.
-                </p>
-                <span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setArchiveConfirmation(false)}
-                  >
-                    Abbrechen
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => { archiveResource(); }}
-                  >
-                    Ja, dauerhaft archivieren
-                  </Button>
-                </span>
-              </AlertDescription>
-            </Alert>
-          )}
-          {deleteConfirmation && (
-            <Alert variant="destructive" className="builder-delete-confirmation">
-              <AlertTriangle />
-              <AlertDescription>
-                <strong>„{name}“ unwiderruflich aus der Bibliothek löschen?</strong>
-                <p>
-                  Das ist nur möglich, wenn keine aktive oder historische
-                  Workflowrevision eine Version dieses Bausteins verwendet.
-                  Verwendete Bausteine können aus Auditgründen nur archiviert
-                  werden.
-                </p>
-                <span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDeleteConfirmation(false)}
-                  >
-                    Abbrechen
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => { deleteResource(); }}
-                  >
-                    Ja, endgültig löschen
-                  </Button>
-                </span>
-              </AlertDescription>
-            </Alert>
-          )}
+  );
+
+
+
+
+  return (
+    <><Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) closeEditor();
+      }}
+    >
+      <DialogContent
+        className="builder-modal sm:max-w-4xl"
+        closeLabel="Baustein-Editor schließen"
+      >
+        <EditorHeader meta={meta} resource={resource} draftOnly={draftOnly} />
+        <fieldset disabled={readOnly} className="builder-modal-content" onChangeCapture={() => setTouched(true)}>
+          <EditorNotices readOnly={readOnly} confirmedSteps={confirmedSteps} partialFailure={partialFailure} error={error} />
+          {fieldGrid11}
+
+          <KindFieldsPrimary kind={kind} configuration={configuration} set={set} templateContent={templateContent} setTemplateContent={setTemplateContent} schemaDraft={schemaDraft} parserSources={parserSources} updateSchemaDraft={updateSchemaDraft} fieldGrid12={fieldGrid12} fieldGrid13={fieldGrid13} fieldGrid14={fieldGrid14} />
+          <ContractFields kind={kind} configuration={configuration} contractId={contractId} setContractId={setContractId} contractDraft={contractDraft} setContractDraft={setContractDraft} setContractTouched={setContractTouched} />
+          <StrategyFields kind={kind} strategyDraft={strategyDraft} setStrategyDraft={setStrategyDraft} setStrategyTouched={setStrategyTouched} />
+          <SizingFields kind={kind} configuration={configuration} set={set} />
+          <AdaptiveFields kind={kind} configuration={configuration} set={set} />
+          <AccountFields kind={kind} draftOnly={draftOnly} configuration={configuration} set={set} trading={trading} accountLimit={accountLimit} setAccountLimit={setAccountLimit} selectedAccount={selectedAccount} saving={saving} readOnly={readOnly} onConfigureAccount={onConfigureAccount} />
+          <DestructiveConfirmations archiveConfirmation={archiveConfirmation} setArchiveConfirmation={setArchiveConfirmation} deleteConfirmation={deleteConfirmation} setDeleteConfirmation={setDeleteConfirmation} name={name} archiveResource={archiveResource} deleteResource={deleteResource} />
         </fieldset>
-        <DialogFooter className="builder-modal-footer">
-          {onDeleteNode && (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={saving || readOnly}
-              onClick={onDeleteNode}
-            >
-              <Archive data-icon="inline-start" /> Nur vom Canvas lösen
-            </Button>
-          )}
-          {onArchiveResource && (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={saving || readOnly}
-              onClick={() => setArchiveConfirmation(true)}
-            >
-              <Archive data-icon="inline-start" /> Dauerhaft archivieren
-            </Button>
-          )}
-          {onDeleteResource && (
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={saving || readOnly}
-              onClick={() => setDeleteConfirmation(true)}
-            >
-              <Trash2 data-icon="inline-start" /> Endgültig löschen
-            </Button>
-          )}
-          <span />
-          <Button type="button" variant="outline" onClick={closeEditor}>
-            Abbrechen
-          </Button>
-          <Button
-            type="button"
-            disabled={readOnly || saving || partialFailure || !name.trim()}
-            onClick={submit}
-          >
-            {resourceSaveLabel(saving, draftOnly)}
-          </Button>
-        </DialogFooter>
+        <EditorFooter saving={saving} readOnly={readOnly} partialFailure={partialFailure} name={name} onDeleteNode={onDeleteNode} onArchiveResource={onArchiveResource} setArchiveConfirmation={setArchiveConfirmation} setDeleteConfirmation={setDeleteConfirmation} onDeleteResource={onDeleteResource} closeEditor={closeEditor} submit={submit} draftOnly={draftOnly} />
       </DialogContent>
     </Dialog>{confirmationDialog}</>
   );

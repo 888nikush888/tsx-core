@@ -58,6 +58,37 @@ type Kind = 'resources' | 'paths' | 'revisions';
 export const resourceUrl = (resource: { resourceId: string; id: string }) => `/workflows/resources/${encodeURIComponent(resource.resourceId)}/versions/${encodeURIComponent(resource.id)}`;
 const TITLES: Record<Kind, string> = { resources: 'Ressourcenbibliothek', paths: 'Ausführungspfade', revisions: 'Workflowrevisionen' };
 
+function WorkflowLibraryFilters({ kind, params, change, setParams }: Readonly<{
+  kind: Kind; params: URLSearchParams; change: (name: string, value: string) => void; setParams: (next: URLSearchParams) => void;
+}>) {
+  return (
+    <div className="flex flex-wrap gap-4">{kind === 'resources' && <label>Bausteinart<select className="block border bg-background p-2" value={params.get('resourceKind') ?? ''} onChange={event => change('resourceKind', event.target.value)}><option value="">Alle 13 Arten</option>{WORKFLOW_KINDS.map(kind => <option key={kind} value={kind}>{KIND_META[kind].short}</option>)}</select></label>}
+      {kind !== 'paths' && <label>Versionsstatus<select className="block border bg-background p-2" value={params.get('status') ?? ''} onChange={event => change('status', event.target.value)}><option value="">Alle</option>{(kind === 'resources' ? ['draft', 'published', 'archived'] : ['active', 'archived']).map(status => <option key={status}>{status}</option>)}</select></label>}
+      {kind === 'paths' && <><label>Revision-ID<input className="block border bg-background p-2" maxLength={128} value={params.get('revisionId') ?? ''} onChange={event => change('revisionId', event.target.value)} /></label><label><input type="checkbox" checked={params.get('active') !== 'false'} onChange={event => change('active', event.target.checked ? '' : 'false')} />Nur aktive Revision (ohne ausgewählte Revision-ID)</label></>}
+      <button className="secondary-button" onClick={() => setParams(new URLSearchParams())}>Filter zurücksetzen</button></div>
+  );
+}
+
+function WorkflowLibraryNotices({ error }: Readonly<{ error: string }>) {
+  return (
+    <>
+    {error && <p role="alert">{error} · Angezeigte Daten können veraltet sein.</p>}
+    </>
+  );
+}
+
+function WorkflowLibraryResults({ page, kind, rows, columns, change, params, setParams }: Readonly<{
+  page: WorkflowListPage; kind: Kind; rows: Parameters<typeof EvidenceTable>[0]['rows']; columns: Parameters<typeof EvidenceTable>[0]['columns'];
+  change: (name: string, value: string) => void; params: URLSearchParams; setParams: (next: URLSearchParams | ((previous: URLSearchParams) => URLSearchParams)) => void;
+}>) {
+  return (
+    <>
+    <p>Beobachtet {time(page.observedAt)} · {page.hasMore ? 'Weitere Serverseiten vorhanden' : 'Ende der Auswahl'}</p><EvidenceTable caption={TITLES[kind]} rows={rows} columns={[["id", "Objekt öffnen"], ...columns, ["createdAt", "Erstellt"]]} />
+      <div className="flex gap-3"><button className="secondary-button" disabled={!params.has('cursor')} onClick={() => change('cursor', '')}>Erste Seite</button><button className="secondary-button" disabled={!page.hasMore} onClick={() => { const next = new URLSearchParams(params); next.set('cursor', page.nextCursor); setParams(next); }}>Nächste Seite</button></div>
+    </>
+  );
+}
+
 export function WorkflowLibrary({ kind, resourceId }: Readonly<{ kind: Kind; resourceId?: string }>) {
   const [params, setParams] = useSearchParams(); const [state, setState] = useState<{ key: string; value: WorkflowListPage } | null>(null); const [error, setError] = useState('');
   const query = new URLSearchParams(params); query.set('kind', kind); if (resourceId) { query.set('resourceId', resourceId); } const key = query.toString();
@@ -91,13 +122,9 @@ export function WorkflowLibrary({ kind, resourceId }: Readonly<{ kind: Kind; res
   };
   const columns: Array<[string, string]> = workflowColumns();
   return <section className="space-y-4"><h1>{TITLES[kind]}</h1>{resourceId && <p>Alle Versionen der Ressource {resourceId}</p>}
-    <div className="flex flex-wrap gap-4">{kind === 'resources' && <label>Bausteinart<select className="block border bg-background p-2" value={params.get('resourceKind') ?? ''} onChange={event => change('resourceKind', event.target.value)}><option value="">Alle 13 Arten</option>{WORKFLOW_KINDS.map(kind => <option key={kind} value={kind}>{KIND_META[kind].short}</option>)}</select></label>}
-      {kind !== 'paths' && <label>Versionsstatus<select className="block border bg-background p-2" value={params.get('status') ?? ''} onChange={event => change('status', event.target.value)}><option value="">Alle</option>{(kind === 'resources' ? ['draft', 'published', 'archived'] : ['active', 'archived']).map(status => <option key={status}>{status}</option>)}</select></label>}
-      {kind === 'paths' && <><label>Revision-ID<input className="block border bg-background p-2" maxLength={128} value={params.get('revisionId') ?? ''} onChange={event => change('revisionId', event.target.value)} /></label><label><input type="checkbox" checked={params.get('active') !== 'false'} onChange={event => change('active', event.target.checked ? '' : 'false')} />Nur aktive Revision (ohne ausgewählte Revision-ID)</label></>}
-      <button className="secondary-button" onClick={() => setParams(new URLSearchParams())}>Filter zurücksetzen</button></div>
-    {error && <p role="alert">{error} · Angezeigte Daten können veraltet sein.</p>}
-    {page ? <><p>Beobachtet {time(page.observedAt)} · {page.hasMore ? 'Weitere Serverseiten vorhanden' : 'Ende der Auswahl'}</p><EvidenceTable caption={TITLES[kind]} rows={rows} columns={[["id", "Objekt öffnen"], ...columns, ["createdAt", "Erstellt"]]} />
-      <div className="flex gap-3"><button className="secondary-button" disabled={!params.has('cursor')} onClick={() => change('cursor', '')}>Erste Seite</button><button className="secondary-button" disabled={!page.hasMore} onClick={() => { const next = new URLSearchParams(params); next.set('cursor', page.nextCursor); setParams(next); }}>Nächste Seite</button></div></> : !error && <p><output>Bibliothek wird geladen …</output></p>}
+    <WorkflowLibraryFilters kind={kind} params={params} change={change} setParams={setParams} />
+    <WorkflowLibraryNotices error={error} />
+    {page ? <WorkflowLibraryResults page={page} kind={kind} rows={rows} columns={columns} change={change} params={params} setParams={setParams} /> : !error && <p><output>Bibliothek wird geladen …</output></p>}
     {kind === 'resources' && <Link to="/workflows/builder">Neuen Baustein im gemeinsamen Editor des Builders anlegen</Link>}
   </section>;
 }
@@ -108,6 +135,111 @@ function workflowObjectTitle(kind: Kind, resource: WorkflowResource | undefined,
 }
 function resourceArchiveLabel(resource: WorkflowResource) {
   return resource.status === 'draft' ? 'Entwurf löschen' : 'Version archivieren';
+}
+
+function ObjectNotices({ error, message, savedResource }: Readonly<{ error: string; message: string; savedResource: WorkflowResource | null }>) {
+  return (
+    <>
+    {error && <p role="alert">{error}</p>}{message && <p><output>{message}</output></p>}{savedResource && <p><Link to={resourceUrl(savedResource)}>Gespeicherten Entwurf {savedResource.id} öffnen</Link></p>}
+    </>
+  );
+}
+
+function ResourceActions({ resource, data, readOnly, busy, setEditing, lifecycle }: Readonly<{
+  resource: WorkflowResource; data: WorkflowObjectRead; readOnly: boolean; busy: boolean; setEditing: (value: boolean) => void;
+  lifecycle: (operation: 'publish' | 'archive' | 'delete', family?: boolean) => Promise<void>;
+}>) {
+  return (
+    <>
+      {WORKFLOW_KINDS.includes(resource.kind) ? <div className="flex flex-wrap gap-3"><button className="secondary-button" disabled={readOnly || busy || data.editingBlockedByRedaction} onClick={() => setEditing(true)}>{resource.status === 'draft' ? 'Entwurf bearbeiten' : 'Neue Version als Entwurf'}</button>
+        {resource.status === 'draft' && <button className="primary-button" disabled={readOnly || busy} onClick={() => { lifecycle('publish'); }}>Version publizieren</button>}
+        {resource.status !== 'archived' && <button className="secondary-button" disabled={readOnly || busy} onClick={() => { lifecycle('archive'); }}>{resourceArchiveLabel(resource)}</button>}
+        <button className="secondary-button" disabled={readOnly || busy} onClick={() => { lifecycle('archive', true); }}>Familie archivieren</button><button className="danger-button" disabled={readOnly || busy} onClick={() => { lifecycle('delete', true); }}>Familie dauerhaft löschen</button></div> : <p>Unbekannte Bausteinart: Diese UI-Version bietet ausschließlich Lesezugriff.</p>}
+    </>
+  );
+}
+
+function ResourceEditorMount({ editing, trading, resource, save, setEditing }: Readonly<{
+  editing: boolean; trading: TradingSnapshot | null; resource: WorkflowResource;
+  save: (value: { name: string; description: string; configuration: Record<string, unknown>; baseEditRevision?: number }) => Promise<boolean>;
+  setEditing: (value: boolean) => void;
+}>) {
+  return (
+    <>
+      {editing && !trading && ['strategy', 'contract', 'schema', 'account'].includes(resource.kind) && <p><output>Modell- und Kontokontext für den Editor wird geladen …</output></p>}
+      {editing && (trading || !['strategy', 'contract', 'schema', 'account'].includes(resource.kind)) && WORKFLOW_KINDS.includes(resource.kind) && <ResourceEditor draftOnly open kind={resource.kind} resource={resource} trading={trading} onSave={save} onClose={() => setEditing(false)} />}
+    </>
+  );
+}
+
+function ResourceObjectView({ data, resource, readOnly, busy, editing, setEditing, trading, comparison, comparisonId, setComparisonId, setComparison, setError, save, lifecycle }: Readonly<{
+  data: WorkflowObjectRead; resource: WorkflowResource; readOnly: boolean; busy: boolean; editing: boolean; setEditing: (value: boolean) => void;
+  trading: TradingSnapshot | null; comparison: WorkflowResource | null; comparisonId: string;
+  setComparisonId: (value: string) => void; setComparison: (value: WorkflowResource) => void; setError: (value: string) => void;
+  save: (value: { name: string; description: string; configuration: Record<string, unknown>; baseEditRevision?: number }) => Promise<boolean>;
+  lifecycle: (operation: 'publish' | 'archive' | 'delete', family?: boolean) => Promise<void>;
+}>) {
+  return (
+    <>
+    <EvidenceFields fields={[["Ressource", resource.resourceId], ["Version-ID", resource.id], ["Zustand", resource.status], ["Entwurfsrevision", resource.editRevision], ["Konfigurationshash", resource.configurationSha256], ["Publiziert", time(resource.publishedAt)]]} />
+      <Link to={`/workflows/resources/${encodeURIComponent(resource.resourceId)}`}>Alle Versionen dieser Ressource</Link>
+      <ChangeReview after={resource.configuration} showAll label="Gespeicherte Parameter dieser Quelle" />
+      {data.publication?.dependency && <ChangeReview after={data.publication.dependency} showAll label="Referenziertes Modell · Inhalt vor Publikation prüfen" />}
+      <h2>Aktive Verwendungen</h2><ul>{data.activePaths.map((path) => <li key={path.id}><Link to={`/workflows/paths/${encodeURIComponent(path.id)}`}>{path.id}</Link> · Kanal {path.channelId}</li>)}</ul>{!data.activePaths.length && <p>In der beobachteten aktiven Revision nicht verwendet. Historische Referenzen werden bei Archivierung oder Löschung zusätzlich geprüft.</p>}
+      <label>Vergleichsversion-ID<input className="block border bg-background p-2 w-full" maxLength={128} value={comparisonId} onChange={event => setComparisonId(event.target.value)} /></label>
+      <button className="secondary-button" disabled={!comparisonId} onClick={() => { (async () => { try { const result = await jsonRequest(`/api/workflow/objects?kind=resources&id=${encodeURIComponent(comparisonId)}`); if (result.resource.resourceId !== resource.resourceId) { throw new Error('Vergleich erfordert dieselbe Ressourcenfamilie.'); } setComparison(result.resource); } catch (error_) { setError(String(error_)); } })(); }}>Versionen vergleichen</button>
+      {comparison && <ChangeReview before={comparison.configuration} after={resource.configuration} label={`Vergleich v${comparison.version} → v${resource.version}`} />}
+      {data.editingBlockedByRedaction && <p>Diese Quelle enthält redigierte Zugangsdaten. Bearbeiten/Kopieren ist gesperrt, damit Platzhalter keine gespeicherten Werte überschreiben. Zugangsdaten gehören in die separate Secretverwaltung.</p>}
+      <ResourceActions resource={resource} data={data} readOnly={readOnly} busy={busy} setEditing={setEditing} lifecycle={lifecycle} />
+      <ResourceEditorMount editing={editing} trading={trading} resource={resource} save={save} setEditing={setEditing} />
+    </>
+  );
+}
+
+function RevisionObjectView({ data, kind, readOnly, busy, restoreDraft }: Readonly<{
+  data: WorkflowObjectRead; kind: Kind; readOnly: boolean; busy: boolean; restoreDraft: () => void | Promise<void>;
+}>) {
+  return (
+    <>
+    <EvidenceFields fields={[["Revision-ID", data.revision.id], ["Status", data.revision.status], ["Integrität geprüft", data.integrityVerified], ["Definition-Hash", data.revision.definitionSha256], ["Erstellt von", data.revision.createdBy], ["Erstellt", time(data.revision.createdAt)]]} />
+      <Link to={`/workflows/paths?revisionId=${encodeURIComponent(data.revision.id)}&active=false`}>Alle Pfade dieser Revision</Link>
+      {data.path && <><EvidenceFields fields={[["Pfad-ID", data.path.id], ["Kanal", data.path.channelId], ["Konto", <Link key="account" to={`/trading/accounts/${encodeURIComponent(data.path.accountId)}`}>{data.path.accountId}</Link>], ["Fallbackrang", data.path.fallbackRank]]} />
+        <EvidenceTable caption="Wirksame Strategieparameter und Ursprung" rows={(data.parameterEffects ?? []).map((field) => {
+          const strategyValue = () => {
+            if (!field.strategyValuePresent) {
+              return 'nicht gesetzt';
+            }
+            if (field.strategyValue === null) {
+              return 'null';
+            }
+            if (typeof field.strategyValue === 'object') {
+              return JSON.stringify(field.strategyValue);
+            }
+            return field.strategyValue;
+          };
+          const compiledValue = () => {
+            if (field.value === null) {
+              return 'null';
+            }
+            if (typeof field.value === 'object') {
+              return JSON.stringify(field.value);
+            }
+            return field.value;
+          };
+          return (({ ...field,
+            value: compiledValue(),
+            strategyValue: strategyValue(),
+            source: field.resourceId ? <Link to={resourceUrl({ resourceId: field.resourceId, id: field.sourceVersionId })}>{field.source} · {field.sourceVersionId}</Link> : `${field.source} · ${field.sourceVersionId ?? 'unbekannte Version'}` }));
+        })}
+          columns={[["field", "Parameter"], ["value", "Kompilierter Wert"], ["unit", "Einheit"], ["source", "Quelle"], ["strategyValue", "Strategiewert vor Override"], ["overridesStrategy", "Sizing überschreibt Strategie"]]} />
+        <p>Diese Parameter gelten für Intents dieses Pfads. Signalhebel, adaptive Risikostufe und Markt-/FX-/Schutzbelege können den eigenen Tradeplan zusätzlich begrenzen. Die gespeicherte Strategie ist eine Quelle der kompilieren Konfiguration.</p>
+        <details><summary>Vollständiger kompilierter Originalbeleg</summary><ChangeReview after={data.path.effectiveConfiguration} showAll label="Kompilierte wirksame Parameter dieses Pfads" /></details>
+        <Link to={`/trading/journal?accountId=${encodeURIComponent(data.path.accountId)}&channelId=${encodeURIComponent(data.path.channelId)}`}>Trades dieses Kanals und Kontos · Originalpfad im Trade prüfen</Link></>}
+      <EvidenceTable caption="Gepinnte Quellen" rows={data.sources.map((source) => ({ node: source.nodeId, kind: source.resource?.kind, resource: source.resource ? <Link to={resourceUrl(source.resource)}>{source.resource.name} · v{source.resource.version}</Link> : 'Originalquelle nicht verfügbar' }))} columns={[["node", "Knoten"], ["kind", "Art"], ["resource", "Version öffnen"]]} />
+      {listEntries<string>(data.revision.warnings, warning => warning).map(({ item: warning, key }) => <p key={key}>{warning}</p>)}
+      {kind === 'revisions' && <><ChangeReview after={data.revision.graph} showAll label="Originalgraph · unveränderlich" /><button className="secondary-button" disabled={readOnly || busy} onClick={() => { restoreDraft(); }}>Historischen Graph als Entwurf übernehmen</button><Link to="/workflows/builder">Entwurf im Builder prüfen</Link></>}
+    </>
+  );
 }
 
 export function WorkflowObject({ kind, id, resourceId }: Readonly<{ kind: Kind; id: string; resourceId?: string }>) {
@@ -195,60 +327,8 @@ export function WorkflowObject({ kind, id, resourceId }: Readonly<{ kind: Kind; 
   if (!data) return <section><h1>Workflowobjekt</h1><p>{error ? <span role="alert">{error}</span> : <output>Objekt wird geladen …</output>}</p></section>;
   if (resourceId && resource?.resourceId !== resourceId) return <p role="alert">Diese Version gehört nicht zur angefragten Ressourcenfamilie.</p>;
   return <section className="space-y-5">{confirmationDialog}<Link to={`/workflows/${kind}`}>{TITLES[kind]}</Link><h1>{workflowObjectTitle(kind, resource, data)}</h1>
-    {error && <p role="alert">{error}</p>}{message && <p><output>{message}</output></p>}{savedResource && <p><Link to={resourceUrl(savedResource)}>Gespeicherten Entwurf {savedResource.id} öffnen</Link></p>}
+    <ObjectNotices error={error} message={message} savedResource={savedResource} />
     <p>{data.effect}</p><p>Beobachtet {time(data.observedAt)}</p>
-    {resource ? <><EvidenceFields fields={[["Ressource", resource.resourceId], ["Version-ID", resource.id], ["Zustand", resource.status], ["Entwurfsrevision", resource.editRevision], ["Konfigurationshash", resource.configurationSha256], ["Publiziert", time(resource.publishedAt)]]} />
-      <Link to={`/workflows/resources/${encodeURIComponent(resource.resourceId)}`}>Alle Versionen dieser Ressource</Link>
-      <ChangeReview after={resource.configuration} showAll label="Gespeicherte Parameter dieser Quelle" />
-      {data.publication?.dependency && <ChangeReview after={data.publication.dependency} showAll label="Referenziertes Modell · Inhalt vor Publikation prüfen" />}
-      <h2>Aktive Verwendungen</h2><ul>{data.activePaths.map((path) => <li key={path.id}><Link to={`/workflows/paths/${encodeURIComponent(path.id)}`}>{path.id}</Link> · Kanal {path.channelId}</li>)}</ul>{!data.activePaths.length && <p>In der beobachteten aktiven Revision nicht verwendet. Historische Referenzen werden bei Archivierung oder Löschung zusätzlich geprüft.</p>}
-      <label>Vergleichsversion-ID<input className="block border bg-background p-2 w-full" maxLength={128} value={comparisonId} onChange={event => setComparisonId(event.target.value)} /></label>
-      <button className="secondary-button" disabled={!comparisonId} onClick={() => { (async () => { try { const result = await jsonRequest(`/api/workflow/objects?kind=resources&id=${encodeURIComponent(comparisonId)}`); if (result.resource.resourceId !== resource.resourceId) { throw new Error('Vergleich erfordert dieselbe Ressourcenfamilie.'); } setComparison(result.resource); } catch (error_) { setError(String(error_)); } })(); }}>Versionen vergleichen</button>
-      {comparison && <ChangeReview before={comparison.configuration} after={resource.configuration} label={`Vergleich v${comparison.version} → v${resource.version}`} />}
-      {data.editingBlockedByRedaction && <p>Diese Quelle enthält redigierte Zugangsdaten. Bearbeiten/Kopieren ist gesperrt, damit Platzhalter keine gespeicherten Werte überschreiben. Zugangsdaten gehören in die separate Secretverwaltung.</p>}
-      {WORKFLOW_KINDS.includes(resource.kind) ? <div className="flex flex-wrap gap-3"><button className="secondary-button" disabled={readOnly || busy || data.editingBlockedByRedaction} onClick={() => setEditing(true)}>{resource.status === 'draft' ? 'Entwurf bearbeiten' : 'Neue Version als Entwurf'}</button>
-        {resource.status === 'draft' && <button className="primary-button" disabled={readOnly || busy} onClick={() => { lifecycle('publish'); }}>Version publizieren</button>}
-        {resource.status !== 'archived' && <button className="secondary-button" disabled={readOnly || busy} onClick={() => { lifecycle('archive'); }}>{resourceArchiveLabel(resource)}</button>}
-        <button className="secondary-button" disabled={readOnly || busy} onClick={() => { lifecycle('archive', true); }}>Familie archivieren</button><button className="danger-button" disabled={readOnly || busy} onClick={() => { lifecycle('delete', true); }}>Familie dauerhaft löschen</button></div> : <p>Unbekannte Bausteinart: Diese UI-Version bietet ausschließlich Lesezugriff.</p>}
-      {editing && !trading && ['strategy', 'contract', 'schema', 'account'].includes(resource.kind) && <p><output>Modell- und Kontokontext für den Editor wird geladen …</output></p>}
-      {editing && (trading || !['strategy', 'contract', 'schema', 'account'].includes(resource.kind)) && WORKFLOW_KINDS.includes(resource.kind) && <ResourceEditor draftOnly open kind={resource.kind} resource={resource} trading={trading} onSave={save} onClose={() => setEditing(false)} />}
-    </> : <><EvidenceFields fields={[["Revision-ID", data.revision.id], ["Status", data.revision.status], ["Integrität geprüft", data.integrityVerified], ["Definition-Hash", data.revision.definitionSha256], ["Erstellt von", data.revision.createdBy], ["Erstellt", time(data.revision.createdAt)]]} />
-      <Link to={`/workflows/paths?revisionId=${encodeURIComponent(data.revision.id)}&active=false`}>Alle Pfade dieser Revision</Link>
-      {data.path && <><EvidenceFields fields={[["Pfad-ID", data.path.id], ["Kanal", data.path.channelId], ["Konto", <Link key="account" to={`/trading/accounts/${encodeURIComponent(data.path.accountId)}`}>{data.path.accountId}</Link>], ["Fallbackrang", data.path.fallbackRank]]} />
-        <EvidenceTable caption="Wirksame Strategieparameter und Ursprung" rows={(data.parameterEffects ?? []).map((field) => {
-          const strategyValue = () => {
-            if (!field.strategyValuePresent) {
-              return 'nicht gesetzt';
-            }
-            if (field.strategyValue === null) {
-              return 'null';
-            }
-            if (typeof field.strategyValue === 'object') {
-              return JSON.stringify(field.strategyValue);
-            }
-            return field.strategyValue;
-          };
-          const compiledValue = () => {
-            if (field.value === null) {
-              return 'null';
-            }
-            if (typeof field.value === 'object') {
-              return JSON.stringify(field.value);
-            }
-            return field.value;
-          };
-          return (({ ...field,
-            value: compiledValue(),
-            strategyValue: strategyValue(),
-            source: field.resourceId ? <Link to={resourceUrl({ resourceId: field.resourceId, id: field.sourceVersionId })}>{field.source} · {field.sourceVersionId}</Link> : `${field.source} · ${field.sourceVersionId ?? 'unbekannte Version'}` }));
-        })}
-          columns={[["field", "Parameter"], ["value", "Kompilierter Wert"], ["unit", "Einheit"], ["source", "Quelle"], ["strategyValue", "Strategiewert vor Override"], ["overridesStrategy", "Sizing überschreibt Strategie"]]} />
-        <p>Diese Parameter gelten für Intents dieses Pfads. Signalhebel, adaptive Risikostufe und Markt-/FX-/Schutzbelege können den eigenen Tradeplan zusätzlich begrenzen. Die gespeicherte Strategie ist eine Quelle der kompilieren Konfiguration.</p>
-        <details><summary>Vollständiger kompilierter Originalbeleg</summary><ChangeReview after={data.path.effectiveConfiguration} showAll label="Kompilierte wirksame Parameter dieses Pfads" /></details>
-        <Link to={`/trading/journal?accountId=${encodeURIComponent(data.path.accountId)}&channelId=${encodeURIComponent(data.path.channelId)}`}>Trades dieses Kanals und Kontos · Originalpfad im Trade prüfen</Link></>}
-      <EvidenceTable caption="Gepinnte Quellen" rows={data.sources.map((source) => ({ node: source.nodeId, kind: source.resource?.kind, resource: source.resource ? <Link to={resourceUrl(source.resource)}>{source.resource.name} · v{source.resource.version}</Link> : 'Originalquelle nicht verfügbar' }))} columns={[["node", "Knoten"], ["kind", "Art"], ["resource", "Version öffnen"]]} />
-      {listEntries<string>(data.revision.warnings, warning => warning).map(({ item: warning, key }) => <p key={key}>{warning}</p>)}
-      {kind === 'revisions' && <><ChangeReview after={data.revision.graph} showAll label="Originalgraph · unveränderlich" /><button className="secondary-button" disabled={readOnly || busy} onClick={() => { restoreDraft(); }}>Historischen Graph als Entwurf übernehmen</button><Link to="/workflows/builder">Entwurf im Builder prüfen</Link></>}
-    </>}
+    {resource ? <ResourceObjectView data={data} resource={resource} readOnly={readOnly} busy={busy} editing={editing} setEditing={setEditing} trading={trading} comparison={comparison} comparisonId={comparisonId} setComparisonId={setComparisonId} setComparison={setComparison} setError={setError} save={save} lifecycle={lifecycle} /> : <RevisionObjectView data={data} kind={kind} readOnly={readOnly} busy={busy} restoreDraft={restoreDraft} />}
   </section>;
 }

@@ -59,11 +59,11 @@ function errorMessage(error: unknown): string {
   }
 }
 
-function payloadObject(request: McpControlRequest): Record<string, any> {
+function payloadObject(request: McpControlRequest): Record<string, unknown> {
   if (!request.payload || typeof request.payload !== 'object' || Array.isArray(request.payload)) {
     throw new Error('MCP control payload must be an object.');
   }
-  return request.payload as Record<string, any>;
+  return request.payload as Record<string, unknown>;
 }
 
 export class McpControlBridge {
@@ -83,6 +83,7 @@ export class McpControlBridge {
     }
   }
 
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
   async start(): Promise<void> {
     if (this.worker !== null) return;
     this.recovered = false;
@@ -325,6 +326,7 @@ export class McpControlBridge {
     }
   }
 
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
   private async executeAuthorized(request: McpControlRequest): Promise<unknown> {
     const payload = payloadObject(request);
     const action = request.action;

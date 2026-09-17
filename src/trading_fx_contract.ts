@@ -31,11 +31,11 @@ export class FxEvidenceError extends Error {
   }
 }
 export function invalidFx(reason = 'EVIDENCE_INVALID'): never { throw new FxEvidenceError(reason); }
-function object(value: unknown): Record<string, any> {
+function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return invalidFx();
   const prototype = Object.getPrototypeOf(value);
   if (prototype !== null && prototype !== Object.prototype) return invalidFx();
-  return value as Record<string, any>;
+  return value as Record<string, unknown>;
 }
 function canonicalArray(value: unknown[], depth: number, budget: { remaining: number }): string {
   if (value.length > budget.remaining || Object.keys(value).length !== value.length) return invalidFx();
@@ -55,6 +55,7 @@ function canonical(value: unknown, depth: number, budget: { remaining: number })
   if (Array.isArray(value)) return canonicalArray(value, depth, budget);
   const row = object(value);
   return `{${Object.keys(row).sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b))).map(key => {
+    // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
     if ([...key].length > 256 || /[\x00-\x1f\x7f-\x9f]/u.test(key) || /[\uD800-\uDFFF]/u.test(key)) return invalidFx();
     return `${canonical(key, depth + 1, budget)}:${canonical(row[key], depth + 1, budget)}`;
   }).join(',')}}`;
@@ -71,33 +72,33 @@ export function fxEvidenceDigest(domain: 'bybit-fx-envelope-v1' | 'bybit-fx-rece
 function timestamp(value: unknown): asserts value is number {
   if (!Number.isSafeInteger(value) || (value as number) < 0) invalidFx();
 }
-function validateTimes(row: Record<string, any>): void {
+function validateTimes(row: Record<string, unknown>): void {
   if (row.providerQuoteAt !== null || row.timeBasis !== 'provider_snapshot_observation') invalidFx();
   for (const field of ['startedAt', 'completedAt', 'providerResponseAt']) timestamp(row[field]);
-  if (row.startedAt > row.completedAt || row.completedAt - row.startedAt > 10000
-    || row.completedAt > Date.now() + 1000 || row.providerResponseAt < row.startedAt - 1000
-    || row.providerResponseAt > row.completedAt + 1000) invalidFx();
+  if ((row.startedAt as number) > (row.completedAt as number) || (row.completedAt as number) - (row.startedAt as number) > 10000
+    || (row.completedAt as number) > Date.now() + 1000 || (row.providerResponseAt as number) < (row.startedAt as number) - 1000
+    || (row.providerResponseAt as number) > (row.completedAt as number) + 1000) invalidFx();
 }
-function validateProfile(row: Record<string, any>, context: { mode: unknown; profileHash: unknown }): void {
+function validateProfile(row: Record<string, unknown>, context: { mode: unknown; profileHash: unknown }): void {
   if (row.version !== 1 || row.provider !== 'bybit' || row.source !== 'bybit-v5-rest-index-snapshot-v1'
     || row.endpoint !== '/v5/market/tickers' || row.ccxtVersion !== '4.5.75' || row.profileVersion !== 1) invalidFx();
-  if (!['live', 'testnet'].includes(row.mode) || row.mode !== context.mode || row.profileHash !== context.profileHash
+  if (!['live', 'testnet'].includes(row.mode as string) || row.mode !== context.mode || row.profileHash !== context.profileHash
     || typeof row.profileHash !== 'string' || !/^[a-f0-9]{64}$/.test(row.profileHash)
     || row.origin !== (row.mode === 'live' ? 'https://api.bybit.com' : 'https://api-testnet.bybit.com')) invalidFx();
 }
-function validateLeg(row: Record<string, any>): void {
+function validateLeg(row: Record<string, unknown>): void {
   if (typeof row.legId !== 'string' || !Object.hasOwn(DEFINITIONS, row.legId)) invalidFx();
   const definition = DEFINITIONS[row.legId as FxLegId];
   if ([row.routeId, row.category, row.symbol, row.field].some((item, index) => item !== definition[index])) invalidFx();
   if (typeof row.value !== 'string' || /\s/.test(row.value)) invalidFx();
   try { decimal(row.value, { positive: true }); } catch { invalidFx(); }
 }
-function validateEnvelope(row: Record<string, any>): void {
+function validateEnvelope(row: Record<string, unknown>): void {
   const envelope = object(row.envelope), result = object(envelope.result);
   if (envelope.retCode !== 0 || envelope.time !== row.providerResponseAt || result.category !== row.category
     || !Array.isArray(result.list) || result.list.length !== 1) invalidFx();
   const ticker = object(result.list[0]);
-  if (ticker.symbol !== row.symbol || ticker[row.field] !== row.value) invalidFx();
+  if (ticker.symbol !== row.symbol || ticker[row.field as string] !== row.value) invalidFx();
   if (row.envelopeHash !== fxEvidenceDigest('bybit-fx-envelope-v1', envelope)) invalidFx();
 }
 export function validateFxLegReceipt(value: unknown, context: { mode: unknown; profileHash: unknown }): FxLegReceipt {
@@ -109,5 +110,5 @@ export function validateFxLegReceipt(value: unknown, context: { mode: unknown; p
   validateEnvelope(row);
   const { receiptHash, ...original } = row;
   if (receiptHash !== fxEvidenceDigest('bybit-fx-receipt-v1', original)) invalidFx();
-  return row as FxLegReceipt;
+  return row as unknown as FxLegReceipt;
 }

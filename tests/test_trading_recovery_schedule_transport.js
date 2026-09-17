@@ -118,8 +118,8 @@ async function count(table, accountId) {
     'trading_account_mode_observations'].includes(table));
   return (await getDatabase().get(`SELECT COUNT(*) AS n FROM ${table} WHERE account_id=?`, [accountId])).n;
 }
-async function attempt(id) { return getDatabase().get('SELECT * FROM trading_recovery_schedule_attempts WHERE id=?', [id]); }
-async function schedule(accountId) { return getDatabase().get('SELECT * FROM trading_recovery_schedules WHERE account_id=?', [accountId]); }
+function attempt(id) { return getDatabase().get('SELECT * FROM trading_recovery_schedule_attempts WHERE id=?', [id]); }
+function schedule(accountId) { return getDatabase().get('SELECT * FROM trading_recovery_schedules WHERE account_id=?', [accountId]); }
 async function sources(accountId) {
   return { history: await getDatabase().all('SELECT * FROM trading_history_checkpoints WHERE account_id=? ORDER BY source,provider_symbol', [accountId]),
     logs: await getDatabase().all('SELECT * FROM trading_account_log_checkpoints WHERE account_id=?', [accountId]) };
@@ -172,6 +172,7 @@ async function testNotDueAndPositivePhases(account, adapter, control) {
   const originalLogs = (await sources(account.id)).logs;
   await getDatabase().run('UPDATE trading_recovery_schedules SET next_due_at=? WHERE account_id=?', [Date.now() + 10000, account.id]);
   const before = await schedule(account.id), notDue = await adapter.openState(account);
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.deepEqual(notDue.positions, [position]); assert.equal(notDue.acquisition.fxEvidence, undefined);
   assert.ok(lastRequest(account.id).payload.recovery.recoverySchedule.grants.every(grant => grant.maxCalls === 0 && grant.deferredReason === 'not_due'));
   await recordAcquisitionEvidence(account, notDue.acquisition);
@@ -200,6 +201,7 @@ async function assertFailedRead(fixture, expectedError) {
   await assert.rejects(adapter.openState(account), expectedError);
   assert.equal(requests.length - beforeRequests, 1, 'A scheduled read has exactly one HTTP attempt, even without accountLogs.');
   const sent = lastRequest(account.id).payload.recovery;
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(sent.accountLogs, undefined);
   const failed = await attempt(sent.recoverySchedule.attemptId);
   assert.equal(failed.status, 'failed'); assert.equal(failed.calls, null, 'An invalid or lost response never proves zero provider calls.');
@@ -263,7 +265,9 @@ async function testLegacyAndDatabaseAuthority() {
   ]) {
     const { account, adapter } = await setup(id, options);
     const state = await adapter.openState(account);
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.equal(lastRequest(account.id).payload.recovery.recoverySchedule, undefined);
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.equal(state.acquisition.recoverySchedule, undefined); assert.equal(state.acquisition.fxEvidence, undefined);
     assert.equal(await count('trading_recovery_schedule_attempts', account.id), 0);
   }

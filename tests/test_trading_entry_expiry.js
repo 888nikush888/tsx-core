@@ -58,7 +58,7 @@ async function assertRemainingLifetime(file) {
   const { paper, account, intent, origin } = await fixture(file);
   const cancellations = [];
   const cancel = paper.cancelOrder.bind(paper);
-  paper.cancelOrder = async (...args) => { cancellations.push(args[1]); return cancel(...args); };
+  paper.cancelOrder = (...args) => { cancellations.push(args[1]); return cancel(...args); };
   const engine = new TradingEngine([paper]);
   await engine.processIntent(intent.id);
   const stored = await getTradingIntent(intent.id);
@@ -98,6 +98,7 @@ async function assertExpiredPreparedNeverSubmits(file) {
   const expired = { ...prepared.plan, entryExpiresAt: Date.now() - 1 };
   await getDatabase().run('UPDATE trading_trade_intents SET plan_json = ? WHERE id = ?', [JSON.stringify(expired), intent.id]);
   let submissions = 0;
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   paper.submitProtectedEntry = async () => { submissions += 1; throw new Error('Expired entry must never submit'); };
   await new TradingEngine([paper]).processIntent(intent.id);
   assert.equal(submissions, 0);
@@ -112,6 +113,7 @@ async function assertFinalDispatchDeadline(file) {
   const actualNow = Date.now;
   let reachedLastAwait = false;
   let submissions = 0;
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   paper.submitProtectedEntry = async () => { submissions += 1; throw new Error('Expired dispatch must not be sent.'); };
   database.run = async (...args) => {
     const result = await run(...args);
@@ -193,6 +195,7 @@ async function assertExpiredPreparedDrainsLocally(file) {
   const engine = new TradingEngine([paper]);
   await engine.preparePendingIntent(intent);
   let remoteWrites = 0;
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   paper.submitProtectedEntry = paper.cancelOrder = async () => { remoteWrites += 1; throw new Error('Unsent expiry is local only.'); };
   assert.equal(await engine.cancelExpiredEntries(origin + ttl), 1);
   assert.equal(remoteWrites, 0);

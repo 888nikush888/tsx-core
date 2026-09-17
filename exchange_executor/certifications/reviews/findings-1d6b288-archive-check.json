@@ -1,0 +1,18 @@
+{
+  "kind": "separate-completed-archive-verification",
+  "archive": {
+    "path": "reports/findings-review/final-v9-receipt-evidence.tar.gz",
+    "sha256": "71fee5907f772e6b63f2686b5b0eb0e3066e59e19f43c5053e5195a0d81f7db1"
+  },
+  "candidate": {
+    "path": "reports/findings-review/final-v9-hyperliquid-receipt-candidate.json",
+    "sha256": "1427d769cda61eae1dfb5ec4cb145deff190f465a7d161f66a9f7973ac0aae8f"
+  },
+  "members": 39,
+  "everyMemberReadBack": true,
+  "independentRebuildByteIdentical": true,
+  "currentAndHistoricalReferencesRechecked": true,
+  "candidateIndependentReviewAndRootApprovalBound": true,
+  "unresolvedReferences": 0,
+  "operativeReceiptOrPinsChanged": false
+}

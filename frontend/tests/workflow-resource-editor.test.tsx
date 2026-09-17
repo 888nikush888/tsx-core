@@ -17,6 +17,8 @@ vi.mock('@/lib/api', () => api)
 import { defaultConfiguration, ResourceEditor } from '@/app/workflow/resource-editor'
 import { KIND_META, WORKFLOW_KINDS } from '@/app/workflow/types'
 
+type EditorProps = Parameters<typeof ResourceEditor>[0]
+
 const trading = {
   accounts: [{ id: 'account-1', name: 'Paper', exchange: 'paper', mode: 'paper', status: 'ready', enabled: true, maxConcurrentPositions: 7, killSwitchActive: false, killSwitchReason: null, lastReconciledAt: null, lastError: null }],
   strategies: [{
@@ -67,18 +69,18 @@ const trading = {
       grounding: { action: true, pair: true, entry: true, targets: true, stopLoss: true, leverage: false, riskPercent: false, averagingPrice: false },
     },
   }] }],
-} as any
+} as unknown as EditorProps['trading']
 
 function response(body: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }))
 }
 
 function editor(
-  kind: any,
+  kind: EditorProps['kind'],
   onSave = vi.fn(() => Promise.resolve(true)),
-  snapshot: any = trading,
-  resource: any = null,
-  parserSources: any[] = [{
+  snapshot: EditorProps['trading'] = trading,
+  resource: EditorProps['resource'] = null,
+  parserSources: EditorProps['parserSources'] = [{
     nodeId: 'parser-node',
     resourceVersionId: 'parser-resource-v1',
     name: 'Parser 1',
@@ -98,7 +100,7 @@ function editor(
   return onSave
 }
 
-function workflowResource(kind: any, configuration: Record<string, unknown>) {
+function workflowResource(kind: EditorProps['kind'], configuration: Record<string, unknown>): NonNullable<EditorProps['resource']> {
   return {
     id: `${kind}-resource-v1`, resourceId: `${kind}-resource`, version: 1, kind,
     name: `Existing ${kind}`, description: '', status: 'published', configuration,
@@ -202,7 +204,7 @@ describe('workflow resource contracts', () => {
   it('keeps a model as a draft and reuses its confirmed result after resource saving fails', async () => {
     api.apiFetch.mockImplementation((url: string) => url === '/api/trading/strategies' ? response({ result: { id: 'strategy-draft-v2' } }, 201) : response({}))
     const onSave = vi.fn().mockResolvedValue(false)
-    render(<ResourceEditor draftOnly open kind="strategy" resource={workflowResource('strategy', { strategyVersionId: 'strategy-v1' })} trading={trading as any} onClose={() => {}} onSave={onSave} />)
+    render(<ResourceEditor draftOnly open kind="strategy" resource={workflowResource('strategy', { strategyVersionId: 'strategy-v1' })} trading={trading as any} onClose={() => { /* dialog close is not exercised in this scenario */ }} onSave={onSave} />)
     fireEvent.change(screen.getByLabelText(/Standard-Hebel/), { target: { value: '7' } })
     fireEvent.click(screen.getByRole('button', { name: 'Ressourcen- und Graphentwurf speichern' }))
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
@@ -371,3 +373,25 @@ describe('workflow resource contracts', () => {
     await waitFor(() => expect(onDeleteResource).toHaveBeenCalledOnce())
   })
 })
+
+
+describe('resource-kind rendering boundaries', () => {
+  afterEach(cleanup)
+  it.each([
+    ['keyword fields', { allowedKeywords: [{ toString: null }], blockedKeywords: [] }],
+    ['parser fields', { timeoutMs: { toString: null } }],
+    ['dedupe fields', { cooldownHours: { toString: null } }],
+  ])('does not coerce preserved %s metadata while editing a channel', async (_label, extra) => {
+    const configuration = { channelId: '-1001234567', ...extra };
+    const resource = { id: 'channel-v1', resourceId: 'channel', version: 1, kind: 'channel', name: 'Channel with metadata',
+      description: '', status: 'draft', editRevision: 1, configuration } as EditorProps['resource'];
+    const onSave = vi.fn<EditorProps['onSave']>(() => Promise.resolve(true));
+    editor('channel', onSave, trading, resource);
+    expect(screen.getByDisplayValue('-1001234567')).toBeVisible();
+    expect(screen.queryByLabelText('Zeitlimit in ms')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Cooldown in Stunden')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /speichern/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0].configuration).toEqual(configuration);
+  });
+});

@@ -49,6 +49,11 @@ import {
   WorkflowBuilder,
 } from "@/app/workflow/workflow-builder";
 
+type CapturedFlowNode = {
+  id: string;
+  data: { connectionState?: string; onStartConnection: (id: string, mode?: string) => void };
+};
+
 async function openBuilderWorkspace() {
   fireEvent.click(await screen.findByRole("tab", { name: "Builder" }));
   await waitFor(() => expect(screen.getByTestId("workflow-canvas")).toBeVisible());
@@ -66,7 +71,7 @@ describe("workflow builder resilience", () => {
       id: "sizing-v1", resourceId: "sizing", version: 1, kind: "sizing", name: "Sizing", description: "",
       status: "published", configuration: { riskPerTradePercent: "5", maxAdaptiveRiskPercent: "10", defaultLeverage: 3, maxLeverage: 10 },
       configurationSha256: "a".repeat(64), createdAt: 1, publishedAt: 1,
-    } as any;
+    } as unknown as Parameters<typeof workflowResourceSummary>[0];
     expect(workflowResourceSummary(base, null)).toContain("Hebel 3×/10×");
     expect(workflowResourceSummary({ ...base, configuration: { ...base.configuration, defaultLeverage: undefined } }, null))
       .toContain("Hebel 10×/10×");
@@ -106,7 +111,7 @@ describe("workflow builder resilience", () => {
   });
 
   it("provides initial dimensions so nodes remain renderable before browser measurement callbacks", async () => {
-    api.apiFetch.mockImplementation(async (input: RequestInfo | URL) => {
+    api.apiFetch.mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
       const payload =
         url === "/api/workflow"
@@ -172,7 +177,7 @@ describe("workflow builder resilience", () => {
   });
 
   it("keeps only React Flow's single fit-view control", async () => {
-    api.apiFetch.mockImplementation(async (input: RequestInfo | URL) => {
+    api.apiFetch.mockImplementation((input: RequestInfo | URL) => {
       const payload =
         String(input) === "/api/workflow"
           ? {
@@ -251,7 +256,7 @@ describe("workflow builder resilience", () => {
       compiled: { paths: [], warnings: [] },
     };
     api.apiFetch.mockImplementation(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
+      (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const requestedGraph =
         url === "/api/workflow/mutate" && typeof init?.body === "string"
@@ -305,19 +310,19 @@ describe("workflow builder resilience", () => {
     await openBuilderWorkspace();
     await waitFor(() => expect(flow.props).not.toBeNull());
     if (!flow.props) throw new Error("React Flow props were not captured.");
-    const source = (flow.props.nodes as Array<any>).find(
+    const source = (flow.props.nodes as CapturedFlowNode[]).find(
       (node) => node.id === "node-channel",
     );
     if (!source) throw new Error("Connection source was not rendered.");
     act(() => source.data.onStartConnection("node-channel"));
 
     await waitFor(() => {
-      const nodes = flow.props?.nodes as Array<any>;
+      const nodes = flow.props?.nodes as CapturedFlowNode[];
       expect(
-        nodes.find((node) => node.id === "node-channel").data.connectionState,
+        nodes.find((node) => node.id === "node-channel")?.data.connectionState,
       ).toBe("source");
       expect(
-        nodes.find((node) => node.id === "node-output").data.connectionState,
+        nodes.find((node) => node.id === "node-output")?.data.connectionState,
       ).toBe("target");
     });
     expect(
@@ -378,7 +383,7 @@ describe("workflow builder resilience", () => {
       compiled: { paths: [], warnings: [] },
     };
     api.apiFetch.mockImplementation(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
+      (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
         const requestedGraph =
           url === "/api/workflow/mutate" && typeof init?.body === "string"
@@ -441,15 +446,16 @@ describe("workflow builder resilience", () => {
     await openBuilderWorkspace();
     await waitFor(() => expect(flow.props).not.toBeNull());
     if (!flow.props) throw new Error("React Flow props were not captured.");
-    const primary = (flow.props.nodes as Array<any>).find(
+    const primary = (flow.props.nodes as CapturedFlowNode[]).find(
       (node) => node.id === "node-primary",
     );
+    if (!primary) throw new Error("Fallback primary node was not rendered.");
     act(() => primary.data.onStartConnection("node-primary", "account_fallback"));
 
     await waitFor(() => {
-      const nodes = flow.props?.nodes as Array<any>;
+      const nodes = flow.props?.nodes as CapturedFlowNode[];
       expect(
-        nodes.find((node) => node.id === "node-fallback").data.connectionState,
+        nodes.find((node) => node.id === "node-fallback")?.data.connectionState,
       ).toBe("target");
     });
     expect(

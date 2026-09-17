@@ -80,6 +80,7 @@ function wrappedAdapter(paper, submit, submitProtectedEntry = null) {
 async function testUnknownEntry(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'unknown-entry.db'));
   let submissions = 0;
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   const adapter = wrappedAdapter(paper, async () => {
     submissions += 1;
     throw new Error('simulated submit timeout');
@@ -158,7 +159,7 @@ async function testFinalAdmissionRechecksMutableSafety(directory) {
   for (const [name, reason, change] of cases) {
     const fixture = await setup(path.join(directory, `final-admission-${name}.db`));
     let submissions = 0;
-    const adapter = wrappedAdapter(fixture.paper, async (...args) => {
+    const adapter = wrappedAdapter(fixture.paper, (...args) => {
       submissions += 1;
       return fixture.paper.submitOrder(...args);
     });
@@ -228,7 +229,9 @@ async function testSameSideRemoteQuantityIsNotAutomaticallyOwned(directory) {
   const before = await getDatabase().get('SELECT quantity FROM trading_positions WHERE intent_id = ?', [intent.id]);
   const snapshot = await paper.openState(account);
   let mutations = 0;
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   adapter.submitOrder = async () => { mutations += 1; throw new Error('No mutation authorized for foreign exposure.'); };
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   adapter.cancelOrder = async () => { mutations += 1; throw new Error('No cancel authorized for foreign exposure.'); };
   adapter.openState = () => Promise.resolve(({ ...snapshot, positions: snapshot.positions.map(position => ({ ...position, quantity: '1' })), observedAt: Date.now() }));
   await assert.rejects(engine.reconcileAccount(account.id), /ownership|owned.*quantity/i);
@@ -246,7 +249,9 @@ async function testSameQuantityInAnotherSettlementIsNotOwned(directory) {
   const snapshot = await paper.openState(account);
   assert.equal(snapshot.positions.length, 1);
   let mutations = 0;
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   adapter.submitOrder = async () => { mutations += 1; throw new Error('Foreign namespace mutation.'); };
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   adapter.cancelOrder = async () => { mutations += 1; throw new Error('Foreign namespace cancel.'); };
   adapter.openState = () => Promise.resolve(({ ...snapshot, positions: snapshot.positions.map(position => ({
     ...position, providerSymbol: 'ETH/USDC:USDC',
@@ -283,7 +288,7 @@ async function testInvalidUndispatchedPlanReleasesReservation(directory) {
       await getDatabase().run('UPDATE trading_trade_intents SET created_at = ? WHERE id = ?',
         [Date.now() - plan.entryOrderTtlSeconds * 1_000 - 1, intent.id]);
     }],
-    ['disabled', 'EXECUTION_DISABLED', async () => updateTradingRuntimeState({ executionEnabled: false })],
+    ['disabled', 'EXECUTION_DISABLED', () => updateTradingRuntimeState({ executionEnabled: false })],
     ['route', 'ROUTE_NO_LONGER_AUTHORIZED', async ({ intent, account }) => {
       await setTradingRoute({ channelId: intent.channelId, strategyVersionId: intent.strategyVersionId, accountId: account.id, enabled: false });
     }],
@@ -306,7 +311,9 @@ async function testInvalidUndispatchedPlanReleasesReservation(directory) {
     await closeDb();
     await initDb(databasePath);
     let writes = 0;
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     const adapter = wrappedAdapter(fixture.paper, async () => { writes += 1; throw new Error('No write allowed.'); });
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     adapter.cancelOrder = async () => { writes += 1; throw new Error('No remote cancel allowed for an unsent plan.'); };
     const restarted = new TradingEngine([adapter]);
     await restarted.processIntent(fixture.intent.id);
@@ -334,6 +341,7 @@ async function testUncertainOrChangedPlanCannotResume(directory) {
       await getDatabase().run("UPDATE trading_orders SET quantity = '999' WHERE intent_id = ? AND role = 'entry'", [fixture.intent.id]);
     }
     let writes = 0;
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     const adapter = wrappedAdapter(fixture.paper, async () => { writes += 1; throw new Error('An uncertain plan must never be sent.'); });
     await new TradingEngine([adapter]).processIntent(fixture.intent.id);
     assert.equal(writes, 0);
@@ -393,7 +401,7 @@ async function testProtectiveStopFailure(directory) {
 async function testRuntimeStopWinsPendingIntentRace(directory) {
   const { paper, intent } = await setup(path.join(directory, 'runtime-stop-race.db'));
   let submissions = 0;
-  const adapter = wrappedAdapter(paper, async (...args) => {
+  const adapter = wrappedAdapter(paper, (...args) => {
     submissions += 1;
     return paper.submitOrder(...args);
   });
@@ -413,7 +421,7 @@ async function testStopDuringPreparationRevokesDispatch(directory) {
   const { promise: entered, resolve: enteredSnapshot } = Promise.withResolvers();
   const hold = new Promise(resolve => { releaseSnapshot = resolve; });
   let submissions = 0;
-  const adapter = wrappedAdapter(paper, async (...args) => {
+  const adapter = wrappedAdapter(paper, (...args) => {
     submissions += 1;
     return paper.submitOrder(...args);
   });
@@ -447,7 +455,7 @@ async function testStalePendingIntentNeverSubmits(directory) {
     [Date.now() - 901_000, Date.now() - 901_000, intent.id],
   );
   let submissions = 0;
-  const adapter = wrappedAdapter(paper, async (...args) => {
+  const adapter = wrappedAdapter(paper, (...args) => {
     submissions += 1;
     return paper.submitOrder(...args);
   });
@@ -467,6 +475,7 @@ async function testUnavailableMarketFailureIsolation(directory) {
   const strict = await setup(path.join(directory, 'unavailable-market-strict.db'));
   const strictAdapter = {
     ...wrappedAdapter(strict.paper, (...args) => strict.paper.submitOrder(...args)),
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     marketSnapshot: async () => {
       throw new Error('Exchange executor request failed (400): Hyperliquid symbol ETH is unavailable.');
     },
@@ -482,6 +491,7 @@ async function testUnavailableMarketFailureIsolation(directory) {
   const isolated = await setup(path.join(directory, 'unavailable-market-isolated.db'));
   const isolatedAdapter = {
     ...wrappedAdapter(isolated.paper, (...args) => isolated.paper.submitOrder(...args)),
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     marketSnapshot: async () => {
       throw new TradingSymbolUnavailableError(
         'Hyperliquid symbol ETH is unavailable.',
@@ -573,7 +583,7 @@ async function testEmergencyFlattenRetryIsIdempotent(directory) {
   const { paper, account, intent } = await setup(path.join(directory, 'flatten-retry.db'));
   let flattenSubmissions = 0;
   const flattenIds = [];
-  const adapter = wrappedAdapter(paper, async (targetAccount, request) => {
+  const adapter = wrappedAdapter(paper, (targetAccount, request) => {
     if (request.role !== 'flatten') return paper.submitOrder(targetAccount, request);
     flattenSubmissions += 1;
     flattenIds.push(request.clientOrderId);
@@ -757,6 +767,7 @@ async function testTransientExecutorIncidentBlocksOnlyNewEntriesUntilReconciled(
   const { paper, account, intent } = await setup(path.join(directory, 'transient-executor-incident.db'));
   const adapter = wrappedAdapter(paper, (...args) => paper.submitOrder(...args));
   let unavailable = true;
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   adapter.openState = async (...args) => {
     if (unavailable) throw new Error('Exchange executor request failed (503): temporarily unavailable');
     return paper.openState(...args);
@@ -899,6 +910,7 @@ async function testPeriodicReconciliationFailureDoesNotActivateHardKillSwitch(di
   await updateTradingRuntimeState({ executionEnabled: true });
   const engine = {
     mutations: new TradingMutationCoordinator(),
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     reconcileAccount: async () => { throw new Error('simulated periodic exchange outage'); },
     cancelExpiredEntries: () => Promise.resolve(0),
     processIntent: () => Promise.resolve(),
@@ -924,6 +936,7 @@ async function testTransientReconciliationFailureKeepsRetryingWithoutHardIsolati
   const logs = [];
   const engine = {
     mutations: new TradingMutationCoordinator(),
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     reconcileAccount: async (_accountId, options) => {
       forced.push(options?.force === true);
       if (fail) throw new Error('simulated transient OPEN_STATE_FAILED');
@@ -968,7 +981,7 @@ async function testRestoredAccountIdentityRequiresExplicitSafeRelease(directory)
   const forced = [];
   const engine = {
     mutations: new TradingMutationCoordinator(),
-    reconcileAccount: async (_accountId, options) => { forced.push(options?.force === true); },
+    reconcileAccount: (_accountId, options) => { forced.push(options?.force === true); },
     cancelExpiredEntries: () => Promise.resolve(0),
     processIntent: () => Promise.resolve(),
   };
@@ -997,6 +1010,7 @@ async function testEntryExpiryFailureActivatesKillSwitch(directory) {
   const engine = {
     mutations: new TradingMutationCoordinator(),
     reconcileAccount: () => Promise.resolve(),
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     cancelExpiredEntries: async () => { throw new Error('simulated expiry cancellation outage'); },
     processIntent: () => Promise.resolve(),
   };
@@ -1020,6 +1034,7 @@ async function testRuntimeIsolatesAccountFailures(directory) {
   const calls = [];
   const engine = {
     mutations: new TradingMutationCoordinator(),
+    // skipcq: JS-0116 - preserve the original asynchronous failure fixture, including indirect helper throws.
     reconcileAccount: async accountId => {
       calls.push(accountId);
       if (accountId === first.id) throw new Error('first account unavailable');
@@ -1042,6 +1057,7 @@ async function testStopReplacementCancellationFailsClosed(directory) {
   const engine = new TradingEngine([adapter]);
   await engine.processIntent(intent.id);
   assert.equal((await getTradingIntent(intent.id)).status, 'monitoring');
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   adapter.cancelOrder = async () => { throw new Error('simulated stale-stop cancellation timeout'); };
   await paper.setMarket(account.id, {
     symbol: 'ETHUSDT', markPrice: '3150', priceTick: '0.1', quantityStep: '0.001',
@@ -1333,6 +1349,7 @@ async function testRuntimeLifecycleAndDefaultFailureLogger(directory) {
   let reconciliations = 0;
   const engine = {
     mutations: new TradingMutationCoordinator(),
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     reconcileAccount: async () => {
       reconciliations += 1;
       if (reconciliations === 2) throw new Error('scheduled failure handled by default logger');
@@ -1372,7 +1389,7 @@ async function testExchangeStreamAcceleratesAuthoritativeReconciliation(director
   let emitted = false;
   const engine = {
     mutations: new TradingMutationCoordinator(),
-    reconcileAccount: async (accountId, options) => { reconciliations.push([accountId, options?.force]); },
+    reconcileAccount: (accountId, options) => { reconciliations.push([accountId, options?.force]); },
     cancelExpiredEntries: () => Promise.resolve(0),
     processIntent: () => Promise.resolve(),
     pollAccountStream: () => {
@@ -1426,6 +1443,7 @@ async function testStartupReconciliationFailureKeepsControlPlaneAvailable(direct
   const logs = [];
   const engine = {
     mutations: new TradingMutationCoordinator(),
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     reconcileAccount: async () => { throw new Error('simulated unmanaged startup exposure'); },
     cancelExpiredEntries: () => Promise.resolve(0),
     processIntent: () => Promise.resolve(),

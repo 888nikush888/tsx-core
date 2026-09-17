@@ -93,7 +93,7 @@ export class OperationalDataRetention {
     await this.runNow();
     this.timer = setInterval(() => {
       this.runNow().catch(error => {
-        this.logger(`[ERROR] Operational data retention failed: ${error.message}`);
+        this.logger(`[ERROR] Operational data retention failed: ${(error as { message?: string }).message}`);
       });
     }, this.policy.intervalMs);
     this.timer.unref();
@@ -113,6 +113,7 @@ export class OperationalDataRetention {
     } finally {
       this.running = null;
     }
+    return undefined;
   }
 
   getStatus(): RetentionStatus {
@@ -158,8 +159,8 @@ export class OperationalDataRetention {
       };
       this.logger(`[INFO] Operational retention deleted ${resultCount(total)} row(s); database=${storage.allocatedBytes} bytes, reusable=${storage.reusableBytes} bytes.`);
       if (backlog) throw new Error('Retention backlog exceeds the bounded per-run cleanup limit.');
-    } catch (error: any) {
-      this.status = { ...this.status, healthy: false, lastError: error.message };
+    } catch (error: unknown) {
+      this.status = { ...this.status, healthy: false, lastError: (error as { message?: string }).message };
       throw error;
     }
   }

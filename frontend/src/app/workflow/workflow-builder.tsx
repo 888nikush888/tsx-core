@@ -6,6 +6,7 @@ import {
   useState,
   type CSSProperties,
   type RefObject,
+  type ReactNode,
 } from "react";
 import { useDirtyGuard } from '@/shared/forms/use-dirty-guard';
 import { useOperatorReadOnly } from '@/shared/api/operator-session';
@@ -732,7 +733,7 @@ export function WorkspaceStatusbar({
   lastUpdated,
 }: Readonly<{
   workspace: Exclude<WorkflowWorkspace, "builder">;
-  onRefresh: () => Promise<void>;
+  onRefresh: () => void | Promise<void>;
   trading: TradingSnapshot | null;
   systemStatus: WorkflowSystemStatus | null;
   refreshing: boolean;
@@ -1265,7 +1266,7 @@ function workflowRenderMode(
 }
 
 function AnalyticsStatusbar({ lastUpdated, refreshing, onFilters, onRefresh }: Readonly<{
-  lastUpdated: number | null; refreshing: boolean; onFilters: () => void; onRefresh: () => Promise<void>;
+  lastUpdated: number | null; refreshing: boolean; onFilters: () => void; onRefresh: () => void | Promise<void>;
 }>) {
   return <section className="workflow-statusbar workspace-statusbar analytics-statusbar">
     <div className="workflow-status-tools">
@@ -1308,7 +1309,7 @@ function resourceAction(resource: WorkflowResource | null, action: (resource: Wo
   return resource ? () => action(resource) : undefined;
 }
 
-async function persistGraphDraft(graph: WorkflowGraph, meta: WorkflowDraftMeta | null) {
+function persistGraphDraft(graph: WorkflowGraph, meta: WorkflowDraftMeta | null) {
   if (!meta) throw new Error('Graphentwurf konnte nicht geladen werden. Keine Speicherung möglich.');
   return jsonRequest('/api/workflow/drafts', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1343,6 +1344,73 @@ function bindSavedResourceToGraph(
     candidate.nodes.push(addedNode);
   }
   return addedNode;
+}
+
+function EmbeddedBuilderHeader({ embedded, snapshot, draftMeta, draftUnsaved, readOnly, saving, tableView, setTableView, graph, activateGraph, publishGraphResources, setServerDraftPreview, setNotice, serverDraftPreview, draftMetaRef, setDraftMeta, setGraph, setDraftUnsaved }: Readonly<{
+  embedded: boolean; snapshot: WorkflowSnapshot; draftMeta: WorkflowDraftMeta | null; draftUnsaved: boolean; readOnly: boolean; saving: boolean;
+  tableView: boolean; setTableView: (value: boolean) => void; graph: WorkflowGraph; activateGraph: (nextGraph: WorkflowGraph, label: string, activate?: boolean) => void;
+  publishGraphResources: () => void; setServerDraftPreview: (value: WorkflowDraftPreview | null) => void; setNotice: (value: BuilderNoticeValue | null) => void;
+  serverDraftPreview: WorkflowDraftPreview | null; draftMetaRef: RefObject<WorkflowDraftMeta | null>; setDraftMeta: (value: WorkflowDraftMeta | null) => void;
+  setGraph: (value: WorkflowGraph) => void; setDraftUnsaved: (value: boolean) => void;
+}>) {
+  if (!embedded) return null;
+  return (
+  <section className="operations-card"><h1>Workflows · Entwurf und Aktivierung</h1>
+        <p>Aktiv: Revision {snapshot.workflow?.revision ?? 'keine'} · Graphentwurf {draftMeta?.version ?? 'noch nicht gespeichert'} · Basis {draftMeta?.baseRevisionId ?? 'keine'} · {draftUnsaved ? 'ungespeicherte Änderungen' : 'keine unbestätigte Graphänderung'}.</p>
+        <p>Graphänderungen werden als Entwurf gespeichert. Ressourcenpublikation und Aktivierung sind separate Schritte. History betrifft ausschließlich Graphrevisionen, keine ausgeführten Trades.</p>
+        {readOnly && <p>Viewer: Workflows sind schreibgeschützt.</p>}
+        <div className="flex flex-wrap gap-3"><button className="secondary-button" onClick={() => setTableView(!tableView)}>{tableView ? 'Canvas anzeigen' : 'Tabellenansicht anzeigen'}</button>
+          <button className="secondary-button" disabled={saving || readOnly || !draftMeta} onClick={() => { activateGraph(graph, 'Graph'); }}>Graphentwurf speichern</button>
+          <button className="secondary-button" disabled={saving || readOnly} onClick={() => { publishGraphResources(); }}>Referenzierte Entwurfsversionen publizieren</button>
+          <button className="primary-button" disabled={saving || readOnly || draftUnsaved || !draftMeta?.version} onClick={() => { activateGraph(graph, 'Graph aktiviert', true); }}>Gespeicherten Graph aktivieren</button>
+          <button className="secondary-button" disabled={saving} onClick={() => { (async () => {
+            try { const [draft, active] = await Promise.all([jsonRequest('/api/workflow/drafts?id=operator'), jsonRequest('/api/workflow')]); setServerDraftPreview({ draft: draft.draft, workflow: active.workflow }); }
+            catch (error) { setNotice({ tone: 'error', text: `Vergleich nicht verfügbar: ${String(error)}` }); }
+          })(); }}>Serverstand vergleichen</button></div>
+    <ServerDraftPreview preview={serverDraftPreview} graph={graph} draftMetaRef={draftMetaRef} setDraftMeta={setDraftMeta} setGraph={setGraph} setDraftUnsaved={setDraftUnsaved} setServerDraftPreview={setServerDraftPreview} readOnly={readOnly} />
+  </section>
+  );
+}
+
+function ServerDraftPreview({ preview, graph, draftMetaRef, setDraftMeta, setGraph, setDraftUnsaved, setServerDraftPreview, readOnly }: Readonly<{
+  preview: WorkflowDraftPreview | null; graph: WorkflowGraph; draftMetaRef: RefObject<WorkflowDraftMeta | null>;
+  setDraftMeta: (value: WorkflowDraftMeta | null) => void; setGraph: (value: WorkflowGraph) => void; setDraftUnsaved: (value: boolean) => void;
+  setServerDraftPreview: (value: WorkflowDraftPreview | null) => void; readOnly: boolean;
+}>) {
+  if (!preview) return null;
+  return (
+        <div><p>Serverentwurf {preview.draft?.version ?? 'keiner'} · Basis {preview.draft?.baseRevisionId ?? 'keine'} · aktive Revision {preview.workflow?.id ?? 'keine'}. {preview.draft?.expired && 'Der Entwurf ist abgelaufen und muss bewusst neu gespeichert werden.'}</p>
+          <details><summary>Gespeicherten Graph mit eigenem Entwurf vergleichen</summary><p>Eigener Entwurf</p><pre className="whitespace-pre-wrap break-all">{JSON.stringify(graph, null, 2)}</pre><p>Serverentwurf</p><pre className="whitespace-pre-wrap break-all">{JSON.stringify(preview.draft?.graph ?? preview.workflow?.graph ?? EMPTY_GRAPH, null, 2)}</pre></details>
+          <button className="secondary-button" onClick={() => { const meta = preview.draft ?? { id: 'operator', version: null, baseRevisionId: preview.workflow?.id ?? null }; draftMetaRef.current = meta; setDraftMeta(meta); setGraph(meta.graph ?? preview.workflow?.graph ?? EMPTY_GRAPH); setDraftUnsaved(false); setServerDraftPreview(null); }}>Serverentwurf übernehmen · eigene Änderungen verwerfen</button>
+          <button className="secondary-button" disabled={readOnly} onClick={() => { const meta = { ...(preview.draft ?? { id: 'operator', version: null }), baseRevisionId: preview.workflow?.id ?? null }; draftMetaRef.current = meta; setDraftMeta(meta); setDraftUnsaved(true); setServerDraftPreview(null); }}>Verglichen · eigenen Graph auf neue Basis anwenden</button></div>
+  );
+}
+
+function CanvasPanel({ show, position, className, children }: Readonly<{ show: boolean; position: "top-left" | "top-center" | "top-right"; className: string; children: () => ReactNode }>) {
+  if (!show) return null;
+  return <Panel position={position} className={className}>{children()}</Panel>;
+}
+
+function builderNoSearchResults(search: string, nodes: ReadonlyArray<unknown>, displayNodes: ReadonlyArray<{ id: string; hidden?: boolean }>) {
+  return Boolean(
+    search.trim() &&
+      nodes.length > 0 &&
+      !displayNodes.some(
+        (node) => !node.id.startsWith("__column_") && !node.hidden,
+      ),
+  );
+}
+
+function editorKindFor(newKind: WorkflowKind | null, selectedNode: { kind: WorkflowKind } | null): WorkflowKind {
+  return newKind || selectedNode?.kind || "channel";
+}
+
+function hiddenCanvasStyle(embedded: boolean, tableView: boolean) {
+  return embedded && tableView ? { display: "none" } : undefined;
+}
+
+function activationBaseRevision(embedded: boolean, draftBaseRevisionId: string | null | undefined, workflowId: string | null | undefined) {
+  return embedded ? draftBaseRevisionId ?? null : workflowId ?? null;
 }
 
 export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {}) {
@@ -1397,7 +1465,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
     useState<WorkflowConnectionDraft | null>(null);
   const [fallbackPolicyOpen, setFallbackPolicyOpen] = useState(false);
   const [pendingFallbackChannelNodeIds, setPendingFallbackChannelNodeIds] =
-    useState<string[] | undefined>(undefined);
+    useState<string[] | undefined>();
   const [routeOverviewOpen, setRouteOverviewOpen] = useState(false);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
   const libraryTriggerRef = useRef<HTMLButtonElement>(null);
@@ -1630,16 +1698,17 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
       if (readOnly) { setNotice({ tone: 'warning', text: 'Viewer: Workflowänderungen sind gesperrt.' }); return false; }
       setSaving(true);
       setNotice(null);
+    const persistEmbeddedDraft = async () => {
+      setGraph(candidate); setDraftUnsaved(true);
+      const saved = await persistGraphDraft(candidate, draftMetaRef.current);
+      draftMetaRef.current = saved.draft; setDraftMeta(saved.draft); setDraftUnsaved(false);
+      setNotice({ tone: 'ok', text: `${successMessage} · Graphentwurf ${saved.draft.version} gespeichert. Die aktive Revision wurde nicht geändert.` });
+      return true;
+    };
       try {
-        if (embedded && !activate) {
-          setGraph(candidate); setDraftUnsaved(true);
-          const saved = await persistGraphDraft(candidate, draftMetaRef.current);
-          draftMetaRef.current = saved.draft; setDraftMeta(saved.draft); setDraftUnsaved(false);
-          setNotice({ tone: 'ok', text: `${successMessage} · Graphentwurf ${saved.draft.version} gespeichert. Die aktive Revision wurde nicht geändert.` });
-          return true;
-        }
+      if (embedded && !activate) return await persistEmbeddedDraft();
         if (embedded) await requireCurrentGraphDraft(draftMetaRef.current?.version, draftUnsaved);
-        const baseRevisionId = embedded ? draftMetaRef.current?.baseRevisionId ?? null : snapshot.workflow?.id ?? null;
+      const baseRevisionId = activationBaseRevision(embedded, draftMetaRef.current?.baseRevisionId, snapshot.workflow?.id);
         const impactPayload = await jsonRequest("/api/workflow/impact", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1668,10 +1737,11 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
         }));
         setGraph(structuredClone(payload.workflow.graph));
         setHistory(builderHistoryStatus(payload.history));
-        if (embedded) {
-          const next = payload.draft ?? { ...draftMetaRef.current, baseRevisionId: payload.workflow.id };
-          draftMetaRef.current = next; setDraftMeta(next);
-        }
+      const applyEmbeddedDraft = () => {
+        const next = payload.draft ?? { ...draftMetaRef.current, baseRevisionId: payload.workflow.id };
+        draftMetaRef.current = next; setDraftMeta(next);
+      };
+      if (embedded) applyEmbeddedDraft();
         setNotice({
           tone: impact.destructive ? "warning" : "ok",
           text: `${successMessage} · Revision ${payload.workflow.revision} ist aktiv.`,
@@ -1778,7 +1848,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
   );
 
   useEffect(() => {
-    if (activeWorkspace !== "builder") return;
+    if (activeWorkspace !== "builder") return undefined;
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target;
       if (target instanceof Element && target.closest(
@@ -1917,6 +1987,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
     if (activated) {
       setSelectedEdgeId(edgeId);
       setFallbackPolicyOpen(false);
+      // skipcq: JS-W1042 - React's typed Dispatch API requires the explicit argument; omission would not compile.
       setPendingFallbackChannelNodeIds(undefined);
       setConnectionDraft(null);
     }
@@ -2172,13 +2243,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
       selectedPathId,
     ],
   );
-  const noSearchResults = Boolean(
-    search.trim() &&
-      graph.nodes.length > 0 &&
-      !displayNodes.some(
-        (node) => !node.id.startsWith("__column_") && !node.hidden,
-      ),
-  );
+  const noSearchResults = builderNoSearchResults(search, graph.nodes, displayNodes);
 
   const selectedConnection = useMemo(() => {
     const edge = graph.edges.find((item) => item.id === selectedEdgeId);
@@ -2301,7 +2366,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
 
   const selectedNode = selectedGraphNode(graph, editorNodeId);
   const selectedResource = resourceForNode(selectedNode, resourceById);
-  const editorKind = newKind || selectedNode?.kind || "channel";
+  const editorKind = editorKindFor(newKind, selectedNode);
   const editorParserSources = useMemo(
     () => parserSourcesForSchema(
       graph,
@@ -2624,31 +2689,298 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
     default:
       break;
   }
-  return (
-    <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
-      {!embedded && <WorkflowTopbar />}
-      {!embedded && <WorkflowNavigation
-        activeWorkspace={activeWorkspace}
-        onChange={setActiveWorkspace}
-      />}
-      {embedded && <section className="operations-card"><h1>Workflows · Entwurf und Aktivierung</h1>
-        <p>Aktiv: Revision {snapshot.workflow?.revision ?? 'keine'} · Graphentwurf {draftMeta?.version ?? 'noch nicht gespeichert'} · Basis {draftMeta?.baseRevisionId ?? 'keine'} · {draftUnsaved ? 'ungespeicherte Änderungen' : 'keine unbestätigte Graphänderung'}.</p>
-        <p>Graphänderungen werden als Entwurf gespeichert. Ressourcenpublikation und Aktivierung sind separate Schritte. History betrifft ausschließlich Graphrevisionen, keine ausgeführten Trades.</p>
-        {readOnly && <p>Viewer: Workflows sind schreibgeschützt.</p>}
-        <div className="flex flex-wrap gap-3"><button className="secondary-button" onClick={() => setTableView(!tableView)}>{tableView ? 'Canvas anzeigen' : 'Tabellenansicht anzeigen'}</button>
-          <button className="secondary-button" disabled={saving || readOnly || !draftMeta} onClick={() => { activateGraph(graph, 'Graph'); }}>Graphentwurf speichern</button>
-          <button className="secondary-button" disabled={saving || readOnly} onClick={() => { publishGraphResources(); }}>Referenzierte Entwurfsversionen publizieren</button>
-          <button className="primary-button" disabled={saving || readOnly || draftUnsaved || !draftMeta?.version} onClick={() => { activateGraph(graph, 'Graph aktiviert', true); }}>Gespeicherten Graph aktivieren</button>
-          <button className="secondary-button" disabled={saving} onClick={() => { (async () => {
-            try { const [draft, active] = await Promise.all([jsonRequest('/api/workflow/drafts?id=operator'), jsonRequest('/api/workflow')]); setServerDraftPreview({ draft: draft.draft, workflow: active.workflow }); }
-            catch (error) { setNotice({ tone: 'error', text: `Vergleich nicht verfügbar: ${String(error)}` }); }
-          })(); }}>Serverstand vergleichen</button></div>
-        {serverDraftPreview && <div><p>Serverentwurf {serverDraftPreview.draft?.version ?? 'keiner'} · Basis {serverDraftPreview.draft?.baseRevisionId ?? 'keine'} · aktive Revision {serverDraftPreview.workflow?.id ?? 'keine'}. {serverDraftPreview.draft?.expired && 'Der Entwurf ist abgelaufen und muss bewusst neu gespeichert werden.'}</p>
-          <details><summary>Gespeicherten Graph mit eigenem Entwurf vergleichen</summary><p>Eigener Entwurf</p><pre className="whitespace-pre-wrap break-all">{JSON.stringify(graph, null, 2)}</pre><p>Serverentwurf</p><pre className="whitespace-pre-wrap break-all">{JSON.stringify(serverDraftPreview.draft?.graph ?? serverDraftPreview.workflow?.graph ?? EMPTY_GRAPH, null, 2)}</pre></details>
-          <button className="secondary-button" onClick={() => { const meta = serverDraftPreview.draft ?? { id: 'operator', version: null, baseRevisionId: serverDraftPreview.workflow?.id ?? null }; draftMetaRef.current = meta; setDraftMeta(meta); setGraph(meta.graph ?? serverDraftPreview.workflow?.graph ?? EMPTY_GRAPH); setDraftUnsaved(false); setServerDraftPreview(null); }}>Serverentwurf übernehmen · eigene Änderungen verwerfen</button>
-          <button className="secondary-button" disabled={readOnly} onClick={() => { const meta = { ...(serverDraftPreview.draft ?? { id: 'operator', version: null }), baseRevisionId: serverDraftPreview.workflow?.id ?? null }; draftMetaRef.current = meta; setDraftMeta(meta); setDraftUnsaved(true); setServerDraftPreview(null); }}>Verglichen · eigenen Graph auf neue Basis anwenden</button></div>}
-      </section>}
-      {activeWorkspace === "builder" ? (
+  const searchEmptyCard = (
+              <Card>
+                <CardContent>
+                  <span>
+                    <strong>Keine passenden Bausteine</strong>
+                    <small>
+                      Die Suche blendet derzeit alle Canvas-Bausteine aus.
+                    </small>
+                  </span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={showAllNodes}
+                  >
+                    Suche löschen und alles anzeigen
+                  </Button>
+                </CardContent>
+              </Card>
+  );
+  const routeFocusCard = () => (
+              <Card>
+                <CardContent>
+                  <RouteIcon aria-hidden="true" />
+                  <span>
+                    <small>Pfadfokus</small>
+                    <strong>
+                      {selectedRoute.channelName} → {selectedRoute.fallbackAccounts.map((candidate) => candidate.accountName).join(" → ")}
+                    </strong>
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedPathId(null)}
+                  >
+                    Alle zeigen
+                  </Button>
+                </CardContent>
+              </Card>
+  );
+  const connectionPanelCard = () => (
+              <Card>
+                <CardHeader>
+                  <div>
+                    <Badge variant="secondary">
+                      {connectionKindIcon(connectionKind)}
+                      {connectionKindCreationLabel(connectionKind)}
+                    </Badge>
+                    <CardTitle>
+                      {resourceById.get(connectionSource.resourceVersionId)
+                        ?.name || "Baustein"}
+                    </CardTitle>
+                    <CardDescription>
+                      {connectionKindInstruction(connectionKind)}
+                    </CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={cancelConnection}
+                    aria-label="Verbindung abbrechen"
+                  >
+                    <X />
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <Input
+                    aria-label="Verbindungsziele durchsuchen"
+                    placeholder="Ziel suchen …"
+                    value={connectionSearch}
+                    onChange={(event) =>
+                      setConnectionSearch(event.target.value)
+                    }
+                  />
+                  <div className="connection-target-list">
+                    {connectionTargets.slice(0, 24).map((item) => (
+                      <Button
+                        key={item.node.id}
+                        type="button"
+                        variant="ghost"
+                        onClick={() => completeConnection(item.node.id)}
+                      >
+                        <span
+                          style={
+                            {
+                              "--node-accent": KIND_META[item.node.kind].color,
+                            } as CSSProperties
+                          }
+                        />
+                        <span>
+                          <strong>{item.name}</strong>
+                          <small>
+                            {KIND_META[item.node.kind].label} ·{" "}
+                            {item.description}
+                          </small>
+                        </span>
+                      </Button>
+                    ))}
+                    {connectionTargets.length === 0 && (
+                      <p>Keine passenden, noch unverbundenen Ziele gefunden.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+  );
+  const simulationFields = (
+          <div className="simulation-fields">
+            <Label>
+              Kanal-ID
+              <Input
+                value={simulation.channelId}
+                onChange={(event) =>
+                  setSimulation({
+                    ...simulation,
+                    channelId: event.target.value,
+                  })
+                }
+              />
+            </Label>
+            <Label>
+              Inhaltstyp
+              <NativeSelect
+                className="w-full"
+                value={simulation.contentType}
+                onChange={(event) =>
+                  setSimulation({
+                    ...simulation,
+                    contentType: event.target.value,
+                  })
+                }
+              >
+                <option value="text">Text</option>
+                <option value="photo">Foto mit Caption</option>
+                <option value="video">Video mit Caption</option>
+                <option value="document">Dokument</option>
+              </NativeSelect>
+            </Label>
+            <Label>
+              Beispielnachricht
+              <Textarea
+                value={simulation.text}
+                onChange={(event) =>
+                  setSimulation({ ...simulation, text: event.target.value })
+                }
+              />
+            </Label>
+            <Button type="button" onClick={runSimulation}>
+              <FlaskConical data-icon="inline-start" /> Pfade prüfen
+            </Button>
+          </div>
+  );
+  const connectionInspectorDialog = (
+      <Dialog
+        open={Boolean(selectedConnection)}
+        onOpenChange={(open) => !open && setSelectedEdgeId(null)}
+      >
+        <DialogContent className="workflow-connection-inspector sm:max-w-lg">
+          <DialogHeader>
+            <Badge variant="secondary">
+              {connectionKindIcon(selectedConnection?.kind)}
+              {connectionKindLabel(selectedConnection?.kind)}
+            </Badge>
+            <DialogTitle>
+              {selectedConnection?.sourceName} → {selectedConnection?.targetName}
+            </DialogTitle>
+            <DialogDescription>
+              {connectionScopeDescription(selectedConnection)}
+              {selectedConnection?.kind === "account_fallback"
+                ? ` · Wechsel bei: ${fallbackPolicyShortLabel(selectedConnection.fallbackOn)}`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="workflow-connection-inspector-actions">
+            {selectedConnection?.canEditScope && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (!selectedConnection) return;
+                  setConnectionDraft({
+                    edgeId: selectedConnection.edge.id,
+                    sourceId: selectedConnection.edge.source,
+                    targetId: selectedConnection.edge.target,
+                    kind: selectedConnection.kind,
+                  });
+                  setSelectedEdgeId(null);
+                }}
+              >
+                Routing bearbeiten
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                if (selectedConnection) removeEdge(selectedConnection.edge.id);
+              }}
+            >
+              <Trash2 data-icon="inline-start" /> Verbindung löschen
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+  );
+  const simulationDialog = (
+      <Dialog
+        open={simulationOpen}
+        onOpenChange={(open) => {
+          if (!open) closeSimulation();
+        }}
+      >
+        <DialogContent
+          className="simulation-modal sm:max-w-xl"
+          closeLabel="Simulation schließen"
+        >
+          <DialogHeader>
+            <Badge variant="secondary">Trockenlauf</Badge>
+            <DialogTitle>Signal durch aktive Revision schicken</DialogTitle>
+            <DialogDescription>
+              Die Simulation führt keine Order aus. Sie zeigt, welche Pfade das
+              Signal passieren würde.
+            </DialogDescription>
+          </DialogHeader>
+          {simulationFields}
+          {simulationResult && (
+            <div className="simulation-result" aria-live="polite">
+              <WorkflowSimulationResult result={simulationResult} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+  );
+  const dialogs = () => (<>
+      <WorkflowConnectionDialog
+        open={Boolean(connectionDialog) && !fallbackPolicyOpen}
+        sourceName={connectionDialog?.sourceName || "Quelle"}
+        targetName={connectionDialog?.targetName || "Ziel"}
+        channels={connectionDialog?.channels || []}
+        initialChannelNodeIds={connectionDialog?.initialChannelNodeIds}
+        requireChannelScope={connectionDialog?.kind === "account_fallback"}
+        saving={saving}
+        onClose={() => setConnectionDraft(null)}
+        onSave={(channelNodeIds) =>
+          { saveConnectionRouting(channelNodeIds); }
+        }
+      />
+      <WorkflowFallbackPolicyDialog
+        open={Boolean(connectionDialog) && fallbackPolicyOpen}
+        mode={connectionDraft?.edgeId ? "edit" : "create"}
+        sourceName={connectionDialog?.sourceName || "Quelle"}
+        targetName={connectionDialog?.targetName || "Ziel"}
+        initialFallbackOn={connectionDialog?.initialFallbackOn}
+        saving={saving}
+        onClose={() => {
+          setFallbackPolicyOpen(false);
+          // skipcq: JS-W1042 - React's typed Dispatch API requires the explicit argument; omission would not compile.
+          setPendingFallbackChannelNodeIds(undefined);
+          setConnectionDraft(null);
+        }}
+        onSave={(fallbackOn, applyToChain) =>
+          { saveFallbackPolicy(fallbackOn, applyToChain); }
+        }
+      />
+      {connectionInspectorDialog}
+      <ResourceEditor
+        open={Boolean(editorNodeId || newKind)}
+        kind={editorKind}
+        resource={selectedResource}
+        trading={trading}
+        parserSources={editorParserSources}
+        onClose={() => {
+          setEditorNodeId(null);
+          setNewKind(null);
+        }}
+        onSave={saveResource}
+        draftOnly={embedded}
+        onDeleteNode={selectedNode ? deleteNode : undefined}
+        onArchiveResource={resourceAction(selectedResource, archiveResourceFamily)}
+        onDeleteResource={resourceAction(selectedResource, deleteResourceFamily)}
+        onConfigureAccount={configureAccount}
+      />
+  </>);
+
+  const tableViewFallback = () => (embedded && tableView ? (<GraphTable graph={graph} resources={snapshot.resources} readOnly={readOnly || saving}
+            edit={setEditorNodeId} remove={edgeId => { removeEdge(edgeId); }}
+            connect={(source, target) => { activateGraph({ ...graph, edges: [...graph.edges, { id: newId('edge'), source, target }] }, 'Verbindung'); }} />) : null);
+
+  const noticeBanner = () => (notice ? <BuilderNotice notice={notice} onClose={() => setNotice(null)} /> : null);
+
+  const workspaceStatusbar = () => (activeWorkspace === "builder" ? (
         <WorkflowStatusbar
           snapshot={snapshot}
           graph={graph}
@@ -2678,21 +3010,46 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
           refreshing={refreshing}
           lastUpdated={lastUpdated}
         />
-      )}
+      ));
+
+  return (
+    <main className="workflow-shell" aria-label="TSX Core Workflow Builder">
+      {!embedded && <WorkflowTopbar />}
+      {!embedded && <WorkflowNavigation
+        activeWorkspace={activeWorkspace}
+        onChange={setActiveWorkspace}
+      />}
+      <EmbeddedBuilderHeader
+        embedded={embedded}
+        snapshot={snapshot}
+        draftMeta={draftMeta}
+        draftUnsaved={draftUnsaved}
+        readOnly={readOnly}
+        saving={saving}
+        tableView={tableView}
+        setTableView={setTableView}
+        graph={graph}
+        activateGraph={activateGraph}
+        publishGraphResources={publishGraphResources}
+        setServerDraftPreview={setServerDraftPreview}
+        setNotice={setNotice}
+        serverDraftPreview={serverDraftPreview}
+        draftMetaRef={draftMetaRef}
+        setDraftMeta={setDraftMeta}
+        setGraph={setGraph}
+        setDraftUnsaved={setDraftUnsaved}
+      />
+      {workspaceStatusbar()}
       {activeWorkspace === "builder" ? (
         <>
-          {notice && (
-            <BuilderNotice notice={notice} onClose={() => setNotice(null)} />
-          )}
+          {noticeBanner()}
           <DuplicateResourceNotice
             removedNodeCount={duplicateSummary.removedNodeCount}
             saving={saving}
             onConsolidate={() => { consolidateDuplicates(); }}
           />
-          {embedded && tableView && <GraphTable graph={graph} resources={snapshot.resources} readOnly={readOnly || saving}
-            edit={setEditorNodeId} remove={edgeId => { removeEdge(edgeId); }}
-            connect={(source, target) => { activateGraph({ ...graph, edges: [...graph.edges, { id: newId('edge'), source, target }] }, 'Verbindung'); }} />}
-          <div ref={canvasRef} id="workflow-canvas" className="workflow-canvas" style={embedded && tableView ? { display: 'none' } : undefined}>
+          {tableViewFallback()}
+          <div ref={canvasRef} id="workflow-canvas" className="workflow-canvas" style={hiddenCanvasStyle(embedded, tableView)}>
         <ReactFlow<WorkflowCanvasNode, Edge>
           nodes={displayNodes}
           edges={displayEdges}
@@ -2761,119 +3118,9 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
             }
             maskColor="var(--minimap-mask)"
           />
-          {noSearchResults && (
-            <Panel position="top-center" className="canvas-empty-panel">
-              <Card>
-                <CardContent>
-                  <span>
-                    <strong>Keine passenden Bausteine</strong>
-                    <small>
-                      Die Suche blendet derzeit alle Canvas-Bausteine aus.
-                    </small>
-                  </span>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={showAllNodes}
-                  >
-                    Suche löschen und alles anzeigen
-                  </Button>
-                </CardContent>
-              </Card>
-            </Panel>
-          )}
-          {selectedRoute && (
-            <Panel position="top-right" className="route-focus-panel">
-              <Card>
-                <CardContent>
-                  <RouteIcon aria-hidden="true" />
-                  <span>
-                    <small>Pfadfokus</small>
-                    <strong>
-                      {selectedRoute.channelName} → {selectedRoute.fallbackAccounts.map((candidate) => candidate.accountName).join(" → ")}
-                    </strong>
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedPathId(null)}
-                  >
-                    Alle zeigen
-                  </Button>
-                </CardContent>
-              </Card>
-            </Panel>
-          )}
-          {connectionSource && (
-            <Panel position="top-left" className="connection-panel">
-              <Card>
-                <CardHeader>
-                  <div>
-                    <Badge variant="secondary">
-                      {connectionKindIcon(connectionKind)}
-                      {connectionKindCreationLabel(connectionKind)}
-                    </Badge>
-                    <CardTitle>
-                      {resourceById.get(connectionSource.resourceVersionId)
-                        ?.name || "Baustein"}
-                    </CardTitle>
-                    <CardDescription>
-                      {connectionKindInstruction(connectionKind)}
-                    </CardDescription>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={cancelConnection}
-                    aria-label="Verbindung abbrechen"
-                  >
-                    <X />
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <Input
-                    aria-label="Verbindungsziele durchsuchen"
-                    placeholder="Ziel suchen …"
-                    value={connectionSearch}
-                    onChange={(event) =>
-                      setConnectionSearch(event.target.value)
-                    }
-                  />
-                  <div className="connection-target-list">
-                    {connectionTargets.slice(0, 24).map((item) => (
-                      <Button
-                        key={item.node.id}
-                        type="button"
-                        variant="ghost"
-                        onClick={() => completeConnection(item.node.id)}
-                      >
-                        <span
-                          style={
-                            {
-                              "--node-accent": KIND_META[item.node.kind].color,
-                            } as CSSProperties
-                          }
-                        />
-                        <span>
-                          <strong>{item.name}</strong>
-                          <small>
-                            {KIND_META[item.node.kind].label} ·{" "}
-                            {item.description}
-                          </small>
-                        </span>
-                      </Button>
-                    ))}
-                    {connectionTargets.length === 0 && (
-                      <p>Keine passenden, noch unverbundenen Ziele gefunden.</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </Panel>
-          )}
+          <CanvasPanel show={Boolean(noSearchResults)} position="top-center" className="canvas-empty-panel">{() => searchEmptyCard}</CanvasPanel>
+          <CanvasPanel show={Boolean(selectedRoute)} position="top-right" className="route-focus-panel">{() => routeFocusCard()}</CanvasPanel>
+          <CanvasPanel show={Boolean(connectionSource)} position="top-left" className="connection-panel">{() => connectionPanelCard()}</CanvasPanel>
             </ReactFlow>
           </div>
         </>
@@ -2889,103 +3136,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
         />
       )}
 
-      <WorkflowConnectionDialog
-        open={Boolean(connectionDialog) && !fallbackPolicyOpen}
-        sourceName={connectionDialog?.sourceName || "Quelle"}
-        targetName={connectionDialog?.targetName || "Ziel"}
-        channels={connectionDialog?.channels || []}
-        initialChannelNodeIds={connectionDialog?.initialChannelNodeIds}
-        requireChannelScope={connectionDialog?.kind === "account_fallback"}
-        saving={saving}
-        onClose={() => setConnectionDraft(null)}
-        onSave={(channelNodeIds) =>
-          { saveConnectionRouting(channelNodeIds); }
-        }
-      />
-      <WorkflowFallbackPolicyDialog
-        open={Boolean(connectionDialog) && fallbackPolicyOpen}
-        mode={connectionDraft?.edgeId ? "edit" : "create"}
-        sourceName={connectionDialog?.sourceName || "Quelle"}
-        targetName={connectionDialog?.targetName || "Ziel"}
-        initialFallbackOn={connectionDialog?.initialFallbackOn}
-        saving={saving}
-        onClose={() => {
-          setFallbackPolicyOpen(false);
-          setPendingFallbackChannelNodeIds(undefined);
-          setConnectionDraft(null);
-        }}
-        onSave={(fallbackOn, applyToChain) =>
-          { saveFallbackPolicy(fallbackOn, applyToChain); }
-        }
-      />
-      <Dialog
-        open={Boolean(selectedConnection)}
-        onOpenChange={(open) => !open && setSelectedEdgeId(null)}
-      >
-        <DialogContent className="workflow-connection-inspector sm:max-w-lg">
-          <DialogHeader>
-            <Badge variant="secondary">
-              {connectionKindIcon(selectedConnection?.kind)}
-              {connectionKindLabel(selectedConnection?.kind)}
-            </Badge>
-            <DialogTitle>
-              {selectedConnection?.sourceName} → {selectedConnection?.targetName}
-            </DialogTitle>
-            <DialogDescription>
-              {connectionScopeDescription(selectedConnection)}
-              {selectedConnection?.kind === "account_fallback"
-                ? ` · Wechsel bei: ${fallbackPolicyShortLabel(selectedConnection.fallbackOn)}`
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="workflow-connection-inspector-actions">
-            {selectedConnection?.canEditScope && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  if (!selectedConnection) return;
-                  setConnectionDraft({
-                    edgeId: selectedConnection.edge.id,
-                    sourceId: selectedConnection.edge.source,
-                    targetId: selectedConnection.edge.target,
-                    kind: selectedConnection.kind,
-                  });
-                  setSelectedEdgeId(null);
-                }}
-              >
-                Routing bearbeiten
-              </Button>
-            )}
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => {
-                if (selectedConnection) removeEdge(selectedConnection.edge.id);
-              }}
-            >
-              <Trash2 data-icon="inline-start" /> Verbindung löschen
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      <ResourceEditor
-        open={Boolean(editorNodeId || newKind)}
-        kind={editorKind}
-        resource={selectedResource}
-        trading={trading}
-        parserSources={editorParserSources}
-        onClose={() => {
-          setEditorNodeId(null);
-          setNewKind(null);
-        }}
-        onSave={saveResource}
-        draftOnly={embedded}
-        onDeleteNode={selectedNode ? deleteNode : undefined}
-        onArchiveResource={resourceAction(selectedResource, archiveResourceFamily)}
-        onDeleteResource={resourceAction(selectedResource, deleteResourceFamily)}
-        onConfigureAccount={configureAccount}
-      />
+      {dialogs()}
       <ResourceLibraryDialog
         open={kindPickerOpen}
         selectedKind={libraryKind}
@@ -3026,75 +3177,7 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
           }); }
         }
       />
-      <Dialog
-        open={simulationOpen}
-        onOpenChange={(open) => {
-          if (!open) closeSimulation();
-        }}
-      >
-        <DialogContent
-          className="simulation-modal sm:max-w-xl"
-          closeLabel="Simulation schließen"
-        >
-          <DialogHeader>
-            <Badge variant="secondary">Trockenlauf</Badge>
-            <DialogTitle>Signal durch aktive Revision schicken</DialogTitle>
-            <DialogDescription>
-              Die Simulation führt keine Order aus. Sie zeigt, welche Pfade das
-              Signal passieren würde.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="simulation-fields">
-            <Label>
-              Kanal-ID
-              <Input
-                value={simulation.channelId}
-                onChange={(event) =>
-                  setSimulation({
-                    ...simulation,
-                    channelId: event.target.value,
-                  })
-                }
-              />
-            </Label>
-            <Label>
-              Inhaltstyp
-              <NativeSelect
-                className="w-full"
-                value={simulation.contentType}
-                onChange={(event) =>
-                  setSimulation({
-                    ...simulation,
-                    contentType: event.target.value,
-                  })
-                }
-              >
-                <option value="text">Text</option>
-                <option value="photo">Foto mit Caption</option>
-                <option value="video">Video mit Caption</option>
-                <option value="document">Dokument</option>
-              </NativeSelect>
-            </Label>
-            <Label>
-              Beispielnachricht
-              <Textarea
-                value={simulation.text}
-                onChange={(event) =>
-                  setSimulation({ ...simulation, text: event.target.value })
-                }
-              />
-            </Label>
-            <Button type="button" onClick={runSimulation}>
-              <FlaskConical data-icon="inline-start" /> Pfade prüfen
-            </Button>
-          </div>
-          {simulationResult && (
-            <div className="simulation-result" aria-live="polite">
-              <WorkflowSimulationResult result={simulationResult} />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {simulationDialog}
       {confirmationDialog}
       <RouteOverview
         open={routeOverviewOpen}

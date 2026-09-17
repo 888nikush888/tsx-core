@@ -6,6 +6,7 @@ import { retireUndispatchedExit } from './trading_lifecycle.js';
 import { recoverPreparedExits } from './trading_recovery.js';
 import type { PlannedOrder, TradingAccount, TradingIntent } from './trading_types.js';
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function requestEmergencyExit(accountId: string, intentId: string, reason: string): Promise<boolean> {
   return withDatabaseTransaction(async () => {
     const result = await getDatabase().run(

@@ -24,7 +24,7 @@ export function snapshotFxAccount(account: FxAccount): FxAccount {
   }
   return result as FxAccount;
 }
-function parsedPayload(value: string, byteLimit: number): any {
+function parsedPayload(value: string, byteLimit: number): unknown {
   if (Buffer.byteLength(value) >= byteLimit || value.includes('\0')) invalidFx('STORED_PAYLOAD_INVALID');
   return JSON.parse(value);
 }
@@ -114,6 +114,7 @@ async function assertNoContradictedOriginal(account: FxAccount, context: FxConte
     if (compareDecimal(decodeReceipt(account, row, context).value, receipt.value) !== 0) invalidFx('QUOTE_CONFLICT');
   }
 }
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function persistFxConversion(account: FxAccount, baseAsset: string, quoteAsset: string, at: number): Promise<StoredFxConversion> {
   account = snapshotFxAccount(account);
   return withDatabaseTransaction(async () => {
@@ -132,6 +133,7 @@ export async function persistFxConversion(account: FxAccount, baseAsset: string,
   });
 }
 /** Recomputes the pinned recipe from retained originals; a self-consistent public hash is not authorization. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function readFxConversion(account: FxAccount, id: string): Promise<StoredFxConversion> {
   account = snapshotFxAccount(account);
   return withDatabaseTransaction(async () => {

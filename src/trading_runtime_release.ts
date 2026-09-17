@@ -31,6 +31,7 @@ async function assertAccountScope(expected: string[]): Promise<void> {
 }
 
 /** Canonical lock order; no account holder requests the outer @runtime lock. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 async function withAccountOwners<T>(
   dependencies: RuntimeReleaseDependencies, ids: string[], epochs: Map<string, string>,
   operation: (owners: Map<string, AccountOwner>) => Promise<T>,
@@ -85,6 +86,7 @@ async function proveAccounts(dependencies: RuntimeReleaseDependencies, prepared:
   return proofs;
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 async function commitGlobalRelease(dependencies: RuntimeReleaseDependencies, ids: string[], prepared: PreparedAccount[]) {
   return withDatabaseTransaction(async () => {
     await assertAccountScope(ids);

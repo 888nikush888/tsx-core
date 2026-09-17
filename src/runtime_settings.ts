@@ -364,8 +364,8 @@ async function syncDirectory(directory: string): Promise<void> {
   const handle = await fs.open(directory, 'r');
   try {
     await handle.sync();
-  } catch (error: any) {
-    if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes(error?.code)) throw error;
+  } catch (error: unknown) {
+    if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes((error as { code?: string } | null | undefined)?.code ?? '')) throw error;
   } finally {
     await handle.close();
   }
@@ -391,14 +391,14 @@ export class ManagedRuntimeSettingsStore {
         throw new Error('Runtime settings must be a small regular file.');
       }
       this.settings = validateRuntimeSettings(JSON.parse(await fs.readFile(resolved, 'utf8')));
-    } catch (error: any) {
-      if (error?.code === 'ENOENT') {
+    } catch (error: unknown) {
+      if ((error as { code?: unknown } | null | undefined)?.code === 'ENOENT') {
         await this.write(DEFAULT_RUNTIME_SETTINGS);
         return;
       }
       if (!options.recoverInvalidFile) throw error;
       this.settings = structuredClone(SAFE_RECOVERY_RUNTIME_SETTINGS);
-      this.recoveryReason = error instanceof Error ? error.message : 'Managed runtime settings could not be read.';
+      this.recoveryReason = error instanceof Error ? (error as { message?: string }).message : 'Managed runtime settings could not be read.';
     }
   }
 
@@ -410,6 +410,7 @@ export class ManagedRuntimeSettingsStore {
     return { active: this.recoveryReason !== null, reason: this.recoveryReason };
   }
 
+  // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
   async set(input: unknown, baseRevision?: string): Promise<RuntimeSettings> {
     const pending = this.updates.then(async () => {
       if (baseRevision !== undefined && baseRevision !== configurationRevision(this.settings)) {

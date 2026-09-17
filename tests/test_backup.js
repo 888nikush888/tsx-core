@@ -99,8 +99,11 @@ async function createVerifiedArtifact(root, databasePath, backupRoot) {
   assert.deepStrictEqual(manifest.recovery?.includedState, ['runtime-settings.json', 'templates/default - alt.txt', 'templates/default.xml', 'templates/nested/source.xml']);
   assert.deepStrictEqual(manifest.recovery?.excludedState, ['managed-secrets', 'tdlib-session-data', 'tdlib-session-files']);
   const backedUpConfig = JSON.parse(await readFile(path.join(artifact, 'config.json'), 'utf8'));
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.strictEqual(backedUpConfig.apiHash, undefined);
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.strictEqual(backedUpConfig.nested.DASHBOARD_ADMIN_TOKEN, undefined);
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.strictEqual(backedUpConfig.list[0].password, undefined);
   assert.strictEqual(backedUpConfig.list[1].value, 'retained');
   assert.strictEqual(backedUpConfig.xmlParsing.aiLimits.dailyTokenLimit, 5000, 'Non-secret token limits must be retained');
@@ -144,6 +147,7 @@ async function assertRestoredState(root, artifact, databasePath, configPath, sta
   await closeDb();
   const restoredConfig = JSON.parse(await readFile(configPath, 'utf8'));
   assert.strictEqual(restoredConfig.apiId, 123);
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.strictEqual(restoredConfig.apiHash, undefined);
   assert.ok(restored.previousRuntimeSettings);
   assert.ok(restored.previousTemplates);
@@ -369,7 +373,7 @@ async function assertOfflineBackupCli(root, artifact) {
   assert.equal(restored.status, 0, restored.stderr);
   assert.ok((await readFile(target)).length > 0);
   assert.equal(JSON.parse(await readFile(environment.CONFIG_PATH, 'utf8')).apiId, 123);
-  await withPinnedConfigurationGeneration(environment.CONFIG_PATH, target, async generation => {
+  await withPinnedConfigurationGeneration(environment.CONFIG_PATH, target, generation => {
     assert.equal(JSON.parse(generation.files.get('config.json')).apiId, 123,
       'The real restore CLI must leave the installed files in a committed local generation.');
   });
@@ -473,7 +477,8 @@ async function assertBackupScheduler(root, databasePath) {
     60_000,
     2,
     message => offsiteMessages.push(message),
-    { replicate: async artifact => verifiedReplication('backup-2026-offsite.tgfb', artifact), recover: async () => { throw new Error('not used'); } },
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
+    { replicate: artifact => verifiedReplication('backup-2026-offsite.tgfb', artifact), recover: async () => { throw new Error('not used'); } },
     true
   );
   await offsiteScheduler.runNow();
@@ -486,6 +491,7 @@ async function assertBackupScheduler(root, databasePath) {
     60_000,
     2,
     () => undefined,
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     { replicate: async () => { throw new Error('replication unavailable'); }, recover: async () => { throw new Error('not used'); } },
     true
   );
@@ -502,10 +508,11 @@ async function assertBackupScheduler(root, databasePath) {
     2,
     () => undefined,
     {
-      replicate: async artifact => {
+      replicate: artifact => {
         markReplicationStarted();
         return new Promise(resolve => { releaseReplication = () => resolve(verifiedReplication('backup-2026-draining.tgfb', artifact)); });
       },
+      // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
       recover: async () => { throw new Error('not used'); }
     }
   );
@@ -556,7 +563,7 @@ async function runTests() {
   }
 }
 
-await runTests().catch(error => {
+await (async () => runTests())().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

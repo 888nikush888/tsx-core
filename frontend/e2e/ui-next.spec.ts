@@ -1,15 +1,20 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+type MockJson = Record<string, unknown>;
+type MockDraft = MockJson & { version?: number };
+
 const TOKEN = 'a'.repeat(32);
+const trading = { overview: { runtime: { executionEnabled: false, liveTradingEnabled: false, killSwitchActive: true } }, accounts: [], strategies: [], signalSchemas: [], signalContracts: [], intents: [], activity: { positions: [], orders: [], fills: [], riskEvents: [], reconciliations: [], paperMarkets: [] }, workflowAdaptiveRisk: { states: [], evaluations: [] }, exchangeStreams: [], accountIncidents: [], fallbackRuns: [] };
+
 const NEW_TOKEN = 'b'.repeat(32);
 
 test('account pages retain their cursor on reload and do not fetch the legacy aggregate', async ({ page }) => {
   let aggregateReads = 0;
   const requests = await api(page, url => {
-    if (url.pathname !== '/api/trading') return;
+    if (url.pathname !== '/api/trading') return undefined;
     if (url.searchParams.get('view') === 'overview') return { body: { overview: trading.overview } };
-    if (url.searchParams.get('view') !== 'accounts') { aggregateReads += 1; return; }
+    if (url.searchParams.get('view') !== 'accounts') { aggregateReads += 1; return undefined; }
     const later = Boolean(url.searchParams.get('cursor'));
     return { body: { accounts: [{ id: later ? 'account-old' : 'account-new', name: later ? 'Älteres Paperkonto' : 'Neues Paperkonto', exchange: 'paper', mode: 'paper', enabled: false, status: 'disabled', maxConcurrentPositions: 20, credentials: { configured: true } }], accountIncidents: [], page: { hasMore: !later, nextCursor: 'accounts-page-2' } } };
   });
@@ -33,6 +38,7 @@ test('large setup reviews navigate complete sections and stop reading when the b
       return { body: { type: nested ? 'string' : 'object', text: nested ? 'Vollständiger Originalabschnitt 🎯' : undefined,
         entries: nested ? [] : [{ key: url.searchParams.get('cursor') ? 'letzte-quelle' : 'erste-quelle', type: 'object', value: null, childCount: 35, expandable: true, path: ['quelle'] }], hasMore: !nested && !url.searchParams.get('cursor'), nextCursor: 'review-page-2' } };
     }
+    return undefined;
   });
   await page.goto('/operations/settings');
   await expect(page.getByLabel('Bundle auswählen')).toBeEnabled();
@@ -49,7 +55,7 @@ test('large setup reviews navigate complete sections and stop reading when the b
 test('MCP lists page independently while the selected agent and completed proposal remain addressable', async ({ page }) => {
   const agent = { id: 'metadata-agent', name: 'Beobachtungsagent', enabled: true, updatedAt: 1000, tokenPrefix: 'tsx', permissions: ['system.read'], eventSubscriptions: [] };
   const requests = await api(page, url => {
-    if (url.pathname !== '/api/mcp') return;
+    if (url.pathname !== '/api/mcp') return undefined;
     const later = url.searchParams.has('agentsCursor');
     return { body: { runtime: { mode: 'standby' }, agents: later ? [] : [agent], selectedAgent: url.searchParams.get('agentId') === agent.id ? agent : null,
       permissions: ['system.read'], eventTypes: [], activeSessionCount: 40, sessions: [], actions: [],
@@ -74,6 +80,7 @@ test('prioritized cockpit blockers retain paging and risk acknowledgment confirm
     if (url.pathname === '/api/ui/attention') return { body: { total: 21, observedAt: 2000, hasMore: !url.searchParams.get('cursor'), nextCursor: 'attention-page-2', entries: [{ kind: 'risk', id: 'risk-original', accountId: 'paper-1', reason: 'Originales Risikoereignis', createdAt: 1000, updatedAt: 1500, nextRead: { href: '/trading/risk-events?objectId=risk-original', label: 'Risikoereignis prüfen' } }] } };
     if (url.pathname === '/api/trading/objects') return { body: { entries: [{ id: 'risk-original', accountId: null, code: 'ORIGINAL_RISK', status: 'unacknowledged', severity: 'warning', acknowledgedAt: null }], states: ['unacknowledged', 'acknowledged'], hasMore: false, observedAt: 2000 } };
     if (url.pathname === '/api/trading/risk/acknowledge') { expect(method).toBe('POST'); expect(body).toEqual({ id: 'risk-original' }); return { body: { success: true } }; }
+    return undefined;
   });
   await page.goto('/cockpit'); await page.getByRole('button', { name: 'Weitere Blocker' }).click(); await page.reload();
   await expect(page).toHaveURL(/attentionCursor=attention-page-2/); await page.getByRole('link', { name: 'Risikoereignis prüfen', exact: true }).click();
@@ -92,6 +99,7 @@ test('deployment evidence distinguishes browser build, listener and unknown host
       process: { nodeVersion: 'v22.23.2', platform: 'linux', availableCpuParallelism: 2, operatingSystemMemoryBytes: '4294967296', interpretation: 'Betriebssystembeobachtung.' },
       limits: { memory: null, cpu: null, interpretation: 'Nicht lesbare Limits sind unbekannt.' }, declarations: [{ name: 'HOST_WEB_PORT', value: null, source: 'process.env.HOST_WEB_PORT' }],
       boundary: 'Offline-Wartung benötigt einen unabhängigen Dienst.' } };
+    return undefined;
   });
   await page.goto('/operations/deployment'); await page.reload();
   await expect(page.getByRole('heading', { name: 'Deployment und Browserbuild' })).toBeVisible();
@@ -112,6 +120,7 @@ test('stored originals retain text paging, explicit deletion and reference failu
       totalCharacters: 10012, offset: url.searchParams.has('cursor') && url.searchParams.get('cursor') ? 10000 : 0,
       text: url.searchParams.get('cursor') ? 'zweiter Originalabschnitt' : '<signal>Original</signal>', hasMore: !url.searchParams.get('cursor'), nextCursor: 'original-page-2',
     } };
+    return undefined;
   });
   await page.goto('/signals/processed/referenced-signal');
   await page.getByRole('button', { name: 'Weiterer Textabschnitt' }).click(); await page.reload();
@@ -134,6 +143,7 @@ test('Viewer can read stored originals and cannot delete them', async ({ page })
     if (url.pathname === '/api/recovery') return { body: { active: false, session: { role: 'viewer' }, serverInstanceId: 'viewer-instance' } };
     if (url.pathname === '/api/signals/original') return { body: { id: '42', channelId: 'channel', messageId: 5, createdAt: 1000, text: 'Originalquelle', offset: 0, totalCharacters: 14, hasMore: false } };
     if (url.pathname === '/api/signals/ingress') return { body: { entries: [], states: [], hasMore: false, observedAt: 1000 } };
+    return undefined;
   });
   await page.goto('/signals/cache/42'); await expect(page.getByLabel('Originaltext')).toHaveText('Originalquelle');
   await expect(page.getByRole('button', { name: 'Gespeichertes Original löschen', exact: true })).toBeDisabled();
@@ -160,6 +170,7 @@ test('capability directory preserves Viewer restrictions, paging and parameter b
       emptyMeaning: 'null hebt das Festhalten auf; 0 hält ausdrücklich Stufe 1 fest.', source: 'Gepinnte Ressourcenfassung', scope: 'Pfad', effect: 'Nach Graphaktivierung',
       editable: true, secret: false, requiresRestart: false, href: '/workflows/builder', validator: 'contract-fixture', consumer: 'consumer-fixture',
     }] } };
+    return undefined;
   });
   await page.goto('/operations/capabilities');
   await page.getByRole('button', { name: 'Weitere Einträge' }).click(); await page.reload();
@@ -176,6 +187,7 @@ test('capability directory preserves Viewer restrictions, paging and parameter b
 test('analytics range and dimensions survive reload and browser back navigation', async ({ page }) => {
   const requests = await api(page, url => {
     if (url.pathname === '/api/trading/analytics') return { body: { performance: { channels: [], exchanges: [], equity: [] }, execution: {}, fallback: {} } };
+    return undefined;
   });
   await page.goto('/risk/analytics?range=7d&mode=testnet&status=completed');
   await expect(page.getByRole('combobox', { name: 'Zeitraum', exact: true })).toHaveValue('7d');
@@ -191,7 +203,7 @@ test('analytics range and dimensions survive reload and browser back navigation'
 test('ingress relation paging includes album siblings and retains original links after reload', async ({ page }) => {
   const requests = await api(page, url => {
     if (url.pathname === '/api/signals/ingress/detail') return { body: { work: { id: 'ingress-1', channelId: 'channel', messageId: 5, workflowRevisionId: 'original-revision', status: 'routed' }, source: { excerpt: 'redigierte Quelle' } } };
-    if (url.pathname !== '/api/signals/ingress/relations') return;
+    if (url.pathname !== '/api/signals/ingress/relations') return undefined;
     const kind = url.searchParams.get('kind'); const second = url.searchParams.has('cursor');
     const row = kind === 'candidates' ? { id: 'candidate-1', rank: 0, accountId: 'testnet', status: 'stopped', errorCode: 'ORDER_RESULT_UNKNOWN', reason: 'Unknown order outcome; no fallback', executionPathId: 'original-path', intentId: 'intent-1' }
       : { id: second ? 'signal-second' : 'signal-first', model: 'original-model', promptSha256: 'original-prompt', workflowRevisionId: 'original-revision' };
@@ -209,7 +221,8 @@ test('ingress relation paging includes album siblings and retains original links
 test('log regex timeout keeps navigation responsive and exposes connection and cursor gaps', async ({ page, browserName }) => {
   let failed = false;
   const requests = await api(page, url => {
-    if (url.pathname === '/api/logs') return failed ? { status: 503, body: { error: 'Log source unavailable' } } : { body: { entries: [{ cursor: 10, line: '[INFO] original line' }, { cursor: 11, line: 'a'.repeat(1000) + '!' }], nextCursor: 11, dropped: true, serverInstanceId: 'logs-instance' } };
+    if (url.pathname === '/api/logs') return failed ? { status: 503, body: { error: 'Log source unavailable' } } : { body: { entries: [{ cursor: 10, line: '[INFO] original line' }, { cursor: 11, line: `${'a'.repeat(1000)}!` }], nextCursor: 11, dropped: true, serverInstanceId: 'logs-instance' } };
+    return undefined;
   });
   await page.goto('/operations/logs');
   await expect(page.getByRole('alert')).toContainText('Cursorlücke');
@@ -233,7 +246,7 @@ test('log regex timeout keeps navigation responsive and exposes connection and c
 test('adaptive evidence preserves original policy hashes, invalidation and one-based tiers across paging and reload', async ({ page }) => {
   const requests = await api(page, (url) => {
     if (url.pathname === '/api/recovery') return { body: { active: false, session: { role: 'viewer', actorId: 'viewer' }, serverInstanceId: 'instance-1' } };
-    if (url.pathname !== '/api/trading/risk/adaptive') return;
+    if (url.pathname !== '/api/trading/risk/adaptive') return undefined;
     const kind = url.searchParams.get('kind') || 'states';
     const row = { id: 'original-evaluation', accountName: 'Belegkonto', mode: 'testnet', channelId: 'channel', stateKey: 'scope', resourceId: 'risk-resource',
       previousTier: 0, recommendedTier: 1, appliedTier: 0, realizedPnl: '-0.000000000000000001', realizedPnlValue: null, returnPercent: null,
@@ -269,6 +282,7 @@ test('Legacy risk migration preserves null and blockers in a reviewed draft and 
       policy: { channelId: 'legacy-channel', currentTier: 0, lockedTier: null, mode: 'automatic', blocked: true, blockReason: 'Legacy loss limit', policyVersion: 3 },
       configuration: { enabled: true, mode: 'automatic', startingTier: 0, lockedTier: null, manuallyBlocked: true, tiers: [{ riskPercent: '0.125' }] }, copyHash: 'reviewed-copy-hash'
     }] } };
+    return undefined;
   });
   await page.goto('/risk/adaptive?kind=legacy');
   await expect(page.getByRole('region', { name: 'Geprüfte Werte des neuen Workflowentwurfs', exact: true })).toContainText('0.125');
@@ -280,13 +294,12 @@ test('Legacy risk migration preserves null and blockers in a reviewed draft and 
 });
 
 const aiLimits = { maxInputChars: 10000, maxOutputTokens: 1024, primaryAttempts: 1, fallbackAttempts: 0, dailyRequestLimit: 100, dailyTokenLimit: 10000, requestTimeoutMs: 250000, backoffMs: 0 };
-const trading = { overview: { runtime: { executionEnabled: false, liveTradingEnabled: false, killSwitchActive: true } }, accounts: [], strategies: [], signalSchemas: [], signalContracts: [], intents: [], activity: { positions: [], orders: [], fills: [], riskEvents: [], reconciliations: [], paperMarkets: [] }, workflowAdaptiveRisk: { states: [], evaluations: [] }, exchangeStreams: [], accountIncidents: [], fallbackRuns: [] };
 const entry = { intentId: 'intent-1', symbol: 'BTCUSDT', side: 'LONG', status: 'monitoring', accountId: 'paper-1', accountName: 'Paper 1', exchange: 'paper', mode: 'paper', channelId: 'channel-1', createdAt: 1000, workflowRevisionId: 'original-revision', executionPathId: 'path-1', signalRunId: 'run-1', signal: { id: 'signal-1', sourceMessageId: 42 }, strategy: { name: 'Original', id: 'strategy-v3', version: 3, configurationSha256: 'original-hash' }, plan: { entryPrice: '60000.00000001', quantity: '0.001', leverage: 10 }, position: null, orders: [], fills: [], timeline: {}, review: { notes: '', tags: [], rating: null, reviewed: false, updatedAt: null } };
 
 test('standalone model recovery binds the accepted model and keeps the receipt when refresh fails', async ({ page }) => {
   let attached = false;
   const requests = await api(page, (url, method, body) => {
-    if (url.pathname !== '/api/workflow/models') return;
+    if (url.pathname !== '/api/workflow/models') return undefined;
     if (method === 'POST') {
       expect(body).toEqual({ id: 'orphan-model', kind: 'strategy', action: 'attach', reviewHash: 'original-model-review' }); attached = true;
       return { body: { kind: 'strategy', id: 'orphan-model', action: 'attach', resource: { id: 'wrapper-v1', resourceId: 'wrapper', name: 'Recovered', status: 'draft' } } };
@@ -310,7 +323,7 @@ test('mobile risk evidence separates live and testnet, stale observations and an
   await page.setViewportSize({ width: 390, height: 844 }); await page.emulateMedia({ reducedMotion: 'reduce' });
   const requests = await api(page, url => {
     if (url.pathname === '/api/recovery') return { body: { active: false, session: { role: 'viewer', actorId: 'viewer' }, serverInstanceId: 'instance-1' } };
-    if (url.pathname !== '/api/trading/accounts/evidence') return;
+    if (url.pathname !== '/api/trading/accounts/evidence') return undefined;
     const accountId = url.searchParams.get('accountId'); const kind = url.searchParams.get('kind');
     if (kind === 'history') return { body: { entries: [], hasMore: false, observedAt: Date.now(), interpretation: 'Gespeicherte Historie, keine Providerabfrage' } };
     if (kind === 'reservations') return { body: { entries: [{ intentId: 'intent-1', sourceHash: 'original-source', markPrice: '60000.00000001', stopPrice: '59000', protectionProven: null, amounts: { status: 'unresolved', reason: 'FX originals unresolved', reportingCurrency: 'USDT', additionalRisk: null } }], hasMore: false, observation: { id: 'old-observation', timestampFresh: false, isCurrentObservation: true, observedAt: 1000 }, interpretation: 'Originale gespeicherte Risikoreservierungen' } };
@@ -356,6 +369,7 @@ test('MCP detail requires reviewed content and invalidates consent when the obje
     if (url.pathname === '/api/mcp/proposals/detail') return { body: { contractVersion: 1, reviewHash: `hash-${version}`, observedAt: Date.now(), proposal: proposal(), before: { riskPercent: String(version) }, requested: { riskPercent: '2.125' },
       interpretation: 'Beantragte Änderung künftiger Trades', freshPreflight: { allowed: true, checkedAt: Date.now(), blockers: [], impact: ['Risk policy changes'] }, scope: { accountIds: ['paper-1'], paths: [], activeRevisionId: 'revision-1' } } };
     if (url.pathname === '/api/mcp/proposals/approve' && method === 'POST') { expect(body.reviewHash).toBe('hash-2'); status = 'approved'; return { body: { proposal: proposal() } }; }
+    return undefined;
   });
   await page.goto('/integrations/mcp/proposals/proposal-1');
   await expect(page.getByRole('heading', { name: /Vorschlag prüfen/ })).toBeVisible();
@@ -368,6 +382,7 @@ test('MCP detail requires reviewed content and invalidates consent when the obje
   status = 'completed'; await expect(page.getByRole('heading', { name: 'Bestätigtes Ausführungsergebnis' })).toBeVisible({ timeout: 10000 });
   await page.reload(); await expect(page.getByRole('heading', { name: 'Bestätigtes Ausführungsergebnis' })).toBeVisible();
   expect(requests.filter(request => request.method === 'POST')).toHaveLength(1);
+  return undefined;
 });
 
 test('setup content comparison preserves exact values and a stale preview never retries replacement', async ({ page }) => {
@@ -376,6 +391,7 @@ test('setup content comparison preserves exact values and a stale preview never 
       diff: { current: { nodes: 0 }, imported: { nodes: 1, edges: 0, resources: 1 } }, accountReferences: [], accountMapping: { automatic: {} },
       contentReview: { before: { risk: '0.000000000000000001', enabled: true }, after: { risk: '0.000000000000000002', enabled: false }, existingLibrary: { resources: [] }, effect: 'Ungebundene Entwürfe werden ebenfalls geprüft.' } } };
     if (url.pathname === '/api/setup-bundle/apply' && method === 'POST') return { status: 409, body: { error: 'SETUP_PREVIEW_CONFLICT: Neue Vorschau erforderlich.' } };
+    return undefined;
   });
   await page.goto('/operations/settings');
   await expect(page.getByLabel('Bundle auswählen')).toBeEnabled();
@@ -394,6 +410,7 @@ test('resource version address reloads, edits a draft, and publishes only after 
     if (url.pathname === '/api/workflow/objects') return { body: url.searchParams.has('id') ? { resource, publication: { publicationHash: `publication-${resource.editRevision}`, dependency: null }, activePaths: [], effect: 'Gespeicherte Quelle, noch kein aktiver Signalweg.', observedAt: Date.now() } : { entries: [resource], hasMore: false, observedAt: Date.now() } };
     if (url.pathname === '/api/workflow/resources/update' && method === 'POST') { expect(body.baseEditRevision).toBe(0); resource = { ...resource, ...body, editRevision: 1 }; return { body: { resource } }; }
     if (url.pathname === '/api/workflow/resources/publish' && method === 'POST') { expect(body.publishDependencies).toBe(true); expect(body.publicationHash).toBe('publication-1'); resource = { ...resource, status: 'published', publishedAt: Date.now() }; return { body: { resource } }; }
+    return undefined;
   });
   await page.goto('/workflows/resources'); await page.getByRole('link', { name: 'Original channel · v1' }).click(); await page.reload();
   await expect(page.getByRole('heading', { name: 'Original channel · Version 1' })).toBeVisible();
@@ -416,6 +433,7 @@ test('global search keeps its text outside URLs and lets a viewer open the origi
   const requests = await api(page, url => {
     if (url.pathname === '/api/recovery') return { body: { active: false, session: { role: 'viewer', actorId: 'viewer' }, serverInstanceId: 'instance-1' } };
     if (url.pathname === '/api/ui/search') return { body: { groups: [{ kind: 'intents', observedAt: Date.now(), entries: [{ id: 'intent-1', title: 'BTCUSDT · LONG', subtitle: 'paper · monitoring', url: '/trading/trades/intent-1' }], hasMore: false }] } };
+    return undefined;
   });
   await page.goto('/trading/journal'); await page.getByRole('button', { name: 'Global suchen' }).click();
   const dialog = page.getByRole('dialog', { name: 'Globale Suche' }); await dialog.getByLabel('Suchbegriff').fill('BTCUSDT');
@@ -426,8 +444,8 @@ test('global search keeps its text outside URLs and lets a viewer open the origi
   await page.getByRole('button', { name: 'Global suchen' }).click(); await expect(page.getByRole('dialog').getByLabel('Suchbegriff')).toHaveValue('');
 });
 type Reply = { status?: number; body: unknown };
-async function api(page: Page, override?: (url: URL, method: string, body: any) => Reply | undefined | Promise<Reply | undefined>) {
-  const requests: Array<{ path: string; query: string; method: string; body: any; authorization?: string }> = [];
+async function api(page: Page, override?: (url: URL, method: string, body: MockJson) => Reply | undefined | Promise<Reply | undefined>) {
+  const requests: Array<{ path: string; query: string; method: string; body: MockJson; authorization?: string }> = [];
   await page.addInitScript((token) => sessionStorage.setItem('forwarder-dashboard-token', token), TOKEN);
   await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
     const request = route.request();
@@ -472,6 +490,7 @@ test('recovery uses only its permitted minimal reads and secret repair preserves
   const requests = await api(page, (url, method) => {
     if (url.pathname === '/api/recovery') return { body: { active: true, serverInstanceId: 'repair-1', session: { role: 'admin' }, issues: [{ component: 'configuration', reason: 'Repair needed' }], availableRepairs: ['config', 'runtime-settings', 'secrets'] } };
     if (url.pathname === '/api/secrets' && method === 'POST') return { body: { success: true } };
+    return undefined;
   });
   await page.goto('/recovery');
   await expect(page.getByRole('heading', { name: 'TSX Core · Recovery' })).toBeVisible();
@@ -480,6 +499,7 @@ test('recovery uses only its permitted minimal reads and secret repair preserves
   await expect(page.getByRole('status').filter({ hasText: 'secrets gespeichert' })).toBeVisible();
   expect(requests.filter((request) => request.method === 'POST')).toEqual([expect.objectContaining({ path: '/api/secrets', body: { auditWebhookToken: 'c'.repeat(32) } })]);
   expect(requests.some((request) => ['/api/status', '/api/access', '/api/operations', '/api/trading', '/api/workflow'].includes(request.path))).toBe(false);
+  return undefined;
 });
 
 test('token rotation displays the one-time response even when a follow-up read returns 401', async ({ page }) => {
@@ -487,6 +507,7 @@ test('token rotation displays the one-time response even when a follow-up read r
   const requests = await api(page, (url, method) => {
     if (url.pathname === '/api/access-tokens' && method === 'POST') { rotated = true; return { status: 201, body: { token: NEW_TOKEN, role: 'admin' } }; }
     if (rotated && method === 'GET' && url.pathname !== '/api/bootstrap/status') return { status: 401, body: { error: 'follow-up authentication unavailable' } };
+    return undefined;
   });
   await page.goto('/operations/settings');
   await page.getByRole('button', { name: 'Admin-Key rotieren', exact: true }).click();
@@ -510,10 +531,11 @@ test('MCP polling preserves the draft and exposes concurrent edits', async ({ pa
 });
 
 test('trade review preserves null, false and empty values without changing its pinned plan', async ({ page }) => {
-  let current = structuredClone(entry);
+  let current: MockJson = structuredClone(entry);
   const requests = await api(page, (url, method, body) => {
     if (url.pathname === '/api/trading/intents/detail') return { body: { entry: current, observedAt: Date.now() } };
     if (url.pathname === '/api/trading/journal' && method === 'POST') { current = { ...current, review: { ...body, updatedAt: Date.now() } }; return { body: { success: true } }; }
+    return undefined;
   });
   await page.goto('/trading/trades/intent-1');
   await page.getByRole('button', { name: 'Review speichern', exact: true }).click();
@@ -521,6 +543,7 @@ test('trade review preserves null, false and empty values without changing its p
   expect(requests.filter((request) => request.method === 'POST')).toEqual([expect.objectContaining({ body: { intentId: 'intent-1', notes: '', tags: [], rating: null, reviewed: false, baseReviewUpdatedAt: null } })]);
   expect(current.plan).toEqual(entry.plan);
   await expect(page.getByText('60000.00000001', { exact: true })).toBeVisible();
+  return undefined;
 });
 
 test('viewer can read an exact trade but cannot submit its review', async ({ page }) => {
@@ -543,6 +566,7 @@ for (const status of [403, 412]) {
         await pendingReply;
         return { status, body: { error: rejection } };
       }
+      return undefined;
     });
     await page.goto('/trading/trades/intent-1');
     const notes = page.getByLabel('Notizen'); const save = page.getByRole('button', { name: 'Review speichern', exact: true });
@@ -560,13 +584,14 @@ for (const status of [403, 412]) {
     expect(await page.evaluate(() => sessionStorage.getItem('forwarder-dashboard-token'))).toBe(TOKEN);
     expect(requests.filter(request => request.method === 'POST')).toHaveLength(1);
     expect(requests.filter(request => request.path === '/api/trading/intents/detail').at(-1)?.authorization).toBe(`Bearer ${TOKEN}`);
+    return undefined;
   });
 }
 
 test('graph drafts survive reload and activate only through the explicit activation step', async ({ page }) => {
   const graph = { schemaVersion: 3, nodes: [], edges: [] };
-  let draft: any = null;
-  let workflow: any = null;
+  let draft: MockDraft | null = null;
+  let workflow: MockJson | null = null;
   const requests = await api(page, (url, method, body) => {
     if (url.pathname === '/api/workflow') return { body: { workflow, resources: [] } };
     if (url.pathname === '/api/workflow/history') return { body: { history: { undo: [], redo: [], maxDepth: 5 } } };
@@ -579,6 +604,7 @@ test('graph drafts survive reload and activate only through the explicit activat
       workflow = { id: 'revision-1', revision: 1, status: 'active', graph, compiled: { paths: [], warnings: [] } };
       return { body: { workflow } };
     }
+    return undefined;
   });
   await page.goto('/workflows/builder');
   await page.getByRole('button', { name: 'Graphentwurf speichern', exact: true }).click();
@@ -596,18 +622,19 @@ test('graph drafts survive reload and activate only through the explicit activat
 test('History cancellation preserves a distinct graph draft and accepted restoration saves the new base explicitly', async ({ page }) => {
   const empty = { schemaVersion: 3, nodes: [], edges: [] };
   const resource = { id: 'history-channel-v1', resourceId: 'history-channel', version: 1, kind: 'channel', name: 'Eigenständiger Entwurf', description: '', status: 'published', configuration: { channelId: '-1001234567' } };
-  let workflow: any = { id: 'history-active-1', revision: 1, graph: empty, compiled: { paths: [], warnings: [] } };
-  let draft: any = { id: 'operator', version: 1, baseRevisionId: workflow.id, graph: { ...empty, nodes: [{ id: 'history-node', kind: 'channel', resourceVersionId: resource.id, position: { x: 0, y: 0 } }] } };
+  let workflow: MockJson & { id: string } = { id: 'history-active-1', revision: 1, graph: empty, compiled: { paths: [], warnings: [] } };
+  let draft: MockDraft = { id: 'operator', version: 1, baseRevisionId: workflow.id, graph: { ...empty, nodes: [{ id: 'history-node', kind: 'channel', resourceVersionId: resource.id, position: { x: 0, y: 0 } }] } };
   const history = { limit: 5, undoCount: 1, redoCount: 0, canUndo: true, canRedo: false, undoLabel: 'Historischer Stand', redoLabel: null };
   const requests = await api(page, (url, method, body) => {
     if (url.pathname === '/api/workflow') return { body: { workflow, resources: [resource] } };
     if (url.pathname === '/api/workflow/history') return { body: history };
     if (url.pathname === '/api/workflow/drafts') {
-      if (method === 'POST') { expect(body.baseRevisionId).toBe('history-active-2'); expect(body.graph.nodes).toEqual([]); draft = { ...body, version: 2 }; }
+      if (method === 'POST') { expect(body.baseRevisionId).toBe('history-active-2'); expect((body.graph as { nodes?: unknown }).nodes).toEqual([]); draft = { ...body, version: 2 }; }
       return { body: { draft } };
     }
     if (url.pathname === '/api/workflow/history/impact') return { body: { impact: { destructive: false, changed: [], removed: [] } } };
     if (url.pathname === '/api/workflow/history/apply') { workflow = { ...workflow, id: 'history-active-2', revision: 2 }; return { body: { workflow, history } }; }
+    return undefined;
   });
   await page.goto('/workflows/builder'); await expect(page.getByText(/Graphentwurf 1 · Basis history-active-1/)).toBeVisible();
   await page.getByRole('button', { name: /rückgängig/ }).click(); await page.getByRole('button', { name: 'Abbrechen', exact: true }).click();
@@ -626,8 +653,9 @@ test('backup transport failure preserves a job lookup and never repeats the comm
   let requestedId = '';
   const requests = await api(page, (url, method, body) => {
     if (url.pathname === '/api/backups') return { body: { backups: ['backup-2026-fixture'] } };
-    if (url.pathname === '/api/operations/backup' && method === 'POST') { requestedId = body.jobId; return { status: 503, body: { error: 'Result acknowledgement unavailable' } }; }
+    if (url.pathname === '/api/operations/backup' && method === 'POST') { requestedId = body.jobId as string; return { status: 503, body: { error: 'Result acknowledgement unavailable' } }; }
     if (url.pathname === '/api/operations/jobs') return { body: { job: { id: requestedId, kind: 'backup-create', state: 'unknown', actorId: 'test:admin', scope: {}, acceptedAt: 1000, updatedAt: 2000, stage: 'Process ended before confirmation.', result: null }, observedAt: Date.now() } };
+    return undefined;
   });
   await page.goto('/operations/backups');
   await page.getByRole('button', { name: 'Jetzt sichern', exact: true }).click();
@@ -646,6 +674,7 @@ test('trade relation pages retain independent cursors and exact native money aft
       const kind = url.searchParams.get('kind'); const next = url.searchParams.has('cursor');
       return { body: { entries: kind === 'orders' ? [{ id: next ? 'order-41' : 'order-1', role: 'entry', status: 'cancel_pending', quantity: '0.123456789123456789', filledQuantity: '0.01', reduceOnly: false }] : kind === 'money' ? [{ id: 'money-1', kind: 'fee', amount: '-0.0000000001', asset: 'BNB', valuationStatus: 'unresolved', source: 'original-provider', reportingAmount: null, reportingCurrency: null }] : [], observedAt: Date.now(), hasMore: kind === 'orders' && !next, nextCursor: kind === 'orders' && !next ? 'orders-page-2' : null } };
     }
+    return undefined;
   });
   await page.goto('/trading/trades/intent-1'); await expect(page.getByRole('region', { name: 'Alle Ordergenerationen', exact: true })).toContainText('order-1');
   await page.getByRole('button', { name: 'Weitere Orders', exact: true }).click(); await expect(page).toHaveURL(/ordersCursor=orders-page-2/);
@@ -656,11 +685,12 @@ test('trade relation pages retain independent cursors and exact native money aft
 });
 
 test('Paper market edits bind their version, keep decimals and cannot select a live account', async ({ page }) => {
-  let market: any = { accountId: 'paper-1', symbol: 'BTCUSDT', markPrice: '60000', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, revision: 'a'.repeat(64), updatedAt: 1000 };
+  let market: MockJson = { accountId: 'paper-1', symbol: 'BTCUSDT', markPrice: '60000', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, revision: 'a'.repeat(64), updatedAt: 1000 };
   const balance = { accountId: 'paper-1', equity: '10000', availableBalance: '9000', revision: 'b'.repeat(64), source: 'paper-contract-v1', reportingCurrency: 'USDT', updatedAt: 1000 };
   const requests = await api(page, (url, method, body) => {
     if (url.pathname === '/api/trading') return { body: { ...trading, accounts: [{ id: 'paper-1', name: 'Paper 1', exchange: 'paper', mode: 'paper' }, { id: 'live-1', name: 'Live 1', exchange: 'bybit', mode: 'live' }], activity: { ...trading.activity, paperMarkets: [market], paperAccounts: [balance] } } };
-    if (url.pathname === '/api/trading/paper' && method === 'POST') { expect(body.baseMarketRevision).toBe('a'.repeat(64)); expect(body.market.markPrice).toBe('60000.00000001'); market = { ...market, ...body.market, revision: 'c'.repeat(64), updatedAt: 2000 }; return { body: { result: { market, balance, accountId: 'paper-1', simulated: true } } }; }
+    if (url.pathname === '/api/trading/paper' && method === 'POST') { expect(body.baseMarketRevision).toBe('a'.repeat(64)); expect((body.market as { markPrice?: unknown }).markPrice).toBe('60000.00000001'); market = { ...market, ...(body.market as MockJson), revision: 'c'.repeat(64), updatedAt: 2000 }; return { body: { result: { market, balance, accountId: 'paper-1', simulated: true } } }; }
+    return undefined;
   });
   await page.goto('/trading/paper'); await page.getByRole('combobox', { name: 'Paper-Konto', exact: true }).selectOption('paper-1');
   await expect(page.getByRole('combobox', { name: 'Paper-Konto', exact: true }).locator('option')).toHaveCount(2);
@@ -675,15 +705,16 @@ test('Paper market edits bind their version, keep decimals and cannot select a l
 });
 
 test('Telegram settings observe normalization, retain unrelated fields and preserve a conflicting draft', async ({ page }) => {
-  let config: any = { apiId: 1234, configRevision: 'config-1', targetChannel: '', sourceChannels: ['-1001234567'], sourceFilters: { '-1001234567': { regexPatterns: ['original'] } }, sourceAliases: {},
+  let config: MockJson = { apiId: 1234, configRevision: 'config-1', targetChannel: '', sourceChannels: ['-1001234567'], sourceFilters: { '-1001234567': { regexPatterns: ['original'] } }, sourceAliases: {},
     forwardOptions: { maxConcurrency: 2, queueTimeoutSeconds: 255, forwardToTarget: false, sendCopy: false, removeCaption: true }, filters: { allowedTypes: ['text'], allowedKeywords: [], blockedKeywords: [], regexPatterns: ['global'] },
     xmlParsing: { enabled: true, primaryModel: 'fixture/model', fallbackModel: 'fixture/fallback', aiLimits, saveToFile: true, signalsDir: './original-signals', sourceTemplates: {} }, dupeBlocker: { enabled: false, cooldownHours: 0 } };
   const requests = await api(page, (url, method, body) => {
     if (url.pathname === '/api/config') {
-      if (method === 'POST') { expect(body.sourceFilters['-1001234567']).toBeNull(); config = { ...body, sourceFilters: {}, configRevision: 'config-2', forwardOptions: { ...body.forwardOptions, queueTimeoutSeconds: 255 } }; return { body: { configuration: config, configRevision: 'config-2' } }; }
+      if (method === 'POST') { expect((body.sourceFilters as MockJson)['-1001234567']).toBeNull(); config = { ...body, sourceFilters: {}, configRevision: 'config-2', forwardOptions: { ...(body.forwardOptions as MockJson), queueTimeoutSeconds: 255 } }; return { body: { configuration: config, configRevision: 'config-2' } }; }
       return { body: config };
     }
     if (url.pathname === '/api/secrets') return { body: { secrets: { telegramApiHash: { configured: true }, openRouterApiKey: { configured: true } } } };
+    return undefined;
   });
   await page.goto('/signals/telegram');
   await page.getByLabel('Queue · Zeitlimit (Sekunden)', { exact: true }).fill('1');
@@ -695,7 +726,7 @@ test('Telegram settings observe normalization, retain unrelated fields and prese
   await expect(page.getByLabel('Queue · Zeitlimit (Sekunden)', { exact: true })).toHaveValue('255');
   const savedRequest = requests.find(request => request.path === '/api/config' && request.method === 'POST');
   if (!savedRequest) throw new Error('Expected recorded config save request.');
-  const saved = savedRequest.body;
+  const saved = savedRequest.body as { xmlParsing: { aiLimits: { requestTimeoutMs: unknown }; signalsDir: unknown; saveToFile: unknown }; forwardOptions: { forwardToTarget: unknown }; dupeBlocker: { cooldownHours: unknown } };
   expect(saved.xmlParsing.aiLimits.requestTimeoutMs).toBe(250000); expect(saved.xmlParsing.signalsDir).toBe('./original-signals'); expect(saved.xmlParsing.saveToFile).toBe(true); expect(saved.forwardOptions.forwardToTarget).toBe(false); expect(saved.dupeBlocker.cooldownHours).toBe(0);
   await page.getByLabel(/Telegram API Hash ·/).fill('telegram-hash-fixture'); await page.getByRole('button', { name: 'Telegram-/KI-Zugangsdaten speichern' }).click();
   expect(requests.filter(request => request.path === '/api/config' && request.method === 'POST')).toHaveLength(1);
@@ -710,16 +741,17 @@ test('AI lab requires preview and consent, invalidates edits and shows the durab
   const source = 'LONG BTCUSDT entry 60000 target 62000 stoploss 59000'; let requestedId = '';
   const requests = await api(page, (url, method, body) => {
     if (url.pathname === '/api/workflow/parser-test' && method === 'GET') return { body: { paths: [], limits: aiLimits, usageDay: '2026-09-05', usage: { requestCount: 1, usedTokens: 100, reservedTokens: 20 }, queue: { running: 0, queued: 0, maxConcurrency: 2, paused: false }, observedAt: Date.now() } };
-    if (url.pathname === '/api/workflow/parser-test/preview') return { body: { provider: 'OpenRouter', sourceChars: body.sourceText.length, sourceBytes: body.sourceText.length, sourceSha256: 'source-hash', promptSha256: 'prompt-hash', models: { primaryModel: 'fixture/model' }, limits: aiLimits, totalTimeoutMs: 30000, previewHash: 'preview-hash', observedAt: Date.now(), externalDataPolicyAccepted: true, providerConfigured: true } };
-    if (url.pathname === '/api/workflow/parser-test' && method === 'POST') { requestedId = body.jobId; return { status: 202, body: { job: { id: requestedId } } }; }
+    if (url.pathname === '/api/workflow/parser-test/preview') return { body: { provider: 'OpenRouter', sourceChars: (body.sourceText as string).length, sourceBytes: (body.sourceText as string).length, sourceSha256: 'source-hash', promptSha256: 'prompt-hash', models: { primaryModel: 'fixture/model' }, limits: aiLimits, totalTimeoutMs: 30000, previewHash: 'preview-hash', observedAt: Date.now(), externalDataPolicyAccepted: true, providerConfigured: true } };
+    if (url.pathname === '/api/workflow/parser-test' && method === 'POST') { requestedId = body.jobId as string; return { status: 202, body: { job: { id: requestedId } } }; }
     if (url.pathname === '/api/operations/jobs') return { body: { job: { id: requestedId, kind: 'parser-test', state: 'succeeded', actorId: 'test:admin', scope: {}, acceptedAt: 1000, updatedAt: 2000, stage: 'Completed', result: { stages: ['provider-response', 'xml-validation', 'source-grounding'], tradeExecuted: false, deliveryCreated: false, xml: '<signal>fixture</signal>', provenance: { model: 'fixture/model' } } }, observedAt: Date.now() } };
+    return undefined;
   });
   await page.goto('/workflows/tests?mode=ai');
   await page.getByLabel('Quelltext', { exact: true }).fill(source);
   await page.getByRole('button', { name: 'Provideraufruf vorbereiten' }).click();
   await expect(page.getByRole('button', { name: 'KI-Test einmal beauftragen' })).toBeDisabled();
   await page.getByLabel(/Ich stimme der Übermittlung/).check();
-  await page.getByLabel('Quelltext', { exact: true }).fill(source + ' changed');
+  await page.getByLabel('Quelltext', { exact: true }).fill(`${source} changed`);
   await expect(page.getByRole('heading', { name: 'Provideraufruf prüfen' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Provideraufruf vorbereiten' }).click();
   await page.getByLabel(/Ich stimme der Übermittlung/).check();

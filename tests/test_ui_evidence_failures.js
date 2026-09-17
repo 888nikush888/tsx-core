@@ -62,12 +62,14 @@ async function parserFailures() {
   }
   await assert.rejects(prepareUiParserTest({}, { sourceText, pathId: 'removed-path' }), /not part of the active revision/);
   const prepared = await prepareUiParserTest({}, { sourceText });
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   let calls = 0; const provider = async () => { calls++; throw new Error('provider must not run'); };
   await assert.rejects(runUiParserTest(prepared, provider), /consent/);
   await assert.rejects(runUiParserTest({ ...prepared, preview: { ...prepared.preview, externalDataPolicyAccepted: true, providerConfigured: false } }, provider), /configured provider/);
   assert.equal(calls, 0, 'Missing consent or credentials must prevent any provider call.');
   const failure = new Error('network lost after submit');
   const accepted = { ...prepared, preview: { ...prepared.preview, externalDataPolicyAccepted: true, providerConfigured: true } };
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   await assert.rejects(runUiParserTest(accepted, async () => { calls++; throw failure; }), error => error.cause === failure && /no automatic operator replay/.test(error.message));
   assert.equal(calls, 1, 'Unknown provider outcomes are reported once without a second chargeable call.');
 }

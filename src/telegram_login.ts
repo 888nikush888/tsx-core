@@ -136,8 +136,8 @@ export class TelegramLoginCoordinator {
       throw new Error('Telegram login prompt is no longer active.');
     }
     const answer = prompt.kind === 'name'
-      ? this.validateName(input)
-      : this.validateString(prompt.kind, input.value);
+      ? TelegramLoginCoordinator.validateName(input)
+      : TelegramLoginCoordinator.validateString(prompt.kind, input.value);
     const pending = this.pending;
     this.pending = null;
     this.update({ state: 'authenticating' });
@@ -145,7 +145,7 @@ export class TelegramLoginCoordinator {
     return this.snapshot();
   }
 
-  private validateString(kind: TelegramLoginPromptKind, value: unknown): string {
+  private static validateString(kind: TelegramLoginPromptKind, value: unknown): string {
     if (kind === 'phoneNumber') {
       const phone = singleLine(value, 'Phone number', 20);
       if (!/^\+?\d{5,15}$/.test(phone)) throw new Error('Phone number must use international digits.');
@@ -165,7 +165,7 @@ export class TelegramLoginCoordinator {
     return singleLine(value, 'Verification code', 32);
   }
 
-  private validateName(input: Record<string, unknown>): { firstName: string; lastName?: string } {
+  private static validateName(input: Record<string, unknown>): { firstName: string; lastName?: string } {
     const firstName = singleLine(input.firstName, 'First name', 64);
     if (input.lastName === undefined || input.lastName === '') return { firstName };
     return { firstName, lastName: singleLine(input.lastName, 'Last name', 64) };

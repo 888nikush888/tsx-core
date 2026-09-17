@@ -57,7 +57,7 @@ function fakeCore() {
   return {
     calls,
     config: () => { calls.push('config'); return Promise.resolve({ settings: structuredClone(SETTINGS) }); },
-    get: async (resource, query = {}) => {
+    get: (resource, query = {}) => {
       calls.push(`${resource}:${Number(query.offset || 0)}`);
       if (resource === 'events') return { events: Number(query.afterSeq || 0) < 1 ? [event] : [], nextSeq: 1 };
       if (resource === 'test-events') {
@@ -82,6 +82,7 @@ function fakeBot() {
   return {
     updates: [], sent: [], answered: [], failNext: false,
     getUpdates() { const updates = this.updates; this.updates = []; return Promise.resolve(updates); },
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     async sendMessage(chatId, text, options) {
       if (this.failNext) { this.failNext = false; throw new Error('temporary telegram failure'); }
       this.sent.push({ chatId, text, options }); return { message_id: this.sent.length };
@@ -168,6 +169,7 @@ async function verifyCallbackFailure(directory) {
   await state.initialize();
   const bot = fakeBot();
   const core = fakeCore();
+  // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
   core.get = async () => { throw new Error('projection unavailable'); };
   const service = new TelegramViewerService({ core, bot, state });
   await service.refreshSettings();
@@ -424,7 +426,7 @@ async function verifyDeliveryMessageContracts() {
   }
 }
 
-verifyStoredStringContracts().then(verifyDeliveryMessageContracts).then(run).catch(error => {
+(async () => verifyStoredStringContracts())().then(verifyDeliveryMessageContracts).then(run).catch(error => {
   console.error(error);
   process.exit(1);
 });

@@ -93,10 +93,11 @@ async function expectedEconomics(event: CashlegMoneyOriginal, binding: CashlegRe
     side: fill.side, quantity: signedDecimal(fill.quantity), price: signedDecimal(fill.price), fee: signedDecimal(fill.fee),
     feeAsset: event.asset, pricePnl, settlementAsset: market.settlementAsset, reportingAsset: binding.reportingCurrency };
 }
-function nativeEconomicsMatch(raw: Record<string, any>, fill: CashlegFill): boolean {
-  if (raw.side !== fill.side || raw.fee?.currency !== fill.fee_asset) return false;
-  return [[raw.price, fill.price], [raw.fee?.cost, fill.fee]]
-    .every(([original, persisted]) => typeof original === 'string' && signedDecimal(original) === signedDecimal(persisted));
+function nativeEconomicsMatch(raw: Record<string, unknown>, fill: CashlegFill): boolean {
+  const fee = (raw.fee ?? null) as { currency?: unknown; cost?: unknown } | null;
+  if (raw.side !== fill.side || fee?.currency !== fill.fee_asset) return false;
+  return [[raw.price, fill.price], [fee?.cost, fill.fee]]
+    .every(([original, persisted]) => typeof original === 'string' && signedDecimal(original) === signedDecimal(persisted as string));
 }
 async function originalPricePnl(event: CashlegMoneyOriginal, fill: CashlegFill): Promise<string> {
   if (fill.role === 'entry') return '0'; // Classification, not an invented provider cash component: the cash row must explicitly agree.

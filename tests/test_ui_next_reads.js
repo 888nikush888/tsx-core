@@ -34,6 +34,7 @@ async function testOwnershipFailureBoundary(database, intentId) {
       ...['ORDER_SEMANTICS', 'UNMAPPED_FILL', 'ORDER_OVERFILLED', 'CUMULATIVE_EXECUTION_MISMATCH', 'EXITS_EXCEED_ENTRIES', 'constructor', 'PRIVATE_UNKNOWN_CODE']
         .map(code => new TradingOwnershipError(code, 'PRIVATE_DATABASE_PATH and internal stack'))];
     for (const failure of failures) {
+      // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
       database.all = async function (sql, ...args) {
         if (sql.startsWith('SELECT id, role, side, reduce_only')) throw failure;
         return originalAll.call(this, sql, ...args);
@@ -67,6 +68,7 @@ async function testIngressRelations(database) {
     await assert.rejects(uiIngressRelations(workIds[1], kind, new URLSearchParams({ limit: '100', cursor: first.nextCursor })), /match/);
   }
   const albums = await uiIngressRelations('work-1', 'albums', new URLSearchParams());
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(albums.entries[0].memberCount, 106); assert.equal(albums.entries[0].workIds, undefined);
   assert.equal((await uiIngressRelations('work-1', 'attempts', new URLSearchParams())).entries[0].promptTokens, 0);
   for (const kind of ['plans', 'runs', 'branches', 'fallbacks', 'candidates', 'intents', 'tasks']) {
@@ -132,7 +134,7 @@ try {
   await database.run("DELETE FROM trading_account_incidents WHERE id='attention-critical'");
   const longOriginal = '🎯'.repeat(20005);
   await saveSignal('text-original', 'old-channel', 123, longOriginal, '0.000000000000001', { model: 'original-model' });
-  let textCursor; const textParts = [];
+  let textCursor = null; const textParts = [];
   do {
     const result = await uiSignalOriginal(new URLSearchParams({ id: 'text-original', ...(textCursor ? { cursor: textCursor } : {}) }));
     assert.ok([...result.text].length <= 10000); assert.equal(result.totalCharacters, 20005); assert.equal(result.model, 'original-model');
@@ -197,6 +199,7 @@ try {
   await updateTradingAccountConfiguration('paper-default', { maxConcurrentPositions: 18, baseUpdatedAt: originalAccount.updatedAt });
   await assert.rejects(updateTradingAccountConfiguration('paper-default', { maxConcurrentPositions: 19, baseUpdatedAt: originalAccount.updatedAt }), /configuration changed/);
   assert.equal((await getTradingAccount('paper-default')).maxConcurrentPositions, 18);
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(account.account.externalAccountId, undefined);
   assert.equal(account.protection.every(item => !item.protected), true, 'Absence of current receipt is never healthy.');
   assert.equal((await uiTradeSafety(intentId, 'paper-default')).ownership, null, 'No order and fill history must not be presented as proved zero.');
@@ -239,6 +242,7 @@ try {
   await assert.rejects(uiTradeRelationPage(intentId, 'constructor', new URLSearchParams()), /Unsupported/);
   const fullJournal = (await listTradeJournalPage({ intentId })).entries[0];
   assert.equal(uiJournalDetail(fullJournal).relationCounts.orders, 105); assert.deepEqual(uiJournalDetail(fullJournal).orders, []);
+  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(uiJournalSummary(fullJournal).plan, undefined); assert.equal(uiJournalSummary(fullJournal).review.notes, undefined);
   await testOwnershipFailureBoundary(database, intentId);
 

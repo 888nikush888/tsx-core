@@ -22,7 +22,8 @@ describe("UI Next correctness boundaries", () => {
     expect(portfolioTotal([{ ...row, observedAt: '1000' }, { ...row, equity: 1 }], 'equity')).toContain('2 Kontobeleg(e) ungeklärt');
   });
   it('rejects empty numeric runtime fields and unfamiliar parameter types', () => {
-    const field: any = { path: 'shutdownGraceMs', type: 'number', editable: true, secret: false, range: [1000, 120000] };
+    type RuntimeParameterContract = NonNullable<Parameters<typeof runtimeInputError>[1]>[number];
+    const field = { path: 'shutdownGraceMs', type: 'number', editable: true, secret: false, range: [1000, 120000] } as unknown as RuntimeParameterContract;
     expect(runtimeInputError({ shutdownGraceMs: NaN }, [field])).toContain('ganze Zahl');
     expect(runtimeInputError({ shutdownGraceMs: 120000 }, [field])).toBeNull();
     expect(runtimeInputError({ shutdownGraceMs: 120001 }, [field])).toContain('ganze Zahl');
@@ -31,7 +32,8 @@ describe("UI Next correctness boundaries", () => {
 
   it("adopts the one-time token before observing and retains success when observation fails", async () => {
     setDashboardToken("old");
-    const operation = vi.fn(async () => ({ token: "new", requestId: "operation-1" }));
+    const operation = vi.fn(() => ({ token: "new", requestId: "operation-1" }));
+    // skipcq: JS-0116 - native Promise rejection preserves asynchronous failure coverage.
     const outcome = await mutateAndObserve(operation, ({ token }) => setDashboardToken(token), async () => {
       expect(getDashboardToken()).toBe("new");
       throw new Error("unavailable");
@@ -55,6 +57,7 @@ describe("UI Next correctness boundaries", () => {
   });
 
   it("never retries an unknown write outcome", async () => {
+    // skipcq: JS-0116 - native Promise rejection preserves asynchronous failure coverage.
     const operation = vi.fn(async () => { throw new TypeError("transport lost"); });
     const accepted = vi.fn();
     const observe = vi.fn();
@@ -101,8 +104,8 @@ describe("UI Next correctness boundaries", () => {
     const accept = vi.fn();
     const reject = vi.fn();
     const { rerender } = renderHook(({ read }) => usePoll(read, accept, reject), { initialProps: { read: readOld } });
-    rerender({ read: async () => "current" });
-    await act(async () => { resolveOld("obsolete"); });
+    rerender({ read: () => "current" });
+    await act(() => { resolveOld("obsolete"); });
     expect(signalOld.aborted).toBe(true);
     expect(accept.mock.calls).toEqual([["current"]]);
   });

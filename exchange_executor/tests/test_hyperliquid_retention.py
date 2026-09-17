@@ -226,7 +226,10 @@ class TotalRetentionTests(unittest.IsolatedAsyncioTestCase):
             result, saved = await snapshot(saved)
             phases.add((saved.get('retention') or {}).get('phase'))
             unresolved.extend(result['unresolvedEvents'])
-            source = next(source for source in result['acquisition']['sources'] if source['source'] == 'fills')
+            try:
+                source = next(source for source in result['acquisition']['sources'] if source['source'] == 'fills')
+            except StopIteration:
+                self.fail("Expected a fills acquisition source.")
             if source['completeness'] == 'complete':
                 break
         self.assertIn('scan', phases)

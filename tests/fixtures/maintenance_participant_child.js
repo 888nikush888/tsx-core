@@ -8,4 +8,4 @@ const database = await open({ filename: databasePath, driver: sqlite3.Database }
 await participant.afterOpen();
 await database.get('SELECT value FROM proof');
 process.send({ state: 'opened', id: participant.id });
-setInterval(() => {}, 1000); // The parent deliberately kills this fixture with the native handle open.
+setInterval(() => { /* keep-alive noop */ }, 1000); // The parent deliberately kills this fixture with the native handle open.

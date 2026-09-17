@@ -192,6 +192,7 @@ test('acceptance cannot be extended, forged, silently omitted or reused after ex
   await assert.rejects(loadHttpRiskAcceptance(root, new Date('2026-10-09T00:00:00Z')), /expired/u);
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'tsx-snyk-acceptance-'));
   try {
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.equal(await loadHttpRiskAcceptance(temporary), undefined);
     const relative = 'docs/risk-acceptances/RA-2026-09-08-internal-http.md';
     await mkdir(path.dirname(path.join(temporary, relative)), { recursive: true });

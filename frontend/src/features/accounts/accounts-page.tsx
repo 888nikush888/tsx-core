@@ -13,7 +13,7 @@ type AccountsResponse = AccountManagementSnapshot & {
 };
 type AccountsObservation = { query: string; value: AccountsResponse };
 
-export function AccountsPage({ catalog, accountId, onRefresh }: Readonly<{ catalog: ExchangeCatalog | null; accountId?: string; onRefresh?: () => Promise<void> }>) {
+export function AccountsPage({ catalog, accountId, onRefresh }: Readonly<{ catalog: ExchangeCatalog | null; accountId?: string; onRefresh?: () => void | Promise<void> }>) {
   const readOnly = useOperatorReadOnly(); const [params, setParams] = useSearchParams(); const cursor = params.get('accountsCursor') || '';
   const query = new URLSearchParams({ view: 'accounts', cursor, ...(accountId ? { accountId } : {}) }).toString();
   const [state, setState] = useState<AccountsObservation | null>(null); const [error, setError] = useState(''); const [refresh, setRefresh] = useState(0);

@@ -74,7 +74,7 @@ async function healthyAccountBeyondLegacyPage() {
     targets: [{ min: '3200', max: '3200' }, { min: '3300', max: '3300' }], stopLoss: '2900' } });
   const engine = new TradingEngine([paper]), attempts = [];
   const process = engine.processIntent.bind(engine);
-  engine.processIntent = async id => { attempts.push(id); return process(id); };
+  engine.processIntent = id => { attempts.push(id); return process(id); };
   const runtime = await startRuntime(engine);
   try {
     await wake(runtime);
@@ -131,7 +131,7 @@ async function interruptionDoesNotSkipUnattemptedRows() {
   const context = await fixture(), ids = await legacyRows(context, 105, 'interrupted');
   const attempts = [];
   let runtime = null;
-  const engine = schedulerEngine(async id => {
+  const engine = schedulerEngine(id => {
     attempts.push(id);
     if (attempts.length === 1) runtime.disableEntries();
   });
@@ -172,6 +172,7 @@ async function missingSelectionAndEmptyQueue() {
 async function unexpectedFailureDoesNotPinCursor() {
   const context = await fixture(), ids = await legacyRows(context, 2, 'failed');
   const attempts = [];
+  // skipcq: JS-0116 - preserve the original asynchronous failure fixture, including indirect helper throws.
   const runtime = await startRuntime(schedulerEngine(async id => {
     attempts.push(id);
     if (id === ids[0]) throw new Error('Local scheduler fake: failed account attempt');

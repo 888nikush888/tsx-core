@@ -130,8 +130,8 @@ async function syncDirectory(directory: string): Promise<void> {
   const handle = await fs.open(directory, 'r');
   try {
     await handle.sync();
-  } catch (error: any) {
-    if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes(error?.code)) throw error;
+  } catch (error: unknown) {
+    if (!['EINVAL', 'ENOTSUP', 'EISDIR', 'EPERM'].includes((error as { code?: string } | null | undefined)?.code ?? '')) throw error;
   } finally {
     await handle.close();
   }
@@ -182,7 +182,7 @@ export class ManagedSecretStore {
       if (!options.recoverInvalidManagedFiles) throw error;
       this.recoveryIssues.push({
         fileName: path.basename(this.transactionPath()),
-        reason: error instanceof Error ? error.message : 'Managed secret transaction could not be read.',
+        reason: error instanceof Error ? (error as { message?: string }).message : 'Managed secret transaction could not be read.',
       });
     }
   }
@@ -197,7 +197,7 @@ export class ManagedSecretStore {
         this.recoveryIssues.push({
           name,
           fileName: DEFINITIONS[name].fileName,
-          reason: error instanceof Error ? error.message : 'Managed secret could not be read.',
+          reason: error instanceof Error ? (error as { message?: string }).message : 'Managed secret could not be read.',
         });
       }
     }
@@ -331,8 +331,8 @@ export class ManagedSecretStore {
       const value = validateSecret(name, (await fs.readFile(filePath, 'utf8')).replace(/\r?\n$/, ''));
       this.env[definition.environmentName] = value;
       this.sources.set(name, 'managed');
-    } catch (error: any) {
-      if (error?.code !== 'ENOENT') throw error;
+    } catch (error: unknown) {
+      if ((error as { code?: unknown } | null | undefined)?.code !== 'ENOENT') throw error;
       this.sources.set(name, 'missing');
     }
   }
@@ -373,14 +373,14 @@ export class ManagedSecretStore {
         throw new Error('Managed secret transaction must not be accessible by group or other users.');
       }
       parsed = JSON.parse(await fs.readFile(transactionPath, 'utf8'));
-    } catch (error: any) {
-      if (error?.code === 'ENOENT') return null;
+    } catch (error: unknown) {
+      if ((error as { code?: unknown } | null | undefined)?.code === 'ENOENT') return null;
       throw error;
     }
-    return this.validatePendingTransaction(parsed);
+    return ManagedSecretStore.validatePendingTransaction(parsed);
   }
 
-  private validatePendingTransaction(parsed: unknown): Array<[ManagedSecretName, unknown]> {
+  private static validatePendingTransaction(parsed: unknown): Array<[ManagedSecretName, unknown]> {
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       throw new Error('Managed secret transaction is invalid.');
     }
@@ -429,8 +429,8 @@ export class ManagedSecretStore {
     if (this.sources.get(name) === 'external') {
       throw new Error(`${DEFINITIONS[name].environmentName} is externally managed and cannot be removed in the dashboard.`);
     }
-    await fs.unlink(this.secretPath(name)).catch((error: any) => {
-      if (error?.code !== 'ENOENT') throw error;
+    await fs.unlink(this.secretPath(name)).catch((error: unknown) => {
+      if ((error as { code?: unknown } | null | undefined)?.code !== 'ENOENT') throw error;
     });
     if (!Reflect.deleteProperty(this.env, DEFINITIONS[name].environmentName)) {
       throw new TypeError(`${DEFINITIONS[name].environmentName} could not be removed from the environment.`);

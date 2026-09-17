@@ -11,7 +11,8 @@ function object(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 function id(value: unknown): asserts value is string {
-  if (typeof value !== 'string' || value.length === 0 || value.trim() !== value || value.length > 256 || /[\x00-\x1f]/.test(value)) {
+  // skipcq: JS-0004, JS-W1035 - intentional control-character rejection guard for untrusted input; removing it would weaken validation
+  if (typeof value !== 'string' || value.length === 0 || value.trim() !== value || value.length > 256 || /[\x00-\x1f]/u.test(value)) {
     throw new Error('Invalid order identity evidence identifier.');
   }
 }

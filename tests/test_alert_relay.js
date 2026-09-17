@@ -102,6 +102,7 @@ try {
     };
     await applyManagedRuntimeSettings(explicitEnvironment);
     assert.equal(explicitEnvironment.ALERT_WEBHOOK_URL, 'https://override.example/alerts');
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.equal(explicitEnvironment.ALERT_WEBHOOK_TIMEOUT_MS, undefined);
   } finally {
     await rm(settingsDirectory, { recursive: true, force: true });

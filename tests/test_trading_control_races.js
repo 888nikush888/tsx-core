@@ -17,7 +17,7 @@ function deferred() {
   return { promise, resolve };
 }
 const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-control-race-'));
-let runtime;
+let runtime = null;
 try {
   await initDb(path.join(directory, 'control.db'));
   await seedTradingFixtures();
@@ -87,8 +87,8 @@ const coercionFailure = new Error('coercion failure');
 thrownValues.push({ get message() { throw getterFailure; } },
   { message: { toString() { throw coercionFailure; } } });
 for (const thrown of thrownValues) {
-  let expected = undefined;
-  let expectedError = undefined;
+  let expected = null;
+  let expectedError = null;
   try {
     expected = uninformativeObjects.includes(thrown)
       ? 'entry-expiry: Non-Error object thrown without a useful message'
@@ -140,23 +140,26 @@ try {
     for (const makeMalformed of malformedFactories) {
       const calls = [];
       const engine = {
+        // skipcq: JS-0116 - preserve the original asynchronous failure fixture, including indirect helper throws.
         retireUnauthorizedPreparations: async id => {
-          calls.push('prepare:' + id);
+          calls.push(`prepare:${id}`);
           if (id === targets[0] && phase === 'preparation') throw makeMalformed();
         },
+        // skipcq: JS-0116 - preserve the original asynchronous failure fixture, including indirect helper throws.
         reconcileAccount: async id => {
-          calls.push('reconcile:' + id);
+          calls.push(`reconcile:${id}`);
           if (id === targets[0] && phase === 'reconciliation') throw makeMalformed();
         },
+        // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
         cancelExpiredEntries: async () => { throw makeMalformed(); },
       };
       const fixture = new TradingRuntime(engine);
       const failures = await fixture.reconcileAccounts(false);
-      assert.deepEqual(calls, targets.flatMap(id => ['prepare:' + id, 'reconcile:' + id]));
-      const prefix = phase === 'preparation' ? targets[0] + ' preparation-recovery: ' : targets[0] + ': ';
-      assert.deepEqual(failures, [prefix + 'Runtime failure could not be formatted safely.']);
+      assert.deepEqual(calls, targets.flatMap(id => [`prepare:${id}`, `reconcile:${id}`]));
+      const prefix = phase === 'preparation' ? `${targets[0]} preparation-recovery: ` : `${targets[0]}: `;
+      assert.deepEqual(failures, [`${prefix}Runtime failure could not be formatted safely.`]);
       await fixture.captureEntryExpiryFailure(failures);
-      assert.deepEqual(failures, [prefix + 'Runtime failure could not be formatted safely.',
+      assert.deepEqual(failures, [`${prefix}Runtime failure could not be formatted safely.`,
         'entry-expiry: Runtime failure could not be formatted safely.']);
       assert.equal(fixture.isProtectionScanComplete(), false, 'Direct diagnostics must not grant scan completion.');
     }

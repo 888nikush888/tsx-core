@@ -30,6 +30,7 @@ export function usesScheduledFxRecovery(account: TradingAccount): boolean {
     && (account.capabilities?.executionCapabilities as Record<string, unknown> | undefined)?.provider_api_version === 'bybit-v5'
     && typeof account.capabilities?.executionProfileHash === 'string' && /^[a-f0-9]{64}$/.test(account.capabilities.executionProfileHash);
 }
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 async function activeAttempt(id: string): Promise<Attempt | undefined> {
   return getDatabase().get<Attempt>("SELECT * FROM trading_recovery_schedule_attempts WHERE schedule_id=? AND status='reserved' AND advances_phase=1", [id]);
 }
@@ -49,6 +50,7 @@ export async function scheduledRecoveryDue(account: FxAccount, now = Date.now())
   const active = await activeAttempt(id);
   return (!active || active.lease_until <= now) && Math.max(state.next_due_at, state.cooldown_until) <= now;
 }
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function reserveScheduledRecovery(account: FxAccount, query: ExchangeRecoveryQuery,
   now = Date.now()): Promise<ScheduledRecoveryQuery> {
   account = snapshotFxAccount(account); query = structuredClone(query);

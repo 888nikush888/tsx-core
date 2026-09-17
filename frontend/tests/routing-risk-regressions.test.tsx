@@ -49,7 +49,7 @@ describe('adaptive risk original evidence', () => {
 
   it.each(['evaluations', 'legacy-evaluations'])('keeps invalidated %s distinct from current approval and reads original evidence explicitly', async kind => {
     window.history.replaceState(null, '', `/risk/adaptive?kind=${kind}&channelId=source`);
-    api.jsonRequest.mockImplementation(async (url: string) => url.includes('kind=sources')
+    api.jsonRequest.mockImplementation((url: string) => url.includes('kind=sources')
       ? { sourceAvailable: false, reason: 'Original source no longer available' }
       : { observedAt: 1000, entries: [{ id: 'evaluation/1', previousTier: 0, recommendedTier: 1, appliedTier: 0, invalidatedAt: 1000, action: 'held', closedTrades: 0 }] });
     render(<NavigationProvider><AdaptiveRiskPage /></NavigationProvider>);
@@ -65,7 +65,7 @@ describe('adaptive risk original evidence', () => {
 
   it('copies a blocked legacy policy only after review and identifies the saved draft without activation', async () => {
     window.history.replaceState(null, '', '/risk/adaptive?kind=legacy');
-    api.jsonRequest.mockImplementation(async (_url: string, init?: RequestInit) => init?.method
+    api.jsonRequest.mockImplementation((_url: string, init?: RequestInit) => init?.method
       ? { resource: { id: 'draft/1', resourceId: 'policy/1' }, alreadyCopied: false }
       : { entries: [{ policy: { channelId: 'source', blocked: true, policyVersion: 3 }, configuration: { manuallyBlocked: true }, copyHash: 'reviewed-policy' }] });
     render(<NavigationProvider><AdaptiveRiskPage /></NavigationProvider>);

@@ -79,6 +79,7 @@ try {
     const parser = changed.effectiveConfiguration.resources.parser;
     parser.prompt = value; parser.primaryModel = value; parser.fallbackModel = value;
     const plan = consume(changed, first.id);
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     for (const field of ['prompt', 'primaryModel', 'fallbackModel']) assert.equal(plan[field], undefined);
   }
   for (const value of [{ toString() { throw new Error('Must not coerce output mode'); } }, [], 17, false]) {

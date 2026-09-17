@@ -9,8 +9,8 @@ await initDb(databasePath);
 
 function park() {
   process.stdout.write(`PROTECTED_ENTRY_CRASH:${phase}\n`);
-  setInterval(() => {}, 1_000);
-  return new Promise(() => {});
+  setInterval(() => { /* keep-alive noop: the parent kills this fixture */ }, 1_000);
+  return new Promise(() => { /* never settles: parks until the parent kills the fixture */ });
 }
 
 class CrashPaper extends PaperExchangeAdapter {
@@ -57,12 +57,12 @@ function installEngineHook(engine) {
     return result;
   };
   const admission = engine.assertFinalEntryAdmission.bind(engine);
-  engine.assertFinalEntryAdmission = async (...args) => {
+  engine.assertFinalEntryAdmission = (...args) => {
     if (phase === 'prepared') return park();
     return admission(...args);
   };
   const outcome = engine.validateProtectedEntryOutcome.bind(engine);
-  engine.validateProtectedEntryOutcome = async (...args) => {
+  engine.validateProtectedEntryOutcome = (...args) => {
     if (phase === 'acknowledged') return park();
     return outcome(...args);
   };

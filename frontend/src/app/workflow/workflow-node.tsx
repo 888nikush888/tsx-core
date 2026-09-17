@@ -68,29 +68,18 @@ export type WorkflowNodeData = {
   onMove: (nodeId: string, direction: "up" | "down") => void;
 };
 
-export function WorkflowNode({ id, data, selected }: NodeProps) {
-  const node = data as WorkflowNodeData;
-  const meta = KIND_META[node.kind];
-  const Icon = ICONS[node.kind];
-  const connectionMode = node.connectionState !== "idle";
+function NodeOrderControls({ id, name, onMove }: Readonly<{ id: string; name: string; onMove: (nodeId: string, direction: "up" | "down") => void }>) {
   return (
-    <Card
-      size="sm"
-      className={`workflow-node ${selected ? "is-selected" : ""} ${node.enabled ? "" : "is-inert"} connection-${node.connectionState} path-${node.pathFocusState}`}
-      style={{ "--node-accent": meta.color } as CSSProperties}
-      data-connection-state={node.connectionState}
-      data-path-state={node.pathFocusState}
-    >
       <div className="workflow-node-order-controls nopan">
         <Button
           type="button"
           variant="ghost"
           size="icon-xs"
           className="nodrag"
-          aria-label={`${node.name} nach oben verschieben`}
+          aria-label={`${name} nach oben verschieben`}
           onClick={(event) => {
             event.stopPropagation();
-            node.onMove(id, "up");
+            onMove(id, "up");
           }}
         >
           <ArrowUp />
@@ -100,33 +89,79 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
           variant="ghost"
           size="icon-xs"
           className="nodrag"
-          aria-label={`${node.name} nach unten verschieben`}
+          aria-label={`${name} nach unten verschieben`}
           onClick={(event) => {
             event.stopPropagation();
-            node.onMove(id, "down");
+            onMove(id, "down");
           }}
         >
           <ArrowDown />
         </Button>
       </div>
-      {node.kind !== "channel" && (
+  );
+}
+
+function NodeTargetHandles({ kind, connectionState }: Readonly<{ kind: WorkflowKind; connectionState: WorkflowNodeData["connectionState"] }>) {
+  return (
+    <>
+      {kind !== "channel" && (
         <Handle
           id="flow-target"
           type="target"
           position={Position.Left}
-          className={`workflow-handle is-target ${node.connectionState === "target" ? "is-ready" : ""}`}
-          isConnectable={node.connectionState !== "blocked"}
+          className={`workflow-handle is-target ${connectionState === "target" ? "is-ready" : ""}`}
+          isConnectable={connectionState !== "blocked"}
         />
       )}
-      {node.kind === "account" && (
+      {kind === "account" && (
         <Handle
           id="fallback-target"
           type="target"
           position={Position.Top}
-          className={`workflow-handle is-target is-fallback ${node.connectionState === "target" ? "is-ready" : ""}`}
-          isConnectable={node.connectionState !== "blocked"}
+          className={`workflow-handle is-target is-fallback ${connectionState === "target" ? "is-ready" : ""}`}
+          isConnectable={connectionState !== "blocked"}
         />
       )}
+    </>
+  );
+}
+
+function NodeRoutingBadges({ routeUsage }: Readonly<{ routeUsage: WorkflowRouteUsage }>) {
+  return (
+          <span className="workflow-node-routing">
+            {routeUsage.channelCount > 1 && (
+              <span title={`${routeUsage.channelCount} Kanäle laufen hier zusammen`}>
+                <GitMerge /> {routeUsage.channelCount} Kanäle
+              </span>
+            )}
+            {routeUsage.accountCount > 1 && (
+              <span title={`Dieser Baustein führt zu ${routeUsage.accountCount} Konten`}>
+                <GitBranch /> {routeUsage.accountCount} Konten
+              </span>
+            )}
+            {routeUsage.channelCount <= 1 &&
+              routeUsage.accountCount <= 1 &&
+              routeUsage.pathCount > 0 && (
+                <span title="Kompilierter Ausführungspfad">
+                  <Route /> {routeUsage.pathCount}{" "}
+                  {routeUsage.pathCount === 1 ? "Pfad" : "Pfade"}
+                </span>
+              )}
+            {routeUsage.resourceInstanceCount > 1 && (
+              <span
+                title={`Altbestand: derselbe Baustein ist ${routeUsage.resourceInstanceCount}-mal platziert und sollte zusammengeführt werden`}
+              >
+                <Layers3 /> Doppelt ×{routeUsage.resourceInstanceCount}
+              </span>
+            )}
+          </span>
+  );
+}
+
+function NodeMainButton({ id, node, meta, Icon, connectionMode }: Readonly<{
+  id: string; node: WorkflowNodeData; meta: (typeof KIND_META)[WorkflowKind]; Icon: (typeof ICONS)[WorkflowKind]; connectionMode: boolean;
+}>) {
+  return (
       <button
         type="button"
         className="workflow-node-main nodrag"
@@ -152,33 +187,7 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
               ? "Hier verbinden"
               : node.summary}
           </span>
-          <span className="workflow-node-routing">
-            {node.routeUsage.channelCount > 1 && (
-              <span title={`${node.routeUsage.channelCount} Kanäle laufen hier zusammen`}>
-                <GitMerge /> {node.routeUsage.channelCount} Kanäle
-              </span>
-            )}
-            {node.routeUsage.accountCount > 1 && (
-              <span title={`Dieser Baustein führt zu ${node.routeUsage.accountCount} Konten`}>
-                <GitBranch /> {node.routeUsage.accountCount} Konten
-              </span>
-            )}
-            {node.routeUsage.channelCount <= 1 &&
-              node.routeUsage.accountCount <= 1 &&
-              node.routeUsage.pathCount > 0 && (
-                <span title="Kompilierter Ausführungspfad">
-                  <Route /> {node.routeUsage.pathCount}{" "}
-                  {node.routeUsage.pathCount === 1 ? "Pfad" : "Pfade"}
-                </span>
-              )}
-            {node.routeUsage.resourceInstanceCount > 1 && (
-              <span
-                title={`Altbestand: derselbe Baustein ist ${node.routeUsage.resourceInstanceCount}-mal platziert und sollte zusammengeführt werden`}
-              >
-                <Layers3 /> Doppelt ×{node.routeUsage.resourceInstanceCount}
-              </span>
-            )}
-          </span>
+      <NodeRoutingBadges routeUsage={node.routeUsage} />
         </span>
         <span className="workflow-node-meta">
           <Badge variant="outline">v{node.version}</Badge>
@@ -191,13 +200,15 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
           )}
         </span>
       </button>
-      {node.warning && (
-        <span className="workflow-node-warning" title={node.warning}>
-          !
-        </span>
-      )}
-      {node.kind !== "output" && (
-        <>
+  );
+}
+
+function NodeSourceControls({ id, name, kind, connectionState, onCancelConnection, onStartConnection }: Readonly<{
+  id: string; name: string; kind: WorkflowKind; connectionState: WorkflowNodeData["connectionState"];
+  onCancelConnection: () => void; onStartConnection: (nodeId: string, kind?: "flow" | "account_fallback") => void;
+}>) {
+  return (
+    <>
           <Handle
             id="flow-source"
             type="source"
@@ -210,33 +221,33 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
                 <Button
                   type="button"
                   variant={
-                    node.connectionState === "source" ? "secondary" : "outline"
+                    connectionState === "source" ? "secondary" : "outline"
                   }
                   size="icon-xs"
                   className="workflow-connect-button nodrag nopan"
                   aria-label={
-                    node.connectionState === "source"
+                    connectionState === "source"
                       ? "Verbindungsauswahl schließen"
-                      : `Verbindung ab ${node.name} erstellen`
+                      : `Verbindung ab ${name} erstellen`
                   }
                   onClick={(event) => {
                     event.stopPropagation();
-                    if (node.connectionState === "source")
-                      node.onCancelConnection();
-                    else node.onStartConnection(id);
+                    if (connectionState === "source")
+                      onCancelConnection();
+                    else onStartConnection(id);
                   }}
                 />
               }
             >
-              {node.connectionState === "source" ? <X /> : <Link2 />}
+              {connectionState === "source" ? <X /> : <Link2 />}
             </TooltipTrigger>
             <TooltipContent side="right">
-              {node.connectionState === "source"
+              {connectionState === "source"
                 ? "Abbrechen"
                 : "Weiter verbinden"}
             </TooltipContent>
           </Tooltip>
-          {node.kind === "account" && (
+          {kind === "account" && (
             <>
               <Handle
                 id="fallback-source"
@@ -249,14 +260,14 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
                 render={
                   <Button
                     type="button"
-                    variant={node.connectionState === "source" ? "secondary" : "outline"}
+                    variant={connectionState === "source" ? "secondary" : "outline"}
                     size="icon-xs"
                     className="workflow-connect-button workflow-fallback-connect-button nodrag nopan"
-                    aria-label={`Fallback-Konto nach ${node.name} festlegen`}
+                    aria-label={`Fallback-Konto nach ${name} festlegen`}
                     onClick={(event) => {
                       event.stopPropagation();
-                      if (node.connectionState === "source") node.onCancelConnection();
-                      else node.onStartConnection(id, "account_fallback");
+                      if (connectionState === "source") onCancelConnection();
+                      else onStartConnection(id, "account_fallback");
                     }}
                   />
                 }
@@ -267,8 +278,32 @@ export function WorkflowNode({ id, data, selected }: NodeProps) {
               </Tooltip>
             </>
           )}
-        </>
+    </>
+  );
+}
+
+export function WorkflowNode({ id, data, selected }: NodeProps) {
+  const node = data as WorkflowNodeData;
+  const meta = KIND_META[node.kind];
+  const Icon = ICONS[node.kind];
+  const connectionMode = node.connectionState !== "idle";
+  return (
+    <Card
+      size="sm"
+      className={`workflow-node ${selected ? "is-selected" : ""} ${node.enabled ? "" : "is-inert"} connection-${node.connectionState} path-${node.pathFocusState}`}
+      style={{ "--node-accent": meta.color } as CSSProperties}
+      data-connection-state={node.connectionState}
+      data-path-state={node.pathFocusState}
+    >
+      <NodeOrderControls id={id} name={node.name} onMove={node.onMove} />
+      <NodeTargetHandles kind={node.kind} connectionState={node.connectionState} />
+      <NodeMainButton id={id} node={node} meta={meta} Icon={Icon} connectionMode={connectionMode} />
+      {node.warning && (
+        <span className="workflow-node-warning" title={node.warning}>
+          !
+        </span>
       )}
+      {node.kind !== "output" && <NodeSourceControls id={id} name={node.name} kind={node.kind} connectionState={node.connectionState} onCancelConnection={node.onCancelConnection} onStartConnection={node.onStartConnection} />}
     </Card>
   );
 }

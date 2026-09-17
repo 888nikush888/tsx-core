@@ -47,19 +47,20 @@ export async function createRestartFixture(directory, generation) {
     controls.entered.resolve();
     if (controls.barrier) await controls.barrier;
     if (controls.failWork) throw new Error('Isolated command rejected by safety gate.');
-    await appendFile(path.join(directory, 'effects.log'), kind + '\n');
+    await appendFile(path.join(directory, 'effects.log'), `${kind}\n`);
     return { previousDatabase: 'isolated-rollback' };
   };
   const app = {
     config: { sourceChannels: [], targetChannel: '', forwardOptions: { forwardToTarget: false } },
     state: { isRunning: true }, startupAuthority: authority, uiOperations: store,
     getQueueState: () => ({ running: 0, queued: 0, maxConcurrency: 1, paused: true }),
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     startForwarding: async () => { throw new Error('Routing is disabled in this isolated fixture.'); },
     stopForwarding: () => work('restart'), restoreBackup: () => work('backup-restore'), performFactoryReset: () => work('factory-reset'),
-    reloadConfig: () => {}, getOperationsStatus: () => ({ backup: backupProof() }),
+    reloadConfig: () => { /* fixture no-op: reload is not exercised before the restart boundary */ }, getOperationsStatus: () => ({ backup: backupProof() }),
     auditTrail: { snapshot: () => ({ healthy: true }), record: async event => {
       if (controls.blockAudit) await controls.blockAudit(event);
-      await appendFile(path.join(directory, 'audit.log'), JSON.stringify(event) + '\n');
+      await appendFile(path.join(directory, 'audit.log'), `${JSON.stringify(event)}\n`);
     } },
     requestRestart: () => { controls.restart++; controls.restarted.resolve(); },
   };

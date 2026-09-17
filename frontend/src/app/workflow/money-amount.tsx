@@ -7,10 +7,10 @@ export function MoneyAmount(props: Readonly<DisplayMoney>) {
   </span>;
 }
 
-export function MoneySummaryAmount({ summary }: Readonly<{ summary?: Record<string, any> | null }>) {
+export function MoneySummaryAmount({ summary }: Readonly<{ summary?: Record<string, unknown> | null }>) {
   return <span>
     <MoneyAmount value={summary?.realizedPnlValue} amount={summary?.realizedPnl} currency={summary?.reportingCurrency} status={summary?.accountingStatus} />
-    {summary?.accountingStatus === "unresolved" && Object.entries(summary.valuedSubtotalValuesByCurrency || {}).map(([currency, value]) =>
+    {summary?.accountingStatus === "unresolved" && Object.entries((summary.valuedSubtotalValuesByCurrency || {}) as Record<string, unknown>).map(([currency, value]) =>
       <small key={currency} style={{ display: "block" }}>Bewerteter Teilbetrag: <MoneyAmount value={value} currency={currency} /></small>)}
   </span>;
 }

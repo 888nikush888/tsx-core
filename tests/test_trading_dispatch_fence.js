@@ -23,9 +23,11 @@ async function fixture(account, id) {
 const phase = async input => (await getDatabase().get('SELECT phase FROM trading_operations WHERE request_json = ?', [JSON.stringify(input.request)])).phase;
 async function failureMatrix(account) {
   for (const [id, expectedPhase, patch] of [
+    // skipcq: JS-0116 - exercise rejected promises separately from synchronous throws.
     ['source-changed', 'abandoned', { beforeSend: async () => { throw new Error('sources changed'); } }],
     ['sync-fence', 'abandoned', { guard: () => { throw new Error('epoch changed'); } }],
     ['sync-send', 'unresolved', { send: () => { throw new Error('synchronous adapter failure'); } }],
+    // skipcq: JS-0116 - exercise rejected adapter promises separately from synchronous throws.
     ['reject-send', 'unresolved', { send: async () => { throw new Error('asynchronous adapter failure'); } }],
   ]) {
     const input = { ...await fixture(account, id), ...patch };
@@ -90,6 +92,10 @@ async function ownerIsolation() {
   assert.equal(wrote, true);
   let starts = 0;
   await assert.rejects(withDatabaseTransaction(() => withDatabaseDispatchFence(() => Promise.resolve(), () => { starts += 1; return Promise.resolve(); })), /inherit/);
+  await withDatabaseTransaction(async () => {
+    await assert.rejects(withDatabaseDispatchFence(() => Promise.resolve(), () => { starts += 1; return Promise.resolve(); }), /inherit/);
+    await assert.rejects(withDatabaseTransaction(() => { throw new Error('nested callback failure'); }), /nested callback failure/);
+  });
   assert.equal(starts, 0);
 }
 async function commitFailure(account) {
@@ -99,6 +105,7 @@ async function commitFailure(account) {
   let started = false;
   let rejected = null;
   input.send = () => { started = true; return new Promise((_resolve, reject) => { rejected = reject; }); };
+  // skipcq: JS-0116 - preserve the real database API's rejected Promise failure path.
   db.exec = async sql => {
     if (sql === 'COMMIT' && started) { started = false; throw new Error('fixture read-fence commit failure'); }
     return original(sql);
@@ -138,6 +145,7 @@ try {
   await runJournaledExchangeWrite(normal);
   assert.equal(currentDispatchIdentity(capturedWitness), null);
   const rejected = await fixture(account, 'witness-revoked-on-rejection');
+  // skipcq: JS-0116 - verification rejection must revoke the capability before its continuation runs.
   rejected.beforeSend = async witness => { capturedWitness = witness; throw new Error('reject before send'); };
   await assert.rejects(runJournaledExchangeWrite(rejected), /reject before send/);
   assert.equal(currentDispatchIdentity(capturedWitness), null, 'Failed verification also revokes its capability.');

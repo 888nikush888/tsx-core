@@ -83,6 +83,7 @@ describe("api helpers", () => {
     expect(payload).toEqual({});
   });
 
+  // skipcq: JS-0087 - security fixture: these destinations must be rejected before any token is sent.
   it.each(["https://outside.invalid/api", "//outside.invalid/api", "javascript:alert(1)", "data:text/plain,fixture"])(
     "rejects a non-dashboard destination before sending any token: %s", async (destination) => {
       setDashboardToken("dashboard-fixture-token");

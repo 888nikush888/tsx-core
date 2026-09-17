@@ -28,6 +28,7 @@ import {
   getLastForwardedAt,
   getMediaGroupBuffers,
   getOutboxStatusCounts,
+  getOldestPendingOutboxAgeSeconds,
   getOutboxTask,
   getTotalForwardedCount,
   incrementForwardedCount,
@@ -127,17 +128,28 @@ async function testOutboxLifecycle() {
     assert.strictEqual(legacyTask.attempts, 0);
     assert.strictEqual(legacyTask.updatedAt, 1000);
 
-    assert.strictEqual(await enqueueOutboxTask(task('task-1', 11)), true);
+    const addedAt = 1_700_000_000_000;
+    const ageObservedAt = addedAt + 2501;
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(ageObservedAt), 0, 'Legacy tasks needing review must not age the active outbox.');
+    assert.strictEqual(await enqueueOutboxTask({ ...task('task-1', 11), addedAt }), true);
     assert.strictEqual(await enqueueOutboxTask(task('task-1', 11)), false, 'Outbox ids must be idempotent');
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(ageObservedAt), 2, 'Pending age uses persisted arrival time and floors fractional seconds.');
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(addedAt - 1), 0, 'A future arrival must not produce a negative outbox age.');
+    for (const invalidNow of [-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+      await assert.rejects(getOldestPendingOutboxAgeSeconds(invalidNow), /non-negative safe integer/);
+    }
 
     let claimed = await claimOutboxTask('task-1');
     assert.strictEqual(claimed.status, 'preparing');
     assert.strictEqual(claimed.attempts, 1);
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(ageObservedAt), 2, 'Preparing tasks remain part of the active backlog.');
     assert.strictEqual(await claimOutboxTask('task-1'), null, 'A claimed task cannot be claimed twice');
 
     await markOutboxSending('task-1');
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(ageObservedAt), 2, 'Sending tasks remain part of the active backlog.');
     assert.strictEqual(await failOutboxTask('task-1', new Error('response lost')), 'unknown');
     assert.strictEqual((await getOutboxTask('task-1')).status, 'unknown');
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(ageObservedAt), 0, 'Unknown delivery outcomes must not age the pending backlog.');
 
     assert.strictEqual(await requeueOutboxTask('task-1'), true);
     claimed = await claimOutboxTask('task-1');
@@ -146,10 +158,12 @@ async function testOutboxLifecycle() {
     const completed = await getOutboxTask('task-1');
     assert.strictEqual(completed.status, 'completed');
     assert.deepStrictEqual(completed.result.destinationMessageIds, ['99']);
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(ageObservedAt), 0, 'Completed deliveries must not age the pending backlog.');
 
-    await enqueueOutboxTask(task('task-failed', 12));
+    await enqueueOutboxTask({ ...task('task-failed', 12), addedAt });
     await claimOutboxTask('task-failed');
     assert.strictEqual(await failOutboxTask('task-failed', new Error('prepare failed')), 'failed');
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(ageObservedAt), 0, 'Failed deliveries must not age the pending backlog.');
 
     await enqueueOutboxTask(task('task-preparing-crash', 13));
     await claimOutboxTask('task-preparing-crash');
@@ -192,6 +206,7 @@ async function testAuxiliaryPersistence() {
     const buffers = await getMediaGroupBuffers();
     assert.deepStrictEqual(buffers['group-1'].messages.map(message => message.id), [21, 22]);
     await removeMediaGroupBuffer('group-1');
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.strictEqual((await getMediaGroupBuffers())['group-1'], undefined);
 
     const usageDay = '2030-01-02';
@@ -282,7 +297,7 @@ async function testPersistedMessageIdBoundary() {
     assert.deepStrictEqual(listed.config, { preserved: true }, 'Unrelated JSON stays opaque and unchanged.');
     const claimed = await claimOutboxTask(id);
     assert.strictEqual(claimed.status, 'preparing');
-    let failure;
+    let failure = null;
     try { requireOutboxMessageIds(claimed); } catch (error) { failure = error; }
     assert(failure instanceof OutboxMessageIdsError);
     assert.strictEqual(await failOutboxTask(id, failure), 'needs_review');
@@ -314,8 +329,8 @@ function createOutboxExecutionHarness() {
     Error, claimOutboxTask, completeOutboxTask, failOutboxTask, requireOutboxMessageIds,
     mergeConfigDefaults: value => value,
     markOutboxSending: async id => { sending.push(id); await markOutboxSending(id); },
-    addLog: () => {}, unknownErrorMessage: error => error.message, forwarderErrorCode: () => undefined,
-    deliverySlo: { recordAttempt() {}, recordConfirmed() {}, recordFailure() {} },
+    addLog: () => { /* test double: log output is not asserted in this scenario */ }, unknownErrorMessage: error => error.message, forwarderErrorCode: () => undefined,
+    deliverySlo: { recordAttempt() { /* test double: SLO recording is not asserted */ }, recordConfirmed() { /* test double: SLO recording is not asserted */ }, recordFailure() { /* test double: SLO recording is not asserted */ } },
     forwardMediaGroup: async (_id, _config, _group, context) => {
       await context.markSending(); provider.push(context.taskId); return { delivered: true };
     },
@@ -409,7 +424,7 @@ async function testPersistedJsonSyntaxBoundary() {
     const id = `syntax-repaired-${status}`;
     await enqueueOutboxTask(task(id, 813));
     await database.run('UPDATE pending_tasks SET config_json = ? WHERE id = ?', [raw, id]);
-    let release, started;
+    let release = null, started = null;
     const held = new Promise(resolve => { release = resolve; });
     const entered = new Promise(resolve => { started = resolve; });
     const repair = withDatabaseTransaction(async db => {
@@ -423,15 +438,17 @@ async function testPersistedJsonSyntaxBoundary() {
     await repair;
     const viewed = await read;
     assert.strictEqual(viewed.status, status, 'Queued read must review the current committed status and repaired bytes.');
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.strictEqual(viewed.payloadErrors, undefined);
     assert.deepStrictEqual(viewed.config, { repaired: true });
   }
-  const deep = '['.repeat(1500) + '0' + ']'.repeat(1500);
+  const deep = `${'['.repeat(1500)}0${']'.repeat(1500)}`;
   await enqueueOutboxTask(task('syntax-native-depth', 814));
   await database.run('UPDATE pending_tasks SET config_json = ? WHERE id = ?', [deep, 'syntax-native-depth']);
   assert.strictEqual((await claimOutboxTask('syntax-native-depth')).status, 'preparing', 'Native accepted JSON must not inherit SQLite depth rejection.');
   for (const rawValue of [null, '', 'null', '0', 'false', '[]', '{}']) {
     await database.run("UPDATE pending_tasks SET config_json = ?, status = 'pending' WHERE id = 'syntax-native-depth'", [rawValue]);
+    // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
     assert.strictEqual((await claimOutboxTask('syntax-native-depth')).payloadErrors, undefined);
   }
   await database.run("DELETE FROM pending_tasks WHERE id LIKE 'syntax-%'");
@@ -451,7 +468,7 @@ async function testMalformedJsonSyntaxSchedulerBoundary() {
   await database.run("UPDATE pending_tasks SET added_at = CASE WHEN id LIKE 'schedule-syntax-bad%' THEN 1 ELSE 2 END WHERE id LIKE 'schedule-syntax-%'");
   const queue = new ConcurrencyQueue(1, 0, 2);
   const scheduler = new DurableOutboxScheduler({ queue,
-    listPending: async excluded => listPendingOutboxTasksForScheduling([...otherIds, ...excluded], 1),
+    listPending: excluded => listPendingOutboxTasksForScheduling([...otherIds, ...excluded], 1),
     execute: (id, signal) => { scheduled.push(id); return execute(id, null, signal); },
     logError: message => schedulerErrors.push(message),
   });
@@ -524,7 +541,7 @@ async function runTests() {
   }
 }
 
-await runTests().catch(error => {
+await (async () => runTests())().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

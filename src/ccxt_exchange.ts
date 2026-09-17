@@ -79,9 +79,9 @@ function boundAccountPayload(account: TradingAccount): Record<string, string> {
   };
 }
 
-function assertObject(value: unknown, label: string): Record<string, any> {
+function assertObject(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} returned an invalid contract.`);
-  return value as Record<string, any>;
+  return value as Record<string, unknown>;
 }
 
 function assertOpenStateEnvelope(response: Record<string, unknown>): void {
@@ -98,14 +98,14 @@ function isTypedSymbolUnavailableResponse(input: {
   endpoint: string;
   status: number;
   body: ExecutorErrorPayload;
-  request: Record<string, any>;
+  request: Record<string, unknown>;
   exchange: CcxtExchangeAdapter['exchange'];
 }): input is typeof input & { body: ExecutorErrorPayload & {
   error?: string;
   details: { exchange: string; accountId: string; symbol: string };
 } } {
   const account = input.request.account;
-  const details = input.body.details;
+  const details = (input.body.details ?? {}) as { exchange?: unknown; accountId?: unknown; symbol?: unknown };
   return input.endpoint === '/v1/market-snapshot'
     && input.status === 422
     && input.body.code === 'SYMBOL_UNAVAILABLE'
@@ -113,7 +113,7 @@ function isTypedSymbolUnavailableResponse(input: {
     && Boolean(account && typeof account === 'object' && !Array.isArray(account))
     && typeof input.request.symbol === 'string'
     && details?.exchange === input.exchange
-    && details.accountId === account.id
+    && details.accountId === (account as { id?: unknown }).id
     && details.symbol === input.request.symbol;
 }
 
@@ -135,9 +135,10 @@ const RETRYABLE_READ_ENDPOINTS = new Set([
   '/v1/stream-events',
 ]);
 
-function executorReadAttempts(endpoint: string, payload: Record<string, any>): number {
+function executorReadAttempts(endpoint: string, payload: Record<string, unknown>): number {
+  const recovery = (payload.recovery ?? null) as { accountLogs?: unknown; recoverySchedule?: unknown } | null;
   const budgeted = endpoint === '/v1/open-state'
-    && (payload.recovery?.accountLogs !== undefined || payload.recovery?.recoverySchedule !== undefined);
+    && (recovery?.accountLogs !== undefined || recovery?.recoverySchedule !== undefined);
   return !budgeted && RETRYABLE_READ_ENDPOINTS.has(endpoint) ? 3 : 1;
 }
 
@@ -184,7 +185,7 @@ function isNullableSymbol(value: unknown): boolean {
 
 function assertStreamHealth(value: unknown): void {
   const health = assertObject(value, 'Exchange stream health');
-  const statusValid = ['starting', 'healthy', 'degraded', 'stopped'].includes(health.status);
+  const statusValid = ['starting', 'healthy', 'degraded', 'stopped'].includes(health.status as string);
   const errorValid = health.lastError === null || typeof health.lastError === 'string';
   if (!statusValid || !isNullableTimestamp(health.startedAt)
     || !isNullableTimestamp(health.lastEventAt) || !errorValid) {
@@ -195,7 +196,7 @@ function assertStreamHealth(value: unknown): void {
 function assertStreamEvent(value: unknown): void {
   const event = assertObject(value, 'Exchange stream event');
   const keyValid = typeof event.eventKey === 'string' && /^[a-f0-9]{64}$/.test(event.eventKey);
-  const typeValid = STREAM_EVENT_TYPES.has(event.eventType);
+  const typeValid = STREAM_EVENT_TYPES.has(event.eventType as ExchangeStreamEventType);
   if (!isSafeIntegerAtLeast(event.cursor, 1) || !keyValid || !typeValid
     || !isNullableSymbol(event.symbol) || !isNullableSequence(event.sequence)
     || !isSafeIntegerAtLeast(event.occurredAt, 0) || !isSafeIntegerAtLeast(event.receivedAt, 0)) {
@@ -210,8 +211,8 @@ function assertStreamBatch(value: unknown): ExchangeStreamBatch {
     throw new Error('Exchange executor returned an invalid stream batch contract.');
   }
   assertStreamHealth(batch.health);
-  batch.events.forEach(assertStreamEvent);
-  return batch as ExchangeStreamBatch;
+  (batch.events as unknown[]).forEach(assertStreamEvent);
+  return batch as unknown as ExchangeStreamBatch;
 }
 
 export class CcxtExchangeAdapter implements TradingExchangeAdapter {
@@ -433,7 +434,7 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
 
   private async postOnce(
     endpoint: string,
-    bodyPayload: Record<string, any>,
+    bodyPayload: Record<string, unknown>,
     token: string,
     deadlineAt: number,
     timeoutMs: number,
@@ -452,9 +453,9 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
     if (response.ok) return body;
     if (body.code === 'ORDER_OUTCOME_UNRESOLVED' && body.sideEffects === true
       && ['/v1/submit-order', '/v1/submit-protected-entry', '/v1/cancel-order'].includes(endpoint)) {
-      const requests = endpoint === '/v1/submit-protected-entry'
+      const requests = (endpoint === '/v1/submit-protected-entry'
         ? [bodyPayload.entry, bodyPayload.protectiveStop]
-        : [bodyPayload.request || bodyPayload];
+        : [bodyPayload.request || bodyPayload]) as Parameters<typeof confirmedOrderEvidence>[1];
       throw new TradingUnresolvedOrderError(
         'Exchange order outcome is unresolved; authoritative reconciliation is required.',
         confirmedOrderEvidence(body.details?.confirmedOrders, requests),

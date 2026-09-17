@@ -91,6 +91,7 @@ async function expectedOrders(input: TradingOperationInput): Promise<OperationOr
 }
 
 /** Prepared is a durable promise of no dispatch yet; dispatching is conservatively in-flight. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function prepareTradingOperation(input: TradingOperationInput): Promise<string> {
   return withDatabaseTransaction(async () => {
     const orders = await expectedOrders(input);
@@ -368,6 +369,7 @@ function undispatchedPlanShape(intent: TradingIntent): TradingPlan | null {
 }
 
 /** Resume only a provably unsubmitted persisted plan, never a negative remote lookup. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function recoverUndispatchedPlan(intent: TradingIntent): Promise<boolean> {
   return withDatabaseTransaction(async () => {
     if (!await hasUndispatchedPlanProof(intent, false)) return false;
@@ -379,6 +381,7 @@ export async function recoverUndispatchedPlan(intent: TradingIntent): Promise<bo
 }
 
 /** No remote cancellation: only positive local no-dispatch evidence can release the reservation. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function abandonUndispatchedPlan(intent: TradingIntent): Promise<boolean> {
   return withDatabaseTransaction(async () => {
     if (!await hasUndispatchedPlanProof(intent, true)) return false;

@@ -198,7 +198,7 @@ function groupBy<T>(
   return grouped;
 }
 
-type JournalRow = Record<string, any>;
+type JournalRow = Record<string, unknown>;
 
 type JournalRelations = {
   ordersByIntent: Map<string, JournalRow[]>;
@@ -247,6 +247,7 @@ function journalComponent(events: MoneyEvent[], projection: MoneySummary): Money
 }
 
 /** Canonical event reader shared by journal and viewer; never joins the legacy valuation table. */
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 export async function journalMoneyDetails(intentId: string): Promise<JournalMoneyDetails> {
   return withDatabaseTransaction(async database => {
     const row = await database.get(`SELECT projection.realized_pnl, projection.value_json, projection.reporting_currency,
@@ -287,6 +288,7 @@ function journalWhere(filters: NormalizedJournalFilters): { where: string; param
   };
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 async function loadJournalRows(
   database: Database,
   filters: NormalizedJournalFilters,
@@ -331,6 +333,7 @@ async function loadJournalRows(
   );
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 async function loadJournalOrders(database: Database, intentIds: string[]): Promise<JournalRow[]> {
   return database.all<JournalRow[]>(
     `SELECT id, intent_id AS intentId, client_order_id AS clientOrderId,
@@ -344,6 +347,7 @@ async function loadJournalOrders(database: Database, intentIds: string[]): Promi
   );
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 async function loadJournalFills(database: Database, orders: JournalRow[]): Promise<JournalRow[]> {
   const orderIds = orders.map(order => String(order.id));
   if (orderIds.length === 0) return [];
@@ -360,6 +364,7 @@ async function loadJournalFills(database: Database, orders: JournalRow[]): Promi
   );
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 async function loadJournalTimelines(database: Database, intentIds: string[]): Promise<JournalRow[]> {
   return database.all<JournalRow[]>(
     `SELECT intent_id AS intentId, event_type AS eventType, MIN(occurred_at) AS occurredAt
@@ -375,6 +380,7 @@ function executableSchemaId(value: unknown): string | null {
   return typeof executable.schema === 'string' ? executable.schema : null;
 }
 
+// skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 async function loadJournalSchemas(database: Database, rows: JournalRow[]): Promise<JournalRow[]> {
   const schemaIds = [...new Set(rows.map(row => {
     return executableSchemaId(row.signal_json);
@@ -432,8 +438,8 @@ function journalPosition(row: JournalRow): Record<string, unknown> | null {
     quantity: String(row.position_quantity),
     averageEntryPrice: nullableString(row.average_entry_price),
     stopPrice: String(row.stop_price),
-    ...journalProjectedMoney({ realized_pnl: row.realized_pnl, value_json: row.value_json,
-      accounting_status: row.accounting_status, reporting_currency: row.reporting_currency }),
+    ...journalProjectedMoney({ realized_pnl: row.realized_pnl as string, value_json: row.value_json as string,
+      accounting_status: row.accounting_status as string, reporting_currency: row.reporting_currency as string }),
     openedAt: nullableNumber(row.opened_at),
     closedAt: nullableNumber(row.closed_at),
   };

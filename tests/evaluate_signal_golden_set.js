@@ -98,7 +98,7 @@ async function runEvaluation() {
   console.log(`AI GOLDEN-SET GATE PASSED (${cases.length}/${cases.length}) evidence=${evidencePath}`);
 }
 
-runEvaluation().catch(error => {
+(async () => runEvaluation())().catch(error => {
   console.error(error.message);
   process.exitCode = 1;
 });

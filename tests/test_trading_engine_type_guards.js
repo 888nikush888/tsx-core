@@ -49,7 +49,7 @@ try {
   assert.equal(outcome.blockReason, 'TRADE_PLAN_INVALID');
   assert.equal(providerCalls, 0);
   for (const table of ['trading_orders', 'trading_operations']) {
-    assert.equal((await getDatabase().get('SELECT COUNT(*) AS count FROM ' + table)).count, 0,
+    assert.equal((await getDatabase().get(`SELECT COUNT(*) AS count FROM ${table}`)).count, 0,
       'An invalid resumed plan must not create dispatch artifacts.');
   }
   // Exercise the actual reconciliation method against a persisted damaged plan.
@@ -62,8 +62,11 @@ try {
     const persisted = await db.get('SELECT plan_json FROM trading_trade_intents WHERE id = ?', [intent.id]);
     let recoveryAccesses = 0, cancellations = 0, submissions = 0;
     const guardedAdapter = new PaperExchangeAdapter();
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     guardedAdapter.cancelOrder = async () => { cancellations += 1; throw new Error('Unexpected exit cancellation.'); };
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     guardedAdapter.submitOrder = async () => { submissions += 1; throw new Error('Unexpected exit submission.'); };
+    // skipcq: JS-0116 - this fixture must reject asynchronously like the API it simulates.
     const failDatabaseAccess = async () => { recoveryAccesses += 1; throw new Error('Unexpected exit recovery database access.'); };
     try {
       db.all = failDatabaseAccess;

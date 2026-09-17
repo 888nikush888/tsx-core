@@ -44,8 +44,174 @@ function viewerServiceHealth(service: { reachable?: boolean; healthy?: boolean }
   return service.healthy === false ? 'gestört' : 'unbekannt';
 }
 
+type TelegramViewerService = {
+  ready?: boolean | null;
+  reachable?: boolean;
+  healthy?: boolean;
+  lastPollAt?: unknown;
+  allowedUsers?: number | null;
+  lastError?: string | null;
+  lastTest?: { status?: string | null; attemptedAt?: unknown } | null;
+};
+type TelegramViewerPayload = {
+  settings?: TelegramViewerSettings | null;
+  settingsRevision?: number | string | null;
+  settingsRecovery?: { active?: boolean | null; reason?: string | null } | null;
+  service?: TelegramViewerService | null;
+  secrets?: { botToken?: { configured?: boolean | null } | null } | null;
+};
+
+type TelegramViewerDraft = TelegramViewerSettings & { allowedUsersText: string };
+
+function ViewerNotices({ message, recovery, loadError }: Readonly<{ message: string; recovery: TelegramViewerPayload['settingsRecovery']; loadError: string }>) {
+  return (
+    <>
+      {message && <section className="operations-card" aria-live="polite"><p>{message}</p></section>}
+      {recovery?.active && (
+        <section className="operations-card critical-dashboard-alert" role="alert">
+          <h3>Einstellungen im sicheren Ausgangszustand</h3><p>{recovery.reason}</p>
+        </section>
+      )}
+      {loadError && <p role="alert">{loadError} · Anzeige möglicherweise veraltet.</p>}
+    </>
+  );
+}
+
+function ViewerStatusSection({ service, readiness, botConfigured }: Readonly<{ service: TelegramViewerService; readiness: () => string; botConfigured: boolean }>) {
+  return (
+      <section className="operations-card system-form">
+        <h3>Status</h3>
+        <div className="operations-metrics">
+          <Metric label="Dienst" value={viewerServiceHealth(service)} />
+          <Metric label="Bereitschaft" value={readiness()} />
+          <Metric label="Bot-Token" value={botConfigured ? "konfiguriert" : "fehlt"} />
+          <Metric label="Letzte Abfrage" value={time(service.lastPollAt)} />
+        </div>
+      </section>
+  );
+}
+
+function ViewerGeneralSection({ settings, setSettings }: Readonly<{ settings: TelegramViewerDraft; setSettings: (value: TelegramViewerDraft) => void }>) {
+  return (
+      <section className="operations-card system-form">
+        <h3>Allgemein</h3>
+        <label className="builder-toggle">
+          <input aria-label="Viewer aktiv" type="checkbox" checked={settings.enabled}
+            onChange={(event) => setSettings({ ...settings, enabled: event.target.checked })} />
+          <span aria-hidden="true" /> Viewer aktiv
+        </label>
+        <div className="builder-field-grid">
+          <label>Zeitzone<Input value={settings.timezone} onChange={(event) => setSettings({ ...settings, timezone: event.target.value })} /></label>
+          <label>Sprache/Locale<Input value={settings.locale} onChange={(event) => setSettings({ ...settings, locale: event.target.value })} /></label>
+          <label>Abfrageintervall (ms)<Input aria-label="Abfrageintervall (ms)" type="number" min={1000} max={60000}
+            value={settings.eventPollingIntervalMs} onChange={(event) => setSettings({ ...settings, eventPollingIntervalMs: Number(event.target.value) })} /></label>
+        </div>
+      </section>
+  );
+}
+
+function ViewerAccessSection({ allowedUsers, setAllowedUsers }: Readonly<{ allowedUsers: string; setAllowedUsers: (value: string) => void }>) {
+  return (
+      <section className="operations-card system-form">
+        <h3>Zugriff</h3>
+        <label>Erlaubte Telegram User IDs{" "}
+          <textarea aria-label="Erlaubte Telegram User IDs" rows={5} value={allowedUsers}
+            onChange={(event) => setAllowedUsers(event.target.value)} placeholder="Eine numerische User ID pro Zeile" />
+        </label>
+      </section>
+  );
+}
+
+function ViewerDisplaySection({ settings, setSettings, busy, conflict, readOnly, saveSettings }: Readonly<{
+  settings: TelegramViewerDraft; setSettings: (value: TelegramViewerDraft) => void; busy: string; conflict: boolean; readOnly: boolean;
+  saveSettings: () => void | Promise<void>;
+}>) {
+  return (
+      <section className="operations-card system-form">
+        <h3>Darstellung</h3>
+        <div className="builder-field-grid">
+          <label>Detailstufe<select value={settings.display.detailLevel}
+            onChange={(event) => setSettings({ ...settings, display: { ...settings.display, detailLevel: event.target.value as TelegramViewerSettings["display"]["detailLevel"] } })}>
+            <option value="compact">Kompakt</option><option value="normal">Normal</option><option value="detailed">Detailliert</option>
+          </select></label>
+          <label>PnL-Anzeige<select value={settings.display.pnlMode}
+            onChange={(event) => setSettings({ ...settings, display: { ...settings.display, pnlMode: event.target.value as TelegramViewerSettings["display"]["pnlMode"] } })}>
+            <option value="absolute">Absolut</option><option value="absolute_and_percent">Absolut und Prozent</option>
+          </select></label>
+        </div>
+        <div className="system-actions"><Button type="button" disabled={Boolean(busy) || conflict || readOnly} onClick={() => { saveSettings(); }}>Einstellungen speichern</Button></div>
+      </section>
+  );
+}
+
+function ViewerNotificationsSection({ settings, setSettings }: Readonly<{ settings: TelegramViewerDraft; setSettings: (value: TelegramViewerDraft) => void }>) {
+  return (
+      <section className="operations-card system-form">
+        <h3>Benachrichtigungen</h3>
+        <div className="builder-field-grid">
+          {TELEGRAM_NOTIFICATION_LABELS.map(([key, label]) => (
+            <label className="builder-toggle" key={key}>
+              <input type="checkbox" checked={Boolean(settings.notifications[key])}
+                onChange={(event) => setSettings({ ...settings, notifications: { ...settings.notifications, [key]: event.target.checked } })} />
+              <span aria-hidden="true" /> {label}
+            </label>
+          ))}
+        </div>
+      </section>
+  );
+}
+
+function ViewerTokenSection({ botConfigured, botToken, setBotToken, busy, setToken, deleteBotToken, rotateServiceToken }: Readonly<{
+  botConfigured: boolean; botToken: string; setBotToken: (value: string) => void; busy: string;
+  setToken: () => void | Promise<void>; deleteBotToken: () => void | Promise<void>; rotateServiceToken: () => void | Promise<void>;
+}>) {
+  return (
+      <section className="operations-card system-form">
+        <h3>Bot-Token</h3>
+        <strong>{botConfigured ? "Bot-Token konfiguriert" : "Kein Bot-Token konfiguriert"}</strong>
+        <p className="operations-help">Der gespeicherte Wert wird niemals angezeigt.</p>
+        <label>Neuer Bot-Token<Input aria-label="Neuer Bot-Token" type="password" autoComplete="off" value={botToken}
+          onChange={(event) => setBotToken(event.target.value)} placeholder="123456789:…" /></label>
+        <div className="system-actions">
+          <Button type="button" disabled={Boolean(busy) || !botToken} onClick={() => { setToken(); }}>Bot-Token setzen</Button>
+          <Button type="button" variant="destructive" disabled={Boolean(busy) || !botConfigured}
+            onClick={() => { deleteBotToken(); }}>Bot-Token löschen</Button>
+          <Button type="button" variant="outline" disabled={Boolean(busy)}
+            onClick={() => { rotateServiceToken(); }}>Dienst-Token rotieren</Button>
+        </div>
+      </section>
+  );
+}
+
+function ViewerDiagnosticsSection({ service, settings }: Readonly<{ service: TelegramViewerService; settings: TelegramViewerDraft }>) {
+  return (
+      <section className="operations-card system-form">
+        <h3>Diagnose</h3>
+        <div className="system-line"><span>Erlaubte Benutzer</span><strong>{service.allowedUsers ?? settings.allowedUserIds.length}</strong></div>
+        <div className="system-line"><span>Letzter Fehler</span><strong>{service.lastError || "–"}</strong></div>
+        <div className="system-line"><span>Letzter Test</span><strong>{service.lastTest ? `${service.lastTest.status} · ${time(service.lastTest.attemptedAt)}` : "–"}</strong></div>
+      </section>
+  );
+}
+
+function ViewerTestSection({ testMessage, setTestMessage, busy, mutate }: Readonly<{
+  testMessage: string; setTestMessage: (value: string) => void; busy: string;
+  mutate: (label: string, url: string, init: RequestInit, accepted?: (value: Record<string, unknown>) => void) => Promise<void>;
+}>) {
+  return (
+      <section className="operations-card system-form">
+        <h3>Testnachricht</h3>
+        <label>Testnachricht<Input aria-label="Testnachricht" value={testMessage} onChange={(event) => setTestMessage(event.target.value)} /></label>
+        <div className="system-actions"><Button type="button" disabled={Boolean(busy) || !testMessage.trim()}
+          onClick={() => { mutate("Test angenommen", "/api/telegram-viewer/test", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: testMessage }),
+          }); }}>Test senden</Button></div>
+      </section>
+  );
+}
+
 export function TelegramViewer() {
-  const [payload, setPayload] = useState<any>(null);
+  const [payload, setPayload] = useState<TelegramViewerPayload | null>(null);
   const readOnly = useOperatorReadOnly();
   const serverSettings = payload?.settings ? { ...payload.settings, allowedUsersText: (payload.settings.allowedUserIds ?? []).join('\n') } : null;
   const form = useVersionedDraft<TelegramViewerSettings & { allowedUsersText: string } | null>('telegram-viewer', serverSettings, payload?.settingsRevision ?? null, null);
@@ -65,7 +231,7 @@ export function TelegramViewer() {
   const read = useCallback((signal: AbortSignal) => jsonRequest('/api/telegram-viewer', { signal }), []);
   usePoll(read, next => { setPayload(next); setLoadError(''); }, reason => setLoadError(reason.message), 3_000);
 
-  const mutate = useCallback(async (label: string, url: string, init: RequestInit, accepted?: (value: any) => void) => {
+  const mutate = useCallback(async (label: string, url: string, init: RequestInit, accepted?: (value: Record<string, unknown>) => void) => {
     if (readOnly) return;
     setBusy(label);
     setMessage("");
@@ -86,7 +252,7 @@ export function TelegramViewer() {
     await mutate("Einstellungen gespeichert", "/api/telegram-viewer/settings", {
       method: "POST", headers: { "Content-Type": "application/json", ...(form.baseRevision ? { 'If-Match': String(form.baseRevision) } : {}) },
       body: JSON.stringify({ ...storedSettings, allowedUserIds: users }),
-    }, result => { if (result.settings) { setPayload((previous: any) => ({ ...previous, ...result })); form.saved({ ...result.settings, allowedUsersText: result.settings.allowedUserIds.join('\n') }, result.settingsRevision ?? null); } });
+    }, result => { const nextSettings = result.settings as TelegramViewerSettings | undefined; if (nextSettings) { setPayload((previous) => ({ ...previous, ...result })); form.saved({ ...nextSettings, allowedUsersText: nextSettings.allowedUserIds.join('\n') }, (result.settingsRevision ?? null) as number | string | null); } });
   };
 
   const setToken = async () => {
@@ -117,7 +283,7 @@ export function TelegramViewer() {
   };
 
   if (!settings || !payload) return <Empty text={loadError || message || "Telegram Viewer wird geladen …"} />;
-  const service = payload.service || {};
+  const service = (payload.service || {}) as TelegramViewerService;
   const botConfigured = payload.secrets?.botToken?.configured === true;
   const serviceReadiness = () => {
     if (service.ready === true) {
@@ -128,6 +294,9 @@ export function TelegramViewer() {
     }
     return 'unbekannt';
   };
+
+
+
   return (
     <div className="operations-stack">
       {confirmationDialog}
@@ -139,106 +308,24 @@ export function TelegramViewer() {
         <Button type="button" variant="outline" disabled={Boolean(busy)} onClick={() => { load().catch(reason => setLoadError(reason.message)); }}><RefreshCw /> Aktualisieren</Button>
       </div>
 
-      {message && <section className="operations-card" aria-live="polite"><p>{message}</p></section>}
-      {payload.settingsRecovery?.active && (
-        <section className="operations-card critical-dashboard-alert" role="alert">
-          <h3>Einstellungen im sicheren Ausgangszustand</h3><p>{payload.settingsRecovery.reason}</p>
-        </section>
-      )}
-      {loadError && <p role="alert">{loadError} · Anzeige möglicherweise veraltet.</p>}
+      <ViewerNotices message={message} recovery={payload.settingsRecovery} loadError={loadError} />
       <DraftState label="Telegram Viewer" form={form} server={serverSettings} />
 
-      <section className="operations-card system-form">
-        <h3>Status</h3>
-        <div className="operations-metrics">
-          <Metric label="Dienst" value={viewerServiceHealth(service)} />
-          <Metric label="Bereitschaft" value={serviceReadiness()} />
-          <Metric label="Bot-Token" value={botConfigured ? "konfiguriert" : "fehlt"} />
-          <Metric label="Letzte Abfrage" value={time(service.lastPollAt)} />
-        </div>
-      </section>
+      <ViewerStatusSection service={service} readiness={serviceReadiness} botConfigured={botConfigured} />
 
-      <section className="operations-card system-form">
-        <h3>Allgemein</h3>
-        <label className="builder-toggle">
-          <input aria-label="Viewer aktiv" type="checkbox" checked={settings.enabled}
-            onChange={(event) => setSettings({ ...settings, enabled: event.target.checked })} />
-          <span aria-hidden="true" /> Viewer aktiv
-        </label>
-        <div className="builder-field-grid">
-          <label>Zeitzone<Input value={settings.timezone} onChange={(event) => setSettings({ ...settings, timezone: event.target.value })} /></label>
-          <label>Sprache/Locale<Input value={settings.locale} onChange={(event) => setSettings({ ...settings, locale: event.target.value })} /></label>
-          <label>Abfrageintervall (ms)<Input aria-label="Abfrageintervall (ms)" type="number" min={1000} max={60000}
-            value={settings.eventPollingIntervalMs} onChange={(event) => setSettings({ ...settings, eventPollingIntervalMs: Number(event.target.value) })} /></label>
-        </div>
-      </section>
+      <ViewerGeneralSection settings={settings} setSettings={setSettings} />
 
-      <section className="operations-card system-form">
-        <h3>Zugriff</h3>
-        <label>Erlaubte Telegram User IDs{" "}
-          <textarea aria-label="Erlaubte Telegram User IDs" rows={5} value={allowedUsers}
-            onChange={(event) => setAllowedUsers(event.target.value)} placeholder="Eine numerische User ID pro Zeile" />
-        </label>
-      </section>
+      <ViewerAccessSection allowedUsers={allowedUsers} setAllowedUsers={setAllowedUsers} />
 
-      <section className="operations-card system-form">
-        <h3>Darstellung</h3>
-        <div className="builder-field-grid">
-          <label>Detailstufe<select value={settings.display.detailLevel}
-            onChange={(event) => setSettings({ ...settings, display: { ...settings.display, detailLevel: event.target.value as TelegramViewerSettings["display"]["detailLevel"] } })}>
-            <option value="compact">Kompakt</option><option value="normal">Normal</option><option value="detailed">Detailliert</option>
-          </select></label>
-          <label>PnL-Anzeige<select value={settings.display.pnlMode}
-            onChange={(event) => setSettings({ ...settings, display: { ...settings.display, pnlMode: event.target.value as TelegramViewerSettings["display"]["pnlMode"] } })}>
-            <option value="absolute">Absolut</option><option value="absolute_and_percent">Absolut und Prozent</option>
-          </select></label>
-        </div>
-        <div className="system-actions"><Button type="button" disabled={Boolean(busy) || form.conflict || readOnly} onClick={() => { saveSettings(); }}>Einstellungen speichern</Button></div>
-      </section>
+      <ViewerDisplaySection settings={settings} setSettings={setSettings} busy={busy} conflict={form.conflict} readOnly={readOnly} saveSettings={saveSettings} />
 
-      <section className="operations-card system-form">
-        <h3>Benachrichtigungen</h3>
-        <div className="builder-field-grid">
-          {TELEGRAM_NOTIFICATION_LABELS.map(([key, label]) => (
-            <label className="builder-toggle" key={key}>
-              <input type="checkbox" checked={Boolean(settings.notifications[key])}
-                onChange={(event) => setSettings({ ...settings, notifications: { ...settings.notifications, [key]: event.target.checked } })} />
-              <span aria-hidden="true" /> {label}
-            </label>
-          ))}
-        </div>
-      </section>
+      <ViewerNotificationsSection settings={settings} setSettings={setSettings} />
 
-      <section className="operations-card system-form">
-        <h3>Bot-Token</h3>
-        <strong>{botConfigured ? "Bot-Token konfiguriert" : "Kein Bot-Token konfiguriert"}</strong>
-        <p className="operations-help">Der gespeicherte Wert wird niemals angezeigt.</p>
-        <label>Neuer Bot-Token<Input aria-label="Neuer Bot-Token" type="password" autoComplete="off" value={botToken}
-          onChange={(event) => setBotToken(event.target.value)} placeholder="123456789:…" /></label>
-        <div className="system-actions">
-          <Button type="button" disabled={Boolean(busy) || !botToken} onClick={() => { setToken(); }}>Bot-Token setzen</Button>
-          <Button type="button" variant="destructive" disabled={Boolean(busy) || !botConfigured}
-            onClick={() => { deleteBotToken(); }}>Bot-Token löschen</Button>
-          <Button type="button" variant="outline" disabled={Boolean(busy)}
-            onClick={() => { rotateServiceToken(); }}>Dienst-Token rotieren</Button>
-        </div>
-      </section>
+      <ViewerTokenSection botConfigured={botConfigured} botToken={botToken} setBotToken={setBotToken} busy={busy} setToken={setToken} deleteBotToken={deleteBotToken} rotateServiceToken={rotateServiceToken} />
 
-      <section className="operations-card system-form">
-        <h3>Diagnose</h3>
-        <div className="system-line"><span>Erlaubte Benutzer</span><strong>{service.allowedUsers ?? settings.allowedUserIds.length}</strong></div>
-        <div className="system-line"><span>Letzter Fehler</span><strong>{service.lastError || "–"}</strong></div>
-        <div className="system-line"><span>Letzter Test</span><strong>{service.lastTest ? `${service.lastTest.status} · ${time(service.lastTest.attemptedAt)}` : "–"}</strong></div>
-      </section>
+      <ViewerDiagnosticsSection service={service} settings={settings} />
 
-      <section className="operations-card system-form">
-        <h3>Testnachricht</h3>
-        <label>Testnachricht<Input aria-label="Testnachricht" value={testMessage} onChange={(event) => setTestMessage(event.target.value)} /></label>
-        <div className="system-actions"><Button type="button" disabled={Boolean(busy) || !testMessage.trim()}
-          onClick={() => { mutate("Test angenommen", "/api/telegram-viewer/test", {
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: testMessage }),
-          }); }}>Test senden</Button></div>
-      </section>
+      <ViewerTestSection testMessage={testMessage} setTestMessage={setTestMessage} busy={busy} mutate={mutate} />
     </div>
   );
 }

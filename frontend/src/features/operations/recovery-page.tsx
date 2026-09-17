@@ -5,17 +5,83 @@ import { jsonRequest, mutateAndObserve } from "@/lib/api";
 import { useConfirmationDialog } from "@/components/confirmation-dialog";
 import { usePoll } from "@/shared/api/use-poll";
 import { AiLimitsForm } from "./ai-limits-form";
-import { RuntimeParameters, runtimeInputError } from './runtime-parameters';
+import { RuntimeParameters, runtimeInputError, type RuntimeParameterPayload } from './runtime-parameters';
 import { useVersionedDraft } from '@/shared/forms/use-versioned-draft';
 import { useDirtyGuard } from '@/shared/forms/use-dirty-guard';
 import { DraftState } from '@/shared/forms/draft-state';
 
+type RecoveryXmlParsing = { primaryModel?: string | null; fallbackModel?: string | null; aiLimits?: Record<string, number> | null };
+type RecoveryConfigValue = { apiId?: number | null; xmlParsing?: RecoveryXmlParsing | null; configRevision?: number | string | null };
+
+function RecoveryNotices({ errors, issues, message }: Readonly<{ errors: Record<string, string>; issues: RecoveryObservation['issues']; message: string }>) {
+  return (
+    <>
+    {Object.entries(errors).filter(([, error]) => error).map(([name, error]) => <p role="alert" key={name}>{name}: {error}</p>)}
+    {listEntries(issues ?? [], issue => JSON.stringify([issue.component, issue.name, issue.reason])).map(({ item: issue, key }) => <p role="alert" key={key}>{issue.component} {issue.name}: {issue.reason}</p>)}
+    {message && <p><output>{message}</output></p>}
+    </>
+  );
+}
+
+function RecoveryBanner({ status, restarted }: Readonly<{ status: RecoveryObservation | null; restarted: boolean }>) {
+  return (
+    <>
+    {restarted && <p><output>Neuer Prozess bestätigt · {status.active ? "Recovery bleibt aktiv; Reparatur prüfen." : "Recovery beendet. Öffne das Cockpit und prüfe die Betriebsfreigaben."}</output></p>}
+    {status && !status.active && <a className="secondary-button" href={`${import.meta.env.VITE_BASENAME || ""}/cockpit`}>Cockpit öffnen</a>}
+    </>
+  );
+}
+
+function RecoveryConfigSection({ serverConfig, config, setConfig, configForm, can, save }: Readonly<{
+  serverConfig: RecoveryConfigValue | null; config: RecoveryConfigValue; setConfig: (value: RecoveryConfigValue) => void;
+  configForm: ReturnType<typeof useVersionedDraft<RecoveryConfigValue>>; can: (action: string) => boolean; save: (name: string, body: unknown) => void | Promise<void>;
+}>) {
+  if (!serverConfig) return null;
+  return (
+    <section className="operations-card system-form"><h2>Grundkonfiguration reparieren</h2><fieldset disabled={!can('config')}>
+      <label>Telegram API-ID<input type="number" value={config.apiId ?? 0} onChange={(event) => setConfig({ ...config, apiId: Number(event.target.value) })} /></label>
+      <label>Primärmodell<input value={config.xmlParsing?.primaryModel ?? ""} onChange={(event) => setConfig({ ...config, xmlParsing: { ...config.xmlParsing, primaryModel: event.target.value } })} /></label>
+      <label>Fallbackmodell<input value={config.xmlParsing?.fallbackModel ?? ""} onChange={(event) => setConfig({ ...config, xmlParsing: { ...config.xmlParsing, fallbackModel: event.target.value } })} /></label>
+      <AiLimitsForm value={config.xmlParsing?.aiLimits ?? {}} onChange={(aiLimits) => setConfig({ ...config, xmlParsing: { ...config.xmlParsing, aiLimits } })} />
+      <button className="primary-button" disabled={!can("config") || configForm.conflict} onClick={() => { save("config", { apiId: config.apiId, xmlParsing: config.xmlParsing }); }}>Grundkonfiguration speichern</button>
+    </fieldset></section>
+  );
+}
+
+function RecoveryRuntimeSection({ runtimePayload, runtime, setRuntime, runtimeForm, can, save }: Readonly<{
+  runtimePayload: RuntimeParameterPayload | null; runtime: Record<string, unknown>; setRuntime: ReturnType<typeof useVersionedDraft<Record<string, unknown>>>["setDraft"];
+  runtimeForm: ReturnType<typeof useVersionedDraft<Record<string, unknown>>>; can: (action: string) => boolean; save: (name: string, body: unknown) => void | Promise<void>;
+}>) {
+  if (!runtimePayload) return null;
+  return (
+    <section className="operations-card system-form"><h2>Runtime reparieren</h2>
+      <RuntimeParameters value={runtime} onChange={setRuntime} payload={runtimePayload} readOnly={!can('runtime-settings')} />
+      <button className="primary-button" disabled={!can("runtime-settings") || runtimeForm.conflict || !runtimePayload.parameters} onClick={() => { save("runtime-settings", runtime); }}>Runtime speichern</button>
+    </section>
+  );
+}
+
+function RecoverySecretsSection({ secrets, secretInput, setSecretInput, can, save }: Readonly<{
+  secrets: ManagedSecretStatuses; secretInput: Record<string, string>; setSecretInput: (value: Record<string, string>) => void;
+  can: (action: string) => boolean; save: (name: string, body: unknown) => void | Promise<void>;
+}>) {
+  return (
+    <>
+    <section className="operations-card system-form"><h2>Secrets reparieren</h2><p>Write-only. Leeres Feld behält den Wert bei. Extern verwaltete Werte werden an ihrer Quelle geändert.</p>
+      {Object.entries(secrets).filter(([name]) => !name.startsWith("dashboard")).map(([name, state]) => <label key={name}>{name} · {state.configured ? "konfiguriert" : "fehlt"} · {state.source}
+        <input type="password" autoComplete="off" disabled={!can('secrets') || state.source === "external" || state.editable === false} value={secretInput[name] ?? ""} onChange={(event) => setSecretInput({ ...secretInput, [name]: event.target.value })} /></label>)}
+      <button className="primary-button" disabled={!can("secrets") || !Object.values(secretInput).some((value) => value.trim())} onClick={() => { save("secrets", Object.fromEntries(Object.entries(secretInput).filter(([, value]) => value.trim()))); }}>Secrets speichern</button>
+    </section>
+    </>
+  );
+}
+
 export function RecoveryPage() {
   const [status, setStatus] = useState<RecoveryObservation | null>(null);
-  const [serverConfig, setServerConfig] = useState<any>(null);
-  const [runtimePayload, setRuntimePayload] = useState<any>(null);
-  const configForm = useVersionedDraft<any>('recovery-config', serverConfig, serverConfig?.configRevision ?? null, {});
-  const runtimeForm = useVersionedDraft<any>('recovery-runtime', runtimePayload?.settings ?? null, runtimePayload?.revision ?? null, {});
+  const [serverConfig, setServerConfig] = useState<RecoveryConfigValue | null>(null);
+  const [runtimePayload, setRuntimePayload] = useState<RuntimeParameterPayload | null>(null);
+  const configForm = useVersionedDraft<RecoveryConfigValue>('recovery-config', serverConfig, serverConfig?.configRevision ?? null, {});
+  const runtimeForm = useVersionedDraft<Record<string, unknown>>('recovery-runtime', runtimePayload?.settings ?? null, runtimePayload?.revision ?? null, {});
   const { draft: config, setDraft: setConfig } = configForm;
   const { draft: runtime, setDraft: setRuntime } = runtimeForm;
   const [secrets, setSecrets] = useState<ManagedSecretStatuses>({});
@@ -29,7 +95,7 @@ export function RecoveryPage() {
   const readStatus = useCallback((signal: AbortSignal) => jsonRequest("/api/recovery", { signal }), []);
   usePoll(readStatus, (value) => { setStatus(value); setErrors((previous) => ({ ...previous, status: "" })); },
     (error) => setErrors((previous) => ({ ...previous, status: error.message })), 3_000);
-  const readRepairs = useCallback(async (signal: AbortSignal) => Promise.all(['config', 'runtime-settings', 'secrets'].map(async name => {
+  const readRepairs = useCallback((signal: AbortSignal) => Promise.all(['config', 'runtime-settings', 'secrets'].map(async name => {
     try { return { name, value: await jsonRequest(`/api/${name}`, { signal }), error: '' }; }
     catch (reason) { return { name, value: null, error: reason instanceof Error ? reason.message : String(reason) }; }
   })), []);
@@ -77,7 +143,7 @@ export function RecoveryPage() {
     } catch (error) { setMessage(`Neustart nicht bestätigt. Nur Status prüfen, nicht automatisch wiederholen: ${error instanceof Error ? error.message : String(error)}`); }
     finally { setBusy(""); }
   };
-  const restarted = restartFrom && status?.serverInstanceId && restartFrom !== status.serverInstanceId;
+  const restarted = Boolean(restartFrom && status?.serverInstanceId && restartFrom !== status.serverInstanceId);
   const recoveryStatus = () => {
     if (status) {
       if (status.active) {
@@ -92,29 +158,13 @@ export function RecoveryPage() {
     <h1>TSX Core · Recovery</h1>
     <p>Authentifizierung: {status?.session?.role ?? "unbekannt"} · Betriebsbereitschaft: {recoveryStatus()}</p>
     <p>Dieser Einstieg benötigt nur Recovery, Konfiguration, Runtime-Einstellungen und Secretstatus. Alle Reparaturen durchlaufen die bestehenden Serverprüfungen.</p>
-    {Object.entries(errors).filter(([, error]) => error).map(([name, error]) => <p role="alert" key={name}>{name}: {error}</p>)}
-    {listEntries(status?.issues ?? [], issue => JSON.stringify([issue.component, issue.name, issue.reason])).map(({ item: issue, key }) => <p role="alert" key={key}>{issue.component} {issue.name}: {issue.reason}</p>)}
-    {message && <p><output>{message}</output></p>}
+    <RecoveryNotices errors={errors} issues={status?.issues} message={message} />
     <DraftState label="Recovery-Konfiguration" form={configForm} server={serverConfig} />
     <DraftState label="Recovery-Runtime" form={runtimeForm} server={runtimePayload?.settings} />
-    {restarted && <p><output>Neuer Prozess bestätigt · {status.active ? "Recovery bleibt aktiv; Reparatur prüfen." : "Recovery beendet. Öffne das Cockpit und prüfe die Betriebsfreigaben."}</output></p>}
-    {status && !status.active && <a className="secondary-button" href={`${import.meta.env.VITE_BASENAME || ""}/cockpit`}>Cockpit öffnen</a>}
-    {serverConfig && <section className="operations-card system-form"><h2>Grundkonfiguration reparieren</h2><fieldset disabled={!can('config')}>
-      <label>Telegram API-ID<input type="number" value={config.apiId ?? 0} onChange={(event) => setConfig({ ...config, apiId: Number(event.target.value) })} /></label>
-      <label>Primärmodell<input value={config.xmlParsing?.primaryModel ?? ""} onChange={(event) => setConfig({ ...config, xmlParsing: { ...config.xmlParsing, primaryModel: event.target.value } })} /></label>
-      <label>Fallbackmodell<input value={config.xmlParsing?.fallbackModel ?? ""} onChange={(event) => setConfig({ ...config, xmlParsing: { ...config.xmlParsing, fallbackModel: event.target.value } })} /></label>
-      <AiLimitsForm value={config.xmlParsing?.aiLimits ?? {}} onChange={(aiLimits) => setConfig({ ...config, xmlParsing: { ...config.xmlParsing, aiLimits } })} />
-      <button className="primary-button" disabled={!can("config") || configForm.conflict} onClick={() => { save("config", { apiId: config.apiId, xmlParsing: config.xmlParsing }); }}>Grundkonfiguration speichern</button>
-    </fieldset></section>}
-    {runtimePayload && <section className="operations-card system-form"><h2>Runtime reparieren</h2>
-      <RuntimeParameters value={runtime} onChange={setRuntime} payload={runtimePayload} readOnly={!can('runtime-settings')} />
-      <button className="primary-button" disabled={!can("runtime-settings") || runtimeForm.conflict || !runtimePayload.parameters} onClick={() => { save("runtime-settings", runtime); }}>Runtime speichern</button>
-    </section>}
-    <section className="operations-card system-form"><h2>Secrets reparieren</h2><p>Write-only. Leeres Feld behält den Wert bei. Extern verwaltete Werte werden an ihrer Quelle geändert.</p>
-      {Object.entries(secrets).filter(([name]) => !name.startsWith("dashboard")).map(([name, state]) => <label key={name}>{name} · {state.configured ? "konfiguriert" : "fehlt"} · {state.source}
-        <input type="password" autoComplete="off" disabled={!can('secrets') || state.source === "external" || state.editable === false} value={secretInput[name] ?? ""} onChange={(event) => setSecretInput({ ...secretInput, [name]: event.target.value })} /></label>)}
-      <button className="primary-button" disabled={!can("secrets") || !Object.values(secretInput).some((value) => value.trim())} onClick={() => { save("secrets", Object.fromEntries(Object.entries(secretInput).filter(([, value]) => value.trim()))); }}>Secrets speichern</button>
-    </section>
+    <RecoveryBanner status={status} restarted={restarted} />
+    <RecoveryConfigSection serverConfig={serverConfig} config={config} setConfig={setConfig} configForm={configForm} can={can} save={save} />
+    <RecoveryRuntimeSection runtimePayload={runtimePayload} runtime={runtime} setRuntime={setRuntime} runtimeForm={runtimeForm} can={can} save={save} />
+    <RecoverySecretsSection secrets={secrets} secretInput={secretInput} setSecretInput={setSecretInput} can={can} save={save} />
     <button className="secondary-button" disabled={!can("restart") || Boolean(restartFrom && !restarted)} onClick={() => { restart(); }}>Kontrolliert neu starten</button>
     {status?.session?.role === "viewer" && <p>Viewer dürfen den Zustand lesen. Reparaturen erfordern Administratorrechte.</p>}
   </main>;

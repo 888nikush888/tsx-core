@@ -31,7 +31,7 @@ async function setup(name) {
   assert.equal(await hasUndispatchedPlanProof(prepared, false), true);
   await updateTradingRuntimeState({ executionEnabled: false });
   for (const method of ['openState', 'accountSnapshot', 'marketSnapshot', 'submitOrder', 'submitProtectedEntry', 'cancelOrder']) {
-    paper[method] = async () => { assert.fail(`Local retirement must not call an adapter: ${method}`); };
+    paper[method] = () => { assert.fail(`Local retirement must not call an adapter: ${method}`); };
   }
   return { engine, account, intent, originalPlan: prepared.plan };
 }

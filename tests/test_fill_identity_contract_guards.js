@@ -14,7 +14,7 @@ try {
   const db = getDatabase();
   for (const [exchange, fields] of [['bybit', { symbol: {} }], ['hyperliquid', { coin: 7, time: '123' }],
     ['krakenfutures', { tradeable: null }]]) {
-    const fixture = await legacyFillFixture('guard-' + exchange, exchange);
+    const fixture = await legacyFillFixture(`guard-${exchange}`, exchange);
     const original = await db.get('SELECT * FROM trading_fills WHERE id=?', [fixture.fillId]);
     const raw = JSON.parse(original.raw_json);
     await db.run('UPDATE trading_fills SET raw_json=? WHERE id=?', [JSON.stringify({ ...raw, info: { ...raw.info, ...fields } }), fixture.fillId]);

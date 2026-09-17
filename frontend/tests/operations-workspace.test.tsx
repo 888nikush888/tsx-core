@@ -38,6 +38,7 @@ import { OperationsWorkspace, type OperationTab } from "@/app/workflow/operation
 import { NavigationProvider } from "@/lib/navigation"
 const render = (element: React.ReactNode) => baseRender(<NavigationProvider>{element}</NavigationProvider>)
 const now = Date.now()
+type WorkspaceProps = Parameters<typeof OperationsWorkspace>[0]
 
 const catalog = {
   implementation: { library: "ccxt", version: "4.5.75", streaming: "ccxt-pro", orderAuthority: "rest" },
@@ -52,7 +53,7 @@ const catalog = {
       credentialFields: [{ id: "apiKey", label: "API Key", required: true, secret: true }], capabilities: {},
     },
   ],
-} as any
+} as unknown as WorkspaceProps['catalog']
 
 const accounts = [
   { id: "paper-1", name: "Paper", exchange: "paper", mode: "paper", status: "ready", enabled: true, maxConcurrentPositions: 10, killSwitchActive: false, killSwitchReason: null, lastReconciledAt: now, lastError: null },
@@ -106,7 +107,7 @@ const trading = {
       { id: "candidate-2", rank: 1, accountId: "paper-1", accountName: "Paper", exchange: "paper", mode: "paper", status: "selected", errorCode: null, fallbackOn: [], intentId: "intent-1" },
     ],
   }],
-} as any
+} as unknown as WorkspaceProps['trading']
 
 const analytics = {
   generatedAt: now,
@@ -145,6 +146,10 @@ function bodyFor(url: string) {
     proposals: [{ id: "proposal-1", status: "pending", action: "trade.preview", agentName: "Auditor", expiresAt: now + 10_000, preflight: { allowed: true, blockers: [] } }],
     sessions: [{ id: "session-1", disconnectedAt: null }], actions: [{ id: "action-1", outcome: "succeeded", toolName: "trading.snapshot", agentName: "Auditor", durationMs: 15, completedAt: now }],
   }
+  return bodyForExtended(url);
+}
+
+function bodyForExtended(url: string) {
   if (url === "/api/telegram-viewer") return {
     settings: {
       enabled: false, allowedUserIds: ["1001"], timezone: "Europe/Berlin", locale: "de-DE",
@@ -214,10 +219,11 @@ describe("operations workspace", () => {
     const value = { lower: "-9.975062344139650873", upper: "-9.975062344139650872", exact: { numerator: "-4000", denominator: "401" },
       decimal: null, precision: "exact_rational", terms: 1 }
     api.apiFetch.mockImplementation((url: string) => {
-      const body = structuredClone(bodyFor(url)) as any
+      const body = structuredClone(bodyFor(url)) as Record<string, unknown>
       if (url.startsWith("/api/trading/journal?")) {
-        body.entries[0].money = { realizedPnl: null, realizedPnlValue: value, reportingCurrency: "USD", accountingStatus: "complete" }
-        body.entries[0].position.realizedPnl = null
+        const entries = body.entries as Array<{ money?: unknown; position: { realizedPnl?: unknown } }>
+        entries[0].money = { realizedPnl: null, realizedPnlValue: value, reportingCurrency: "USD", accountingStatus: "complete" }
+        entries[0].position.realizedPnl = null
       }
       return json(body)
     })
@@ -333,7 +339,7 @@ describe("operations workspace", () => {
     ))
   })
 
-  it("opens the incident workspace directly from the dashboard alert", async () => {
+  it("opens the incident workspace directly from the dashboard alert", () => {
     const onOpenIncidents = vi.fn()
     render(
       <OperationsWorkspace
@@ -418,7 +424,7 @@ describe("operations workspace", () => {
     expect(await screen.findByRole("heading", { name: "Börsenkonten" })).toBeInTheDocument()
   })
 
-  it("handles default props and single tab without header duplication", async () => {
+  it("handles default props and single tab without header duplication", () => {
     render(
       <OperationsWorkspace
         trading={trading}
@@ -433,7 +439,7 @@ describe("operations workspace", () => {
   it("covers system diagnostics and danger zone", async () => {
     const openMock = vi.fn()
     const originalOpen = window.open
-    window.open = openMock as any
+    window.open = openMock as unknown as typeof window.open
     workspace("system")
     const diagButton = await screen.findByRole("button", { name: "Diagnosestatus öffnen" })
     expect(screen.getByText("Letzte Integritätsprüfung")).toBeInTheDocument()
@@ -456,10 +462,10 @@ describe("operations workspace", () => {
   })
 
   it("renders degraded system with fallbacks", async () => {
-    const degradedCatalog: any = {
+    const degradedCatalog = {
       implementation: { library: "", version: "", streaming: "", orderAuthority: "" },
       exchanges: [],
-    };
+    } as unknown as WorkspaceProps['catalog'];
     api.apiFetch.mockImplementation((url: string) => {
       if (url === "/api/operations") return json({ operations: { audit: { healthy: true }, backup: { healthy: false }, mcp: { healthy: true } } });
       return json(bodyFor(url));

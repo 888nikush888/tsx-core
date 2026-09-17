@@ -23,7 +23,8 @@ type LogContextValue = string | number | boolean | null | undefined;
 export type LogContext = Record<string, LogContextValue>;
 
 function stripAnsi(value: string): string {
-  return value.replace(/\x1b\[[0-9;]*m/g, '');
+  // skipcq: JS-0004, JS-W1035 - intentional ANSI escape matcher for log sanitization
+  return value.replace(/\x1b\[[0-9;]*m/gu, '');
 }
 
 function currentLogFilePath(now = new Date()): string {
@@ -59,8 +60,8 @@ async function runLogRetentionCleanup(): Promise<void> {
     const cutoff = Date.now() - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000;
     const files = await fs.readdir(LOG_DIRECTORY);
     await Promise.all(files.map((file) => removeExpiredLog(file, cutoff)));
-  } catch (error: any) {
-    console.error(`[WARN] Log retention cleanup failed: ${error.message}`);
+  } catch (error: unknown) {
+    console.error(`[WARN] Log retention cleanup failed: ${(error as { message?: string }).message}`);
   }
 }
 
@@ -72,8 +73,8 @@ export async function initFileLogger(): Promise<void> {
     await fs.appendFile(logFilePath, header, 'utf8');
     logFileReady = true;
     await runLogRetentionCleanup();
-  } catch (error: any) {
-    console.error(`[WARN] Log file initialization failed: ${error.message}`);
+  } catch (error: unknown) {
+    console.error(`[WARN] Log file initialization failed: ${(error as { message?: string }).message}`);
     logFileReady = false;
   }
 }
@@ -82,7 +83,7 @@ function reportLogWriteFailure(error: unknown): void {
   if (logWriteFailureReported) return;
   logWriteFailureReported = true;
   let message = 'Unknown persistent log write failure';
-  if (error instanceof Error) message = error.message;
+  if (error instanceof Error) message = (error as { message?: string }).message;
   else if (typeof error === 'string') message = error;
   console.error(`[ERROR] Persistent log write failed: ${message}`);
 }

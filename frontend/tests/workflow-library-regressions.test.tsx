@@ -95,6 +95,7 @@ describe('resource lifecycle intent and confirmation', () => {
   });
 
   it('retains an unknown lifecycle outcome without retrying on the next poll', async () => {
+    // skipcq: JS-0116 - native Promise rejection preserves asynchronous failure coverage.
     api.jsonRequest.mockImplementation(async (_url: string, init?: RequestInit) => {
       if (init?.method) throw new TypeError('Transport lost');
       return { resource: { ...resource, status: 'published' }, activePaths: [], observedAt };
@@ -127,7 +128,7 @@ describe('historical workflow evidence', () => {
   });
 
   it('restores an archived graph only into a draft pinned to the observed active revision', async () => {
-    api.jsonRequest.mockImplementation(async (url: string) => {
+    api.jsonRequest.mockImplementation((url: string) => {
       if (url === '/api/workflow/drafts?id=operator') return { draft: { version: 9 } };
       if (url === '/api/workflow') return { workflow: { id: 'active-revision' } };
       return { revision, sources: [], observedAt };

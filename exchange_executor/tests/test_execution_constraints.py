@@ -199,7 +199,12 @@ class ExecutionConstraintTests(unittest.IsolatedAsyncioTestCase):
         original_read = rest.privateGetV5PositionList
         symbol_reads = iter([initial, changed])
         async def position_read(params):
-            return next(symbol_reads) if 'symbol' in params else await original_read(params)
+            if 'symbol' not in params:
+                return await original_read(params)
+            try:
+                return next(symbol_reads)
+            except StopIteration:
+                self.fail("Scripted position pages were exhausted.")
         rest.privateGetV5PositionList = position_read
         adapter = CcxtAdapter(FakeRegistry(rest))
         prepared_bound_test_account = bound_test_account()

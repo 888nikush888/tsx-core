@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { analyzeArchitecture, architectureLayerViolations, findCycle } from '../scripts/check_architecture.js';
 
+// skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
 assert.equal(findCycle(new Map()), undefined);
 assert.equal(findCycle(new Map([
   ['a', ['b', 'c']], ['b', ['d']], ['c', ['d']], ['d', []],
@@ -9,6 +10,7 @@ assert.deepEqual(findCycle(new Map([
   ['a', ['b']], ['b', ['c']], ['c', ['b']],
 ])), ['b', 'c', 'b'], 'A cycle reports the repeated active path only.');
 assert.deepEqual(findCycle(new Map([['a', ['a']]])), ['a', 'a']);
+// skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
 assert.equal(findCycle(new Map([['a', ['unlisted']]])), undefined);
 assert.deepEqual(architectureLayerViolations(new Map([
   ['db.ts', ['forwarder.ts', 'queue.ts']], ['queue.ts', ['web_server.ts']],
