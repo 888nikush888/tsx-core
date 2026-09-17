@@ -73,4 +73,5 @@ for (const [field, normalizedField, expected] of [['tid', 'exchangeFillId', '123
   }
 }
 assert.equal(coercions, 0, 'Native evidence objects must never execute coercion hooks.');
+assertUnprovedNativeScalar('hyperliquid', 'oid', null, { exchangeOrderId: null });
 console.log('Fill identity profiles, native originals, account scope and timestamp distinctions passed.');

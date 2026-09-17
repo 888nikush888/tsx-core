@@ -45,7 +45,8 @@ function matchesBybit(info: Record<string, unknown>, fill: ExchangeFill, identit
     && (!Object.hasOwn(info, 'category') || info.category === identity.marketNamespace);
 }
 function matchesHyperliquid(info: Record<string, unknown>, fill: ExchangeFill, identity: ExchangeFillIdentity): boolean {
-  return nativeIntegerText(info.tid) === fill.exchangeFillId && nativeIntegerText(info.oid) === fill.exchangeOrderId
+  const tradeId = nativeIntegerText(info.tid), orderId = nativeIntegerText(info.oid);
+  return tradeId !== null && orderId !== null && tradeId === fill.exchangeFillId && orderId === fill.exchangeOrderId
     && info.coin === identity.providerMarketId && info.time === fill.filledAt && identity.scopeTimestamp === fill.filledAt;
 }
 
