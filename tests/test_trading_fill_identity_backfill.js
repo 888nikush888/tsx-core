@@ -13,9 +13,31 @@ import { legacyFillFixture, legacyFillColumns } from './fixtures/legacy_fill_ide
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'legacy-fill-identities-'));
 const filename = path.join(directory, 'fixture.db');
+
+async function assertMalformedLiveObservation(value, field) {
+  const db = getDatabase();
+  const fillsBefore = await db.all('SELECT * FROM trading_fills WHERE account_id=? ORDER BY id', [value.account.id]);
+  const moneyBefore = await db.all('SELECT * FROM trading_money_events WHERE account_id=? ORDER BY id', [value.account.id]);
+  const incoming = structuredClone(value.incoming);
+  incoming.raw.info[field] = [incoming.raw.info[field]];
+  assert.deepEqual(await persistCorrelatedFill(value.account, incoming), { order: null, inserted: false },
+    'A correlated order does not give malformed native fill evidence permission to enter accounting.');
+  assert.deepEqual(await db.all('SELECT * FROM trading_fills WHERE account_id=? ORDER BY id', [value.account.id]), fillsBefore);
+  assert.deepEqual(await db.all('SELECT * FROM trading_money_events WHERE account_id=? ORDER BY id', [value.account.id]), moneyBefore);
+  const evidence = await db.get('SELECT reason,classification,payload_json FROM trading_remote_evidence WHERE account_id=? ORDER BY rowid DESC LIMIT 1', [value.account.id]);
+  assert.equal(evidence.reason, 'fill_identity_unproven');
+  assert.ok(['unresolved', 'conflict'].includes(evidence.classification));
+  const payload = JSON.parse(evidence.payload_json);
+  assert.equal(payload.exchangeFillId, incoming.exchangeFillId);
+  assert.equal(payload.quantity, incoming.quantity);
+  assert.equal(Object.hasOwn(payload, 'raw'), false, 'The unresolved record keeps the existing sanitized economic evidence boundary.');
+  assert.deepEqual(incoming.raw.info[field], [value.incoming.raw.info[field]], 'The rejected native input is not rewritten.');
+}
+
 try {
   await initDb(filename); await seedTradingFixtures();
   const value = await legacyFillFixture('original');
+  await assertMalformedLiveObservation(value, 'execTime');
   const db = getDatabase();
   const original = await db.get(`SELECT ${legacyFillColumns} FROM trading_fills WHERE id=?`, [value.fillId]);
   const money = await db.all('SELECT * FROM trading_money_events ORDER BY id');
@@ -32,6 +54,7 @@ try {
   }
   for (const [column, changed] of [['account_fingerprint', null], ['account_fingerprint', 'f'.repeat(64)],
     ['raw_json', JSON.stringify({ ...value.incoming.raw, info: { ...value.incoming.raw.info, category: 'option' } })],
+    ['raw_json', JSON.stringify({ ...value.incoming.raw, info: { ...value.incoming.raw.info, execTime: [value.incoming.raw.info.execTime] } })],
     ['raw_json', JSON.stringify({ ...value.incoming.raw, info: {} })]]) {
     await rejectedMutation('trading_fills', value.fillId, column, changed);
   }
@@ -72,6 +95,19 @@ try {
   await db.run("UPDATE trading_fills SET identity_status='proven' WHERE id=?", [value.fillId]);
   for (const exchange of ['hyperliquid', 'krakenfutures']) {
     const native = await legacyFillFixture(exchange, exchange);
+    if (exchange === 'hyperliquid') {
+      await assertMalformedLiveObservation(native, 'tid');
+      await assertMalformedLiveObservation(native, 'oid');
+      const nativeOriginal = await db.get(`SELECT ${legacyFillColumns} FROM trading_fills WHERE id=?`, [native.fillId]);
+      for (const field of ['tid', 'oid']) {
+        const malformed = { ...native.incoming.raw, info: { ...native.incoming.raw.info, [field]: [native.incoming.raw.info[field]] } };
+        await db.run('UPDATE trading_fills SET raw_json=? WHERE id=?', [JSON.stringify(malformed), native.fillId]);
+        assert.equal(await bindLegacyFillIdentity(native.account, native.fillId), false, 'Structured native IDs remain unresolved during historical binding.');
+        assert.equal((await db.get('SELECT identity_status FROM trading_fills WHERE id=?', [native.fillId])).identity_status, 'legacy_unresolved');
+        assert.equal((await db.get('SELECT raw_json FROM trading_fills WHERE id=?', [native.fillId])).raw_json, JSON.stringify(malformed));
+      }
+      await db.run('UPDATE trading_fills SET raw_json=? WHERE id=?', [nativeOriginal.raw_json, native.fillId]);
+    }
     assert.equal(await bindLegacyFillIdentity(native.account, native.fillId), true, `${exchange} genuine native originals can bind without changing local ID.`);
   }
   const recent = await legacyFillFixture('kraken-recent', 'krakenfutures');

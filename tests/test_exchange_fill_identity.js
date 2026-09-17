@@ -35,4 +35,42 @@ assert.equal(provenFillIdentity(account('krakenfutures'), recent), null, 'Recent
 const hl = nativeFillFixture('hyperliquid', fill);
 assert.throws(() => validateFillIdentity({ ...hl.identity, scopeTimestamp: null }));
 assert.equal(provenFillIdentity(account('hyperliquid'), { ...hl, filledAt: 2001 }), null, 'Local time cannot substitute for provider time.');
+
+for (const timestamp of [0, 1000, Number.MAX_SAFE_INTEGER]) {
+  for (const nativeTime of [timestamp, String(timestamp)]) {
+    const original = nativeFillFixture('bybit', { ...fill, filledAt: timestamp });
+    original.raw.info.execTime = nativeTime;
+    assert.ok(provenFillIdentity(account('bybit'), original), 'Exact native timestamp strings and safe integers remain supported.');
+  }
+}
+
+function assertUnprovedNativeScalar(exchange, field, value, normalized = {}) {
+  const original = nativeFillFixture(exchange, { ...fill, ...normalized });
+  original.raw.info[field] = value;
+  const before = { ...original.raw.info };
+  assert.equal(provenFillIdentity(account(exchange), original), null, `${exchange}.${field} must prove an original scalar without coercion.`);
+  assert.deepEqual(original.raw.info, before, 'Rejected evidence must retain its native originals.');
+}
+
+let coercions = 0;
+const disguised = expected => ({ toString() { coercions += 1; return expected; } });
+for (const value of [[1000], disguised('1000'), Object(1000), true, false, null, undefined,
+  1000n, Symbol('1000'), () => 1000, NaN, Infinity, -1, 1000.5, '01000', ' 1000', '1000 ', '1e3', '1000.0']) {
+  assertUnprovedNativeScalar('bybit', 'execTime', value);
+}
+for (const [field, normalizedField, expected] of [['tid', 'exchangeFillId', '123'], ['oid', 'exchangeOrderId', '456']]) {
+  for (const value of [[Number(expected)], disguised(expected), Object(expected), null, undefined, Symbol(expected), () => expected, ` ${expected}`, `${expected} `]) {
+    assertUnprovedNativeScalar('hyperliquid', field, value);
+  }
+  for (const value of [true, false, 123n, NaN, Infinity, -1, 1.5, Number.MAX_SAFE_INTEGER + 1,
+    '+123', '1e3', '123.0', '\u0661\u0662\u0663']) {
+    assertUnprovedNativeScalar('hyperliquid', field, value, { [normalizedField]: String(value) });
+  }
+  for (const value of [0, -0, Number.MAX_SAFE_INTEGER, '0', '0001', '9007199254740993', '0'.repeat(256)]) {
+    const original = nativeFillFixture('hyperliquid', { ...fill, [normalizedField]: String(value) });
+    original.raw.info[field] = value;
+    assert.ok(provenFillIdentity(account('hyperliquid'), original), 'Exact digit spelling and safe integers remain supported.');
+  }
+}
+assert.equal(coercions, 0, 'Native evidence objects must never execute coercion hooks.');
 console.log('Fill identity profiles, native originals, account scope and timestamp distinctions passed.');

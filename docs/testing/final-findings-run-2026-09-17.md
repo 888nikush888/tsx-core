@@ -1,0 +1,43 @@
+# Final findings stabilization run — 2026-09-17
+
+## Scope and acceptance
+
+The owner authorized implementation of the final Codacy, DeepSource and Sonar plan. Stability comes first. All active findings and previous individual false-positive decisions must be reconciled against the final source. An individually evidenced false positive is permitted; a stale dismissal is not evidence.
+
+Baseline main: `58c01bc74f83cc212849ddcd7e487412ff06b2b7`, tree `8977cd3028670c806f1acaba9e93969641ab998d`. Work uses one integration branch, `codex/final-findings-2026-09-17`.
+
+- Codacy: 92 active records, 347 ignored records. Trivy and ESLint analysis errors prevent a complete baseline analysis despite the passing issue-delta gate.
+- DeepSource: 1,315 active occurrences, including 1,178 JS-R1005 occurrences. The other 137 occurrences and 370 local suppression comments require reconciliation.
+- Sonar: 79 open findings, seven false-positive decisions, one accepted compatibility decision, two local NOSONAR comments; no security hotspots.
+- JS-R1005 alone is excluded from this run. Its rule remains enabled and its threshold unchanged; a negative aggregate DeepSource status caused by this rule is expected.
+- Aikido remains excluded. Snyk Actions and the existing individually accepted internal HTTP risks remain in force. No new blanket rule exclusions or lowered quality thresholds are authorized.
+
+Full exports are kept under ignored `reports/final-findings/`; committed review records must omit tokens, credential values and full secret-bearing source snippets.
+
+Completion requires every enabled analyzer to finish on the final source, every occurrence to have a current decision, all required tests/checks to pass, and full main scans after an authorized merge. An external analyzer failure, a stale revision or a clean PR delta cannot establish completion. The prior PR72 branch-protection exception does not authorize another exception.
+
+## Fill identity correction
+
+Sonar's three coercion findings in `src/trading_fill_identity.ts` exposed a real proof-validation defect: an array containing the correct Bybit execution timestamp or Hyperliquid fill/order identifier produced the same canonical identity as a native scalar.
+
+The new regression in `tests/test_exchange_fill_identity.js` failed against the baseline with a proven identity where `null` was required. The production correction validates primitive decimal strings or nonnegative safe integers before comparison. It preserves leading-zero Hyperliquid strings and exact strings larger than JavaScript's safe-integer range. No coercion hooks run. Unsafe numeric originals deliberately remain unproven because JSON numbers cannot establish their exact original identity; archived raw values are never converted into invented original strings.
+
+Existing control flow handles rejection: `provenFillIdentity` returns `null`, correlated persistence records sanitized unresolved economic evidence, and historical binding leaves legacy rows unresolved. No schema, public API or existing canonical-key format changed. The test verifies that malformed live observations do not modify fill or money rows, that diagnostic evidence retains the existing sanitized boundary, and that malformed historical originals cannot be bound. Valid originals, restart deduplication and accounting remain covered.
+
+Validation completed with Node 22.23.2 using the registered test runner:
+
+```text
+node tests/run_all.js test_exchange_fill_identity.js test_trading_fill_identity.js test_trading_fill_identity_backfill.js test_fill_identity_contract_guards.js test_trading_evidence_repository.js test_fill_quantity_persistence.js test_trading_fx_fill_accounting.js
+ALL 7 TEST FILES PASSED
+```
+
+This focused result is not a full-run or scanner completion claim. Independent review, integrated verification, renewed implementation evidence and final cloud scans remain pending.
+
+## Remaining completion work
+
+- Renew every Codacy decision and establish successful Trivy/ESLint execution; reconcile retained Go alerts with fresh scan evidence.
+- Complete Sonar SQL projection typing, coercion-boundary review, UI/test cleanup and reviewed exceptions.
+- Complete all 19 non-JS-R1005 DeepSource rule families and reconcile every local suppression with current callers/tests.
+- Run all backend/frontend/Python tests, coverage, four mutation groups, browser/accessibility projects, lint/type/build and existing security/container/governance gates.
+- Independently review the final source and renew implementation receipts and scanner decision bindings from actual evidence, not hash substitution alone.
+- Obtain protected-branch approval, merge only the verified revision, and re-export complete main analyses.

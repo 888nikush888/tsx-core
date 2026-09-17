@@ -41,13 +41,21 @@ function nativeMatches(fill: ExchangeFill, identity: ExchangeFillIdentity): bool
 }
 function matchesBybit(info: Record<string, unknown>, fill: ExchangeFill, identity: ExchangeFillIdentity): boolean {
   return info.execId === fill.exchangeFillId && info.orderId === fill.exchangeOrderId
-    && info.symbol === identity.providerMarketId && String(info.execTime) === String(fill.filledAt)
+    && info.symbol === identity.providerMarketId && nativeIntegerText(info.execTime) === String(fill.filledAt)
     && (!Object.hasOwn(info, 'category') || info.category === identity.marketNamespace);
 }
 function matchesHyperliquid(info: Record<string, unknown>, fill: ExchangeFill, identity: ExchangeFillIdentity): boolean {
-  return String(info.tid) === fill.exchangeFillId && String(info.oid) === fill.exchangeOrderId
+  return nativeIntegerText(info.tid) === fill.exchangeFillId && nativeIntegerText(info.oid) === fill.exchangeOrderId
     && info.coin === identity.providerMarketId && info.time === fill.filledAt && identity.scopeTimestamp === fill.filledAt;
 }
+
+/** Native numeric evidence preserves its spelling; structured or rounded originals cannot prove identity. */
+function nativeIntegerText(value: unknown): string | null {
+  if (typeof value === 'string') return /^[0-9]{1,256}$/u.test(value) && value.trim() === value ? value : null;
+  if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return String(value);
+  return null;
+}
+
 function matchesKraken(info: Record<string, unknown>, fill: ExchangeFill, identity: ExchangeFillIdentity): boolean {
   return info.identitySource === 'kraken_history_execution_v3' && info.executionUid === fill.exchangeFillId
     && info.orderUid === fill.exchangeOrderId && info.tradeable === identity.providerMarketId
