@@ -51,8 +51,8 @@ describe('Telegram configuration persistence', () => {
     change('Primärmodell', 'new-primary'); change('Fallback-Modell', 'new-fallback');
     for (const label of ['Externe KI-Datenverarbeitung freigegeben', 'Als Kopie senden', 'Mediencaption entfernen', 'Globalen Legacy-Parser verwenden', 'Legacy-XML an globales Ziel senden', 'Legacy-Signaldateien speichern', 'Globale Duplikatsperre', 'Originalnachrichten an das globale Ziel weiterleiten']) fireEvent.click(screen.getByLabelText(label));
     change(/Legacy-Signalverzeichnis/, 'signals/test'); change(/Legacy-Parser-Gesamtzeitlimit/, '2000'); change(/Duplikat-Cooldown/, '0');
-    for (const [label, value] of [['Globale Quellkanäle', '@source\n@second\n'], ['Erforderliche Keywords', 'buy\nsell'], ['Gesperrte Keywords', 'ignore'], ['Erlaubte Inhaltstypen', 'text\nphoto'], ['Globale Regex-Muster', '^buy']]) {
-      const input = screen.getByLabelText(new RegExp(label)); fireEvent.change(input, { target: { value } }); fireEvent.blur(input);
+    for (const [label, value] of [[/Globale Quellkanäle/, '@source\n@second\n'], [/Erforderliche Keywords/, 'buy\nsell'], [/Gesperrte Keywords/, 'ignore'], [/Erlaubte Inhaltstypen/, 'text\nphoto'], [/Globale Regex-Muster/, '^buy']] as const) {
+      const input = screen.getByLabelText(label); fireEvent.change(input, { target: { value } }); fireEvent.blur(input);
     }
     const sourceSelect = screen.getByLabelText('Konfigurierter Quellkanal');
     expect(Array.from((sourceSelect as HTMLSelectElement).options).map(option => option.value)).toEqual(['', '@source', '@second', '@filter', '@alias', '@template']);
@@ -90,11 +90,11 @@ describe('Telegram configuration persistence', () => {
   });
 
   it.each([
-    ['Telegram API ID', '-1'], ['Queue · Parallelität', '101'], ['Queue · Zeitlimit (Sekunden)', '-1'],
-    ['Duplikat-Cooldown', '-1'], ['Legacy-Parser-Gesamtzeitlimit', '-1'],
+    [/Telegram API ID/, '-1'], [/Queue · Parallelität/, '101'], [/Queue · Zeitlimit \(Sekunden\)/, '-1'],
+    [/Duplikat-Cooldown/, '-1'], [/Legacy-Parser-Gesamtzeitlimit/, '-1'],
   ])('rejects invalid %s without submitting the draft', async (label, value) => {
     setup(); mount(); await screen.findByLabelText('Telegram API ID'); legacy();
-    change(new RegExp(label.replace(/[()]/g, '\\$&')), value);
+    change(label, value);
     fireEvent.click(screen.getByRole('button', { name: 'Grundkonfiguration speichern' }));
     expect(await screen.findByText('API ID, Queue und Legacy-Zeitlimits müssen innerhalb der angezeigten Grenzen liegen.')).toBeVisible();
     expect(writes()).toHaveLength(0);
