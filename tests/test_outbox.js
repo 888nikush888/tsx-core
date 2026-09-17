@@ -28,6 +28,7 @@ import {
   getLastForwardedAt,
   getMediaGroupBuffers,
   getOutboxStatusCounts,
+  getOldestPendingOutboxAgeSeconds,
   getOutboxTask,
   getTotalForwardedCount,
   incrementForwardedCount,
@@ -127,17 +128,28 @@ async function testOutboxLifecycle() {
     assert.strictEqual(legacyTask.attempts, 0);
     assert.strictEqual(legacyTask.updatedAt, 1000);
 
-    assert.strictEqual(await enqueueOutboxTask(task('task-1', 11)), true);
+    const addedAt = 1_700_000_000_000;
+    const ageObservedAt = addedAt + 2501;
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(ageObservedAt), 0, 'Legacy tasks needing review must not age the active outbox.');
+    assert.strictEqual(await enqueueOutboxTask({ ...task('task-1', 11), addedAt }), true);
     assert.strictEqual(await enqueueOutboxTask(task('task-1', 11)), false, 'Outbox ids must be idempotent');
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(ageObservedAt), 2, 'Pending age uses persisted arrival time and floors fractional seconds.');
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(addedAt - 1), 0, 'A future arrival must not produce a negative outbox age.');
+    for (const invalidNow of [-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+      await assert.rejects(getOldestPendingOutboxAgeSeconds(invalidNow), /non-negative safe integer/);
+    }
 
     let claimed = await claimOutboxTask('task-1');
     assert.strictEqual(claimed.status, 'preparing');
     assert.strictEqual(claimed.attempts, 1);
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(ageObservedAt), 2, 'Preparing tasks remain part of the active backlog.');
     assert.strictEqual(await claimOutboxTask('task-1'), null, 'A claimed task cannot be claimed twice');
 
     await markOutboxSending('task-1');
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(ageObservedAt), 2, 'Sending tasks remain part of the active backlog.');
     assert.strictEqual(await failOutboxTask('task-1', new Error('response lost')), 'unknown');
     assert.strictEqual((await getOutboxTask('task-1')).status, 'unknown');
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(ageObservedAt), 0, 'Unknown delivery outcomes must not age the pending backlog.');
 
     assert.strictEqual(await requeueOutboxTask('task-1'), true);
     claimed = await claimOutboxTask('task-1');
@@ -146,10 +158,12 @@ async function testOutboxLifecycle() {
     const completed = await getOutboxTask('task-1');
     assert.strictEqual(completed.status, 'completed');
     assert.deepStrictEqual(completed.result.destinationMessageIds, ['99']);
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(ageObservedAt), 0, 'Completed deliveries must not age the pending backlog.');
 
-    await enqueueOutboxTask(task('task-failed', 12));
+    await enqueueOutboxTask({ ...task('task-failed', 12), addedAt });
     await claimOutboxTask('task-failed');
     assert.strictEqual(await failOutboxTask('task-failed', new Error('prepare failed')), 'failed');
+    assert.strictEqual(await getOldestPendingOutboxAgeSeconds(ageObservedAt), 0, 'Failed deliveries must not age the pending backlog.');
 
     await enqueueOutboxTask(task('task-preparing-crash', 13));
     await claimOutboxTask('task-preparing-crash');
