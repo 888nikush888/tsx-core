@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "reviewedRevision": "eaa2576c51d1bddb7bac52687bb470992c81b2d6",
+  "reviewedRevision": "066d6d0393282da3863317106a0e2ec7453bb699",
   "scannerVersion": "1.1307.1",
-  "sarifSha256": "7ee87618bc555a87a17573de77cef80aa49efa0c442b8be4cc765740924d819c",
-  "reviewKind": "independent-current-source-and-test-contract-review",
+  "sarifSha256": "c380ffe5dde5e1b68ac0e26688fb8b04e83b9ad4ee3f1deaa953f5fbd1482dd7",
+  "reviewKind": "root-bounded-authority-delta-over-independent-flow-review",
   "reviewedCount": 85,
   "counts": {
     "false-positive": 81,
     "open": 4
   },
-  "priorReviewRevision": "95d6666c5348b9151985f59a53df2e12d366d7cd",
-  "scopeNote": "Fresh Actions scan of dd9806865b1b683b777a84dba78c32b1bf1c9c5f, identical Git tree to eaa2576c51d1bddb7bac52687bb470992c81b2d6;85 existing identities,83 exact flows and2 coordinate-only flow changes relative to fbc3517;84 exact fingerprint maps.81 scoped false positives and4OPEN accepted HTTP risks. Adopted Hyperliquid receipt b8a1da39 and unchanged-scope immutable approval pin independently reviewed; no provider acceptance or transport-risk closure claimed.",
+  "priorReviewRevision": "eaa2576c51d1bddb7bac52687bb470992c81b2d6",
+  "scopeNote": "Fresh Actions scan of fe2fbcdf237af210f1c63743010e04cdaf47ff5d, identical Git tree to 066d6d0393282da3863317106a0e2ec7453bb699;85 existing identities,83 exact flows and2 coordinate-only flow changes relative to fbc3517;84 exact fingerprint maps.81 scoped false positives and4OPEN accepted HTTP risks. Adopted Hyperliquid receipt a6cf9462 and unchanged-scope immutable approval pin reviewed with fresh verification; no provider acceptance or transport-risk closure claimed.",
   "entries": [
     {
       "findingId": "2450255f-e697-4aae-ae63-736ad651be82",
@@ -19,7 +19,7 @@
       "line": 193,
       "reviewedSourceSha256": "5773c8b7d605c9aa563cd036e162fc666995cb7d3084817d4639a46ce257a306",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. Current flow reaches an anchor href through splitTarget and browserUrl. splitTarget rejects foreign origins; browserUrl starts from the fixed dashboard origin and assigns pathname/search through URL setters. Leading // pathnames emit an absolute same-origin href, eliminating the earlier protocol-relative reconstruction bug. Other paths remain slash-prefixed and the bound HTML has no foreign base element. React sets an href attribute, with no HTML/eval fallback, and the explicit href follows props spread. Navigation regression tests cover double/triple slashes and normal clicks. The remaining DOMXSS trace omits these URL construction constraints; false-positive only for these exact current bytes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. Current flow reaches an anchor href through splitTarget and browserUrl. splitTarget rejects foreign origins; browserUrl starts from the fixed dashboard origin and assigns pathname/search through URL setters. Leading // pathnames emit an absolute same-origin href, eliminating the earlier protocol-relative reconstruction bug. Other paths remain slash-prefixed and the bound HTML has no foreign base element. React sets an href attribute, with no HTML/eval fallback, and the explicit href follows props spread. Navigation regression tests cover double/triple slashes and normal clicks. The remaining DOMXSS trace omits these URL construction constraints; false-positive only for these exact current bytes. All source/context byte commitments are unchanged from the preceding independent review. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [
         {
           "path": "frontend/tests/navigation.test.tsx",
@@ -103,7 +103,7 @@
       "line": 1,
       "reviewedSourceSha256": "ae0994e37b281326bcb34d97ad3057d7a061c78b17cb9635c15e189bd5c75002",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. TOKEN_KEY is the sessionStorage lookup name, not credential bytes. apiFetch normalizes exactly one Request, checks same origin and absent userinfo before bearer attachment, and fetches that Request with redirect:error. Current binding review: frontend/src/lib/api.ts: Only observe callback type widened to Promise or void. Read apiFetch: single Request normalization, same-origin/no-userinfo check precedes bearer attachment, same Request fetched with redirect:error. TOKEN_KEY is storage name, not secret. frontend/tests/api.test.ts: Only comment added above adversarial rejected destinations; token-confinement assertions unchanged.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. TOKEN_KEY is the sessionStorage lookup name, not credential bytes. apiFetch normalizes exactly one Request, checks same origin and absent userinfo before bearer attachment, and fetches that Request with redirect:error. Current binding review: frontend/src/lib/api.ts: Only observe callback type widened to Promise or void. Read apiFetch: single Request normalization, same-origin/no-userinfo check precedes bearer attachment, same Request fetched with redirect:error. TOKEN_KEY is storage name, not secret. frontend/tests/api.test.ts: Only comment added above adversarial rejected destinations; token-confinement assertions unchanged.",
       "contextPaths": [
         {
           "path": "frontend/tests/api.test.ts",
@@ -139,7 +139,7 @@
       "line": 94,
       "reviewedSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. Independently reread authority-dependent bounded file-read flow. Only immutable mapping digest changes from9d56 to exact adopted b8a1da39 receipt, same sole Hyperliquid/profile1 key. A digest cannot select a path; canonical parent, ordinary single-link non-symlink file, bounded read-only/no-follow open and identity checks unchanged. Current binding review: scripts/verify_exchange_implementation.js: Only control-character validation rationale comment. Read canonicalDirectory, safeRelative, ordinaryFile, stableBytes and spawnSync: canonical non-symlink/single-link pre/open/post checks and bounded no-shell absolute interpreter execution unchanged. exchange_executor/ccxt_implementation_reviews.py: Independently reviewed exact single-value MappingProxyType pin replacement9d56 to b8a1da39188d71fd1c93058356a94895732971de243a608bea94c3ac7c2ca486; same Hyperliquid/profile1 key only. Scope/SDK/profile/providerAcceptanceVerifiedfalse unchanged; actual receipt hash matches root-approved independently archived candidate. Productive verifier and bridge completion/log hashes checked. No path/command selector introduced. package.json: Only fast-uri override3.1.7 to3.1.8. No script, interpreter, CLI argument, path source or approval authority change.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. Root re-reviewed the unchanged bounded file-read/interpreter flow and exact one-value immutable authority pin change from b8a1da39 to a6cf9462. Fresh226/333/548 tests, candidate and archive verification, actual production and bridge checks validate the new test-only receipt. Same sole Hyperliquid/profile1 approval; canonical path, single-link/no-follow identity checks, fixed interpreter arguments, shell:false and bounds unchanged. No new path or executable selection and no provider acceptance. Current binding review: scripts/verify_exchange_implementation.js: Only control-character validation rationale comment. Read canonicalDirectory, safeRelative, ordinaryFile, stableBytes and spawnSync: canonical non-symlink/single-link pre/open/post checks and bounded no-shell absolute interpreter execution unchanged. exchange_executor/ccxt_implementation_reviews.py: Exact single-value immutable receipt digest replacement independently compared by root; new approved receipt covers one isolated test enhancement, with runtime source unchanged and actual production+bridge verification PASS. package.json: Only fast-uri override3.1.7 to3.1.8. No script, interpreter, CLI argument, path source or approval authority change.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -151,7 +151,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "6ae91b30f5326e553763a329fb3223fb19be9c768145f20cefa990cde474c15e"
+          "sha256": "0d8a48a9f83b93926d7227a04017bfe8d2b15f5505f826d5a84977321f6b219d"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -339,8 +339,8 @@
       "fingerprints": {
         "0": "761a0080a6e6ea87b9502ffed02b52dfa7d849e623a4212c9d34d24f0eb06e68",
         "1": "f3d714f2.4773f344.eec2c252.d7919eeb.4a62e1e5.292a53dc.c08dd55c.eb397db7.214d3e14.b6e32c83.96e35b6b.c8688b2b.6c287ca9.5fce695c.f0256597.62f49dc2",
-        "snyk/asset/finding/v1": "ca8d4075-1f15-40f9-9432-667e0a033660",
-        "identity": "ca8d4075-1f15-40f9-9432-667e0a033660"
+        "identity": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "snyk/asset/finding/v1": "ca8d4075-1f15-40f9-9432-667e0a033660"
       },
       "evidenceSha256": "917bd44360a32478c26904a299bc31807a83c8a36ccccdefce0940bc546a015a",
       "priorReview": {
@@ -362,7 +362,7 @@
       "line": 29,
       "reviewedSourceSha256": "d0fd89cea0779ef15598a6d07d1ce7930ee2c9df815c71a2036ed0ef17c8fd7d",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The restore artifact and destinations are explicitly selected by the local operator CLI. Owner capability, database inactivity and genuine maintenance lease checks remain; no remote request supplies the reported path. This does not claim symlink confinement beyond the existing implementation. Current binding review: src/backup.ts: Erased unknown/structural type changes and native async preservation comments. Restore destination selection, inactive/lease checks and filesystem operations unchanged. src/config.ts: Model normalization now rejects object models and retains defaults for falsy values; maps rebuilt with Object.fromEntries retain __proto__ own data keys. No change to config destination, backup lease or operator-path authority. Prior claim of entirely identical executable config is obsolete and must be replaced. src/mcp_maintenance.ts: Erased catch view and native async preservation comments only. Owner capability, request scope, marker publication and quiescence boundary unchanged. src/process_lock.ts: Catch views erased and native async retained. Read capability queue and collision/release paths: no change to canonical scope, exclusive lock creation or owner identity.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The restore artifact and destinations are explicitly selected by the local operator CLI. Owner capability, database inactivity and genuine maintenance lease checks remain; no remote request supplies the reported path. This does not claim symlink confinement beyond the existing implementation. Current binding review: src/backup.ts: Erased unknown/structural type changes and native async preservation comments. Restore destination selection, inactive/lease checks and filesystem operations unchanged. src/config.ts: Model normalization now rejects object models and retains defaults for falsy values; maps rebuilt with Object.fromEntries retain __proto__ own data keys. No change to config destination, backup lease or operator-path authority. Prior claim of entirely identical executable config is obsolete and must be replaced. src/mcp_maintenance.ts: Erased catch view and native async preservation comments only. Owner capability, request scope, marker publication and quiescence boundary unchanged. src/process_lock.ts: Catch views erased and native async retained. Read capability queue and collision/release paths: no change to canonical scope, exclusive lock creation or owner identity.",
       "contextPaths": [
         {
           "path": "src/backup.ts",
@@ -542,8 +542,8 @@
       "fingerprints": {
         "0": "1090fda6bdb19a96f7c986fa79f7d3ea71f331bcd97b5c0da72bc061c67a0081",
         "1": "227ff053.4773f344.c9330245.64cd0520.ef9f7d82.8020cfdf.83265159.0b329124.6bb676bb.b6e32c83.c9330245.64cd0520.3f452f8c.93224842.9852386e.83183368",
-        "identity": "88fce105-6148-4b77-904c-f82f35a3d8d9",
-        "snyk/asset/finding/v1": "88fce105-6148-4b77-904c-f82f35a3d8d9"
+        "snyk/asset/finding/v1": "88fce105-6148-4b77-904c-f82f35a3d8d9",
+        "identity": "88fce105-6148-4b77-904c-f82f35a3d8d9"
       },
       "evidenceSha256": "2f535c12c13c02803bca03ed74bdb120610e914b7a415f96408eb020e4d52140",
       "priorReview": {
@@ -567,7 +567,7 @@
       "line": 598,
       "reviewedSourceSha256": "d72b7a27439e2f5801e982af18fd802bfd1cb331338569533e686bd50bb78378",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported readFile path is populated only from local --file argv within isMain. Exported parser receives message text and cannot choose this CLI pathname. Current binding review: src/signal_parser.ts: CLI read still confined to isMain and explicit local --file argv. Type cleanup, hoisted abort handler and nullish error views do not introduce filesystem input; read current entire CLI block. package.json: Only fast-uri override3.1.7 to3.1.8. No script, interpreter, CLI argument, path source or approval authority change.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported readFile path is populated only from local --file argv within isMain. Exported parser receives message text and cannot choose this CLI pathname. Current binding review: src/signal_parser.ts: CLI read still confined to isMain and explicit local --file argv. Type cleanup, hoisted abort handler and nullish error views do not introduce filesystem input; read current entire CLI block. package.json: Only fast-uri override3.1.7 to3.1.8. No script, interpreter, CLI argument, path source or approval authority change.",
       "contextPaths": [
         {
           "path": "package.json",
@@ -651,7 +651,7 @@
       "line": 24,
       "reviewedSourceSha256": "abdc2a5a85bbb14af6685d9ddc974527f2885762f6747e74c1b686f435247e20",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The parent-owned mkdtemp root is additionally realpath/temp-parent/prefix checked. Fixed lock/config/database members are created under genuine owner capability. The crash fixture accepts no remote pathname. Current binding review: src/process_lock.ts: Catch views erased and native async retained. Read capability queue and collision/release paths: no change to canonical scope, exclusive lock creation or owner identity. tests/test_backup_generation_crash.js: Same mkdtemp and discrete child argv, mixed/abandoned generation rejection retained; callbacks/async assert wrappers cannot introduce remote path source. Two unreachable pin callback assertions now synchronous: either failure form rejects the awaited owner action; callback must never execute in these cases. Error-pattern assertions retained. Restored 1 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The parent-owned mkdtemp root is additionally realpath/temp-parent/prefix checked. Fixed lock/config/database members are created under genuine owner capability. The crash fixture accepts no remote pathname. Current binding review: src/process_lock.ts: Catch views erased and native async retained. Read capability queue and collision/release paths: no change to canonical scope, exclusive lock creation or owner identity. tests/test_backup_generation_crash.js: Same mkdtemp and discrete child argv, mixed/abandoned generation rejection retained; callbacks/async assert wrappers cannot introduce remote path source. Two unreachable pin callback assertions now synchronous: either failure form rejects the awaited owner action; callback must never execute in these cases. Error-pattern assertions retained. Restored 1 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [
         {
           "path": "src/process_lock.ts",
@@ -763,7 +763,7 @@
       "line": 12,
       "reviewedSourceSha256": "f4527ee45879bca58b93480556a3b5f4406bf0631d5c7d3ba208922f384e2ba5",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The parent selects a temporary directory as a discrete child argv. Fixed lock/crash-counter members and genuine owner capability are used; there is no production request path source. Current binding review: tests/fixtures/crash_guard_owner_child.js: Only comments on intentionally nonsettling/noop callbacks. Directory remains parent-owned argv and fixed filenames. src/process_lock.ts: Catch views erased and native async retained. Read capability queue and collision/release paths: no change to canonical scope, exclusive lock creation or owner identity. tests/test_crash_guard.js: Only async assertion wrappers and top-level wrapper. Owner scope and abandoned lock assertions retained; mkdtemp source and child arguments unchanged. Restored 9 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The parent selects a temporary directory as a discrete child argv. Fixed lock/crash-counter members and genuine owner capability are used; there is no production request path source. Current binding review: tests/fixtures/crash_guard_owner_child.js: Only comments on intentionally nonsettling/noop callbacks. Directory remains parent-owned argv and fixed filenames. src/process_lock.ts: Catch views erased and native async retained. Read capability queue and collision/release paths: no change to canonical scope, exclusive lock creation or owner identity. tests/test_crash_guard.js: Only async assertion wrappers and top-level wrapper. Owner scope and abandoned lock assertions retained; mkdtemp source and child arguments unchanged. Restored 9 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [
         {
           "path": "src/process_lock.ts",
@@ -871,7 +871,7 @@
       "line": 25,
       "reviewedSourceSha256": "abdc2a5a85bbb14af6685d9ddc974527f2885762f6747e74c1b686f435247e20",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The parent-owned mkdtemp root is additionally realpath/temp-parent/prefix checked. Fixed lock/config/database members are created under genuine owner capability. The crash fixture accepts no remote pathname. Current binding review: src/backup_generation.ts: Unknown type cleanup plus sync-error nullish fallback (undefined/null and empty string all excluded from same allowlist), native async preserved. Fixed safe members, exclusive barrier and owner/lease requirements unchanged. src/process_lock.ts: Catch views erased and native async retained. Read capability queue and collision/release paths: no change to canonical scope, exclusive lock creation or owner identity. tests/test_backup_generation_crash.js: Same mkdtemp and discrete child argv, mixed/abandoned generation rejection retained; callbacks/async assert wrappers cannot introduce remote path source. Two unreachable pin callback assertions now synchronous: either failure form rejects the awaited owner action; callback must never execute in these cases. Error-pattern assertions retained. Restored 1 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The parent-owned mkdtemp root is additionally realpath/temp-parent/prefix checked. Fixed lock/config/database members are created under genuine owner capability. The crash fixture accepts no remote pathname. Current binding review: src/backup_generation.ts: Unknown type cleanup plus sync-error nullish fallback (undefined/null and empty string all excluded from same allowlist), native async preserved. Fixed safe members, exclusive barrier and owner/lease requirements unchanged. src/process_lock.ts: Catch views erased and native async retained. Read capability queue and collision/release paths: no change to canonical scope, exclusive lock creation or owner identity. tests/test_backup_generation_crash.js: Same mkdtemp and discrete child argv, mixed/abandoned generation rejection retained; callbacks/async assert wrappers cannot introduce remote path source. Two unreachable pin callback assertions now synchronous: either failure form rejects the awaited owner action; callback must never execute in these cases. Error-pattern assertions retained. Restored 1 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [
         {
           "path": "src/backup_generation.ts",
@@ -1083,7 +1083,7 @@
       "line": 37,
       "reviewedSourceSha256": "f4527ee45879bca58b93480556a3b5f4406bf0631d5c7d3ba208922f384e2ba5",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The parent selects a temporary directory as a discrete child argv. Fixed lock/crash-counter members and genuine owner capability are used; there is no production request path source. Current binding review: tests/fixtures/crash_guard_owner_child.js: Only comments on intentionally nonsettling/noop callbacks. Directory remains parent-owned argv and fixed filenames. src/crash_guard.ts: Erased catch views and async rationale only. Genuine process owner still precedes fixed crash-counter member operations. src/process_lock.ts: Catch views erased and native async retained. Read capability queue and collision/release paths: no change to canonical scope, exclusive lock creation or owner identity. tests/test_crash_guard.js: Only async assertion wrappers and top-level wrapper. Owner scope and abandoned lock assertions retained; mkdtemp source and child arguments unchanged. Restored 9 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The parent selects a temporary directory as a discrete child argv. Fixed lock/crash-counter members and genuine owner capability are used; there is no production request path source. Current binding review: tests/fixtures/crash_guard_owner_child.js: Only comments on intentionally nonsettling/noop callbacks. Directory remains parent-owned argv and fixed filenames. src/crash_guard.ts: Erased catch views and async rationale only. Genuine process owner still precedes fixed crash-counter member operations. src/process_lock.ts: Catch views erased and native async retained. Read capability queue and collision/release paths: no change to canonical scope, exclusive lock creation or owner identity. tests/test_crash_guard.js: Only async assertion wrappers and top-level wrapper. Owner scope and abandoned lock assertions retained; mkdtemp source and child arguments unchanged. Restored 9 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [
         {
           "path": "src/crash_guard.ts",
@@ -1247,7 +1247,7 @@
       "line": 6,
       "reviewedSourceSha256": "8fab554507d40eaa1f65f9e8b874ae9a86f9f651afea95b1936a2514dcf65bc6",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The parent supplies its private temporary forwarder.db as a discrete child argv. Marker scope and exclusive writes remain; this is a local maintenance/crash fixture. Current binding review: tests/fixtures/maintenance_participant_child.js: Only keepalive comment. Same parent-selected DB argv, open and participant registration. src/db.ts: Explicit undefined return, function alias placement, native async comments; dispatch fence wraps existing provider result in Promise.resolve; outbox loop/status conditionals equivalent. No new dynamic SQL identifier or filesystem selector; parameterized outbox writes and fixture schema unchanged. src/mcp_maintenance.ts: Erased catch view and native async preservation comments only. Owner capability, request scope, marker publication and quiescence boundary unchanged. tests/test_mcp_maintenance.js: Only async wrappers around rejected calls. Parent fixture DB paths, ownership and quiescence assertions unchanged. Restored 5 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The parent supplies its private temporary forwarder.db as a discrete child argv. Marker scope and exclusive writes remain; this is a local maintenance/crash fixture. Current binding review: tests/fixtures/maintenance_participant_child.js: Only keepalive comment. Same parent-selected DB argv, open and participant registration. src/db.ts: Explicit undefined return, function alias placement, native async comments; dispatch fence wraps existing provider result in Promise.resolve; outbox loop/status conditionals equivalent. No new dynamic SQL identifier or filesystem selector; parameterized outbox writes and fixture schema unchanged. src/mcp_maintenance.ts: Erased catch view and native async preservation comments only. Owner capability, request scope, marker publication and quiescence boundary unchanged. tests/test_mcp_maintenance.js: Only async wrappers around rejected calls. Parent fixture DB paths, ownership and quiescence assertions unchanged. Restored 5 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [
         {
           "path": "src/db.ts",
@@ -1391,8 +1391,8 @@
       "fingerprints": {
         "0": "b899edefa3b0a0433c55007c1833b51909fb127fad920f8c7fd9eb343ea67315",
         "1": "e0fda459.4773f344.c9330245.d7919eeb.79a7d027.8020cfdf.ea4b1c47.e8752bfb.6e283998.b6e32c83.c9330245.99f4e1a5.79a7d027.5fce695c.ea4b1c47.83183368",
-        "identity": "9886fba1-1186-4e41-b1fa-6a6877440237",
-        "snyk/asset/finding/v1": "9886fba1-1186-4e41-b1fa-6a6877440237"
+        "snyk/asset/finding/v1": "9886fba1-1186-4e41-b1fa-6a6877440237",
+        "identity": "9886fba1-1186-4e41-b1fa-6a6877440237"
       },
       "evidenceSha256": "e726ffe7098fe2bf752e3f76fcc29d8ee87cf6a93a5dc0b851e3033e84f125d0"
     },
@@ -1403,7 +1403,7 @@
       "line": 15,
       "reviewedSourceSha256": "acbb9d67e0d63a47db874750e54fc45fdedf20f372503f4a2366da7fdb91779b",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The checkpoint and shutdown log have fixed basenames inside the parent-owned temporary directory. Synthetic controls and blocked provider fetch isolate this restart fixture. Current binding review: tests/fixtures/ui_restart_child.js: Noop/never-settles comments, void removal and string template replacement. Fixed state/shutdown filenames and external fetch rejection unchanged. tests/fixtures/ui_restart_fixture.js: Noop comment, preserved async routing blocker, equivalent string interpolation. Fixed effects/audit files and synthetic app controls unchanged.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The checkpoint and shutdown log have fixed basenames inside the parent-owned temporary directory. Synthetic controls and blocked provider fetch isolate this restart fixture. Current binding review: tests/fixtures/ui_restart_child.js: Noop/never-settles comments, void removal and string template replacement. Fixed state/shutdown filenames and external fetch rejection unchanged. tests/fixtures/ui_restart_fixture.js: Noop comment, preserved async routing blocker, equivalent string interpolation. Fixed effects/audit files and synthetic app controls unchanged.",
       "contextPaths": [
         {
           "path": "tests/fixtures/ui_restart_fixture.js",
@@ -1467,7 +1467,7 @@
       "line": 58,
       "reviewedSourceSha256": "acbb9d67e0d63a47db874750e54fc45fdedf20f372503f4a2366da7fdb91779b",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The checkpoint and shutdown log have fixed basenames inside the parent-owned temporary directory. Synthetic controls and blocked provider fetch isolate this restart fixture. Current binding review: tests/fixtures/ui_restart_child.js: Noop/never-settles comments, void removal and string template replacement. Fixed state/shutdown filenames and external fetch rejection unchanged. tests/fixtures/ui_restart_fixture.js: Noop comment, preserved async routing blocker, equivalent string interpolation. Fixed effects/audit files and synthetic app controls unchanged.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The checkpoint and shutdown log have fixed basenames inside the parent-owned temporary directory. Synthetic controls and blocked provider fetch isolate this restart fixture. Current binding review: tests/fixtures/ui_restart_child.js: Noop/never-settles comments, void removal and string template replacement. Fixed state/shutdown filenames and external fetch rejection unchanged. tests/fixtures/ui_restart_fixture.js: Noop comment, preserved async routing blocker, equivalent string interpolation. Fixed effects/audit files and synthetic app controls unchanged.",
       "contextPaths": [
         {
           "path": "tests/fixtures/ui_restart_fixture.js",
@@ -1531,7 +1531,7 @@
       "line": 45,
       "reviewedSourceSha256": "259876b01586391878f82c3a9285976345d93c427d82e842759b056af9d2ac33",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. Dynamic PRAGMA identifiers are from the literal fixture table list and sqlite_master/index_list of the same private freshly constructed test database, not request input. Bound DB edits add no identifier source. Current binding review: tests/test_trading_adaptive_money_migration.js: schema helper returns same database promise without async wrapper. Read metadata queries: table list is literal and index/table names from private fixture schema; no user-selected identifier. src/db.ts: Explicit undefined return, function alias placement, native async comments; dispatch fence wraps existing provider result in Promise.resolve; outbox loop/status conditionals equivalent. No new dynamic SQL identifier or filesystem selector; parameterized outbox writes and fixture schema unchanged.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. Dynamic PRAGMA identifiers are from the literal fixture table list and sqlite_master/index_list of the same private freshly constructed test database, not request input. Bound DB edits add no identifier source. Current binding review: tests/test_trading_adaptive_money_migration.js: schema helper returns same database promise without async wrapper. Read metadata queries: table list is literal and index/table names from private fixture schema; no user-selected identifier. src/db.ts: Explicit undefined return, function alias placement, native async comments; dispatch fence wraps existing provider result in Promise.resolve; outbox loop/status conditionals equivalent. No new dynamic SQL identifier or filesystem selector; parameterized outbox writes and fixture schema unchanged.",
       "contextPaths": [
         {
           "path": "src/db.ts",
@@ -1599,8 +1599,8 @@
       "fingerprints": {
         "0": "adf669db1360ff57723322c3cfb807d8cd1241d3f743392b46e916216e2b7786",
         "1": "688dedc0.4773f344.c9330245.c7263690.ef9f7d82.6d46fa17.0b4f0b50.f98102cd.6bb676bb.4773f344.c9330245.c559ebce.bd9ce4c6.6d46fa17.55818220.0449ed07",
-        "identity": "f2f8ea59-c823-49ff-8d81-50ae176c845a",
-        "snyk/asset/finding/v1": "f2f8ea59-c823-49ff-8d81-50ae176c845a"
+        "snyk/asset/finding/v1": "f2f8ea59-c823-49ff-8d81-50ae176c845a",
+        "identity": "f2f8ea59-c823-49ff-8d81-50ae176c845a"
       },
       "evidenceSha256": "7ac604ae3aa38086cf2866df1f4072476053bf1c2d40436ae4b16f80ddbea627"
     },
@@ -1611,7 +1611,7 @@
       "line": 51,
       "reviewedSourceSha256": "259876b01586391878f82c3a9285976345d93c427d82e842759b056af9d2ac33",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. Dynamic PRAGMA identifiers are from the literal fixture table list and sqlite_master/index_list of the same private freshly constructed test database, not request input. Bound DB edits add no identifier source. Current binding review: tests/test_trading_adaptive_money_migration.js: schema helper returns same database promise without async wrapper. Read metadata queries: table list is literal and index/table names from private fixture schema; no user-selected identifier. src/db.ts: Explicit undefined return, function alias placement, native async comments; dispatch fence wraps existing provider result in Promise.resolve; outbox loop/status conditionals equivalent. No new dynamic SQL identifier or filesystem selector; parameterized outbox writes and fixture schema unchanged.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. Dynamic PRAGMA identifiers are from the literal fixture table list and sqlite_master/index_list of the same private freshly constructed test database, not request input. Bound DB edits add no identifier source. Current binding review: tests/test_trading_adaptive_money_migration.js: schema helper returns same database promise without async wrapper. Read metadata queries: table list is literal and index/table names from private fixture schema; no user-selected identifier. src/db.ts: Explicit undefined return, function alias placement, native async comments; dispatch fence wraps existing provider result in Promise.resolve; outbox loop/status conditionals equivalent. No new dynamic SQL identifier or filesystem selector; parameterized outbox writes and fixture schema unchanged.",
       "contextPaths": [
         {
           "path": "src/db.ts",
@@ -1675,8 +1675,8 @@
       "fingerprints": {
         "0": "3cc1d4d3a86e95f7d033c4ab84e6b7208b78c492db3a6492a6d697c7298a7a45",
         "1": "688dedc0.4773f344.c9330245.d7919eeb.ef9f7d82.8020cfdf.0b4f0b50.d087f7d7.988d3c10.4773f344.c9330245.c559ebce.c5cf438d.5fce695c.55818220.6723ddeb",
-        "identity": "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
-        "snyk/asset/finding/v1": "db0f006d-1b47-43d9-8b35-86ae5ee08f58"
+        "snyk/asset/finding/v1": "db0f006d-1b47-43d9-8b35-86ae5ee08f58",
+        "identity": "db0f006d-1b47-43d9-8b35-86ae5ee08f58"
       },
       "evidenceSha256": "b74ddf19b2df8234c9b4f5c73306449846e9fa7f798f6b7f3b3520413a9f3e13"
     },
@@ -1687,7 +1687,7 @@
       "line": 105,
       "reviewedSourceSha256": "31394347fbc6acb48a6473a6fa9e5368a6bb4bcf45e902c35679b22fa0e0315e",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: frontend/tests/operator-state-regressions.test.tsx: Re-read ee8d177 to1bda99a delta: onRefresh failure fixture regains native async rejection with rationale comment; same failure message/write-count assertion. jsonRequest remains isolated vi.mock; apiSecret fixture-only assertion still examines mocked call list. No real transport, credential or assertion removal. frontend/src/lib/api.ts: Only observe callback type widened to Promise or void. Read apiFetch: single Request normalization, same-origin/no-userinfo check precedes bearer attachment, same Request fetched with redirect:error. TOKEN_KEY is storage name, not secret.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: frontend/tests/operator-state-regressions.test.tsx: Re-read ee8d177 to1bda99a delta: onRefresh failure fixture regains native async rejection with rationale comment; same failure message/write-count assertion. jsonRequest remains isolated vi.mock; apiSecret fixture-only assertion still examines mocked call list. No real transport, credential or assertion removal. frontend/src/lib/api.ts: Only observe callback type widened to Promise or void. Read apiFetch: single Request normalization, same-origin/no-userinfo check precedes bearer attachment, same Request fetched with redirect:error. TOKEN_KEY is storage name, not secret.",
       "contextPaths": [
         {
           "path": "frontend/src/lib/api.ts",
@@ -1711,8 +1711,8 @@
       "fingerprints": {
         "0": "6c0b71032b144bb668b37138607a71a96a69b28d2fc31fe6a3fe14821f8bef6a",
         "1": "e18ecef6.59da5bcb.d5ebef4e.e052b9a9.79a7d027.fcf3002d.ce4a9d89.4bea0b18.e18ecef6.59da5bcb.607187b5.e052b9a9.79a7d027.fcf3002d.ce4a9d89.4bea0b18",
-        "identity": "4763ab6d-7279-4288-a467-5dbccf673f01",
-        "snyk/asset/finding/v1": "4763ab6d-7279-4288-a467-5dbccf673f01"
+        "snyk/asset/finding/v1": "4763ab6d-7279-4288-a467-5dbccf673f01",
+        "identity": "4763ab6d-7279-4288-a467-5dbccf673f01"
       },
       "evidenceSha256": "6452d8e52222956f1e9f6fb29c2d57d79e7b082ffb579a851e5bf01f927b1b4a"
     },
@@ -1723,7 +1723,7 @@
       "line": 124,
       "reviewedSourceSha256": "9f6729375f541ef9a51278cd90d8b4d3705fa394518d2cb0344cbfaa3f2f090f",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_config.js: Added prototype/falsy model regressions and assertion comments. Unknown surpriseSecret fixture still rejected before persistence.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_config.js: Added prototype/falsy model regressions and assertion comments. Unknown surpriseSecret fixture still rejected before persistence.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -1742,8 +1742,8 @@
       "fingerprints": {
         "0": "1aa172ce4967863af4ac70a13908a2eff28048ec445debcc00ae72c8a7d6ef24",
         "1": "12567ef6.4773f344.607187b5.0755de8f.601e4ccc.fcf3002d.ce4a9d89.0c057e67.fa9bfeb6.4773f344.607187b5.c559ebce.601e4ccc.340a7504.ce4a9d89.ea55a745",
-        "identity": "8c0f552c-7615-4368-8f6a-6689679b611c",
-        "snyk/asset/finding/v1": "8c0f552c-7615-4368-8f6a-6689679b611c"
+        "snyk/asset/finding/v1": "8c0f552c-7615-4368-8f6a-6689679b611c",
+        "identity": "8c0f552c-7615-4368-8f6a-6689679b611c"
       },
       "evidenceSha256": "725aa1932b44af372ce333044de448235cc744c0291c6ddd6014c0bd3d19ad34"
     },
@@ -1754,7 +1754,7 @@
       "line": 491,
       "reviewedSourceSha256": "b6dc5b52a4ec525d2ff397d34eaecbfa878951fadc80ea16a599b58dca3e9ac1",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_dynamic_exchange_registry.js: Fake catalog json callback sync, failing fake catalog callbacks remain async. Gateio synthetic credential and injected adapter unchanged.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_dynamic_exchange_registry.js: Fake catalog json callback sync, failing fake catalog callbacks remain async. Gateio synthetic credential and injected adapter unchanged.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -1785,7 +1785,7 @@
       "line": 89,
       "reviewedSourceSha256": "d5d66b8327f0134ed4cf98b44e25c078c126e758537a3bda277722679cb6af2a",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -1804,8 +1804,8 @@
       "fingerprints": {
         "0": "18a85bb5fef3b1bcebc9e7be7b29678b404a58f327123d230a14e149c7a8739f",
         "1": "e7fd436d.4773f344.607187b5.e052b9a9.79a7d027.fcf3002d.80eb7e1f.e0f43150.e7fd436d.4773f344.c9330245.e052b9a9.79a7d027.8020cfdf.7a8c7288.e6930396",
-        "snyk/asset/finding/v1": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44",
-        "identity": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44"
+        "identity": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44",
+        "snyk/asset/finding/v1": "eebfa362-b2bf-4b0f-a9a3-4199084f5f44"
       },
       "evidenceSha256": "0781a8ff3c3bc27f2f90d26c7f59bc584d837325de57f54d16e0a92469303342"
     },
@@ -1816,7 +1816,7 @@
       "line": 31,
       "reviewedSourceSha256": "308ef2282b9a197fe5a3ed93c7a4c77a0eec8074fe6180850968f8dee12241d8",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_exchange_contract_validation.js: Only Symbol() to Symbol(undefined), same primitive. Both sentinel occurrences and exclusion assertion in acquisition evidence remain unchanged.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_exchange_contract_validation.js: Only Symbol() to Symbol(undefined), same primitive. Both sentinel occurrences and exclusion assertion in acquisition evidence remain unchanged.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -1835,8 +1835,8 @@
       "fingerprints": {
         "0": "d9e44b7776e2850bd49192ad60b8c6b6096d57d5edd9434af14d697e0e8c338a",
         "1": "fc3065be.3f481afb.1b459778.e052b9a9.79a7d027.fcf3002d.fdccee38.f562c5fc.fc3065be.94f191c0.3d62749e.e052b9a9.3b4d01cf.becd9ff1.71100302.c425cb87",
-        "identity": "6747340c-e7a2-460b-87c7-e2e6c3802226",
-        "snyk/asset/finding/v1": "6747340c-e7a2-460b-87c7-e2e6c3802226"
+        "snyk/asset/finding/v1": "6747340c-e7a2-460b-87c7-e2e6c3802226",
+        "identity": "6747340c-e7a2-460b-87c7-e2e6c3802226"
       },
       "evidenceSha256": "61f6d603c0d51a46171aaca3db30fb316f51f89fa07c13af31f0f680e9171029",
       "priorReview": {
@@ -1858,7 +1858,7 @@
       "line": 31,
       "reviewedSourceSha256": "308ef2282b9a197fe5a3ed93c7a4c77a0eec8074fe6180850968f8dee12241d8",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_exchange_contract_validation.js: Only Symbol() to Symbol(undefined), same primitive. Both sentinel occurrences and exclusion assertion in acquisition evidence remain unchanged.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_exchange_contract_validation.js: Only Symbol() to Symbol(undefined), same primitive. Both sentinel occurrences and exclusion assertion in acquisition evidence remain unchanged.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -1900,7 +1900,7 @@
       "line": 18,
       "reviewedSourceSha256": "0675de5c304af8d3da9bff59524cbe9484840ca31ba8f35d0c820fe5575a063b",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -1931,7 +1931,7 @@
       "line": 52,
       "reviewedSourceSha256": "4c39ee34e606ce02b3fcffe4f7ca16e8802e9a3b526ad0d8aef905f284903584",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_integration.js: Only top-level async wrapper. dummy_key remains env for local Node mock_parser.js with shell:false.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_integration.js: Only top-level async wrapper. dummy_key remains env for local Node mock_parser.js with shell:false.",
       "contextPaths": [
         {
           "path": "tests/mock_parser.js",
@@ -1967,7 +1967,7 @@
       "line": 23,
       "reviewedSourceSha256": "ade9252bf08392f4a7088648f5077c00c06442b85f208a7ce056460ff2ce50dc",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_secret_store.js: Async assert wrappers and undefined comment only. All five reported key markers remain local temp store/transaction/recovery fixtures with isolated env, no provider authentication. Restored 7 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections. src/secret_store.ts: Stateless transaction validator made private static and caller updated; catch type cleanup and nullish sync-error code default. Secret contents remain local store values; no transport or credential consumer introduced.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_secret_store.js: Async assert wrappers and undefined comment only. All five reported key markers remain local temp store/transaction/recovery fixtures with isolated env, no provider authentication. Restored 7 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections. src/secret_store.ts: Stateless transaction validator made private static and caller updated; catch type cleanup and nullish sync-error code default. Secret contents remain local store values; no transport or credential consumer introduced.",
       "contextPaths": [
         {
           "path": "src/secret_store.ts",
@@ -2010,7 +2010,7 @@
       "line": 28,
       "reviewedSourceSha256": "ade9252bf08392f4a7088648f5077c00c06442b85f208a7ce056460ff2ce50dc",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_secret_store.js: Async assert wrappers and undefined comment only. All five reported key markers remain local temp store/transaction/recovery fixtures with isolated env, no provider authentication. Restored 7 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections. src/secret_store.ts: Stateless transaction validator made private static and caller updated; catch type cleanup and nullish sync-error code default. Secret contents remain local store values; no transport or credential consumer introduced.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_secret_store.js: Async assert wrappers and undefined comment only. All five reported key markers remain local temp store/transaction/recovery fixtures with isolated env, no provider authentication. Restored 7 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections. src/secret_store.ts: Stateless transaction validator made private static and caller updated; catch type cleanup and nullish sync-error code default. Secret contents remain local store values; no transport or credential consumer introduced.",
       "contextPaths": [
         {
           "path": "src/secret_store.ts",
@@ -2034,8 +2034,8 @@
       "fingerprints": {
         "0": "05e60ed1923fbda026f588b3eca8db5486f3216d4825668d05dc7e16df23b997",
         "1": "70641390.4773f344.5111edd4.e052b9a9.79a7d027.abf5431f.ce4a9d89.3cee0341.70641390.4773f344.f815c231.e052b9a9.79a7d027.abf5431f.aae58e7b.d087f7d7",
-        "snyk/asset/finding/v1": "3fd501f8-60d2-4533-84c1-0f8135a93b85",
-        "identity": "3fd501f8-60d2-4533-84c1-0f8135a93b85"
+        "identity": "3fd501f8-60d2-4533-84c1-0f8135a93b85",
+        "snyk/asset/finding/v1": "3fd501f8-60d2-4533-84c1-0f8135a93b85"
       },
       "evidenceSha256": "72a1c4766743b77e0b26612948e606e02cb672d9e3cdf4e3e2e9077ceb9d779c",
       "priorBinding": {
@@ -2053,7 +2053,7 @@
       "line": 115,
       "reviewedSourceSha256": "ade9252bf08392f4a7088648f5077c00c06442b85f208a7ce056460ff2ce50dc",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_secret_store.js: Async assert wrappers and undefined comment only. All five reported key markers remain local temp store/transaction/recovery fixtures with isolated env, no provider authentication. Restored 7 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections. src/secret_store.ts: Stateless transaction validator made private static and caller updated; catch type cleanup and nullish sync-error code default. Secret contents remain local store values; no transport or credential consumer introduced.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_secret_store.js: Async assert wrappers and undefined comment only. All five reported key markers remain local temp store/transaction/recovery fixtures with isolated env, no provider authentication. Restored 7 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections. src/secret_store.ts: Stateless transaction validator made private static and caller updated; catch type cleanup and nullish sync-error code default. Secret contents remain local store values; no transport or credential consumer introduced.",
       "contextPaths": [
         {
           "path": "src/secret_store.ts",
@@ -2077,8 +2077,8 @@
       "fingerprints": {
         "0": "ca3f8fd567a6cd90b70a58cf788e70283f9a2b1f5577c4a86804aa5cf0a221d3",
         "1": "70641390.3f481afb.5111edd4.e052b9a9.79a7d027.16814402.4a5b8cb9.53b7f170.70641390.4773f344.5111edd4.c725d013.79a7d027.16814402.4a5b8cb9.3cee0341",
-        "identity": "aee14560-3ac3-41fd-9b53-37a838268421",
-        "snyk/asset/finding/v1": "aee14560-3ac3-41fd-9b53-37a838268421"
+        "snyk/asset/finding/v1": "aee14560-3ac3-41fd-9b53-37a838268421",
+        "identity": "aee14560-3ac3-41fd-9b53-37a838268421"
       },
       "evidenceSha256": "6f1d8deb5c69183ad2b6dd87cdbec1deb7757c4086625f04b56e063640106fe8",
       "priorBinding": {
@@ -2096,7 +2096,7 @@
       "line": 135,
       "reviewedSourceSha256": "ade9252bf08392f4a7088648f5077c00c06442b85f208a7ce056460ff2ce50dc",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_secret_store.js: Async assert wrappers and undefined comment only. All five reported key markers remain local temp store/transaction/recovery fixtures with isolated env, no provider authentication. Restored 7 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections. src/secret_store.ts: Stateless transaction validator made private static and caller updated; catch type cleanup and nullish sync-error code default. Secret contents remain local store values; no transport or credential consumer introduced.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_secret_store.js: Async assert wrappers and undefined comment only. All five reported key markers remain local temp store/transaction/recovery fixtures with isolated env, no provider authentication. Restored 7 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections. src/secret_store.ts: Stateless transaction validator made private static and caller updated; catch type cleanup and nullish sync-error code default. Secret contents remain local store values; no transport or credential consumer introduced.",
       "contextPaths": [
         {
           "path": "src/secret_store.ts",
@@ -2139,7 +2139,7 @@
       "line": 142,
       "reviewedSourceSha256": "ade9252bf08392f4a7088648f5077c00c06442b85f208a7ce056460ff2ce50dc",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_secret_store.js: Async assert wrappers and undefined comment only. All five reported key markers remain local temp store/transaction/recovery fixtures with isolated env, no provider authentication. Restored 7 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections. src/secret_store.ts: Stateless transaction validator made private static and caller updated; catch type cleanup and nullish sync-error code default. Secret contents remain local store values; no transport or credential consumer introduced.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_secret_store.js: Async assert wrappers and undefined comment only. All five reported key markers remain local temp store/transaction/recovery fixtures with isolated env, no provider authentication. Restored 7 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections. src/secret_store.ts: Stateless transaction validator made private static and caller updated; catch type cleanup and nullish sync-error code default. Secret contents remain local store values; no transport or credential consumer introduced.",
       "contextPaths": [
         {
           "path": "src/secret_store.ts",
@@ -2163,8 +2163,8 @@
       "fingerprints": {
         "0": "5546011a9959a0e607130fb13f1af0f2bf17d9578750cd47278f9700be50f037",
         "1": "fbb35586.4773f344.5111edd4.e052b9a9.79a7d027.16814402.ce4a9d89.3cee0341.fbb35586.4773f344.c9330245.e052b9a9.79a7d027.16814402.70f01de0.d087f7d7",
-        "snyk/asset/finding/v1": "06e9dbdb-8290-450a-95cc-25b789bcdde2",
-        "identity": "06e9dbdb-8290-450a-95cc-25b789bcdde2"
+        "identity": "06e9dbdb-8290-450a-95cc-25b789bcdde2",
+        "snyk/asset/finding/v1": "06e9dbdb-8290-450a-95cc-25b789bcdde2"
       },
       "evidenceSha256": "e9eaabcc2379c605e73f6551d016fc449505eed1ee16e84022e67ba70be99523",
       "priorBinding": {
@@ -2182,7 +2182,7 @@
       "line": 13,
       "reviewedSourceSha256": "08e3a0f673e3169c6761735d6b031f00dd536d66c89693313667a8b39eebd97e",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_sonar_review_decisions.js: Async mock retained/commented and promise-returning reset helper simplified. Fake token still isolated injected transport sentinel.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_sonar_review_decisions.js: Async mock retained/commented and promise-returning reset helper simplified. Fake token still isolated injected transport sentinel.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2201,8 +2201,8 @@
       "fingerprints": {
         "0": "df8fac6c780069fd8014d4732d53494321c16437032b39cd9f6275a88929dfe0",
         "1": "fc3065be.3f481afb.95758592.d7919eeb.79a7d027.5fce695c.ea4b1c47.89d75565.fc3065be.3f481afb.95758592.d7919eeb.79a7d027.5fce695c.ea4b1c47.89d75565",
-        "snyk/asset/finding/v1": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4",
-        "identity": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4"
+        "identity": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4",
+        "snyk/asset/finding/v1": "aeff1b63-9cc9-4ae4-bf87-bda1d7f7b5a4"
       },
       "evidenceSha256": "f859a75a68c550377b029452216aa695129a7316e6dc96964e334e870d96a0e4"
     },
@@ -2213,7 +2213,7 @@
       "line": 136,
       "reviewedSourceSha256": "909c6dd7cec41a9bd7fabe79a5a39a2c18920474858dfc65178779386bf81c2f",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_telegram_viewer_core.js: Only closeDb cleanup async wrapper. Secret-details negative input still must reject; marker not used for authentication.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_telegram_viewer_core.js: Only closeDb cleanup async wrapper. Secret-details negative input still must reject; marker not used for authentication.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2232,8 +2232,8 @@
       "fingerprints": {
         "0": "21692002cd87194d32e4826e5ddaaed39b8a55d2c2bc487e97496605844352e1",
         "1": "a8ab77c2.3f481afb.c795088f.e052b9a9.79a7d027.e2358c82.378f23e6.e0f43150.a8ab77c2.4773f344.c795088f.e052b9a9.79a7d027.e2358c82.378f23e6.e0f43150",
-        "snyk/asset/finding/v1": "e6282f6d-4f71-47ff-befa-7369873e4557",
-        "identity": "e6282f6d-4f71-47ff-befa-7369873e4557"
+        "identity": "e6282f6d-4f71-47ff-befa-7369873e4557",
+        "snyk/asset/finding/v1": "e6282f6d-4f71-47ff-befa-7369873e4557"
       },
       "evidenceSha256": "54f9571b97b81153e468b47b500c5ef450112abb601e06371f4bbfbb8a6af9a7"
     },
@@ -2244,7 +2244,7 @@
       "line": 35,
       "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2275,7 +2275,7 @@
       "line": 38,
       "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2294,8 +2294,8 @@
       "fingerprints": {
         "0": "ad2b33c013ca88b3c3af159836be225ee19b49718d0583e318b420423d9284de",
         "1": "c38ef152.4773f344.607187b5.e052b9a9.79a7d027.bc3a06e6.80eb7e1f.e0f43150.31647f41.59da5bcb.f815c231.aad5b9ba.79a7d027.bc3a06e6.aae58e7b.e0f43150",
-        "snyk/asset/finding/v1": "e0d3690e-5911-4fa5-96ab-c0893d808e7f",
-        "identity": "e0d3690e-5911-4fa5-96ab-c0893d808e7f"
+        "identity": "e0d3690e-5911-4fa5-96ab-c0893d808e7f",
+        "snyk/asset/finding/v1": "e0d3690e-5911-4fa5-96ab-c0893d808e7f"
       },
       "evidenceSha256": "aed742a17d8297b0c92b09c33fbb0da058fc170fab4043138b3a895780187253"
     },
@@ -2306,7 +2306,7 @@
       "line": 60,
       "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2325,8 +2325,8 @@
       "fingerprints": {
         "0": "cbf9bd0b157e9190fbb1ca41f976837236b9bf462c86ffcaf95ab17d4494207c",
         "1": "c38ef152.3f481afb.a1c822f2.e052b9a9.79a7d027.bc3a06e6.80eb7e1f.4bea0b18.fc3065be.4773f344.607187b5.aad5b9ba.79a7d027.bc3a06e6.a56a8b5b.4bea0b18",
-        "identity": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e",
-        "snyk/asset/finding/v1": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e"
+        "snyk/asset/finding/v1": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e",
+        "identity": "33137bb2-42a6-4b20-8cfb-c4a953d91b6e"
       },
       "evidenceSha256": "ebb4047c02ab9ef41ef04a1129a32c94084146df8b67b4cf025e432d23d307d2"
     },
@@ -2337,7 +2337,7 @@
       "line": 73,
       "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2356,8 +2356,8 @@
       "fingerprints": {
         "0": "1344b0c601daf7be4887171a694af63bb295bd818e2b448b6def643dd744cf2f",
         "1": "e7fd436d.3f481afb.4d0c4123.e052b9a9.79a7d027.fcf3002d.dddd9f4c.e0f43150.b44e9232.59da5bcb.cf0dc3a8.cb018436.3f452f8c.9b2f3091.6bdd8e71.e0f43150",
-        "identity": "95e532db-4651-47f3-b9da-40e0da5e0fcc",
-        "snyk/asset/finding/v1": "95e532db-4651-47f3-b9da-40e0da5e0fcc"
+        "snyk/asset/finding/v1": "95e532db-4651-47f3-b9da-40e0da5e0fcc",
+        "identity": "95e532db-4651-47f3-b9da-40e0da5e0fcc"
       },
       "evidenceSha256": "51fb0bdd7394c36f17f89c6c4cc7b503ffbcfdf4ad7bf53ff4f82ab4dc6a816f"
     },
@@ -2368,7 +2368,7 @@
       "line": 74,
       "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2399,7 +2399,7 @@
       "line": 78,
       "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2418,8 +2418,8 @@
       "fingerprints": {
         "0": "f0a9997e30401b11a21ca8c2f0a8996aa813c94e91b6d9063f29e73a35e2a086",
         "1": "e7fd436d.3f481afb.4d0c4123.e052b9a9.79a7d027.fcf3002d.80eb7e1f.e0f43150.40c5fd92.59da5bcb.cf0dc3a8.e052b9a9.3f452f8c.9b2f3091.6bdd8e71.e0f43150",
-        "snyk/asset/finding/v1": "82e95abb-7def-48e9-9e03-f12ddb87396e",
-        "identity": "82e95abb-7def-48e9-9e03-f12ddb87396e"
+        "identity": "82e95abb-7def-48e9-9e03-f12ddb87396e",
+        "snyk/asset/finding/v1": "82e95abb-7def-48e9-9e03-f12ddb87396e"
       },
       "evidenceSha256": "71abc14f56fadb0bc4ecf55d7d2692d158f37d38985a4ff96d9acee4b456ed99"
     },
@@ -2430,7 +2430,7 @@
       "line": 79,
       "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2449,8 +2449,8 @@
       "fingerprints": {
         "0": "6c747f7d9eb2459130040a789d125f777600c0407c55a3a494b741b31c910006",
         "1": "e7fd436d.ca37a272.f8f1d984.e052b9a9.79a7d027.fcf3002d.80eb7e1f.e0f43150.fc3065be.ca37a272.1b459778.e052b9a9.79a7d027.fcf3002d.a56a8b5b.e0f43150",
-        "identity": "68016b09-7ac9-40c1-8640-8412bc77d91e",
-        "snyk/asset/finding/v1": "68016b09-7ac9-40c1-8640-8412bc77d91e"
+        "snyk/asset/finding/v1": "68016b09-7ac9-40c1-8640-8412bc77d91e",
+        "identity": "68016b09-7ac9-40c1-8640-8412bc77d91e"
       },
       "evidenceSha256": "f193bd4d79887e88abc778f892001da8292e17ec3e11e5121938f2a84801c56d"
     },
@@ -2461,7 +2461,7 @@
       "line": 108,
       "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2480,8 +2480,8 @@
       "fingerprints": {
         "0": "77f6edc96e153a69520fb016657c06f908b4f27a6020210e8f639bbd7d3d416a",
         "1": "e7fd436d.4773f344.607187b5.e052b9a9.79a7d027.fcf3002d.344645e1.e0f43150.59adff2f.59da5bcb.f815c231.d7919eeb.79a7d027.8020cfdf.aae58e7b.1d16e44c",
-        "identity": "f1107dfb-8004-470e-ae80-5b3230735eea",
-        "snyk/asset/finding/v1": "f1107dfb-8004-470e-ae80-5b3230735eea"
+        "snyk/asset/finding/v1": "f1107dfb-8004-470e-ae80-5b3230735eea",
+        "identity": "f1107dfb-8004-470e-ae80-5b3230735eea"
       },
       "evidenceSha256": "f3ff0cff2e4df7aa05cf1fb333b1566386f8a96dc92a7b19d0c2717e03adfee4"
     },
@@ -2492,7 +2492,7 @@
       "line": 115,
       "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2511,8 +2511,8 @@
       "fingerprints": {
         "0": "2de3c484b7c44f9fe51a7531f652f966616ec4a8064efa5846adb402c5b86d12",
         "1": "e7fd436d.4773f344.607187b5.e052b9a9.79a7d027.1bad3d9d.80eb7e1f.e0f43150.59adff2f.59da5bcb.f815c231.d7919eeb.79a7d027.1bad3d9d.aae58e7b.e0f43150",
-        "snyk/asset/finding/v1": "67212bb4-5c74-4ec1-a6f6-6404626cdc02",
-        "identity": "67212bb4-5c74-4ec1-a6f6-6404626cdc02"
+        "identity": "67212bb4-5c74-4ec1-a6f6-6404626cdc02",
+        "snyk/asset/finding/v1": "67212bb4-5c74-4ec1-a6f6-6404626cdc02"
       },
       "evidenceSha256": "aeb8fcc17e629d71e25b3072c1a86e27b20b9c4d17b897dbe66282b86dcf9b02"
     },
@@ -2523,7 +2523,7 @@
       "line": 121,
       "reviewedSourceSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_credentials.js: Only async rejection wrappers. Ten synthetic stored/migrated/staged/discarded credential literals remain temporary credential store fixtures; no provider requests. Restored 6 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2542,8 +2542,8 @@
       "fingerprints": {
         "0": "68d0344b37f0203242daa61e860cb3f50751ee5cd4d352da60f3ff2a8fd955f8",
         "1": "e7fd436d.4773f344.607187b5.e052b9a9.79a7d027.c94f2c31.80eb7e1f.e0f43150.4a429d10.59da5bcb.f815c231.d7919eeb.79a7d027.c94f2c31.aae58e7b.e0f43150",
-        "snyk/asset/finding/v1": "68a1f53d-6f82-4221-baf2-f9f213aab9f2",
-        "identity": "68a1f53d-6f82-4221-baf2-f9f213aab9f2"
+        "identity": "68a1f53d-6f82-4221-baf2-f9f213aab9f2",
+        "snyk/asset/finding/v1": "68a1f53d-6f82-4221-baf2-f9f213aab9f2"
       },
       "evidenceSha256": "208225e92ba04293bdf3b172e4aacad61cfca4364e2060d028fb92283fda75b5"
     },
@@ -2554,7 +2554,7 @@
       "line": 45,
       "reviewedSourceSha256": "8e5c78f76dd36d0edaf5c6b53af64ecf564e443a7bbdb0ebc73760f6acbf0562",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2573,8 +2573,8 @@
       "fingerprints": {
         "0": "41185e34df97402d06d8df37c91ecbcb5c5fcec1380fd66b9e7022039f0331ee",
         "1": "9685ad90.7860c269.296cb380.e052b9a9.79a7d027.0bef13c7.80eb7e1f.e0f43150.5d47fc0c.99355a7d.43f75789.d7919eeb.79a7d027.0bef13c7.faf26d9f.6e96b1ed",
-        "identity": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737",
-        "snyk/asset/finding/v1": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737"
+        "snyk/asset/finding/v1": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737",
+        "identity": "0a1d7ecb-1e75-4eb7-b578-a59bf2d08737"
       },
       "evidenceSha256": "3f852e2c5048792303688f3f927361215645a02fc98e88af6b7271ce424d3567"
     },
@@ -2585,7 +2585,7 @@
       "line": 188,
       "reviewedSourceSha256": "a63efc6f437dd78e2ccdcaef93aa3373f8a03d8f0526570612f3ba92fe55101c",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_failures.js: Async failure mocks retained with comments, some forwarding/success mock callbacks simplified. Reported raw fill marker and persistence exclusion remain same wrapped Paper fixture. No actual credential/remote provider introduced. Restored 1 original async failure mocks, including indirect throwing helpers, preserving rejected-Promise boundary.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_trading_failures.js: Async failure mocks retained with comments, some forwarding/success mock callbacks simplified. Reported raw fill marker and persistence exclusion remain same wrapped Paper fixture. No actual credential/remote provider introduced. Restored 1 original async failure mocks, including indirect throwing helpers, preserving rejected-Promise boundary.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2616,7 +2616,7 @@
       "line": 83,
       "reviewedSourceSha256": "d7c8970d51a13ee4319a1f529646118ca7616f4f72e52fbca161cea048d16933",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_change_reviews.js: Equivalent string interpolation, null cursor sentinel, assertion comments and async rejection wrappers. Four reported private/password markers remain local redaction fixtures. Restored 10 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_change_reviews.js: Equivalent string interpolation, null cursor sentinel, assertion comments and async rejection wrappers. Four reported private/password markers remain local redaction fixtures. Restored 10 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2635,8 +2635,8 @@
       "fingerprints": {
         "0": "90f01cb55a13fb5aaac3f463e12fe9d96e2131d50943d64beb5fb3c074834786",
         "1": "fc3065be.3f481afb.0249c237.e052b9a9.79a7d027.5f3dccdf.7603ada4.a60c1927.fc3065be.4773f344.607187b5.e052b9a9.79a7d027.5f3dccdf.7603ada4.3cee0341",
-        "snyk/asset/finding/v1": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0",
-        "identity": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0"
+        "identity": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0",
+        "snyk/asset/finding/v1": "3aa7677b-1f71-466e-9cd9-f08e3382c0c0"
       },
       "evidenceSha256": "fd48fca30f77f7b53a11b2464d55c1559ae1e151c2ebc76671a6ad7f115638db"
     },
@@ -2647,7 +2647,7 @@
       "line": 83,
       "reviewedSourceSha256": "d7c8970d51a13ee4319a1f529646118ca7616f4f72e52fbca161cea048d16933",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_change_reviews.js: Equivalent string interpolation, null cursor sentinel, assertion comments and async rejection wrappers. Four reported private/password markers remain local redaction fixtures. Restored 10 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_change_reviews.js: Equivalent string interpolation, null cursor sentinel, assertion comments and async rejection wrappers. Four reported private/password markers remain local redaction fixtures. Restored 10 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2678,7 +2678,7 @@
       "line": 117,
       "reviewedSourceSha256": "9210bbe4cb3d5bc11cbde580fad05a984eaf74817d5f594ef2d885863d0f17a8",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_next_reads.js: Preserved async failing DB mock, comments, null cursor sentinel and rejection wrappers. Four private payload markers remain parameterized inserts into temp SQLite followed by projection/privacy assertions. Restored 2 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_next_reads.js: Preserved async failing DB mock, comments, null cursor sentinel and rejection wrappers. Four private payload markers remain parameterized inserts into temp SQLite followed by projection/privacy assertions. Restored 2 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2709,7 +2709,7 @@
       "line": 225,
       "reviewedSourceSha256": "9210bbe4cb3d5bc11cbde580fad05a984eaf74817d5f594ef2d885863d0f17a8",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_next_reads.js: Preserved async failing DB mock, comments, null cursor sentinel and rejection wrappers. Four private payload markers remain parameterized inserts into temp SQLite followed by projection/privacy assertions. Restored 2 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_next_reads.js: Preserved async failing DB mock, comments, null cursor sentinel and rejection wrappers. Four private payload markers remain parameterized inserts into temp SQLite followed by projection/privacy assertions. Restored 2 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2740,7 +2740,7 @@
       "line": 226,
       "reviewedSourceSha256": "9210bbe4cb3d5bc11cbde580fad05a984eaf74817d5f594ef2d885863d0f17a8",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_next_reads.js: Preserved async failing DB mock, comments, null cursor sentinel and rejection wrappers. Four private payload markers remain parameterized inserts into temp SQLite followed by projection/privacy assertions. Restored 2 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_next_reads.js: Preserved async failing DB mock, comments, null cursor sentinel and rejection wrappers. Four private payload markers remain parameterized inserts into temp SQLite followed by projection/privacy assertions. Restored 2 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2771,7 +2771,7 @@
       "line": 251,
       "reviewedSourceSha256": "9210bbe4cb3d5bc11cbde580fad05a984eaf74817d5f594ef2d885863d0f17a8",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_next_reads.js: Preserved async failing DB mock, comments, null cursor sentinel and rejection wrappers. Four private payload markers remain parameterized inserts into temp SQLite followed by projection/privacy assertions. Restored 2 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_next_reads.js: Preserved async failing DB mock, comments, null cursor sentinel and rejection wrappers. Four private payload markers remain parameterized inserts into temp SQLite followed by projection/privacy assertions. Restored 2 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2790,8 +2790,8 @@
       "fingerprints": {
         "0": "6f7273baef88ae6fa36f1113c7186392468de4412c8db4951a46941163fe24d9",
         "1": "fc3065be.4773f344.607187b5.e052b9a9.79a7d027.fcf3002d.a56a8b5b.3cee0341.fc3065be.8d6036c5.1b459778.e052b9a9.79a7d027.8020cfdf.a56a8b5b.07051301",
-        "identity": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee",
-        "snyk/asset/finding/v1": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee"
+        "snyk/asset/finding/v1": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee",
+        "identity": "b5e65e5e-67c1-4a23-8c51-3c5e4404fdee"
       },
       "evidenceSha256": "220173918936178a24033473e046bf5acd902414f0c7054770528fffbd852fa7"
     },
@@ -2802,7 +2802,7 @@
       "line": 1317,
       "reviewedSourceSha256": "2cd157913dd7dfe3691fb2c60c45c65f4f163321290877df1b307570df763231",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_web_server.js: Fixture callbacks simplified, audit remains Promise rejection, restore/reset add receiver assertions. Synthetic managed-key POST still loopback fixture with temporary secret store, same endpoint/privacy assertions. src/web_server.ts: Type-only body views, async deletion handlers still require confirmation, captured restore/reset methods called with appState receiver, authorizeLocalSession remains async with same guards. HTTP listener/default host, authenticator dispatch and secret route unchanged. No expanded network scope; existing accepted HTTP risk remains open.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_web_server.js: Fixture callbacks simplified, audit remains Promise rejection, restore/reset add receiver assertions. Synthetic managed-key POST still loopback fixture with temporary secret store, same endpoint/privacy assertions. src/web_server.ts: Type-only body views, async deletion handlers still require confirmation, captured restore/reset methods called with appState receiver, authorizeLocalSession remains async with same guards. HTTP listener/default host, authenticator dispatch and secret route unchanged. No expanded network scope; existing accepted HTTP risk remains open.",
       "contextPaths": [
         {
           "path": "src/web_server.ts",
@@ -2826,8 +2826,8 @@
       "fingerprints": {
         "0": "23da609e015fa5db04d5bdc2d52ec95d4d4240f9fb63c92c58bed68b3f71473f",
         "1": "70641390.4773f344.5111edd4.e052b9a9.79a7d027.16814402.ac4cca8a.636f6787.70641390.4773f344.5111edd4.e052b9a9.79a7d027.16814402.ac4cca8a.636f6787",
-        "snyk/asset/finding/v1": "d1163842-b198-4156-ab79-efd0cd8da57d",
-        "identity": "d1163842-b198-4156-ab79-efd0cd8da57d"
+        "identity": "d1163842-b198-4156-ab79-efd0cd8da57d",
+        "snyk/asset/finding/v1": "d1163842-b198-4156-ab79-efd0cd8da57d"
       },
       "evidenceSha256": "580e3d576d614455ff7f01251053995dce251ca8e20deaa6a80a160f3e05f359",
       "priorReview": {
@@ -2852,7 +2852,7 @@
       "line": 71,
       "reviewedSourceSha256": "f4fc67a296b6e96a11c7c6430e86481bca19cc3ef9d62efb73a89ff6458d4fdb",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported metrics response uses JSON.stringify with application/json, no-store and nosniff; it does not render exception text as HTML. This XSS disposition is not a blanket claim that arbitrary exception messages contain no sensitive data. Current binding review: tests/test_metrics.js: Preserved async operational failure mock and wrapper cleanup. JSON response/header XSS rationale in unchanged production metrics remains valid; actual failure assertion still present.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported metrics response uses JSON.stringify with application/json, no-store and nosniff; it does not render exception text as HTML. This XSS disposition is not a blanket claim that arbitrary exception messages contain no sensitive data. Current binding review: tests/test_metrics.js: Preserved async operational failure mock and wrapper cleanup. JSON response/header XSS rationale in unchanged production metrics remains valid; actual failure assertion still present.",
       "contextPaths": [
         {
           "path": "tests/test_metrics.js",
@@ -2924,7 +2924,7 @@
       "line": 55,
       "reviewedSourceSha256": "9588fd81215a55fc225fabf4e4ac8ddbc892742f98ebd5bbfea55eb0da58e6d7",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The response ends with encrypted binary artifact bytes copied from the test-owned objects Map; its client is the loopback BackupReplicator, not an HTML renderer. Only the default download hook changed from async no-op to Promise.resolve. Stored bytes, transport fixture and integrity assertions remain unchanged; no browser XSS sink is exercised. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The response ends with encrypted binary artifact bytes copied from the test-owned objects Map; its client is the loopback BackupReplicator, not an HTML renderer. Only the default download hook changed from async no-op to Promise.resolve. Stored bytes, transport fixture and integrity assertions remain unchanged; no browser XSS sink is exercised. All source/context byte commitments are unchanged from the preceding independent review. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -2971,8 +2971,8 @@
       "fingerprints": {
         "0": "fac6466c4e4e0c184ab9ca20ae9b37e4196c2ff372ca8d198574533a0ac46da2",
         "1": "bc441d81.4773f344.607187b5.7f82e2f6.ef9f7d82.756a1932.cd61fc56.8be9f57d.bc441d81.7d4b7307.f0575b1e.62086a14.79a7d027.98c7c24d.83265159.e8752bfb",
-        "snyk/asset/finding/v1": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8",
-        "identity": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8"
+        "identity": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8",
+        "snyk/asset/finding/v1": "7b155b3b-ad12-4fd4-bd1b-c9ed01e97fd8"
       },
       "evidenceSha256": "24963220d0d3528f17befc0a2f210ffd12c2c0733704419f8f9af3c85bffae87"
     },
@@ -2983,7 +2983,7 @@
       "line": 160,
       "reviewedSourceSha256": "fad861630941f51339b205a1ec9d77e10abe3f37bee7f35b60360f011b7788e6",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. Rechecked current git-diff filename -> normalization -> FACTORS predicates flow. The script is byte-identical: patterns consist of finite literal alternatives and anchored path classifiers, with no attacker-supplied regex and no nested ambiguous repetition. Input filenames do not cause catastrophic backtracking. The only changed workflow context extends the separate schema mutation job timeout; it does not change PR-risk input, pattern selection or execution. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. Rechecked current git-diff filename -> normalization -> FACTORS predicates flow. The script is byte-identical: patterns consist of finite literal alternatives and anchored path classifiers, with no attacker-supplied regex and no nested ambiguous repetition. Input filenames do not cause catastrophic backtracking. The only changed workflow context extends the separate schema mutation job timeout; it does not change PR-risk input, pattern selection or execution. All source/context byte commitments are unchanged from the preceding independent review. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [
         {
           "path": ".github/workflows/quality.yml",
@@ -3159,8 +3159,8 @@
       "fingerprints": {
         "0": "08652c50eba851b3bcf33ecfb9636592e08a44cbcb114caa30e003b36158599c",
         "1": "556a3f69.4773f344.8b18f948.c559ebce.efe6faf0.8020cfdf.0c2d63db.6e19746a.556a3f69.b6e32c83.304e28be.ccdf159c.3f452f8c.67e8bccf.83265159.ef6bffc1",
-        "identity": "0b078f4b-85ab-487e-8951-7a4f6ec03335",
-        "snyk/asset/finding/v1": "0b078f4b-85ab-487e-8951-7a4f6ec03335"
+        "snyk/asset/finding/v1": "0b078f4b-85ab-487e-8951-7a4f6ec03335",
+        "identity": "0b078f4b-85ab-487e-8951-7a4f6ec03335"
       },
       "evidenceSha256": "02f22c2616a751f9652f6e95450e92a3d4e55746d2fca5c4770c44395c8da37a"
     },
@@ -3171,7 +3171,7 @@
       "line": 179,
       "reviewedSourceSha256": "1085882c6843ff26bffe1f76a495b1472abe79fe4433bca6906c18df4d16f77b",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The filter flow retains pattern validation/cache limits,8000-character text bound and actual safeRegexTest vm.runInContext100ms matching timeout; failures reject the filter. No unbounded matching execution was introduced. Current binding review: tests/test_filters.js: Synchronous test body wrapped in async top-level catcher. Assertions for actual timed match unchanged; no production filter input/execution change.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The filter flow retains pattern validation/cache limits,8000-character text bound and actual safeRegexTest vm.runInContext100ms matching timeout; failures reject the filter. No unbounded matching execution was introduced. Current binding review: tests/test_filters.js: Synchronous test body wrapped in async top-level catcher. Assertions for actual timed match unchanged; no production filter input/execution change.",
       "contextPaths": [
         {
           "path": "src/filters.ts",
@@ -3375,8 +3375,8 @@
       "fingerprints": {
         "0": "b43f9879c4c47a37f1a7a3c288adc5e49058518e2bed49b3a37e9d49d7ca218e",
         "1": "2d06e3d6.93dc32e3.607187b5.b62a4246.ef9f7d82.8020cfdf.29e74e17.3357ef26.6bb676bb.b6e32c83.df10db2d.3fe041cc.8695fa9e.5fce695c.55818220.e6930396",
-        "identity": "d3f09f66-f994-4652-86bf-651b0262e797",
-        "snyk/asset/finding/v1": "d3f09f66-f994-4652-86bf-651b0262e797"
+        "snyk/asset/finding/v1": "d3f09f66-f994-4652-86bf-651b0262e797",
+        "identity": "d3f09f66-f994-4652-86bf-651b0262e797"
       },
       "evidenceSha256": "c464f99ad641abfbb34942542f1c66c2c01975a9fb09652b17940545ac2bb939",
       "priorReview": {
@@ -3398,7 +3398,7 @@
       "line": 166,
       "reviewedSourceSha256": "8fb66714e7986c9e0c3781998fe7437ab3f989f35d5b2fdc05f78228762431e0",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -3429,7 +3429,7 @@
       "line": 76,
       "reviewedSourceSha256": "bc387d07c1545bb3faccecf42b3272fc7040ed94225f2f8b3d559890ada4e41d",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -3448,8 +3448,8 @@
       "fingerprints": {
         "0": "536cf9beacef877370ece2d9d1a0eef105b3275706bc7ce51a8f2d80c8ad210c",
         "1": "16691f08.962feb11.79e62dc9.9a7f5d61.b05938da.3df0c333.f6f189a3.8e816aed.16691f08.962feb11.79e62dc9.9a7f5d61.b05938da.3df0c333.f6f189a3.8e816aed",
-        "identity": "d724e3e9-b7ca-4eec-ac14-037f58090f2a",
-        "snyk/asset/finding/v1": "d724e3e9-b7ca-4eec-ac14-037f58090f2a"
+        "snyk/asset/finding/v1": "d724e3e9-b7ca-4eec-ac14-037f58090f2a",
+        "identity": "d724e3e9-b7ca-4eec-ac14-037f58090f2a"
       },
       "evidenceSha256": "e194499d24d7f86d552979306b28c918a3ac7e0ecfdc5fffc8a986c38abd0c8e"
     },
@@ -3460,7 +3460,7 @@
       "line": 84,
       "reviewedSourceSha256": "e2472c2781f767e7b03a5591bdd5b761296c352f926a4f4a50f45e6d33d4d9b3",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -3479,8 +3479,8 @@
       "fingerprints": {
         "0": "f3d186928eb91bffe4d2f1bdb862759b97768db1baf1fb6ec6b772c3f2e0565c",
         "1": "16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.186544da.16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.186544da",
-        "snyk/asset/finding/v1": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14",
-        "identity": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14"
+        "identity": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14",
+        "snyk/asset/finding/v1": "30dda6d3-4d7b-45f5-bdd0-2fb3b19dbd14"
       },
       "evidenceSha256": "04b55924928fa7169f71192b661200ce090f79b651dfbb17e27dd076c980f2e1"
     },
@@ -3491,7 +3491,7 @@
       "line": 77,
       "reviewedSourceSha256": "57b8ed4681d9d9414eb7e1dfecdeea355decdc9301bc608faa0772307632ec8b",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -3510,8 +3510,8 @@
       "fingerprints": {
         "0": "ac2630c5fc7f6ab65f4007dffc61cdd1ca83c4571bc64b6db5ae59b1e4e2773a",
         "1": "16691f08.4e7c9b67.ea818a45.f198b706.b05938da.ba14daf2.081ac3f4.186544da.16691f08.4e7c9b67.ea818a45.f198b706.b05938da.ba14daf2.081ac3f4.186544da",
-        "snyk/asset/finding/v1": "367a2dd3-ef73-4e71-8066-f992a958af8a",
-        "identity": "367a2dd3-ef73-4e71-8066-f992a958af8a"
+        "identity": "367a2dd3-ef73-4e71-8066-f992a958af8a",
+        "snyk/asset/finding/v1": "367a2dd3-ef73-4e71-8066-f992a958af8a"
       },
       "evidenceSha256": "6c2ef0f1a742ca65505401be158afd9678d740544fe807f2ad0fb5a6b9499645"
     },
@@ -3522,7 +3522,7 @@
       "line": 306,
       "reviewedSourceSha256": "d96212edfd35072cff0a4dff3ad0f38589646f51a1c871e11d83c8f1d6cf0e67",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [
         {
           "path": "exchange_executor/tests/test_kraken_response_capture.py",
@@ -3558,7 +3558,7 @@
       "line": 307,
       "reviewedSourceSha256": "d96212edfd35072cff0a4dff3ad0f38589646f51a1c871e11d83c8f1d6cf0e67",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [
         {
           "path": "exchange_executor/tests/test_kraken_response_capture.py",
@@ -3594,7 +3594,7 @@
       "line": 203,
       "reviewedSourceSha256": "0495778ef607fbed1b9e90c82d0b6befd90d978112d2d1cf07d144782fcac2cc",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -3613,8 +3613,8 @@
       "fingerprints": {
         "0": "3be4dd0318a1587ab1087b514068b757d1cc497815eb3131bb45c8bc16128caf",
         "1": "16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.8e816aed.16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.8e816aed",
-        "identity": "703c021a-6966-44a3-a93c-1405ac1a891b",
-        "snyk/asset/finding/v1": "703c021a-6966-44a3-a93c-1405ac1a891b"
+        "snyk/asset/finding/v1": "703c021a-6966-44a3-a93c-1405ac1a891b",
+        "identity": "703c021a-6966-44a3-a93c-1405ac1a891b"
       },
       "evidenceSha256": "98259595ff1b6141a8d05b453489250290feee1bf82d8cb1fbbd505d85046558"
     },
@@ -3625,7 +3625,7 @@
       "line": 27,
       "reviewedSourceSha256": "d7b2c02bf8bff382dd316105c4d366366e7e9fa88c9564205cfdd672edf97db8",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -3656,7 +3656,7 @@
       "line": 80,
       "reviewedSourceSha256": "33968224804afe64ce12f5b1923f24fcbcb5042f01cead52ec9bb25d3e0b6869",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -3675,8 +3675,8 @@
       "fingerprints": {
         "0": "91ccc51ff274818520ef2c1becc134aed1b5a55dc64b1710fb86e901b23cb633",
         "1": "16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.8e816aed.16691f08.962feb11.ea818a45.9a7f5d61.b05938da.ba14daf2.cbfa2b68.8e816aed",
-        "identity": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34",
-        "snyk/asset/finding/v1": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34"
+        "snyk/asset/finding/v1": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34",
+        "identity": "c80a0c2c-6b16-4ae6-859e-d913ac3b8d34"
       },
       "evidenceSha256": "e83b648821c0fda3f16abcf1f3ea8061fbf92fe3cf3a910c2df39a85381b8844"
     },
@@ -3687,7 +3687,7 @@
       "line": 127,
       "reviewedSourceSha256": "feb162ba8b932c32519ceab3c01d5953477dd8f0fe7b6c82895ec0e3a16eb325",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -3706,8 +3706,8 @@
       "fingerprints": {
         "0": "d646a927458ac954b1ab134a7a933b13ac186c3fba6e1a3c64ba0e9b71a7310c",
         "1": "49052ff0.bfd5ee6d.ea818a45.841b96d6.ed07ea9a.ba14daf2.081ac3f4.186544da.49052ff0.bfd5ee6d.ea818a45.841b96d6.ed07ea9a.ba14daf2.081ac3f4.186544da",
-        "identity": "2e366098-cb83-4d7f-961a-1fea7a162a44",
-        "snyk/asset/finding/v1": "2e366098-cb83-4d7f-961a-1fea7a162a44"
+        "snyk/asset/finding/v1": "2e366098-cb83-4d7f-961a-1fea7a162a44",
+        "identity": "2e366098-cb83-4d7f-961a-1fea7a162a44"
       },
       "evidenceSha256": "0092de21b5a174b51130a6660a19fe438a3d3409559d73346f5fd9a635284620"
     },
@@ -3718,7 +3718,7 @@
       "line": 44,
       "reviewedSourceSha256": "43132b9ca992e14994fb88017ee779a328ec30a45edb0465e55ca598fb46e525",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -3749,7 +3749,7 @@
       "line": 39,
       "reviewedSourceSha256": "201315471a17d262276995a993e149791aa6d8199ba231de1d3c0d1bd5805014",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: exchange_executor/tests/test_recovery_schedule.py: Two next selectors extracted with explicit self.fail on missing rows; same predicates and assertions. Fake Bybit signer remains paired with local rest.fetch interception; no provider access.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: exchange_executor/tests/test_recovery_schedule.py: Two next selectors extracted with explicit self.fail on missing rows; same predicates and assertions. Fake Bybit signer remains paired with local rest.fetch interception; no provider access.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -3768,8 +3768,8 @@
       "fingerprints": {
         "0": "65dfdbdfcc1a9c6bba80adbfc89f5304ff75ec58dba22d5117dc22cb564ef5ba",
         "1": "5ab40f6d.962feb11.79e62dc9.9a7f5d61.32acb5bc.ba14daf2.cbfa2b68.293ad86a.5ab40f6d.962feb11.79e62dc9.9a7f5d61.32acb5bc.ba14daf2.cbfa2b68.293ad86a",
-        "identity": "661f9264-b2a0-4f46-8f75-c629b1c80f36",
-        "snyk/asset/finding/v1": "661f9264-b2a0-4f46-8f75-c629b1c80f36"
+        "snyk/asset/finding/v1": "661f9264-b2a0-4f46-8f75-c629b1c80f36",
+        "identity": "661f9264-b2a0-4f46-8f75-c629b1c80f36"
       },
       "evidenceSha256": "ac079c3ce975fe3bd3c8e53e0a7118dcdb21f7924f84395ef1d81fe129d00f22"
     },
@@ -3780,7 +3780,7 @@
       "line": 95,
       "reviewedSourceSha256": "9870faead152b11956f55e87a2433ffffd8f8c30fa660ddacad274f14a6ca739",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [
         {
           "path": "exchange_executor/tests/test_entry_price_sdk.py",
@@ -3816,7 +3816,7 @@
       "line": 77,
       "reviewedSourceSha256": "bc387d07c1545bb3faccecf42b3272fc7040ed94225f2f8b3d559890ada4e41d",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -3831,8 +3831,8 @@
       "fingerprints": {
         "0": "7145e53d595adf03c3703f6f29531a86a83d9e3bfdaa9db0dbe7f737bf2ea52e",
         "1": "16691f08.962feb11.79e62dc9.9a7f5d61.84b4d0e6.3df0c333.f6f189a3.186544da.16691f08.962feb11.5a1308ce.9a7f5d61.84b4d0e6.ba14daf2.f6f189a3.8e816aed",
-        "snyk/asset/finding/v1": "70cd754b-0fc7-4cc2-b484-1e2c90036277",
-        "identity": "70cd754b-0fc7-4cc2-b484-1e2c90036277"
+        "identity": "70cd754b-0fc7-4cc2-b484-1e2c90036277",
+        "snyk/asset/finding/v1": "70cd754b-0fc7-4cc2-b484-1e2c90036277"
       },
       "evidenceSha256": "35c6f3fd4a2746980dd61061aa87abf74fd6896ad2ec8a4375bd949bd3d71275"
     },
@@ -3843,7 +3843,7 @@
       "line": 203,
       "reviewedSourceSha256": "0495778ef607fbed1b9e90c82d0b6befd90d978112d2d1cf07d144782fcac2cc",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -3858,8 +3858,8 @@
       "fingerprints": {
         "0": "6eabd18aa59a0e989d1b115fd4e6f08871e7f21176875e180e47d40bfaf60cdb",
         "1": "16691f08.962feb11.ea818a45.9a7f5d61.84b4d0e6.ba14daf2.cbfa2b68.186544da.16691f08.962feb11.ea818a45.9a7f5d61.84b4d0e6.ba14daf2.cbfa2b68.8e816aed",
-        "identity": "34a2fb72-f24d-4687-b513-e791a4ab2632",
-        "snyk/asset/finding/v1": "34a2fb72-f24d-4687-b513-e791a4ab2632"
+        "snyk/asset/finding/v1": "34a2fb72-f24d-4687-b513-e791a4ab2632",
+        "identity": "34a2fb72-f24d-4687-b513-e791a4ab2632"
       },
       "evidenceSha256": "7ff76791ccee1f8dfbc6783d85dc088b0fd66eb1c45f44b9621213c9d0f32cd8"
     },
@@ -3870,7 +3870,7 @@
       "line": 81,
       "reviewedSourceSha256": "33968224804afe64ce12f5b1923f24fcbcb5042f01cead52ec9bb25d3e0b6869",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -3885,8 +3885,8 @@
       "fingerprints": {
         "0": "30a5b979a171b3b3126c0b424bb3b6e27de8092581ba98e3686734da7b253e1b",
         "1": "16691f08.962feb11.ea818a45.9a7f5d61.84b4d0e6.ba14daf2.cbfa2b68.186544da.16691f08.962feb11.ea818a45.9a7f5d61.f6d5e68a.ba14daf2.cbfa2b68.8e816aed",
-        "snyk/asset/finding/v1": "3823fd00-85ed-47e6-b085-8b3b2655febc",
-        "identity": "3823fd00-85ed-47e6-b085-8b3b2655febc"
+        "identity": "3823fd00-85ed-47e6-b085-8b3b2655febc",
+        "snyk/asset/finding/v1": "3823fd00-85ed-47e6-b085-8b3b2655febc"
       },
       "evidenceSha256": "9dcd010d339293dfd57f9c47ee9e041be98d0d4c29a56f8248751c820cca136e"
     },
@@ -3897,7 +3897,7 @@
       "line": 174,
       "reviewedSourceSha256": "7ada44e6e5159fa17b01b9e945b11e85cf80812acc833531b92620c873b56e1a",
       "disposition": "open",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. This is an actual internal plaintext HTTP transport risk. Listener/destination, token/authorization and deployment scope remain unchanged in the reviewed delta. It stays OPEN under the exact owner acceptance expiring2026-10-08; no risk closure or extension. Current binding review: src/alert_relay.ts: Request promise now has terminal catch destroying response on unexpected handler rejection; catch type views erased. Same http.createServer, token policy, timeout, host/default and outgoing webhook settings. Existing plaintext transport remains accepted open risk. src/runtime_settings.ts: Only catch type views, async comment and nullish sync-error fallback preserving allowlist outcome. Validator, webhook scheme and environment transport values unchanged. tests/test_alert_relay.js: Only undefined assertion comment. Local mock receiver scope/token data unchanged.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. This is an actual internal plaintext HTTP transport risk. Listener/destination, token/authorization and deployment scope remain unchanged in the reviewed delta. It stays OPEN under the exact owner acceptance expiring2026-10-08; no risk closure or extension. Current binding review: src/alert_relay.ts: Request promise now has terminal catch destroying response on unexpected handler rejection; catch type views erased. Same http.createServer, token policy, timeout, host/default and outgoing webhook settings. Existing plaintext transport remains accepted open risk. src/runtime_settings.ts: Only catch type views, async comment and nullish sync-error fallback preserving allowlist outcome. Validator, webhook scheme and environment transport values unchanged. tests/test_alert_relay.js: Only undefined assertion comment. Local mock receiver scope/token data unchanged.",
       "contextPaths": [
         {
           "path": "config/runtime-settings.json",
@@ -3966,7 +3966,7 @@
       "line": 297,
       "reviewedSourceSha256": "f4fc67a296b6e96a11c7c6430e86481bca19cc3ef9d62efb73a89ff6458d4fdb",
       "disposition": "open",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. This is an actual internal plaintext HTTP transport risk. Listener/destination, token/authorization and deployment scope remain unchanged in the reviewed delta. It stays OPEN under the exact owner acceptance expiring2026-10-08; no risk closure or extension. Current binding review: src/forwarder.ts: Named tdl imports/call sites, declaration ordering, fatal initialization rethrow, async callback retention, void removal and comments. Dashboard/metrics/viewer URLs, auth tokens, listener start options and trusted service URL constraints unchanged. No HTTP risk closure claimed. tests/test_metrics.js: Preserved async operational failure mock and wrapper cleanup. JSON response/header XSS rationale in unchanged production metrics remains valid; actual failure assertion still present.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. This is an actual internal plaintext HTTP transport risk. Listener/destination, token/authorization and deployment scope remain unchanged in the reviewed delta. It stays OPEN under the exact owner acceptance expiring2026-10-08; no risk closure or extension. Current binding review: src/forwarder.ts: Named tdl imports/call sites, declaration ordering, fatal initialization rethrow, async callback retention, void removal and comments. Dashboard/metrics/viewer URLs, auth tokens, listener start options and trusted service URL constraints unchanged. No HTTP risk closure claimed. tests/test_metrics.js: Preserved async operational failure mock and wrapper cleanup. JSON response/header XSS rationale in unchanged production metrics remains valid; actual failure assertion still present.",
       "contextPaths": [
         {
           "path": "src/forwarder.ts",
@@ -4010,8 +4010,8 @@
       "fingerprints": {
         "0": "b9f3241e9e75d30f64455e367f6d8af68a10b8a36cc85bd37eab481068803893",
         "1": "aac70831.4773f344.607187b5.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.cd61fc56.89d75565",
-        "snyk/asset/finding/v1": "d75bc03c-19a7-4475-809c-525e9240e836",
-        "identity": "d75bc03c-19a7-4475-809c-525e9240e836"
+        "identity": "d75bc03c-19a7-4475-809c-525e9240e836",
+        "snyk/asset/finding/v1": "d75bc03c-19a7-4475-809c-525e9240e836"
       },
       "evidenceSha256": "cb36e7cab386ac58fffd0773810bc403ea0abb3472a0ada33809fe4a61379088"
     },
@@ -4022,7 +4022,7 @@
       "line": 55,
       "reviewedSourceSha256": "34f8c841e22275f97d537366c47cff93c5a88ca144f0d9567a2cdb801bc67484",
       "disposition": "open",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. This is an actual internal plaintext HTTP transport risk. Listener/destination, token/authorization and deployment scope remain unchanged in the reviewed delta. It stays OPEN under the exact owner acceptance expiring2026-10-08; no risk closure or extension. Current binding review: src/forwarder.ts: Named tdl imports/call sites, declaration ordering, fatal initialization rethrow, async callback retention, void removal and comments. Dashboard/metrics/viewer URLs, auth tokens, listener start options and trusted service URL constraints unchanged. No HTTP risk closure claimed.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. This is an actual internal plaintext HTTP transport risk. Listener/destination, token/authorization and deployment scope remain unchanged in the reviewed delta. It stays OPEN under the exact owner acceptance expiring2026-10-08; no risk closure or extension. Current binding review: src/forwarder.ts: Named tdl imports/call sites, declaration ordering, fatal initialization rethrow, async callback retention, void removal and comments. Dashboard/metrics/viewer URLs, auth tokens, listener start options and trusted service URL constraints unchanged. No HTTP risk closure claimed.",
       "contextPaths": [
         {
           "path": "src/telegram_viewer/runtime.ts",
@@ -4089,7 +4089,7 @@
       "line": 3266,
       "reviewedSourceSha256": "958ca95e309ff33ad1285966a7f8867f722638c0b6bd24212af0784558049c9c",
       "disposition": "open",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. This is an actual internal plaintext HTTP transport risk. Listener/destination, token/authorization and deployment scope remain unchanged in the reviewed delta. It stays OPEN under the exact owner acceptance expiring2026-10-08; no risk closure or extension. Current binding review: src/web_server.ts: Type-only body views, async deletion handlers still require confirmation, captured restore/reset methods called with appState receiver, authorizeLocalSession remains async with same guards. HTTP listener/default host, authenticator dispatch and secret route unchanged. No expanded network scope; existing accepted HTTP risk remains open. src/forwarder.ts: Named tdl imports/call sites, declaration ordering, fatal initialization rethrow, async callback retention, void removal and comments. Dashboard/metrics/viewer URLs, auth tokens, listener start options and trusted service URL constraints unchanged. No HTTP risk closure claimed. src/dashboard_auth.ts: Stateless localSessionsEnabled made private static and both calls updated; native async authenticate methods retained. Token comparison, configured-token prerequisite, expiry and enterprise restrictions unchanged. src/runtime_settings.ts: Only catch type views, async comment and nullish sync-error fallback preserving allowlist outcome. Validator, webhook scheme and environment transport values unchanged. tests/test_web_server.js: Fixture callbacks simplified, audit remains Promise rejection, restore/reset add receiver assertions. Synthetic managed-key POST still loopback fixture with temporary secret store, same endpoint/privacy assertions.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. This is an actual internal plaintext HTTP transport risk. Listener/destination, token/authorization and deployment scope remain unchanged in the reviewed delta. It stays OPEN under the exact owner acceptance expiring2026-10-08; no risk closure or extension. Current binding review: src/web_server.ts: Type-only body views, async deletion handlers still require confirmation, captured restore/reset methods called with appState receiver, authorizeLocalSession remains async with same guards. HTTP listener/default host, authenticator dispatch and secret route unchanged. No expanded network scope; existing accepted HTTP risk remains open. src/forwarder.ts: Named tdl imports/call sites, declaration ordering, fatal initialization rethrow, async callback retention, void removal and comments. Dashboard/metrics/viewer URLs, auth tokens, listener start options and trusted service URL constraints unchanged. No HTTP risk closure claimed. src/dashboard_auth.ts: Stateless localSessionsEnabled made private static and both calls updated; native async authenticate methods retained. Token comparison, configured-token prerequisite, expiry and enterprise restrictions unchanged. src/runtime_settings.ts: Only catch type views, async comment and nullish sync-error fallback preserving allowlist outcome. Validator, webhook scheme and environment transport values unchanged. tests/test_web_server.js: Fixture callbacks simplified, audit remains Promise rejection, restore/reset add receiver assertions. Synthetic managed-key POST still loopback fixture with temporary secret store, same endpoint/privacy assertions.",
       "contextPaths": [
         {
           "path": "src/forwarder.ts",
@@ -4166,7 +4166,7 @@
       "line": 23,
       "reviewedSourceSha256": "0477f3d676e457feb0b075955ed60df465ed219611ad3fdc65b1a6d8177222b8",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. Current binding review: tests/test_alert_relay.js: Only undefined assertion comment. Local mock receiver scope/token data unchanged.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. Current binding review: tests/test_alert_relay.js: Only undefined assertion comment. Local mock receiver scope/token data unchanged.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -4181,8 +4181,8 @@
       "fingerprints": {
         "0": "56208b61c10f8f5c0699751d3f98e8522b648c1d4757940c8da04b69bcbf2c2e",
         "1": "aac70831.4773f344.8ea8e497.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.1cce3d77.e350f12c.4773f344.8ea8e497.c559ebce.e2d34e38.5fce695c.66b97542.1cce3d77",
-        "snyk/asset/finding/v1": "bd4b655d-7094-41a4-8532-ca8faca295a0",
-        "identity": "bd4b655d-7094-41a4-8532-ca8faca295a0"
+        "identity": "bd4b655d-7094-41a4-8532-ca8faca295a0",
+        "snyk/asset/finding/v1": "bd4b655d-7094-41a4-8532-ca8faca295a0"
       },
       "evidenceSha256": "ba26cb439895f28ba7f268f84bbd7a7ea65facb646b6b30368cef5a9adf64f69"
     },
@@ -4193,7 +4193,7 @@
       "line": 13,
       "reviewedSourceSha256": "2c95c5df53946d0a8d3250b8b4def5bde3960a53d41a1d94f4f0638790249e5a",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -4208,8 +4208,8 @@
       "fingerprints": {
         "0": "82c9326ce084a715deb1ac1a54d2ce157bd70f983b3db67b85fbf7b1e680ebcd",
         "1": "aac70831.4773f344.8b18f948.c559ebce.a3d24608.6f0d36d4.cd61fc56.3cee0341.e350f12c.4773f344.72aa1700.c559ebce.a3d24608.5fce695c.66b97542.89d75565",
-        "identity": "0e0cc32d-e62a-494f-b96a-0871ca8206b0",
-        "snyk/asset/finding/v1": "0e0cc32d-e62a-494f-b96a-0871ca8206b0"
+        "snyk/asset/finding/v1": "0e0cc32d-e62a-494f-b96a-0871ca8206b0",
+        "identity": "0e0cc32d-e62a-494f-b96a-0871ca8206b0"
       },
       "evidenceSha256": "9fd04dd0dc6ffe3a7072bd3910dc4ee6b609a2d3b738e72a0e95eae400e0b770"
     },
@@ -4220,7 +4220,7 @@
       "line": 28,
       "reviewedSourceSha256": "9588fd81215a55fc225fabf4e4ac8ddbc892742f98ebd5bbfea55eb0da58e6d7",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. All source/context byte commitments are unchanged from the preceding independent review.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. All source/context byte commitments are unchanged from the preceding independent review.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -4235,8 +4235,8 @@
       "fingerprints": {
         "0": "e27b72ba45ff527c389a555e6b42d836cc01bb8e5a362f4186d291ddbe283503",
         "1": "aac70831.4773f344.8b18f948.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.4773f344.72aa1700.c559ebce.e2d34e38.5fce695c.66b97542.89d75565",
-        "identity": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb",
-        "snyk/asset/finding/v1": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb"
+        "snyk/asset/finding/v1": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb",
+        "identity": "64c8ffd4-f4c9-4b1d-8408-f1586196c3cb"
       },
       "evidenceSha256": "11b20dfbca222c028697c3482cc67665841330f4077fda5e1059d081f5f45656"
     },
@@ -4247,7 +4247,7 @@
       "line": 98,
       "reviewedSourceSha256": "94ce44bb79596d1533c0d5a7676e8791a9306daeb2c20a6e9ad136144192da5f",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. Current binding review: tests/test_ccxt_exchange.js: Async assertion wrappers and retained failing fetch fixture, comment on undefined sentinel. Mock executor still explicit127.0.0.1 ephemeral port; synthetic credentials only. Restored 10 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. Current binding review: tests/test_ccxt_exchange.js: Async assertion wrappers and retained failing fetch fixture, comment on undefined sentinel. Mock executor still explicit127.0.0.1 ephemeral port; synthetic credentials only. Restored 10 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -4274,7 +4274,7 @@
       "line": 81,
       "reviewedSourceSha256": "956adf9a09d026cc07000e1e8f7a45cd1fd5cf7349d6ea5d17dbb59450cf172a",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. Current binding review: tests/test_trading_recovery_schedule_transport.js: Promise-returning DB lookup helpers simplified and comments. HTTP fixture still explicit loopback; table selector allowlist retained.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. Current binding review: tests/test_trading_recovery_schedule_transport.js: Promise-returning DB lookup helpers simplified and comments. HTTP fixture still explicit loopback; table selector allowlist retained.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -4289,8 +4289,8 @@
       "fingerprints": {
         "0": "996c2a6c1f5158bcad65ce54d83797a49a83a70ab5ce00e88a4943db6cf40029",
         "1": "aac70831.4773f344.8b18f948.c559ebce.ac82cb7b.6f0d36d4.cd61fc56.63ad1ad6.e350f12c.b6e32c83.72aa1700.c559ebce.e2d34e38.5fce695c.66b97542.89d75565",
-        "identity": "a42d6e8a-142f-4310-951e-4781a06c3fa5",
-        "snyk/asset/finding/v1": "a42d6e8a-142f-4310-951e-4781a06c3fa5"
+        "snyk/asset/finding/v1": "a42d6e8a-142f-4310-951e-4781a06c3fa5",
+        "identity": "a42d6e8a-142f-4310-951e-4781a06c3fa5"
       },
       "evidenceSha256": "845fe2015169abe4953200017a4b63b6f9297fbbff6e812f82dc7042af121c03"
     },
@@ -4301,7 +4301,7 @@
       "line": 60,
       "reviewedSourceSha256": "d64aaa290b900eadd039ff3f6c92c7dddce4d166b0184b9d17e22c8990d1492a",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. Current binding review: tests/test_startup_authority.js: Only comments preserving async failure and audit race callbacks. Empty createServer listener still loopback ephemeral port collision witness.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. Current binding review: tests/test_startup_authority.js: Only comments preserving async failure and audit race callbacks. Empty createServer listener still loopback ephemeral port collision witness.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -4328,7 +4328,7 @@
       "line": 80,
       "reviewedSourceSha256": "71be392af8f388b22e5591a22b72f4169cc538e0494c2e574a9ae6a8af10c90d",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. Current binding review: src/web_server.ts: Type-only body views, async deletion handlers still require confirmation, captured restore/reset methods called with appState receiver, authorizeLocalSession remains async with same guards. HTTP listener/default host, authenticator dispatch and secret route unchanged. No expanded network scope; existing accepted HTTP risk remains open. tests/fixtures/ui_restart_child.js: Noop/never-settles comments, void removal and string template replacement. Fixed state/shutdown filenames and external fetch rejection unchanged. tests/fixtures/ui_restart_fixture.js: Noop comment, preserved async routing blocker, equivalent string interpolation. Fixed effects/audit files and synthetic app controls unchanged.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. Current binding review: src/web_server.ts: Type-only body views, async deletion handlers still require confirmation, captured restore/reset methods called with appState receiver, authorizeLocalSession remains async with same guards. HTTP listener/default host, authenticator dispatch and secret route unchanged. No expanded network scope; existing accepted HTTP risk remains open. tests/fixtures/ui_restart_child.js: Noop/never-settles comments, void removal and string template replacement. Fixed state/shutdown filenames and external fetch rejection unchanged. tests/fixtures/ui_restart_fixture.js: Noop comment, preserved async routing blocker, equivalent string interpolation. Fixed effects/audit files and synthetic app controls unchanged.",
       "contextPaths": [
         {
           "path": "src/web_server.ts",
@@ -4382,7 +4382,7 @@
       "line": 41,
       "reviewedSourceSha256": "9b6cd2b301ea848e453644d998df669a36c4e2e8f49cd4c3a7876a57ec98fba0",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. Current binding review: tests/test_ui_restart_recovery.js: Only preserved async failing audit fixture comment. Client target remains fixture loopback base plus fixed command path. src/web_server.ts: Type-only body views, async deletion handlers still require confirmation, captured restore/reset methods called with appState receiver, authorizeLocalSession remains async with same guards. HTTP listener/default host, authenticator dispatch and secret route unchanged. No expanded network scope; existing accepted HTTP risk remains open. tests/fixtures/ui_restart_fixture.js: Noop comment, preserved async routing blocker, equivalent string interpolation. Fixed effects/audit files and synthetic app controls unchanged.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported HTTP transport belongs to an explicitly loopback/ephemeral-port local integration fixture with synthetic controls and credentials, not a deployed public endpoint. Current binding review: tests/test_ui_restart_recovery.js: Only preserved async failing audit fixture comment. Client target remains fixture loopback base plus fixed command path. src/web_server.ts: Type-only body views, async deletion handlers still require confirmation, captured restore/reset methods called with appState receiver, authorizeLocalSession remains async with same guards. HTTP listener/default host, authenticator dispatch and secret route unchanged. No expanded network scope; existing accepted HTTP risk remains open. tests/fixtures/ui_restart_fixture.js: Noop comment, preserved async routing blocker, equivalent string interpolation. Fixed effects/audit files and synthetic app controls unchanged.",
       "contextPaths": [
         {
           "path": "src/web_server.ts",
@@ -4406,8 +4406,8 @@
       "fingerprints": {
         "0": "3456dbfa14fe774150f99d616ecef05ba9fb4ad32450b3480ca687e090df475c",
         "1": "aac70831.4773f344.8b18f948.51947e3c.ac82cb7b.98c7c24d.261fc002.f88a252f.e350f12c.b6e32c83.ec4bfb0b.51947e3c.e2d34e38.5fce695c.66b97542.f88a252f",
-        "snyk/asset/finding/v1": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
-        "identity": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75"
+        "identity": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75",
+        "snyk/asset/finding/v1": "0de4e7cb-fe35-4ee0-a432-74d1a4c97b75"
       },
       "evidenceSha256": "97305176a16abb4743b323ee9ae49cda281fbc508180a53e6caba9998a1ee8da",
       "priorReview": {
@@ -4432,7 +4432,7 @@
       "line": 293,
       "reviewedSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. Independently reread absolute interpreter/fixed Python bridge spawn. Approval mapping changes only exact reviewed receipt digest at same key; executable remains canonical operator-selected file and args fixed -I/-B/-c bridge/root, shell:false, timeout/output bounds unchanged. Receipt content cannot choose executable arguments or approval entries. Current binding review: scripts/verify_exchange_implementation.js: Only control-character validation rationale comment. Read canonicalDirectory, safeRelative, ordinaryFile, stableBytes and spawnSync: canonical non-symlink/single-link pre/open/post checks and bounded no-shell absolute interpreter execution unchanged. exchange_executor/ccxt_implementation_reviews.py: Independently reviewed exact single-value MappingProxyType pin replacement9d56 to b8a1da39188d71fd1c93058356a94895732971de243a608bea94c3ac7c2ca486; same Hyperliquid/profile1 key only. Scope/SDK/profile/providerAcceptanceVerifiedfalse unchanged; actual receipt hash matches root-approved independently archived candidate. Productive verifier and bridge completion/log hashes checked. No path/command selector introduced. package.json: Only fast-uri override3.1.7 to3.1.8. No script, interpreter, CLI argument, path source or approval authority change.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. Root re-reviewed the unchanged bounded file-read/interpreter flow and exact one-value immutable authority pin change from b8a1da39 to a6cf9462. Fresh226/333/548 tests, candidate and archive verification, actual production and bridge checks validate the new test-only receipt. Same sole Hyperliquid/profile1 approval; canonical path, single-link/no-follow identity checks, fixed interpreter arguments, shell:false and bounds unchanged. No new path or executable selection and no provider acceptance. Current binding review: scripts/verify_exchange_implementation.js: Only control-character validation rationale comment. Read canonicalDirectory, safeRelative, ordinaryFile, stableBytes and spawnSync: canonical non-symlink/single-link pre/open/post checks and bounded no-shell absolute interpreter execution unchanged. exchange_executor/ccxt_implementation_reviews.py: Exact single-value immutable receipt digest replacement independently compared by root; new approved receipt covers one isolated test enhancement, with runtime source unchanged and actual production+bridge verification PASS. package.json: Only fast-uri override3.1.7 to3.1.8. No script, interpreter, CLI argument, path source or approval authority change.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -4444,7 +4444,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "6ae91b30f5326e553763a329fb3223fb19be9c768145f20cefa990cde474c15e"
+          "sha256": "0d8a48a9f83b93926d7227a04017bfe8d2b15f5505f826d5a84977321f6b219d"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -4547,7 +4547,7 @@
       "line": 82,
       "reviewedSourceSha256": "ddee34d10135ce6e79f07132d33018b70cfdc5f36435cf6afe1943a8a12f82e0",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_backup.js: Async wrappers/comments and fake replicator simplification. Nested password redaction fixture and retained exclusion assertions unchanged.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_backup.js: Async wrappers/comments and fake replicator simplification. Nested password redaction fixture and retained exclusion assertions unchanged.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -4574,7 +4574,7 @@
       "line": 59,
       "reviewedSourceSha256": "d7c8970d51a13ee4319a1f529646118ca7616f4f72e52fbca161cea048d16933",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_change_reviews.js: Equivalent string interpolation, null cursor sentinel, assertion comments and async rejection wrappers. Four reported private/password markers remain local redaction fixtures. Restored 10 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_change_reviews.js: Equivalent string interpolation, null cursor sentinel, assertion comments and async rejection wrappers. Four reported private/password markers remain local redaction fixtures. Restored 10 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -4601,7 +4601,7 @@
       "line": 145,
       "reviewedSourceSha256": "d7c8970d51a13ee4319a1f529646118ca7616f4f72e52fbca161cea048d16933",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_change_reviews.js: Equivalent string interpolation, null cursor sentinel, assertion comments and async rejection wrappers. Four reported private/password markers remain local redaction fixtures. Restored 10 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. The reported literal is synthetic local test or redaction-sentinel data in the bound fixture, not a deployable provider credential. Its fixture setup, intended consumer and assertions remain isolated under the reviewed changes. Current binding review: tests/test_ui_change_reviews.js: Equivalent string interpolation, null cursor sentinel, assertion comments and async rejection wrappers. Four reported private/password markers remain local redaction fixtures. Restored 10 exact original direct assert.rejects inputs; synchronous throws can no longer masquerade as Promise rejections.",
       "contextPaths": [],
       "codeFlowLocations": [
         {
@@ -4616,8 +4616,8 @@
       "fingerprints": {
         "0": "a56a4160e199045a6ac42bb3f18b6e19b1b7ebeca89faa822d691d8e690fccc0",
         "1": "12567ef6.b09abfb9.bd65d204.e052b9a9.79a7d027.965282fa.0796ad2d.643a041d.12567ef6.b09abfb9.bd65d204.e052b9a9.79a7d027.965282fa.0796ad2d.643a041d",
-        "identity": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0",
-        "snyk/asset/finding/v1": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0"
+        "snyk/asset/finding/v1": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0",
+        "identity": "8bf5572e-a361-4a6c-b7e6-54793f17bcc0"
       },
       "evidenceSha256": "1b0a94293f4e3fdb5f3e62e10672c30d57205dfc1dfbddec0543a1b8c09237a6"
     },
@@ -4628,7 +4628,7 @@
       "line": 86,
       "reviewedSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
       "disposition": "false-positive",
-      "rationale": "Independent scoped review at eaa2576c51d1bddb7bac52687bb470992c81b2d6. Independently reread stableBytes open/read fence. New exact receipt pin retains immutable single-profile mapping and existing byte-hash approval before JSON parsing. No new source-path selection or weakened pre/open/post file identity check. Source-revision/hash renewal leaves receipt scope, SDK/profile and providerAcceptanceVerifiedfalse unchanged. Current binding review: scripts/verify_exchange_implementation.js: Only control-character validation rationale comment. Read canonicalDirectory, safeRelative, ordinaryFile, stableBytes and spawnSync: canonical non-symlink/single-link pre/open/post checks and bounded no-shell absolute interpreter execution unchanged. exchange_executor/ccxt_implementation_reviews.py: Independently reviewed exact single-value MappingProxyType pin replacement9d56 to b8a1da39188d71fd1c93058356a94895732971de243a608bea94c3ac7c2ca486; same Hyperliquid/profile1 key only. Scope/SDK/profile/providerAcceptanceVerifiedfalse unchanged; actual receipt hash matches root-approved independently archived candidate. Productive verifier and bridge completion/log hashes checked. No path/command selector introduced. package.json: Only fast-uri override3.1.7 to3.1.8. No script, interpreter, CLI argument, path source or approval authority change.",
+      "rationale": "Scoped review at 066d6d0393282da3863317106a0e2ec7453bb699. Root re-reviewed the unchanged bounded file-read/interpreter flow and exact one-value immutable authority pin change from b8a1da39 to a6cf9462. Fresh226/333/548 tests, candidate and archive verification, actual production and bridge checks validate the new test-only receipt. Same sole Hyperliquid/profile1 approval; canonical path, single-link/no-follow identity checks, fixed interpreter arguments, shell:false and bounds unchanged. No new path or executable selection and no provider acceptance. Current binding review: scripts/verify_exchange_implementation.js: Only control-character validation rationale comment. Read canonicalDirectory, safeRelative, ordinaryFile, stableBytes and spawnSync: canonical non-symlink/single-link pre/open/post checks and bounded no-shell absolute interpreter execution unchanged. exchange_executor/ccxt_implementation_reviews.py: Exact single-value immutable receipt digest replacement independently compared by root; new approved receipt covers one isolated test enhancement, with runtime source unchanged and actual production+bridge verification PASS. package.json: Only fast-uri override3.1.7 to3.1.8. No script, interpreter, CLI argument, path source or approval authority change.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -4640,7 +4640,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "6ae91b30f5326e553763a329fb3223fb19be9c768145f20cefa990cde474c15e"
+          "sha256": "0d8a48a9f83b93926d7227a04017bfe8d2b15f5505f826d5a84977321f6b219d"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
