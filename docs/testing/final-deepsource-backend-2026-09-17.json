@@ -1,0 +1,5040 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-09-17T12:42:31.969Z",
+  "baseRevision": "58c01bc74f83cc212849ddcd7e487412ff06b2b7",
+  "scope": "Remaining 80 active non-JS-R1005 DeepSource occurrences after subtracting the exact 57 DeepSource IDs in the UI/Python ledger. Read-only source review; per-occurrence recommendations only.",
+  "baseline": {
+    "path": "reports/final-findings/deepsource-baseline-2026-09-17.json",
+    "sha256": "20e8e8e6977c03d2f49c0bb70f1a9c0da32b2b4273e06dc64a073e5789cede52",
+    "complete": true,
+    "count": 1315,
+    "excludedComplexityCount": 1178,
+    "priorLedger": "docs/testing/final-deepsource-ui-python-2026-09-17.json",
+    "priorLedgerSha256": "5c91eef3797926b70b3f16fa5ccd3d41645cbc312c922e9200436b6a31be3b9c",
+    "priorDeepSourceCount": 57,
+    "remaining": 80,
+    "combinedUniqueNonComplexityCount": 137
+  },
+  "counts": {
+    "JS-0116:reviewed_expected_behavior": 56,
+    "JS-0105:source_change_pending_rescan": 2,
+    "JS-0105:reviewed_expected_behavior": 5,
+    "PYL-R0201:reviewed_expected_behavior": 2,
+    "SCT-A000:reviewed_false_positive": 15
+  },
+  "entries": [
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpnZXZqZHhqd2U=",
+      "rule": "JS-0116",
+      "path": "tests/test_workflow_migration.js",
+      "baselineLine": 83,
+      "baselineColumn": 10,
+      "beforeSha256": "b40587546f9e2921b3360a7883c9fa99dd8c9e994a2a546f4a92fa5aab03b6c0",
+      "afterSha256": "b40587546f9e2921b3360a7883c9fa99dd8c9e994a2a546f4a92fa5aab03b6c0",
+      "currentLine": 83,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "afterFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpnZXZqZHhqd2U=",
+        "path": "tests/test_workflow_migration.js",
+        "currentLine": 83,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_workflow_migration.js"
+      ],
+      "reason": "This specific closeDb cleanup wrapper is immediately invoked and caught in tests/test_workflow_migration.js. Its native async boundary routes both synchronous call failures and rejected cleanup Promises through that catch. The exact current wrapper passed the isolated adoption and original-error rejection probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpyZWt5bmd5cm4=",
+      "rule": "JS-0116",
+      "path": "tests/test_workflow_history_barriers.js",
+      "baselineLine": 133,
+      "baselineColumn": 10,
+      "beforeSha256": "60476c3863b367f36bcbbf7dc1220e89121adb77afe8dc13c9203022cc2a872a",
+      "afterSha256": "60476c3863b367f36bcbbf7dc1220e89121adb77afe8dc13c9203022cc2a872a",
+      "currentLine": 133,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "afterFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpyZWt5bmd5cm4=",
+        "path": "tests/test_workflow_history_barriers.js",
+        "currentLine": 133,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_workflow_history_barriers.js"
+      ],
+      "reason": "This specific closeDb cleanup wrapper is immediately invoked and caught in tests/test_workflow_history_barriers.js. Its native async boundary routes both synchronous call failures and rejected cleanup Promises through that catch. The exact current wrapper passed the isolated adoption and original-error rejection probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTptcmRvbmxva2s=",
+      "rule": "JS-0116",
+      "path": "tests/test_workflow_history.js",
+      "baselineLine": 328,
+      "baselineColumn": 10,
+      "beforeSha256": "df971701378cc0953f85c94b5c6555f0c7166436e98ff2869eaeec0f339ba0a5",
+      "afterSha256": "df971701378cc0953f85c94b5c6555f0c7166436e98ff2869eaeec0f339ba0a5",
+      "currentLine": 328,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "afterFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTptcmRvbmxva2s=",
+        "path": "tests/test_workflow_history.js",
+        "currentLine": 328,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_workflow_history.js"
+      ],
+      "reason": "This specific closeDb cleanup wrapper is immediately invoked and caught in tests/test_workflow_history.js. Its native async boundary routes both synchronous call failures and rejected cleanup Promises through that catch. The exact current wrapper passed the isolated adoption and original-error rejection probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp2dm1hbmRha3g=",
+      "rule": "JS-0116",
+      "path": "tests/test_workflow_fallback.js",
+      "baselineLine": 843,
+      "baselineColumn": 10,
+      "beforeSha256": "b1e1305a4b4d02c1075e1d91b1dc271622857c481f27c60f9cfe5987c149f67b",
+      "afterSha256": "b1e1305a4b4d02c1075e1d91b1dc271622857c481f27c60f9cfe5987c149f67b",
+      "currentLine": 843,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "afterFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTp2dm1hbmRha3g=",
+        "path": "tests/test_workflow_fallback.js",
+        "currentLine": 843,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_workflow_fallback.js"
+      ],
+      "reason": "This specific closeDb cleanup wrapper is immediately invoked and caught in tests/test_workflow_fallback.js. Its native async boundary routes both synchronous call failures and rejected cleanup Promises through that catch. The exact current wrapper passed the isolated adoption and original-error rejection probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpveWFtZHZtb2s=",
+      "rule": "JS-0116",
+      "path": "tests/test_workflow_builder.js",
+      "baselineLine": 725,
+      "baselineColumn": 10,
+      "beforeSha256": "22e8ea883a1cd7d4452f6cd9373e854985e8028a05619e458a97a57793b1b5ae",
+      "afterSha256": "22e8ea883a1cd7d4452f6cd9373e854985e8028a05619e458a97a57793b1b5ae",
+      "currentLine": 725,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "afterFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpveWFtZHZtb2s=",
+        "path": "tests/test_workflow_builder.js",
+        "currentLine": 725,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_workflow_builder.js"
+      ],
+      "reason": "This specific closeDb cleanup wrapper is immediately invoked and caught in tests/test_workflow_builder.js. Its native async boundary routes both synchronous call failures and rejected cleanup Promises through that catch. The exact current wrapper passed the isolated adoption and original-error rejection probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp4cmdhbmphb2Q=",
+      "rule": "JS-0116",
+      "path": "tests/test_web_server.js",
+      "baselineLine": 2065,
+      "baselineColumn": 8,
+      "beforeSha256": "2cd157913dd7dfe3691fb2c60c45c65f4f163321290877df1b307570df763231",
+      "afterSha256": "2cd157913dd7dfe3691fb2c60c45c65f4f163321290877df1b307570df763231",
+      "currentLine": 2065,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "afterFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTp4cmdhbmphb2Q=",
+        "path": "tests/test_web_server.js",
+        "currentLine": 2065,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_web_server.js"
+      ],
+      "reason": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTprdnlrZGdrcGU=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_service.js",
+      "baselineLine": 429,
+      "baselineColumn": 2,
+      "beforeSha256": "49c860dc264790b3a4a3a36d829c09900a5583ec3cbb430b2a69baf1e9f11987",
+      "afterSha256": "49c860dc264790b3a4a3a36d829c09900a5583ec3cbb430b2a69baf1e9f11987",
+      "currentLine": 429,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "22adf2af87b22d4f9f1355ca79f08f7c306282d3a1e4a8aa678fbc9b55553381",
+      "afterFunctionSha256": "22adf2af87b22d4f9f1355ca79f08f7c306282d3a1e4a8aa678fbc9b55553381",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTprdnlrZGdrcGU=",
+        "path": "tests/test_telegram_viewer_service.js",
+        "currentLine": 429,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_telegram_viewer_service.js"
+      ],
+      "reason": "This specific verifyStoredStringContracts entry wrapper is immediately invoked before the file's .catch failure handler and chained delivery/runtime tests. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTplYXhqeXZqbnI=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_runtime.js",
+      "baselineLine": 246,
+      "baselineColumn": 2,
+      "beforeSha256": "14f5f6999c8ee9723e7f713e820fe7517e984daf5d540590ce291a439923f454",
+      "afterSha256": "14f5f6999c8ee9723e7f713e820fe7517e984daf5d540590ce291a439923f454",
+      "currentLine": 246,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "407e3cb5997c7ac16b2bf544b8e0cdb4caeab0a92a55bf886a993166a4dc073d",
+      "afterFunctionSha256": "407e3cb5997c7ac16b2bf544b8e0cdb4caeab0a92a55bf886a993166a4dc073d",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTplYXhqeXZqbnI=",
+        "path": "tests/test_telegram_viewer_runtime.js",
+        "currentLine": 246,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_telegram_viewer_runtime.js"
+      ],
+      "reason": "This specific run entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpwcXdybmpydmQ=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_core.js",
+      "baselineLine": 394,
+      "baselineColumn": 10,
+      "beforeSha256": "909c6dd7cec41a9bd7fabe79a5a39a2c18920474858dfc65178779386bf81c2f",
+      "afterSha256": "909c6dd7cec41a9bd7fabe79a5a39a2c18920474858dfc65178779386bf81c2f",
+      "currentLine": 394,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "afterFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpwcXdybmpydmQ=",
+        "path": "tests/test_telegram_viewer_core.js",
+        "currentLine": 394,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_telegram_viewer_core.js"
+      ],
+      "reason": "This specific closeDb cleanup wrapper is immediately invoked and caught in tests/test_telegram_viewer_core.js. Its native async boundary routes both synchronous call failures and rejected cleanup Promises through that catch. The exact current wrapper passed the isolated adoption and original-error rejection probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpuZ3d2ZGp2eG4=",
+      "rule": "JS-0116",
+      "path": "tests/test_telegram_viewer_api.js",
+      "baselineLine": 276,
+      "baselineColumn": 2,
+      "beforeSha256": "164c78715bb98f5fcff074c4147d2472c1a244835b3ac885661e6d786b8834ab",
+      "afterSha256": "164c78715bb98f5fcff074c4147d2472c1a244835b3ac885661e6d786b8834ab",
+      "currentLine": 276,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "407e3cb5997c7ac16b2bf544b8e0cdb4caeab0a92a55bf886a993166a4dc073d",
+      "afterFunctionSha256": "407e3cb5997c7ac16b2bf544b8e0cdb4caeab0a92a55bf886a993166a4dc073d",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpuZ3d2ZGp2eG4=",
+        "path": "tests/test_telegram_viewer_api.js",
+        "currentLine": 276,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_telegram_viewer_api.js"
+      ],
+      "reason": "This specific run entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTplYXhqeXZqa2Q=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_schema_migration.js",
+      "baselineLine": 95,
+      "baselineColumn": 10,
+      "beforeSha256": "e60931068bebd973c29b72368e114d7cc969ddc7c3f34286c43b785450c7df58",
+      "afterSha256": "e60931068bebd973c29b72368e114d7cc969ddc7c3f34286c43b785450c7df58",
+      "currentLine": 95,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "afterFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTplYXhqeXZqa2Q=",
+        "path": "tests/test_signal_schema_migration.js",
+        "currentLine": 95,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_signal_schema_migration.js"
+      ],
+      "reason": "This specific closeDb cleanup wrapper is immediately invoked and caught in tests/test_signal_schema_migration.js. Its native async boundary routes both synchronous call failures and rejected cleanup Promises through that catch. The exact current wrapper passed the isolated adoption and original-error rejection probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpwcXdybmpyeWU=",
+      "rule": "JS-0116",
+      "path": "tests/test_signal_parser.js",
+      "baselineLine": 583,
+      "baselineColumn": 8,
+      "beforeSha256": "ed9a194237111337bb3332b1790a1cb02d4c0e06ea8f450db1da15b01d9c380b",
+      "afterSha256": "c58c262e5e691df1a200def7f62214b6b51500702e6da7905520ad7fa228176f",
+      "currentLine": 592,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "afterFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpwcXdybmpyeWU=",
+        "path": "tests/test_signal_parser.js",
+        "currentLine": 592,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_signal_parser.js"
+      ],
+      "reason": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp3bXJhd3Bhb2U=",
+      "rule": "JS-0116",
+      "path": "tests/test_setup_bundle.js",
+      "baselineLine": 488,
+      "baselineColumn": 10,
+      "beforeSha256": "d3b8cd7b468b2f3d4b43f962f94788782db20d6fd06450fff73f762541803d68",
+      "afterSha256": "d3b8cd7b468b2f3d4b43f962f94788782db20d6fd06450fff73f762541803d68",
+      "currentLine": 488,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "afterFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTp3bXJhd3Bhb2U=",
+        "path": "tests/test_setup_bundle.js",
+        "currentLine": 488,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_setup_bundle.js"
+      ],
+      "reason": "This specific closeDb cleanup wrapper is immediately invoked and caught in tests/test_setup_bundle.js. Its native async boundary routes both synchronous call failures and rejected cleanup Promises through that catch. The exact current wrapper passed the isolated adoption and original-error rejection probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpqd2dlZG1lcnk=",
+      "rule": "JS-0116",
+      "path": "tests/test_retention.js",
+      "baselineLine": 332,
+      "baselineColumn": 8,
+      "beforeSha256": "f43a3a6b87b1ec42a5b3ac3228630f68c186c10167e1eb955dc9da38d84fb609",
+      "afterSha256": "f43a3a6b87b1ec42a5b3ac3228630f68c186c10167e1eb955dc9da38d84fb609",
+      "currentLine": 332,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "afterFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpqd2dlZG1lcnk=",
+        "path": "tests/test_retention.js",
+        "currentLine": 332,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_retention.js"
+      ],
+      "reason": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpuZ3d2ZGp2eW4=",
+      "rule": "JS-0116",
+      "path": "tests/test_queue.js",
+      "baselineLine": 288,
+      "baselineColumn": 8,
+      "beforeSha256": "f0b984e52b9f9b123c8fe2fe64ffb3417cddff67e04adf87cc45d166024fc3ac",
+      "afterSha256": "f0b984e52b9f9b123c8fe2fe64ffb3417cddff67e04adf87cc45d166024fc3ac",
+      "currentLine": 288,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "afterFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpuZ3d2ZGp2eW4=",
+        "path": "tests/test_queue.js",
+        "currentLine": 288,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_queue.js"
+      ],
+      "reason": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTphbmFqdmxqZGw=",
+      "rule": "JS-0116",
+      "path": "tests/test_outbox.js",
+      "baselineLine": 544,
+      "baselineColumn": 8,
+      "beforeSha256": "a4b64dd1e77a7636895b444f1c3113bd3ffdb6ce72188167ad37e6657981c0be",
+      "afterSha256": "a4b64dd1e77a7636895b444f1c3113bd3ffdb6ce72188167ad37e6657981c0be",
+      "currentLine": 544,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "afterFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTphbmFqdmxqZGw=",
+        "path": "tests/test_outbox.js",
+        "currentLine": 544,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_outbox.js"
+      ],
+      "reason": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpyZWt5bmd5dnk=",
+      "rule": "JS-0116",
+      "path": "tests/test_modules.js",
+      "baselineLine": 121,
+      "baselineColumn": 8,
+      "beforeSha256": "e065a465af03e11774c03f05ced6f80480ce4a8d411cf6c48fae8f218586cf8b",
+      "afterSha256": "e065a465af03e11774c03f05ced6f80480ce4a8d411cf6c48fae8f218586cf8b",
+      "currentLine": 121,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "afterFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpyZWt5bmd5dnk=",
+        "path": "tests/test_modules.js",
+        "currentLine": 121,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_modules.js"
+      ],
+      "reason": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTptcmRvbmxvcHI=",
+      "rule": "JS-0116",
+      "path": "tests/test_metrics.js",
+      "baselineLine": 215,
+      "baselineColumn": 10,
+      "beforeSha256": "1de02b274fcb40defd50c8b0ceceaec539fa98cd200eb0b89e44c7e09a4884f0",
+      "afterSha256": "1de02b274fcb40defd50c8b0ceceaec539fa98cd200eb0b89e44c7e09a4884f0",
+      "currentLine": 215,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "3a158d4397e8ec00c6a6eac2d9cdae4065d1dca7e3f2c34139a7842f05602604",
+      "afterFunctionSha256": "3a158d4397e8ec00c6a6eac2d9cdae4065d1dca7e3f2c34139a7842f05602604",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTptcmRvbmxvcHI=",
+        "path": "tests/test_metrics.js",
+        "currentLine": 215,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_metrics.js"
+      ],
+      "reason": "This specific stopMetricsServer cleanup wrapper is immediately invoked and caught in tests/test_metrics.js. Its native async boundary routes both synchronous call failures and rejected cleanup Promises through that catch. The exact current wrapper passed the isolated adoption and original-error rejection probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp2dm1hbmRheW4=",
+      "rule": "JS-0116",
+      "path": "tests/test_metrics.js",
+      "baselineLine": 214,
+      "baselineColumn": 8,
+      "beforeSha256": "1de02b274fcb40defd50c8b0ceceaec539fa98cd200eb0b89e44c7e09a4884f0",
+      "afterSha256": "1de02b274fcb40defd50c8b0ceceaec539fa98cd200eb0b89e44c7e09a4884f0",
+      "currentLine": 214,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "afterFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTp2dm1hbmRheW4=",
+        "path": "tests/test_metrics.js",
+        "currentLine": 214,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_metrics.js"
+      ],
+      "reason": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpveWFtZHZta28=",
+      "rule": "JS-0116",
+      "path": "tests/test_mcp_server.js",
+      "baselineLine": 350,
+      "baselineColumn": 10,
+      "beforeSha256": "90768e044169892ad274fdf4ad1dfedea72159421bc482c6784525cf1028c6a4",
+      "afterSha256": "90768e044169892ad274fdf4ad1dfedea72159421bc482c6784525cf1028c6a4",
+      "currentLine": 350,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "afterFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpveWFtZHZta28=",
+        "path": "tests/test_mcp_server.js",
+        "currentLine": 350,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_mcp_server.js"
+      ],
+      "reason": "This specific closeDb cleanup wrapper is immediately invoked and caught in tests/test_mcp_server.js. Its native async boundary routes both synchronous call failures and rejected cleanup Promises through that catch. The exact current wrapper passed the isolated adoption and original-error rejection probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp4cmdhbmpheXY=",
+      "rule": "JS-0116",
+      "path": "tests/test_integration.js",
+      "baselineLine": 129,
+      "baselineColumn": 8,
+      "beforeSha256": "4c39ee34e606ce02b3fcffe4f7ca16e8802e9a3b526ad0d8aef905f284903584",
+      "afterSha256": "4c39ee34e606ce02b3fcffe4f7ca16e8802e9a3b526ad0d8aef905f284903584",
+      "currentLine": 129,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "afterFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTp4cmdhbmpheXY=",
+        "path": "tests/test_integration.js",
+        "currentLine": 129,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_integration.js"
+      ],
+      "reason": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTprdnlrZGdrcXE=",
+      "rule": "JS-0116",
+      "path": "tests/test_filters.js",
+      "baselineLine": 195,
+      "baselineColumn": 8,
+      "beforeSha256": "afd76211cd82692786e2e2dde8c79de631a0af600161acb3f0e2198804ac7281",
+      "afterSha256": "afd76211cd82692786e2e2dde8c79de631a0af600161acb3f0e2198804ac7281",
+      "currentLine": 195,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "afterFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTprdnlrZGdrcXE=",
+        "path": "tests/test_filters.js",
+        "currentLine": 195,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_filters.js"
+      ],
+      "reason": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpwcXdybmpyeGU=",
+      "rule": "JS-0116",
+      "path": "tests/test_dupe_blocker.js",
+      "baselineLine": 202,
+      "baselineColumn": 8,
+      "beforeSha256": "d4c7f89b6d2b7d49856c5d97bc0a23e29f45502a5970becf59adbc7495461f9a",
+      "afterSha256": "050b5d74ab8312cbe6d55e589e940ecab7aeb381592ba72954809e69a8c2476d",
+      "currentLine": 201,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "afterFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpwcXdybmpyeGU=",
+        "path": "tests/test_dupe_blocker.js",
+        "currentLine": 201,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_dupe_blocker.js"
+      ],
+      "reason": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp3bXJhd3BheWU=",
+      "rule": "JS-0116",
+      "path": "tests/test_delivery_tracker.js",
+      "baselineLine": 154,
+      "baselineColumn": 8,
+      "beforeSha256": "c0a8f2274ca6c7b12b9e521133c5915ab4b2b172c354e66b2df3c7c754228c88",
+      "afterSha256": "c0a8f2274ca6c7b12b9e521133c5915ab4b2b172c354e66b2df3c7c754228c88",
+      "currentLine": 154,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "afterFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTp3bXJhd3BheWU=",
+        "path": "tests/test_delivery_tracker.js",
+        "currentLine": 154,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_delivery_tracker.js"
+      ],
+      "reason": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpqd2dlZG1lcXk=",
+      "rule": "JS-0116",
+      "path": "tests/test_crash_guard.js",
+      "baselineLine": 168,
+      "baselineColumn": 8,
+      "beforeSha256": "db9d18a7aa39fa5131c148da53fe0130de4921c56091605782360959c2e25ba9",
+      "afterSha256": "db9d18a7aa39fa5131c148da53fe0130de4921c56091605782360959c2e25ba9",
+      "currentLine": 168,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "afterFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpqd2dlZG1lcXk=",
+        "path": "tests/test_crash_guard.js",
+        "currentLine": 168,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_crash_guard.js"
+      ],
+      "reason": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpuZ3d2ZGp2ZW4=",
+      "rule": "JS-0116",
+      "path": "tests/test_coverage_perfektion.js",
+      "baselineLine": 84,
+      "baselineColumn": 8,
+      "beforeSha256": "492221848e544079bb887fa028a74c447b6f01736401e1a92684726e76ea28dd",
+      "afterSha256": "da3f61d61154dbfc4d5a7ea86680ce87a2f3e057aebf4b228b0a07be6c441283",
+      "currentLine": 83,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "afterFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpuZ3d2ZGp2ZW4=",
+        "path": "tests/test_coverage_perfektion.js",
+        "currentLine": 83,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_coverage_perfektion.js"
+      ],
+      "reason": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTphbmFqdmxqd2w=",
+      "rule": "JS-0116",
+      "path": "tests/test_configurable_fallback_migration.js",
+      "baselineLine": 96,
+      "baselineColumn": 10,
+      "beforeSha256": "391c3bd2dd8692af1000ca6b64638a9d8821236df4d93160c1eedb0788268faf",
+      "afterSha256": "391c3bd2dd8692af1000ca6b64638a9d8821236df4d93160c1eedb0788268faf",
+      "currentLine": 96,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "afterFunctionSha256": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTphbmFqdmxqd2w=",
+        "path": "tests/test_configurable_fallback_migration.js",
+        "currentLine": 96,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_configurable_fallback_migration.js"
+      ],
+      "reason": "This specific closeDb cleanup wrapper is immediately invoked and caught in tests/test_configurable_fallback_migration.js. Its native async boundary routes both synchronous call failures and rejected cleanup Promises through that catch. The exact current wrapper passed the isolated adoption and original-error rejection probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpnZXZqZHhqeWw=",
+      "rule": "JS-0116",
+      "path": "tests/test_backup.js",
+      "baselineLine": 566,
+      "baselineColumn": 8,
+      "beforeSha256": "ddee34d10135ce6e79f07132d33018b70cfdc5f36435cf6afe1943a8a12f82e0",
+      "afterSha256": "ddee34d10135ce6e79f07132d33018b70cfdc5f36435cf6afe1943a8a12f82e0",
+      "currentLine": 566,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "afterFunctionSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpnZXZqZHhqeWw=",
+        "path": "tests/test_backup.js",
+        "currentLine": 566,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_backup.js"
+      ],
+      "reason": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpyZWt5bmd5d3k=",
+      "rule": "JS-0116",
+      "path": "tests/evaluate_signal_golden_set.js",
+      "baselineLine": 101,
+      "baselineColumn": 2,
+      "beforeSha256": "69f890d251923b109eb8f637d07f831e5ef2266d149e82c5e6953b9e7bc58ae0",
+      "afterSha256": "69f890d251923b109eb8f637d07f831e5ef2266d149e82c5e6953b9e7bc58ae0",
+      "currentLine": 101,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "64dc6e10694836a7c628a9d798c77716f459df1d572e6b33b6cfd869272288b9",
+      "afterFunctionSha256": "64dc6e10694836a7c628a9d798c77716f459df1d572e6b33b6cfd869272288b9",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpyZWt5bmd5d3k=",
+        "path": "tests/evaluate_signal_golden_set.js",
+        "currentLine": 101,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/evaluate_signal_golden_set.js"
+      ],
+      "reason": "This specific runEvaluation entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpqd2dlZG1lank=",
+      "rule": "JS-0105",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 2106,
+      "baselineColumn": 3,
+      "beforeSha256": "4495aef46ac4352f9e2bb723ee648a14bbf5980bf52bdc3e0c7e82e141034fd6",
+      "afterSha256": "b4b75340a4094fc603830ed0e84c9ece04157d56c5aa9f3fcb7bc13f1191a32e",
+      "currentLine": 2106,
+      "functionName": "persistRemoteFill",
+      "beforeFunctionSha256": "c2051b7487be91f4e0ba1926adda5fff4280c1d3504a4a0469b3df2dfe918815",
+      "afterFunctionSha256": "bcf65a8f1947eb20c8dd1a9af579f2da5b6cebf8b8d6825947bb88b784dd5d8d",
+      "disposition": "source_change_pending_rescan",
+      "reason": "Root converted this private helper to static and changed its sole production caller to TradingEngine.persistRemoteFill. Independent AST review confirms the body is unchanged and contains no instance access; persistence, notification and entry-fill event ordering remain intact.",
+      "evidence": [
+        "tests/test_trading_engine.js",
+        "tests/test_exchange_fill_identity.js"
+      ],
+      "independentBodyComparison": "identical helper body; only static modifier and qualified callers changed",
+      "nameReferences": [
+        {
+          "path": "src/trading_engine.ts",
+          "line": 2095
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 2106
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpuZ3d2ZGp2cG4=",
+      "rule": "JS-0105",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 1929,
+      "baselineColumn": 3,
+      "beforeSha256": "4495aef46ac4352f9e2bb723ee648a14bbf5980bf52bdc3e0c7e82e141034fd6",
+      "afterSha256": "b4b75340a4094fc603830ed0e84c9ece04157d56c5aa9f3fcb7bc13f1191a32e",
+      "currentLine": 1929,
+      "functionName": "storeReconciliationSuccess",
+      "beforeFunctionSha256": "6dc934ee575f5220fab6cfea3a54be5fad86d022b0fa0cad4144e26843f0430a",
+      "afterFunctionSha256": "6dc934ee575f5220fab6cfea3a54be5fad86d022b0fa0cad4144e26843f0430a",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The instance method is an intentional reconciliation fault-injection seam: test_trading_protection_receipt binds and overrides this exact method to mutate protection state after snapshot persistence, then proves the final source fence rejects and rolls back both changes. Making it static would silently bypass that exercised seam.",
+      "evidence": [
+        "tests/test_trading_protection_receipt.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/trading_engine.ts",
+          "line": 1919
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 1929
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTphbmFqdmxqcWw=",
+      "rule": "JS-0105",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 1844,
+      "baselineColumn": 3,
+      "beforeSha256": "4495aef46ac4352f9e2bb723ee648a14bbf5980bf52bdc3e0c7e82e141034fd6",
+      "afterSha256": "b4b75340a4094fc603830ed0e84c9ece04157d56c5aa9f3fcb7bc13f1191a32e",
+      "currentLine": 1844,
+      "functionName": "assertRemoteAccountIdentity",
+      "beforeFunctionSha256": "a2a5280f76d8892338e36128881eb17dfe6f98765be339aaa722ad9a888320a4",
+      "afterFunctionSha256": "880e127f5f0af77aad1cea3f91006706611043aa8be384213ac1e4716e1cac98",
+      "disposition": "source_change_pending_rescan",
+      "reason": "Root converted this private helper to static and changed both production callers to TradingEngine.assertRemoteAccountIdentity. Independent AST review confirms the body is unchanged and contains no instance access; identity rejection, account binding and prior-fingerprint checks remain intact.",
+      "evidence": [
+        "tests/test_trading_engine.js",
+        "tests/test_trading_failures.js"
+      ],
+      "independentBodyComparison": "identical helper body; only static modifier and qualified callers changed",
+      "nameReferences": [
+        {
+          "path": "src/trading_engine.ts",
+          "line": 1624
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 1694
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 1844
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpkYWtqd2xqb2c=",
+      "rule": "JS-0105",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 1538,
+      "baselineColumn": 3,
+      "beforeSha256": "4495aef46ac4352f9e2bb723ee648a14bbf5980bf52bdc3e0c7e82e141034fd6",
+      "afterSha256": "b4b75340a4094fc603830ed0e84c9ece04157d56c5aa9f3fcb7bc13f1191a32e",
+      "currentLine": 1538,
+      "functionName": "ensureTakeProfitCoverage",
+      "beforeFunctionSha256": "977ac0ee9b9d326093963032dce41a8441233a4b48345e86bb1aa1f9e29affc0",
+      "afterFunctionSha256": "977ac0ee9b9d326093963032dce41a8441233a4b48345e86bb1aa1f9e29affc0",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The private instance method is directly exercised on a real engine by test_trading_engine_type_guards with damaged persisted targets and trapped DB/provider operations. Keeping this seam preserves the regression proving malformed plans fail before recovery reads, cancellations or submissions.",
+      "evidence": [
+        "tests/test_trading_engine_type_guards.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/trading_engine.ts",
+          "line": 1538
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 2317
+        },
+        {
+          "path": "tests/test_trading_engine_type_guards.js",
+          "line": 75
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpyZWt5bmd5eHk=",
+      "rule": "JS-0105",
+      "path": "src/paper_exchange.ts",
+      "baselineLine": 475,
+      "baselineColumn": 3,
+      "beforeSha256": "b5fc9e4684118985bf29d8bbfbb104c3cbb9de0d8184e895bb7dc8d1238fda6e",
+      "afterSha256": "b5fc9e4684118985bf29d8bbfbb104c3cbb9de0d8184e895bb7dc8d1238fda6e",
+      "currentLine": 475,
+      "functionName": "openState",
+      "beforeFunctionSha256": "becbb359eee854f277551072b1051b6da7c9cbabc896deaa9fb6b6cc0efe4756",
+      "afterFunctionSha256": "becbb359eee854f277551072b1051b6da7c9cbabc896deaa9fb6b6cc0efe4756",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "This is the required instance openState member of TradingExchangeAdapter, and protection tests override paper.openState to simulate missing/stale evidence. Static conversion would break adapter dispatch and the explicit safety seams.",
+      "evidence": [
+        "tests/test_trading_control_error_types.js",
+        "tests/test_trading_protection_receipt.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 597
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 791
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 976
+        },
+        {
+          "path": "src/trading_types.ts",
+          "line": 935
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 198
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 369
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 468
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 778
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 67
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 46
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 94
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 117
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 126
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 130
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 139
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 150
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 160
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 167
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 170
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 240
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 253
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 261
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 269
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 278
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 100
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 108
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 114
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 178
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 196
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 213
+        },
+        {
+          "path": "tests/test_trading_risk_engine.js",
+          "line": 57
+        },
+        {
+          "path": "tests/test_trading_recovery_worker.js",
+          "line": 46
+        },
+        {
+          "path": "tests/test_trading_recovery_worker.js",
+          "line": 58
+        },
+        {
+          "path": "tests/test_trading_recovery_worker.js",
+          "line": 60
+        },
+        {
+          "path": "tests/test_trading_recovery_worker.js",
+          "line": 94
+        },
+        {
+          "path": "tests/test_trading_recovery_worker.js",
+          "line": 109
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 145
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 158
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 174
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 182
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 201
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 242
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 267
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 284
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 66
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 71
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 93
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 97
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 104
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 108
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 112
+        },
+        {
+          "path": "tests/test_trading_protected_entry_crash.js",
+          "line": 220
+        },
+        {
+          "path": "tests/test_trading_protected_entry_crash.js",
+          "line": 316
+        },
+        {
+          "path": "tests/test_trading_protected_entry_crash.js",
+          "line": 328
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 1728
+        },
+        {
+          "path": "tests/test_trading_lifecycle_safety.js",
+          "line": 114
+        },
+        {
+          "path": "tests/test_trading_lifecycle_safety.js",
+          "line": 138
+        },
+        {
+          "path": "tests/test_trading_lifecycle_safety.js",
+          "line": 148
+        },
+        {
+          "path": "tests/test_trading_global_release.js",
+          "line": 127
+        },
+        {
+          "path": "tests/test_trading_global_release.js",
+          "line": 137
+        },
+        {
+          "path": "tests/test_trading_global_release.js",
+          "line": 150
+        },
+        {
+          "path": "tests/test_trading_fee_rebate.js",
+          "line": 13
+        },
+        {
+          "path": "tests/test_trading_fee_rebate.js",
+          "line": 14
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 76
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 97
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 230
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 249
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 279
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 281
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 370
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 443
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 746
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 757
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 773
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1086
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1508
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_recovery.js",
+          "line": 82
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_recovery.js",
+          "line": 89
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_recovery.js",
+          "line": 91
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_recovery.js",
+          "line": 95
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_engine.js",
+          "line": 32
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_engine.js",
+          "line": 73
+        },
+        {
+          "path": "tests/test_trading_entry_price_engine.js",
+          "line": 37
+        },
+        {
+          "path": "tests/test_trading_entry_price_engine.js",
+          "line": 47
+        },
+        {
+          "path": "tests/test_trading_entry_price_engine.js",
+          "line": 59
+        },
+        {
+          "path": "tests/test_trading_entry_expiry.js",
+          "line": 76
+        },
+        {
+          "path": "tests/test_trading_entry_expiry.js",
+          "line": 214
+        },
+        {
+          "path": "tests/test_trading_entry_expiry.js",
+          "line": 218
+        },
+        {
+          "path": "tests/test_trading_entry_commitment.js",
+          "line": 108
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 177
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 185
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 191
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 230
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 320
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 332
+        },
+        {
+          "path": "tests/test_trading_control_error_types.js",
+          "line": 69
+        },
+        {
+          "path": "tests/test_trading_accounting_gate.js",
+          "line": 24
+        },
+        {
+          "path": "tests/test_trading_accounting_gate.js",
+          "line": 25
+        },
+        {
+          "path": "tests/test_startup_trading.js",
+          "line": 61
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 27
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 39
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 43
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 51
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 52
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 58
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 61
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 66
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 69
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 73
+        },
+        {
+          "path": "tests/test_paper_accounting.js",
+          "line": 24
+        },
+        {
+          "path": "tests/test_paper_accounting.js",
+          "line": 29
+        },
+        {
+          "path": "tests/test_paper_accounting.js",
+          "line": 34
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 219
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 270
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 273
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 400
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 402
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 426
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 434
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 452
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 467
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 469
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 562
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 573
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 576
+        },
+        {
+          "path": "src/ccxt_exchange.ts",
+          "line": 340
+        },
+        {
+          "path": "src/paper_exchange.ts",
+          "line": 475
+        },
+        {
+          "path": "tests/fixtures/protected_entry_crash_child.js",
+          "line": 27
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTptcmRvbmxveHI=",
+      "rule": "JS-0105",
+      "path": "src/paper_exchange.ts",
+      "baselineLine": 358,
+      "baselineColumn": 3,
+      "beforeSha256": "b5fc9e4684118985bf29d8bbfbb104c3cbb9de0d8184e895bb7dc8d1238fda6e",
+      "afterSha256": "b5fc9e4684118985bf29d8bbfbb104c3cbb9de0d8184e895bb7dc8d1238fda6e",
+      "currentLine": 358,
+      "functionName": "marketSnapshot",
+      "beforeFunctionSha256": "b078dcfad15583deead1177c743afe3d0ba16c8366a721cafd935f8241417ee6",
+      "afterFunctionSha256": "b078dcfad15583deead1177c743afe3d0ba16c8366a721cafd935f8241417ee6",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "This is the required instance marketSnapshot member of TradingExchangeAdapter. Engine planning dispatches through adapter.marketSnapshot(account,symbol); keeping the instance member preserves provider polymorphism and Paper market/leverage evidence.",
+      "evidence": [
+        "tests/test_trading_core.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/trading_types.ts",
+          "line": 920
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 463
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 772
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 58
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 804
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 813
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 1198
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 1399
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 68
+        },
+        {
+          "path": "tests/test_trading_execution_mode_fence.js",
+          "line": 71
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 76
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 85
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 188
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 458
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 494
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 507
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 538
+        },
+        {
+          "path": "src/ccxt_exchange.ts",
+          "line": 277
+        },
+        {
+          "path": "src/paper_exchange.ts",
+          "line": 358
+        },
+        {
+          "path": "src/paper_exchange.ts",
+          "line": 412
+        },
+        {
+          "path": "tests/fixtures/protected_entry_crash_child.js",
+          "line": 25
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp2dm1hbmRham4=",
+      "rule": "JS-0105",
+      "path": "src/paper_exchange.ts",
+      "baselineLine": 336,
+      "baselineColumn": 3,
+      "beforeSha256": "b5fc9e4684118985bf29d8bbfbb104c3cbb9de0d8184e895bb7dc8d1238fda6e",
+      "afterSha256": "b5fc9e4684118985bf29d8bbfbb104c3cbb9de0d8184e895bb7dc8d1238fda6e",
+      "currentLine": 336,
+      "functionName": "accountSnapshot",
+      "beforeFunctionSha256": "3f38af3893aa73f343152e09f29fd65760e052ec168e11b1976802f853b728d4",
+      "afterFunctionSha256": "3f38af3893aa73f343152e09f29fd65760e052ec168e11b1976802f853b728d4",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "This is the required instance accountSnapshot member of TradingExchangeAdapter. Engine and control callers dispatch through the selected adapter instance; Paper-specific work may delegate to a static reader without removing the instance interface.",
+      "evidence": [
+        "tests/test_trading_core.js",
+        "tests/test_trading_protection_receipt.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 341
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 761
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 883
+        },
+        {
+          "path": "src/trading_types.ts",
+          "line": 919
+        },
+        {
+          "path": "src/trading_runtime_release.ts",
+          "line": 62
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 363
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 459
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 654
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 771
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 53
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 123
+        },
+        {
+          "path": "tests/test_trading_risk_repository.js",
+          "line": 59
+        },
+        {
+          "path": "tests/test_trading_risk_engine.js",
+          "line": 14
+        },
+        {
+          "path": "tests/test_trading_risk_engine.js",
+          "line": 16
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 1190
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 1709
+        },
+        {
+          "path": "tests/test_trading_fx_funding.js",
+          "line": 150
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 67
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 167
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 431
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1329
+        },
+        {
+          "path": "tests/test_trading_execution_mode_fence.js",
+          "line": 66
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 408
+        },
+        {
+          "path": "tests/test_trading_control_error_types.js",
+          "line": 20
+        },
+        {
+          "path": "tests/test_trading_accounting_gate.js",
+          "line": 15
+        },
+        {
+          "path": "tests/test_trading_accounting_gate.js",
+          "line": 16
+        },
+        {
+          "path": "tests/test_trading_accounting_gate.js",
+          "line": 64
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 47
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 48
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 49
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_paper_accounting.js",
+          "line": 21
+        },
+        {
+          "path": "tests/test_paper_accounting.js",
+          "line": 27
+        },
+        {
+          "path": "tests/test_paper_accounting.js",
+          "line": 30
+        },
+        {
+          "path": "tests/test_paper_accounting.js",
+          "line": 33
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 184
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 381
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 390
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 395
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 397
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 476
+        },
+        {
+          "path": "src/ccxt_exchange.ts",
+          "line": 248
+        },
+        {
+          "path": "src/paper_exchange.ts",
+          "line": 336
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpyZWt5bmdyb3I=",
+      "rule": "JS-0116",
+      "path": "src/db.ts",
+      "baselineLine": 3870,
+      "baselineColumn": 8,
+      "beforeSha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19",
+      "afterSha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19",
+      "currentLine": 3870,
+      "functionName": "listOutboxTasks",
+      "beforeFunctionSha256": "4be867426365a296fb3cc5b295db5d743e877d8199a8fc8607bdfb38eec0281b",
+      "afterFunctionSha256": "4be867426365a296fb3cc5b295db5d743e877d8199a8fc8607bdfb38eec0281b",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The outer API returns the transaction Promise while the transaction callback awaits row reads and reviews. Retaining async preserves the native Promise boundary and rejection/adoption behavior consumed by the forwarder read API; no fake await is introduced.",
+      "evidence": [
+        "tests/test_outbox.js",
+        "tests/test_ingress_workflow_pinning.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "tests/test_outbox.js",
+          "line": 180
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 295
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 351
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 389
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 488
+        },
+        {
+          "path": "tests/test_ingress_workflow_pinning.js",
+          "line": 29
+        },
+        {
+          "path": "tests/test_ingress_workflow_pinning.js",
+          "line": 64
+        },
+        {
+          "path": "tests/test_ingress_migration.js",
+          "line": 74
+        },
+        {
+          "path": "tests/test_ingress_migration.js",
+          "line": 79
+        },
+        {
+          "path": "tests/test_ingress_contract_guards.js",
+          "line": 33
+        },
+        {
+          "path": "tests/test_ingress_contract_guards.js",
+          "line": 52
+        },
+        {
+          "path": "tests/test_ingress_atomicity.js",
+          "line": 32
+        },
+        {
+          "path": "tests/test_ingress_atomicity.js",
+          "line": 39
+        },
+        {
+          "path": "tests/test_ingress_atomicity.js",
+          "line": 60
+        },
+        {
+          "path": "src/db.ts",
+          "line": 3870
+        },
+        {
+          "path": "src/forwarder.ts",
+          "line": 2014
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTptcmRvbmxrcXk=",
+      "rule": "JS-0116",
+      "path": "src/db.ts",
+      "baselineLine": 3778,
+      "baselineColumn": 8,
+      "beforeSha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19",
+      "afterSha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19",
+      "currentLine": 3778,
+      "functionName": "claimOutboxTask",
+      "beforeFunctionSha256": "b0d5c375d82b2bfbb614d5da7279d7e0fc0cd1e28f8c30396fe0b632c3654293",
+      "afterFunctionSha256": "b0d5c375d82b2bfbb614d5da7279d7e0fc0cd1e28f8c30396fe0b632c3654293",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The exported claimant returns the serialized transaction containing eligibility review and conditional UPDATE RETURNING. Async retains rejected-Promise behavior around transaction dispatch and adoption; the forwarder awaits it before preparing any delivery.",
+      "evidence": [
+        "tests/test_outbox.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "tests/test_outbox.js",
+          "line": 127
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 142
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 146
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 155
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 164
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 169
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 171
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 298
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 311
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 383
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 401
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 448
+        },
+        {
+          "path": "tests/test_outbox.js",
+          "line": 452
+        },
+        {
+          "path": "src/db.ts",
+          "line": 3778
+        },
+        {
+          "path": "src/forwarder.ts",
+          "line": 283
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp2dm1hbmRrbHk=",
+      "rule": "JS-0116",
+      "path": "src/db.ts",
+      "baselineLine": 3593,
+      "baselineColumn": 8,
+      "beforeSha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19",
+      "afterSha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19",
+      "currentLine": 3593,
+      "functionName": "findDuplicateSignal",
+      "beforeFunctionSha256": "797794137f24a90150dc86b878a831d8d0f6619bc9ae94aba1047c7108ae136d",
+      "afterFunctionSha256": "797794137f24a90150dc86b878a831d8d0f6619bc9ae94aba1047c7108ae136d",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The function synchronously obtains the DB, validates the SHA-256 dedupe scope and chooses a cooldown/permanent asynchronous lookup. Async turns DB/validation exceptions into Promise rejections; dupe_blocker awaits the chosen result.",
+      "evidence": [
+        "tests/test_dupe_blocker.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/dupe_blocker.ts",
+          "line": 60
+        },
+        {
+          "path": "src/db.ts",
+          "line": 3593
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpveWFtZHZvbmU=",
+      "rule": "JS-0116",
+      "path": "src/paper_exchange.ts",
+      "baselineLine": 475,
+      "baselineColumn": 18,
+      "beforeSha256": "b5fc9e4684118985bf29d8bbfbb104c3cbb9de0d8184e895bb7dc8d1238fda6e",
+      "afterSha256": "b5fc9e4684118985bf29d8bbfbb104c3cbb9de0d8184e895bb7dc8d1238fda6e",
+      "currentLine": 475,
+      "functionName": "openState",
+      "beforeFunctionSha256": "becbb359eee854f277551072b1051b6da7c9cbabc896deaa9fb6b6cc0efe4756",
+      "afterFunctionSha256": "becbb359eee854f277551072b1051b6da7c9cbabc896deaa9fb6b6cc0efe4756",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "Paper account validation must reject through the Promise-returning adapter contract, including before transaction dispatch. Root characterization proves a wrong-exchange account returns a rejected native Promise rather than throwing from the call.",
+      "evidence": [
+        "tests/test_trading_control_error_types.js",
+        "tests/test_trading_core.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 597
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 791
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 976
+        },
+        {
+          "path": "src/trading_types.ts",
+          "line": 935
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 198
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 369
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 468
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 778
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 67
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 46
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 94
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 117
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 126
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 130
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 139
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 150
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 160
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 167
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 170
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 240
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 253
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 261
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 269
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 278
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 100
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 108
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 114
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 178
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 196
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 213
+        },
+        {
+          "path": "tests/test_trading_risk_engine.js",
+          "line": 57
+        },
+        {
+          "path": "tests/test_trading_recovery_worker.js",
+          "line": 46
+        },
+        {
+          "path": "tests/test_trading_recovery_worker.js",
+          "line": 58
+        },
+        {
+          "path": "tests/test_trading_recovery_worker.js",
+          "line": 60
+        },
+        {
+          "path": "tests/test_trading_recovery_worker.js",
+          "line": 94
+        },
+        {
+          "path": "tests/test_trading_recovery_worker.js",
+          "line": 109
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 145
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 158
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 174
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 182
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 201
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 242
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 267
+        },
+        {
+          "path": "tests/test_trading_recovery_schedule_transport.js",
+          "line": 284
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 66
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 71
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 93
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 97
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 104
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 108
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 112
+        },
+        {
+          "path": "tests/test_trading_protected_entry_crash.js",
+          "line": 220
+        },
+        {
+          "path": "tests/test_trading_protected_entry_crash.js",
+          "line": 316
+        },
+        {
+          "path": "tests/test_trading_protected_entry_crash.js",
+          "line": 328
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 1728
+        },
+        {
+          "path": "tests/test_trading_lifecycle_safety.js",
+          "line": 114
+        },
+        {
+          "path": "tests/test_trading_lifecycle_safety.js",
+          "line": 138
+        },
+        {
+          "path": "tests/test_trading_lifecycle_safety.js",
+          "line": 148
+        },
+        {
+          "path": "tests/test_trading_global_release.js",
+          "line": 127
+        },
+        {
+          "path": "tests/test_trading_global_release.js",
+          "line": 137
+        },
+        {
+          "path": "tests/test_trading_global_release.js",
+          "line": 150
+        },
+        {
+          "path": "tests/test_trading_fee_rebate.js",
+          "line": 13
+        },
+        {
+          "path": "tests/test_trading_fee_rebate.js",
+          "line": 14
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 76
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 97
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 230
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 249
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 279
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 281
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 370
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 443
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 746
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 757
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 773
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1086
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1508
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_recovery.js",
+          "line": 82
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_recovery.js",
+          "line": 89
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_recovery.js",
+          "line": 91
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_recovery.js",
+          "line": 95
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_engine.js",
+          "line": 32
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_engine.js",
+          "line": 73
+        },
+        {
+          "path": "tests/test_trading_entry_price_engine.js",
+          "line": 37
+        },
+        {
+          "path": "tests/test_trading_entry_price_engine.js",
+          "line": 47
+        },
+        {
+          "path": "tests/test_trading_entry_price_engine.js",
+          "line": 59
+        },
+        {
+          "path": "tests/test_trading_entry_expiry.js",
+          "line": 76
+        },
+        {
+          "path": "tests/test_trading_entry_expiry.js",
+          "line": 214
+        },
+        {
+          "path": "tests/test_trading_entry_expiry.js",
+          "line": 218
+        },
+        {
+          "path": "tests/test_trading_entry_commitment.js",
+          "line": 108
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 177
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 185
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 191
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 230
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 320
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 332
+        },
+        {
+          "path": "tests/test_trading_control_error_types.js",
+          "line": 69
+        },
+        {
+          "path": "tests/test_trading_accounting_gate.js",
+          "line": 24
+        },
+        {
+          "path": "tests/test_trading_accounting_gate.js",
+          "line": 25
+        },
+        {
+          "path": "tests/test_startup_trading.js",
+          "line": 61
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 27
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 39
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 43
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 51
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 52
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 58
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 61
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 66
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 69
+        },
+        {
+          "path": "tests/test_paper_partial_fills.js",
+          "line": 73
+        },
+        {
+          "path": "tests/test_paper_accounting.js",
+          "line": 24
+        },
+        {
+          "path": "tests/test_paper_accounting.js",
+          "line": 29
+        },
+        {
+          "path": "tests/test_paper_accounting.js",
+          "line": 34
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 219
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 270
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 273
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 400
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 402
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 426
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 434
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 452
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 467
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 469
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 562
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 573
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 576
+        },
+        {
+          "path": "src/ccxt_exchange.ts",
+          "line": 340
+        },
+        {
+          "path": "src/paper_exchange.ts",
+          "line": 475
+        },
+        {
+          "path": "tests/fixtures/protected_entry_crash_child.js",
+          "line": 27
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp4cmdhbmpvcG0=",
+      "rule": "JS-0116",
+      "path": "src/mcp_repository.ts",
+      "baselineLine": 912,
+      "baselineColumn": 8,
+      "beforeSha256": "e34c45cd684739c297d5ac8324c3c219df71ee323b6f729b40d882a83bb3b581",
+      "afterSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+      "currentLine": 912,
+      "functionName": "claimNextMcpControlRequest",
+      "beforeFunctionSha256": "84576f5ce33e6d66fea43127aea13f2d22fbda5406ed732012c3ae9d8925c228",
+      "afterFunctionSha256": "84576f5ce33e6d66fea43127aea13f2d22fbda5406ed732012c3ae9d8925c228",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The outer async API adopts a transactional claim whose callback awaits active-runtime checks and a conditional status update. The control bridge awaits this atomic claim; changing the outer Promise boundary is not required to improve the claim logic.",
+      "evidence": [
+        "tests/test_mcp_control_plane.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "tests/test_mcp_control_plane.js",
+          "line": 387
+        },
+        {
+          "path": "tests/test_mcp_control_plane.js",
+          "line": 499
+        },
+        {
+          "path": "tests/test_mcp_control_plane.js",
+          "line": 505
+        },
+        {
+          "path": "src/mcp_repository.ts",
+          "line": 912
+        },
+        {
+          "path": "src/mcp_control_bridge.ts",
+          "line": 125
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTprdnlrZGdwbXI=",
+      "rule": "JS-0116",
+      "path": "src/mcp_repository.ts",
+      "baselineLine": 640,
+      "baselineColumn": 8,
+      "beforeSha256": "e34c45cd684739c297d5ac8324c3c219df71ee323b6f729b40d882a83bb3b581",
+      "afterSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+      "currentLine": 640,
+      "functionName": "deleteMcpAgent",
+      "beforeFunctionSha256": "63e70f1a59931880f3795893878acfbd878127992399f0665705f291d542e15f",
+      "afterFunctionSha256": "63e70f1a59931880f3795893878acfbd878127992399f0665705f291d542e15f",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "Identifier validation and token rotation preparation execute before the transactional deletion/revocation body. Retaining async preserves rejected-Promise errors from these synchronous steps and the awaited web-handler contract.",
+      "evidence": [
+        "tests/test_mcp_control_plane.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/web_server.ts",
+          "line": 2456
+        },
+        {
+          "path": "tests/test_mcp_control_plane.js",
+          "line": 542
+        },
+        {
+          "path": "tests/test_mcp_control_plane.js",
+          "line": 546
+        },
+        {
+          "path": "src/mcp_repository.ts",
+          "line": 640
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTplYXhqeXZucWU=",
+      "rule": "JS-0116",
+      "path": "src/mcp_repository.ts",
+      "baselineLine": 366,
+      "baselineColumn": 8,
+      "beforeSha256": "e34c45cd684739c297d5ac8324c3c219df71ee323b6f729b40d882a83bb3b581",
+      "afterSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+      "currentLine": 366,
+      "functionName": "setMcpRuntimeMode",
+      "beforeFunctionSha256": "b59455c0f3024e4d87a1f4c6a9d3c47d23c67682f9fe8b253d035f550dadaaae",
+      "afterFunctionSha256": "b59455c0f3024e4d87a1f4c6a9d3c47d23c67682f9fe8b253d035f550dadaaae",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "Mode and actor validation execute synchronously inside a native async boundary, followed by one transaction cancelling incompatible sessions/requests/proposals. The web handler and control-plane tests await this all-or-reject result.",
+      "evidence": [
+        "tests/test_mcp_control_plane.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/web_server.ts",
+          "line": 2390
+        },
+        {
+          "path": "tests/test_ui_change_reviews.js",
+          "line": 113
+        },
+        {
+          "path": "tests/test_startup_authority.js",
+          "line": 74
+        },
+        {
+          "path": "tests/test_mcp_server.js",
+          "line": 103
+        },
+        {
+          "path": "tests/test_mcp_control_plane.js",
+          "line": 50
+        },
+        {
+          "path": "tests/test_mcp_control_plane.js",
+          "line": 383
+        },
+        {
+          "path": "tests/test_mcp_control_plane.js",
+          "line": 392
+        },
+        {
+          "path": "tests/test_mcp_control_plane.js",
+          "line": 397
+        },
+        {
+          "path": "tests/test_mcp_control_plane.js",
+          "line": 398
+        },
+        {
+          "path": "src/mcp_repository.ts",
+          "line": 366
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpwcXdybmp2cGw=",
+      "rule": "JS-0116",
+      "path": "src/mcp_repository.ts",
+      "baselineLine": 358,
+      "baselineColumn": 8,
+      "beforeSha256": "e34c45cd684739c297d5ac8324c3c219df71ee323b6f729b40d882a83bb3b581",
+      "afterSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+      "currentLine": 358,
+      "functionName": "getMcpRuntimeState",
+      "beforeFunctionSha256": "3ba78e1a1e6dc6a55ec6eadeb08d53ee6164d93af6d927743df16c7e2d56261c",
+      "afterFunctionSha256": "3ba78e1a1e6dc6a55ec6eadeb08d53ee6164d93af6d927743df16c7e2d56261c",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The public reader calls getDatabase synchronously and adopts runtimeStateFrom. Async keeps DB-unavailable failures as rejected Promises for Promise.all and await callers; the existing state validation remains in the inner reader.",
+      "evidence": [
+        "tests/test_mcp_control_plane.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/web_server.ts",
+          "line": 692
+        },
+        {
+          "path": "src/ui_mcp_reads.ts",
+          "line": 54
+        },
+        {
+          "path": "tests/test_mcp_control_plane.js",
+          "line": 45
+        },
+        {
+          "path": "tests/test_mcp_control_plane.js",
+          "line": 53
+        },
+        {
+          "path": "src/mcp_server.ts",
+          "line": 940
+        },
+        {
+          "path": "src/mcp_server.ts",
+          "line": 1197
+        },
+        {
+          "path": "src/mcp_repository.ts",
+          "line": 358
+        },
+        {
+          "path": "src/mcp_repository.ts",
+          "line": 1599
+        },
+        {
+          "path": "src/mcp_control_bridge.ts",
+          "line": 122
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp3bXJhd3B4bnA=",
+      "rule": "JS-0116",
+      "path": "src/mcp_repository.ts",
+      "baselineLine": 1244,
+      "baselineColumn": 1,
+      "beforeSha256": "e34c45cd684739c297d5ac8324c3c219df71ee323b6f729b40d882a83bb3b581",
+      "afterSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+      "currentLine": 1244,
+      "functionName": "preflightWorkflowAction",
+      "beforeFunctionSha256": "48195bfcd10b044b4d0fa7e206860c0e28997fcfe0f2a701126952d22421504c",
+      "afterFunctionSha256": "48195bfcd10b044b4d0fa7e206860c0e28997fcfe0f2a701126952d22421504c",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The dispatcher has one synchronous resource-create impact branch returning undefined and other branches returning asynchronous preflight operations. Async ensures every branch returns Promise<void>; the enclosing proposal preflight awaits it.",
+      "evidence": [
+        "tests/test_mcp_control_plane.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/mcp_repository.ts",
+          "line": 1244
+        },
+        {
+          "path": "src/mcp_repository.ts",
+          "line": 1278
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpqd2dlZG1ub2w=",
+      "rule": "JS-0116",
+      "path": "src/mcp_repository.ts",
+      "baselineLine": 1181,
+      "baselineColumn": 1,
+      "beforeSha256": "e34c45cd684739c297d5ac8324c3c219df71ee323b6f729b40d882a83bb3b581",
+      "afterSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+      "currentLine": 1181,
+      "functionName": "preflightConfigurationAction",
+      "beforeFunctionSha256": "4037d8c409d3d4cd356b54c26333a26cead1851465a74b6acac25823eee7bafe",
+      "afterFunctionSha256": "4037d8c409d3d4cd356b54c26333a26cead1851465a74b6acac25823eee7bafe",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The dispatcher selects schema, strategy or route preflight Promises after inspecting the action. Retaining async preserves the declared Promise<void> boundary and synchronous dispatch failure rejection consumed by the enclosing preflight.",
+      "evidence": [
+        "tests/test_mcp_control_plane.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/mcp_repository.ts",
+          "line": 1181
+        },
+        {
+          "path": "src/mcp_repository.ts",
+          "line": 1271
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpuZ3d2ZGp4a2w=",
+      "rule": "JS-0116",
+      "path": "src/forwarder.ts",
+      "baselineLine": 634,
+      "baselineColumn": 1,
+      "beforeSha256": "13738101f9c735381e9868e20aba394dca3d99b4217c2ad6f60770bb86c8aae3",
+      "afterSha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0",
+      "currentLine": 634,
+      "functionName": "invokeWithRetry",
+      "beforeFunctionSha256": "b799444c437cc36f9bec33aa2b96aea3d66cb6c34e01002f0e6e4984e42a6ab1",
+      "afterFunctionSha256": "b799444c437cc36f9bec33aa2b96aea3d66cb6c34e01002f0e6e4984e42a6ab1",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The TDLib adapter wrapper immediately invokes bounded flood-wait retry with cancellation, attempt and wait limits, then adopts its Promise. Async preserves its public-in-file rejection/adoption contract for channel and history callers; the lower-level retry tests cover bounded behavior.",
+      "evidence": [
+        "tests/test_tdlib_retry.js",
+        "tests/test_forwarder_error_types.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/forwarder.ts",
+          "line": 634
+        },
+        {
+          "path": "src/forwarder.ts",
+          "line": 691
+        },
+        {
+          "path": "src/forwarder.ts",
+          "line": 709
+        },
+        {
+          "path": "src/forwarder.ts",
+          "line": 754
+        },
+        {
+          "path": "src/forwarder.ts",
+          "line": 775
+        },
+        {
+          "path": "src/forwarder.ts",
+          "line": 940
+        },
+        {
+          "path": "src/forwarder.ts",
+          "line": 1170
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpuZ3d2ZGp4am8=",
+      "rule": "JS-0116",
+      "path": "tests/test_trading_web_control.js",
+      "baselineLine": 112,
+      "baselineColumn": 1,
+      "beforeSha256": "bf621cb60ddac3690b65bc55b4fee3833470a23f26876f09a1ccedebe3339689",
+      "afterSha256": "3f9f38ed1b450ad3306e776037c721e558541b58f9e513bebbcfc34a1f43dde4",
+      "currentLine": 112,
+      "functionName": "historicalCredentialEvidence",
+      "beforeFunctionSha256": "b233afe7195fa8263f3c0f7ac2b9c703c8896571f156babbf5e90af0bc61323c",
+      "afterFunctionSha256": "b233afe7195fa8263f3c0f7ac2b9c703c8896571f156babbf5e90af0bc61323c",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpuZ3d2ZGp4am8=",
+        "path": "tests/test_trading_web_control.js",
+        "currentLine": 112,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "tests/test_trading_web_control.js"
+      ],
+      "reason": "This local helper returns the database read Promise used to compare immutable historical credential evidence before and after rotation. Its exact current function was executed with a stubbed DB and retains native Promise adoption and synchronous failure rejection. The owning control suite passed.",
+      "nameReferences": [
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 102
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 112
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 179
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 185
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTphbmFqdmxnbHg=",
+      "rule": "JS-0116",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 2405,
+      "baselineColumn": 8,
+      "beforeSha256": "68f0b784b7ec469076bd4f907a4658ba3627c88a1889384208e3e6d08ea41cc8",
+      "afterSha256": "68f0b784b7ec469076bd4f907a4658ba3627c88a1889384208e3e6d08ea41cc8",
+      "currentLine": 2405,
+      "functionName": "advanceWorkflowFallbackOnEligibleFailure",
+      "beforeFunctionSha256": "78a508c147a40c5fae373cdfbdb3ccb62c0e04b7084365991518f87b89bee78c",
+      "afterFunctionSha256": "78a508c147a40c5fae373cdfbdb3ccb62c0e04b7084365991518f87b89bee78c",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The wrapper owns exactly one database transaction around fallback advancement. The engine returns/awaits this result during eligible intent failure handling; retaining async leaves transaction dispatch rejection and Promise adoption unchanged.",
+      "evidence": [
+        "tests/test_workflow_fallback.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/workflow_repository.ts",
+          "line": 2405
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 1481
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpsbXF4ZGxlbHI=",
+      "rule": "JS-0116",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 1476,
+      "baselineColumn": 8,
+      "beforeSha256": "68f0b784b7ec469076bd4f907a4658ba3627c88a1889384208e3e6d08ea41cc8",
+      "afterSha256": "68f0b784b7ec469076bd4f907a4658ba3627c88a1889384208e3e6d08ea41cc8",
+      "currentLine": 1476,
+      "functionName": "applyWorkflowBuilderHistory",
+      "beforeFunctionSha256": "45e7860dac4ef09a443901b6235de8f559bc623bbc7f620c6053a2463a38e078",
+      "afterFunctionSha256": "45e7860dac4ef09a443901b6235de8f559bc623bbc7f620c6053a2463a38e078",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The async public boundary returns a transaction that validates selected history, applies the reviewed revision and stores audit/history effects atomically. The web undo/redo handler awaits the result; existing history tests cover conflict and restoration behavior.",
+      "evidence": [
+        "tests/test_workflow_history.js",
+        "tests/test_workflow_history_barriers.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/workflow_repository.ts",
+          "line": 1476
+        },
+        {
+          "path": "src/web_server.ts",
+          "line": 1967
+        },
+        {
+          "path": "tests/test_workflow_history.js",
+          "line": 138
+        },
+        {
+          "path": "tests/test_workflow_history.js",
+          "line": 149
+        },
+        {
+          "path": "tests/test_workflow_history.js",
+          "line": 172
+        },
+        {
+          "path": "tests/test_workflow_history.js",
+          "line": 178
+        },
+        {
+          "path": "tests/test_workflow_history.js",
+          "line": 203
+        },
+        {
+          "path": "tests/test_workflow_history.js",
+          "line": 211
+        },
+        {
+          "path": "tests/test_workflow_history.js",
+          "line": 240
+        },
+        {
+          "path": "tests/test_workflow_history.js",
+          "line": 250
+        },
+        {
+          "path": "tests/test_workflow_history.js",
+          "line": 314
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 822
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 831
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpkYWtqd2xubHg=",
+      "rule": "JS-0116",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 685,
+      "baselineColumn": 8,
+      "beforeSha256": "68f0b784b7ec469076bd4f907a4658ba3627c88a1889384208e3e6d08ea41cc8",
+      "afterSha256": "68f0b784b7ec469076bd4f907a4658ba3627c88a1889384208e3e6d08ea41cc8",
+      "currentLine": 685,
+      "functionName": "deleteWorkflowResourceFamily",
+      "beforeFunctionSha256": "4b15bbf68ceb713e5310f57876f447765c0abc525da171a8b5bcad9605b3fea1",
+      "afterFunctionSha256": "4b15bbf68ceb713e5310f57876f447765c0abc525da171a8b5bcad9605b3fea1",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "Logical resource-ID validation precedes the transaction that checks historical references and deletes the full unused family. Async preserves validation rejection semantics expected by assert.rejects and the web mutation handler.",
+      "evidence": [
+        "tests/test_workflow_builder.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/workflow_repository.ts",
+          "line": 685
+        },
+        {
+          "path": "src/web_server.ts",
+          "line": 2115
+        },
+        {
+          "path": "tests/test_workflow_builder.js",
+          "line": 294
+        },
+        {
+          "path": "tests/test_workflow_builder.js",
+          "line": 720
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpxcGVnbmRtZGQ=",
+      "rule": "JS-0116",
+      "path": "src/workflow_repository.ts",
+      "baselineLine": 642,
+      "baselineColumn": 8,
+      "beforeSha256": "68f0b784b7ec469076bd4f907a4658ba3627c88a1889384208e3e6d08ea41cc8",
+      "afterSha256": "68f0b784b7ec469076bd4f907a4658ba3627c88a1889384208e3e6d08ea41cc8",
+      "currentLine": 642,
+      "functionName": "archiveWorkflowResourceFamily",
+      "beforeFunctionSha256": "6179a2497abbe504cbaa4a5f0d1dec87cf7a2f08a85167ecc9677c8c4f648798",
+      "afterFunctionSha256": "6179a2497abbe504cbaa4a5f0d1dec87cf7a2f08a85167ecc9677c8c4f648798",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "Logical resource-ID validation precedes the transactional archive and history reset. Async keeps synchronous validation failures on the Promise channel and adopts the array result awaited by the web handler.",
+      "evidence": [
+        "tests/test_workflow_builder.js",
+        "tests/test_workflow_history_barriers.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/workflow_repository.ts",
+          "line": 642
+        },
+        {
+          "path": "src/web_server.ts",
+          "line": 2119
+        },
+        {
+          "path": "tests/test_workflow_history_barriers.js",
+          "line": 92
+        },
+        {
+          "path": "tests/test_workflow_builder.js",
+          "line": 160
+        },
+        {
+          "path": "tests/test_workflow_builder.js",
+          "line": 280
+        },
+        {
+          "path": "tests/test_workflow_builder.js",
+          "line": 716
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp5Z3lqbmx2bHc=",
+      "rule": "JS-0116",
+      "path": "src/trading_web_control.ts",
+      "baselineLine": 886,
+      "baselineColumn": 23,
+      "beforeSha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd",
+      "afterSha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd",
+      "currentLine": 886,
+      "functionName": "configurePaper",
+      "beforeFunctionSha256": "e9d6dd6b95dd97cbdf7fd8b64ff2dac3e322319872de8404320b20772e8a5815",
+      "afterFunctionSha256": "e9d6dd6b95dd97cbdf7fd8b64ff2dac3e322319872de8404320b20772e8a5815",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "Account ID validation runs immediately, then account mutation ownership is requested before return. Root characterization verifies native Promise adoption, validation/synchronous dependency rejection, and that this operation does not add an entry fence.",
+      "evidence": [
+        "tests/test_trading_control_error_types.js",
+        "tests/test_trading_web_control.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/web_server.ts",
+          "line": 1861
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 886
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 486
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 492
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 500
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 503
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 504
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 507
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 543
+        },
+        {
+          "path": "tests/test_trading_control_error_types.js",
+          "line": 32
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpnZXZqZHh3bW4=",
+      "rule": "JS-0116",
+      "path": "src/trading_web_control.ts",
+      "baselineLine": 783,
+      "baselineColumn": 22,
+      "beforeSha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd",
+      "afterSha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd",
+      "currentLine": 783,
+      "functionName": "removeAccount",
+      "beforeFunctionSha256": "c093eebb10d8f23b6cca9bc6a4561a56b220c22379d61b73a6b9b00ea5d9095b",
+      "afterFunctionSha256": "c093eebb10d8f23b6cca9bc6a4561a56b220c22379d61b73a6b9b00ea5d9095b",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "Account ID validation and account entry fencing execute immediately before mutation ownership. Root characterization verifies synchronous fence scope and dispatch, distinct adopted Promise, and original failures delivered as rejections.",
+      "evidence": [
+        "tests/test_trading_control_error_types.js",
+        "tests/test_trading_account_retirement.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/web_server.ts",
+          "line": 1853
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 783
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 438
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 550
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 569
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 574
+        },
+        {
+          "path": "tests/test_trading_control_error_types.js",
+          "line": 31
+        },
+        {
+          "path": "tests/test_trading_account_retirement.js",
+          "line": 26
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpyZWt5bmdyZG0=",
+      "rule": "JS-0116",
+      "path": "src/trading_web_control.ts",
+      "baselineLine": 736,
+      "baselineColumn": 33,
+      "beforeSha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd",
+      "afterSha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd",
+      "currentLine": 736,
+      "functionName": "releaseAccountKillSwitch",
+      "beforeFunctionSha256": "f6f55ee4e6ce25ce2d72dde3a9de76fba5baf29885549cd825e038fe5591c86d",
+      "afterFunctionSha256": "f6f55ee4e6ce25ce2d72dde3a9de76fba5baf29885549cd825e038fe5591c86d",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "Account ID and current epoch are captured before mutation dispatch. Root characterization verifies no new entry fence, synchronous dispatch, adopted native Promise and rejected validation/dependency failures; control-race tests use the captured epoch.",
+      "evidence": [
+        "tests/test_trading_control_error_types.js",
+        "tests/test_trading_control_races.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/web_server.ts",
+          "line": 1851
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 736
+        },
+        {
+          "path": "tests/test_workflow_fallback.js",
+          "line": 697
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 464
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 92
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 194
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 217
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 222
+        },
+        {
+          "path": "tests/test_trading_control_races.js",
+          "line": 61
+        },
+        {
+          "path": "tests/test_trading_control_error_types.js",
+          "line": 30
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTptcmRvbmxrZ2Q=",
+      "rule": "JS-0116",
+      "path": "src/trading_web_control.ts",
+      "baselineLine": 676,
+      "baselineColumn": 26,
+      "beforeSha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd",
+      "afterSha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd",
+      "currentLine": 676,
+      "functionName": "setAccountEnabled",
+      "beforeFunctionSha256": "de3e5d41ecfa75333b48413dba47cb8112c61ca36ac19993ce57d3d80dee3f1d",
+      "afterFunctionSha256": "de3e5d41ecfa75333b48413dba47cb8112c61ca36ac19993ce57d3d80dee3f1d",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "Identifier and boolean validation precede an immediate account fence when disabling, then mutation ownership. Root characterization verifies this fence and dispatch ordering plus native Promise/rejection behavior.",
+      "evidence": [
+        "tests/test_trading_control_error_types.js",
+        "tests/test_trading_web_control.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/web_server.ts",
+          "line": 1847
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 676
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 544
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 563
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 564
+        },
+        {
+          "path": "tests/test_trading_control_error_types.js",
+          "line": 29
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp2dm1hbmRrd2U=",
+      "rule": "JS-0116",
+      "path": "src/trading_web_control.ts",
+      "baselineLine": 556,
+      "baselineColumn": 34,
+      "beforeSha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd",
+      "afterSha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd",
+      "currentLine": 556,
+      "functionName": "replaceAccountCredentials",
+      "beforeFunctionSha256": "d1ad32bb0232a75593d02102a0520d22e0e2287c58071450025945d2c0911c0e",
+      "afterFunctionSha256": "d1ad32bb0232a75593d02102a0520d22e0e2287c58071450025945d2c0911c0e",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "Account ID validation and the existing global entry fence occur before mutation ownership. Root characterization verifies synchronous fence/dispatch, native Promise adoption and original dependency error rejection; rotation tests preserve historical evidence.",
+      "evidence": [
+        "tests/test_trading_control_error_types.js",
+        "tests/test_trading_web_control.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/web_server.ts",
+          "line": 1843
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 556
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 134
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 163
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 435
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 545
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 558
+        },
+        {
+          "path": "tests/test_trading_control_error_types.js",
+          "line": 27
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpveWFtZHZvam0=",
+      "rule": "JS-0116",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 1536,
+      "baselineColumn": 8,
+      "beforeSha256": "a1cb63b2be3b73d557c02761c014f1984fd0764ebd49e23aa5a8883f1482b221",
+      "afterSha256": "a1cb63b2be3b73d557c02761c014f1984fd0764ebd49e23aa5a8883f1482b221",
+      "currentLine": 1536,
+      "functionName": "deleteTradingStrategyVersion",
+      "beforeFunctionSha256": "16fffaddd42cd8ff3788679a6e05b4d9da4e21c1a45e98388c162ce0299cd570",
+      "afterFunctionSha256": "16fffaddd42cd8ff3788679a6e05b4d9da4e21c1a45e98388c162ce0299cd570",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The public async API returns the transaction that checks retained history/routes before deleting a strategy and clearing builder history. Retaining the Promise boundary leaves caller error handling and atomicity intact.",
+      "evidence": [
+        "tests/test_trading_core.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/ui_workflow_models.ts",
+          "line": 79
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 401
+        },
+        {
+          "path": "src/trading_repository.ts",
+          "line": 1536
+        },
+        {
+          "path": "tests/test_workflow_history_barriers.js",
+          "line": 101
+        },
+        {
+          "path": "tests/test_trading_core.js",
+          "line": 909
+        },
+        {
+          "path": "tests/test_trading_core.js",
+          "line": 1209
+        },
+        {
+          "path": "tests/test_trading_core.js",
+          "line": 1278
+        },
+        {
+          "path": "tests/test_trading_core.js",
+          "line": 1299
+        },
+        {
+          "path": "tests/test_trading_core.js",
+          "line": 1434
+        },
+        {
+          "path": "tests/test_trading_core.js",
+          "line": 1475
+        },
+        {
+          "path": "tests/test_trading_core.js",
+          "line": 1476
+        },
+        {
+          "path": "tests/test_trading_core.js",
+          "line": 1487
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp4cmdhbmpvZXI=",
+      "rule": "JS-0116",
+      "path": "src/trading_web_control.ts",
+      "baselineLine": 637,
+      "baselineColumn": 22,
+      "beforeSha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd",
+      "afterSha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd",
+      "currentLine": 637,
+      "functionName": "verifyAccount",
+      "beforeFunctionSha256": "c3e2a4c98d0964681b70b5074810e1bb58b6d9a4c7acfab367cf6441f34b0593",
+      "afterFunctionSha256": "c3e2a4c98d0964681b70b5074810e1bb58b6d9a4c7acfab367cf6441f34b0593",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "Identifier validation precedes account mutation dispatch with an optional existing mutation context. Root characterization verifies no extra fence, immediate dispatch, native Promise adoption and rejected original failures.",
+      "evidence": [
+        "tests/test_trading_control_error_types.js",
+        "tests/test_trading_web_control.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/web_server.ts",
+          "line": 1845
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 548
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 581
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 608
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 637
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 650
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 686
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 37
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 152
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 433
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 581
+        },
+        {
+          "path": "tests/test_trading_control_error_types.js",
+          "line": 21
+        },
+        {
+          "path": "tests/test_trading_control_error_types.js",
+          "line": 28
+        },
+        {
+          "path": "tests/test_trading_control_error_types.js",
+          "line": 82
+        },
+        {
+          "path": "tests/test_trading_control_error_types.js",
+          "line": 90
+        },
+        {
+          "path": "tests/test_dynamic_exchange_registry.js",
+          "line": 547
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 189
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 248
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 252
+        },
+        {
+          "path": "tests/test_ccxt_exchange.js",
+          "line": 379
+        },
+        {
+          "path": "src/ccxt_exchange.ts",
+          "line": 228
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTprdnlrZGdwbGQ=",
+      "rule": "JS-0116",
+      "path": "src/trading_repository.ts",
+      "baselineLine": 982,
+      "baselineColumn": 8,
+      "beforeSha256": "a1cb63b2be3b73d557c02761c014f1984fd0764ebd49e23aa5a8883f1482b221",
+      "afterSha256": "a1cb63b2be3b73d557c02761c014f1984fd0764ebd49e23aa5a8883f1482b221",
+      "currentLine": 982,
+      "functionName": "createTradingIntent",
+      "beforeFunctionSha256": "89b678940c64048b8a8f02cb900fe2b4f87e9163d72ca8b19663c7d70e6db867",
+      "afterFunctionSha256": "89b678940c64048b8a8f02cb900fe2b4f87e9163d72ca8b19663c7d70e6db867",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The public async boundary returns a transaction that reads the pinned route/runtime, determines blocking state and inserts the intent. Forwarder and journal tests await the complete result; no new await or scheduling change is needed.",
+      "evidence": [
+        "tests/test_trading_core.js",
+        "tests/test_trade_journal_streams.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/trading_repository.ts",
+          "line": 982
+        },
+        {
+          "path": "tests/test_ui_next_reads.js",
+          "line": 166
+        },
+        {
+          "path": "tests/test_trading_tier_fence.js",
+          "line": 22
+        },
+        {
+          "path": "tests/test_trading_tier_fence.js",
+          "line": 49
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 32
+        },
+        {
+          "path": "tests/test_trading_safety_proof.js",
+          "line": 173
+        },
+        {
+          "path": "tests/test_trading_risk_engine.js",
+          "line": 37
+        },
+        {
+          "path": "tests/test_trading_recovery_worker.js",
+          "line": 25
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 31
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 255
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 29
+        },
+        {
+          "path": "tests/test_trading_protected_entry_crash.js",
+          "line": 29
+        },
+        {
+          "path": "tests/test_trading_preparation_recovery.js",
+          "line": 26
+        },
+        {
+          "path": "tests/test_trading_pending_fairness.js",
+          "line": 72
+        },
+        {
+          "path": "tests/test_trading_lifecycle_safety.js",
+          "line": 110
+        },
+        {
+          "path": "tests/test_trading_global_release.js",
+          "line": 46
+        },
+        {
+          "path": "tests/test_trading_global_release.js",
+          "line": 116
+        },
+        {
+          "path": "tests/test_trading_fx_engine.js",
+          "line": 20
+        },
+        {
+          "path": "tests/test_trading_fee_rebate.js",
+          "line": 33
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 60
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 149
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1310
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_engine.js",
+          "line": 26
+        },
+        {
+          "path": "tests/test_trading_execution_mode_fence.js",
+          "line": 57
+        },
+        {
+          "path": "tests/test_trading_entry_safety.js",
+          "line": 35
+        },
+        {
+          "path": "tests/test_trading_entry_safety.js",
+          "line": 180
+        },
+        {
+          "path": "tests/test_trading_entry_price_engine.js",
+          "line": 23
+        },
+        {
+          "path": "tests/test_trading_entry_expiry.js",
+          "line": 51
+        },
+        {
+          "path": "tests/test_trading_engine_type_guards.js",
+          "line": 37
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 64
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 99
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 277
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 280
+        },
+        {
+          "path": "tests/test_trading_emergency.js",
+          "line": 48
+        },
+        {
+          "path": "tests/test_trading_core.js",
+          "line": 1283
+        },
+        {
+          "path": "tests/test_trading_core.js",
+          "line": 1291
+        },
+        {
+          "path": "tests/test_trading_accounting_gate.js",
+          "line": 42
+        },
+        {
+          "path": "tests/test_trade_journal_streams.js",
+          "line": 61
+        },
+        {
+          "path": "tests/test_startup_trading.js",
+          "line": 22
+        },
+        {
+          "path": "src/forwarder.ts",
+          "line": 1011
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTplYXhqeXZubG4=",
+      "rule": "JS-0116",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 1653,
+      "baselineColumn": 25,
+      "beforeSha256": "4495aef46ac4352f9e2bb723ee648a14bbf5980bf52bdc3e0c7e82e141034fd6",
+      "afterSha256": "b4b75340a4094fc603830ed0e84c9ece04157d56c5aa9f3fcb7bc13f1191a32e",
+      "currentLine": 1653,
+      "functionName": "reconcileAccount",
+      "beforeFunctionSha256": "b3f21adf161fbbbc9acc08185cd9690b1f547be4a6f5ab493bcb6e1b1d737fee",
+      "afterFunctionSha256": "b3f21adf161fbbbc9acc08185cd9690b1f547be4a6f5ab493bcb6e1b1d737fee",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The public engine adapter immediately requests serialized account mutation ownership with any supplied mutation context and adopts reconcileAccountOwned. Runtime/release callers await this result; retaining native async avoids changing failure/adoption semantics of the ownership boundary.",
+      "evidence": [
+        "tests/test_trading_protection_receipt.js",
+        "tests/test_trading_control_races.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 596
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 690
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 759
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 763
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 863
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 908
+        },
+        {
+          "path": "src/trading_web_control.ts",
+          "line": 1055
+        },
+        {
+          "path": "src/trading_runtime_release.ts",
+          "line": 60
+        },
+        {
+          "path": "src/trading_runtime_release.ts",
+          "line": 64
+        },
+        {
+          "path": "src/trading_runtime.ts",
+          "line": 187
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 90
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 92
+        },
+        {
+          "path": "tests/test_trading_web_control.js",
+          "line": 101
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 67
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 110
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 129
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 147
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 159
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 252
+        },
+        {
+          "path": "tests/test_trading_take_profit.js",
+          "line": 260
+        },
+        {
+          "path": "tests/test_trading_risk_engine.js",
+          "line": 42
+        },
+        {
+          "path": "tests/test_trading_risk_engine.js",
+          "line": 49
+        },
+        {
+          "path": "tests/test_trading_risk_engine.js",
+          "line": 54
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 36
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 48
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 85
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 90
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 94
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 105
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 111
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 116
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 121
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 138
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 165
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 172
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 188
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 203
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 229
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 234
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 238
+        },
+        {
+          "path": "tests/test_trading_protection_receipt.js",
+          "line": 257
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 70
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 96
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 103
+        },
+        {
+          "path": "tests/test_trading_protection.js",
+          "line": 111
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 1653
+        },
+        {
+          "path": "tests/test_trading_lifecycle_safety.js",
+          "line": 73
+        },
+        {
+          "path": "tests/test_trading_lifecycle_safety.js",
+          "line": 92
+        },
+        {
+          "path": "tests/test_trading_lifecycle_safety.js",
+          "line": 158
+        },
+        {
+          "path": "tests/test_trading_lifecycle_safety.js",
+          "line": 177
+        },
+        {
+          "path": "tests/test_trading_global_release.js",
+          "line": 125
+        },
+        {
+          "path": "tests/test_trading_fee_rebate.js",
+          "line": 41
+        },
+        {
+          "path": "tests/test_trading_fee_rebate.js",
+          "line": 44
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 192
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 193
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 201
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 214
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 220
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 237
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 259
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 380
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 391
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 531
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 725
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 726
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 745
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 756
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 777
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 791
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1068
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1112
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1127
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1156
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1211
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1222
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1303
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1481
+        },
+        {
+          "path": "tests/test_trading_failures.js",
+          "line": 1494
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_recovery.js",
+          "line": 44
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_recovery.js",
+          "line": 57
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_recovery.js",
+          "line": 72
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_recovery.js",
+          "line": 74
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_engine.js",
+          "line": 47
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_engine.js",
+          "line": 63
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_engine.js",
+          "line": 67
+        },
+        {
+          "path": "tests/test_trading_exit_cancel_engine.js",
+          "line": 96
+        },
+        {
+          "path": "tests/test_trading_entry_commitment.js",
+          "line": 206
+        },
+        {
+          "path": "tests/test_trading_entry_commitment.js",
+          "line": 210
+        },
+        {
+          "path": "tests/test_trading_entry_commitment.js",
+          "line": 230
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 130
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 154
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 176
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 184
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 190
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 229
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 319
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 331
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 359
+        },
+        {
+          "path": "tests/test_trading_engine.js",
+          "line": 387
+        },
+        {
+          "path": "tests/test_trading_emergency.js",
+          "line": 59
+        },
+        {
+          "path": "tests/test_trading_emergency.js",
+          "line": 215
+        },
+        {
+          "path": "tests/test_trading_emergency.js",
+          "line": 218
+        },
+        {
+          "path": "tests/test_trading_emergency.js",
+          "line": 223
+        },
+        {
+          "path": "tests/test_trading_emergency.js",
+          "line": 235
+        },
+        {
+          "path": "tests/test_trading_emergency.js",
+          "line": 238
+        },
+        {
+          "path": "tests/test_trading_account_retirement.js",
+          "line": 23
+        },
+        {
+          "path": "tests/test_trading_account_baseline.js",
+          "line": 145
+        },
+        {
+          "path": "tests/test_trading_account_baseline.js",
+          "line": 149
+        },
+        {
+          "path": "tests/test_trading_account_baseline.js",
+          "line": 153
+        },
+        {
+          "path": "tests/test_trading_account_baseline.js",
+          "line": 163
+        },
+        {
+          "path": "tests/test_trading_account_baseline.js",
+          "line": 180
+        },
+        {
+          "path": "tests/test_trading_account_baseline.js",
+          "line": 184
+        },
+        {
+          "path": "tests/test_trading_account_baseline.js",
+          "line": 188
+        },
+        {
+          "path": "tests/test_trading_account_baseline.js",
+          "line": 196
+        },
+        {
+          "path": "tests/test_trading_accounting_gate.js",
+          "line": 57
+        },
+        {
+          "path": "tests/fixtures/take_profit_crash.js",
+          "line": 31
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpwcXdybmp2YXk=",
+      "rule": "JS-0116",
+      "path": "src/trading_engine.ts",
+      "baselineLine": 945,
+      "baselineColumn": 46,
+      "beforeSha256": "4495aef46ac4352f9e2bb723ee648a14bbf5980bf52bdc3e0c7e82e141034fd6",
+      "afterSha256": "b4b75340a4094fc603830ed0e84c9ece04157d56c5aa9f3fcb7bc13f1191a32e",
+      "currentLine": 945,
+      "functionName": "retireUnauthorizedPreparation",
+      "beforeFunctionSha256": "a8c26e4a9409fbfa920e63c4b5b83e7c74d43baae74992b2b976e6c5a12955c3",
+      "afterFunctionSha256": "a8c26e4a9409fbfa920e63c4b5b83e7c74d43baae74992b2b976e6c5a12955c3",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "The outer async method returns a transaction whose callback awaits intent/proof checks and invokes instance failure handling before counting retirement. The bounded worker awaits it; retaining async preserves transaction errors and result adoption.",
+      "evidence": [
+        "tests/test_trading_preparation_recovery.js",
+        "tests/test_trading_pending_fairness.js"
+      ],
+      "nameReferences": [
+        {
+          "path": "src/trading_engine.ts",
+          "line": 922
+        },
+        {
+          "path": "src/trading_engine.ts",
+          "line": 945
+        }
+      ],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpnZXZlZGpvZ20=",
+      "rule": "JS-0116",
+      "path": "plans/002-pending-worker-fairness-probe.mjs",
+      "baselineLine": 45,
+      "baselineColumn": 26,
+      "beforeSha256": "aef320ba69631a5137589d2a09f5adf549c7fbcd404e4293f66a3d4d2c201313",
+      "afterSha256": "aef320ba69631a5137589d2a09f5adf549c7fbcd404e4293f66a3d4d2c201313",
+      "currentLine": 45,
+      "functionName": "anonymous async wrapper",
+      "beforeFunctionSha256": "296915923ac86b59fd50d954fc9580fd19b222bbb1647cd74773ea4bda3ee50f",
+      "afterFunctionSha256": "296915923ac86b59fd50d954fc9580fd19b222bbb1647cd74773ea4bda3ee50f",
+      "disposition": "reviewed_expected_behavior",
+      "probe": {
+        "id": "T2NjdXJyZW5jZTpnZXZlZGpvZ20=",
+        "path": "plans/002-pending-worker-fairness-probe.mjs",
+        "currentLine": 45,
+        "result": "passed",
+        "checks": [
+          "actual current function matches baseline extraction",
+          "native Promise adoption differs from returned dependency Promise",
+          "dependency called synchronously",
+          "synchronous dependency throw becomes original Promise rejection"
+        ]
+      },
+      "evidence": [
+        "plans/002-pending-worker-fairness-probe.mjs"
+      ],
+      "reason": "The fairness probe overrides this engine instance only, records each attempted intent before immediately calling the bound original processIntent, and returns a native Promise. An isolated execution of this exact wrapper verified recording, immediate invocation, distinct Promise adoption and synchronous exception rejection. The probe uses Paper and a temporary database; production source is unchanged.",
+      "nameReferences": [],
+      "referenceSearchNote": "Same-name call/declaration references; the rationale identifies the actual reviewed dispatch path."
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpsbXFtZGRkbmw=",
+      "rule": "PYL-R0201",
+      "path": "exchange_executor/ccxt_sdk_policy.py",
+      "baselineLine": 27,
+      "baselineColumn": 4,
+      "beforeSha256": "d9c84bdc0d85bc4a3852759e393ac284e7f9e064e0931700e780d0557b7db056",
+      "afterSha256": "d9c84bdc0d85bc4a3852759e393ac284e7f9e064e0931700e780d0557b7db056",
+      "currentLine": 27,
+      "functionName": "set_ref",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "HyperliquidNoAutomaticSetup.set_ref is an instance override selected by the dynamically composed REST/Pro SDK class. The pinned SDK initialize_client invokes bound coroutine hooks through asyncio.gather. Returning awaitable False intentionally prevents automatic referrer changes without a network effect. The independently rerun actual SDK initialization test verifies bound coroutine status, False result, successful initialization and zero fetch calls for both REST and Pro.",
+      "evidence": [
+        "exchange_executor/ccxt_sdk_policy.py",
+        "exchange_executor/tests/test_sdk_async_contract.py"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpkYWthd3d3dnE=",
+      "rule": "PYL-R0201",
+      "path": "exchange_executor/ccxt_sdk_policy.py",
+      "baselineLine": 24,
+      "baselineColumn": 4,
+      "beforeSha256": "d9c84bdc0d85bc4a3852759e393ac284e7f9e064e0931700e780d0557b7db056",
+      "afterSha256": "d9c84bdc0d85bc4a3852759e393ac284e7f9e064e0931700e780d0557b7db056",
+      "currentLine": 24,
+      "functionName": "handle_builder_fee_approval",
+      "disposition": "reviewed_expected_behavior",
+      "reason": "HyperliquidNoAutomaticSetup.handle_builder_fee_approval is an instance override selected by the dynamically composed REST/Pro SDK class. The pinned SDK initialize_client invokes bound coroutine hooks through asyncio.gather. Returning awaitable False intentionally prevents automatic builder-fee approval without a network effect. The independently rerun actual SDK initialization test verifies bound coroutine status, False result, successful initialization and zero fetch calls for both REST and Pro.",
+      "evidence": [
+        "exchange_executor/ccxt_sdk_policy.py",
+        "exchange_executor/tests/test_sdk_async_contract.py"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp2dm12bm54cWc=",
+      "rule": "SCT-A000",
+      "path": "exchange_executor/certifications/reviews/fixer-s6551-contract-fixes-2026-09-15.json",
+      "baselineLine": 39,
+      "baselineColumn": 1256,
+      "beforeSha256": "54ef85868ed5d7ba345786b8dff50d45b432f63f0e57ee9df9463a463b557186",
+      "afterSha256": "54ef85868ed5d7ba345786b8dff50d45b432f63f0e57ee9df9463a463b557186",
+      "currentLine": 39,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "The flagged span is the TokenProvider type annotation in an escaped historical completeDiff, within the health-server function parameter declaration. It is source-review evidence, not a credential literal. The containing historical diff is preserved; only this exact occurrence is recommended as false positive.",
+      "evidence": [
+        "exchange_executor/certifications/reviews/fixer-s6551-contract-fixes-2026-09-15.json",
+        "src/telegram_viewer/health_server.ts"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTprdnlxZHJranc=",
+      "rule": "SCT-A000",
+      "path": "tests/test_trading_credentials.js",
+      "baselineLine": 121,
+      "baselineColumn": 50,
+      "beforeSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "afterSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "currentLine": 121,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "Synthetic orphan candidate for initialize-time cleanup. A fresh credential store removes it, proving abandoned candidates do not survive startup.",
+      "evidence": [
+        "tests/test_trading_credentials.js",
+        "src/trading_credentials.ts"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTplYXhteXJqa3Y=",
+      "rule": "SCT-A000",
+      "path": "tests/test_trading_credentials.js",
+      "baselineLine": 115,
+      "baselineColumn": 51,
+      "beforeSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "afterSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "currentLine": 115,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "Synthetic staged candidate for discardCandidate. The test deletes it and verifies unconfigured status within the temporary directory.",
+      "evidence": [
+        "tests/test_trading_credentials.js",
+        "src/trading_credentials.ts"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpwcXd4bm1yeWE=",
+      "rule": "SCT-A000",
+      "path": "tests/test_trading_credentials.js",
+      "baselineLine": 108,
+      "baselineColumn": 53,
+      "beforeSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "afterSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "currentLine": 108,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "Synthetic staged Bybit candidate for the promoteCandidate lifecycle test. The test promotes within the isolated store and checks status; there is no exchange authentication.",
+      "evidence": [
+        "tests/test_trading_credentials.js",
+        "src/trading_credentials.ts"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp3bXJ5d2VheW4=",
+      "rule": "SCT-A000",
+      "path": "tests/test_trading_credentials.js",
+      "baselineLine": 79,
+      "baselineColumn": 49,
+      "beforeSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "afterSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "currentLine": 79,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "Expected synthetic Kraken Futures secret in the migration matrix. The assertion verifies local normalized credentials exactly and is removed with the temporary store.",
+      "evidence": [
+        "tests/test_trading_credentials.js",
+        "src/trading_credentials.ts"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpqd2dxZHZlcWE=",
+      "rule": "SCT-A000",
+      "path": "tests/test_trading_credentials.js",
+      "baselineLine": 78,
+      "baselineColumn": 88,
+      "beforeSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "afterSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "currentLine": 78,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "Synthetic version-1 Kraken Futures credential input in the temporary-store migration matrix. It verifies provider-specific legacy normalization without network access.",
+      "evidence": [
+        "tests/test_trading_credentials.js",
+        "src/trading_credentials.ts"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpuZ3dlZGF2ZXc=",
+      "rule": "SCT-A000",
+      "path": "tests/test_trading_credentials.js",
+      "baselineLine": 74,
+      "baselineColumn": 48,
+      "beforeSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "afterSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "currentLine": 74,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "Expected synthetic Bybit secret in the legacy migration assertion. It is compared with the locally migrated fixture, not loaded into a live provider.",
+      "evidence": [
+        "tests/test_trading_credentials.js",
+        "src/trading_credentials.ts"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTphbmF3dnhqd20=",
+      "rule": "SCT-A000",
+      "path": "tests/test_trading_credentials.js",
+      "baselineLine": 73,
+      "baselineColumn": 79,
+      "beforeSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "afterSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "currentLine": 73,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "Synthetic version-1 Bybit credential input written only to the isolated temporary store, then migrated by initialize. The companion expected row verifies apiSecret-to-secret normalization.",
+      "evidence": [
+        "tests/test_trading_credentials.js",
+        "src/trading_credentials.ts"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpsbXFuZHZ4bng=",
+      "rule": "SCT-A000",
+      "path": "tests/test_trading_credentials.js",
+      "baselineLine": 60,
+      "baselineColumn": 44,
+      "beforeSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "afterSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "currentLine": 60,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "Synthetic nested secret fixture paired with an unsupported custom credential field. The test expects rejection and checks the allowed credential schema.",
+      "evidence": [
+        "tests/test_trading_credentials.js",
+        "src/trading_credentials.ts"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpkYWt2d21qdmE=",
+      "rule": "SCT-A000",
+      "path": "tests/test_trading_credentials.js",
+      "baselineLine": 54,
+      "baselineColumn": 68,
+      "beforeSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "afterSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "currentLine": 54,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "Synthetic API-secret fixture paired with a missing API key. assert.rejects verifies required-key validation; it is not an operational credential.",
+      "evidence": [
+        "tests/test_trading_credentials.js",
+        "src/trading_credentials.ts"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpxcGVvbmxnb24=",
+      "rule": "SCT-A000",
+      "path": "tests/test_trading_credentials.js",
+      "baselineLine": 38,
+      "baselineColumn": 80,
+      "beforeSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "afterSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "currentLine": 38,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "Synthetic API-secret fixture paired with an invalid account identifier. assert.rejects verifies traversal/identifier validation before storage; no provider request occurs.",
+      "evidence": [
+        "tests/test_trading_credentials.js",
+        "src/trading_credentials.ts"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp5Z3lxbnhqcXY=",
+      "rule": "SCT-A000",
+      "path": "tests/test_trading_credentials.js",
+      "baselineLine": 35,
+      "baselineColumn": 78,
+      "beforeSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "afterSha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259",
+      "currentLine": 35,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "Synthetic Bybit credential-store fixture for successful local storage/status. The configured store lives under mkdtemp and is removed in finally; this test imports storage only and never authenticates to an exchange.",
+      "evidence": [
+        "tests/test_trading_credentials.js",
+        "src/trading_credentials.ts"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTp4cmd5bmtheXE=",
+      "rule": "SCT-A000",
+      "path": "tests/test_fill_quantity_contract.js",
+      "baselineLine": 41,
+      "baselineColumn": 43,
+      "beforeSha256": "be276d11be2b8a5314eb78c909b1ef3018d68cc8c93f4ab2c0e2dd0f1d9971de",
+      "afterSha256": "be276d11be2b8a5314eb78c909b1ef3018d68cc8c93f4ab2c0e2dd0f1d9971de",
+      "currentLine": 41,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "The value is a synthetic unexpected secret-field marker injected into a copied quantity-normalization fixture. assert.throws verifies that this extra field is rejected; it is not an account credential or a provider authorization flow.",
+      "evidence": [
+        "tests/test_fill_quantity_contract.js",
+        "src/exchange_contract_validation.ts"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTpuZ3dlZGF2cHc=",
+      "rule": "SCT-A000",
+      "path": "docs/QUALITY_OS.md",
+      "baselineLine": 109,
+      "baselineColumn": 15,
+      "beforeSha256": "c02275adee9c8e30bf61e6936e3ea83203c94d07a18e3f99bf33a7faa94a7a48",
+      "afterSha256": "c02275adee9c8e30bf61e6936e3ea83203c94d07a18e3f99bf33a7faa94a7a48",
+      "currentLine": 109,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "The SONAR_PROJECT_KEY assignment is an illustrative project identifier in the read-only export example. A project key identifies the scanned resource and is not an authentication secret; the real token remains a separate environment variable.",
+      "evidence": [
+        "docs/QUALITY_OS.md",
+        "scripts/export_sonarcloud_findings.js"
+      ]
+    },
+    {
+      "provider": "DeepSource",
+      "id": "T2NjdXJyZW5jZTphbmF3dnhqcW0=",
+      "rule": "SCT-A000",
+      "path": "docs/QUALITY_OS.md",
+      "baselineLine": 108,
+      "baselineColumn": 8,
+      "beforeSha256": "c02275adee9c8e30bf61e6936e3ea83203c94d07a18e3f99bf33a7faa94a7a48",
+      "afterSha256": "c02275adee9c8e30bf61e6936e3ea83203c94d07a18e3f99bf33a7faa94a7a48",
+      "currentLine": 108,
+      "disposition": "reviewed_false_positive",
+      "credentialValuesIncluded": false,
+      "reason": "The SONAR_TOKEN assignment is a human-readable placeholder in the documented read-only exporter command. It is illustrative documentation, not a loaded token or an authenticated command run by this review. No value is reproduced and no general credential-pattern exemption is proposed.",
+      "evidence": [
+        "docs/QUALITY_OS.md",
+        "scripts/export_sonarcloud_findings.js"
+      ]
+    }
+  ],
+  "verification": [
+    {
+      "check": "31 exact current test/probe wrapper functions executed in memory",
+      "result": "passed native Promise adoption, immediate dependency invocation and original synchronous-failure rejection; includes test cleanup/entry wrappers, historicalCredentialEvidence and fairness instrumentation",
+      "evidence": "reports/final-findings/deepsource-backend-wrapper-probes.json"
+    },
+    {
+      "check": "tests/test_trading_control_error_types.js",
+      "result": "passed, including six native-Promise mutation boundaries and Paper wrong-exchange rejection"
+    },
+    {
+      "check": "tests/test_trading_credentials.js",
+      "result": "passed isolated storage/migration/candidate lifecycle with no exchange authentication"
+    },
+    {
+      "check": "tests/test_fill_quantity_contract.js",
+      "result": "passed including rejection of injected secret field"
+    },
+    {
+      "check": "tests/test_trading_engine_type_guards.js",
+      "result": "passed actual instance seam before DB/provider effects"
+    },
+    {
+      "check": "tests/test_trading_protection_receipt.js",
+      "result": "passed instance seam final-fence drift and transaction rollback"
+    },
+    {
+      "check": "Python 3.12 test_sdk_async_contract.py",
+      "result": "1 test passed for actual pinned REST/Pro initialization; fetch not awaited",
+      "command": "python -m unittest discover -s tests -p test_sdk_async_contract.py",
+      "cwd": "exchange_executor"
+    },
+    {
+      "check": "Two root static-helper changes",
+      "result": "independent body comparison identical; no this access; reviewed all 2 identity and 1 persistence qualified call sites"
+    }
+  ],
+  "observedBindings": [
+    {
+      "path": "tests/test_workflow_migration.js",
+      "sha256": "b40587546f9e2921b3360a7883c9fa99dd8c9e994a2a546f4a92fa5aab03b6c0"
+    },
+    {
+      "path": "tests/test_workflow_history_barriers.js",
+      "sha256": "60476c3863b367f36bcbbf7dc1220e89121adb77afe8dc13c9203022cc2a872a"
+    },
+    {
+      "path": "tests/test_workflow_history.js",
+      "sha256": "df971701378cc0953f85c94b5c6555f0c7166436e98ff2869eaeec0f339ba0a5"
+    },
+    {
+      "path": "tests/test_workflow_fallback.js",
+      "sha256": "b1e1305a4b4d02c1075e1d91b1dc271622857c481f27c60f9cfe5987c149f67b"
+    },
+    {
+      "path": "tests/test_workflow_builder.js",
+      "sha256": "22e8ea883a1cd7d4452f6cd9373e854985e8028a05619e458a97a57793b1b5ae"
+    },
+    {
+      "path": "tests/test_web_server.js",
+      "sha256": "2cd157913dd7dfe3691fb2c60c45c65f4f163321290877df1b307570df763231"
+    },
+    {
+      "path": "tests/test_telegram_viewer_service.js",
+      "sha256": "49c860dc264790b3a4a3a36d829c09900a5583ec3cbb430b2a69baf1e9f11987"
+    },
+    {
+      "path": "tests/test_telegram_viewer_runtime.js",
+      "sha256": "14f5f6999c8ee9723e7f713e820fe7517e984daf5d540590ce291a439923f454"
+    },
+    {
+      "path": "tests/test_telegram_viewer_core.js",
+      "sha256": "909c6dd7cec41a9bd7fabe79a5a39a2c18920474858dfc65178779386bf81c2f"
+    },
+    {
+      "path": "tests/test_telegram_viewer_api.js",
+      "sha256": "164c78715bb98f5fcff074c4147d2472c1a244835b3ac885661e6d786b8834ab"
+    },
+    {
+      "path": "tests/test_signal_schema_migration.js",
+      "sha256": "e60931068bebd973c29b72368e114d7cc969ddc7c3f34286c43b785450c7df58"
+    },
+    {
+      "path": "tests/test_signal_parser.js",
+      "sha256": "c58c262e5e691df1a200def7f62214b6b51500702e6da7905520ad7fa228176f"
+    },
+    {
+      "path": "tests/test_setup_bundle.js",
+      "sha256": "d3b8cd7b468b2f3d4b43f962f94788782db20d6fd06450fff73f762541803d68"
+    },
+    {
+      "path": "tests/test_retention.js",
+      "sha256": "f43a3a6b87b1ec42a5b3ac3228630f68c186c10167e1eb955dc9da38d84fb609"
+    },
+    {
+      "path": "tests/test_queue.js",
+      "sha256": "f0b984e52b9f9b123c8fe2fe64ffb3417cddff67e04adf87cc45d166024fc3ac"
+    },
+    {
+      "path": "tests/test_outbox.js",
+      "sha256": "a4b64dd1e77a7636895b444f1c3113bd3ffdb6ce72188167ad37e6657981c0be"
+    },
+    {
+      "path": "tests/test_modules.js",
+      "sha256": "e065a465af03e11774c03f05ced6f80480ce4a8d411cf6c48fae8f218586cf8b"
+    },
+    {
+      "path": "tests/test_metrics.js",
+      "sha256": "1de02b274fcb40defd50c8b0ceceaec539fa98cd200eb0b89e44c7e09a4884f0"
+    },
+    {
+      "path": "tests/test_mcp_server.js",
+      "sha256": "90768e044169892ad274fdf4ad1dfedea72159421bc482c6784525cf1028c6a4"
+    },
+    {
+      "path": "tests/test_integration.js",
+      "sha256": "4c39ee34e606ce02b3fcffe4f7ca16e8802e9a3b526ad0d8aef905f284903584"
+    },
+    {
+      "path": "tests/test_filters.js",
+      "sha256": "afd76211cd82692786e2e2dde8c79de631a0af600161acb3f0e2198804ac7281"
+    },
+    {
+      "path": "tests/test_dupe_blocker.js",
+      "sha256": "050b5d74ab8312cbe6d55e589e940ecab7aeb381592ba72954809e69a8c2476d"
+    },
+    {
+      "path": "tests/test_delivery_tracker.js",
+      "sha256": "c0a8f2274ca6c7b12b9e521133c5915ab4b2b172c354e66b2df3c7c754228c88"
+    },
+    {
+      "path": "tests/test_crash_guard.js",
+      "sha256": "db9d18a7aa39fa5131c148da53fe0130de4921c56091605782360959c2e25ba9"
+    },
+    {
+      "path": "tests/test_coverage_perfektion.js",
+      "sha256": "da3f61d61154dbfc4d5a7ea86680ce87a2f3e057aebf4b228b0a07be6c441283"
+    },
+    {
+      "path": "tests/test_configurable_fallback_migration.js",
+      "sha256": "391c3bd2dd8692af1000ca6b64638a9d8821236df4d93160c1eedb0788268faf"
+    },
+    {
+      "path": "tests/test_backup.js",
+      "sha256": "ddee34d10135ce6e79f07132d33018b70cfdc5f36435cf6afe1943a8a12f82e0"
+    },
+    {
+      "path": "tests/evaluate_signal_golden_set.js",
+      "sha256": "69f890d251923b109eb8f637d07f831e5ef2266d149e82c5e6953b9e7bc58ae0"
+    },
+    {
+      "path": "src/trading_engine.ts",
+      "sha256": "b4b75340a4094fc603830ed0e84c9ece04157d56c5aa9f3fcb7bc13f1191a32e"
+    },
+    {
+      "path": "tests/test_trading_engine.js",
+      "sha256": "56595f5b840096ed12e9658826bd000c6c0f24c4c66256a0d00f7dc385a17b25"
+    },
+    {
+      "path": "tests/test_exchange_fill_identity.js",
+      "sha256": "6146f00d3b6ad95415bf29884b120b1fc573a6ec9cf27efbb53e4657757e9159"
+    },
+    {
+      "path": "tests/test_trading_protection_receipt.js",
+      "sha256": "80f9ff21274ae6d56035b0525e335f4e7a80d97be168d3429d0c55725933fa85"
+    },
+    {
+      "path": "tests/test_trading_failures.js",
+      "sha256": "a63efc6f437dd78e2ccdcaef93aa3373f8a03d8f0526570612f3ba92fe55101c"
+    },
+    {
+      "path": "tests/test_trading_engine_type_guards.js",
+      "sha256": "b635af7f4dfdc361f271629585489d0c3d5227b80e318c6f50e3075a44a35a09"
+    },
+    {
+      "path": "src/paper_exchange.ts",
+      "sha256": "b5fc9e4684118985bf29d8bbfbb104c3cbb9de0d8184e895bb7dc8d1238fda6e"
+    },
+    {
+      "path": "tests/test_trading_control_error_types.js",
+      "sha256": "19d592a10f936e1cf2eaf38c4a313d9ab43ff3a776c40cdee7802a1ac1c3018f"
+    },
+    {
+      "path": "tests/test_trading_core.js",
+      "sha256": "a420c5fab011ae6d46ce88799e56fd08bfd271859263bb71b5911e8175454093"
+    },
+    {
+      "path": "src/db.ts",
+      "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+    },
+    {
+      "path": "tests/test_ingress_workflow_pinning.js",
+      "sha256": "8a0e2a1bc07850c243a0ce177bfedd1b783d0d4512cea5ade3da71513b36a00b"
+    },
+    {
+      "path": "src/mcp_repository.ts",
+      "sha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046"
+    },
+    {
+      "path": "tests/test_mcp_control_plane.js",
+      "sha256": "be26930bfc3efec472dec7b4e420275a7f050b92cca7690edd8ee13741d39652"
+    },
+    {
+      "path": "src/forwarder.ts",
+      "sha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0"
+    },
+    {
+      "path": "tests/test_tdlib_retry.js",
+      "sha256": "22e85a91e1870e16d1fdb075e3ac6ddff5a097a6096d3372d429330ca1fd6439"
+    },
+    {
+      "path": "tests/test_forwarder_error_types.js",
+      "sha256": "d9ed50ca4edf57b327f0018ab4aafe28c2ee57871aa4bb058b117689e0e0d3ed"
+    },
+    {
+      "path": "tests/test_trading_web_control.js",
+      "sha256": "3f9f38ed1b450ad3306e776037c721e558541b58f9e513bebbcfc34a1f43dde4"
+    },
+    {
+      "path": "src/workflow_repository.ts",
+      "sha256": "68f0b784b7ec469076bd4f907a4658ba3627c88a1889384208e3e6d08ea41cc8"
+    },
+    {
+      "path": "src/trading_web_control.ts",
+      "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+    },
+    {
+      "path": "tests/test_trading_account_retirement.js",
+      "sha256": "08138291d1196e185b025a702d9ab7117facdb4bd7a6563e2ff7b3633c901b5e"
+    },
+    {
+      "path": "tests/test_trading_control_races.js",
+      "sha256": "dc7ae194c9e8ea9709c55f1c45b1142c1149b7803825c01cd1692d7d7a6f2dee"
+    },
+    {
+      "path": "src/trading_repository.ts",
+      "sha256": "a1cb63b2be3b73d557c02761c014f1984fd0764ebd49e23aa5a8883f1482b221"
+    },
+    {
+      "path": "tests/test_trade_journal_streams.js",
+      "sha256": "3619ae4f15c475c1c6433bc82072bf3da14a996a9a05580803b122ceb1ca92a5"
+    },
+    {
+      "path": "tests/test_trading_preparation_recovery.js",
+      "sha256": "9a79e838be94650b63558c1683b9c800fd11c2790af390b8bc18ca67da88a001"
+    },
+    {
+      "path": "tests/test_trading_pending_fairness.js",
+      "sha256": "30534eb60a81f7587831c56644348afeb95674f51b5a6195b246dd9a6b8394d6"
+    },
+    {
+      "path": "plans/002-pending-worker-fairness-probe.mjs",
+      "sha256": "aef320ba69631a5137589d2a09f5adf549c7fbcd404e4293f66a3d4d2c201313"
+    },
+    {
+      "path": "exchange_executor/ccxt_sdk_policy.py",
+      "sha256": "d9c84bdc0d85bc4a3852759e393ac284e7f9e064e0931700e780d0557b7db056"
+    },
+    {
+      "path": "exchange_executor/tests/test_sdk_async_contract.py",
+      "sha256": "1d5273b22a117dab842097fcfdfadbdb1cf35d10378fdbd81dcd1fa513317977"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/fixer-s6551-contract-fixes-2026-09-15.json",
+      "sha256": "54ef85868ed5d7ba345786b8dff50d45b432f63f0e57ee9df9463a463b557186"
+    },
+    {
+      "path": "src/telegram_viewer/health_server.ts",
+      "sha256": "34f8c841e22275f97d537366c47cff93c5a88ca144f0d9567a2cdb801bc67484"
+    },
+    {
+      "path": "tests/test_trading_credentials.js",
+      "sha256": "6fb1a20c5fbedad8dae17b5e8335672aad3bb1bb553fa4e0e02a48cdb679e259"
+    },
+    {
+      "path": "src/trading_credentials.ts",
+      "sha256": "68b9e09e61ba71ff8c642e9553a4de08f97070b7330fb50b4b4f46daf44c9c39"
+    },
+    {
+      "path": "tests/test_fill_quantity_contract.js",
+      "sha256": "be276d11be2b8a5314eb78c909b1ef3018d68cc8c93f4ab2c0e2dd0f1d9971de"
+    },
+    {
+      "path": "src/exchange_contract_validation.ts",
+      "sha256": "0281d406027729d6cb208cb517b577ef3cb2e65f7d52348112c0735dea71e586"
+    },
+    {
+      "path": "docs/QUALITY_OS.md",
+      "sha256": "c02275adee9c8e30bf61e6936e3ea83203c94d07a18e3f99bf33a7faa94a7a48"
+    },
+    {
+      "path": "scripts/export_sonarcloud_findings.js",
+      "sha256": "8e4b13dfaaafc927e6a3af0ac3f034f3b82754110216cb0265d489fbeb7f9312"
+    }
+  ],
+  "limits": [
+    "No application source was changed by this review. Root owns the two already-applied private static-helper changes.",
+    "No values from credential alerts are reproduced. Fixture/documentation decisions apply only to these exact source-bound occurrences.",
+    "No remote dispositions, scanner configuration changes, new suppressions, commits or staging were performed.",
+    "File hashes bind reviewed content only; they are not renewed cryptographic attestation or a blanket approval of either rule family.",
+    "Root still owns integrated full-suite verification and candidate scanner reconciliation.",
+    "The exact provider rule IDs are PYL-R0201 and SCT-A000; labels are retained from the authoritative export."
+  ]
+}

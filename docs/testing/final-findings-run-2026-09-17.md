@@ -45,6 +45,10 @@ The backend Sonar package covers 46 occurrences: 40 source changes pending scan 
 
 The UI/Python/mechanical package covers 57 DeepSource and 18 Sonar occurrences, with source changes distinguished from individual exception candidates in its companion ledger. A separate agent reviewed all 17 changed frontend source files and the new viewer regression without a blocking finding. The viewer regression verifies stable focused controls and one revision-bound settings write. Focused evidence comprises 173 frontend tests, 21 Python tests, six root suites, frontend types/lint, and a separately versioned mypy reproduction. The three KuCoin typing reports still require provider reconciliation; local non-reproduction is not proof of a completed DeepSource scan.
 
+The remaining 15 Sonar IDs are bound individually in `final-sonar-fill-python-2026-09-17.json`: three fill-proof boundaries and twelve test assertions. Exact inventory subtraction verifies that these three packages cover every one of the 79 open Sonar IDs without overlap.
+
+The prior-suppression audit covers all 370 baseline comments and 389 rule mentions. Two obsolete JS-W1042 comments were removed; their executable ASTs are unchanged. The other 368 comments retain individual current-contract evidence. The same ledger reassesses seven previous Sonar false positives, one accepted compatibility finding and two NOSONAR sites. Focused evidence comprises ten Node suites, nine Python tests and eleven frontend tests; this does not imply every suppressed branch was executed.
+
 Two private TradingEngine helpers that have no instance dependency or override callers are now static. Their three call sites retain the same awaited behavior. Six engine/evidence suites passed. Instance methods used as adapter interfaces or fault-injection seams remain unchanged. Additional control tests prove native Promise rejection/adoption, immediate mutation ownership and synchronous operator fencing; four control/race suites passed. The occurrence ledger must record these retained contracts individually.
 
 ## Codacy analyzer status
