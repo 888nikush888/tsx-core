@@ -350,7 +350,7 @@ async function loadJournalOrders(database: Database, intentIds: string[]): Promi
 // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
 async function loadJournalFills(database: Database, orders: JournalRow[]): Promise<JournalRow[]> {
   const orderIds = orders.map(order => String(order.id));
-  if (orderIds.length === 0) return Promise.resolve([]);
+  if (orderIds.length === 0) return [];
   return database.all<JournalRow[]>(
     `SELECT fill.id, orders.intent_id AS intentId, fill.order_id AS orderId,
             fill.exchange_fill_id AS exchangeFillId, fill.price, fill.quantity,
@@ -385,7 +385,7 @@ async function loadJournalSchemas(database: Database, rows: JournalRow[]): Promi
   const schemaIds = [...new Set(rows.map(row => {
     return executableSchemaId(row.signal_json);
   }).filter((value): value is string => Boolean(value)))];
-  if (schemaIds.length === 0) return Promise.resolve([]);
+  if (schemaIds.length === 0) return [];
   return database.all<JournalRow[]>(
     `SELECT schema.id, schema.name, schema.contract_version_id AS contractVersionId,
             version.definition_sha256 AS definitionSha256

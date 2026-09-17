@@ -2866,13 +2866,13 @@ async function authorizeLocalSessionInitialization(
   actor: AuthenticatedActor,
   tokenWasConfigured: boolean
 ): Promise<boolean> {
-  if (tokenWasConfigured) return Promise.resolve(true);
+  if (tokenWasConfigured) return true;
   if (isRecoveryLocalSessionBootstrap(context)) {
     addLog(`[CRITICAL] request_id=${context.requestId} Recovery-mode loopback session initialized without an audit trail.`, {
       request_id: context.requestId,
       event: 'recovery_local_session_bootstrap',
     });
-    return Promise.resolve(true);
+    return true;
   }
   return authorizeMutationAudit(context, actor, 'POST', '/api/local-session');
 }
