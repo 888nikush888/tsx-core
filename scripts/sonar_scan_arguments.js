@@ -10,12 +10,17 @@ export function sonarScanArguments(environment) {
   const { pullRequest } = sonarScope(environment);
   // The action parses this fixed string before the scanner resolves environment
   // properties. Ref names never enter either a shell or its argument parser.
+  // skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary
   const args = ["-Dsonar.scm.revision=${env.SONAR_EXPECTED_REVISION}"];
   if (pullRequest) args.push(
+    // skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary
     "-Dsonar.pullrequest.key=${env.SONAR_PULL_REQUEST}",
+    // skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary
     "-Dsonar.pullrequest.branch=${env.SONAR_PULL_REQUEST_BRANCH}",
+    // skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary
     "-Dsonar.pullrequest.base=${env.SONAR_PULL_REQUEST_BASE}"
   );
+  // skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary
   else if (environment.SONAR_BRANCH) args.push("-Dsonar.branch.name=${env.SONAR_BRANCH}");
   return args.join(' ');
 }

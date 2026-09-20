@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const LEDGER = 'docs/testing/final-codacy-2026-09-17.json';
+const SUPPLEMENT = 'docs/testing/final-codacy-pr73-2026-09-20.json';
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 const canonical = value => String(value).replaceAll('\r\n', '\n');
 const digest = value => typeof value === 'string' && /^[a-f\d]{64}$/.test(value);
@@ -114,14 +115,31 @@ export function checkFinalCodacyReview(ledger, readSource) {
   return { ok: problems.length === 0, problems, counts: state.counts, sourceCount: state.sources.size };
 }
 
+/** Exact retained inventories prevent a count-consistent deletion of old or new findings. */
+export function checkFinalCodacyInventories(baseline, supplement) {
+  const baselineIds = list(baseline?.entries).map(entry => entry?.issueId).sort();
+  const supplementIds = list(supplement?.entries).map(entry => entry?.issueId).sort();
+  const problems = [];
+  if (sha256(JSON.stringify(baselineIds)) !== '837d38d43bd955a6df38fd770b08f5e166144ddad71315b7e04e78da07d92a62') problems.push('Original 439 Codacy identities differ.');
+  if (sha256(JSON.stringify(supplementIds)) !== '3066400b264e988d4d8757761717dbf1deb5bea20b41bf20ff4f1d2e9ee32ed2') problems.push('PR73 five Codacy identities differ.');
+  const original = new Set(baselineIds);
+  if (supplementIds.some(id => original.has(id))) problems.push('Codacy inventories overlap.');
+  return { ok: problems.length === 0, problems };
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const ledger = JSON.parse(readFileSync(path.join(ROOT, LEDGER), 'utf8'));
-    const result = checkFinalCodacyReview(ledger, name => readFileSync(path.join(ROOT, name), 'utf8'));
-    if (!result.ok) {
-      for (const message of result.problems) console.error(message);
+    const supplement = JSON.parse(readFileSync(path.join(ROOT, SUPPLEMENT), 'utf8'));
+    const readSource = name => readFileSync(path.join(ROOT, name), 'utf8');
+    const baselineReview = checkFinalCodacyReview(ledger, readSource);
+    const supplementReview = checkFinalCodacyReview(supplement, readSource);
+    const inventory = checkFinalCodacyInventories(ledger, supplement);
+    const problems = [...baselineReview.problems, ...supplementReview.problems, ...inventory.problems];
+    if (problems.length > 0) {
+      for (const message of problems) console.error(message);
       process.exitCode = 1;
-    } else console.log(`Codacy review integrity passed: ${ledger.entries.length} occurrences, ${result.sourceCount} source/context files. Provider success is a separate requirement.`);
+    } else console.log('Codacy review integrity passed: 439 historical + 5 PR73 occurrences. Provider success is a separate requirement.');
   } catch {
     console.error('Cannot load the final Codacy review ledger.');
     process.exitCode = 1;

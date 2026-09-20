@@ -1,0 +1,896 @@
+{
+  "schemaVersion": 1,
+  "baselineRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+  "scope": "Additive PR73 five-identity semantic review. Original439 remain independently mandatory, including33 absent Trivy records. No provider statuses changed.",
+  "counts": {
+    "active": 5,
+    "ignored": 0,
+    "total": 5
+  },
+  "ruleCounts": {
+    "ESLint8_security_detect-object-injection": {
+      "active": 1,
+      "ignored": 0
+    },
+    "ESLint8_security_detect-non-literal-fs-filename": {
+      "active": 2,
+      "ignored": 0
+    },
+    "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename": {
+      "active": 1,
+      "ignored": 0
+    },
+    "Semgrep_javascript_eval_rule-eval-with-expression": {
+      "active": 1,
+      "ignored": 0
+    }
+  },
+  "sources": [
+    {
+      "path": "scripts/check_final_codacy_review.js"
+    },
+    {
+      "path": "tests/test_final_codacy_review.js"
+    },
+    {
+      "path": "src/backup_generation.ts"
+    },
+    {
+      "path": "src/backup.ts"
+    },
+    {
+      "path": "src/backup_cli.ts"
+    },
+    {
+      "path": "src/process_lock.ts"
+    },
+    {
+      "path": "tests/test_forwarder_error_types.js"
+    },
+    {
+      "path": "src/forwarder.ts"
+    },
+    {
+      "path": "src/forwarder_errors.ts"
+    },
+    {
+      "path": "src/contract_values.ts"
+    }
+  ],
+  "entries": [
+    {
+      "issueId": "21d93201f83138422de211186806b0b4",
+      "providerStatus": "active",
+      "rule": "ESLint8_security_detect-object-injection",
+      "path": "scripts/check_final_codacy_review.js",
+      "baselineSourceSha256": "79fe4a776a0ca13d13d6d111c5ee9a5b7076c6cb2ab8e38b5c6ed2786652b220",
+      "rationale": "checkCounts reads a rule-indexed JSON count record and compares active/ignored numeric totals. The key originates in this ledger family map, never becomes executable code or a property write. Inherited names cannot inject behavior into JSON-parsed rules; a mismatch reports a failed integrity check.",
+      "disposition": "false-positive-proposed",
+      "reviewedLocations": [
+        {
+          "path": "scripts/check_final_codacy_review.js",
+          "line": 50
+        }
+      ],
+      "evidence": [
+        {
+          "path": "scripts/check_final_codacy_review.js"
+        },
+        {
+          "path": "tests/test_final_codacy_review.js"
+        }
+      ],
+      "finalSourceRenewal": "reviewed-final-source",
+      "finalSourcePaths": [
+        "scripts/check_final_codacy_review.js",
+        "tests/test_final_codacy_review.js"
+      ],
+      "finalEvidence": [
+        {
+          "path": "scripts/check_final_codacy_review.js",
+          "line": 51,
+          "normalizedLineSha256": "2a8c2f955f094bb530ab91fa1b10036ba1c64023927daa9755323871da69cd1c"
+        }
+      ],
+      "limitations": "Keep logic; optionally build a Map from Object.entries(rules) and use get(rule) to exclude inherited members explicitly, preserving count and missing-rule failures. Do not change provider disposition without recording this ID.",
+      "providerApplied": false,
+      "priorCliBindingReview": {
+        "finalEvidence": [
+          {
+            "path": "scripts/check_final_codacy_review.js",
+            "line": 50,
+            "normalizedLineSha256": "2a8c2f955f094bb530ab91fa1b10036ba1c64023927daa9755323871da69cd1c"
+          }
+        ],
+        "reviewedLocations": [
+          {
+            "path": "scripts/check_final_codacy_review.js",
+            "line": 50
+          }
+        ],
+        "rationale": "checkCounts reads a rule-indexed JSON count record and compares active/ignored numeric totals. The key originates in this ledger family map, never becomes executable code or a property write. Inherited names cannot inject behavior into JSON-parsed rules; a mismatch reports a failed integrity check."
+      },
+      "currentCliSemanticRenewal": "CLI requires both fixed local ledgers and runs existing per-ledger semantic/source/line checks before combining results with exact ordinal-sorted case-sensitive ID digests. Pins independently match all439 historical API IDs and five Added PR73 API IDs. Missing, duplicate, case-changed and overlapping sets fail. No provider write or status relabel. Dynamic readSource retains safePath/registered-source guards; fixed supplement read adds no external path input."
+    },
+    {
+      "issueId": "26cffb07d9d0225b95b7e2fc3daad52e",
+      "providerStatus": "active",
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "path": "scripts/check_final_codacy_review.js",
+      "baselineSourceSha256": "79fe4a776a0ca13d13d6d111c5ee9a5b7076c6cb2ab8e38b5c6ed2786652b220",
+      "rationale": "Dynamic source reader is called by bindSource only after safePath rejects absolute paths, empty/dot/dot-dot segments and backslashes/colon, or by checkLine only for a path registered by bindSource. The source set belongs to a reviewed local repository ledger; it is read and hashed, not executed or sent externally. safePath is lexical; it does not reject local checkout symlink parents.",
+      "disposition": "false-positive-proposed",
+      "reviewedLocations": [
+        {
+          "path": "scripts/check_final_codacy_review.js",
+          "line": 120
+        }
+      ],
+      "evidence": [
+        {
+          "path": "scripts/check_final_codacy_review.js"
+        },
+        {
+          "path": "tests/test_final_codacy_review.js"
+        }
+      ],
+      "finalSourceRenewal": "reviewed-final-source",
+      "finalSourcePaths": [
+        "scripts/check_final_codacy_review.js",
+        "tests/test_final_codacy_review.js"
+      ],
+      "finalEvidence": [
+        {
+          "path": "scripts/check_final_codacy_review.js",
+          "line": 134,
+          "normalizedLineSha256": "0fc50d2629b4b0af2d9682de8d28d9a33b165f8ce517c83c78af03526fa5145b"
+        }
+      ],
+      "limitations": "Preserve functional dependency injection and per-source hash validation. Record local checkout trust assumption. If broadening to hostile worktrees, independently add canonical root containment plus lstat/reparse parent-chain checks and tests; do not casually convert dynamic sources into exclusions.",
+      "providerApplied": false,
+      "priorCliBindingReview": {
+        "finalEvidence": [
+          {
+            "path": "scripts/check_final_codacy_review.js",
+            "line": 120,
+            "normalizedLineSha256": "29663bc153fc28f6739c81bdcb8fa9a6bfd7745d24c5b94818b4a8a1bdd3227a"
+          }
+        ],
+        "reviewedLocations": [
+          {
+            "path": "scripts/check_final_codacy_review.js",
+            "line": 120
+          }
+        ],
+        "rationale": "Dynamic source reader is called by bindSource only after safePath rejects absolute paths, empty/dot/dot-dot segments and backslashes/colon, or by checkLine only for a path registered by bindSource. The source set belongs to a reviewed local repository ledger; it is read and hashed, not executed or sent externally. safePath is lexical; it does not reject local checkout symlink parents."
+      },
+      "currentCliSemanticRenewal": "CLI requires both fixed local ledgers and runs existing per-ledger semantic/source/line checks before combining results with exact ordinal-sorted case-sensitive ID digests. Pins independently match all439 historical API IDs and five Added PR73 API IDs. Missing, duplicate, case-changed and overlapping sets fail. No provider write or status relabel. Dynamic readSource retains safePath/registered-source guards; fixed supplement read adds no external path input."
+    },
+    {
+      "issueId": "329a4ebf6ed7872f91258fa5f4bb8381",
+      "providerStatus": "active",
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "path": "src/backup_generation.ts",
+      "baselineSourceSha256": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f",
+      "rationale": "visitTemplates enumerates an application-selected configuration template directory. realDirectory rejects a link at the root; readdirSync uses a recursive directory derived from kernel directory-entry names. Every entry rejects symbolic links; safeMember rejects traversal and separators before recursion; depth16/count1024 and regularBytes size/type guards bound the walk. Source initialization normalizes caller configuration paths and holds the process-owner barrier. There is no request-controlled path concatenation at this occurrence. Like existing logic, concurrent hostile local filesystem swaps are not prevented atomically.",
+      "disposition": "false-positive-proposed",
+      "reviewedLocations": [
+        {
+          "path": "src/backup_generation.ts",
+          "line": 202
+        }
+      ],
+      "evidence": [
+        {
+          "path": "src/backup_generation.ts"
+        },
+        {
+          "path": "src/backup.ts"
+        },
+        {
+          "path": "src/backup_cli.ts"
+        },
+        {
+          "path": "src/process_lock.ts"
+        }
+      ],
+      "finalSourceRenewal": "reviewed-final-source",
+      "finalSourcePaths": [
+        "src/backup_generation.ts",
+        "src/backup.ts",
+        "src/backup_cli.ts",
+        "src/process_lock.ts"
+      ],
+      "finalEvidence": [
+        {
+          "path": "src/backup_generation.ts",
+          "line": 202,
+          "normalizedLineSha256": "b92f1a39c67ca5e1ac38f8218dd17c4c0c9556ba84bbe404603d62e1e56d4130"
+        }
+      ],
+      "limitations": "Retain deterministic sort and directory guards. Attach current line202 as a moved/new occurrence of already reviewed template traversal. Avoid changing backup enumeration to placate the scanner; document local filesystem race boundary instead of claiming sandbox safety.",
+      "providerApplied": false
+    },
+    {
+      "issueId": "4046b22647767dce271723314d38be36",
+      "providerStatus": "active",
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "path": "scripts/check_final_codacy_review.js",
+      "baselineSourceSha256": "79fe4a776a0ca13d13d6d111c5ee9a5b7076c6cb2ab8e38b5c6ed2786652b220",
+      "rationale": "CLI ledger read combines module-derived ROOT with a fixed module constant LEDGER. No argv, environment, network, or ledger-controlled path selects this file.",
+      "disposition": "false-positive-proposed",
+      "reviewedLocations": [
+        {
+          "path": "scripts/check_final_codacy_review.js",
+          "line": 119
+        }
+      ],
+      "evidence": [
+        {
+          "path": "scripts/check_final_codacy_review.js"
+        },
+        {
+          "path": "tests/test_final_codacy_review.js"
+        }
+      ],
+      "finalSourceRenewal": "reviewed-final-source",
+      "finalSourcePaths": [
+        "scripts/check_final_codacy_review.js",
+        "tests/test_final_codacy_review.js"
+      ],
+      "finalEvidence": [
+        {
+          "path": "scripts/check_final_codacy_review.js",
+          "line": 132,
+          "normalizedLineSha256": "676f2fc322f32a9080901e91ea92d32d4421c12ef12ae4aee0cc8158f2cdd370"
+        }
+      ],
+      "limitations": "Use readFileSync(new URL('../docs/testing/final-codacy-2026-09-17.json', import.meta.url), 'utf8') if desired; this is the same fixed file, not a security repair.",
+      "providerApplied": false,
+      "priorCliBindingReview": {
+        "finalEvidence": [
+          {
+            "path": "scripts/check_final_codacy_review.js",
+            "line": 119,
+            "normalizedLineSha256": "676f2fc322f32a9080901e91ea92d32d4421c12ef12ae4aee0cc8158f2cdd370"
+          }
+        ],
+        "reviewedLocations": [
+          {
+            "path": "scripts/check_final_codacy_review.js",
+            "line": 119
+          }
+        ],
+        "rationale": "CLI ledger read combines module-derived ROOT with a fixed module constant LEDGER. No argv, environment, network, or ledger-controlled path selects this file."
+      },
+      "currentCliSemanticRenewal": "CLI requires both fixed local ledgers and runs existing per-ledger semantic/source/line checks before combining results with exact ordinal-sorted case-sensitive ID digests. Pins independently match all439 historical API IDs and five Added PR73 API IDs. Missing, duplicate, case-changed and overlapping sets fail. No provider write or status relabel. Dynamic readSource retains safePath/registered-source guards; fixed supplement read adds no external path input."
+    },
+    {
+      "issueId": "96c70e58dbd13a7871ea404b36bbf023",
+      "providerStatus": "active",
+      "rule": "Semgrep_javascript_eval_rule-eval-with-expression",
+      "path": "tests/test_forwarder_error_types.js",
+      "baselineSourceSha256": "d33fb217d2e59788d8d92f53340b495443cf8bb3d198cb95b6825607b5818333",
+      "rationale": "verifyResolvedChatIds receives bytes from the literal module-relative src/forwarder.ts URL at its only call. It AST-selects exactly resolveChatId, supergroupFallback and resolvedTdlibChatId declarations and asserts count before TypeScript transpilation. Function executes those repository-owned declarations with injected local client/invoke/log fixtures; tested IDs are input data supplied later, never interpolated into executable. The test executes repository code under the same trust as importing tests, not user code.",
+      "disposition": "false-positive-proposed",
+      "reviewedLocations": [
+        {
+          "path": "tests/test_forwarder_error_types.js",
+          "line": 169
+        }
+      ],
+      "evidence": [
+        {
+          "path": "tests/test_forwarder_error_types.js"
+        },
+        {
+          "path": "src/forwarder.ts"
+        },
+        {
+          "path": "src/forwarder_errors.ts"
+        },
+        {
+          "path": "src/contract_values.ts"
+        }
+      ],
+      "finalSourceRenewal": "reviewed-final-source",
+      "finalSourcePaths": [
+        "tests/test_forwarder_error_types.js",
+        "src/forwarder.ts",
+        "src/forwarder_errors.ts",
+        "src/contract_values.ts"
+      ],
+      "finalEvidence": [
+        {
+          "path": "tests/test_forwarder_error_types.js",
+          "line": 169,
+          "normalizedLineSha256": "e27cab6d09ec16f9aed1d1fafdd44cedccc1a07c2c4f4d9d4d43b82e02df1b44"
+        }
+      ],
+      "limitations": "Keep production-source extraction and hostile ID assertions. Record exact new sink and upstream literal-source boundary; do not replace Function with eval, copied implementation, or weaker assertions merely to hide the finding.",
+      "providerApplied": false
+    }
+  ],
+  "finalReview": {
+    "status": "complete",
+    "sources": [
+      {
+        "path": "scripts/check_final_codacy_review.js",
+        "normalizedSha256": "c930f9dbe10f6db520b10dd98aaa3b893d7556ce700772d0d6d85fbaa3673205",
+        "semanticReview": "CLI requires both fixed local ledgers and runs existing per-ledger semantic/source/line checks before combining results with exact ordinal-sorted case-sensitive ID digests. Pins independently match all439 historical API IDs and five Added PR73 API IDs. Missing, duplicate, case-changed and overlapping sets fail. No provider write or status relabel. Dynamic readSource retains safePath/registered-source guards; fixed supplement read adds no external path input.",
+        "previousCliReview": {
+          "path": "scripts/check_final_codacy_review.js",
+          "normalizedSha256": "79fe4a776a0ca13d13d6d111c5ee9a5b7076c6cb2ab8e38b5c6ed2786652b220",
+          "semanticReview": "Read count lookups and all source read callers: fixed ledger URL-root, safePath-bound registered source names, line hashes and semantic status remain mandatory; no provider writes."
+        }
+      },
+      {
+        "path": "tests/test_final_codacy_review.js",
+        "normalizedSha256": "4d4b092145353067a6ce9756839d8c70c537a1a5134cf7212b95fb30e46ec6f8",
+        "semanticReview": "New tests read two fixed module-relative ledgers and assert positive exact ID inventories, count-consistent historical deletion, missing new ID, overlap, uppercase ID and missing supplement rejection. Existing semantic/source drift tests stay intact. These identity tests do not establish successful provider coverage.",
+        "previousCliReview": {
+          "path": "tests/test_final_codacy_review.js",
+          "normalizedSha256": "e19ec6812ce7e032134fe2e0cdcf2e04f5b219a9629e4f1f61b692b29894dba6",
+          "semanticReview": "Existing explicit tests reject changed source bytes, missing context, missing location, unsafe path, duplicate IDs and counts; no implication of provider success."
+        }
+      },
+      {
+        "path": "src/backup_generation.ts",
+        "normalizedSha256": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f",
+        "semanticReview": "Template walk uses real-directory root, native Dirent names, symbolic-link and safeMember checks before recursion, depth/count limits and bounded regular-file reads; local concurrent replacement race not prevented atomically."
+      },
+      {
+        "path": "src/backup.ts",
+        "normalizedSha256": "0dcd692ef7051bd9ed24c41bdf621f7ae15af6f84c10b78bb795683cddb5288b",
+        "semanticReview": "backupConfigurationSources derives configuration/runtime/templates locations from local environment helpers and database argument and returns that fixed mapping, not a remote request path."
+      },
+      {
+        "path": "src/backup_cli.ts",
+        "normalizedSha256": "d0fd89cea0779ef15598a6d07d1ce7930ee2c9df815c71a2036ed0ef17c8fd7d",
+        "semanticReview": "Offline initialization obtains owner-scoped process lock and passes backupConfigurationSources(databasePath) to configuration generation; no provider request path reaches template walk."
+      },
+      {
+        "path": "src/process_lock.ts",
+        "normalizedSha256": "48b870af4bbabb513e3361fbeef26aa8948354d40a4dbc2feb624a8349d64f70",
+        "semanticReview": "withProcessLockOwner verifies the retained owned lock context around generation operations; this is process ownership, not filesystem sandboxing against a hostile local actor."
+      },
+      {
+        "path": "tests/test_forwarder_error_types.js",
+        "normalizedSha256": "d33fb217d2e59788d8d92f53340b495443cf8bb3d198cb95b6825607b5818333",
+        "semanticReview": "Literal forwarder.ts read, three exact named declarations/count assertion, transpilation and injected fake client only; response now initialized null but assigned in each loop before any resolve invocation."
+      },
+      {
+        "path": "src/forwarder.ts",
+        "normalizedSha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0",
+        "semanticReview": "Selected resolveChatId, supergroupFallback and resolvedTdlibChatId implement TDLib lookup and primitive identity validation, using only injected client/invoke/log in this fixture."
+      },
+      {
+        "path": "src/forwarder_errors.ts",
+        "normalizedSha256": "c2ed10cfee7a3417ed642ce89e9db1507127b6eadd8776ad08635644e1978430",
+        "semanticReview": "Error classifier imported by fixture preserves scalar error handling; no arbitrary executable text introduced into extracted chat-ID contract."
+      },
+      {
+        "path": "src/contract_values.ts",
+        "normalizedSha256": "fafb0a4342b0430278764c9fd27a5e9aef85de597edfd0e4bbd2c03be859fd41",
+        "semanticReview": "unknownErrorMessage fixture dependency treats unexpected values without arbitrary coercion; no executable source or target URL from supplied test IDs."
+      }
+    ],
+    "sourceManifestSha256": "73fa28a853254331f4c39eb712a2e9414089186ee8596467def169de04037fc0",
+    "cliRenewal": {
+      "sourceDirty": true,
+      "reviewedAt": "2026-09-20T13:21:38.826383+00:00",
+      "priorExecutionUnchanged": true,
+      "providerComplete": false
+    }
+  },
+  "additiveAnchor": {
+    "baselinePath": "docs/testing/final-codacy-2026-09-17.json",
+    "baselineFileSha256": "c182a567cfe5760fe555dded14b289c515d15fdf50bb93931abbab0f58b69e78",
+    "baselineOrderedIssueIds": [
+      "8cc2a724b1afdd3c689750b539f626fa",
+      "a6507eea2616b7aea2a1efa312e3e2a9",
+      "abf630b0ca53b97174823a79ec8a9ff1",
+      "5cc98912f68b5b6f96591b6823f30a91",
+      "d6459940ced9f1d801d0538097e7c5e2",
+      "5b2024e2f20fe84ac920dc9cbd301524",
+      "eedeefb30f43517bc85edcf4a865850e",
+      "d58460ea1ec37b65f3c35299c211199f",
+      "6130c35679eea380dbb028975a3075bb",
+      "132f59139d13687b9cad7b3da46a063c",
+      "a72be1fa2ec66a9e276cfd6f7ebd5286",
+      "e051fe4d971647c521f28e5ccfd596c",
+      "6e413e2ca248a27f66eb9ab41191d3c8",
+      "1222ec804a602c7513c1abbd9d564dc",
+      "c67b4eddbf66e9d7cbab05e08b7d0215",
+      "e1e188f98fa4d8c60bb648a9d8de1fe6",
+      "b4ad91c8966dd0b12e2b7d26d5767317",
+      "ba5e725721d57146bd3aeed23a2724af",
+      "8835c23a24e3204ef31090f73e416955",
+      "b2ff0ae6e9caa73519b39d84d4914155",
+      "357a0d168142707659d5fb1f154df266",
+      "c4247d220649e3597674f4b713f3b641",
+      "c77e7a044c3a3e287903d1de8a2f1844",
+      "a64455eb97dc5b8f6e39f6e754ef1c67",
+      "81be42c1f2881ba32cef1af7627b40c2",
+      "30be8e208baacd5d7cfd31ccf92e103b",
+      "bd2fdbfcfb1406753120d70de7b8767f",
+      "277b4d7265c26e2935e5c6ba7b1de420",
+      "8f87537751e2d2ee62e1c10fda26d117",
+      "60cd4244de369cc7b04e934d69463067",
+      "af214bb321737dc1faa74590f42cedf6",
+      "e11da05f6c1bd512739d1ce91dc693bb",
+      "43360ea63fb58710c80df9adc0505c5",
+      "f78953965539357168e8e0d18a9722c9",
+      "7b397f8cb2d83da0cbbc4ae6617b96bf",
+      "bbceab10258ec68d6c6980e8510e66e7",
+      "a8ed1da1ca8eb20fb23a78156458a697",
+      "82c2d9eb8b6c645a11823af3dd0be9bf",
+      "baaf1ecfc116933aaab76fae5e465ad9",
+      "1f2c92b98bebb36768ebfb0ffd11cd55",
+      "f8c85eb76d388af816e477739935a415",
+      "da7ec3c696bba384ae03ce91e65e59aa",
+      "ca2a7c51d62693eed9b6ce13a4163d6d",
+      "569b6587ab84c54a3320e88c5c244c1a",
+      "73bb32114196c8636ecfd3b03c1b2a",
+      "3df932dcf5d62cd682fa08413b6bbbe6",
+      "87a7b753b442d8a424586568f9942ddf",
+      "ff2c35ca63c85e9d5ef7d772fd75c8f0",
+      "43d62a67b27092e67a29695f9f130e01",
+      "46e9395c4cc58021e6e8cb7a40a6e0d0",
+      "a9dc6d6a2359a943e042d4e5328502f2",
+      "d74e5a5499f7248941c64b27efc2a6c8",
+      "64086f7f444b72c3d95ebd535ac9bc17",
+      "f5ed6bab9b490f1b3159ba81f4b1ce8f",
+      "55e3e5f3477d718a7ab30c5907a23500",
+      "817afea9d2a82afe2080318b9bb40349",
+      "c817f4fd5a63cbbf4a03fbda368fea87",
+      "9b1e6c9702dfe9a00d08b11e12a935e7",
+      "4fbceabe21ee7bae8ad84b347924edba",
+      "bfe34c4d66a0441f905e911019ceae65",
+      "82a39f8553bd63d160b50e61f33cc631",
+      "aaeedf489af6d3caccf924ced3469928",
+      "dcb2e34b0ecfc9d6acbf0bb45b59cedc",
+      "67aee1ffeb18a7fb2a7494f763bb7b8e",
+      "141c2a6cf56e1ee62f37ae0feba05ce6",
+      "5b3c40491a39871e5913da8878260957",
+      "30601a417fb03e8af7f5d0b2be1c7a8e",
+      "562b381a0005522e1908babf8bdce847",
+      "38ed65814210cfa33498696bb923069e",
+      "3fd34a4672004348f908f7e4600bbbe0",
+      "1fd454de6aaf5cc1b8c98a0443abfbf5",
+      "dd64a627bcc97d493a6b196e062684d3",
+      "de5d090662b9f6afca88311c26e6acf0",
+      "2fbcbc031888a85ac76da1bdcbaeb9c2",
+      "2bd575a772b764020c73ad66d8a88dfc",
+      "b6e0c213d0133771bd96481ed54b47b",
+      "3f56c9cc56f55703e16a3351a1e0d62a",
+      "9a30b489e179ddf4c3bee3c15da130e0",
+      "c3f8d97b770d7ed6bdc627068ba91327",
+      "8bf82de4f22c6e956d7dfa2827597977",
+      "eb73d106b9ccd7566d64a8b38e2e4d79",
+      "125c61b5ef658d90ec6815aadd48b822",
+      "64880eefcb33549816200ce8146fed94",
+      "50bee6c9e4242862d12bd704c2da5e87",
+      "bcb4b1142880b8534994a0fccaef77f1",
+      "93ba52b438c24d63f4b4cc2bd5850e8e",
+      "3886a9f79e3bb5823eff96365c9010aa",
+      "9eb2cc3908279bac0aa9c3a7b477cfde",
+      "8510485a112d65534289f3e6e0f19b70",
+      "23c775d6dc80aba817db59753330bc83",
+      "eb8ae04d11db1d1a70bf16ef77b241a",
+      "e72d2116c71a183acb537146e9e38490",
+      "106a447ee9a4b522e8592c668a99ee90",
+      "107bafad2ffaf308063d58dbabb1d3a9",
+      "11028e8211d625c1d6dd4b5ea37558f1",
+      "11200ee5b8e545f27f887875822d1dfc",
+      "121695db8d0c3d80ad80735cea051421",
+      "1414b934fedb9fc2192bc72fb37a2c84",
+      "141c2c233750d5df1c4d6cf8a7474aed",
+      "14e1b6426cddccb17a89ba129a2e07ba",
+      "153fefc20c758afe364adf2ed45532aa",
+      "166fbf1be26868c39d710f0d9277f291",
+      "16d14f2089e72f19339a4af2ced221ec",
+      "170e52e017ffe30c17ea5710980f77d9",
+      "17ab22868b9ba91024ccb9eb2edd9bee",
+      "186dcfdf7335cd24c83b4db0d111f3c8",
+      "1a98617b62421f98f396baa754539170",
+      "1ad46e17a092315f7cb847f40b50ffe2",
+      "1af386b55ccf61128909f896ccbd4083",
+      "1c731bdf9c098e3674e9297b929201f7",
+      "1c7fa10f3596deb97a9679c3f91b506e",
+      "1e0c32b410784a59521a3d43f2be299b",
+      "1e134ba84dd82bb3ec0f48a34e67a78d",
+      "1fa74eba2fe91115b4c7cb27dff0900e",
+      "1fab2500fd6c6aa656c92adbfb31a13f",
+      "203dcc1ea1feba7cd53dcdb41e27d867",
+      "20a7c6ace53fed60ea12809218d00461",
+      "2139d283db38519d858a08a2399baeba",
+      "21e088efacb93dff47e9fa0ecb70fe23",
+      "2277fa18e875692390030e566b798093",
+      "22ed336356baf9d93b7a09483dc780c1",
+      "2325cae93a750ce074e350bbec9709ea",
+      "2354cefd3a1b87f31d94b8fd0ae04cda",
+      "246c1bb1198d44e1d5e6552f4ec59d3c",
+      "24ea2ebbde694186d637acce990df3f0",
+      "25b44e54d187f5b505629e1ddb76b623",
+      "27720e1d8383a13d6fa296ce2b8e0a01",
+      "279290d309bfb05c1d32b5d63a3b519d",
+      "2847b50d6074669795d5723e3e68b000",
+      "285564b780a302db3beafa9d147be847",
+      "28c323f20f795437d96be87ea43349e3",
+      "29295a6db6e8c0574e64473c317a89f0",
+      "29f079cc0364c24f27d76251e098e70b",
+      "2b4d8ef4aab001cae700ca929e1eb2f5",
+      "2b86fc1e86f982031c43465ef0ca2db2",
+      "2c926e77a9d02b1937a620dfe3b8cd96",
+      "2c9e397748dcb77800384cfd14dc951",
+      "2de1043b90cb4aa437ee808ea7399c76",
+      "2f6f114fe39a7417ec293c2419e8eb4b",
+      "30e18329aae3d3b22e4107b1d5350c02",
+      "316f2f6fedb2790578badc5b616a82f2",
+      "326f777d54ccf5860c786d2b75faf567",
+      "32cb90fd916d591097a8404490d3cbbb",
+      "33db9b8a6f1ccc31f6e64d26694f7031",
+      "33e42d464ef76654fe50bc9ec4ccdc5e",
+      "33eaf65f92cc9cd3d4fa84b124bd32ec",
+      "34692d9c1f4b39fca21817c0ed3e5a46",
+      "3469c36facc6b66d291b2e607b843ae2",
+      "349348d43f4a60e76ad77bc2acfa0f07",
+      "34cbc3bb49fc2004a4a67390b1c0f0eb",
+      "356863b427fea15412d313cc9e39cc6d",
+      "35d68586015cc6ce7ed4d8a6d16acbe3",
+      "36a2b859955648dea55f827df975a0fe",
+      "36d3a146c6f1a40f66c8f152604ec4e4",
+      "37004f6a922ddac8b69e020175c7a7a3",
+      "3862f919e7cc6c6edd4d59e8a07f09de",
+      "38b128d9effe80887a244323b3efdd0c",
+      "3907f2a1f205eb0731d07bb65d647167",
+      "39838b7cae10bcf54989de19e6dbaee8",
+      "3a4da52b47432620d7c045786d5c01ee",
+      "3b132db66958764274a666be0829b288",
+      "3b3a545dacf6c883dfc2873017cd412c",
+      "3fc3396f689336c61d5bd2ee5c6a7b42",
+      "4121db3b26238dc0d2e4c294c0713be9",
+      "41842b611d6fd6f3158cc55956ea13fe",
+      "431d0ff5917d56a0e8ae36c3e8198a14",
+      "43ff2692742b30b5bb510a11f790311a",
+      "450ff787bb300125c264d1d3311436e6",
+      "45448f8b89488e3253bf81b0d81bb729",
+      "473d75b0a12718de86447b0c453a8467",
+      "473ead8c1ca15c77587185cc98b385d0",
+      "474c505ee4a2f63adb926d4513a4bed4",
+      "4822e1087ff2a3a6152647a7cca36955",
+      "494ce23f037c2445dc4a17ce589664b9",
+      "4a40049ab98ee3fbaca59260e0133750",
+      "4b1f7ae4bb9775d4e7cbc171e8fd6504",
+      "4b2b8e9607478fc62249cb4dd70384be",
+      "4bb82fc4572dd45323654d437890dfc1",
+      "4bb8a545b710cdfa856e222139279f0d",
+      "4cfbc4c2e1466b68e5e4650997b4cfd5",
+      "4deea9f4aad238f027c20e0877ba38ed",
+      "4f2e9a5bd8e23056683cfd7d0d4a1d73",
+      "4f5a8e6e9b96c852cf4c546ea50b5f4c",
+      "50986d0ddb9ef7b4f2817ad4cb198847",
+      "50af4795ca6654d3cfd742d856149cc8",
+      "536d846c568367256d5335c07ee02ba7",
+      "53a8511d7023ae7ef657d824e4c48fa8",
+      "53c3b73dc9d912c50682e96d08767b1d",
+      "544557c59c403d57c8a0f71eeb3f9070",
+      "5542a4847798eb80a5ba66b071dd05e3",
+      "55593aa2f6abd31d652c0a13f6f531a7",
+      "562676def768d36142b7eb3e924d94a9",
+      "5728e0a3b5a65c6c0debb0095ab20a41",
+      "58d7b375ec7edf73fd83fb9ba364ffe4",
+      "5acc5758efbe3602f1e235c18949f43f",
+      "5b6c4c97c8a94a75a085e850778fa155",
+      "5ba63e635ba316521ee64c7cffa0cc41",
+      "5bb3156196d4c4d3b3ab6e7049d8db3e",
+      "5cacd26eae11c2940fb9371b2712e25f",
+      "5cf9fc55a70d798b6af7304607f86f03",
+      "5db3b0a5d63dd2717ffe7478c81460c2",
+      "5db3e6f7778afb57cfcae45531e03f59",
+      "5ece11eab8fc24741676467cc4991cc2",
+      "5efd58b7247d222dd49d54d7c4988be4",
+      "6110d197f26b95951702133ebc371b45",
+      "6165251a7c59caea1c06324abbf3cacf",
+      "6174fed812ba506f32f6631840b0a386",
+      "61a92478fae6e28f1c002f42decfa0e4",
+      "62534cb4c96469b91e89172f7ddd5966",
+      "658c45d2d9f7e1873c0630c81dddb05",
+      "66530fb439f00f8af3a1a065ea40c24c",
+      "671d2a67f4b02368c2bffac59f0909b2",
+      "67d285befbc971383353f3b83c603688",
+      "67fad5dfe40d670f9b2752f95dd43d22",
+      "6853aba3ac3252d104c4d57649bb24f3",
+      "68708aaa88ce75b68e37bd70a65b862d",
+      "6aa8d8e19a3d24cb9a076739cb71b1da",
+      "6ac80cc28637eddf5aaddac645910a96",
+      "6b490b43b1886fe21d01172f49df0421",
+      "6cbae64e922d780d23ec6d063f3edc49",
+      "6d0de7a6c1ecc0623e3b08b34ac9f799",
+      "6f0f7c0b65252b467c634c7971645f86",
+      "7076662b742210e5b6e3ad80d8b0a66",
+      "707a0c23a857ebfeb2134f36b839a2ac",
+      "7119a8b04bad3fd4b4d7a0ba1399c9f2",
+      "730264e180965074be6e0de6cd01df39",
+      "732f68a52feca6faee35ed0fb4ff1156",
+      "73d6277a03a158cfc662daf32a1d5ca0",
+      "73db6f17c896399e7297127ab5f3659f",
+      "74086703316f388498893512aea37573",
+      "754d329a90ba7272b1977b00988ddfcb",
+      "7554c33e26077317f169804189b41661",
+      "757059ea2875109ac626f52375d613e7",
+      "757f1b7f1e131822522fc6812066e0d6",
+      "767413e78075bd689e9015b5426e508e",
+      "7738d46040bcc1200c7691e0653d0898",
+      "78b31b234a8932e9787ca8054b286d82",
+      "7aa9d162e50ed33757c91ed3922f3a32",
+      "7ab3e809df7f2d3b99deb17e84c7d423",
+      "7c3156653a27d786b45e04481ada794a",
+      "7c31e8c8822b9046b0304638241b339c",
+      "7d7c34417864d3061eacf205e792f0c1",
+      "7da8b63862c663b445c6e8fcf08477b8",
+      "7dc799c44064d1982e55915682f956d0",
+      "7dd93a612e68047edf3758f76bad90a8",
+      "7e6d92985a90ac678b8e031f24c9006c",
+      "7e8e67187cf392f2ae2764ad54b04622",
+      "806a22c2ab4aff470a3e1bd7cf1cb697",
+      "8154c19466937062e73e833fd1c1e83f",
+      "817320fd4fab7d998024561989af1eab",
+      "82cd7997f41909f3b1ba2aa4c56acaf",
+      "838ab27b48d383b929234087cb2b205e",
+      "84268b66c6ffcaa58d811cd041ddcac0",
+      "848a0f42edb056c58b07c37d5194fa64",
+      "863e3b3604e1e44685d88e303e09d14b",
+      "8793db8d17095a3219e25da9c3634891",
+      "88f25c25b1d9b17cf65640cf1d6cfe",
+      "8a1aef3a37f4d0f895b9cf510b52a079",
+      "8a959259a485b744f640a8475cea6bf7",
+      "8abd3bc39a5dd4fd588df373b2d487a4",
+      "8b3181a05cc802dd633e4df3c1e77b10",
+      "8b3500e74b32ffce402a7316dede8bf3",
+      "8b8a4a376b903676800dccbc941108e4",
+      "8bd596f02013391f1b242585aaa1414",
+      "8c50aac0e1050bb5bc0365b4b9a2b80f",
+      "8d344fd02551847d93927c0f9fcfb52b",
+      "8d4568a191c93e0cd8ea335c92160943",
+      "8da3ae933b0f3b3766e9b7330f987b26",
+      "8e3d3447881d77aed33d7feac17ecf9",
+      "8eefa430fd1528039085b66988aa19d4",
+      "902b85ddec089eaa754db0cd430f236c",
+      "908b69969498072856a08cdc9e06ab8e",
+      "909c77c5372b211c12406b5e75e21965",
+      "91507811f605b293ea6ef7ec7612c76f",
+      "91669f8ad4aac451d245aabf21af35f5",
+      "925d2f6c4ca6cf1eb253c93e4ba7819",
+      "92bee040f4a6511543373a76e225acf5",
+      "92dbd5cd49d80dd2e7bc065f5ae4cfc3",
+      "92fa72e008922a41ce97ae603b3bb85a",
+      "933614d4e4852275900579c78832ad8b",
+      "95262b948f080bb6255002cc25df4826",
+      "965e61ad0bc00b0f30a16138251f0f8a",
+      "9713de73e84e36fdfb127688a7a72a73",
+      "97b754879ec027bdbb7157451f830f91",
+      "9804b15e3f35722f6ad81c1719b9b519",
+      "98b1f5dc112edcee40bd58218c4fca43",
+      "9a41dac019d3169a11c45ccf87100727",
+      "9ae7eaa1f8d98c07ef30d5ef2126776b",
+      "9b2ed4fdf882088110f3ae4ba0e50a26",
+      "9b5a3b91d63aad0483efd002b3076472",
+      "9d2ceadbb302b48e79bd9ba95e91f01f",
+      "9e420dc80c3b0ac0990d7d73be730a2a",
+      "9ebccf1321c0fd9190a1a28fee74e2ef",
+      "9f51e1e970db70b71b2eac568858842f",
+      "9f97faa3d25434ca5c2280401bcd99ad",
+      "a0f06565a42b5d81a62ce2274ed5c9b2",
+      "a156d5e9bf34908da58e362369bf038e",
+      "a19945a5abe8cffdc67bbf28ac398ea7",
+      "a1d4727069cf1f42bb336e2c8879cce8",
+      "a265034a59722eb1cfee893d8c34fe94",
+      "a280623a6dc7ec3471feab43ac715c39",
+      "a30d1418d22843e7e1054a23d146a415",
+      "a3e4a7885c62e3e6a3c20df76ceb5250",
+      "a4349e355c86c408216015403dc7f2b5",
+      "a437bff14779c464edb09611c3e5b350",
+      "a43c3d6abf451c57c0408957e37c702a",
+      "a4941f6c5b19e4bc882ea5aece92731b",
+      "a5eb309c1ab9edda0ba89610aa9a1528",
+      "a6a5e006b988ba3e44635debc9352a8f",
+      "a7101aa211eb0348ff3b70eca41a1e64",
+      "a75758b311f6ba4bb50944f45c46f4e0",
+      "a75fa16680330b10569a745067ee5efa",
+      "a7e6f7103f23f8922998e3c0ee9cbb7c",
+      "a820a80aa769754fcf266b21bccda2b1",
+      "a877cbeef7fa7ede340362dbba24b4c4",
+      "a8b08a753085af8adb0ea763211f0816",
+      "a8c2d77ad4d02f82c631c3855a8ad53a",
+      "a99f8092169df5cbc4f79c5169c11a86",
+      "ab0a2b8c4e30cbbe235e68d37f155017",
+      "abdf14937cc2c49e52ae01c9baa72574",
+      "ac109bbfb616a2f06e3ed529048aa8c9",
+      "ac66cbae24cfc3a874b5b13497eb8016",
+      "ad424a61180fe4d435179988386c013",
+      "ad700e5554f00061d144590ef4cee045",
+      "ae92b6b373adb5602928b62117d775ac",
+      "ae9cbb489e055d11c0bff9fe63c9194f",
+      "aec4e7758b195814859f9ad1b4098023",
+      "b144c8d625c68c77409a2e6048a6fa9e",
+      "b1d6533c1ff28c0dacdbbfa211ea3e7c",
+      "b1decb5def148631fec2012ee70e005d",
+      "b2923720362b741f3f59596cc054d6c1",
+      "b2f8d4d3b9dc5f578e3162fae2d19802",
+      "b3dcd8559cd0de9974aa619e5b8dca2d",
+      "b3e70e8e5185b8acce7c00e19d5ca662",
+      "b4b106aca4a09e22cbf64baad9597169",
+      "b5a591256b39614b4138194746f7cf37",
+      "b87b90281a812398048a0cc5ba748f40",
+      "b893784963367589ca1fe6e3e4a31d23",
+      "ba0a1671d85fe023fbeea1e09b07dbf0",
+      "ba5770b1712472874d2116d3b2f2f72",
+      "bc86f26b3639fde8f8685a676d39d3c9",
+      "bcc491e9fbd07391b500810e103d52e2",
+      "bcdc9d4d542f8c40644dbcba75a9c4e7",
+      "bce2fee8af343cc1c65c52d4fdae026b",
+      "bd8bffa8487b9243b2f1e0f9d98af13",
+      "bd9fea601618e3f8cedcfa653b17636f",
+      "bddc321f46ed19e3f02045a474ff128c",
+      "be113fabbc368e5b11d7c428ff95b1e9",
+      "be4746152d869dd6dc000d531c80bbc3",
+      "c0059d8211ac4cf756d135a01b0bad93",
+      "c0f35ca2b7e5559be68aacfaf25c677b",
+      "c0f393d1c1107f421cf3e09c8d830e43",
+      "c16ebac85c730d13bafde38d4eb825e2",
+      "c175b11ee2b0fb92e174c77ca3b5b8e8",
+      "c17d7f4d177418b26c9d7784d7896442",
+      "c19d24da99f02867b0d9ee1fe36a472",
+      "c25bed7e483a6a2eb0f22a0679f0d83f",
+      "c2df85f261f2a38eb9e35fe6109a9be2",
+      "c51426d7829619b1944821d0ee1e44bc",
+      "c72ed470e5779db093f4699fb50a0b9c",
+      "c7b6ec92b5570e761d8bff0f256fe98b",
+      "c897139073f3140b1e711d400179340a",
+      "c97cd837c16f921f55ac1c68f7142b17",
+      "c9b2131ad0e4c773d846e4c594177fce",
+      "c9cfb93bc875d1057148447acdbbd453",
+      "cae49fa25594f8798801d28f4bbc89ae",
+      "cc53083d22d7583108f9a0628a81e86a",
+      "ce13ab969db17ceac73e096020469e78",
+      "d07f34fa8e4dc0085b0ad3772721dc58",
+      "d1c6e7cf6d12b6f1fb0276a8a65a6da1",
+      "d22cc9aa7480a5339f13419f09a2c29e",
+      "d296dd503d7ea16c8b3d41b155b0a59c",
+      "d36c435f712bef54c2ab35636429f0c7",
+      "d3780ec458456a948cca94f4dcf10565",
+      "d3e972131bef2e752067cecb87f61ab4",
+      "d450cb64785439fb0bf44b9e4af2b704",
+      "d509faeb3bf30d35e5871b0e32fe3c4",
+      "d5eef1efedbe28e950e11a86f3c7fc8f",
+      "d61f6f7e8b111cb56231a0b3744fbfae",
+      "d6c5281349a82d441c573c2039567f0",
+      "d75d8643d7db477f3fcc3b6956cf834f",
+      "d7d50ac0e34fe5c83441a8df0daf6ca2",
+      "d7f940b0a95a9840552cfdc5b80bb4c5",
+      "d881087595f38e31226667e426c59bd0",
+      "d8965ac33abe4f7eaa3755b55401fb82",
+      "d96e66b213fac7bed514510cbeefafda",
+      "da88be684e1f3bef6ce1c243825ed1fa",
+      "dbac2f5dca266214674af3c37972fc53",
+      "dcd0d298a9d7c4b41d31f2d9ca2710fe",
+      "dee5c22c1050c148f8a5678593c91d5f",
+      "dfe76bc58cbca92da3a03aa401c89c2a",
+      "e050a281888adf2f3c2137752b01ff7b",
+      "e0dab4c7f7d9cd99c19d03ea1da80f3f",
+      "e1473fabb0b888108f9d437e4488a4e4",
+      "e1750d39633815a6b81a72c7d7d572e0",
+      "e212b3ea0651b4c5440cf1d576daf8e2",
+      "e29145bb5e2f161a9a8a2e035c8750cb",
+      "e3286ab626659e917a0c165a0ae1b670",
+      "e37aae7450c56d64a521aa58c17d2ed0",
+      "e7b8178f645dbc5f192354fabfc4e59d",
+      "e88f716e4155d6157dcf6a0cd684c2c",
+      "e8938de7f5b7c28ecf397e68697e76f",
+      "e99bcc08f7bd4a4deb21247380bbf09f",
+      "ea25e3b80d5be3dde073fe638f359d65",
+      "ec6d99606858835e320fa60c48baff20",
+      "ee6339d00effbe754fb51110e412ac2b",
+      "ee943476c8d2a979d56e590c5887d007",
+      "ef0dcca0e6f934655d9052ba9acd8591",
+      "ef4da386cd050ec4982bfebcc35ad5f",
+      "ef97adb8ab0f95227d11fb4105a8c75d",
+      "f19f2ba41d74b632fdd644f083a7b71c",
+      "f1a3d105e8c864b958abead5402badb4",
+      "f1b7911fc32868b85368073683fa1666",
+      "f2c998e947ed9137c1e80314e6b4c21d",
+      "f37507cfee2a98f11b81913e039e4514",
+      "f429ebe3cbae3e4ab95fbf5d16740da2",
+      "f476a1128a64cacef825815bafaa5d50",
+      "f480d000a08fe900e36a54bb2e1e32fa",
+      "f4ee7eb42d51ca6168ed14726a93be52",
+      "f510808a202cee630d6998040d728c83",
+      "f56f65e82c42eb4cef4dae8032d56c0c",
+      "f672890101cd80b30328866df0512aba",
+      "f6a499522e981175d51b00dd612865f4",
+      "f71f2126fa7755d9937376094288a8a3",
+      "f7348641e39b0b5604602c5da98e20c5",
+      "f79e247e7c995269e3cbf1faf17c552b",
+      "f9a93170b34dc08095660fc646bbbe88",
+      "f9bd1b98d4f5179b0d485d84e4f248ca",
+      "fa04064b2523a33ded75a7fcd0071b14",
+      "fa8afdec5a52c3e47413aea07216ca0f",
+      "faffb51733ae2070e00924e5ea4bbaf2",
+      "fb20f9900424f96890249bd806aa4058",
+      "fbe027ae7fa0345359feef7218835ee9",
+      "fc4b2067bb0d3335f422450feba9a34",
+      "fd44971c5428061d1d8eb29070b65eb5",
+      "fda6a264aefb274f456acd3e83a130aa",
+      "fdaba278e3074fec46f298716e0dac5",
+      "fdc8436eb7af4c41acb40aa502f30bbe",
+      "ffd16def398de3b054874bfa5c6649b4"
+    ],
+    "baselineCount": 439,
+    "supplementCount": 5,
+    "totalAuditedHistoricalAndCurrentIds": 444,
+    "currentProviderActive": 64,
+    "currentProviderIgnored": 347,
+    "missingHistoricalTrivyCount": 33,
+    "providerComplete": false
+  },
+  "currentSourceContext": "Working tree based on6677d894, with reviewed test_forwarder_error_types.js response initialization delta (undefined to null). All invocations assign response first; no test behavior, extraction or injection boundary changes.",
+  "priorFinalReviews": [
+    {
+      "status": "complete",
+      "sources": [
+        {
+          "path": "scripts/check_final_codacy_review.js",
+          "normalizedSha256": "79fe4a776a0ca13d13d6d111c5ee9a5b7076c6cb2ab8e38b5c6ed2786652b220",
+          "semanticReview": "Read count lookups and all source read callers: fixed ledger URL-root, safePath-bound registered source names, line hashes and semantic status remain mandatory; no provider writes."
+        },
+        {
+          "path": "tests/test_final_codacy_review.js",
+          "normalizedSha256": "e19ec6812ce7e032134fe2e0cdcf2e04f5b219a9629e4f1f61b692b29894dba6",
+          "semanticReview": "Existing explicit tests reject changed source bytes, missing context, missing location, unsafe path, duplicate IDs and counts; no implication of provider success."
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "normalizedSha256": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f",
+          "semanticReview": "Template walk uses real-directory root, native Dirent names, symbolic-link and safeMember checks before recursion, depth/count limits and bounded regular-file reads; local concurrent replacement race not prevented atomically."
+        },
+        {
+          "path": "src/backup.ts",
+          "normalizedSha256": "0dcd692ef7051bd9ed24c41bdf621f7ae15af6f84c10b78bb795683cddb5288b",
+          "semanticReview": "backupConfigurationSources derives configuration/runtime/templates locations from local environment helpers and database argument and returns that fixed mapping, not a remote request path."
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "normalizedSha256": "d0fd89cea0779ef15598a6d07d1ce7930ee2c9df815c71a2036ed0ef17c8fd7d",
+          "semanticReview": "Offline initialization obtains owner-scoped process lock and passes backupConfigurationSources(databasePath) to configuration generation; no provider request path reaches template walk."
+        },
+        {
+          "path": "src/process_lock.ts",
+          "normalizedSha256": "48b870af4bbabb513e3361fbeef26aa8948354d40a4dbc2feb624a8349d64f70",
+          "semanticReview": "withProcessLockOwner verifies the retained owned lock context around generation operations; this is process ownership, not filesystem sandboxing against a hostile local actor."
+        },
+        {
+          "path": "tests/test_forwarder_error_types.js",
+          "normalizedSha256": "d33fb217d2e59788d8d92f53340b495443cf8bb3d198cb95b6825607b5818333",
+          "semanticReview": "Literal forwarder.ts read, three exact named declarations/count assertion, transpilation and injected fake client only; response now initialized null but assigned in each loop before any resolve invocation."
+        },
+        {
+          "path": "src/forwarder.ts",
+          "normalizedSha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0",
+          "semanticReview": "Selected resolveChatId, supergroupFallback and resolvedTdlibChatId implement TDLib lookup and primitive identity validation, using only injected client/invoke/log in this fixture."
+        },
+        {
+          "path": "src/forwarder_errors.ts",
+          "normalizedSha256": "c2ed10cfee7a3417ed642ce89e9db1507127b6eadd8776ad08635644e1978430",
+          "semanticReview": "Error classifier imported by fixture preserves scalar error handling; no arbitrary executable text introduced into extracted chat-ID contract."
+        },
+        {
+          "path": "src/contract_values.ts",
+          "normalizedSha256": "fafb0a4342b0430278764c9fd27a5e9aef85de597edfd0e4bbd2c03be859fd41",
+          "semanticReview": "unknownErrorMessage fixture dependency treats unexpected values without arbitrary coercion; no executable source or target URL from supplied test IDs."
+        }
+      ]
+    }
+  ]
+}

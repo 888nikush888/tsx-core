@@ -483,7 +483,7 @@ function testAiErrorClassification() {
   assert.equal(classifyAiError({ code: { toString() { return ' ECONNRESET '; } } }).code, 'network_error');
   assert.equal(classifyAiError({ name: { toString() { return 'ProviderTimeoutError'; } } }).code, 'provider_timeout');
   assert.equal(classifyAiError({ cause: { code: 503 } }).providerCode, '503');
-  assert.equal(classifyAiError({ code: { toString() { return 'invalid code with spaces'; } } }).providerCode, undefined);
+  assert.equal(classifyAiError({ code: { toString() { return 'invalid code with spaces'; } } }).providerCode, undefined, 'Object coercion must not manufacture a provider error code.');
   const coercionError = new Error('classification coercion fixture');
   assert.throws(() => classifyAiError({ code: { toString() { throw coercionError; } } }), error => error === coercionError);
   assert.deepStrictEqual(classifyAiError(Object.assign(new Error('secret body'), {

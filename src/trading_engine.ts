@@ -2039,7 +2039,7 @@ export class TradingEngine {
        JOIN trading_trade_intents AS intent ON intent.id = orders.intent_id WHERE orders.account_id = ?`, [account.id]);
     remote.orders = correlateRemoteOrders(localOrders, remote.orders);
     remote.fills = correlateRemoteFills(localOrders, remote.fills);
-    await this.persistRemoteExecutions(account, remote);
+    await TradingEngine.persistRemoteExecutions(account, remote);
     await resolveObservedOperations(account, remote.orders);
     await resolveActiveCancelAttempts(account, remote);
     const allLocalPositions = await getDatabase().all<ReconciliationPositionRow[]>(
@@ -2070,7 +2070,7 @@ export class TradingEngine {
     return { localPositions, unrelatedUnmanagedExposure };
   }
 
-  private async persistRemoteExecutions(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
+  private static async persistRemoteExecutions(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
     let incompleteManagedExecution = false;
     for (const event of remote.unresolvedEvents || []) await recordRemoteEvidence(account, event);
     for (const order of remote.orders) {

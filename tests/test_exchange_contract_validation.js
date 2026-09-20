@@ -78,6 +78,7 @@ function testRawScalarContracts() {
   assert.equal(isStringMember('stop_loss', ['stop_loss']), true);
   assert.equal(coercions, 0, 'Raw provider contracts must never invoke object stringification.');
   assert.doesNotMatch(unknownErrorMessage(object), /PRIVATE_TEST_VALUE|\[object Object\]/);
+  // skipcq: JS-0250 - undescribed Symbol() is a distinct diagnostic edge case beside the described symbol fixture
   for (const value of [0, -0, -1.5, true, false, '', 'diagnostic', null, undefined, 0n, -123n, NaN, Infinity, -Infinity, Symbol(), Symbol('diagnostic')]) {
     assert.equal(unknownErrorMessage(value), String(value));
   }

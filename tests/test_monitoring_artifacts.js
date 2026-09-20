@@ -50,6 +50,7 @@ assert.ok(compose.includes(prometheusImage));
 assert.ok(checker.includes(prometheusImage));
 assert.match(compose, /prometheus:[\s\S]*?build:[\s\S]*?dockerfile:\s*monitoring\/prometheus\.Dockerfile/);
 assert.match(checker, /build\(prometheusImage, prometheusDockerfile, 'Prometheus'\)/);
+// skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text
 assert.equal(workflow.split("image-ref: tsx-core-prometheus:${{ github.sha }}").length - 1, 2, 'SBOM and blocking scan must use the hardened image');
 assert.match(workflow, /docker buildx build --provenance=false --platform linux\/amd64 --load --file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/prometheus\.Dockerfile" --tag tsx-core-prometheus:\$\{\{ github\.sha \}\} "\$RUNNER_TEMP\/tsx-reviewed-source"/);
 assert.ok(compose.includes(alertmanagerImage));
@@ -57,7 +58,9 @@ assert.match(compose, /alertmanager:[\s\S]*?build:[\s\S]*?dockerfile:\s*monitori
 assert.ok(checker.includes(alertmanagerImage));
 assert.match(checker, /build\(alertmanagerImage, alertmanagerDockerfile, 'Alertmanager'\)/);
 assert.match(checker, /'build', '--provenance=false', '--file', dockerfile, '--tag', image, root/);
+// skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text
 assert.equal(workflow.split("image-ref: tsx-core-alertmanager:${{ github.sha }}-amd64").length - 1, 2);
+// skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text
 assert.equal(workflow.split("image-ref: tsx-core-alertmanager:${{ github.sha }}-arm64").length - 1, 2);
 assert.match(workflow, /docker buildx build --provenance=false --platform linux\/amd64 --load --metadata-file alertmanager-amd64-build\.json --file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/alertmanager\.Dockerfile" --tag tsx-core-alertmanager:\$\{\{ github\.sha \}\}-amd64 "\$RUNNER_TEMP\/tsx-reviewed-source"/);
 assert.match(workflow, /docker buildx build --provenance=false --platform linux\/arm64 --load --metadata-file alertmanager-arm64-build\.json --file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/alertmanager\.Dockerfile" --tag tsx-core-alertmanager:\$\{\{ github\.sha \}\}-arm64 "\$RUNNER_TEMP\/tsx-reviewed-source"/);
@@ -102,6 +105,7 @@ assert.doesNotMatch(prometheusDockerfile, /\bgo install\b/);
 assert.match(prometheusDockerfile, /^FROM builder AS security-audit$/m);
 assert.equal((prometheusDockerfile.match(/govulncheck -mode=binary -scan=symbol/g) ?? []).length, 2);
 assert.match(prometheusDockerfile, /^USER 65534:65534$/m);
+// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text
 const prometheusRuntime = prometheusDockerfile.slice(prometheusDockerfile.indexOf("FROM ${RUNTIME_IMAGE} AS runner"));
 assert.doesNotMatch(prometheusRuntime, /^RUN\s/m, 'Hardened Prometheus runtime must not install packages.');
 
@@ -137,6 +141,7 @@ assert.doesNotMatch(alertmanagerDockerfile, /-ldflags="[^"]*-s(?:\s|$)/);
 assert.match(alertmanagerDockerfile, /^FROM builder AS security-audit$/m);
 assert.equal((alertmanagerDockerfile.match(/govulncheck -mode=binary -scan=symbol/g) ?? []).length, 2);
 assert.match(alertmanagerDockerfile, /^USER 65534:65534$/m);
+// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text
 const alertmanagerRuntime = alertmanagerDockerfile.slice(alertmanagerDockerfile.indexOf("FROM ${RUNTIME_IMAGE} AS runner"));
 assert.doesNotMatch(alertmanagerRuntime, /^RUN\s/m, 'Hardened Alertmanager runtime must not install packages.');
 

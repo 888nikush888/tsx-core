@@ -46808,6 +46808,2339 @@
         }
       ],
       "executionScope": "Static context/coordinate renewal only; focused actual test log separate. Historical execution records unchanged; full new run and Linux verification remain pending."
+    },
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "dirtyTree": true,
+      "previousLedgerSha256": "b04d406abcd64cac954fd7284bf789539d95c4171e15a35243aa8a1adeee68ac",
+      "reviews": [
+        {
+          "id": "baseline-skipcq-002",
+          "rule": [
+            "JS-0004",
+            "JS-W1035"
+          ],
+          "issuePath": "scripts/sonar_scope.js",
+          "changedSupportingPaths": [
+            "tests/test_sonar_branch.js",
+            "tests/test_sonar_pull_request.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output.",
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "branchScope uses an explicit control-character class at line 7 to reject unsafe text at this input boundary. Those characters are the intended rejected values, not accidental invisible source text.",
+          "dependencyBindings": [
+            {
+              "path": "scripts/sonar_scope.js",
+              "sha256": "b81bf6b67de2d49b7140451eb0d0a8f6b8305f39b40f633e348c0edd249b0ea7"
+            },
+            {
+              "path": "tests/test_sonar_branch.js",
+              "sha256": "da24d069af6f0b43a562568f6f687fa92b4570184f4aebc4aa846701cea84168"
+            },
+            {
+              "path": "tests/test_sonar_pull_request.js",
+              "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-003",
+          "rule": [
+            "JS-0004",
+            "JS-W1035"
+          ],
+          "issuePath": "scripts/sonar_scope.js",
+          "changedSupportingPaths": [
+            "tests/test_sonar_branch.js",
+            "tests/test_sonar_pull_request.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output.",
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "pullRequestScope uses an explicit control-character class at line 27 to reject unsafe text at this input boundary. Those characters are the intended rejected values, not accidental invisible source text.",
+          "dependencyBindings": [
+            {
+              "path": "scripts/sonar_scope.js",
+              "sha256": "b81bf6b67de2d49b7140451eb0d0a8f6b8305f39b40f633e348c0edd249b0ea7"
+            },
+            {
+              "path": "tests/test_sonar_branch.js",
+              "sha256": "da24d069af6f0b43a562568f6f687fa92b4570184f4aebc4aa846701cea84168"
+            },
+            {
+              "path": "tests/test_sonar_pull_request.js",
+              "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-006",
+          "rule": [
+            "JS-0119"
+          ],
+          "issuePath": "scripts/export_sonarcloud_findings.js",
+          "changedSupportingPaths": [
+            "tests/test_sonar_branch.js",
+            "tests/test_sonar_pull_request.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output.",
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "The initial undefined pagination total disables the previous-page consistency check only for page one; subsequent pages set the authoritative total.",
+          "dependencyBindings": [
+            {
+              "path": "scripts/export_sonarcloud_findings.js",
+              "sha256": "8e4b13dfaaafc927e6a3af0ac3f034f3b82754110216cb0265d489fbeb7f9312"
+            },
+            {
+              "path": "tests/test_sonar_branch.js",
+              "sha256": "da24d069af6f0b43a562568f6f687fa92b4570184f4aebc4aa846701cea84168"
+            },
+            {
+              "path": "tests/test_sonar_pull_request.js",
+              "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-028",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "operatorOverview remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls getTradingOverview, Date.now; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-029",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "createStrategy remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls createTradingStrategyDraft, identifier, identifier; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-030",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "updateStrategy remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls updateTradingStrategyDraft, identifier, identifier; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-031",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "publishStrategy remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls publishTradingStrategyVersion, identifier; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-032",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "archiveStrategy remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls archiveTradingStrategyVersion, identifier; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-033",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "removeStrategy remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls deleteTradingStrategyVersion, identifier; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-034",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "createSignalSchema remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls createTradingSignalSchema; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-035",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "updateSignalSchema remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls updateTradingSignalSchema, identifier; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-036",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "removeSignalSchema remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls deleteTradingSignalSchema, identifier; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-037",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "createSignalContract remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls createSignalContract; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-038",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "createSignalContractVersion remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls createSignalContractDraftVersion; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-039",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "updateSignalContract remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls updateSignalContractDraft; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-040",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "duplicateSignalContract remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls duplicateSignalContract; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-041",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "publishSignalContract remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls publishSignalContractVersion; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-042",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "archiveSignalContract remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls archiveSignalContractVersion; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-043",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "removeSignalContractDraft remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls deleteSignalContractDraft; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-044",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "removeSignalContractVersion remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls deleteSignalContractVersion; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-045",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "validateSignalContract remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls validateSignalContractDefinition, validateSignalXml, payload.sourceText.trim, assertSignalGrounded; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-046",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "setChannelRiskPolicy remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls upsertChannelRiskPolicy; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-047",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "removeChannelRiskPolicy remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls deleteChannelRiskPolicy; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-048",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "setRoute remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls setTradingRoute, identifier, identifier, identifier, boolean; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-049",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "removeRoute remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls deleteTradingRoute, identifier; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-050",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "acknowledgeRisk remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls acknowledgeTradingRiskEvent, identifier; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-051",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "createWorkflowResource remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls createWorkflowResourceDraft; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-052",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "updateWorkflowResource remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls updateWorkflowResourceDraft, identifier; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-053",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "publishWorkflowResource remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls publishWorkflowResource, identifier; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-054",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "archiveWorkflowResource remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls archiveWorkflowResource, identifier; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-055",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "deleteWorkflowResourceDraft remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls deleteWorkflowResourceDraft, identifier; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-056",
+          "rule": [
+            "JS-0105"
+          ],
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "activateWorkflow remains on the injected TradingWebControl instance used by the dashboard and its adapter test fixtures. Its own body calls saveWorkflowRevision; making the method static changes the supported object API and instance substitution contract.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-058",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_runtime_release.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "withAccountOwners has an explicit throw at line 42. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<T>. Current own-body calls include operation, dependencies.engine.mutations.run.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_runtime_release.ts",
+              "sha256": "d070ac2f236a6e1ff07d1c7e165ed787a7cba399d20d2e3631c54fbdb16222b3"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-059",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_runtime_release.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "commitGlobalRelease returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is inferred async Promise. Current own-body calls include withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_runtime_release.ts",
+              "sha256": "d070ac2f236a6e1ff07d1c7e165ed787a7cba399d20d2e3631c54fbdb16222b3"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-060",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_risk_repository.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "observeRiskReservations returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<string>. Current own-body calls include withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_risk_repository.ts",
+              "sha256": "fc7edb80efc2f1822f320d5f055bba2670963b9bf0b007e9b80bf7c3d83c4882"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-061",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_risk_repository.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "existingRiskCommitment returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<ExistingRiskProof>. Current own-body calls include withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_risk_repository.ts",
+              "sha256": "fc7edb80efc2f1822f320d5f055bba2670963b9bf0b007e9b80bf7c3d83c4882"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-063",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_risk_admission.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "createRiskAdmission returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<RiskAdmissionProof>. Current own-body calls include snapshotFxAccount, structuredClone, withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_risk_admission.ts",
+              "sha256": "28d87cccdbb87c0e0485996d5143f44dc1825f2a2938d1e525d30f93c25805d0"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-075",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_repository.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "updateTradingAccountConfiguration returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<TradingAccount>. Current own-body calls include withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_repository.ts",
+              "sha256": "a1cb63b2be3b73d557c02761c014f1984fd0764ebd49e23aa5a8883f1482b221"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-078",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_recovery_schedule_repository.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "activeAttempt returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<Attempt | undefined>. Current own-body calls include getDatabase().get, getDatabase.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_recovery_schedule_repository.ts",
+              "sha256": "550adf2cdfeba278365940599d560083e76ee4d701685e784cbe1a21e1c6c11c"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-079",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_recovery_schedule_repository.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "reserveScheduledRecovery returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<ScheduledRecoveryQuery>. Current own-body calls include Date.now, snapshotFxAccount, structuredClone, instant, withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_recovery_schedule_repository.ts",
+              "sha256": "550adf2cdfeba278365940599d560083e76ee4d701685e784cbe1a21e1c6c11c"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-080",
+          "rule": [
+            "JS-0004",
+            "JS-W1035"
+          ],
+          "issuePath": "src/trading_recovery_schedule_contract.ts",
+          "changedSupportingPaths": [
+            "tests/test_exchange_contract_validation.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "binding uses an explicit control-character class at line 72 to reject unsafe text at this input boundary. Those characters are the intended rejected values, not accidental invisible source text.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_recovery_schedule_contract.ts",
+              "sha256": "6a8bcff68afe06512e449b96cbd2ccc96bd6a4be58b22703546b676b81742f96"
+            },
+            {
+              "path": "tests/test_exchange_contract_validation.js",
+              "sha256": "934b78e1f5689a6f8ca817834c157492774435f379066225e58ea03a8660412c"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-082",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_recovery.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "recoverUndispatchedPlan returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<boolean>. Current own-body calls include withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_recovery.ts",
+              "sha256": "8d5e993cc840bc7e1c1308373e4158bc46560366ae4934c5098f9353f228130a"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-083",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_recovery.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "abandonUndispatchedPlan returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<boolean>. Current own-body calls include withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_recovery.ts",
+              "sha256": "8d5e993cc840bc7e1c1308373e4158bc46560366ae4934c5098f9353f228130a"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-084",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_protection_sources.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "protectionScopes returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<Array<{ accountId: string; intentId: string }>>. Current own-body calls include getDatabase().all, getDatabase.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_protection_sources.ts",
+              "sha256": "bc355dee2ad11b1c88e26dee33ce30d2069fd2b0ef7a7237d2b7442eafa7725b"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-085",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_protection_projection.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "readProtectionProjection returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<ProtectionProjection[]>. Current own-body calls include withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_protection_projection.ts",
+              "sha256": "b672dfe68377cd39afa0721fa6294e032397731415b0fa91278f5ea73e75d875"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-086",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_protection.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "storedProtectionNeed returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is inferred async Promise. Current own-body calls include withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_protection.ts",
+              "sha256": "89a80e97b0d0a2536a69db2b55347d30d40f08c55a056bb5b54ee946d5f420ba"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-088",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_order_repository.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "persistTradingRemoteOrder has an explicit throw at line 70. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<void>. Current own-body calls include validateRemoteOrder, persistOrderEvidence.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_order_repository.ts",
+              "sha256": "b86cde7c1046b62b9531c936531b2128ab4299c18e40216c6bc3c96130d39f4a"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-089",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_order_repository.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "createGeneratedTradingOrder returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<PlannedOrder>. Current own-body calls include withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_order_repository.ts",
+              "sha256": "b86cde7c1046b62b9531c936531b2128ab4299c18e40216c6bc3c96130d39f4a"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-093",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_lifecycle.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "retireUndispatchedExit returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<boolean>. Current own-body calls include withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_lifecycle.ts",
+              "sha256": "c61d62130699451c3c0f349b42d265c125bb403e804206eac320cfaf4a2ab91a"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-098",
+          "rule": [
+            "JS-0004",
+            "JS-W1035"
+          ],
+          "issuePath": "src/trading_fx_contract.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "null uses an explicit control-character class at line 59 to reject unsafe text at this input boundary. Those characters are the intended rejected values, not accidental invisible source text.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_fx_contract.ts",
+              "sha256": "95f6bc8b51999c615373e137012661609f5412d2419121be9acbf71c09fbc69b"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-099",
+          "rule": [
+            "JS-0004",
+            "JS-W1035"
+          ],
+          "issuePath": "src/trading_fill_quantity_contract.ts",
+          "changedSupportingPaths": [
+            "tests/test_exchange_contract_validation.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "token uses an explicit control-character class at line 24 to reject unsafe text at this input boundary. Those characters are the intended rejected values, not accidental invisible source text.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_fill_quantity_contract.ts",
+              "sha256": "271e4fcb2063d2a60fa5c9b0baef2a3bdd201f9a2fbb2fabad168c5ad5317162"
+            },
+            {
+              "path": "tests/test_exchange_contract_validation.js",
+              "sha256": "934b78e1f5689a6f8ca817834c157492774435f379066225e58ea03a8660412c"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-100",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_evidence_repository.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "persistCorrelatedFill returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<FillResult>. Current own-body calls include provenFillIdentity, withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_evidence_repository.ts",
+              "sha256": "c9a28fcf96cdbe8e1c814e15ba5241fd7c6b81c1f7bf88bf887d72648450a24b"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-101",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_entry_commitment.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "requestedEntryDrains returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<EntryCommitment[]>. Current own-body calls include Date.now, getDatabase().all, getDatabase.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_entry_commitment.ts",
+              "sha256": "e57b747ee27a227837ac63c8d4086f469564196f8f8885a1e549f7a3b439b9fc"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-102",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_entry_commitment.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "resolveActiveEntryCancelAttempts returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<void>. Current own-body calls include resolveActiveCancelAttempts.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_entry_commitment.ts",
+              "sha256": "e57b747ee27a227837ac63c8d4086f469564196f8f8885a1e549f7a3b439b9fc"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-103",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_entry_commitment.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "entryCancelRetryAuthorized returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<boolean>. Current own-body calls include cancelRetryAuthorized.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/trading_entry_commitment.ts",
+              "sha256": "e57b747ee27a227837ac63c8d4086f469564196f8f8885a1e549f7a3b439b9fc"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-104",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_engine.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "transaction returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<T>. Current own-body calls include withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "12d38bfed42b30587780edcb0d45dbdf829c3c860b692e1f261ad7ee7a2d9c58",
+            "matchingCurrentNodes": [
+              {
+                "kind": "FunctionDeclaration",
+                "name": "transaction",
+                "line": 308,
+                "endLine": 310,
+                "sha256": "12d38bfed42b30587780edcb0d45dbdf829c3c860b692e1f261ad7ee7a2d9c58",
+                "normalizedSha256": "12d38bfed42b30587780edcb0d45dbdf829c3c860b692e1f261ad7ee7a2d9c58",
+                "printedSha256": "d5b51629f4a48a8e8c7df1112436b22727d203a5ef414c4eb736f2e3d787ed9d"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "baseline-skipcq-105",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_engine.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "createReplacementStop has an explicit throw at line 751. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<PlannedOrder>. Current own-body calls include plan.orders.find, createGeneratedTradingOrder.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "9c25d9adc01adecdcb7719efb20099e3381e4afaea16694dd1becfa4ec9db94f",
+            "matchingCurrentNodes": [
+              {
+                "kind": "FunctionDeclaration",
+                "name": "createReplacementStop",
+                "line": 749,
+                "endLine": 753,
+                "sha256": "9c25d9adc01adecdcb7719efb20099e3381e4afaea16694dd1becfa4ec9db94f",
+                "normalizedSha256": "9c25d9adc01adecdcb7719efb20099e3381e4afaea16694dd1becfa4ec9db94f",
+                "printedSha256": "3c331ba4038656b582969138d422732d36a206e059c8708b236f0bbf9bb49040"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "baseline-skipcq-106",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "src/trading_engine.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "The explicit undefined reduce seed gives the empty stop-price collection an undefined result. Removing the seed would throw on an empty collection.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "5d3b93c527084ba76dece9e3923d8ce4973f0759c0012dc6a803ebdc7bd6b55b",
+            "matchingCurrentNodes": [
+              {
+                "kind": "ArrowFunction",
+                "line": 852,
+                "endLine": 860,
+                "sha256": "5d3b93c527084ba76dece9e3923d8ce4973f0759c0012dc6a803ebdc7bd6b55b",
+                "normalizedSha256": "5d3b93c527084ba76dece9e3923d8ce4973f0759c0012dc6a803ebdc7bd6b55b",
+                "printedSha256": "7c5e628964b8a87c146e1d1b0f0ed57f7d20deacdaa10951ffbf2702efb26b98"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "baseline-skipcq-107",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_engine.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "retireUnauthorizedPreparations returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<number>. Current own-body calls include <ThisKeyword>.mutations.run.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "b83a08ea2e10d509d9f34a55d7b4accd934292d0686bf91ade5274828f6f031b",
+            "matchingCurrentNodes": [
+              {
+                "kind": "MethodDeclaration",
+                "name": "retireUnauthorizedPreparations",
+                "line": 916,
+                "endLine": 928,
+                "sha256": "b83a08ea2e10d509d9f34a55d7b4accd934292d0686bf91ade5274828f6f031b",
+                "normalizedSha256": "b83a08ea2e10d509d9f34a55d7b4accd934292d0686bf91ade5274828f6f031b",
+                "printedSha256": "fdf7171355427ae40ccc2c8db62a78078bdd9f4b7e81d9d3cda2087a4004893d"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "baseline-skipcq-108",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_emergency.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "requestEmergencyExit returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<boolean>. Current own-body calls include withDatabaseTransaction.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_emergency.ts",
+              "sha256": "c65acdfd14aff3cfd151e19b095d8a890a4cdb0472e063b42c602348ee1dd5a7"
+            },
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-109",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_cancel_recovery.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "latestCancel returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<CancelAttempt | undefined>. Current own-body calls include getDatabase().get, getDatabase.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_cancel_recovery.ts",
+              "sha256": "6d6bc24cb87b849a219a932e63900ea7355797bc743a83cde887bb3bbcbe8029"
+            },
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-113",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_account_baseline.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "baselineRow returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<BaselineRow | undefined>. Current own-body calls include getDatabase().get, getDatabase.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_account_baseline.ts",
+              "sha256": "2abb82d0f4d48f42a233090d6c8b610e043390a0b4e2a7f305edf4a9048fce8d"
+            },
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-234",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "tests/test_supply_chain.js",
+          "changedSupportingPaths": [
+            "tests/test_supply_chain.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "assert.equal at line 414 has 2 explicit arguments and compares against undefined. The assertion API requires the expected argument; removing it changes arity or the expected value.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "f5546dd2b4f1569f671fa203811f861b697f6e78c45391f77bca847617c3d0ff",
+            "matchingCurrentNodes": [
+              {
+                "kind": "CallExpression",
+                "line": 418,
+                "endLine": 418,
+                "sha256": "f5546dd2b4f1569f671fa203811f861b697f6e78c45391f77bca847617c3d0ff",
+                "normalizedSha256": "f5546dd2b4f1569f671fa203811f861b697f6e78c45391f77bca847617c3d0ff",
+                "printedSha256": "f5546dd2b4f1569f671fa203811f861b697f6e78c45391f77bca847617c3d0ff"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "baseline-skipcq-235",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "tests/test_supply_chain.js",
+          "changedSupportingPaths": [
+            "tests/test_supply_chain.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "assert.equal at line 416 has 2 explicit arguments and compares against undefined. The assertion API requires the expected argument; removing it changes arity or the expected value.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "9e0e34cbeff51d8818f4d7dc18fbbcdf1ddb14d0a712414d2b10ca4616dec214",
+            "matchingCurrentNodes": [
+              {
+                "kind": "CallExpression",
+                "line": 420,
+                "endLine": 420,
+                "sha256": "9e0e34cbeff51d8818f4d7dc18fbbcdf1ddb14d0a712414d2b10ca4616dec214",
+                "normalizedSha256": "9e0e34cbeff51d8818f4d7dc18fbbcdf1ddb14d0a712414d2b10ca4616dec214",
+                "printedSha256": "9e0e34cbeff51d8818f4d7dc18fbbcdf1ddb14d0a712414d2b10ca4616dec214"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "baseline-skipcq-240",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "tests/test_sonar_pull_request.js",
+          "changedSupportingPaths": [
+            "tests/test_sonar_pull_request.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "fakeFetch has an explicit throw at line 57. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. This is a Promise-returning dependency double in the containing regression, not a synchronous exception fixture. Current own-body calls include calls.push, assert.equal, parsed.searchParams.get, assert.equal, parsed.searchParams.get.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_sonar_pull_request.js",
+              "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "177a1ade887e7eb36cd192081d54f66cd3352a9514e4047db4418c8e539ac0e3",
+            "matchingCurrentNodes": [
+              {
+                "kind": "FunctionDeclaration",
+                "name": "fakeFetch",
+                "line": 38,
+                "endLine": 59,
+                "sha256": "177a1ade887e7eb36cd192081d54f66cd3352a9514e4047db4418c8e539ac0e3",
+                "normalizedSha256": "177a1ade887e7eb36cd192081d54f66cd3352a9514e4047db4418c8e539ac0e3",
+                "printedSha256": "d50549a6845ab3649aa32de4f1c5a1f8a2bc0d946f6c6ab7b65c8b5110eb7e5a"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "baseline-skipcq-242",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "tests/test_sonar_branch.js",
+          "changedSupportingPaths": [
+            "tests/test_sonar_branch.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "fakeFetch has an explicit throw at line 49. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. This is a Promise-returning dependency double in the containing regression, not a synchronous exception fixture. Current own-body calls include assert.equal, parsed.searchParams.has, assert.equal, parsed.searchParams.get, json.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_sonar_branch.js",
+              "sha256": "da24d069af6f0b43a562568f6f687fa92b4570184f4aebc4aa846701cea84168"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "a7e27b47c10b758a5efdc7a2bfeaea169b6f77259a07203eb9f8eb7e38c6061d",
+            "matchingCurrentNodes": [
+              {
+                "kind": "FunctionDeclaration",
+                "name": "fakeFetch",
+                "line": 27,
+                "endLine": 51,
+                "sha256": "a7e27b47c10b758a5efdc7a2bfeaea169b6f77259a07203eb9f8eb7e38c6061d",
+                "normalizedSha256": "a7e27b47c10b758a5efdc7a2bfeaea169b6f77259a07203eb9f8eb7e38c6061d",
+                "printedSha256": "2f495de0be152e81ef2715b8d311c9cbb34fcf2b52084690a53856fe9992ee7b"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "baseline-skipcq-247",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "tests/test_signal_parser.js",
+          "changedSupportingPaths": [
+            "tests/test_signal_parser.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only adds a third diagnostic string to the providerCode assertion. Actual expression and required undefined expectation are unchanged; async mock and cleanup contracts retain their bodies."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "requestCompletion has an explicit throw at line 438. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. This is a Promise-returning dependency double in the containing regression, not a synchronous exception fixture. Current own-body calls include retryModels.push, Object.assign.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_signal_parser.js",
+              "sha256": "df5f8ce073dbd511f224f0bf1589ad859d0eb2959a5cdfa9a6eedc2576964eb5"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "804a43bd165aef1def486b179b01ca7dab108a7c73d6c90e222b0fcd0349c3e6",
+            "matchingCurrentNodes": [
+              {
+                "kind": "ArrowFunction",
+                "line": 436,
+                "endLine": 440,
+                "sha256": "804a43bd165aef1def486b179b01ca7dab108a7c73d6c90e222b0fcd0349c3e6",
+                "normalizedSha256": "804a43bd165aef1def486b179b01ca7dab108a7c73d6c90e222b0fcd0349c3e6",
+                "printedSha256": "1ab3377d06e4c93abc3cdfd4b788b3beefe6213e74d0c23f855bf028fcc03b55"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "baseline-skipcq-248",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "tests/test_signal_parser.js",
+          "changedSupportingPaths": [
+            "tests/test_signal_parser.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only adds a third diagnostic string to the providerCode assertion. Actual expression and required undefined expectation are unchanged; async mock and cleanup contracts retain their bodies."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "requestCompletion has an explicit throw at line 461. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. This is a Promise-returning dependency double in the containing regression, not a synchronous exception fixture. Current own-body calls include retryAfterModels.push, Object.assign.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_signal_parser.js",
+              "sha256": "df5f8ce073dbd511f224f0bf1589ad859d0eb2959a5cdfa9a6eedc2576964eb5"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "8ee8d3669722e65e87368690f458a0a9f180e1a2b3cc0d27203f25c245042827",
+            "matchingCurrentNodes": [
+              {
+                "kind": "ArrowFunction",
+                "line": 458,
+                "endLine": 468,
+                "sha256": "8ee8d3669722e65e87368690f458a0a9f180e1a2b3cc0d27203f25c245042827",
+                "normalizedSha256": "8ee8d3669722e65e87368690f458a0a9f180e1a2b3cc0d27203f25c245042827",
+                "printedSha256": "df0bcd5c98cb049ec44cec1b7e3b461a66f7750ef48aaeddac856800a60223fd"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "baseline-skipcq-249",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "tests/test_signal_parser.js",
+          "changedSupportingPaths": [
+            "tests/test_signal_parser.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only adds a third diagnostic string to the providerCode assertion. Actual expression and required undefined expectation are unchanged; async mock and cleanup contracts retain their bodies."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "requestCompletion has an explicit throw at line 519. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. This is a Promise-returning dependency double in the containing regression, not a synchronous exception fixture. No own-body call is required for the Promise contract.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_signal_parser.js",
+              "sha256": "df5f8ce073dbd511f224f0bf1589ad859d0eb2959a5cdfa9a6eedc2576964eb5"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "a294857f718b4b3897903ca132c969a4339c0a52f3369636b4af74c03aaf70e2",
+            "matchingCurrentNodes": [
+              {
+                "kind": "ArrowFunction",
+                "line": 519,
+                "endLine": 519,
+                "sha256": "a294857f718b4b3897903ca132c969a4339c0a52f3369636b4af74c03aaf70e2",
+                "normalizedSha256": "a294857f718b4b3897903ca132c969a4339c0a52f3369636b4af74c03aaf70e2",
+                "printedSha256": "a294857f718b4b3897903ca132c969a4339c0a52f3369636b4af74c03aaf70e2"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "baseline-skipcq-270",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "tests/test_forwarder_error_types.js",
+          "changedSupportingPaths": [
+            "tests/test_forwarder_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes the response capture to null. Each supported read occurs after response={id} at the beginning of its loop iteration; successful and invalid TDLib ID assertions, call tracking and coercion counter remain unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "assert.equal at line 19 has 2 explicit arguments and compares against undefined. The assertion API requires the expected argument; removing it changes arity or the expected value.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "d33fb217d2e59788d8d92f53340b495443cf8bb3d198cb95b6825607b5818333"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "6532741f2ad4e9e35f9d8e53d8abf182acc53589b59c180395db3214613faafd",
+            "matchingCurrentNodes": [
+              {
+                "kind": "CallExpression",
+                "line": 19,
+                "endLine": 19,
+                "sha256": "6532741f2ad4e9e35f9d8e53d8abf182acc53589b59c180395db3214613faafd",
+                "normalizedSha256": "6532741f2ad4e9e35f9d8e53d8abf182acc53589b59c180395db3214613faafd",
+                "printedSha256": "6532741f2ad4e9e35f9d8e53d8abf182acc53589b59c180395db3214613faafd"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "baseline-skipcq-271",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "tests/test_forwarder_error_types.js",
+          "changedSupportingPaths": [
+            "tests/test_forwarder_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes the response capture to null. Each supported read occurs after response={id} at the beginning of its loop iteration; successful and invalid TDLib ID assertions, call tracking and coercion counter remain unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "assert.equal at line 25 has 2 explicit arguments and compares against undefined. The assertion API requires the expected argument; removing it changes arity or the expected value.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "d33fb217d2e59788d8d92f53340b495443cf8bb3d198cb95b6825607b5818333"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "d7eff95aa2cf8571b996596e4a0778184121b26b07862e12a02448b4d0aadfec",
+            "matchingCurrentNodes": [
+              {
+                "kind": "CallExpression",
+                "line": 25,
+                "endLine": 25,
+                "sha256": "d7eff95aa2cf8571b996596e4a0778184121b26b07862e12a02448b4d0aadfec",
+                "normalizedSha256": "d7eff95aa2cf8571b996596e4a0778184121b26b07862e12a02448b4d0aadfec",
+                "printedSha256": "d7eff95aa2cf8571b996596e4a0778184121b26b07862e12a02448b4d0aadfec"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "baseline-skipcq-310",
+          "rule": [
+            "JS-R1002"
+          ],
+          "issuePath": "src/signal_contract.ts",
+          "changedSupportingPaths": [
+            "tests/test_signal_parser.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only adds a third diagnostic string to the providerCode assertion. Actual expression and required undefined expectation are unchanged; async mock and cleanup contracts retain their bodies."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "Constructing RegExp validates syntax without executing the pattern. Matching is separately bounded in the signal-schema VM; adding a test call here would execute untrusted patterns outside that budget.",
+          "dependencyBindings": [
+            {
+              "path": "src/signal_contract.ts",
+              "sha256": "eb024bc91844963c667f958b17c20bafb5c7d21465f6ca4adfe4bd1a73a3e833"
+            },
+            {
+              "path": "tests/test_signal_parser.js",
+              "sha256": "df5f8ce073dbd511f224f0bf1589ad859d0eb2959a5cdfa9a6eedc2576964eb5"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-330",
+          "rule": [
+            "JS-0263"
+          ],
+          "issuePath": "src/forwarder.ts",
+          "changedSupportingPaths": [
+            "tests/test_forwarder_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes the response capture to null. Each supported read occurs after response={id} at the beginning of its loop iteration; successful and invalid TDLib ID assertions, call tracking and coercion counter remain unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "An uncaught exception is recorded by the fatal boundary and then terminates the forwarder; continuing would retain unknown process state.",
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0"
+            },
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "d33fb217d2e59788d8d92f53340b495443cf8bb3d198cb95b6825607b5818333"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-331",
+          "rule": [
+            "JS-0263"
+          ],
+          "issuePath": "src/forwarder.ts",
+          "changedSupportingPaths": [
+            "tests/test_forwarder_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes the response capture to null. Each supported read occurs after response={id} at the beginning of its loop iteration; successful and invalid TDLib ID assertions, call tracking and coercion counter remain unchanged."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "An unhandled rejection is recorded by the fatal boundary and then terminates the forwarder; continuing would retain unknown process state.",
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0"
+            },
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "d33fb217d2e59788d8d92f53340b495443cf8bb3d198cb95b6825607b5818333"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-338",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/exchange_stream_repository.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "listExchangeStreamStates returns CallExpression. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. The current declared return contract is Promise<Array<Record<string, unknown>>>. Current own-body calls include getDatabase().all, getDatabase.",
+          "dependencyBindings": [
+            {
+              "path": "src/exchange_stream_repository.ts",
+              "sha256": "ff02ef140738e5bfb20ead24e6c0527e4e9123b60a593326f967859f518f3add"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-339",
+          "rule": [
+            "JS-0004",
+            "JS-W1035"
+          ],
+          "issuePath": "src/exchange_order_identity_contract.ts",
+          "changedSupportingPaths": [
+            "tests/test_exchange_contract_validation.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "id uses an explicit control-character class at line 15 to reject unsafe text at this input boundary. Those characters are the intended rejected values, not accidental invisible source text.",
+          "dependencyBindings": [
+            {
+              "path": "src/exchange_order_identity_contract.ts",
+              "sha256": "7a9d362ae0850759c872aa290ac9da86d28ecd951e7bc092c74e4d4d2c85f937"
+            },
+            {
+              "path": "tests/test_exchange_contract_validation.js",
+              "sha256": "934b78e1f5689a6f8ca817834c157492774435f379066225e58ea03a8660412c"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-341",
+          "rule": [
+            "JS-0004",
+            "JS-W1035"
+          ],
+          "issuePath": "src/exchange_contract_validation.ts",
+          "changedSupportingPaths": [
+            "tests/test_exchange_contract_validation.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "retain_existing_site",
+          "originalRationalePreserved": "identifier uses an explicit control-character class at line 26 to reject unsafe text at this input boundary. Those characters are the intended rejected values, not accidental invisible source text.",
+          "dependencyBindings": [
+            {
+              "path": "src/exchange_contract_validation.ts",
+              "sha256": "0281d406027729d6cb208cb517b577ef3cb2e65f7d52348112c0735dea71e586"
+            },
+            {
+              "path": "tests/test_exchange_contract_validation.js",
+              "sha256": "934b78e1f5689a6f8ca817834c157492774435f379066225e58ea03a8660412c"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        }
+      ],
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "executionScope": "Append-only source/context renewal for the reviewed post-PR73 patch. Old entries, counts, rationale, tests, dates, hashes and earlier renewals retained verbatim. New exact-head CI and integrated acceptance remain outstanding.",
+      "finalCloudAcceptance": false
     }
   ]
 }

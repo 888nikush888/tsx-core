@@ -51,6 +51,7 @@ async function fakeFetch(url) {
 }
 
 try {
+  // skipcq: JS-0038 - assert exact literal scanner environment placeholders in the emitted arguments
   const args = "-Dsonar.scm.revision=${env.SONAR_EXPECTED_REVISION} -Dsonar.branch.name=${env.SONAR_BRANCH}";
   assert.equal(sonarScanArguments(environment), args);
   for (const ref of ['codex/quote\'"', 'codex/$(touch-pwned);`id`', 'codex/a=b&c|d', 'codex/ä-ß']) {
@@ -67,6 +68,7 @@ try {
   });
   assert.equal(prepared.status, 0, prepared.stderr);
   assert.equal(await readFile(outputPath, 'utf8'), `args=${args}\n`);
+  // skipcq: JS-0038 - literal scanner-expression injection fixture; never interpolate this negative test input
   for (const ref of ["codex/${env.SONAR_TOKEN}", 'codex/a\n-Dsonar.token=x', 'codex/a b', ' codex/a', 'codex/a\n']) {
     assert.throws(() => sonarScanArguments({ ...environment, SONAR_BRANCH: ref }), /refs contain/u);
   }

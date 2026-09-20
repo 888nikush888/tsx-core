@@ -810,6 +810,75 @@
         }
       ],
       "executionScope": "Candidate only: append dated source-context review with historical and current hashes; preserve original observedBindings and validation as historical unless schema explicitly records their supersession. Do not rewrite September17 validation timestamps/durations/results. Root reported focused config/MCP/supply-chain PASS; not independently reexecuted here. Final test and scan bindings remain pending."
+    },
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "dirtyTree": true,
+      "previousLedgerSha256": "f092689565c0db70222bd242ab8520cf17ef35dd625781501f0e8a9b58aa9d9a",
+      "reviews": [
+        {
+          "id": "AaCvLE_4FuOCeZdBf0d2",
+          "rule": "typescript:S6551",
+          "issuePath": "src/signal_parser.ts",
+          "changedSupportingPaths": [
+            "tests/test_signal_parser.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only adds a third diagnostic string to the providerCode assertion. Actual expression and required undefined expectation are unchanged; async mock and cleanup contracts retain their bodies."
+          ],
+          "originalDisposition": "individual_false_positive_candidate",
+          "originalRationalePreserved": "providerCode is diagnostic classification of an unknown Error-like value. Existing bounded allowlist rejects default object text; Error-like custom code conversion and numeric cause.code remain compatible. Tests verify default object exclusion, valid custom conversion, invalid text exclusion and propagation of a throwing converter. No identity, amount or authorization key is derived here.",
+          "dependencyBindings": [
+            {
+              "path": "src/signal_parser.ts",
+              "sha256": "d72b7a27439e2f5801e982af18fd802bfd1cb331338569533e686bd50bb78378"
+            },
+            {
+              "path": "tests/test_signal_parser.js",
+              "sha256": "df5f8ce073dbd511f224f0bf1589ad859d0eb2959a5cdfa9a6eedc2576964eb5"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "AaCvLE_4FuOCeZdBf0d3",
+          "rule": "typescript:S6551",
+          "issuePath": "src/signal_parser.ts",
+          "changedSupportingPaths": [
+            "tests/test_signal_parser.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only adds a third diagnostic string to the providerCode assertion. Actual expression and required undefined expectation are unchanged; async mock and cleanup contracts retain their bodies."
+          ],
+          "originalDisposition": "individual_false_positive_candidate",
+          "originalRationalePreserved": "Error-like name is intentionally converted for timeout classification. Default object text does not match timeout; a legacy custom name returning ProviderTimeoutError does. Restricting names to primitive strings would change established retry behavior. Fresh tests cover both outcomes without modifying source.",
+          "dependencyBindings": [
+            {
+              "path": "src/signal_parser.ts",
+              "sha256": "d72b7a27439e2f5801e982af18fd802bfd1cb331338569533e686bd50bb78378"
+            },
+            {
+              "path": "tests/test_signal_parser.js",
+              "sha256": "df5f8ce073dbd511f224f0bf1589ad859d0eb2959a5cdfa9a6eedc2576964eb5"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        }
+      ],
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "executionScope": "Append-only source/context renewal for the reviewed post-PR73 patch. Old entries, counts, rationale, tests, dates, hashes and earlier renewals retained verbatim. New exact-head CI and integrated acceptance remain outstanding.",
+      "finalCloudAcceptance": false
     }
   ]
 }

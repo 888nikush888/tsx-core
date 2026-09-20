@@ -1185,6 +1185,507 @@
         "manifestSha256": "92321ceb0e2a00453516797c34c9391ef7194a1c135e2c3d9c536db9bcf0a561",
         "scope": "Reviewed concrete source deltas, exact input bindings and per-ID caller/target rationale. Historical executions and earlier fields retained verbatim. Final integrated and provider acceptance remain pending."
       }
+    },
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "dirtyTree": true,
+      "previousLedgerSha256": "1a8542dfea87264febc2a12eaf935e57287e0a927b3074f37524a6a7b7952e3c",
+      "reviews": [
+        {
+          "id": "T2NjdXJyZW5jZTphbmFqdmxqZ2w=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_supply_chain.js",
+          "changedSupportingPaths": [
+            "tests/test_supply_chain.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpsbXF4ZGx4ZXc=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_supply_chain.js",
+          "changedSupportingPaths": [
+            "tests/test_supply_chain.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpkYWtqd2xqZWc=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_supply_chain.js",
+          "changedSupportingPaths": [
+            "tests/test_supply_chain.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpxcGVnbmRnYXY=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_supply_chain.js",
+          "changedSupportingPaths": [
+            "tests/test_supply_chain.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpnZXZqZHhqb2w=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_sonar_pull_request.js",
+          "changedSupportingPaths": [
+            "tests/test_sonar_pull_request.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_sonar_pull_request.js",
+              "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpyZWt5bmd5bHk=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_sonar_pull_request.js",
+          "changedSupportingPaths": [
+            "tests/test_sonar_pull_request.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_sonar_pull_request.js",
+              "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTptcmRvbmxveXI=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_sonar_pull_request.js",
+          "changedSupportingPaths": [
+            "tests/test_sonar_pull_request.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_sonar_pull_request.js",
+              "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTp2dm1hbmRheG4=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_sonar_pull_request.js",
+          "changedSupportingPaths": [
+            "tests/test_sonar_pull_request.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_sonar_pull_request.js",
+              "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpveWFtZHZtcW8=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_sonar_pull_request.js",
+          "changedSupportingPaths": [
+            "tests/test_sonar_pull_request.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_sonar_pull_request.js",
+              "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTp4cmdhbmphdnY=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_sonar_branch.js",
+          "changedSupportingPaths": [
+            "tests/test_sonar_branch.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_sonar_branch.js",
+              "sha256": "da24d069af6f0b43a562568f6f687fa92b4570184f4aebc4aa846701cea84168"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTprdnlrZGdranE=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_sonar_branch.js",
+          "changedSupportingPaths": [
+            "tests/test_sonar_branch.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_sonar_branch.js",
+              "sha256": "da24d069af6f0b43a562568f6f687fa92b4570184f4aebc4aa846701cea84168"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpsbXF4ZGx4eXc=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_monitoring_artifacts.js",
+          "changedSupportingPaths": [
+            "tests/test_monitoring_artifacts.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_monitoring_artifacts.js",
+              "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpkYWtqd2xqdmc=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_monitoring_artifacts.js",
+          "changedSupportingPaths": [
+            "tests/test_monitoring_artifacts.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_monitoring_artifacts.js",
+              "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpxcGVnbmRnb3Y=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_monitoring_artifacts.js",
+          "changedSupportingPaths": [
+            "tests/test_monitoring_artifacts.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_monitoring_artifacts.js",
+              "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTp5Z3lqbmxqcXk=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_monitoring_artifacts.js",
+          "changedSupportingPaths": [
+            "tests/test_monitoring_artifacts.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_monitoring_artifacts.js",
+              "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpnZXZqZHhqYWw=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_monitoring_artifacts.js",
+          "changedSupportingPaths": [
+            "tests/test_monitoring_artifacts.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_monitoring_artifacts.js",
+              "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTplYXhqeXZqbWQ=",
+          "rule": "JS-W1042",
+          "issuePath": "tests/test_exchange_contract_validation.js",
+          "changedSupportingPaths": [
+            "tests/test_exchange_contract_validation.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "The active site is Symbol(undefined); Symbol() produces the same symbol with an undefined description. No assertion argument was removed.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_exchange_contract_validation.js",
+              "sha256": "934b78e1f5689a6f8ca817834c157492774435f379066225e58ea03a8660412c"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpwcXdybmpyZWU=",
+          "rule": "JS-R1004",
+          "issuePath": "scripts/sonar_scan_arguments.js",
+          "changedSupportingPaths": [
+            "scripts/sonar_scan_arguments.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "scripts/sonar_scan_arguments.js",
+              "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTp3bXJhd3BhamU=",
+          "rule": "JS-R1004",
+          "issuePath": "scripts/sonar_scan_arguments.js",
+          "changedSupportingPaths": [
+            "scripts/sonar_scan_arguments.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "scripts/sonar_scan_arguments.js",
+              "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpqd2dlZG1lcHk=",
+          "rule": "JS-R1004",
+          "issuePath": "scripts/sonar_scan_arguments.js",
+          "changedSupportingPaths": [
+            "scripts/sonar_scan_arguments.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "scripts/sonar_scan_arguments.js",
+              "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpuZ3d2ZGp2b24=",
+          "rule": "JS-R1004",
+          "issuePath": "scripts/sonar_scan_arguments.js",
+          "changedSupportingPaths": [
+            "scripts/sonar_scan_arguments.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "scripts/sonar_scan_arguments.js",
+              "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTphbmFqdmxqZWw=",
+          "rule": "JS-R1004",
+          "issuePath": "scripts/sonar_scan_arguments.js",
+          "changedSupportingPaths": [
+            "scripts/sonar_scan_arguments.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only precise rule comments were added. All literals, assertion arguments, callbacks and evaluation order are unchanged; TypeScript printer with comments removed confirms identical syntax tree output."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
+          "dependencyBindings": [
+            {
+              "path": "scripts/sonar_scan_arguments.js",
+              "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        }
+      ],
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "executionScope": "Append-only source/context renewal for the reviewed post-PR73 patch. Old entries, counts, rationale, tests, dates, hashes and earlier renewals retained verbatim. New exact-head CI and integrated acceptance remain outstanding.",
+      "finalCloudAcceptance": false
     }
   ]
 }

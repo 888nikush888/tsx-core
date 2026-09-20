@@ -36,7 +36,7 @@ try {
     for (const boundary of boundaries) {
       let runs = 0;
       engine.mutations.run = () => { runs += 1; throw new Error('Unexpected invalid-input dispatch'); };
-      let result;
+      let result = null;
       assert.doesNotThrow(() => { result = boundary.call(''); }, `${boundary.name} returns rejected promises for validation errors.`);
       assert.ok(result instanceof Promise);
       await assert.rejects(result, /Account identifier/);
@@ -65,7 +65,7 @@ try {
   } finally {
     engine.mutations.run = originalRun;
   }
-  let invalidPaper;
+  let invalidPaper = null;
   assert.doesNotThrow(() => { invalidPaper = paper.openState({ ...account, exchange: 'bybit' }); });
   assert.ok(invalidPaper instanceof Promise);
   await assert.rejects(invalidPaper, /paper/i);

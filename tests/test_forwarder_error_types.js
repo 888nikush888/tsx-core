@@ -163,7 +163,7 @@ async function verifyResolvedChatIds(source) {
   const executable = ts.transpileModule(functions.map(node => node.getText(parsed)).join('\n'), {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
   }).outputText;
-  let response;
+  let response = null;
   const requests = [];
   const client = { invoke(query) { requests.push(query._); return Promise.resolve(response); } };
   const resolve = new Function('client', 'invokeWithRetry', 'addLog', `${executable}\nreturn resolveChatId;`)(

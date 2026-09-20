@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { checkFinalCodacyReview } from '../scripts/check_final_codacy_review.js';
+import { readFileSync } from 'node:fs';
+import { checkFinalCodacyReview, checkFinalCodacyInventories } from '../scripts/check_final_codacy_review.js';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
 const contents = new Map([
@@ -69,3 +70,25 @@ const before = JSON.stringify(ledger);
 verify(ledger);
 assert.equal(JSON.stringify(ledger), before, 'Integrity checking never renews or mutates decisions.');
 console.log('Codacy review integrity contracts passed.');
+
+const historical = JSON.parse(readFileSync(new URL('../docs/testing/final-codacy-2026-09-17.json', import.meta.url), 'utf8'));
+const supplement = JSON.parse(readFileSync(new URL('../docs/testing/final-codacy-pr73-2026-09-20.json', import.meta.url), 'utf8'));
+assert.equal(checkFinalCodacyInventories(historical, supplement).ok, true);
+const missingHistorical = structuredClone(historical);
+const removedHistorical = missingHistorical.entries.pop();
+missingHistorical.counts.total -= 1;
+missingHistorical.counts[removedHistorical.providerStatus] -= 1;
+missingHistorical.ruleCounts[removedHistorical.rule][removedHistorical.providerStatus] -= 1;
+assert.equal(checkFinalCodacyInventories(missingHistorical, supplement).ok, false,
+  'Self-consistent counts must not hide a missing historical finding.');
+const missingNew = structuredClone(supplement);
+missingNew.entries.pop();
+assert.equal(checkFinalCodacyInventories(historical, missingNew).ok, false);
+const overlapping = structuredClone(supplement);
+overlapping.entries[0].issueId = historical.entries[0].issueId;
+assert.equal(checkFinalCodacyInventories(historical, overlapping).ok, false);
+const renamed = structuredClone(supplement);
+renamed.entries[0].issueId = renamed.entries[0].issueId.toUpperCase();
+assert.equal(checkFinalCodacyInventories(historical, renamed).ok, false, 'Issue identities are case-sensitive.');
+assert.equal(checkFinalCodacyInventories(historical, undefined).ok, false);
+console.log('Codacy retained historical and supplemental identity inventories passed.');

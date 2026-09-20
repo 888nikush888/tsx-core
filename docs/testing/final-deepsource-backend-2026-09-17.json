@@ -5431,6 +5431,611 @@
         "manifestSha256": "92321ceb0e2a00453516797c34c9391ef7194a1c135e2c3d9c536db9bcf0a561",
         "scope": "Reviewed concrete source deltas, exact input bindings and per-ID caller/target rationale. Historical executions and earlier fields retained verbatim. Final integrated and provider acceptance remain pending."
       }
+    },
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "dirtyTree": true,
+      "previousLedgerSha256": "bc496899f87a1b49e269a98835c0d43544a9e39c9dfd3479a088c97c3bab0d86",
+      "reviews": [
+        {
+          "id": "T2NjdXJyZW5jZTpwcXdybmpyeWU=",
+          "rule": "JS-0116",
+          "issuePath": "tests/test_signal_parser.js",
+          "changedSupportingPaths": [
+            "tests/test_signal_parser.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only adds a third diagnostic string to the providerCode assertion. Actual expression and required undefined expectation are unchanged; async mock and cleanup contracts retain their bodies."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "This specific runTests entry wrapper is immediately invoked before the file's .catch failure handler. The native async boundary retains Promise adoption and sends synchronous invocation errors to the existing failure handler. The exact current wrapper passed the isolated probe.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_signal_parser.js",
+              "sha256": "df5f8ce073dbd511f224f0bf1589ad859d0eb2959a5cdfa9a6eedc2576964eb5"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+            "matchingCurrentNodes": [
+              {
+                "kind": "ArrowFunction",
+                "line": 592,
+                "endLine": 592,
+                "sha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+                "normalizedSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+                "printedSha256": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpqd2dlZG1lank=",
+          "rule": "JS-0105",
+          "issuePath": "src/trading_engine.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Root converted this private helper to static and changed its sole production caller to TradingEngine.persistRemoteFill. Independent AST review confirms the body is unchanged and contains no instance access; persistence, notification and entry-fill event ordering remain intact.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "bcf65a8f1947eb20c8dd1a9af579f2da5b6cebf8b8d6825947bb88b784dd5d8d",
+            "matchingCurrentNodes": [
+              {
+                "kind": "MethodDeclaration",
+                "name": "persistRemoteFill",
+                "line": 2106,
+                "endLine": 2136,
+                "sha256": "bcf65a8f1947eb20c8dd1a9af579f2da5b6cebf8b8d6825947bb88b784dd5d8d",
+                "normalizedSha256": "bcf65a8f1947eb20c8dd1a9af579f2da5b6cebf8b8d6825947bb88b784dd5d8d",
+                "printedSha256": "ffb1c9e7c783acb5d4388a08752c49064e3759c1f13b6804c8d8ee8420410084"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpuZ3d2ZGp2cG4=",
+          "rule": "JS-0105",
+          "issuePath": "src/trading_engine.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "The instance method is an intentional reconciliation fault-injection seam: test_trading_protection_receipt binds and overrides this exact method to mutate protection state after snapshot persistence, then proves the final source fence rejects and rolls back both changes. Making it static would silently bypass that exercised seam.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "6dc934ee575f5220fab6cfea3a54be5fad86d022b0fa0cad4144e26843f0430a",
+            "matchingCurrentNodes": [
+              {
+                "kind": "MethodDeclaration",
+                "name": "storeReconciliationSuccess",
+                "line": 1929,
+                "endLine": 1967,
+                "sha256": "6dc934ee575f5220fab6cfea3a54be5fad86d022b0fa0cad4144e26843f0430a",
+                "normalizedSha256": "6dc934ee575f5220fab6cfea3a54be5fad86d022b0fa0cad4144e26843f0430a",
+                "printedSha256": "19749e788e97141d3ddd38d1f81d59ea976284d4a20c7836fa3b90da439dc1b7"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "T2NjdXJyZW5jZTphbmFqdmxqcWw=",
+          "rule": "JS-0105",
+          "issuePath": "src/trading_engine.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "originalRationalePreserved": "Root converted this private helper to static and changed both production callers to TradingEngine.assertRemoteAccountIdentity. Independent AST review confirms the body is unchanged and contains no instance access; identity rejection, account binding and prior-fingerprint checks remain intact.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "880e127f5f0af77aad1cea3f91006706611043aa8be384213ac1e4716e1cac98",
+            "matchingCurrentNodes": [
+              {
+                "kind": "MethodDeclaration",
+                "name": "assertRemoteAccountIdentity",
+                "line": 1844,
+                "endLine": 1879,
+                "sha256": "880e127f5f0af77aad1cea3f91006706611043aa8be384213ac1e4716e1cac98",
+                "normalizedSha256": "880e127f5f0af77aad1cea3f91006706611043aa8be384213ac1e4716e1cac98",
+                "printedSha256": "5ace671b45967943c256cbf7e97f41d267eadbd220e1f597bb004d67947e3991"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpkYWtqd2xqb2c=",
+          "rule": "JS-0105",
+          "issuePath": "src/trading_engine.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "The private instance method is directly exercised on a real engine by test_trading_engine_type_guards with damaged persisted targets and trapped DB/provider operations. Keeping this seam preserves the regression proving malformed plans fail before recovery reads, cancellations or submissions.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "977ac0ee9b9d326093963032dce41a8441233a4b48345e86bb1aa1f9e29affc0",
+            "matchingCurrentNodes": [
+              {
+                "kind": "MethodDeclaration",
+                "name": "ensureTakeProfitCoverage",
+                "line": 1538,
+                "endLine": 1581,
+                "sha256": "977ac0ee9b9d326093963032dce41a8441233a4b48345e86bb1aa1f9e29affc0",
+                "normalizedSha256": "977ac0ee9b9d326093963032dce41a8441233a4b48345e86bb1aa1f9e29affc0",
+                "printedSha256": "1984986b2150fb7632019b6ad9cefc5f21e1a5d7be564da0fdd3b7de3464efd0"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpyZWt5bmd5eHk=",
+          "rule": "JS-0105",
+          "issuePath": "src/paper_exchange.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts",
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged.",
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "This is the required instance openState member of TradingExchangeAdapter, and protection tests override paper.openState to simulate missing/stale evidence. Static conversion would break adapter dispatch and the explicit safety seams.",
+          "dependencyBindings": [
+            {
+              "path": "src/paper_exchange.ts",
+              "sha256": "b5fc9e4684118985bf29d8bbfbb104c3cbb9de0d8184e895bb7dc8d1238fda6e"
+            },
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTptcmRvbmxveHI=",
+          "rule": "JS-0105",
+          "issuePath": "src/paper_exchange.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "This is the required instance marketSnapshot member of TradingExchangeAdapter. Engine planning dispatches through adapter.marketSnapshot(account,symbol); keeping the instance member preserves provider polymorphism and Paper market/leverage evidence.",
+          "dependencyBindings": [
+            {
+              "path": "src/paper_exchange.ts",
+              "sha256": "b5fc9e4684118985bf29d8bbfbb104c3cbb9de0d8184e895bb7dc8d1238fda6e"
+            },
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTp2dm1hbmRham4=",
+          "rule": "JS-0105",
+          "issuePath": "src/paper_exchange.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts",
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged.",
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "This is the required instance accountSnapshot member of TradingExchangeAdapter. Engine and control callers dispatch through the selected adapter instance; Paper-specific work may delegate to a static reader without removing the instance interface.",
+          "dependencyBindings": [
+            {
+              "path": "src/paper_exchange.ts",
+              "sha256": "b5fc9e4684118985bf29d8bbfbb104c3cbb9de0d8184e895bb7dc8d1238fda6e"
+            },
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpveWFtZHZvbmU=",
+          "rule": "JS-0116",
+          "issuePath": "src/paper_exchange.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts",
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged.",
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "Paper account validation must reject through the Promise-returning adapter contract, including before transaction dispatch. Root characterization proves a wrong-exchange account returns a rejected native Promise rather than throwing from the call.",
+          "dependencyBindings": [
+            {
+              "path": "src/paper_exchange.ts",
+              "sha256": "b5fc9e4684118985bf29d8bbfbb104c3cbb9de0d8184e895bb7dc8d1238fda6e"
+            },
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpuZ3d2ZGp4a2w=",
+          "rule": "JS-0116",
+          "issuePath": "src/forwarder.ts",
+          "changedSupportingPaths": [
+            "tests/test_forwarder_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes the response capture to null. Each supported read occurs after response={id} at the beginning of its loop iteration; successful and invalid TDLib ID assertions, call tracking and coercion counter remain unchanged."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "The TDLib adapter wrapper immediately invokes bounded flood-wait retry with cancellation, attempt and wait limits, then adopts its Promise. Async preserves its public-in-file rejection/adoption contract for channel and history callers; the lower-level retry tests cover bounded behavior.",
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0"
+            },
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "d33fb217d2e59788d8d92f53340b495443cf8bb3d198cb95b6825607b5818333"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTphbmFqdmxnbHg=",
+          "rule": "JS-0116",
+          "issuePath": "src/workflow_repository.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "The wrapper owns exactly one database transaction around fallback advancement. The engine returns/awaits this result during eligible intent failure handling; retaining async leaves transaction dispatch rejection and Promise adoption unchanged.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "src/workflow_repository.ts",
+              "sha256": "7db980fe01055e5ac4d143e5470ecab0323bba37ce8ebcf6cb5ba9d378efc8c4"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTp5Z3lqbmx2bHc=",
+          "rule": "JS-0116",
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "Account ID validation runs immediately, then account mutation ownership is requested before return. Root characterization verifies native Promise adoption, validation/synchronous dependency rejection, and that this operation does not add an entry fence.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpnZXZqZHh3bW4=",
+          "rule": "JS-0116",
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "Account ID validation and account entry fencing execute immediately before mutation ownership. Root characterization verifies synchronous fence scope and dispatch, distinct adopted Promise, and original failures delivered as rejections.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpyZWt5bmdyZG0=",
+          "rule": "JS-0116",
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "Account ID and current epoch are captured before mutation dispatch. Root characterization verifies no new entry fence, synchronous dispatch, adopted native Promise and rejected validation/dependency failures; control-race tests use the captured epoch.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTptcmRvbmxrZ2Q=",
+          "rule": "JS-0116",
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "Identifier and boolean validation precede an immediate account fence when disabling, then mutation ownership. Root characterization verifies this fence and dispatch ordering plus native Promise/rejection behavior.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTp2dm1hbmRrd2U=",
+          "rule": "JS-0116",
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "Account ID validation and the existing global entry fence occur before mutation ownership. Root characterization verifies synchronous fence/dispatch, native Promise adoption and original dependency error rejection; rotation tests preserve historical evidence.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTp4cmdhbmpvZXI=",
+          "rule": "JS-0116",
+          "issuePath": "src/trading_web_control.ts",
+          "changedSupportingPaths": [
+            "tests/test_trading_control_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "Only initializes result and invalidPaper captures to null before guaranteed assignments inside assert.doesNotThrow. Captures still prove native Promise rejection rather than synchronous throwing, mutation fence timing and dependency error identity. No source API/test assertions removed."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "Identifier validation precedes account mutation dispatch with an optional existing mutation context. Root characterization verifies no extra fence, immediate dispatch, native Promise adoption and rejected original failures.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/test_trading_control_error_types.js",
+              "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTplYXhqeXZubG4=",
+          "rule": "JS-0116",
+          "issuePath": "src/trading_engine.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "The public engine adapter immediately requests serialized account mutation ownership with any supplied mutation context and adopts reconcileAccountOwned. Runtime/release callers await this result; retaining native async avoids changing failure/adoption semantics of the ownership boundary.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "b3f21adf161fbbbc9acc08185cd9690b1f547be4a6f5ab493bcb6e1b1d737fee",
+            "matchingCurrentNodes": [
+              {
+                "kind": "MethodDeclaration",
+                "name": "reconcileAccount",
+                "line": 1653,
+                "endLine": 1655,
+                "sha256": "b3f21adf161fbbbc9acc08185cd9690b1f547be4a6f5ab493bcb6e1b1d737fee",
+                "normalizedSha256": "b3f21adf161fbbbc9acc08185cd9690b1f547be4a6f5ab493bcb6e1b1d737fee",
+                "printedSha256": "918db63e73f0ae4d16fa4640f07d8db41f92de1b461544fee0c8e95901e02b6d"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpwcXdybmp2YXk=",
+          "rule": "JS-0116",
+          "issuePath": "src/trading_engine.ts",
+          "changedSupportingPaths": [
+            "src/trading_engine.ts"
+          ],
+          "sourceJudgement": "reviewed_specific_pr73_delta_preserves_prior_disposition",
+          "rationale": [
+            "The only two changed lines make persistRemoteExecutions private static async and replace its sole this call with TradingEngine.persistRemoteExecutions. Method body is unchanged, contains no this use, and retains awaited record/order/fill writes and rejection timing. No overrides or test spies were found. Existing account-wide error classifier, recovery functions and other methods are unchanged."
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "originalRationalePreserved": "The outer async method returns a transaction whose callback awaits intent/proof checks and invokes instance failure handling before counting retirement. The bounded worker awaits it; retaining async preserves transaction errors and result adoption.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "finalCloudAcceptance": false,
+          "currentTargetMapping": {
+            "historicalTargetHash": "a8c26e4a9409fbfa920e63c4b5b83e7c74d43baae74992b2b976e6c5a12955c3",
+            "matchingCurrentNodes": [
+              {
+                "kind": "MethodDeclaration",
+                "name": "retireUnauthorizedPreparation",
+                "line": 945,
+                "endLine": 954,
+                "sha256": "a8c26e4a9409fbfa920e63c4b5b83e7c74d43baae74992b2b976e6c5a12955c3",
+                "normalizedSha256": "a8c26e4a9409fbfa920e63c4b5b83e7c74d43baae74992b2b976e6c5a12955c3",
+                "printedSha256": "8c6d5e16bf7b8233d4509e41f8b97d4ea976dc7df47379d71b484459ed316495"
+              }
+            ],
+            "meaning": "Exact historical target bytes located in current source; where repeated, all candidates retained without inventing a unique identity. Source delta rationale is reviewed independently."
+          }
+        }
+      ],
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "executionScope": "Append-only source/context renewal for the reviewed post-PR73 patch. Old entries, counts, rationale, tests, dates, hashes and earlier renewals retained verbatim. New exact-head CI and integrated acceptance remain outstanding.",
+      "finalCloudAcceptance": false
     }
   ]
 }

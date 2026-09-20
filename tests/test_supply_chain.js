@@ -270,15 +270,18 @@ assert.doesNotMatch(nodeImage, /:latest(?:@|$)/, 'NODE_IMAGE must not use latest
 assert.doesNotMatch(runtimeImage, /:latest(?:@|$)/, 'RUNTIME_IMAGE must not use latest');
 assert.match(runtimeImage, /^gcr\.io\/distroless\/nodejs22-debian13@sha256:/);
 assert.equal(runtimeImage, 'gcr.io/distroless/nodejs22-debian13@sha256:bde4c459719d1101d0ed962bb1eec9cbf58bbbaca3560ac143c8ca02ab02e099');
+// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text
 assert.equal(baseImages[0], "${NODE_IMAGE}", 'base stage must use the pinned NODE_IMAGE argument');
 assert.ok(
   baseImages.slice(1, -1).every((image) => image === 'base'),
   'all build stages must inherit the pinned build base'
 );
+// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text
 assert.equal(baseImages.at(-1), "${RUNTIME_IMAGE}", 'runner must use the pinned distroless image');
 assert.match(dockerfile, /^ARG DEBIAN_SNAPSHOT=\d{8}T\d{6}Z$/m);
 assert.match(dockerfile, /snapshot\.debian\.org\/archive\/debian\/\$\{DEBIAN_SNAPSHOT\}/);
 assert.match(dockerfile, /snapshot\.debian\.org\/archive\/debian-security\/\$\{DEBIAN_SNAPSHOT\}/);
+// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text
 const runtimeStage = dockerfile.slice(dockerfile.indexOf("FROM ${RUNTIME_IMAGE} AS runner"));
 assert.doesNotMatch(runtimeStage, /^RUN\s/m, 'distroless runtime must not install packages');
 assert.match(runtimeStage, /^USER 65532:65532$/m);
@@ -362,6 +365,7 @@ assert.doesNotMatch(implementationBlock, /continue-on-error|\|\|\s*true|--exchan
   'The packaging gate cannot skip profiles, inject approvals, or disregard a NO-GO.');
 const runtimeGateCommand = containerJob.split('\n').find(line => line.includes('/app/verify_implementation_runtime.py'));
 assert.equal(runtimeGateCommand?.trim(),
+  // skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text
   "docker run --rm --network none --read-only --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -E -B /app/verify_implementation_runtime.py",
   'The final baked image must verify every real implementation receipt offline without mounts, env approvals, or user overrides.');
 const runtimeGatePosition = containerJob.indexOf(runtimeGateCommand);
