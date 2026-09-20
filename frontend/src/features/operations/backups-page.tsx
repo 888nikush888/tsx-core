@@ -73,7 +73,7 @@ function ArtifactSection({ name, evidence, busy, readOnly, command }: Readonly<{
   return (
     <section className="operations-card"><h2>{name}</h2>
       <ArtifactEvidence evidence={evidence} />
-      <div className="system-actions"><button disabled={busy || readOnly} onClick={() => { command('drill'); }}>Isolierten Probelauf starten</button><button className="danger-button" disabled={busy || readOnly || evidence.restoreEligibility?.status !== 'eligible'} onClick={() => { command('restore'); }}>Wiederherstellen</button></div><details><summary>Vollständige Prüfbelege</summary><pre className="whitespace-pre-wrap break-all text-sm">{JSON.stringify(evidence, null, 2)}</pre></details></section>
+      <div className="system-actions"><button type="button" disabled={busy || readOnly} onClick={() => { command('drill'); }}>Isolierten Probelauf starten</button><button type="button" className="danger-button" disabled={busy || readOnly || evidence.restoreEligibility?.status !== 'eligible'} onClick={() => { command('restore'); }}>Wiederherstellen</button></div><details><summary>Vollständige Prüfbelege</summary><pre className="whitespace-pre-wrap break-all text-sm">{JSON.stringify(evidence, null, 2)}</pre></details></section>
   );
 }
 
@@ -90,7 +90,7 @@ function OffsiteRecoverSection({ name, busy, readOnly, objectName, setObjectName
 }>) {
   if (name) return null;
   return (
-    <section className="operations-card system-form"><h2>Offsite-Backup zurückholen</h2><label>Objektname<input value={objectName} onChange={event => setObjectName(event.target.value)} placeholder="backup-….tgfb" maxLength={180} /></label><button disabled={busy || readOnly || !objectName.trim()} onClick={() => { command('recover'); }}>Herunterladen & prüfen</button></section>
+    <section className="operations-card system-form"><h2>Offsite-Backup zurückholen</h2><label>Objektname<input value={objectName} onChange={event => setObjectName(event.target.value)} placeholder="backup-….tgfb" maxLength={180} /></label><button type="button" disabled={busy || readOnly || !objectName.trim()} onClick={() => { command('recover'); }}>Herunterladen & prüfen</button></section>
   );
 }
 
@@ -116,7 +116,7 @@ export function BackupsPage({ name }: Readonly<{ name?: string }>) {
   const evidence = value?.evidence;
   return <div className="operations-stack">{confirmationDialog}<h1>{name ? 'Backup-Artefakt' : 'Verifizierte Backups'}</h1>
     <p>Integrität, gemeinsame Konfiguration, Wiederherstellbarkeit, Offsite-Beleg und Probelauf sind getrennte Nachweise. Ein bestandener Probelauf ist keine Handelsfreigabe.</p>
-    {name ? <Link to="/operations/backups">Alle Backups</Link> : <button className="primary-button" disabled={readOnly || busy} onClick={() => { command('create'); }}>Jetzt sichern</button>}
+    {name ? <Link to="/operations/backups">Alle Backups</Link> : <button type="button" className="primary-button" disabled={readOnly || busy} onClick={() => { command('create'); }}>Jetzt sichern</button>}
     {error && <p role="alert">{error}</p>}{message && <p><output>{message}</output></p>}{jobId && <JobLink id={jobId} />}
     {readOnly && <p>Viewer: Prüfbelege können gelesen werden. Änderungen erfordern Administratorrechte.</p>}
     <ArtifactSection name={name} evidence={evidence} busy={busy} readOnly={readOnly} command={command} />
