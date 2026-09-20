@@ -559,7 +559,7 @@ export async function pruneBackupArtifacts(backupDirectory: string, retainCount:
   const artifacts = entries
     .filter(entry => entry.isDirectory() && /^backup-\d{4}-/.test(entry.name))
     .map(entry => entry.name)
-    .sort((left, right) => left.localeCompare(right))
+    .sort((left, right) => left < right ? -1 : Number(left > right))
     .reverse();
   let removed = 0;
   for (const artifact of artifacts.slice(retainCount)) {

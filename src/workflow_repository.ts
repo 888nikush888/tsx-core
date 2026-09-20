@@ -78,14 +78,18 @@ function normalizedJson(value: unknown): string {
     if (Array.isArray(candidate)) return candidate.map(visit);
     if (!candidate || typeof candidate !== 'object') return candidate;
     return Object.fromEntries(Object.entries(candidate)
-      .sort(([left], [right]) => left.localeCompare(right))
+      .sort(([left], [right]) => left < right ? -1 : Number(left > right))
       .map(([key, nested]) => [key, visit(nested)]));
   };
   return JSON.stringify(visit(value));
 }
 
 function sha256(value: unknown): string {
-  return createHash('sha256').update(normalizedJson(value)).digest('hex');
+  return workflowBytesHash(normalizedJson(value));
+}
+
+function workflowBytesHash(serialized: string): string {
+  return createHash('sha256').update(serialized).digest('hex');
 }
 
 function parseJson<T>(value: unknown, label: string): T {
@@ -412,7 +416,7 @@ function validateResourceConfiguration(kind: WorkflowResourceKind, input: unknow
 
 function resourceFromRow(row: WorkflowResourceRow): WorkflowResourceVersion {
   const configuration = parseJson<Record<string, unknown>>(row.configuration_json, 'workflow resource configuration');
-  if (sha256(configuration) !== row.configuration_sha256) throw new Error(`Workflow resource ${row.id} failed its integrity check.`);
+  if (workflowBytesHash(row.configuration_json) !== row.configuration_sha256) throw new Error(`Workflow resource ${row.id} failed its integrity check.`);
   return {
     id: String(row.id), resourceId: String(row.resource_id), version: Number(row.version), kind: row.kind, editRevision: Number(row.edit_revision),
     name: String(row.name), description: String(row.description || ''), status: row.status,
@@ -522,8 +526,10 @@ async function workflowRevisionFromRow(row: WorkflowRevisionRow): Promise<Workfl
     'compiled workflow',
   );
   const paths = pathRows.map(pathFromRow);
-  const integrity = sha256({ graph, compiled: workflowIntegrityCompiled(graph, paths, storedCompiled) });
-  if (integrity !== row.definition_sha256) {
+  // Both historical writers stored these exact normalized fragments; the wrapper order is compiled, graph.
+  const integrity = workflowBytesHash(`{"compiled":${row.compiled_json},"graph":${row.graph_json}}`);
+  const hydratedCompiled = workflowIntegrityCompiled(graph, paths, storedCompiled);
+  if (integrity !== row.definition_sha256 || normalizedJson(hydratedCompiled) !== normalizedJson(storedCompiled)) {
     throw new Error(`Workflow revision ${row.id} failed its integrity check.`);
   }
   const routeGroups = hydratedRouteGroups(graph, paths, storedCompiled);
@@ -952,7 +958,7 @@ async function loadWorkflowResources(graph: WorkflowGraph): Promise<Map<string, 
       );
     }
     placedResourceIds.set(resource.resourceId, node.id);
-    const behaviorKey = `${resource.kind}:${resource.configurationSha256}`;
+    const behaviorKey = `${resource.kind}:${sha256(resource.configuration)}`;
     const existingBehavior = placedBehaviors.get(behaviorKey);
     if (existingBehavior) {
       throw new Error(
@@ -1575,7 +1581,10 @@ async function ensurePublishedWorkflowResource(input: {
      ORDER BY version DESC LIMIT 1`,
     [input.resourceId],
   );
-  if (existing?.configuration_sha256 === sha256(configuration)) return resourceFromRow(existing);
+  if (existing) {
+    const resource = resourceFromRow(existing);
+    if (normalizedJson(resource.configuration) === normalizedJson(configuration)) return resource;
+  }
   const draft = await createWorkflowResourceDraft({
     resourceId: input.resourceId,
     kind: input.kind,

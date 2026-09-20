@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { createHash } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -26,6 +27,67 @@ import {
 } from '../src/workflow_repository.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
 import { uiWorkflowDetail } from '../src/ui_workflow_reads.js';
+
+
+// Persisted shapes from the historical pre-route-group and pre-policy writers.
+// Hash the exact fragments, then require the reader to reconcile actual path rows.
+async function assertHistoricalWorkflowHashes(workflow) {
+  assert.ok(workflow.graph.schemaVersion < 3);
+  assert.ok(workflow.compiled.paths.length > 0);
+  const db = getDatabase();
+  const original = await db.get('SELECT graph_json,compiled_json,definition_sha256 FROM workflow_revisions WHERE id=?', [workflow.id]);
+  const originalCompiled = JSON.parse(original.compiled_json);
+  const withoutPolicy = path => { const { fallbackOn: _policy, ...rest } = path; return rest; };
+  const withoutRouteGroup = path => {
+    const { routeGroupKey: _group, fallbackRank: _rank, fallbackOn: _policy, ...rest } = path;
+    return rest;
+  };
+  const variants = [
+    { paths: originalCompiled.paths.map(withoutRouteGroup), warnings: originalCompiled.warnings },
+    { paths: originalCompiled.paths.map(withoutPolicy), warnings: originalCompiled.warnings,
+      routeGroups: originalCompiled.routeGroups.map(group => ({ ...group, candidates: group.candidates.map(withoutPolicy) })) },
+    originalCompiled,
+  ];
+  const canonical = value => {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])]));
+    }
+    return value;
+  };
+  const digest = value => createHash('sha256').update(value).digest('hex');
+  // Simulate retained databases / external corruption only in this disposable DB.
+  // Production triggers still forbid changing committed definitions.
+  const triggers = await db.all("SELECT name,sql FROM sqlite_master WHERE type='trigger' AND tbl_name IN ('workflow_revisions','workflow_execution_paths')");
+  for (const trigger of triggers) { assert.match(trigger.name, /^[a-z_]+$/); await db.exec(`DROP TRIGGER ${trigger.name}`); }
+  const target = workflow.compiled.paths[0];
+  try {
+    for (const compiled of variants) {
+      const compiledJson = JSON.stringify(canonical(compiled));
+      const graphJson = JSON.stringify(canonical(workflow.graph));
+      const hash = digest(`{"compiled":${compiledJson},"graph":${graphJson}}`);
+      await db.run('UPDATE workflow_revisions SET compiled_json=?,graph_json=?,definition_sha256=? WHERE id=?', [compiledJson, graphJson, hash, workflow.id]);
+      assert.equal((await getActiveWorkflow()).definitionSha256, hash);
+      assert.deepEqual(await db.get('SELECT graph_json,compiled_json,definition_sha256 FROM workflow_revisions WHERE id=?', [workflow.id]),
+        { graph_json: graphJson, compiled_json: compiledJson, definition_sha256: hash });
+      await db.run('UPDATE workflow_execution_paths SET enabled=? WHERE id=?', [target.enabled ? 0 : 1, target.id]);
+      await assert.rejects(getActiveWorkflow(), /failed its integrity check/);
+      await db.run('UPDATE workflow_execution_paths SET enabled=? WHERE id=?', [target.enabled ? 1 : 0, target.id]);
+      await db.run('UPDATE workflow_revisions SET graph_json=? WHERE id=?', [graphJson.replace('"schemaVersion":1', '"schemaVersion":2'), workflow.id]);
+      await assert.rejects(getActiveWorkflow(), /failed its integrity check/);
+      await db.run('UPDATE workflow_revisions SET graph_json=? WHERE id=?', [graphJson, workflow.id]);
+      const alteredCompiled = { ...compiled, warnings: ['tampered'] };
+      await db.run('UPDATE workflow_revisions SET compiled_json=? WHERE id=?', [JSON.stringify(canonical(alteredCompiled)), workflow.id]);
+      await assert.rejects(getActiveWorkflow(), /failed its integrity check/);
+    }
+  } finally {
+    await db.run('UPDATE workflow_execution_paths SET enabled=? WHERE id=?', [target.enabled ? 1 : 0, target.id]);
+    await db.run('UPDATE workflow_revisions SET graph_json=?,compiled_json=?,definition_sha256=? WHERE id=?',
+      [original.graph_json, original.compiled_json, original.definition_sha256, workflow.id]);
+    for (const trigger of triggers) await db.exec(trigger.sql);
+  }
+  assert.equal((await getActiveWorkflow()).id, workflow.id);
+}
 
 // These direct-call fixtures pin at creation; production pins when Telegram ingress is committed.
 async function createWorkflowTradingIntents(input, now) {
@@ -564,6 +626,7 @@ try {
   const workflow = await saveWorkflowRevision({
     baseRevisionId: null, graph, actorId: 'test:admin', confirmation: WORKFLOW_IMPACT_CONFIRMATION,
   });
+  await assertHistoricalWorkflowHashes(workflow);
   assert.equal(workflow.compiled.paths.length, 2);
   const originalParameterEffects = await assertPinnedPathDetail(workflow, firstAccount, strategy, resources.sizingA);
   await assertPinnedPathDetail(workflow, secondAccount, strategy, resources.sizingB);

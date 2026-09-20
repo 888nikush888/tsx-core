@@ -199,7 +199,9 @@ function visitTemplates(root: string, add: (source: string, name: string) => voi
   let visited = 0;
   const visit = (directory: string, relative: string, depth: number): void => {
     if (depth > 16) throw new Error('Configuration template depth exceeds its bound.');
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+    const entries = fs.readdirSync(directory, { withFileTypes: true })
+      .sort((left, right) => left.name.localeCompare(right.name));
+    for (const entry of entries) {
       if (++visited > 1024 || entry.isSymbolicLink()) throw new Error('Configuration templates contain links or too many entries.');
       const name = `${relative}/${entry.name}`;
       if (!safeMember(name)) throw new Error('Configuration template path is invalid.');

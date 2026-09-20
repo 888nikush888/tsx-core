@@ -57,9 +57,12 @@ async function assertAuthorityBeforeArtifactInspection() {
 
 async function createVerifiedArtifact(root, databasePath, backupRoot) {
   assert.ok(
-    REQUIRED_DATABASE_TABLES.includes('trading_fallback_runs') &&
-      REQUIRED_DATABASE_TABLES.includes('trading_fallback_candidates'),
-    'Verified backups must require the complete ordered-fallback state.',
+    REQUIRED_DATABASE_TABLES.includes('trading_fallback_runs'),
+    'Verified backups must require ordered-fallback runs.',
+  );
+  assert.ok(
+    REQUIRED_DATABASE_TABLES.includes('trading_fallback_candidates'),
+    'Verified backups must require ordered-fallback candidates.',
   );
   await initDb(databasePath);
   await seedTradingFixtures();
