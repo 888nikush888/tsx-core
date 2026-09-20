@@ -1,0 +1,35 @@
+{
+  "revision": "28cfa93870323f835458bd00e8ce6932b7d06853",
+  "candidate": {
+    "path": "reports/final-findings/final-28cfa93-hyperliquid-receipt-candidate.json",
+    "sha256": "cf9aea59a20dc02820b3b2a47b16d0540e4d63403d614c11ee98d7ecee6630f0"
+  },
+  "approved": true,
+  "reviewedAt": "2026-09-20T13:01:00.244819+00:00",
+  "reviewer": "root",
+  "scope": "Adopt exact offline implementation receipt for existing Hyperliquid profile 1 only after deterministic evidence archive verification. No provider acceptance, live trading, publication or deployment authorization.",
+  "independentReview": {
+    "path": "reports/final-findings/final-28cfa93-independent-receipt-review.json",
+    "sha256": "1ecaad4b694530f8fc51e0fcfee6893dde0c791f9c1a7681973464ef8d4720c9"
+  },
+  "validationAttempts": {
+    "path": "reports/final-findings/independent-receipt-validation-attempts-28cfa93.json",
+    "sha256": "ecf2bf934f1db4cfb3c0f2c2acd00c3bf6a08cdc21f9ad2c392a5873d7f9694a"
+  },
+  "completeSourceReview": {
+    "path": "reports/final-findings/final-28cfa93-receipt-source-review-root.json",
+    "sha256": "70d97cb298e257191f977fc5724eb961afe18f9dbfbe58c499024775ea4923be"
+  },
+  "rootChecks": [
+    "Reviewed minimal absolute-relative path normalization; canonical containment and exact hash checks retained",
+    "Independently rechecked complete current and historical reference closure",
+    "Rechecked all eight exact command inventories, terminal successful exits, frozen inputs and runtimes",
+    "Existing scope unchanged; actual implementation gate and bridge regressions required after adoption"
+  ],
+  "providerAcceptanceVerified": false,
+  "remaining": [
+    "Verify deterministic archive then install exact candidate and pin",
+    "Run actual production gate and relevant receipt/bridge regressions",
+    "Fresh final-SHA Cloud scans and Linux/Docker CI remain separate"
+  ]
+}

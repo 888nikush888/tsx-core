@@ -4,6 +4,16 @@ Stand: 20.09.2026. Geplant gegen `1f21249adc48f74bf139562e89ca261b14aebc27`, Bra
 
 Dieser Plan ersetzt die offenen Abschlussanweisungen der alten Scanner-Pläne 001–003 für diesen Arbeitsstand. Bereits vorhandene Änderungen bleiben erhalten und werden geprüft, nicht nochmals blind angewendet. Ausführende müssen den gesamten Plan lesen. Pfade und Befehle sind relativ zum Repository, sofern nicht anders angegeben.
 
+## Aktueller Abschlussstand des lokalen Laufs
+
+Der eingefrorene Quellstand `28cfa93870323f835458bd00e8ce6932b7d06853` besteht alle acht lokalen Prüfgruppen: Foundation, beide Backend-Coverage-Läufe mit jeweils 229 Testdateien, Python mit 550 Tests, Frontend mit 403 Tests, Build, Browser mit 196 Fällen, Abhängigkeiten und alle vier Mutationsgruppen. Bestehende Grenzen wurden nicht abgesenkt. Die strengere Modul-Coverage ist auf Windows nachgewiesen; Linux bleibt erforderlich. Monitoring wurde nativ als Konfiguration geprüft, noch nicht als ausgeliefertes Containerimage.
+
+Der Implementierungsnachweis wurde unabhängig gegen vollständige aktuelle Quellen, historische Belege und tatsächliche Ausführungen geprüft. Archiv und Review liegen unter `exchange_executor/certifications/reviews/final-28cfa93-*`. Der Produktionsvergleich bestätigt identische Build-Eingaben und gültige Runtime-Receipts; das ist keine Provider- oder Live-Trading-Freigabe. Die weiter unten beschriebenen ursprünglichen Fehler sind historische Ausgangsbefunde.
+
+**Verbleibende Reihenfolge:** Lokale Nachweis-/Bridge-Nachprüfung ist bestanden; geprüften Kandidaten nach ausdrücklichem Veröffentlichungsauftrag veröffentlichen; Linux-/Docker-CI und vollständige Codacy-, DeepSource- und Sonar-Scans auf genau diesem Stand durchführen; alle alten/neuen IDs abgleichen; verbleibende Defekte in kleinen Paketen mit Regressionstests schließen; erst danach geschützter Merge und vollständiger main-Nachscan. Codacy-Analyzerabbrüche und die noch nicht akzeptierte zusätzliche Executor-HTTP-Verbindung bleiben ausdrücklich offen. Frühere vier HTTP-Akzeptanzen decken diesen zusätzlichen Endpunkt nicht ab.
+
+Lokale SonarJS-Messung: 43 TypeScript-Komplexitäts- und sechs Regex-Fälle unterschreiten die jeweiligen Grenzen 15/20, ohne Parserfehler. Das ersetzt weder SonarCloud noch die 23 noch dort zu messenden Python-Komplexitätsfälle. Ausschließlich DeepSource JS-R1005 ist ausgenommen. Der Gesamtplan bleibt IN PROGRESS, bis die externen Abschlusskriterien erfüllt sind.
+
 ## Ziel und unverrückbare Grenzen
 
 Alle Codacy-, DeepSource- und Sonar-Befunde einschließlich früherer False Positives erhalten eine aktuelle, einzeln belegte Entscheidung. Echte Defekte werden behoben. Ein Scannerstatus allein ist kein Funktionsnachweis. Stabilität, unveränderte Verträge und nachgewiesene Kontozuordnung haben Vorrang vor kosmetischen Verbesserungen.
