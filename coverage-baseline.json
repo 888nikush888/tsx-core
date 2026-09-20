@@ -1,8 +1,8 @@
 {
   "scope": "testable core modules in clean Node.js 22 Linux and Windows checkouts; excludes the composition root and confirmation-gated maintenance CLI entrypoints",
   "verifiedPlatforms": ["linux", "win32"],
-  "statements": 96.49,
-  "branches": 86.45,
-  "functions": 99.20,
-  "lines": 96.49
+  "statements": 96.62,
+  "branches": 86.73,
+  "functions": 99.24,
+  "lines": 96.62
 }
