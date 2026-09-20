@@ -747,5 +747,69 @@
   ],
   "bindingMeaning": "SHA-256 values record this working-tree evidence capture only. They are not cryptographic review approval or renewed scanner attestation.",
   "remoteScannerChanges": [],
-  "remaining": "Independent integration review, candidate scanner results and individually authorized remote dispositions are owned by root; baseline issue status remains authoritative until rescanned."
+  "remaining": "Independent integration review, candidate scanner results and individually authorized remote dispositions are owned by root; baseline issue status remains authoritative until rescanned.",
+  "sourceContextRenewals": [
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "dee6b809dddb7a0acb441a60422b81f957bcfabe",
+      "previousLedgerSha256": "685cd53367820ae4670282c31f18dfa7238f8a8c06cda1d3ac0ac4b02221345c",
+      "bindings": [
+        {
+          "jsonPointer": "/observedBindings/3/sha256",
+          "path": "src/mcp_repository.ts",
+          "historicalSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+          "reviewedCurrentSha256": "aba07492a2d242884ca0c93ec754d567918a8ed4b2599953d9a549d5c428377e"
+        },
+        {
+          "jsonPointer": "/observedBindings/18/sha256",
+          "path": "tests/test_config.js",
+          "historicalSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a",
+          "reviewedCurrentSha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6"
+        }
+      ],
+      "reviews": [
+        {
+          "issueId": "AaCvLE7QFuOCeZdBf0dv",
+          "rule": "typescript:S6551",
+          "issuePath": "src/config.ts",
+          "changedSupportingPaths": [
+            "tests/test_config.js"
+          ],
+          "sourceJudgement": "reviewed_no_invalidating_semantic_delta",
+          "rationale": "Config production unchanged; test_config gains native read/parse/validation failure cause checks without deleting original characterization assertions. Old execution remains historical and does not certify the expanded test file."
+        },
+        {
+          "issueId": "AaCvLE5sFuOCeZdBf0ds",
+          "rule": "typescript:S6551",
+          "issuePath": "src/web_server.ts",
+          "changedSupportingPaths": [
+            "tests/test_config.js"
+          ],
+          "sourceJudgement": "reviewed_no_invalidating_semantic_delta",
+          "rationale": "Config production unchanged; test_config gains native read/parse/validation failure cause checks without deleting original characterization assertions. Old execution remains historical and does not certify the expanded test file."
+        },
+        {
+          "issueId": "AaCvLE5sFuOCeZdBf0dt",
+          "rule": "typescript:S6551",
+          "issuePath": "src/web_server.ts",
+          "changedSupportingPaths": [
+            "tests/test_config.js"
+          ],
+          "sourceJudgement": "reviewed_no_invalidating_semantic_delta",
+          "rationale": "Config production unchanged; test_config gains native read/parse/validation failure cause checks without deleting original characterization assertions. Old execution remains historical and does not certify the expanded test file."
+        },
+        {
+          "issueId": "AaCm5kY9IdGJGds-ubLY",
+          "rule": "typescript:S6551",
+          "issuePath": "src/mcp_repository.ts",
+          "changedSupportingPaths": [
+            "src/mcp_repository.ts"
+          ],
+          "sourceJudgement": "reviewed_no_invalidating_semantic_delta",
+          "rationale": "MCP change only corrects three nullable resultJson fields to match existing schema/inserts/parser; runtimeState.updatedBy finding and primitive projection contracts unchanged."
+        }
+      ],
+      "executionScope": "Candidate only: append dated source-context review with historical and current hashes; preserve original observedBindings and validation as historical unless schema explicitly records their supersession. Do not rewrite September17 validation timestamps/durations/results. Root reported focused config/MCP/supply-chain PASS; not independently reexecuted here. Final test and scan bindings remain pending."
+    }
+  ]
 }

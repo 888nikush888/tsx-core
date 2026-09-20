@@ -11543,7 +11543,7 @@
             "tests/fixtures/trading_emergency_fixture.js",
             "src/trading_repository.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -11736,7 +11736,7 @@
             "tests/fixtures/trading_emergency_fixture.js",
             "src/trading_repository.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -11898,7 +11898,7 @@
             "tests/fixtures/trading_emergency_fixture.js",
             "src/trading_repository.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -12074,7 +12074,7 @@
             "tests/fixtures/trading_emergency_fixture.js",
             "src/trading_repository.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -12222,7 +12222,7 @@
             "tests/fixtures/trading_emergency_fixture.js",
             "src/trading_repository.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -12371,7 +12371,7 @@
             "tests/fixtures/trading_emergency_fixture.js",
             "src/trading_repository.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -12526,7 +12526,7 @@
             "tests/fixtures/trading_emergency_fixture.js",
             "src/trading_repository.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -12699,7 +12699,7 @@
             "tests/fixtures/trading_emergency_fixture.js",
             "src/trading_repository.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -12865,7 +12865,7 @@
             "tests/fixtures/trading_emergency_fixture.js",
             "src/trading_repository.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -12987,7 +12987,7 @@
             "tests/fixtures/trading_emergency_fixture.js",
             "src/trading_repository.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -13160,7 +13160,7 @@
             "tests/fixtures/trading_emergency_fixture.js",
             "src/trading_repository.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -13326,7 +13326,7 @@
             "tests/fixtures/trading_emergency_fixture.js",
             "src/trading_repository.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -13486,7 +13486,7 @@
             "tests/fixtures/trading_emergency_fixture.js",
             "src/trading_repository.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -13652,7 +13652,7 @@
             "tests/fixtures/trading_emergency_fixture.js",
             "src/trading_repository.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -29426,18 +29426,18 @@
       "id": "baseline-skipcq-234",
       "path": "tests/test_supply_chain.js",
       "baselineLine": 409,
-      "currentLine": 409,
+      "currentLine": 413,
       "rules": [
         "JS-W1042"
       ],
       "disposition": "retain_existing_site",
       "category": "assertion_required_expected_argument",
-      "rationale": "assert.equal at line 410 has 2 explicit arguments and compares against undefined. The assertion API requires the expected argument; removing it changes arity or the expected value.",
+      "rationale": "assert.equal at line 414 has 2 explicit arguments and compares against undefined. The assertion API requires the expected argument; removing it changes arity or the expected value.",
       "source": {
-        "sha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263",
+        "sha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
         "targetSha256": "f5546dd2b4f1569f671fa203811f861b697f6e78c45391f77bca847617c3d0ff",
-        "targetStartLine": 410,
-        "targetEndLine": 410,
+        "targetStartLine": 414,
+        "targetEndLine": 414,
         "kind": "CallExpression",
         "symbol": null
       },
@@ -29449,7 +29449,7 @@
         "calls": [
           {
             "callee": "assert.equal",
-            "line": 410,
+            "line": 414,
             "argumentKinds": [
               "PropertyAccessExpression",
               "Identifier"
@@ -29465,18 +29465,18 @@
           "route": [
             "tests/test_supply_chain.js"
           ],
-          "sha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263",
+          "sha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
           "assertionLocations": [
             {
-              "line": 410,
+              "line": 414,
               "call": "assert.equal"
             },
             {
-              "line": 412,
+              "line": 416,
               "call": "assert.equal"
             },
             {
-              "line": 405,
+              "line": 409,
               "call": "assert.match"
             }
           ],
@@ -29489,18 +29489,18 @@
       "id": "baseline-skipcq-235",
       "path": "tests/test_supply_chain.js",
       "baselineLine": 411,
-      "currentLine": 411,
+      "currentLine": 415,
       "rules": [
         "JS-W1042"
       ],
       "disposition": "retain_existing_site",
       "category": "assertion_required_expected_argument",
-      "rationale": "assert.equal at line 412 has 2 explicit arguments and compares against undefined. The assertion API requires the expected argument; removing it changes arity or the expected value.",
+      "rationale": "assert.equal at line 416 has 2 explicit arguments and compares against undefined. The assertion API requires the expected argument; removing it changes arity or the expected value.",
       "source": {
-        "sha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263",
+        "sha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
         "targetSha256": "9e0e34cbeff51d8818f4d7dc18fbbcdf1ddb14d0a712414d2b10ca4616dec214",
-        "targetStartLine": 412,
-        "targetEndLine": 412,
+        "targetStartLine": 416,
+        "targetEndLine": 416,
         "kind": "CallExpression",
         "symbol": null
       },
@@ -29512,7 +29512,7 @@
         "calls": [
           {
             "callee": "assert.equal",
-            "line": 412,
+            "line": 416,
             "argumentKinds": [
               "PropertyAccessExpression",
               "Identifier"
@@ -29528,18 +29528,18 @@
           "route": [
             "tests/test_supply_chain.js"
           ],
-          "sha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263",
+          "sha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
           "assertionLocations": [
             {
-              "line": 412,
+              "line": 416,
               "call": "assert.equal"
             },
             {
-              "line": 410,
+              "line": 414,
               "call": "assert.equal"
             },
             {
-              "line": 415,
+              "line": 419,
               "call": "assert.match"
             }
           ],
@@ -33280,7 +33280,7 @@
       "category": "assertion_required_expected_argument",
       "rationale": "assert.equal at line 73 has 2 explicit arguments and compares against undefined. The assertion API requires the expected argument; removing it changes arity or the expected value.",
       "source": {
-        "sha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a",
+        "sha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6",
         "targetSha256": "564604a50ff0279cc503566837813cdced6c9e8f087bcf2a27c0d823d911d95e",
         "targetStartLine": 73,
         "targetEndLine": 73,
@@ -33311,7 +33311,7 @@
           "route": [
             "tests/test_config.js"
           ],
-          "sha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a",
+          "sha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6",
           "assertionLocations": [
             {
               "line": 73,
@@ -33343,7 +33343,7 @@
       "category": "assertion_required_expected_argument",
       "rationale": "assert.equal at line 107 has 2 explicit arguments and compares against undefined. The assertion API requires the expected argument; removing it changes arity or the expected value.",
       "source": {
-        "sha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a",
+        "sha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6",
         "targetSha256": "13cbfa39ba74bca935f853085ff45b7abdc9c7622bd8bae3906d3a67d504d400",
         "targetStartLine": 107,
         "targetEndLine": 107,
@@ -33374,7 +33374,7 @@
           "route": [
             "tests/test_config.js"
           ],
-          "sha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a",
+          "sha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6",
           "assertionLocations": [
             {
               "line": 107,
@@ -33398,18 +33398,18 @@
       "id": "baseline-skipcq-281",
       "path": "tests/test_config.js",
       "baselineLine": 158,
-      "currentLine": 176,
+      "currentLine": 188,
       "rules": [
         "JS-W1042"
       ],
       "disposition": "retain_existing_site",
       "category": "assertion_required_expected_argument",
-      "rationale": "assert.equal at line 177 has 2 explicit arguments and compares against undefined. The assertion API requires the expected argument; removing it changes arity or the expected value.",
+      "rationale": "assert.equal at line 189 has 2 explicit arguments and compares against undefined. The assertion API requires the expected argument; removing it changes arity or the expected value.",
       "source": {
-        "sha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a",
+        "sha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6",
         "targetSha256": "11f71d50371f8b8c3c01059d905e874cb6bc91fc8c0c5abb115d29e00b9bff4f",
-        "targetStartLine": 177,
-        "targetEndLine": 177,
+        "targetStartLine": 189,
+        "targetEndLine": 189,
         "kind": "CallExpression",
         "symbol": null
       },
@@ -33421,7 +33421,7 @@
         "calls": [
           {
             "callee": "assert.equal",
-            "line": 177,
+            "line": 189,
             "argumentKinds": [
               "ElementAccessExpression",
               "Identifier"
@@ -33437,18 +33437,18 @@
           "route": [
             "tests/test_config.js"
           ],
-          "sha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a",
+          "sha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6",
           "assertionLocations": [
             {
-              "line": 177,
+              "line": 189,
               "call": "assert.equal"
             },
             {
-              "line": 175,
+              "line": 187,
               "call": "assert.equal"
             },
             {
-              "line": 174,
+              "line": 186,
               "call": "assert.equal"
             }
           ],
@@ -39714,7 +39714,7 @@
             "src/trading_history_repository.ts",
             "src/exchange_history_contract.ts"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         },
@@ -43841,10 +43841,10 @@
       ],
       "disposition": "retain_existing_site",
       "category": "async_test_double",
-      "rationale": "<callback> has an explicit throw at line 12. Keeping native async preserves a Promise result and converts pre-return errors into rejection; callers retain Promise adoption/timing. This is a Promise-returning dependency double in the containing regression, not a synchronous exception fixture. Current own-body calls include compareDecimal, state.owned, state.orders.has, state.flattenCalls.push, state.orders.set.",
+      "rationale": "<callback> retains explicit throws at lines 12, 13, 14 and 20. Native async still returns a Promise and converts pre-return validation or acknowledgement errors into rejections while preserving immediate fixture side effects. The new String(state.orders.size + 1) call at line 16 only generates a decimal native order identifier for Hyperliquid; other providers, client-order map keys, fill insertion and acknowledgement-loss ordering are unchanged. This remains a Promise-returning dependency double, not a synchronous exception fixture.",
       "source": {
-        "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
-        "targetSha256": "41e00e2152360717af3889d2d82093c693c591585fe0395cdf45e26a6cd6d59f",
+        "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
+        "targetSha256": "8fe5b1813b1c8eac5a6937fe8d5b68d1642026d5b04ab3619dc6982663e50244",
         "targetStartLine": 11,
         "targetEndLine": 22,
         "kind": "ArrowFunction",
@@ -43894,6 +43894,13 @@
             ]
           },
           {
+            "callee": "String",
+            "line": 16,
+            "argumentKinds": [
+              "BinaryExpression"
+            ]
+          },
+          {
             "callee": "state.orders.set",
             "line": 18,
             "argumentKinds": [
@@ -43926,7 +43933,7 @@
           "route": [
             "tests/fixtures/trading_emergency_fixture.js"
           ],
-          "sha256": "410e6bd5c8e07267b362c338bf544581ecf8eb9f59b5a7d29db7dad9bd5a70d4",
+          "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5",
           "assertionLocations": [],
           "evidenceScope": "Static test/module linkage and nearby assertions; not a per-site branch-coverage claim."
         }
@@ -44847,5 +44854,70 @@
     "An importing-module reference can refer to a same-named method; each record labels this syntactic evidence. Retention also rests on its exact current AST behavior and API rationale.",
     "The live remote scanner has not been mutated or rerun by this audit. No rule-wide exceptions or thresholds were added.",
     "The historical Sonar dispositions and NOSONAR sites are assessed individually; previous internal HTTP risk acceptance is neither expanded nor reopened."
+  ],
+  "sourceContextRenewals": [
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "dee6b809dddb7a0acb441a60422b81f957bcfabe",
+      "previousLedgerSha256": "fb2dc874f2cad1353459d4529a7728dc79dfcd023b3ab32c0f2ff4475c0b54c6",
+      "reviews": [
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-234",
+          "path": "tests/test_supply_chain.js",
+          "rule": [
+            "JS-W1042"
+          ],
+          "currentReview": "The two Playwright command assertions now require direct node node_modules/playwright/cli.js invocation after npm ci, keeping install/test arguments and working directory intact while preventing npx package fallback. These two assertion edits do not change line counts. One package-order-sensitive substring assertion is replaced by exact ordered extraction of all four apk pins. No package or version changed. Existing quoted-literal remediation and explicit undefined-arity assertions remain byte-identical.",
+          "beforeSha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263",
+          "afterSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-235",
+          "path": "tests/test_supply_chain.js",
+          "rule": [
+            "JS-W1042"
+          ],
+          "currentReview": "The two Playwright command assertions now require direct node node_modules/playwright/cli.js invocation after npm ci, keeping install/test arguments and working directory intact while preventing npx package fallback. These two assertion edits do not change line counts. One package-order-sensitive substring assertion is replaced by exact ordered extraction of all four apk pins. No package or version changed. Existing quoted-literal remediation and explicit undefined-arity assertions remain byte-identical.",
+          "beforeSha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263",
+          "afterSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-279",
+          "path": "tests/test_config.js",
+          "rule": [
+            "JS-W1042"
+          ],
+          "currentReview": "Additional native cause assertions cover synchronous and asynchronous read failures for malformed JSON, invalid configuration and a directory. Existing prototype-own-property assertions and explicit undefined-arity assertions remain byte-identical.",
+          "beforeSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a",
+          "afterSha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-280",
+          "path": "tests/test_config.js",
+          "rule": [
+            "JS-W1042"
+          ],
+          "currentReview": "Additional native cause assertions cover synchronous and asynchronous read failures for malformed JSON, invalid configuration and a directory. Existing prototype-own-property assertions and explicit undefined-arity assertions remain byte-identical.",
+          "beforeSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a",
+          "afterSha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-281",
+          "path": "tests/test_config.js",
+          "rule": [
+            "JS-W1042"
+          ],
+          "currentReview": "Additional native cause assertions cover synchronous and asynchronous read failures for malformed JSON, invalid configuration and a directory. Existing prototype-own-property assertions and explicit undefined-arity assertions remain byte-identical.",
+          "beforeSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a",
+          "afterSha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6"
+        }
+      ],
+      "executionScope": "Source semantics renewed; original validation records remain historical. See final-findings-followup-2026-09-20.md for new tests and limits."
+    }
   ]
 }

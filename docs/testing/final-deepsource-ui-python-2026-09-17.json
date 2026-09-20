@@ -75,7 +75,7 @@
       "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
       "evidence": [],
       "beforeSha256": "a748f6d6110d647378177d0bb29aed38c66b9440824586f065f43c01f75fbabf",
-      "afterSha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263"
+      "afterSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
     },
     {
       "provider": "DeepSource",
@@ -88,7 +88,7 @@
       "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
       "evidence": [],
       "beforeSha256": "a748f6d6110d647378177d0bb29aed38c66b9440824586f065f43c01f75fbabf",
-      "afterSha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263"
+      "afterSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
     },
     {
       "provider": "DeepSource",
@@ -101,7 +101,7 @@
       "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
       "evidence": [],
       "beforeSha256": "a748f6d6110d647378177d0bb29aed38c66b9440824586f065f43c01f75fbabf",
-      "afterSha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263"
+      "afterSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
     },
     {
       "provider": "DeepSource",
@@ -114,7 +114,7 @@
       "reason": "Replaced only no-substitution template literal AST nodes with quoted strings containing the identical cooked value, including literal scanner/environment placeholders.",
       "evidence": [],
       "beforeSha256": "a748f6d6110d647378177d0bb29aed38c66b9440824586f065f43c01f75fbabf",
-      "afterSha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263"
+      "afterSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
     },
     {
       "provider": "DeepSource",
@@ -298,7 +298,7 @@
         "Root independently reviewed the combined final test_config.js diff: own-data-property assertions and the added primitive/object/apiId characterization retain the security contract."
       ],
       "beforeSha256": "9f6729375f541ef9a51278cd90d8b4d3705fa394518d2cb0344cbfaa3f2f090f",
-      "afterSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a"
+      "afterSha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6"
     },
     {
       "provider": "DeepSource",
@@ -313,7 +313,7 @@
         "Root independently reviewed the combined final test_config.js diff: own-data-property assertions and the added primitive/object/apiId characterization retain the security contract."
       ],
       "beforeSha256": "9f6729375f541ef9a51278cd90d8b4d3705fa394518d2cb0344cbfaa3f2f090f",
-      "afterSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a"
+      "afterSha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6"
     },
     {
       "provider": "DeepSource",
@@ -328,7 +328,7 @@
         "Root independently reviewed the combined final test_config.js diff: own-data-property assertions and the added primitive/object/apiId characterization retain the security contract."
       ],
       "beforeSha256": "9f6729375f541ef9a51278cd90d8b4d3705fa394518d2cb0344cbfaa3f2f090f",
-      "afterSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a"
+      "afterSha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6"
     },
     {
       "provider": "DeepSource",
@@ -343,7 +343,7 @@
         "Root independently reviewed the combined final test_config.js diff: own-data-property assertions and the added primitive/object/apiId characterization retain the security contract."
       ],
       "beforeSha256": "9f6729375f541ef9a51278cd90d8b4d3705fa394518d2cb0344cbfaa3f2f090f",
-      "afterSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a"
+      "afterSha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6"
     },
     {
       "provider": "DeepSource",
@@ -1058,6 +1058,88 @@
       "evidence": [],
       "beforeSha256": "f0392afc1e568cdbbbbce31dc9bda7cdd90bec4f9a611ff6ab1fd352dd5108ed",
       "afterSha256": "95c9096bb70eb6a9c22256dbfb0595fb7721f6a6a0b473bdd376125eadce6180"
+    }
+  ],
+  "sourceContextRenewals": [
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "dee6b809dddb7a0acb441a60422b81f957bcfabe",
+      "previousLedgerSha256": "5c91eef3797926b70b3f16fa5ccd3d41645cbc312c922e9200436b6a31be3b9c",
+      "reviews": [
+        {
+          "ledger": "docs/testing/final-deepsource-ui-python-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTphbmFqdmxqZ2w=",
+          "path": "tests/test_supply_chain.js",
+          "rule": "JS-R1004",
+          "currentReview": "The two Playwright command assertions now require direct node node_modules/playwright/cli.js invocation after npm ci, keeping install/test arguments and working directory intact while preventing npx package fallback. These two assertion edits do not change line counts. One package-order-sensitive substring assertion is replaced by exact ordered extraction of all four apk pins. No package or version changed. Existing quoted-literal remediation and explicit undefined-arity assertions remain byte-identical.",
+          "beforeSha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263",
+          "afterSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-ui-python-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTpsbXF4ZGx4ZXc=",
+          "path": "tests/test_supply_chain.js",
+          "rule": "JS-R1004",
+          "currentReview": "The two Playwright command assertions now require direct node node_modules/playwright/cli.js invocation after npm ci, keeping install/test arguments and working directory intact while preventing npx package fallback. These two assertion edits do not change line counts. One package-order-sensitive substring assertion is replaced by exact ordered extraction of all four apk pins. No package or version changed. Existing quoted-literal remediation and explicit undefined-arity assertions remain byte-identical.",
+          "beforeSha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263",
+          "afterSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-ui-python-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTpkYWtqd2xqZWc=",
+          "path": "tests/test_supply_chain.js",
+          "rule": "JS-R1004",
+          "currentReview": "The two Playwright command assertions now require direct node node_modules/playwright/cli.js invocation after npm ci, keeping install/test arguments and working directory intact while preventing npx package fallback. These two assertion edits do not change line counts. One package-order-sensitive substring assertion is replaced by exact ordered extraction of all four apk pins. No package or version changed. Existing quoted-literal remediation and explicit undefined-arity assertions remain byte-identical.",
+          "beforeSha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263",
+          "afterSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-ui-python-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTpxcGVnbmRnYXY=",
+          "path": "tests/test_supply_chain.js",
+          "rule": "JS-R1004",
+          "currentReview": "The two Playwright command assertions now require direct node node_modules/playwright/cli.js invocation after npm ci, keeping install/test arguments and working directory intact while preventing npx package fallback. These two assertion edits do not change line counts. One package-order-sensitive substring assertion is replaced by exact ordered extraction of all four apk pins. No package or version changed. Existing quoted-literal remediation and explicit undefined-arity assertions remain byte-identical.",
+          "beforeSha256": "f463291153ea2bad47b7af9515e946ef1f8cc54db2fdb7922772d0ef788ee263",
+          "afterSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-ui-python-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTpsbXF4ZGx4bnc=",
+          "path": "tests/test_config.js",
+          "rule": "JS-0049",
+          "currentReview": "Additional native cause assertions cover synchronous and asynchronous read failures for malformed JSON, invalid configuration and a directory. Existing prototype-own-property assertions and explicit undefined-arity assertions remain byte-identical.",
+          "beforeSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a",
+          "afterSha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-ui-python-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTpkYWtqd2xqZGc=",
+          "path": "tests/test_config.js",
+          "rule": "JS-0084",
+          "currentReview": "Additional native cause assertions cover synchronous and asynchronous read failures for malformed JSON, invalid configuration and a directory. Existing prototype-own-property assertions and explicit undefined-arity assertions remain byte-identical.",
+          "beforeSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a",
+          "afterSha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-ui-python-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTpxcGVnbmRneHY=",
+          "path": "tests/test_config.js",
+          "rule": "JS-0049",
+          "currentReview": "Additional native cause assertions cover synchronous and asynchronous read failures for malformed JSON, invalid configuration and a directory. Existing prototype-own-property assertions and explicit undefined-arity assertions remain byte-identical.",
+          "beforeSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a",
+          "afterSha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-ui-python-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTp5Z3lqbmxqcnk=",
+          "path": "tests/test_config.js",
+          "rule": "JS-0084",
+          "currentReview": "Additional native cause assertions cover synchronous and asynchronous read failures for malformed JSON, invalid configuration and a directory. Existing prototype-own-property assertions and explicit undefined-arity assertions remain byte-identical.",
+          "beforeSha256": "70024d8fd6d9ccff780b2549609ea0a1f50ed598d6edbbb914b6ea2f8f00c87a",
+          "afterSha256": "de78c1dd77e8ab963e71768de50dabb22dd5ca426248cc9c131982a09b0de1c6"
+        }
+      ],
+      "executionScope": "Source semantics renewed; original validation records remain historical. See final-findings-followup-2026-09-20.md for new tests and limits."
     }
   ]
 }

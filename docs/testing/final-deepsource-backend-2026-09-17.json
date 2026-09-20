@@ -2690,7 +2690,7 @@
       "baselineLine": 912,
       "baselineColumn": 8,
       "beforeSha256": "e34c45cd684739c297d5ac8324c3c219df71ee323b6f729b40d882a83bb3b581",
-      "afterSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+      "afterSha256": "aba07492a2d242884ca0c93ec754d567918a8ed4b2599953d9a549d5c428377e",
       "currentLine": 912,
       "functionName": "claimNextMcpControlRequest",
       "beforeFunctionSha256": "84576f5ce33e6d66fea43127aea13f2d22fbda5406ed732012c3ae9d8925c228",
@@ -2732,7 +2732,7 @@
       "baselineLine": 640,
       "baselineColumn": 8,
       "beforeSha256": "e34c45cd684739c297d5ac8324c3c219df71ee323b6f729b40d882a83bb3b581",
-      "afterSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+      "afterSha256": "aba07492a2d242884ca0c93ec754d567918a8ed4b2599953d9a549d5c428377e",
       "currentLine": 640,
       "functionName": "deleteMcpAgent",
       "beforeFunctionSha256": "63e70f1a59931880f3795893878acfbd878127992399f0665705f291d542e15f",
@@ -2770,7 +2770,7 @@
       "baselineLine": 366,
       "baselineColumn": 8,
       "beforeSha256": "e34c45cd684739c297d5ac8324c3c219df71ee323b6f729b40d882a83bb3b581",
-      "afterSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+      "afterSha256": "aba07492a2d242884ca0c93ec754d567918a8ed4b2599953d9a549d5c428377e",
       "currentLine": 366,
       "functionName": "setMcpRuntimeMode",
       "beforeFunctionSha256": "b59455c0f3024e4d87a1f4c6a9d3c47d23c67682f9fe8b253d035f550dadaaae",
@@ -2832,7 +2832,7 @@
       "baselineLine": 358,
       "baselineColumn": 8,
       "beforeSha256": "e34c45cd684739c297d5ac8324c3c219df71ee323b6f729b40d882a83bb3b581",
-      "afterSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+      "afterSha256": "aba07492a2d242884ca0c93ec754d567918a8ed4b2599953d9a549d5c428377e",
       "currentLine": 358,
       "functionName": "getMcpRuntimeState",
       "beforeFunctionSha256": "3ba78e1a1e6dc6a55ec6eadeb08d53ee6164d93af6d927743df16c7e2d56261c",
@@ -2890,7 +2890,7 @@
       "baselineLine": 1244,
       "baselineColumn": 1,
       "beforeSha256": "e34c45cd684739c297d5ac8324c3c219df71ee323b6f729b40d882a83bb3b581",
-      "afterSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+      "afterSha256": "aba07492a2d242884ca0c93ec754d567918a8ed4b2599953d9a549d5c428377e",
       "currentLine": 1244,
       "functionName": "preflightWorkflowAction",
       "beforeFunctionSha256": "48195bfcd10b044b4d0fa7e206860c0e28997fcfe0f2a701126952d22421504c",
@@ -2920,7 +2920,7 @@
       "baselineLine": 1181,
       "baselineColumn": 1,
       "beforeSha256": "e34c45cd684739c297d5ac8324c3c219df71ee323b6f729b40d882a83bb3b581",
-      "afterSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+      "afterSha256": "aba07492a2d242884ca0c93ec754d567918a8ed4b2599953d9a549d5c428377e",
       "currentLine": 1181,
       "functionName": "preflightConfigurationAction",
       "beforeFunctionSha256": "4037d8c409d3d4cd356b54c26333a26cead1851465a74b6acac25823eee7bafe",
@@ -4930,7 +4930,7 @@
     },
     {
       "path": "src/mcp_repository.ts",
-      "sha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046"
+      "sha256": "aba07492a2d242884ca0c93ec754d567918a8ed4b2599953d9a549d5c428377e"
     },
     {
       "path": "tests/test_mcp_control_plane.js",
@@ -5036,5 +5036,69 @@
     "File hashes bind reviewed content only; they are not renewed cryptographic attestation or a blanket approval of either rule family.",
     "Root still owns integrated full-suite verification and candidate scanner reconciliation.",
     "The exact provider rule IDs are PYL-R0201 and SCT-A000; labels are retained from the authoritative export."
+  ],
+  "sourceContextRenewals": [
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "dee6b809dddb7a0acb441a60422b81f957bcfabe",
+      "previousLedgerSha256": "ad459082b1f8278e707829b7e41f106b8890c50f2f6f40903cad771d4aa925b8",
+      "reviews": [
+        {
+          "ledger": "docs/testing/final-deepsource-backend-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTp4cmdhbmpvcG0=",
+          "path": "src/mcp_repository.ts",
+          "rule": "JS-0116",
+          "currentReview": "Only three SQL resultJson row annotations change from string to string | null, matching nullable persisted values. No executable statement, async boundary, transaction, validation or return behavior changed.",
+          "beforeSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+          "afterSha256": "aba07492a2d242884ca0c93ec754d567918a8ed4b2599953d9a549d5c428377e"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-backend-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTprdnlrZGdwbXI=",
+          "path": "src/mcp_repository.ts",
+          "rule": "JS-0116",
+          "currentReview": "Only three SQL resultJson row annotations change from string to string | null, matching nullable persisted values. No executable statement, async boundary, transaction, validation or return behavior changed.",
+          "beforeSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+          "afterSha256": "aba07492a2d242884ca0c93ec754d567918a8ed4b2599953d9a549d5c428377e"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-backend-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTplYXhqeXZucWU=",
+          "path": "src/mcp_repository.ts",
+          "rule": "JS-0116",
+          "currentReview": "Only three SQL resultJson row annotations change from string to string | null, matching nullable persisted values. No executable statement, async boundary, transaction, validation or return behavior changed.",
+          "beforeSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+          "afterSha256": "aba07492a2d242884ca0c93ec754d567918a8ed4b2599953d9a549d5c428377e"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-backend-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTpwcXdybmp2cGw=",
+          "path": "src/mcp_repository.ts",
+          "rule": "JS-0116",
+          "currentReview": "Only three SQL resultJson row annotations change from string to string | null, matching nullable persisted values. No executable statement, async boundary, transaction, validation or return behavior changed.",
+          "beforeSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+          "afterSha256": "aba07492a2d242884ca0c93ec754d567918a8ed4b2599953d9a549d5c428377e"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-backend-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTp3bXJhd3B4bnA=",
+          "path": "src/mcp_repository.ts",
+          "rule": "JS-0116",
+          "currentReview": "Only three SQL resultJson row annotations change from string to string | null, matching nullable persisted values. No executable statement, async boundary, transaction, validation or return behavior changed.",
+          "beforeSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+          "afterSha256": "aba07492a2d242884ca0c93ec754d567918a8ed4b2599953d9a549d5c428377e"
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-backend-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTpqd2dlZG1ub2w=",
+          "path": "src/mcp_repository.ts",
+          "rule": "JS-0116",
+          "currentReview": "Only three SQL resultJson row annotations change from string to string | null, matching nullable persisted values. No executable statement, async boundary, transaction, validation or return behavior changed.",
+          "beforeSha256": "445b4c148aaee739055e65c1b68a4e88c2d78e098de47a48ac35bda6b8c1c046",
+          "afterSha256": "aba07492a2d242884ca0c93ec754d567918a8ed4b2599953d9a549d5c428377e"
+        }
+      ],
+      "executionScope": "Source semantics renewed; original validation records remain historical. See final-findings-followup-2026-09-20.md for new tests and limits."
+    }
   ]
 }

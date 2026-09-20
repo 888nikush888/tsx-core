@@ -1,0 +1,36 @@
+{
+  "exportedAt": "2026-09-20T10:08:13.895Z",
+  "repository": {
+    "login": "888nikush888",
+    "id": "UmVwb3NpdG9yeTplb2tqZGp5",
+    "name": "tsx-core",
+    "defaultBranch": "main",
+    "latestCommitOid": "58c01bc74f83cc212849ddcd7e487412ff06b2b7"
+  },
+  "count": 1315,
+  "complete": true,
+  "rules": {
+    "JS-0116": 60,
+    "JS-R1004": 21,
+    "JS-R1005": 1178,
+    "JS-W1042": 1,
+    "JS-0049": 2,
+    "JS-0084": 2,
+    "JS-0105": 7,
+    "JS-0114": 2,
+    "JS-0339": 2,
+    "JS-0333": 1,
+    "JS-0424": 13,
+    "JS-0415": 1,
+    "JS-0045": 1,
+    "JS-0323": 1,
+    "JS-W1038": 1,
+    "SCT-A000": 16,
+    "PYL-R1716": 1,
+    "PYL-R0201": 2,
+    "TYP-050": 2,
+    "TYP-054": 1
+  },
+  "addedIds": [],
+  "removedIds": []
+}
