@@ -151,7 +151,10 @@ async def _recover_reference(
 ) -> str:
     try:
         symbol = resolve_symbol(reference)
-        if any(_listed_order_is_observed(row, reference, symbol) for row in listed):
+        observed = False
+        for row in listed:
+            observed = _listed_order_is_observed(row, reference, symbol) or observed
+        if observed:
             return "observed"
         rows = await lookup_order_evidence(rest, exchange, reference, symbol, budget)
         recovered.extend(rows)

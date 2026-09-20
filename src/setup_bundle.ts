@@ -379,7 +379,11 @@ function validateBundleResource(resourceValue: unknown, resourceVersionIds: Set<
   boundedString(resource.sourceResourceId, 'Setup bundle logical resource id', 128);
   boundedString(resource.name, 'Setup bundle resource name', 160);
   boundedString(resource.description, 'Setup bundle resource description', 2_000, true);
-  object(resource.configuration, 'Setup bundle resource configuration');
+  const configuration = object(resource.configuration, 'Setup bundle resource configuration');
+  if (resource.kind === 'account') requireString(configuration.accountId, 'Setup bundle account reference');
+  if (resource.kind === 'parser' && configuration.templateName !== null && configuration.templateName !== undefined) {
+    requireString(configuration.templateName, 'Setup bundle parser template');
+  }
 }
 
 function validateBundleWorkflow(value: unknown): WorkflowGraph {
@@ -620,7 +624,7 @@ function remapResourceConfiguration(
 ): Record<string, unknown> {
   const configuration: Record<string, unknown> = structuredClone(resource.configuration);
   if (resource.kind === 'account') {
-    const accountId = accountMappings[String(configuration.accountId as string)];
+    const accountId = accountMappings[requireString(configuration.accountId, 'Setup bundle account reference')];
     if (!accountId) throw new Error(`Workflow account '${resource.name}' has no local mapping.`);
     configuration.accountId = accountId;
   }
@@ -634,7 +638,7 @@ function remapResourceConfiguration(
     configuration.strategyVersionId = requiredMapping(maps.strategies, configuration.strategyVersionId, 'Workflow strategy');
   }
   if (resource.kind === 'parser' && configuration.templateName) {
-    configuration.templateName = maps.templates.get(String(configuration.templateName as string)) ?? configuration.templateName;
+    configuration.templateName = maps.templates.get(requireString(configuration.templateName, 'Setup bundle parser template')) ?? configuration.templateName;
   }
   return configuration;
 }

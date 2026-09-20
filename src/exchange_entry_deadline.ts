@@ -8,7 +8,8 @@ function candidateRequest(endpoint: string, payload: Record<string, unknown>): u
 
 function entryRequest(endpoint: string, payload: Record<string, unknown>): Record<string, unknown> | null {
   const candidate = candidateRequest(endpoint, payload);
-  if (typeof candidate !== 'object' || candidate === null) return null;
+  // Preserve native truthiness: malformed truthy requests must reach the missing-deadline rejection.
+  if (!candidate) return null;
   return (candidate as Record<string, unknown>).reduceOnly !== true ? (candidate as Record<string, unknown>) : null;
 }
 
