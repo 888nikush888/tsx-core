@@ -2,15 +2,15 @@
 
 ## Aktueller Abschlussplan vom 20.09.2026
 
-[004 â€” Codacy, DeepSource und Sonar stabil abschlieÃŸen](004-final-findings-stability.md) ist der aktuelle Plan gegen `1f21249adc48f74bf139562e89ca261b14aebc27`. Er fÃ¼hrt die noch offenen Scanner-Abschlussarbeiten der historischen PlÃ¤ne unten zusammen und ersetzt deren veraltete Bestandszahlen. Status: **IN PROGRESS / Umsetzung läuft; [aktueller Nachweis](../docs/testing/final-findings-followup-2026-09-20.md).**
+[004 — Codacy, DeepSource und Sonar stabil abschließen](004-final-findings-stability.md) ist der aktuelle Plan gegen `1f21249adc48f74bf139562e89ca261b14aebc27`. Er führt die noch offenen Scanner-Abschlussarbeiten der historischen Pläne unten zusammen und ersetzt deren veraltete Bestandszahlen. Status: **IN PROGRESS / Umsetzung läuft; [aktueller Nachweis](../docs/testing/final-findings-followup-2026-09-20.md).**
 
-Reihenfolge: bestehende Backend-/Python-PrÃ¼ffehler beheben â†’ vollstÃ¤ndiger Einzelabgleich einschlieÃŸlich ignorierter und historisch geschlossener Befunde â†’ kleine verhaltensbewahrende Korrekturen â†’ finaler Test-/Quellnachweis â†’ vollstÃ¤ndige Cloudanalysen â†’ geschÃ¼tzter Merge nach VerÃ¶ffentlichungsauftrag â†’ main-Nachscan. Codacy-Analyzerfehler sind eine sichtbare externe AbhÃ¤ngigkeit. JS-R1005 ist ausdrÃ¼cklich ausgenommen; andere Regeln und QualitÃ¤tsgrenzen bleiben bestehen.
+Reihenfolge: bestehende Backend-/Python-Prüffehler beheben → vollständiger Einzelabgleich einschließlich ignorierter und historisch geschlossener Befunde → kleine verhaltensbewahrende Korrekturen → finaler Test-/Quellnachweis → vollständige Cloudanalysen → geschützter Merge nach Veröffentlichungsauftrag → main-Nachscan. Codacy-Analyzerfehler sind eine sichtbare externe Abhängigkeit. JS-R1005 ist ausdrücklich ausgenommen; andere Regeln und Qualitätsgrenzen bleiben bestehen.
 
-Frische API-NachprÃ¼fung und Grenzen der heutigen QuellprÃ¼fung: [Begleitnachweise](2026-09-20-final-findings/). Alle drei Dienste analysieren weiterhin main `58c01bc7`, nicht den lokalen Kandidaten. FrÃ¼here False Positives werden nicht pauschal Ã¼bernommen. Die 1.220 geschlossenen Sonar-IDs brauchen Ã¼ber den heute erfolgten Inventarabgleich hinaus die im Plan beschriebene Quellenreconciliation.
+Frische API-Nachprüfung und Grenzen der heutigen Quellprüfung: [Begleitnachweise](2026-09-20-final-findings/). Alle drei Dienste analysieren weiterhin main `58c01bc7`, nicht den lokalen Kandidaten. Frühere False Positives werden nicht pauschal übernommen. Die 1.220 geschlossenen Sonar-IDs sind inzwischen einzeln mit Quellenbelegen klassifiziert; Reparaturabnahmen und aktuelle Scanner-Messungen bleiben offen. Der Plan und der Umsetzungsnachweis unterscheiden historische Reviews, lokale Tests und finale Cloud-Abnahme.
 
-Nicht weiterverfolgt: groÃŸe Refactorings ausschlieÃŸlich wegen JS-R1005; syntaktisches Entfernen von async/Instanzmethoden trotz notwendiger VertrÃ¤ge; Umformen gÃ¼ltiger finally-BlÃ¶cke zur Umgehung von AnalyzerabstÃ¼rzen. Diese AnsÃ¤tze erhÃ¶hen das StabilitÃ¤tsrisiko ohne belegten fachlichen Nutzen.
+Nicht weiterverfolgt: große Refactorings ausschließlich wegen JS-R1005; syntaktisches Entfernen von async/Instanzmethoden trotz notwendiger Verträge; Umformen gültiger finally-Blöcke zur Umgehung von Analyzerabstürzen. Diese Ansätze erhöhen das Stabilitätsrisiko ohne belegten fachlichen Nutzen.
 
-## Historische PlÃ¤ne 001â€“003
+## Historische Pläne 001–003
 
 Planned at `e03eacfa3ea482d3be56f731f970b58761dd2510` on 2026-09-07. The user explicitly requested all 672 open Sonar findings to be resolved and the GitHub repository to be brought up to date. These are three independent execution scopes; integration, receipts, publication and live Sonar verification belong to the root reviewer.
 

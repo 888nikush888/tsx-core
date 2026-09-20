@@ -5099,6 +5099,338 @@
         }
       ],
       "executionScope": "Source semantics renewed; original validation records remain historical. See final-findings-followup-2026-09-20.md for new tests and limits."
+    },
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "8dad2b1def39b47ca0a0e9907b6d6eba7f574236",
+      "dirtyTree": true,
+      "previousLedgerSha256": "97374bd33dc4e82e6429110eb7aa27436e0281f48803a3b7823c5c8c5cba99a6",
+      "reviews": [
+        {
+          "ledger": "docs/testing/final-deepsource-backend-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTpveWFtZHZtb2s=",
+          "rule": "JS-0116",
+          "issuePath": "tests/test_workflow_builder.js",
+          "symbol": "anonymous async wrapper",
+          "changedSupportingPaths": [
+            "tests/test_workflow_builder.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target anonymous async wrapper remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "tests/test_workflow_builder.js: Adds legacy raw-hash/current-shape compatibility, immutability-aware own-disposable-DB corruption and mixed-shape integrity regressions; restores test DB definitions/triggers. Existing async closeDb cleanup wrapper unchanged. New test execution cannot be inferred from prior probe records."
+          ],
+          "currentTarget": {
+            "hash": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+            "line": 788,
+            "kind": "ArrowFunction",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "tests/test_workflow_builder.js",
+              "sha256": "da45cd60010384fc9cf76ef7624eb9d4bbf9f4bfd3a7334237b8321d5d251267"
+            }
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-backend-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTp3bXJhd3Bhb2U=",
+          "rule": "JS-0116",
+          "issuePath": "tests/test_setup_bundle.js",
+          "symbol": "anonymous async wrapper",
+          "changedSupportingPaths": [
+            "tests/test_setup_bundle.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target anonymous async wrapper remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "tests/test_setup_bundle.js: Fixture existence assertions split before dereference; negative malformed-reference matrix rejects before callbacks and confirms active revision unchanged. Existing cleanup wrapper and explicit undefined-argument fixture retained."
+          ],
+          "currentTarget": {
+            "hash": "fe38d97567005e7a265f0687f8d4ef95a9c54c77850825af928dd4f57c1581ff",
+            "line": 508,
+            "kind": "ArrowFunction",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "tests/test_setup_bundle.js",
+              "sha256": "36272bbd647bdfd33a20feb6875fe8f3016af39934d2ae255a41b87837da53dd"
+            }
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-backend-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTpnZXZqZHhqeWw=",
+          "rule": "JS-0116",
+          "issuePath": "tests/test_backup.js",
+          "symbol": "anonymous async wrapper",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target anonymous async wrapper remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": {
+            "hash": "ef0e4f3653fb34b257eb035ea4f7b35e948e3470da9874fbf9e619815f7d11df",
+            "line": 569,
+            "kind": "ArrowFunction",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            }
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-backend-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTphbmFqdmxnbHg=",
+          "rule": "JS-0116",
+          "issuePath": "src/workflow_repository.ts",
+          "symbol": "advanceWorkflowFallbackOnEligibleFailure",
+          "changedSupportingPaths": [
+            "src/workflow_repository.ts"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target advanceWorkflowFallbackOnEligibleFailure remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "src/workflow_repository.ts: Reviewed current diff: new serialization uses historical UTF16 order; existing resource/revision raw byte witness preserves persisted hashes, revision additionally matches hydrated path content, duplicate behavior compares canonical parsed content, existing published resources verify then semantic-compare. Calling async wrappers/transaction boundaries remain unchanged. These newly compatible historical reads are intentional, not a claim old behavior was identical."
+          ],
+          "currentTarget": {
+            "hash": "78a508c147a40c5fae373cdfbdb3ccb62c0e04b7084365991518f87b89bee78c",
+            "line": 2414,
+            "kind": "FunctionDeclaration",
+            "name": "advanceWorkflowFallbackOnEligibleFailure",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "b4b75340a4094fc603830ed0e84c9ece04157d56c5aa9f3fcb7bc13f1191a32e"
+            },
+            {
+              "path": "src/workflow_repository.ts",
+              "sha256": "7db980fe01055e5ac4d143e5470ecab0323bba37ce8ebcf6cb5ba9d378efc8c4"
+            },
+            {
+              "path": "src/workflow_repository_rows.d.ts",
+              "sha256": "9c6f00e74ff6c54e68969dee84f47164efe1b11f75a2f76cc0196c02e6316be3"
+            },
+            {
+              "path": "tests/test_workflow_builder.js",
+              "sha256": "da45cd60010384fc9cf76ef7624eb9d4bbf9f4bfd3a7334237b8321d5d251267"
+            },
+            {
+              "path": "tests/test_workflow_fallback.js",
+              "sha256": "b1e1305a4b4d02c1075e1d91b1dc271622857c481f27c60f9cfe5987c149f67b"
+            },
+            {
+              "path": "tests/test_workflow_hash_compatibility.js",
+              "sha256": "b89e9fbb52164f1df3b223169fed369be4bf4a09f6f00c36cbadd877f0180e29"
+            }
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-backend-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTpsbXF4ZGxlbHI=",
+          "rule": "JS-0116",
+          "issuePath": "src/workflow_repository.ts",
+          "symbol": "applyWorkflowBuilderHistory",
+          "changedSupportingPaths": [
+            "src/workflow_repository.ts"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target applyWorkflowBuilderHistory remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "src/workflow_repository.ts: Reviewed current diff: new serialization uses historical UTF16 order; existing resource/revision raw byte witness preserves persisted hashes, revision additionally matches hydrated path content, duplicate behavior compares canonical parsed content, existing published resources verify then semantic-compare. Calling async wrappers/transaction boundaries remain unchanged. These newly compatible historical reads are intentional, not a claim old behavior was identical."
+          ],
+          "currentTarget": {
+            "hash": "45e7860dac4ef09a443901b6235de8f559bc623bbc7f620c6053a2463a38e078",
+            "line": 1482,
+            "kind": "FunctionDeclaration",
+            "name": "applyWorkflowBuilderHistory",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/web_server.ts",
+              "sha256": "1c664539f34acf6190136415ffb0e032a807a95f2e5a8e43d73ee1c220385094"
+            },
+            {
+              "path": "src/workflow_repository.ts",
+              "sha256": "7db980fe01055e5ac4d143e5470ecab0323bba37ce8ebcf6cb5ba9d378efc8c4"
+            },
+            {
+              "path": "src/workflow_repository_rows.d.ts",
+              "sha256": "9c6f00e74ff6c54e68969dee84f47164efe1b11f75a2f76cc0196c02e6316be3"
+            },
+            {
+              "path": "tests/test_workflow_builder.js",
+              "sha256": "da45cd60010384fc9cf76ef7624eb9d4bbf9f4bfd3a7334237b8321d5d251267"
+            },
+            {
+              "path": "tests/test_workflow_fallback.js",
+              "sha256": "b1e1305a4b4d02c1075e1d91b1dc271622857c481f27c60f9cfe5987c149f67b"
+            },
+            {
+              "path": "tests/test_workflow_hash_compatibility.js",
+              "sha256": "b89e9fbb52164f1df3b223169fed369be4bf4a09f6f00c36cbadd877f0180e29"
+            },
+            {
+              "path": "tests/test_workflow_history.js",
+              "sha256": "df971701378cc0953f85c94b5c6555f0c7166436e98ff2869eaeec0f339ba0a5"
+            },
+            {
+              "path": "tests/test_workflow_history_barriers.js",
+              "sha256": "60476c3863b367f36bcbbf7dc1220e89121adb77afe8dc13c9203022cc2a872a"
+            }
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-backend-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTpkYWtqd2xubHg=",
+          "rule": "JS-0116",
+          "issuePath": "src/workflow_repository.ts",
+          "symbol": "deleteWorkflowResourceFamily",
+          "changedSupportingPaths": [
+            "src/workflow_repository.ts",
+            "tests/test_workflow_builder.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target deleteWorkflowResourceFamily remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "src/workflow_repository.ts: Reviewed current diff: new serialization uses historical UTF16 order; existing resource/revision raw byte witness preserves persisted hashes, revision additionally matches hydrated path content, duplicate behavior compares canonical parsed content, existing published resources verify then semantic-compare. Calling async wrappers/transaction boundaries remain unchanged. These newly compatible historical reads are intentional, not a claim old behavior was identical.",
+            "tests/test_workflow_builder.js: Adds legacy raw-hash/current-shape compatibility, immutability-aware own-disposable-DB corruption and mixed-shape integrity regressions; restores test DB definitions/triggers. Existing async closeDb cleanup wrapper unchanged. New test execution cannot be inferred from prior probe records."
+          ],
+          "currentTarget": {
+            "hash": "4b15bbf68ceb713e5310f57876f447765c0abc525da171a8b5bcad9605b3fea1",
+            "line": 691,
+            "kind": "FunctionDeclaration",
+            "name": "deleteWorkflowResourceFamily",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/web_server.ts",
+              "sha256": "1c664539f34acf6190136415ffb0e032a807a95f2e5a8e43d73ee1c220385094"
+            },
+            {
+              "path": "src/workflow_repository.ts",
+              "sha256": "7db980fe01055e5ac4d143e5470ecab0323bba37ce8ebcf6cb5ba9d378efc8c4"
+            },
+            {
+              "path": "src/workflow_repository_rows.d.ts",
+              "sha256": "9c6f00e74ff6c54e68969dee84f47164efe1b11f75a2f76cc0196c02e6316be3"
+            },
+            {
+              "path": "tests/test_workflow_builder.js",
+              "sha256": "da45cd60010384fc9cf76ef7624eb9d4bbf9f4bfd3a7334237b8321d5d251267"
+            },
+            {
+              "path": "tests/test_workflow_hash_compatibility.js",
+              "sha256": "b89e9fbb52164f1df3b223169fed369be4bf4a09f6f00c36cbadd877f0180e29"
+            }
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-backend-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTpxcGVnbmRtZGQ=",
+          "rule": "JS-0116",
+          "issuePath": "src/workflow_repository.ts",
+          "symbol": "archiveWorkflowResourceFamily",
+          "changedSupportingPaths": [
+            "src/workflow_repository.ts",
+            "tests/test_workflow_builder.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target archiveWorkflowResourceFamily remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "src/workflow_repository.ts: Reviewed current diff: new serialization uses historical UTF16 order; existing resource/revision raw byte witness preserves persisted hashes, revision additionally matches hydrated path content, duplicate behavior compares canonical parsed content, existing published resources verify then semantic-compare. Calling async wrappers/transaction boundaries remain unchanged. These newly compatible historical reads are intentional, not a claim old behavior was identical.",
+            "tests/test_workflow_builder.js: Adds legacy raw-hash/current-shape compatibility, immutability-aware own-disposable-DB corruption and mixed-shape integrity regressions; restores test DB definitions/triggers. Existing async closeDb cleanup wrapper unchanged. New test execution cannot be inferred from prior probe records."
+          ],
+          "currentTarget": {
+            "hash": "6179a2497abbe504cbaa4a5f0d1dec87cf7a2f08a85167ecc9677c8c4f648798",
+            "line": 648,
+            "kind": "FunctionDeclaration",
+            "name": "archiveWorkflowResourceFamily",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/web_server.ts",
+              "sha256": "1c664539f34acf6190136415ffb0e032a807a95f2e5a8e43d73ee1c220385094"
+            },
+            {
+              "path": "src/workflow_repository.ts",
+              "sha256": "7db980fe01055e5ac4d143e5470ecab0323bba37ce8ebcf6cb5ba9d378efc8c4"
+            },
+            {
+              "path": "src/workflow_repository_rows.d.ts",
+              "sha256": "9c6f00e74ff6c54e68969dee84f47164efe1b11f75a2f76cc0196c02e6316be3"
+            },
+            {
+              "path": "tests/test_workflow_builder.js",
+              "sha256": "da45cd60010384fc9cf76ef7624eb9d4bbf9f4bfd3a7334237b8321d5d251267"
+            },
+            {
+              "path": "tests/test_workflow_hash_compatibility.js",
+              "sha256": "b89e9fbb52164f1df3b223169fed369be4bf4a09f6f00c36cbadd877f0180e29"
+            },
+            {
+              "path": "tests/test_workflow_history_barriers.js",
+              "sha256": "60476c3863b367f36bcbbf7dc1220e89121adb77afe8dc13c9203022cc2a872a"
+            }
+          ],
+          "originalDisposition": "reviewed_expected_behavior",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        }
+      ],
+      "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution.",
+      "rootAdoption": {
+        "reviewer": "root integration review",
+        "manifestSha256": "92321ceb0e2a00453516797c34c9391ef7194a1c135e2c3d9c536db9bcf0a561",
+        "scope": "Reviewed concrete source deltas, exact input bindings and per-ID caller/target rationale. Historical executions and earlier fields retained verbatim. Final integrated and provider acceptance remain pending."
+      }
     }
   ]
 }

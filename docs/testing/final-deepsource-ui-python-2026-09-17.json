@@ -1140,6 +1140,51 @@
         }
       ],
       "executionScope": "Source semantics renewed; original validation records remain historical. See final-findings-followup-2026-09-20.md for new tests and limits."
+    },
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "8dad2b1def39b47ca0a0e9907b6d6eba7f574236",
+      "dirtyTree": true,
+      "previousLedgerSha256": "64276657c00069fb8eb507901f0ddb0b6ba96e00f51be7f3c10bd2d6e105a463",
+      "reviews": [
+        {
+          "ledger": "docs/testing/final-deepsource-ui-python-2026-09-17.json",
+          "id": "T2NjdXJyZW5jZTphbmFudnZ2d3k=",
+          "rule": "PYL-R1716",
+          "issuePath": "exchange_executor/account_log_reader.py",
+          "symbol": "reviewed local integer comparison",
+          "changedSupportingPaths": [
+            "exchange_executor/history_reader.py"
+          ],
+          "importRoute": [
+            "exchange_executor/account_log_reader.py",
+            "exchange_executor/history_reader.py"
+          ],
+          "sourceJudgement": "reviewed_unchanged_comparison_and_imported_symbols",
+          "rationale": [
+            "account_log_reader imports only RecoveryBudgetExhausted and now_ms from history_reader; neither definition changed. Its reviewed PYL-R1716 local integer chained-comparison transformation and exact source bytes remain unchanged.",
+            "Changed _recover_reference full-traversal behavior is not used by this account-log comparison; no new execution or broad performance claim."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "exchange_executor/account_log_reader.py",
+              "sha256": "6d2c86cce0ee528b9ada22b387e2761fd84174ac92ce7770b4b08e1e4ad5b05c"
+            },
+            {
+              "path": "exchange_executor/history_reader.py",
+              "sha256": "953fb7815d672161bde1966aad2aafe2f487cee5d870ae206ee146425ea5098c"
+            }
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution."
+        }
+      ],
+      "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution.",
+      "rootAdoption": {
+        "reviewer": "root integration review",
+        "manifestSha256": "92321ceb0e2a00453516797c34c9391ef7194a1c135e2c3d9c536db9bcf0a561",
+        "scope": "Reviewed concrete source deltas, exact input bindings and per-ID caller/target rationale. Historical executions and earlier fields retained verbatim. Final integrated and provider acceptance remain pending."
+      }
     }
   ]
 }

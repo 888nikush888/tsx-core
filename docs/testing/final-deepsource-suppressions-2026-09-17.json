@@ -44918,6 +44918,1792 @@
         }
       ],
       "executionScope": "Source semantics renewed; original validation records remain historical. See final-findings-followup-2026-09-20.md for new tests and limits."
+    },
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "8dad2b1def39b47ca0a0e9907b6d6eba7f574236",
+      "dirtyTree": true,
+      "previousLedgerSha256": "e1628b5fedb9559f79aa8dbb52140f947503e3dc4760aeefd5896cbb28330ed9",
+      "reviews": [
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-010",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/backup.ts",
+          "symbol": "fileExists",
+          "changedSupportingPaths": [
+            "src/backup.ts",
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target fileExists remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "src/backup.ts: Only pruneBackupArtifacts comparator changes to explicit UTF16 ordering restoring historical defaultsort. Retention selection differs intentionally for external matching names; path/count guards and native Promise fileExists wrapper/control regex unchanged.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": {
+            "hash": "93eb1c006fb065ea999adfa2db32a48de4b1d5aea510006c5fc285962625280a",
+            "line": 149,
+            "kind": "FunctionDeclaration",
+            "name": "fileExists",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "src/backup.ts",
+              "sha256": "0dcd692ef7051bd9ed24c41bdf621f7ae15af6f84c10b78bb795683cddb5288b"
+            },
+            {
+              "path": "tests/fixtures/backup_generation_fixture.js",
+              "sha256": "3be2bb151f7f0f23a816d12435836c15592f98baa44ce00946145b135253b12a"
+            },
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            },
+            {
+              "path": "tests/test_backup_generation.js",
+              "sha256": "2f7a184310b317284f7b3360c3d8d37459862b38ebb595cad904922c231d517a"
+            },
+            {
+              "path": "tests/test_backup_proofs.js",
+              "sha256": "cf2d46ec9a3530b77e892ee622e91a6e76027a9b6e1091b06dae13ee76de3f8e"
+            },
+            {
+              "path": "tests/test_backup_prune_order.js",
+              "sha256": "1e3044d82ecf3c3bd3391ae2ec6f840ad48ba8dffe0020ab66b1836459078204"
+            },
+            {
+              "path": "tests/test_backup_replication.js",
+              "sha256": "9588fd81215a55fc225fabf4e4ac8ddbc892742f98ebd5bbfea55eb0da58e6d7"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-011",
+          "rule": [
+            "JS-0004",
+            "JS-W1035"
+          ],
+          "issuePath": "src/backup.ts",
+          "symbol": "isSafeTemplatePathSegment",
+          "changedSupportingPaths": [
+            "src/backup.ts",
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target isSafeTemplatePathSegment remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "src/backup.ts: Only pruneBackupArtifacts comparator changes to explicit UTF16 ordering restoring historical defaultsort. Retention selection differs intentionally for external matching names; path/count guards and native Promise fileExists wrapper/control regex unchanged.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": {
+            "hash": "7ae3739ba4f4943e834d689b06d96aecdc77bb14ca86b121a4edb63aed34607b",
+            "line": 165,
+            "kind": "ReturnStatement",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "src/backup.ts",
+              "sha256": "0dcd692ef7051bd9ed24c41bdf621f7ae15af6f84c10b78bb795683cddb5288b"
+            },
+            {
+              "path": "tests/fixtures/backup_generation_fixture.js",
+              "sha256": "3be2bb151f7f0f23a816d12435836c15592f98baa44ce00946145b135253b12a"
+            },
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            },
+            {
+              "path": "tests/test_backup_generation.js",
+              "sha256": "2f7a184310b317284f7b3360c3d8d37459862b38ebb595cad904922c231d517a"
+            },
+            {
+              "path": "tests/test_backup_proofs.js",
+              "sha256": "cf2d46ec9a3530b77e892ee622e91a6e76027a9b6e1091b06dae13ee76de3f8e"
+            },
+            {
+              "path": "tests/test_backup_prune_order.js",
+              "sha256": "1e3044d82ecf3c3bd3391ae2ec6f840ad48ba8dffe0020ab66b1836459078204"
+            },
+            {
+              "path": "tests/test_backup_replication.js",
+              "sha256": "9588fd81215a55fc225fabf4e4ac8ddbc892742f98ebd5bbfea55eb0da58e6d7"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-012",
+          "rule": [
+            "JS-0004"
+          ],
+          "issuePath": "src/workflow_repository.ts",
+          "symbol": "workflowHistoryLabel",
+          "changedSupportingPaths": [
+            "src/workflow_repository.ts",
+            "tests/test_setup_bundle.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target workflowHistoryLabel remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "src/workflow_repository.ts: Reviewed current diff: new serialization uses historical UTF16 order; existing resource/revision raw byte witness preserves persisted hashes, revision additionally matches hydrated path content, duplicate behavior compares canonical parsed content, existing published resources verify then semantic-compare. Calling async wrappers/transaction boundaries remain unchanged. These newly compatible historical reads are intentional, not a claim old behavior was identical.",
+            "tests/test_setup_bundle.js: Fixture existence assertions split before dereference; negative malformed-reference matrix rejects before callbacks and confirms active revision unchanged. Existing cleanup wrapper and explicit undefined-argument fixture retained."
+          ],
+          "currentTarget": {
+            "hash": "a699b6c13dcefa1a279325bc951ca6114cf17b3d96b508d681414569abb0a517",
+            "line": 127,
+            "kind": "IfStatement",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/workflow_repository.ts",
+              "sha256": "7db980fe01055e5ac4d143e5470ecab0323bba37ce8ebcf6cb5ba9d378efc8c4"
+            },
+            {
+              "path": "src/workflow_repository_rows.d.ts",
+              "sha256": "9c6f00e74ff6c54e68969dee84f47164efe1b11f75a2f76cc0196c02e6316be3"
+            },
+            {
+              "path": "tests/fixtures/ingress_workflow_fixture.js",
+              "sha256": "23379c3c225580945a9b32977bf939f01df3b31a8494be1ea83c9b059c348988"
+            },
+            {
+              "path": "tests/test_channel_risk_type_guards.js",
+              "sha256": "c70283b5ab736f3ad1fbc61c19d8ac82128ef3ad0eaeca4a7074c985615e5425"
+            },
+            {
+              "path": "tests/test_ingress_workflow_pinning.js",
+              "sha256": "8a0e2a1bc07850c243a0ce177bfedd1b783d0d4512cea5ade3da71513b36a00b"
+            },
+            {
+              "path": "tests/test_setup_bundle.js",
+              "sha256": "36272bbd647bdfd33a20feb6875fe8f3016af39934d2ae255a41b87837da53dd"
+            },
+            {
+              "path": "tests/test_trading_analytics.js",
+              "sha256": "f2e2d353fce0e2fd8cddb16fd750723053b60b609eefca7e382a78a3327cd30c"
+            },
+            {
+              "path": "tests/test_workflow_builder.js",
+              "sha256": "da45cd60010384fc9cf76ef7624eb9d4bbf9f4bfd3a7334237b8321d5d251267"
+            },
+            {
+              "path": "tests/test_workflow_hash_compatibility.js",
+              "sha256": "b89e9fbb52164f1df3b223169fed369be4bf4a09f6f00c36cbadd877f0180e29"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-013",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/workflow_repository.ts",
+          "symbol": "archiveWorkflowResource",
+          "changedSupportingPaths": [
+            "src/workflow_repository.ts",
+            "tests/test_setup_bundle.js",
+            "tests/test_workflow_builder.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target archiveWorkflowResource remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "src/workflow_repository.ts: Reviewed current diff: new serialization uses historical UTF16 order; existing resource/revision raw byte witness preserves persisted hashes, revision additionally matches hydrated path content, duplicate behavior compares canonical parsed content, existing published resources verify then semantic-compare. Calling async wrappers/transaction boundaries remain unchanged. These newly compatible historical reads are intentional, not a claim old behavior was identical.",
+            "tests/test_setup_bundle.js: Fixture existence assertions split before dereference; negative malformed-reference matrix rejects before callbacks and confirms active revision unchanged. Existing cleanup wrapper and explicit undefined-argument fixture retained.",
+            "tests/test_workflow_builder.js: Adds legacy raw-hash/current-shape compatibility, immutability-aware own-disposable-DB corruption and mixed-shape integrity regressions; restores test DB definitions/triggers. Existing async closeDb cleanup wrapper unchanged. New test execution cannot be inferred from prior probe records."
+          ],
+          "currentTarget": {
+            "hash": "8b73f765d227ea0fcee167cf7bd5e955b7dc42ee2349c8764fe9c0b6f4aa6395",
+            "line": 631,
+            "kind": "FunctionDeclaration",
+            "name": "archiveWorkflowResource",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "src/web_server.ts",
+              "sha256": "1c664539f34acf6190136415ffb0e032a807a95f2e5a8e43d73ee1c220385094"
+            },
+            {
+              "path": "src/workflow_repository.ts",
+              "sha256": "7db980fe01055e5ac4d143e5470ecab0323bba37ce8ebcf6cb5ba9d378efc8c4"
+            },
+            {
+              "path": "src/workflow_repository_rows.d.ts",
+              "sha256": "9c6f00e74ff6c54e68969dee84f47164efe1b11f75a2f76cc0196c02e6316be3"
+            },
+            {
+              "path": "tests/fixtures/ingress_workflow_fixture.js",
+              "sha256": "23379c3c225580945a9b32977bf939f01df3b31a8494be1ea83c9b059c348988"
+            },
+            {
+              "path": "tests/test_channel_risk_type_guards.js",
+              "sha256": "c70283b5ab736f3ad1fbc61c19d8ac82128ef3ad0eaeca4a7074c985615e5425"
+            },
+            {
+              "path": "tests/test_ingress_workflow_pinning.js",
+              "sha256": "8a0e2a1bc07850c243a0ce177bfedd1b783d0d4512cea5ade3da71513b36a00b"
+            },
+            {
+              "path": "tests/test_setup_bundle.js",
+              "sha256": "36272bbd647bdfd33a20feb6875fe8f3016af39934d2ae255a41b87837da53dd"
+            },
+            {
+              "path": "tests/test_trading_analytics.js",
+              "sha256": "f2e2d353fce0e2fd8cddb16fd750723053b60b609eefca7e382a78a3327cd30c"
+            },
+            {
+              "path": "tests/test_workflow_builder.js",
+              "sha256": "da45cd60010384fc9cf76ef7624eb9d4bbf9f4bfd3a7334237b8321d5d251267"
+            },
+            {
+              "path": "tests/test_workflow_hash_compatibility.js",
+              "sha256": "b89e9fbb52164f1df3b223169fed369be4bf4a09f6f00c36cbadd877f0180e29"
+            },
+            {
+              "path": "tests/test_workflow_history_barriers.js",
+              "sha256": "60476c3863b367f36bcbbf7dc1220e89121adb77afe8dc13c9203022cc2a872a"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-014",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/workflow_repository.ts",
+          "symbol": "saveWorkflowRevision",
+          "changedSupportingPaths": [
+            "src/setup_bundle.ts",
+            "src/workflow_repository.ts",
+            "tests/test_setup_bundle.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target saveWorkflowRevision remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "src/setup_bundle.ts: Untrusted accountId/templateName now require strings during bundle resource validation and again during remap. Arrays/objects cannot alias legitimate mapping keys; parser nullish default retained. Invalid bundles reject before import callbacks/writes; existing string imports unchanged. Async transaction callers retain native rejection/adoption.",
+            "src/workflow_repository.ts: Reviewed current diff: new serialization uses historical UTF16 order; existing resource/revision raw byte witness preserves persisted hashes, revision additionally matches hydrated path content, duplicate behavior compares canonical parsed content, existing published resources verify then semantic-compare. Calling async wrappers/transaction boundaries remain unchanged. These newly compatible historical reads are intentional, not a claim old behavior was identical.",
+            "tests/test_setup_bundle.js: Fixture existence assertions split before dereference; negative malformed-reference matrix rejects before callbacks and confirms active revision unchanged. Existing cleanup wrapper and explicit undefined-argument fixture retained."
+          ],
+          "currentTarget": {
+            "hash": "01702cb263b8a21f7ff0ac7d1077b1127af059defd75fc93e29788b18942c597",
+            "line": 1429,
+            "kind": "FunctionDeclaration",
+            "name": "saveWorkflowRevision",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "src/contract_values.ts",
+              "sha256": "fafb0a4342b0430278764c9fd27a5e9aef85de597edfd0e4bbd2c03be859fd41"
+            },
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/setup_bundle.ts",
+              "sha256": "56fca338025a23c8201fe0a8a4f18d0924b78109ccd4b274d454319e8e01a9cb"
+            },
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "src/ui_workflow_drafts.ts",
+              "sha256": "bf21c379c31763d3c8899676b2d044717e4c6d9e91f0488f5593a8f7649f0acc"
+            },
+            {
+              "path": "src/web_server.ts",
+              "sha256": "1c664539f34acf6190136415ffb0e032a807a95f2e5a8e43d73ee1c220385094"
+            },
+            {
+              "path": "src/workflow_repository.ts",
+              "sha256": "7db980fe01055e5ac4d143e5470ecab0323bba37ce8ebcf6cb5ba9d378efc8c4"
+            },
+            {
+              "path": "src/workflow_repository_rows.d.ts",
+              "sha256": "9c6f00e74ff6c54e68969dee84f47164efe1b11f75a2f76cc0196c02e6316be3"
+            },
+            {
+              "path": "tests/fixtures/ingress_workflow_fixture.js",
+              "sha256": "23379c3c225580945a9b32977bf939f01df3b31a8494be1ea83c9b059c348988"
+            },
+            {
+              "path": "tests/test_channel_risk_type_guards.js",
+              "sha256": "c70283b5ab736f3ad1fbc61c19d8ac82128ef3ad0eaeca4a7074c985615e5425"
+            },
+            {
+              "path": "tests/test_ingress_workflow_pinning.js",
+              "sha256": "8a0e2a1bc07850c243a0ce177bfedd1b783d0d4512cea5ade3da71513b36a00b"
+            },
+            {
+              "path": "tests/test_setup_bundle.js",
+              "sha256": "36272bbd647bdfd33a20feb6875fe8f3016af39934d2ae255a41b87837da53dd"
+            },
+            {
+              "path": "tests/test_trading_analytics.js",
+              "sha256": "f2e2d353fce0e2fd8cddb16fd750723053b60b609eefca7e382a78a3327cd30c"
+            },
+            {
+              "path": "tests/test_workflow_builder.js",
+              "sha256": "da45cd60010384fc9cf76ef7624eb9d4bbf9f4bfd3a7334237b8321d5d251267"
+            },
+            {
+              "path": "tests/test_workflow_hash_compatibility.js",
+              "sha256": "b89e9fbb52164f1df3b223169fed369be4bf4a09f6f00c36cbadd877f0180e29"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-015",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/workflow_repository.ts",
+          "symbol": "previewWorkflowBuilderHistoryImpact",
+          "changedSupportingPaths": [
+            "src/workflow_repository.ts",
+            "tests/test_setup_bundle.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target previewWorkflowBuilderHistoryImpact remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "src/workflow_repository.ts: Reviewed current diff: new serialization uses historical UTF16 order; existing resource/revision raw byte witness preserves persisted hashes, revision additionally matches hydrated path content, duplicate behavior compares canonical parsed content, existing published resources verify then semantic-compare. Calling async wrappers/transaction boundaries remain unchanged. These newly compatible historical reads are intentional, not a claim old behavior was identical.",
+            "tests/test_setup_bundle.js: Fixture existence assertions split before dereference; negative malformed-reference matrix rejects before callbacks and confirms active revision unchanged. Existing cleanup wrapper and explicit undefined-argument fixture retained."
+          ],
+          "currentTarget": {
+            "hash": "9fa9df7adff4d88a01e72f62b875f370faa1d56195114183ba89af4b7775f916",
+            "line": 1466,
+            "kind": "FunctionDeclaration",
+            "name": "previewWorkflowBuilderHistoryImpact",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/web_server.ts",
+              "sha256": "1c664539f34acf6190136415ffb0e032a807a95f2e5a8e43d73ee1c220385094"
+            },
+            {
+              "path": "src/workflow_repository.ts",
+              "sha256": "7db980fe01055e5ac4d143e5470ecab0323bba37ce8ebcf6cb5ba9d378efc8c4"
+            },
+            {
+              "path": "src/workflow_repository_rows.d.ts",
+              "sha256": "9c6f00e74ff6c54e68969dee84f47164efe1b11f75a2f76cc0196c02e6316be3"
+            },
+            {
+              "path": "tests/fixtures/ingress_workflow_fixture.js",
+              "sha256": "23379c3c225580945a9b32977bf939f01df3b31a8494be1ea83c9b059c348988"
+            },
+            {
+              "path": "tests/test_channel_risk_type_guards.js",
+              "sha256": "c70283b5ab736f3ad1fbc61c19d8ac82128ef3ad0eaeca4a7074c985615e5425"
+            },
+            {
+              "path": "tests/test_ingress_workflow_pinning.js",
+              "sha256": "8a0e2a1bc07850c243a0ce177bfedd1b783d0d4512cea5ade3da71513b36a00b"
+            },
+            {
+              "path": "tests/test_setup_bundle.js",
+              "sha256": "36272bbd647bdfd33a20feb6875fe8f3016af39934d2ae255a41b87837da53dd"
+            },
+            {
+              "path": "tests/test_trading_analytics.js",
+              "sha256": "f2e2d353fce0e2fd8cddb16fd750723053b60b609eefca7e382a78a3327cd30c"
+            },
+            {
+              "path": "tests/test_workflow_builder.js",
+              "sha256": "da45cd60010384fc9cf76ef7624eb9d4bbf9f4bfd3a7334237b8321d5d251267"
+            },
+            {
+              "path": "tests/test_workflow_fallback.js",
+              "sha256": "b1e1305a4b4d02c1075e1d91b1dc271622857c481f27c60f9cfe5987c149f67b"
+            },
+            {
+              "path": "tests/test_workflow_hash_compatibility.js",
+              "sha256": "b89e9fbb52164f1df3b223169fed369be4bf4a09f6f00c36cbadd877f0180e29"
+            },
+            {
+              "path": "tests/test_workflow_history.js",
+              "sha256": "df971701378cc0953f85c94b5c6555f0c7166436e98ff2869eaeec0f339ba0a5"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-016",
+          "rule": [
+            "JS-0320"
+          ],
+          "issuePath": "src/web_server.ts",
+          "symbol": "activateSetupConfiguration",
+          "changedSupportingPaths": [
+            "tests/test_setup_bundle.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "tests/test_setup_bundle.js: Fixture existence assertions split before dereference; negative malformed-reference matrix rejects before callbacks and confirms active revision unchanged. Existing cleanup wrapper and explicit undefined-argument fixture retained."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/web_server.ts",
+              "sha256": "1c664539f34acf6190136415ffb0e032a807a95f2e5a8e43d73ee1c220385094"
+            },
+            {
+              "path": "tests/fixtures/ui_restart_child.js",
+              "sha256": "acbb9d67e0d63a47db874750e54fc45fdedf20f372503f4a2366da7fdb91779b"
+            },
+            {
+              "path": "tests/test_setup_bundle.js",
+              "sha256": "36272bbd647bdfd33a20feb6875fe8f3016af39934d2ae255a41b87837da53dd"
+            },
+            {
+              "path": "tests/test_startup_web.js",
+              "sha256": "34622defefe351b0340d1e7356c6b2d52daeb8b7180f0c14a78a02fc77de0701"
+            },
+            {
+              "path": "tests/test_telegram_viewer_api.js",
+              "sha256": "164c78715bb98f5fcff074c4147d2472c1a244835b3ac885661e6d786b8834ab"
+            },
+            {
+              "path": "tests/test_ui_operator_commands.js",
+              "sha256": "ec105e7f5506c7a8e93ce56e033fb73c18d804853d0391b299cda9edd70b2d5c"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-065",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_repository.ts",
+          "symbol": "createSignalContract",
+          "changedSupportingPaths": [
+            "src/setup_bundle.ts",
+            "tests/test_workflow_builder.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "src/setup_bundle.ts: Untrusted accountId/templateName now require strings during bundle resource validation and again during remap. Arrays/objects cannot alias legitimate mapping keys; parser nullish default retained. Invalid bundles reject before import callbacks/writes; existing string imports unchanged. Async transaction callers retain native rejection/adoption.",
+            "tests/test_workflow_builder.js: Adds legacy raw-hash/current-shape compatibility, immutability-aware own-disposable-DB corruption and mixed-shape integrity regressions; restores test DB definitions/triggers. Existing async closeDb cleanup wrapper unchanged. New test execution cannot be inferred from prior probe records."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/contract_values.ts",
+              "sha256": "fafb0a4342b0430278764c9fd27a5e9aef85de597edfd0e4bbd2c03be859fd41"
+            },
+            {
+              "path": "src/setup_bundle.ts",
+              "sha256": "56fca338025a23c8201fe0a8a4f18d0924b78109ccd4b274d454319e8e01a9cb"
+            },
+            {
+              "path": "src/trading_repository.ts",
+              "sha256": "a1cb63b2be3b73d557c02761c014f1984fd0764ebd49e23aa5a8883f1482b221"
+            },
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/fixtures/ingress_workflow_fixture.js",
+              "sha256": "23379c3c225580945a9b32977bf939f01df3b31a8494be1ea83c9b059c348988"
+            },
+            {
+              "path": "tests/fixtures/kraken_cashleg.js",
+              "sha256": "ca8d8cfb582e8051d74a73f210a2faf90a9162cca276c33df74db3254b48814c"
+            },
+            {
+              "path": "tests/fixtures/legacy_fill_identity.js",
+              "sha256": "2236db477add26dd65c2b51d3722c7713590bbfe7c26cd674079a01014c0ec0f"
+            },
+            {
+              "path": "tests/fixtures/trading_emergency_fixture.js",
+              "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5"
+            },
+            {
+              "path": "tests/test_ccxt_exchange.js",
+              "sha256": "94ce44bb79596d1533c0d5a7676e8791a9306daeb2c20a6e9ad136144192da5f"
+            },
+            {
+              "path": "tests/test_trading_core.js",
+              "sha256": "a420c5fab011ae6d46ce88799e56fd08bfd271859263bb71b5911e8175454093"
+            },
+            {
+              "path": "tests/test_trading_web_control.js",
+              "sha256": "3f9f38ed1b450ad3306e776037c721e558541b58f9e513bebbcfc34a1f43dde4"
+            },
+            {
+              "path": "tests/test_workflow_builder.js",
+              "sha256": "da45cd60010384fc9cf76ef7624eb9d4bbf9f4bfd3a7334237b8321d5d251267"
+            },
+            {
+              "path": "tests/test_workflow_history_barriers.js",
+              "sha256": "60476c3863b367f36bcbbf7dc1220e89121adb77afe8dc13c9203022cc2a872a"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-072",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_repository.ts",
+          "symbol": "createTradingStrategyDraft",
+          "changedSupportingPaths": [
+            "src/setup_bundle.ts"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "src/setup_bundle.ts: Untrusted accountId/templateName now require strings during bundle resource validation and again during remap. Arrays/objects cannot alias legitimate mapping keys; parser nullish default retained. Invalid bundles reject before import callbacks/writes; existing string imports unchanged. Async transaction callers retain native rejection/adoption."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/contract_values.ts",
+              "sha256": "fafb0a4342b0430278764c9fd27a5e9aef85de597edfd0e4bbd2c03be859fd41"
+            },
+            {
+              "path": "src/setup_bundle.ts",
+              "sha256": "56fca338025a23c8201fe0a8a4f18d0924b78109ccd4b274d454319e8e01a9cb"
+            },
+            {
+              "path": "src/trading_repository.ts",
+              "sha256": "a1cb63b2be3b73d557c02761c014f1984fd0764ebd49e23aa5a8883f1482b221"
+            },
+            {
+              "path": "src/trading_web_control.ts",
+              "sha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd"
+            },
+            {
+              "path": "tests/fixtures/ingress_workflow_fixture.js",
+              "sha256": "23379c3c225580945a9b32977bf939f01df3b31a8494be1ea83c9b059c348988"
+            },
+            {
+              "path": "tests/fixtures/kraken_cashleg.js",
+              "sha256": "ca8d8cfb582e8051d74a73f210a2faf90a9162cca276c33df74db3254b48814c"
+            },
+            {
+              "path": "tests/fixtures/legacy_fill_identity.js",
+              "sha256": "2236db477add26dd65c2b51d3722c7713590bbfe7c26cd674079a01014c0ec0f"
+            },
+            {
+              "path": "tests/fixtures/trading_emergency_fixture.js",
+              "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5"
+            },
+            {
+              "path": "tests/test_ccxt_exchange.js",
+              "sha256": "94ce44bb79596d1533c0d5a7676e8791a9306daeb2c20a6e9ad136144192da5f"
+            },
+            {
+              "path": "tests/test_trading_core.js",
+              "sha256": "a420c5fab011ae6d46ce88799e56fd08bfd271859263bb71b5911e8175454093"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-080",
+          "rule": [
+            "JS-0004",
+            "JS-W1035"
+          ],
+          "issuePath": "src/trading_recovery_schedule_contract.ts",
+          "symbol": "binding",
+          "changedSupportingPaths": [
+            "tests/test_entry_deadline_transport.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "tests/test_entry_deadline_transport.js: Adds malformed truthy primitive entry and protected-entry tests, asserting missing-deadline rejection before token acquisition and transport. Original order identity/recovery-schedule branches and assertions retained."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/ccxt_exchange.ts",
+              "sha256": "83c403cc476f66a243c922196f6a2f977ed40ae7cf3ac39762b4f700161e8ebc"
+            },
+            {
+              "path": "src/exchange_contract_validation.ts",
+              "sha256": "0281d406027729d6cb208cb517b577ef3cb2e65f7d52348112c0735dea71e586"
+            },
+            {
+              "path": "src/exchange_entry_deadline.ts",
+              "sha256": "6dc10d018775cb15dcff9f19fea79791e44f90c028ce609f5125cf01c0795e45"
+            },
+            {
+              "path": "src/trading_recovery_schedule_contract.ts",
+              "sha256": "6a8bcff68afe06512e449b96cbd2ccc96bd6a4be58b22703546b676b81742f96"
+            },
+            {
+              "path": "tests/test_ccxt_exchange.js",
+              "sha256": "94ce44bb79596d1533c0d5a7676e8791a9306daeb2c20a6e9ad136144192da5f"
+            },
+            {
+              "path": "tests/test_entry_deadline_transport.js",
+              "sha256": "33e1bcc1940359989892db25d73da9d465bc8ea4f45e52d404d578b9aef8d381"
+            },
+            {
+              "path": "tests/test_exchange_contract_validation.js",
+              "sha256": "e4cb2a8bcd7490dae31f9cdd7c708f3dc46c64de2ff472559cd2fc521125caf2"
+            },
+            {
+              "path": "tests/test_fill_quantity_contract.js",
+              "sha256": "be276d11be2b8a5314eb78c909b1ef3018d68cc8c93f4ab2c0e2dd0f1d9971de"
+            },
+            {
+              "path": "tests/test_trading_recovery_schedule_contract.js",
+              "sha256": "7ffa503de77e012dcb59439a5dd7ee83ef286fd863b486041b35b22871d4c614"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-090",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/trading_order_identity_bindings.ts",
+          "symbol": "correlateNativeOrderEvidence",
+          "changedSupportingPaths": [
+            "tests/test_entry_deadline_transport.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "tests/test_entry_deadline_transport.js: Adds malformed truthy primitive entry and protected-entry tests, asserting missing-deadline rejection before token acquisition and transport. Original order identity/recovery-schedule branches and assertions retained."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/ccxt_exchange.ts",
+              "sha256": "83c403cc476f66a243c922196f6a2f977ed40ae7cf3ac39762b4f700161e8ebc"
+            },
+            {
+              "path": "src/exchange_entry_deadline.ts",
+              "sha256": "6dc10d018775cb15dcff9f19fea79791e44f90c028ce609f5125cf01c0795e45"
+            },
+            {
+              "path": "src/trading_order_identity_bindings.ts",
+              "sha256": "2567dda4adba7513ff0773e06d3bd8433e71c0436c37c1df4e610e72081acf98"
+            },
+            {
+              "path": "src/trading_order_repository.ts",
+              "sha256": "b86cde7c1046b62b9531c936531b2128ab4299c18e40216c6bc3c96130d39f4a"
+            },
+            {
+              "path": "tests/fixtures/legacy_fill_identity.js",
+              "sha256": "2236db477add26dd65c2b51d3722c7713590bbfe7c26cd674079a01014c0ec0f"
+            },
+            {
+              "path": "tests/test_ccxt_exchange.js",
+              "sha256": "94ce44bb79596d1533c0d5a7676e8791a9306daeb2c20a6e9ad136144192da5f"
+            },
+            {
+              "path": "tests/test_entry_deadline_transport.js",
+              "sha256": "33e1bcc1940359989892db25d73da9d465bc8ea4f45e52d404d578b9aef8d381"
+            },
+            {
+              "path": "tests/test_trading_entry_commitment.js",
+              "sha256": "5f660ae1484666a480e573f1fca8c269deb3b1e2f9ef97a7dfe3512ba6db20f0"
+            },
+            {
+              "path": "tests/test_trading_order_identity_bindings.js",
+              "sha256": "fa2ae5701f0898cc0203b90a6125a19cdcad5c993ec0b3fa725611edd4db6908"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-251",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "tests/test_setup_bundle.js",
+          "symbol": null,
+          "changedSupportingPaths": [
+            "tests/test_setup_bundle.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target CallExpression remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "tests/test_setup_bundle.js: Fixture existence assertions split before dereference; negative malformed-reference matrix rejects before callbacks and confirms active revision unchanged. Existing cleanup wrapper and explicit undefined-argument fixture retained."
+          ],
+          "currentTarget": {
+            "hash": "b5701b6966fb9e3f18355ccef9f274378cbaad136f16247e460f22adcfdbc8f4",
+            "line": 481,
+            "kind": "CallExpression",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "tests/test_setup_bundle.js",
+              "sha256": "36272bbd647bdfd33a20feb6875fe8f3016af39934d2ae255a41b87837da53dd"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-286",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "tests/test_backup.js",
+          "symbol": "createVerifiedArtifact",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target createVerifiedArtifact remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": {
+            "hash": "70f56d0191ff225ea0f47212438a25959007f757179f7f7f98acbdbfaa782665",
+            "line": 106,
+            "kind": "CallExpression",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-287",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "tests/test_backup.js",
+          "symbol": "createVerifiedArtifact",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target createVerifiedArtifact remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": {
+            "hash": "c21cc5002f65280936d0442a42b67506a99337a1952e956d91e25c2deca2bc22",
+            "line": 108,
+            "kind": "CallExpression",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-288",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "tests/test_backup.js",
+          "symbol": "createVerifiedArtifact",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target createVerifiedArtifact remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": {
+            "hash": "cbbaf2c20893d5f947ef9e1063d0c493c12947123fec17df3e325263b6b15d2d",
+            "line": 110,
+            "kind": "CallExpression",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-289",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "tests/test_backup.js",
+          "symbol": "assertRestoredState",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target assertRestoredState remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": {
+            "hash": "5875ad3f87c2a2f5238826d9591f33d71f93495bffb10c3c6e9df34d7cd9cf01",
+            "line": 154,
+            "kind": "CallExpression",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-290",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "tests/test_backup.js",
+          "symbol": "recover",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target recover remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": {
+            "hash": "d0a8576fc316af8ff9d9b26ac6dea719195bf378e77e51833292908a9e97c6c0",
+            "line": 484,
+            "kind": "ArrowFunction",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-291",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "tests/test_backup.js",
+          "symbol": "replicate",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target replicate remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": {
+            "hash": "12f844004053f6453f510b7651f34228b0c13916d02ff009727e73b9a38d9a4e",
+            "line": 498,
+            "kind": "ArrowFunction",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-292",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "tests/test_backup.js",
+          "symbol": "recover",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target recover remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": {
+            "hash": "d0a8576fc316af8ff9d9b26ac6dea719195bf378e77e51833292908a9e97c6c0",
+            "line": 519,
+            "kind": "ArrowFunction",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-311",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/runtime_settings.ts",
+          "symbol": "set",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0"
+            },
+            {
+              "path": "src/runtime_settings.ts",
+              "sha256": "043b16d0c066bf550a8e83eba53082f52d89b6d49d3a48553650ad4beab7379c"
+            },
+            {
+              "path": "src/web_server.ts",
+              "sha256": "1c664539f34acf6190136415ffb0e032a807a95f2e5a8e43d73ee1c220385094"
+            },
+            {
+              "path": "tests/test_alert_relay.js",
+              "sha256": "0477f3d676e457feb0b075955ed60df465ed219611ad3fdc65b1a6d8177222b8"
+            },
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            },
+            {
+              "path": "tests/test_backup_generation.js",
+              "sha256": "2f7a184310b317284f7b3360c3d8d37459862b38ebb595cad904922c231d517a"
+            },
+            {
+              "path": "tests/test_runtime_settings.js",
+              "sha256": "7a745e2f67fa096be099c94104fffa3219c368926329b64494a505bf568f91c5"
+            },
+            {
+              "path": "tests/test_ui_register.js",
+              "sha256": "cee84799adbbdb9d16add3256dccc23453394fa71177ab0d573a327c854e064c"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-313",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/process_lock.ts",
+          "symbol": "withProcessLockOwner",
+          "changedSupportingPaths": [
+            "src/backup_generation.ts"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "src/backup_generation.ts: visitTemplates readdirSync and identical locale sort assigned to local entries before for-of. Traversal order, depth/count/symlink/member checks and add calls unchanged; async generation wrappers/control-character rejection site unmodified."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/backup_generation.ts",
+              "sha256": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f"
+            },
+            {
+              "path": "src/crash_guard.ts",
+              "sha256": "1a8887034291cbe185cb8fd0fb47c4c1c1bc68a295842c7f600389f8b6bba4d5"
+            },
+            {
+              "path": "src/mcp_maintenance.ts",
+              "sha256": "c44700235c16da79c32ec98648255f47b65455b77ca8b479d8d66f080448e118"
+            },
+            {
+              "path": "src/process_lock.ts",
+              "sha256": "48b870af4bbabb513e3361fbeef26aa8948354d40a4dbc2feb624a8349d64f70"
+            },
+            {
+              "path": "tests/fixtures/backup_generation_crash_child.js",
+              "sha256": "abdc2a5a85bbb14af6685d9ddc974527f2885762f6747e74c1b686f435247e20"
+            },
+            {
+              "path": "tests/fixtures/backup_generation_fixture.js",
+              "sha256": "3be2bb151f7f0f23a816d12435836c15592f98baa44ce00946145b135253b12a"
+            },
+            {
+              "path": "tests/fixtures/crash_guard_owner_child.js",
+              "sha256": "f4527ee45879bca58b93480556a3b5f4406bf0631d5c7d3ba208922f384e2ba5"
+            },
+            {
+              "path": "tests/test_backup_generation_crash.js",
+              "sha256": "b54491c54fc9e545c2145afbcf0ffce258802014aa45741a34888b6ab1ed1d67"
+            },
+            {
+              "path": "tests/test_backup_generation_ownership.js",
+              "sha256": "0fa1ca5bc7dc691a3dc48708fe5a169b66345f55e4de4cb7bda4707d4d05b6c1"
+            },
+            {
+              "path": "tests/test_crash_guard.js",
+              "sha256": "db9d18a7aa39fa5131c148da53fe0130de4921c56091605782360959c2e25ba9"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-324",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/mcp_maintenance.ts",
+          "symbol": "beginMcpSharedMaintenance",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0"
+            },
+            {
+              "path": "src/mcp_maintenance.ts",
+              "sha256": "c44700235c16da79c32ec98648255f47b65455b77ca8b479d8d66f080448e118"
+            },
+            {
+              "path": "tests/fixtures/maintenance_participant_child.js",
+              "sha256": "8fab554507d40eaa1f65f9e8b874ae9a86f9f651afea95b1936a2514dcf65bc6"
+            },
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            },
+            {
+              "path": "tests/test_backup_generation.js",
+              "sha256": "2f7a184310b317284f7b3360c3d8d37459862b38ebb595cad904922c231d517a"
+            },
+            {
+              "path": "tests/test_backup_proofs.js",
+              "sha256": "cf2d46ec9a3530b77e892ee622e91a6e76027a9b6e1091b06dae13ee76de3f8e"
+            },
+            {
+              "path": "tests/test_database_maintenance.js",
+              "sha256": "10d68fc2bafb1c3e5a4eb036eca7af7852cb121ac6f28085d679bb6ea58c14fd"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-325",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/mcp_maintenance.ts",
+          "symbol": "beginMcpOfflineMaintenance",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/backup_cli.ts",
+              "sha256": "d0fd89cea0779ef15598a6d07d1ce7930ee2c9df815c71a2036ed0ef17c8fd7d"
+            },
+            {
+              "path": "src/backup_restore_drill_worker.ts",
+              "sha256": "22cd0fce53601b4726790c46046d205cf360147e82fef3ba2ee9165d313b7b60"
+            },
+            {
+              "path": "src/mcp_maintenance.ts",
+              "sha256": "c44700235c16da79c32ec98648255f47b65455b77ca8b479d8d66f080448e118"
+            },
+            {
+              "path": "src/migration_cli.ts",
+              "sha256": "1e5047ba218e047d557f285bec84d84d663f3bbcdd463fdd45632338661bdacb"
+            },
+            {
+              "path": "tests/fixtures/maintenance_participant_child.js",
+              "sha256": "8fab554507d40eaa1f65f9e8b874ae9a86f9f651afea95b1936a2514dcf65bc6"
+            },
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            },
+            {
+              "path": "tests/test_backup_generation.js",
+              "sha256": "2f7a184310b317284f7b3360c3d8d37459862b38ebb595cad904922c231d517a"
+            },
+            {
+              "path": "tests/test_backup_proofs.js",
+              "sha256": "cf2d46ec9a3530b77e892ee622e91a6e76027a9b6e1091b06dae13ee76de3f8e"
+            },
+            {
+              "path": "tests/test_database_maintenance.js",
+              "sha256": "10d68fc2bafb1c3e5a4eb036eca7af7852cb121ac6f28085d679bb6ea58c14fd"
+            },
+            {
+              "path": "tests/test_mcp_maintenance.js",
+              "sha256": "0c6ce2f6491dbe0d04f551eb5d6d98c3da06cce42af4241ba75f330b7b37cedc"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-326",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/mcp_maintenance.ts",
+          "symbol": "beginMaintenance",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/mcp_maintenance.ts",
+              "sha256": "c44700235c16da79c32ec98648255f47b65455b77ca8b479d8d66f080448e118"
+            },
+            {
+              "path": "tests/fixtures/maintenance_participant_child.js",
+              "sha256": "8fab554507d40eaa1f65f9e8b874ae9a86f9f651afea95b1936a2514dcf65bc6"
+            },
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            },
+            {
+              "path": "tests/test_backup_generation.js",
+              "sha256": "2f7a184310b317284f7b3360c3d8d37459862b38ebb595cad904922c231d517a"
+            },
+            {
+              "path": "tests/test_backup_proofs.js",
+              "sha256": "cf2d46ec9a3530b77e892ee622e91a6e76027a9b6e1091b06dae13ee76de3f8e"
+            },
+            {
+              "path": "tests/test_database_maintenance.js",
+              "sha256": "10d68fc2bafb1c3e5a4eb036eca7af7852cb121ac6f28085d679bb6ea58c14fd"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-335",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/forwarder.ts",
+          "symbol": "runBackupNow",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0"
+            },
+            {
+              "path": "src/web_server.ts",
+              "sha256": "1c664539f34acf6190136415ffb0e032a807a95f2e5a8e43d73ee1c220385094"
+            },
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            },
+            {
+              "path": "tests/test_web_server.js",
+              "sha256": "2cd157913dd7dfe3691fb2c60c45c65f4f163321290877df1b307570df763231"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-336",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/forwarder.ts",
+          "symbol": "runBackupDrill",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0"
+            },
+            {
+              "path": "src/web_server.ts",
+              "sha256": "1c664539f34acf6190136415ffb0e032a807a95f2e5a8e43d73ee1c220385094"
+            },
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            },
+            {
+              "path": "tests/test_web_server.js",
+              "sha256": "2cd157913dd7dfe3691fb2c60c45c65f4f163321290877df1b307570df763231"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-347",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/db.ts",
+          "symbol": "saveSignal",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0"
+            },
+            {
+              "path": "tests/evaluate_signal_golden_set.js",
+              "sha256": "69f890d251923b109eb8f637d07f831e5ef2266d149e82c5e6953b9e7bc58ae0"
+            },
+            {
+              "path": "tests/fixtures/account_log.js",
+              "sha256": "3bbd8434336c3d1b966ff766ad069356ee3056f4a504960ada43f09d98ce40f2"
+            },
+            {
+              "path": "tests/fixtures/accounted_trades.js",
+              "sha256": "ad3c0e52c213020e29b6f26d3fa1b781bcd73946ed9fb4bfe3bff8aad6ef7ceb"
+            },
+            {
+              "path": "tests/fixtures/emergency_crash.js",
+              "sha256": "11f62cb38c87c5f1028068a4174097ceef4102a484a3a555aaaf47a57032fc51"
+            },
+            {
+              "path": "tests/fixtures/entry_drain_crash.js",
+              "sha256": "68f6336f9930f655dd6bee4155fd780008cf3e0f7e4e4957888ebb0e5542a194"
+            },
+            {
+              "path": "tests/fixtures/kraken_cashleg.js",
+              "sha256": "ca8d8cfb582e8051d74a73f210a2faf90a9162cca276c33df74db3254b48814c"
+            },
+            {
+              "path": "tests/fixtures/legacy_fill_identity.js",
+              "sha256": "2236db477add26dd65c2b51d3722c7713590bbfe7c26cd674079a01014c0ec0f"
+            },
+            {
+              "path": "tests/fixtures/trading_emergency_fixture.js",
+              "sha256": "44e0a33887f8ae55e238ab59910f7e6897371d0018b8fef653cf65107203aaa5"
+            },
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            },
+            {
+              "path": "tests/test_dupe_blocker.js",
+              "sha256": "050b5d74ab8312cbe6d55e589e940ecab7aeb381592ba72954809e69a8c2476d"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-349",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/db.ts",
+          "symbol": "getOutboxTask",
+          "changedSupportingPaths": [
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "tests/evaluate_signal_golden_set.js",
+              "sha256": "69f890d251923b109eb8f637d07f831e5ef2266d149e82c5e6953b9e7bc58ae0"
+            },
+            {
+              "path": "tests/fixtures/account_log.js",
+              "sha256": "3bbd8434336c3d1b966ff766ad069356ee3056f4a504960ada43f09d98ce40f2"
+            },
+            {
+              "path": "tests/fixtures/accounted_trades.js",
+              "sha256": "ad3c0e52c213020e29b6f26d3fa1b781bcd73946ed9fb4bfe3bff8aad6ef7ceb"
+            },
+            {
+              "path": "tests/fixtures/emergency_crash.js",
+              "sha256": "11f62cb38c87c5f1028068a4174097ceef4102a484a3a555aaaf47a57032fc51"
+            },
+            {
+              "path": "tests/fixtures/entry_drain_crash.js",
+              "sha256": "68f6336f9930f655dd6bee4155fd780008cf3e0f7e4e4957888ebb0e5542a194"
+            },
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            },
+            {
+              "path": "tests/test_outbox.js",
+              "sha256": "a4b64dd1e77a7636895b444f1c3113bd3ffdb6ce72188167ad37e6657981c0be"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-358",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/backup_restore_drill.ts",
+          "symbol": "runWorker",
+          "changedSupportingPaths": [
+            "src/backup.ts",
+            "tests/test_backup.js"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Issue-bearing source itself unchanged; only explicitly linked test/caller/supporting source changed. Existing rule-specific rationale remains applicable to its unchanged target.",
+            "src/backup.ts: Only pruneBackupArtifacts comparator changes to explicit UTF16 ordering restoring historical defaultsort. Retention selection differs intentionally for external matching names; path/count guards and native Promise fileExists wrapper/control regex unchanged.",
+            "tests/test_backup.js: One combined conjunction assertion split into separate required fallback runs/candidates assertions. Both obligations still required; historical string-eval fixtures and native async recovery/replication cleanup boundaries unchanged."
+          ],
+          "currentTarget": null,
+          "dependencyBindings": [
+            {
+              "path": "src/backup.ts",
+              "sha256": "0dcd692ef7051bd9ed24c41bdf621f7ae15af6f84c10b78bb795683cddb5288b"
+            },
+            {
+              "path": "src/backup_restore_drill.ts",
+              "sha256": "e97fb2cda7cf028dcaf04d29bbc76e7a2a616a7590c07685d6fbf0f3e84ec7b6"
+            },
+            {
+              "path": "tests/fixtures/backup_generation_fixture.js",
+              "sha256": "3be2bb151f7f0f23a816d12435836c15592f98baa44ce00946145b135253b12a"
+            },
+            {
+              "path": "tests/test_backup.js",
+              "sha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d"
+            },
+            {
+              "path": "tests/test_backup_generation.js",
+              "sha256": "2f7a184310b317284f7b3360c3d8d37459862b38ebb595cad904922c231d517a"
+            },
+            {
+              "path": "tests/test_backup_proofs.js",
+              "sha256": "cf2d46ec9a3530b77e892ee622e91a6e76027a9b6e1091b06dae13ee76de3f8e"
+            },
+            {
+              "path": "tests/test_backup_prune_order.js",
+              "sha256": "1e3044d82ecf3c3bd3391ae2ec6f840ad48ba8dffe0020ab66b1836459078204"
+            },
+            {
+              "path": "tests/test_backup_replication.js",
+              "sha256": "9588fd81215a55fc225fabf4e4ac8ddbc892742f98ebd5bbfea55eb0da58e6d7"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-359",
+          "rule": [
+            "JS-0004",
+            "JS-W1035"
+          ],
+          "issuePath": "src/backup_generation.ts",
+          "symbol": "<callback>",
+          "changedSupportingPaths": [
+            "src/backup_generation.ts"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target <callback> remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "src/backup_generation.ts: visitTemplates readdirSync and identical locale sort assigned to local entries before for-of. Traversal order, depth/count/symlink/member checks and add calls unchanged; async generation wrappers/control-character rejection site unmodified."
+          ],
+          "currentTarget": {
+            "hash": "78fa9f1d10de85ebc31223483155c8f4438ef28a610709123a9b3b837aa6d910",
+            "line": 173,
+            "kind": "ArrowFunction",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "src/backup_generation.ts",
+              "sha256": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f"
+            },
+            {
+              "path": "tests/fixtures/backup_generation_crash_child.js",
+              "sha256": "abdc2a5a85bbb14af6685d9ddc974527f2885762f6747e74c1b686f435247e20"
+            },
+            {
+              "path": "tests/fixtures/backup_generation_fixture.js",
+              "sha256": "3be2bb151f7f0f23a816d12435836c15592f98baa44ce00946145b135253b12a"
+            },
+            {
+              "path": "tests/test_backup_generation.js",
+              "sha256": "2f7a184310b317284f7b3360c3d8d37459862b38ebb595cad904922c231d517a"
+            },
+            {
+              "path": "tests/test_backup_generation_crash.js",
+              "sha256": "b54491c54fc9e545c2145afbcf0ffce258802014aa45741a34888b6ab1ed1d67"
+            },
+            {
+              "path": "tests/test_backup_generation_ownership.js",
+              "sha256": "0fa1ca5bc7dc691a3dc48708fe5a169b66345f55e4de4cb7bda4707d4d05b6c1"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-360",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/backup_generation.ts",
+          "symbol": "initializeConfigurationGeneration",
+          "changedSupportingPaths": [
+            "src/backup_generation.ts"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target initializeConfigurationGeneration remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "src/backup_generation.ts: visitTemplates readdirSync and identical locale sort assigned to local entries before for-of. Traversal order, depth/count/symlink/member checks and add calls unchanged; async generation wrappers/control-character rejection site unmodified."
+          ],
+          "currentTarget": {
+            "hash": "5527e88056affab8e7fc6564698662328de28dd1bfb9e9d044b26eb684d25055",
+            "line": 296,
+            "kind": "FunctionDeclaration",
+            "name": "initializeConfigurationGeneration",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "src/backup_cli.ts",
+              "sha256": "d0fd89cea0779ef15598a6d07d1ce7930ee2c9df815c71a2036ed0ef17c8fd7d"
+            },
+            {
+              "path": "src/backup_generation.ts",
+              "sha256": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f"
+            },
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0"
+            },
+            {
+              "path": "tests/fixtures/backup_generation_crash_child.js",
+              "sha256": "abdc2a5a85bbb14af6685d9ddc974527f2885762f6747e74c1b686f435247e20"
+            },
+            {
+              "path": "tests/fixtures/backup_generation_fixture.js",
+              "sha256": "3be2bb151f7f0f23a816d12435836c15592f98baa44ce00946145b135253b12a"
+            },
+            {
+              "path": "tests/test_backup_generation.js",
+              "sha256": "2f7a184310b317284f7b3360c3d8d37459862b38ebb595cad904922c231d517a"
+            },
+            {
+              "path": "tests/test_backup_generation_crash.js",
+              "sha256": "b54491c54fc9e545c2145afbcf0ffce258802014aa45741a34888b6ab1ed1d67"
+            },
+            {
+              "path": "tests/test_backup_generation_ownership.js",
+              "sha256": "0fa1ca5bc7dc691a3dc48708fe5a169b66345f55e4de4cb7bda4707d4d05b6c1"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-361",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/backup_generation.ts",
+          "symbol": "reenrollConfigurationGeneration",
+          "changedSupportingPaths": [
+            "src/backup_generation.ts"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target reenrollConfigurationGeneration remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "src/backup_generation.ts: visitTemplates readdirSync and identical locale sort assigned to local entries before for-of. Traversal order, depth/count/symlink/member checks and add calls unchanged; async generation wrappers/control-character rejection site unmodified."
+          ],
+          "currentTarget": {
+            "hash": "9d7d5e10695b5827f481cab9ba9b4eb2f7ab52933c1b5dbda688cc3dcdfcab34",
+            "line": 311,
+            "kind": "FunctionDeclaration",
+            "name": "reenrollConfigurationGeneration",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "src/backup_cli.ts",
+              "sha256": "d0fd89cea0779ef15598a6d07d1ce7930ee2c9df815c71a2036ed0ef17c8fd7d"
+            },
+            {
+              "path": "src/backup_generation.ts",
+              "sha256": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f"
+            },
+            {
+              "path": "src/backup_restore_drill_worker.ts",
+              "sha256": "22cd0fce53601b4726790c46046d205cf360147e82fef3ba2ee9165d313b7b60"
+            },
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0"
+            },
+            {
+              "path": "tests/fixtures/backup_generation_crash_child.js",
+              "sha256": "abdc2a5a85bbb14af6685d9ddc974527f2885762f6747e74c1b686f435247e20"
+            },
+            {
+              "path": "tests/fixtures/backup_generation_fixture.js",
+              "sha256": "3be2bb151f7f0f23a816d12435836c15592f98baa44ce00946145b135253b12a"
+            },
+            {
+              "path": "tests/test_backup_generation.js",
+              "sha256": "2f7a184310b317284f7b3360c3d8d37459862b38ebb595cad904922c231d517a"
+            },
+            {
+              "path": "tests/test_backup_generation_crash.js",
+              "sha256": "b54491c54fc9e545c2145afbcf0ffce258802014aa45741a34888b6ab1ed1d67"
+            },
+            {
+              "path": "tests/test_backup_generation_ownership.js",
+              "sha256": "0fa1ca5bc7dc691a3dc48708fe5a169b66345f55e4de4cb7bda4707d4d05b6c1"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        },
+        {
+          "ledger": "docs/testing/final-deepsource-suppressions-2026-09-17.json",
+          "id": "baseline-skipcq-362",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/backup_generation.ts",
+          "symbol": "retireConfigurationGeneration",
+          "changedSupportingPaths": [
+            "src/backup_generation.ts"
+          ],
+          "sourceJudgement": "reviewed_explicit_context_delta_preserves_rule_disposition",
+          "rationale": [
+            "Existing reviewed target retireConfigurationGeneration remains the same AST text; surrounding semantic changes reviewed below, not inferred safe from hash.",
+            "src/backup_generation.ts: visitTemplates readdirSync and identical locale sort assigned to local entries before for-of. Traversal order, depth/count/symlink/member checks and add calls unchanged; async generation wrappers/control-character rejection site unmodified."
+          ],
+          "currentTarget": {
+            "hash": "5c7afdc1a463659fbe783fe4a1cb42fbf0314f5e295076512b61d883b334d35e",
+            "line": 330,
+            "kind": "FunctionDeclaration",
+            "name": "retireConfigurationGeneration",
+            "unchangedTargetText": true,
+            "mappingEvidence": "Exact AST body plus reviewed surrounding symbol/control-flow. Backup repeated recover sites disambiguated by sole three-line assertion insertion and original current target line."
+          },
+          "dependencyBindings": [
+            {
+              "path": "src/backup_generation.ts",
+              "sha256": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f"
+            },
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0"
+            },
+            {
+              "path": "tests/fixtures/backup_generation_crash_child.js",
+              "sha256": "abdc2a5a85bbb14af6685d9ddc974527f2885762f6747e74c1b686f435247e20"
+            },
+            {
+              "path": "tests/fixtures/backup_generation_fixture.js",
+              "sha256": "3be2bb151f7f0f23a816d12435836c15592f98baa44ce00946145b135253b12a"
+            },
+            {
+              "path": "tests/test_backup_generation.js",
+              "sha256": "2f7a184310b317284f7b3360c3d8d37459862b38ebb595cad904922c231d517a"
+            },
+            {
+              "path": "tests/test_backup_generation_crash.js",
+              "sha256": "b54491c54fc9e545c2145afbcf0ffce258802014aa45741a34888b6ab1ed1d67"
+            },
+            {
+              "path": "tests/test_backup_generation_ownership.js",
+              "sha256": "0fa1ca5bc7dc691a3dc48708fe5a169b66345f55e4de4cb7bda4707d4d05b6c1"
+            }
+          ],
+          "originalDisposition": "retain_existing_site",
+          "executionScope": "Source/context review only. Existing executions/probes retain original bytes, lines, dates and results; new integrated test evidence is separate."
+        }
+      ],
+      "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution.",
+      "rootAdoption": {
+        "reviewer": "root integration review",
+        "manifestSha256": "92321ceb0e2a00453516797c34c9391ef7194a1c135e2c3d9c536db9bcf0a561",
+        "scope": "Reviewed concrete source deltas, exact input bindings and per-ID caller/target rationale. Historical executions and earlier fields retained verbatim. Final integrated and provider acceptance remain pending."
+      }
     }
   ]
 }
