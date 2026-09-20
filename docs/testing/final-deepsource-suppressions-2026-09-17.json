@@ -46704,6 +46704,34 @@
         "manifestSha256": "92321ceb0e2a00453516797c34c9391ef7194a1c135e2c3d9c536db9bcf0a561",
         "scope": "Reviewed concrete source deltas, exact input bindings and per-ID caller/target rationale. Historical executions and earlier fields retained verbatim. Final integrated and provider acceptance remain pending."
       }
+    },
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "f63441bd05e35aec013e4694b18fffa8fc05b073",
+      "dirtyTree": true,
+      "previousLedgerSha256": "f627663f56cf99e1a67182bb66abfa72e663fef20c750050ef5559ef759874b7",
+      "reviews": [
+        {
+          "id": "baseline-skipcq-123",
+          "rules": [
+            "JS-W1042"
+          ],
+          "path": "tests/test_workflow_input_types.js",
+          "rationale": "Only the fixed AST extraction name list changes from four to five declarations. The exact line83 assertion, its two arguments including required undefined expected value, and all surrounding validation/data cases are unchanged. Existing site remains justified; no new suppression or relaxed assertion.",
+          "dependencyBindings": [
+            {
+              "path": "tests/test_workflow_input_types.js",
+              "sha256": "afc53b0a820b114df2d6fb1326c87c3c361634ef0d09d0b013e56cbd402bf781"
+            },
+            {
+              "path": "src/workflow_repository.ts",
+              "sha256": "7db980fe01055e5ac4d143e5470ecab0323bba37ce8ebcf6cb5ba9d378efc8c4"
+            }
+          ],
+          "historicalTestBindingsPreserved": true
+        }
+      ],
+      "executionScope": "Source-context renewal only. Actual three-suite green log is separate; original executions remain historical and final full runs still required."
     }
   ]
 }
