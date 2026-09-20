@@ -19,7 +19,7 @@ Alle Codacy-, DeepSource- und Sonar-Befunde einschließlich früherer False Posi
 
 | Dienst / Bestand | Anzahl | Heutige Aussage |
 |---|---:|---|
-| Codacy aktiv / ignoriert | 92 / 347 | Vollständig paginiert am 20.09.; alle 439 IDs unverändert. Nach den Reparaturen 120 gebundene Kontextdateien lokal verifiziert; Trivy-/ESLint-Abbrüche weiterhin vorhanden. |
+| Codacy aktiv / ignoriert | 92 / 347 | Vollständig paginiert am 20.09.; alle 439 IDs unverändert. Nach den Reparaturen 122 gebundene Kontextdateien lokal verifiziert; Trivy-/ESLint-Abbrüche weiterhin vorhanden. |
 | DeepSource aktiv | 1.315 | Vollständig paginiert am 20.09.; dieselben IDs wie Baseline, main `58c01bc7`. |
 | DeepSource JS-R1005 | 1.178 | Explizit ausgenommen, keine Behebungsbehauptung. |
 | DeepSource übrige | 137, 19 Regeln | 49 lokale Quellkorrekturen warten auf Scan; 88 einzelne Entscheidungen erfordern aktuellen Abschlussnachweis. |

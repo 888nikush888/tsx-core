@@ -11,8 +11,13 @@ const repositoryBaseline = JSON.parse(
 );
 assert.deepEqual(
   repositoryBaseline.verifiedPlatforms,
+  ['win32'],
+  'The raised gate currently has Windows evidence; Linux verification remains pending.',
+);
+assert.deepEqual(
+  repositoryBaseline.requiredPlatforms,
   ['linux', 'win32'],
-  'The shared ratchet must identify both platforms used to establish its conservative floor.',
+  'Both platforms remain required before declaring cross-platform verification.',
 );
 assert.deepEqual(
   {
@@ -21,8 +26,8 @@ assert.deepEqual(
     functions: repositoryBaseline.functions,
     lines: repositoryBaseline.lines,
   },
-  { statements: 96.49, branches: 86.45, functions: 99.2, lines: 96.49 },
-  'A higher single-platform observation must not replace the verified cross-platform baseline.',
+  { statements: 96.62, branches: 86.73, functions: 99.24, lines: 96.62 },
+  'The stricter provisional gate must remain enforced without claiming Linux verification.',
 );
 
 const baseline = { statements: 88, branches: 75, functions: 95, lines: 88 };

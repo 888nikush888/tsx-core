@@ -46732,6 +46732,82 @@
         }
       ],
       "executionScope": "Source-context renewal only. Actual three-suite green log is separate; original executions remain historical and final full runs still required."
+    },
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "3ec8ef8b9054a30b4aea55c1a5ed4e5db0aaed47",
+      "dirtyTree": true,
+      "previousLedgerSha256": "283da17c13bbd8f3544ca4b75c51d262087cc130f9d61dc8f1314b3215098ac1",
+      "reviews": [
+        {
+          "id": "baseline-skipcq-258",
+          "rules": [
+            "JS-W1042"
+          ],
+          "path": "tests/test_module_coverage.js",
+          "rationale": "assert.equal at line84 still has two explicit arguments and compares child-spawn result.error against undefined. Its expected argument is required by the assertion API; the exact assertion body is unchanged. Five preceding lines were added only for platform provenance. Failed children still return before parsing stale coverage, regressed summaries still fail, and valid summaries still pass; no suppression scope expansion.",
+          "currentSourceBinding": {
+            "sha256": "d5cc99ecfa0e4f59852ec385e15f81672c0210f8c8dbf513cad2446d5b75ddc5",
+            "targetSha256": "ec65078c7f30b3871ce3eb83bb6a32632e93535f09883a7b012c86fd0f59a0af",
+            "targetStartLine": 84,
+            "targetEndLine": 84,
+            "kind": "CallExpression",
+            "symbol": "runCoverageCli"
+          },
+          "currentAstFacts": {
+            "ownAwaitLines": [],
+            "ownThrowLines": [],
+            "ownThisLines": [],
+            "returns": [],
+            "calls": [
+              {
+                "callee": "assert.equal",
+                "line": 84,
+                "argumentKinds": [
+                  "PropertyAccessExpression",
+                  "Identifier"
+                ]
+              }
+            ]
+          },
+          "currentCallerEvidence": [
+            {
+              "path": "tests/test_module_coverage.js",
+              "line": 92,
+              "callee": "runCoverageCli",
+              "binding": "same_module_symbol"
+            },
+            {
+              "path": "tests/test_module_coverage.js",
+              "line": 97,
+              "callee": "runCoverageCli",
+              "binding": "same_module_symbol"
+            },
+            {
+              "path": "tests/test_module_coverage.js",
+              "line": 103,
+              "callee": "runCoverageCli",
+              "binding": "same_module_symbol"
+            }
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_module_coverage.js",
+              "sha256": "d5cc99ecfa0e4f59852ec385e15f81672c0210f8c8dbf513cad2446d5b75ddc5"
+            },
+            {
+              "path": "coverage-baseline.json",
+              "sha256": "44da87324fa9a55c18c6b234b27d743de4db936a8150a8119c7fac2ddc641ca3"
+            },
+            {
+              "path": "scripts/check_module_coverage.js",
+              "sha256": "46606239b374571f9ab3ed7f0f02e974235f4519f326292026b2edcf8f5f4d79"
+            }
+          ],
+          "historicalTestBindingsPreserved": true
+        }
+      ],
+      "executionScope": "Static context/coordinate renewal only; focused actual test log separate. Historical execution records unchanged; full new run and Linux verification remain pending."
     }
   ]
 }
