@@ -191,18 +191,18 @@ type SessionRow = {
 };
 type ControlRequestRow = {
   id: string; agentId: string; sessionId: string | null; action: string;
-  payloadJson: string; resultJson: string; error: string | null;
+  payloadJson: string; resultJson: string | null; error: string | null;
   createdAt: number; startedAt: number | null; completedAt: number | null;
 } & { status: McpControlRequest['status'] };
 type ProposalRow = {
   id: string; agentId: string; agentName: string; sessionId: string | null; action: string;
   payloadJson: string; preflightJson: string; requestedAt: number; expiresAt: number;
   decidedAt: number | null; decidedBy: string | null; executedAt: number | null;
-  resultJson: string; error: string | null;
+  resultJson: string | null; error: string | null;
 } & { status: McpAgentProposal['status'] };
 type ActionRow = {
   id: string; agentId: string; agentName: string; sessionId: string | null;
-  toolName: string; permission: string; requestJson: string; resultJson: string;
+  toolName: string; permission: string; requestJson: string; resultJson: string | null;
   error: string | null; startedAt: number; completedAt: number; durationMs: number;
 } & { outcome: McpAgentAction['outcome'] };
 type EventRow = {

@@ -316,10 +316,10 @@ jobs:
           npm rebuild esbuild
         working-directory: frontend
       - name: Install the pinned browser runtime
-        run: npx playwright install --with-deps ${{ matrix.project == 'mobile-chromium' && 'chromium' || matrix.project }}
+        run: node node_modules/playwright/cli.js install --with-deps ${{ matrix.project == 'mobile-chromium' && 'chromium' || matrix.project }}
         working-directory: frontend
       - name: Run real-browser and WCAG A/AA checks
-        run: npx playwright test --project=${{ matrix.project }}
+        run: node node_modules/playwright/cli.js test --project=${{ matrix.project }}
         working-directory: frontend
       - name: Upload browser failure evidence
         if: failure()

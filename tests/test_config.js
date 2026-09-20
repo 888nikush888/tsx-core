@@ -152,6 +152,18 @@ try {
   assert.throws(() => readConfigSync(malformedPath), /Failed to read configuration/);
   assert.equal(await readFile(malformedPath, 'utf8'), '{not-json');
 
+  const invalidReadPath = path.join(root, 'invalid-read.json');
+  await writeFile(invalidReadPath, JSON.stringify({ sourceChannels: 42 }), 'utf8');
+  for (const destination of [malformedPath, invalidReadPath, root]) {
+    const preservesNativeCause = error => {
+      assert.ok(error.cause instanceof Error, 'Native file, parse and validation failures retain their cause.');
+      assert.equal(error.message, `Failed to read configuration from ${destination}: ${error.cause.message}`);
+      return true;
+    };
+    assert.throws(() => readConfigSync(destination), preservesNativeCause);
+    await assert.rejects(readConfig(destination), preservesNativeCause);
+  }
+
   const unwritablePath = path.join(root, 'missing-directory', 'config.json');
   assert.throws(() => writeConfigSync(DEFAULT_CONFIG, unwritablePath));
   await assert.rejects(() => writeConfig(DEFAULT_CONFIG, unwritablePath));

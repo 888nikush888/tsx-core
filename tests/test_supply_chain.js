@@ -251,8 +251,8 @@ assert.match(workflow, /name:\s*codeql-evidence-\$\{\{ github\.sha \}\}/);
 assert.doesNotMatch(workflow, /ignore-unfixed:\s*true/);
 assert.match(workflow, /retention-days:\s*90/);
 assert.match(workflow, /project:\s*\[chromium, firefox, webkit, mobile-chromium\]/);
-assert.match(workflow, /playwright install --with-deps/);
-assert.match(workflow, /playwright test --project=\$\{\{ matrix\.project \}\}/);
+assert.match(workflow, /node node_modules\/playwright\/cli\.js install --with-deps/);
+assert.match(workflow, /node node_modules\/playwright\/cli\.js test --project=\$\{\{ matrix\.project \}\}/);
 assert.match(workflow, /github\.event\.repository\.private == false[\s\S]*?actions\/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294/);
 assert.match(workflow, /github\.event\.repository\.private[\s\S]*?npm audit --audit-level=moderate[\s\S]*?npm audit --prefix frontend --audit-level=moderate[\s\S]*?npm run quality:dependencies/);
 assert.doesNotMatch(workflow, /^\s{2}release:\s*$/m);
@@ -295,7 +295,11 @@ assert.match(
 assert.match(executorDockerfile, /"libcrypto3=3\.5\.8-r0"/);
 assert.match(executorDockerfile, /"libssl3=3\.5\.8-r0"/);
 assert.match(executorDockerfile, /"libuuid=2\.41\.6-r1"/, 'executor libuuid must include the reviewed util-linux security fixes');
-assert.match(executorDockerfile, /apk add --no-cache "sqlite-libs=3\.53\.4-r0"/);
+const executorApkCommand = executorDockerfile.replaceAll(/\\\r?\n/g, ' ').match(/^RUN apk add --no-cache (.*?)&&/m)?.[1];
+assert.ok(executorApkCommand, 'Executor runtime packages must be installed in the apk command.');
+assert.deepEqual([...executorApkCommand.matchAll(/"([^"]+)"/g)].map(match => match[1]), [
+  'libcrypto3=3.5.8-r0', 'libssl3=3.5.8-r0', 'libuuid=2.41.6-r1', 'sqlite-libs=3.53.4-r0',
+]);
 assert.match(executorDockerfile, /^USER 65532:65532$/m);
 assert.match(executorDockerfile, /pip install --require-hashes/);
 assert.match(executorLock, /^#\s+uv pip compile requirements\.in --universal --python-version 3\.12 --generate-hashes --output-file requirements\.lock$/m);
