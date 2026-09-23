@@ -139,7 +139,7 @@
       "line": 94,
       "reviewedSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
       "disposition": "false-positive",
-      "rationale": "Independent current review at6677d8947b88fdb19f01e1d3189cdce7ef3015ea: Individually traced full CLI-selected absolute Python -> realpath/ordinary-file/canonical-parent -> fixed -I -B -c bridge and root argv -> bounded runtime result -> pinned receipt comparison flow to readSync. Canonical source directories, safeRelative, no-follow, single-link and pre/open/post file identity checks remain; spawn is shell:false with fixed code, timeout and maxBuffer. Verifier and all contexts except authority file are byte-identical. Authority delta changes only existing Hyperliquid/profile1 digest1427d769... to independently root-approved cf9aea59...; no added exchange/profile, executable, path or command. Separate28c adoption evidence establishes provenance; this review itself grants neither provider acceptance nor new receipt authority. Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition.",
+      "rationale": "Independent current review at6677d8947b88fdb19f01e1d3189cdce7ef3015ea: Individually traced full CLI-selected absolute Python -> realpath/ordinary-file/canonical-parent -> fixed -I -B -c bridge and root argv -> bounded runtime result -> pinned receipt comparison flow to readSync. Canonical source directories, safeRelative, no-follow, single-link and pre/open/post file identity checks remain; spawn is shell:false with fixed code, timeout and maxBuffer. Verifier and all contexts except authority file are byte-identical. Authority delta changes only existing Hyperliquid/profile1 digest1427d769... to independently root-approved cf9aea59...; no added exchange/profile, executable, path or command. Separate28c adoption evidence establishes provenance; this review itself grants neither provider acceptance nor new receipt authority. Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition. Current Sonar125 authority-context re-review: The readSync sink still reads only a canonical, ordinary, single-link source file after before/open/after identity checks and a fixed byte budget. This context change replaces only the existing Hyperliquid/profile-1 approved receipt digest; it adds no file path or untrusted source to the read flow. Scanner identity, finding source and full code flow remain unchanged. This renewal does not grant provider acceptance or change the existing disposition.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -151,7 +151,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
+          "sha256": "a82912c2049d0594cd9f3d2cf98256b5a82ab2dea98538215f3e146f08da31da"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -1389,6 +1389,16 @@
           }
         ],
         "rationale": "Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition.",
+        "scannerEvidenceUnchanged": true,
+        "providerScanRenewed": false
+      },
+      "sonarVendoredContextRenewal": {
+        "sourceRevision": "1258689ef1ed92dcbc9a5a2f0a79dcf6a46af18a",
+        "priorLedgerSha256": "b3bc8cddc73dea6d736da877a6706ea7ed2ca2be425870217f2c564bd0c18001",
+        "contextPath": "exchange_executor/ccxt_implementation_reviews.py",
+        "priorSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b",
+        "currentSha256": "a82912c2049d0594cd9f3d2cf98256b5a82ab2dea98538215f3e146f08da31da",
+        "rationale": "Current Sonar125 authority-context re-review: The readSync sink still reads only a canonical, ordinary, single-link source file after before/open/after identity checks and a fixed byte budget. This context change replaces only the existing Hyperliquid/profile-1 approved receipt digest; it adds no file path or untrusted source to the read flow. Scanner identity, finding source and full code flow remain unchanged. This renewal does not grant provider acceptance or change the existing disposition.",
         "scannerEvidenceUnchanged": true,
         "providerScanRenewed": false
       }
@@ -5760,7 +5770,7 @@
       "line": 293,
       "reviewedSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
       "disposition": "false-positive",
-      "rationale": "Independent current review at6677d8947b88fdb19f01e1d3189cdce7ef3015ea: Individually traced full CLI-selected absolute Python -> realpath/ordinary-file/canonical-parent -> fixed -I -B -c bridge and root argv -> bounded runtime result -> pinned receipt comparison flow to spawnSync. Canonical source directories, safeRelative, no-follow, single-link and pre/open/post file identity checks remain; spawn is shell:false with fixed code, timeout and maxBuffer. Verifier and all contexts except authority file are byte-identical. Authority delta changes only existing Hyperliquid/profile1 digest1427d769... to independently root-approved cf9aea59...; no added exchange/profile, executable, path or command. Separate28c adoption evidence establishes provenance; this review itself grants neither provider acceptance nor new receipt authority. Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition.",
+      "rationale": "Independent current review at6677d8947b88fdb19f01e1d3189cdce7ef3015ea: Individually traced full CLI-selected absolute Python -> realpath/ordinary-file/canonical-parent -> fixed -I -B -c bridge and root argv -> bounded runtime result -> pinned receipt comparison flow to spawnSync. Canonical source directories, safeRelative, no-follow, single-link and pre/open/post file identity checks remain; spawn is shell:false with fixed code, timeout and maxBuffer. Verifier and all contexts except authority file are byte-identical. Authority delta changes only existing Hyperliquid/profile1 digest1427d769... to independently root-approved cf9aea59...; no added exchange/profile, executable, path or command. Separate28c adoption evidence establishes provenance; this review itself grants neither provider acceptance nor new receipt authority. Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition. Current Sonar125 authority-context re-review: The spawnSync sink still executes the explicitly selected canonical Python executable with fixed -I -B -c bridge arguments, shell:false, timeout, and output limit. The authority-file change only replaces the existing Hyperliquid/profile-1 receipt digest and does not affect executable, arguments, or command construction. Scanner identity, finding source and full code flow remain unchanged. This renewal does not grant provider acceptance or change the existing disposition.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -5772,7 +5782,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
+          "sha256": "a82912c2049d0594cd9f3d2cf98256b5a82ab2dea98538215f3e146f08da31da"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -6580,6 +6590,16 @@
         "rationale": "Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition.",
         "scannerEvidenceUnchanged": true,
         "providerScanRenewed": false
+      },
+      "sonarVendoredContextRenewal": {
+        "sourceRevision": "1258689ef1ed92dcbc9a5a2f0a79dcf6a46af18a",
+        "priorLedgerSha256": "b3bc8cddc73dea6d736da877a6706ea7ed2ca2be425870217f2c564bd0c18001",
+        "contextPath": "exchange_executor/ccxt_implementation_reviews.py",
+        "priorSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b",
+        "currentSha256": "a82912c2049d0594cd9f3d2cf98256b5a82ab2dea98538215f3e146f08da31da",
+        "rationale": "Current Sonar125 authority-context re-review: The spawnSync sink still executes the explicitly selected canonical Python executable with fixed -I -B -c bridge arguments, shell:false, timeout, and output limit. The authority-file change only replaces the existing Hyperliquid/profile-1 receipt digest and does not affect executable, arguments, or command construction. Scanner identity, finding source and full code flow remain unchanged. This renewal does not grant provider acceptance or change the existing disposition.",
+        "scannerEvidenceUnchanged": true,
+        "providerScanRenewed": false
       }
     },
     {
@@ -6670,7 +6690,7 @@
       "line": 86,
       "reviewedSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
       "disposition": "false-positive",
-      "rationale": "Independent current review at6677d8947b88fdb19f01e1d3189cdce7ef3015ea: Individually traced full CLI-selected absolute Python -> realpath/ordinary-file/canonical-parent -> fixed -I -B -c bridge and root argv -> bounded runtime result -> pinned receipt comparison flow to openSync. Canonical source directories, safeRelative, no-follow, single-link and pre/open/post file identity checks remain; spawn is shell:false with fixed code, timeout and maxBuffer. Verifier and all contexts except authority file are byte-identical. Authority delta changes only existing Hyperliquid/profile1 digest1427d769... to independently root-approved cf9aea59...; no added exchange/profile, executable, path or command. Separate28c adoption evidence establishes provenance; this review itself grants neither provider acceptance nor new receipt authority. Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition.",
+      "rationale": "Independent current review at6677d8947b88fdb19f01e1d3189cdce7ef3015ea: Individually traced full CLI-selected absolute Python -> realpath/ordinary-file/canonical-parent -> fixed -I -B -c bridge and root argv -> bounded runtime result -> pinned receipt comparison flow to openSync. Canonical source directories, safeRelative, no-follow, single-link and pre/open/post file identity checks remain; spawn is shell:false with fixed code, timeout and maxBuffer. Verifier and all contexts except authority file are byte-identical. Authority delta changes only existing Hyperliquid/profile1 digest1427d769... to independently root-approved cf9aea59...; no added exchange/profile, executable, path or command. Separate28c adoption evidence establishes provenance; this review itself grants neither provider acceptance nor new receipt authority. Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition. Current Sonar125 authority-context re-review: The openSync sink still uses a canonical parent and ordinary-file precheck, O_RDONLY plus O_NOFOLLOW when available, and verifies file identity across opening and reading. The renewed authority digest does not add a path source or alter this flow. Scanner identity, finding source and full code flow remain unchanged. This renewal does not grant provider acceptance or change the existing disposition.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -6682,7 +6702,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
+          "sha256": "a82912c2049d0594cd9f3d2cf98256b5a82ab2dea98538215f3e146f08da31da"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -7872,6 +7892,16 @@
           }
         ],
         "rationale": "Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition.",
+        "scannerEvidenceUnchanged": true,
+        "providerScanRenewed": false
+      },
+      "sonarVendoredContextRenewal": {
+        "sourceRevision": "1258689ef1ed92dcbc9a5a2f0a79dcf6a46af18a",
+        "priorLedgerSha256": "b3bc8cddc73dea6d736da877a6706ea7ed2ca2be425870217f2c564bd0c18001",
+        "contextPath": "exchange_executor/ccxt_implementation_reviews.py",
+        "priorSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b",
+        "currentSha256": "a82912c2049d0594cd9f3d2cf98256b5a82ab2dea98538215f3e146f08da31da",
+        "rationale": "Current Sonar125 authority-context re-review: The openSync sink still uses a canonical parent and ordinary-file precheck, O_RDONLY plus O_NOFOLLOW when available, and verifies file identity across opening and reading. The renewed authority digest does not add a path source or alter this flow. Scanner identity, finding source and full code flow remain unchanged. This renewal does not grant provider acceptance or change the existing disposition.",
         "scannerEvidenceUnchanged": true,
         "providerScanRenewed": false
       }
@@ -29185,5 +29215,30 @@
     "providerScanRenewed": false,
     "providerAcceptanceVerified": false,
     "scope": "Only current context hashes and individual rationales are renewed. Existing 86 scanner identities, fingerprints, code flows, 82 false-positive decisions and four owner-accepted HTTP risks remain unchanged. A fresh exact-head Snyk Code scan is still required."
+  },
+  "sonarVendoredContextRenewal": {
+    "sourceRevision": "1258689ef1ed92dcbc9a5a2f0a79dcf6a46af18a",
+    "priorLedgerSha256": "b3bc8cddc73dea6d736da877a6706ea7ed2ca2be425870217f2c564bd0c18001",
+    "independentReview": {
+      "path": "exchange_executor/certifications/reviews/final-sonar-vendored-1258689e-snyk-code-context-review.json",
+      "sha256": "552d2f16573f5371365d9da10b3f975ce8333a75a86f077b7b3d61bbd728391d"
+    },
+    "changedContextPath": "exchange_executor/ccxt_implementation_reviews.py",
+    "priorContextSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b",
+    "currentContextSha256": "a82912c2049d0594cd9f3d2cf98256b5a82ab2dea98538215f3e146f08da31da",
+    "affectedIds": [
+      "ca8d4075-1f15-40f9-9432-667e0a033660",
+      "4494650c-4f77-4efc-9956-2a491467ddaf",
+      "7039073d-34a6-4901-9897-4c0a40ca7b0a"
+    ],
+    "changedBindings": 3,
+    "findingCountsUnchanged": {
+      "false-positive": 82,
+      "open": 4
+    },
+    "scannerEvidenceUnchanged": true,
+    "providerScanRenewed": false,
+    "providerAcceptanceVerified": false,
+    "scope": "Exact three false-positive context hashes renewed after separately approved Hyperliquid profile 1 pin; all other finding bindings and four accepted HTTP risks unchanged."
   }
 }

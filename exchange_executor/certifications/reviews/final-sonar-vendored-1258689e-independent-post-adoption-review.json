@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "root",
+  "reviewedAt": "2026-09-23T16:22:51Z",
+  "sourceRevision": "1258689ef1ed92dcbc9a5a2f0a79dcf6a46af18a",
+  "scope": "Independent verification of the exact offline Hyperliquid profile 1 receipt adoption after the one-file Sonar vendored-CSS exclusion; no provider acceptance, deployment, live trading, or new profile authority.",
+  "receiptSha256": "e80181c487e9e48d0dd26092558735c60d2c914125c0d85cb7e7aaa0a9519c91",
+  "sourceTreeHash": "5c7d438588394a131d0c4970668cc46b7fd66427fdd04b3b922182fcda3a009f",
+  "evidence": {
+    "receiptArchive": {
+      "path": "exchange_executor/certifications/reviews/final-sonar-vendored-1258689e-receipt-evidence.tar.gz",
+      "sha256": "1d446d22c7b7bb13327fc705cd83d5d1d0f6c0e8036c17ac62b00ee0a46b6913",
+      "manifestSha256": "f5df6e14fe962be7858c1b4848a0d26bc0f2782b5c624715e1dd04fea1fc25e9",
+      "files": 95,
+      "verified": true
+    },
+    "postAdoptionLogs": {
+      "path": "exchange_executor/certifications/reviews/final-sonar-vendored-1258689e-post-adoption-logs.tar.gz",
+      "sha256": "1f8d94fd23230c6076ad2f46e5a3c7cf710ae4a9b64ced410a4fcee9c63af552",
+      "members": 4,
+      "verified": true
+    },
+    "postAdoptionChecks": {
+      "path": "exchange_executor/certifications/reviews/final-sonar-vendored-1258689e-post-adoption-checks.json",
+      "sha256": "6e1c9c58d6744337012daeba19145619e07cfdeeb206c1b9884b1115cb2133e0"
+    }
+  },
+  "checks": {
+    "installedReceiptBytesMatchCandidate": true,
+    "pinContainsOnlyRenewedHyperliquidProfileOneDigest": true,
+    "receiptArchiveManifestAndEveryMemberHashMatch": true,
+    "postAdoptionArchiveAndEveryMemberHashMatch": true,
+    "fourRecordedCommandsExitedZero": true,
+    "independentlyRepeatedProductionGate": true,
+    "productionGateBuildInputsMatch": true,
+    "productionGateRuntimeReceiptsVerified": true,
+    "bybitAndKrakenRemainQuarantined": true,
+    "providerAcceptanceVerified": false
+  },
+  "observations": [
+    "The installed receipt differs from the preceding receipt only in sourceRevision, sourceTreeHash, parityEvidenceHash, executionReportHash, nodeSourcesHash, and reviewedAt; profile, test, fixture, executor, SDK and scope commitments are unchanged.",
+    "The production gate independently repeated at this frozen checkout exited 0, returned the exact renewed receipt and SourceTree, and reported buildInputsMatch and runtimeReceiptsVerified true.",
+    "The sealed post-adoption archive contains the production gate, bridge, certification-evidence, and implementation-runtime raw logs. Their hashes match the checks record; bridge passed 1/1 and both Python suites passed 12/12.",
+    "The receipt archive contains 95 evidence files plus its manifest; all member hashes match and the manifest records zero unresolved references."
+  ],
+  "providerAcceptanceVerified": false,
+  "implementationOfflineGateVerified": true,
+  "liveTradingAuthorized": false
+}

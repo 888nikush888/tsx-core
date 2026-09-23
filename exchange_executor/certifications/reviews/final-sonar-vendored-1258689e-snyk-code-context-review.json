@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "root",
+  "reviewedAt": "2026-09-23T16:24:00Z",
+  "sourceRevision": "1258689ef1ed92dcbc9a5a2f0a79dcf6a46af18a",
+  "priorLedgerSha256": "b3bc8cddc73dea6d736da877a6706ea7ed2ca2be425870217f2c564bd0c18001",
+  "changedContextPath": "exchange_executor/ccxt_implementation_reviews.py",
+  "priorContextSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b",
+  "currentContextSha256": "a82912c2049d0594cd9f3d2cf98256b5a82ab2dea98538215f3e146f08da31da",
+  "findingSourcePath": "scripts/verify_exchange_implementation.js",
+  "findingSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
+  "receiptSha256": "e80181c487e9e48d0dd26092558735c60d2c914125c0d85cb7e7aaa0a9519c91",
+  "postAdoptionReview": {
+    "path": "exchange_executor/certifications/reviews/final-sonar-vendored-1258689e-independent-post-adoption-review.json",
+    "sha256": "4ba74deed9410d417b7cec1ac01fc61fc18722b4a3bc40a868773b9a5e6d2180"
+  },
+  "records": [
+    {
+      "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+      "ruleId": "javascript/PT",
+      "line": 94,
+      "disposition": "false-positive",
+      "assessment": "The readSync sink still reads only a canonical, ordinary, single-link source file after before/open/after identity checks and a fixed byte budget. This context change replaces only the existing Hyperliquid/profile-1 approved receipt digest; it adds no file path or untrusted source to the read flow."
+    },
+    {
+      "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+      "ruleId": "javascript/IndirectCommandInjection",
+      "line": 293,
+      "disposition": "false-positive",
+      "assessment": "The spawnSync sink still executes the explicitly selected canonical Python executable with fixed -I -B -c bridge arguments, shell:false, timeout, and output limit. The authority-file change only replaces the existing Hyperliquid/profile-1 receipt digest and does not affect executable, arguments, or command construction."
+    },
+    {
+      "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+      "ruleId": "javascript/PT",
+      "line": 86,
+      "disposition": "false-positive",
+      "assessment": "The openSync sink still uses a canonical parent and ordinary-file precheck, O_RDONLY plus O_NOFOLLOW when available, and verifies file identity across opening and reading. The renewed authority digest does not add a path source or alter this flow."
+    }
+  ],
+  "checks": {
+    "allEightySixFindingSourcesAndContextsRehashed": true,
+    "exactlyThreeContextMismatchesBeforeRenewal": true,
+    "scannerIdentityAndCodeFlowsUnchanged": true,
+    "fourOwnerAcceptedInternalHttpRisksUnchanged": true,
+    "freshProviderScanPerformed": false,
+    "providerAcceptanceVerified": false
+  },
+  "scope": "Renew only three context hashes caused by the separately approved receipt pin. Preserve all 86 existing scanner identities, 82 contextual false-positive proposals, four owner-accepted internal HTTP risks, and prior reviews. No scanner closure, provider acceptance, or live authority is implied."
+}

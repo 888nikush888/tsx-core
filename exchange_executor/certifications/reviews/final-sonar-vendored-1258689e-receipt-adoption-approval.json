@@ -1,0 +1,34 @@
+{
+  "revision": "1258689ef1ed92dcbc9a5a2f0a79dcf6a46af18a",
+  "candidate": {
+    "path": "reports/final-findings/final-sonar-vendored-1258689e-hyperliquid-receipt-candidate.json",
+    "sha256": "e80181c487e9e48d0dd26092558735c60d2c914125c0d85cb7e7aaa0a9519c91"
+  },
+  "approved": true,
+  "reviewedAt": "2026-09-23T16:12:50Z",
+  "reviewer": "root",
+  "scope": "Adopt only the exact reviewed offline Hyperliquid profile 1 implementation receipt for the one-file Sonar vendored CSS exclusion after deterministic archive verification. This grants no provider acceptance, live trading, deployment, new exchange or profile authority, or scanner finding disposition.",
+  "independentReview": {
+    "path": "reports/final-findings/final-sonar-vendored-1258689e-independent-receipt-review.json",
+    "sha256": "e0a4d775cd0c149476538f69e572d20da9aaad204dd2b9ec6b2af76e61e726cb"
+  },
+  "completeSourceReview": {
+    "path": "reports/final-findings/final-sonar-vendored-1258689e-receipt-source-review-root.json",
+    "sha256": "88687952a4a826f585a4866cd1e7b8efd967c82a71d2009195c87565562a1546"
+  },
+  "rootChecks": [
+    "Only the three-line exact-file Sonar exclusion changed in the source-only commit; all first-party analysis roots, tests and fixtures remain unchanged.",
+    "All eight sonar125b groups passed after the genuine before-context and before the after-context, with identical 1002 Git build inputs and stable runtime commitments.",
+    "The earlier complete eight-group attempt remains preserved separately and is not rebound into the selected receipt execution.",
+    "All 62 historical requirement identities and 97 ordered witness bindings remain unchanged, and the independent validator verified 1097 current references with zero unresolved references.",
+    "Python receipt validation and Node build comparison passed without operative pin installation; implementation and provider acceptance remain false.",
+    "The excluded vendor CSS path must be reviewed again if its content changes, because Sonar will continue to skip that exact file."
+  ],
+  "providerAcceptanceVerified": false,
+  "operativeReceiptOrPinsChanged": false,
+  "remaining": [
+    "Verify and seal the deterministic evidence archive, then install only this exact reviewed receipt and Hyperliquid profile 1 digest.",
+    "Run actual post-adoption production implementation gate and bridge regressions and independently review their archived logs.",
+    "Renew affected Snyk Code authority context bindings and obtain fresh exact-head remote scans before protected merge."
+  ]
+}
