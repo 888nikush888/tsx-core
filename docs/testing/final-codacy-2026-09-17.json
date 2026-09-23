@@ -67268,11 +67268,11 @@
       },
       {
         "path": "monitoring/govulncheck/go.mod",
-        "normalizedSha256": "b1dcf59b7f2d2ca4756580e56e10241bee96fb52e48665dd41d9dad41c6e15c6",
-        "gitBlob": "adf5a8dc78111664d9cc4e79bffb239bcc4e3e77",
+        "normalizedSha256": "d91fbc98d20f6a67067919abc1e69fc23c5c3f99a07db5e1829630281ca7b967",
+        "gitBlob": "b446a0bbfe7aa0b3ed7240f51c525652c9b58902",
         "baselineSha256": "b1dcf59b7f2d2ca4756580e56e10241bee96fb52e48665dd41d9dad41c6e15c6",
-        "changedFromBaseline": false,
-        "semanticReview": "The baseline occurrence and its controlling validation/caller flow were individually reviewed for this audit. The final revision contains the same source; the semantic decision and documented limitations remain valid. This file binding only detects later drift."
+        "changedFromBaseline": true,
+        "semanticReview": "The baseline occurrence and its controlling validation/caller flow were individually reviewed for this audit. At 15eb0a16c4fc232851ff9abb33431d216ca34621 only the direct golang.org/x/vuln requirement changed from v1.6.0 to v1.8.0; the go 1.26.6 directive and all 33 Trivy occurrence lines remain unchanged. Codacy's exact-head Trivy step succeeded and the PR branch has zero Trivy issues, while main still retains the 33 historical Go 1.26.0 records. The original provider-stale decision is preserved as historical evidence, not converted to a false positive or a main-branch closure."
       },
       {
         "path": "plans/005-kraken-quantity-probe.py",
@@ -67777,11 +67777,11 @@
       },
       {
         "path": "tests/test_monitoring_artifacts.js",
-        "normalizedSha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d",
-        "gitBlob": "da4deac042edd20a11161e0732e241e1f8b38cad",
+        "normalizedSha256": "d41a06aef9e7f10161ed097a5623f6b93871202695fb5bb47e498d1fe532ece2",
+        "gitBlob": "ee9cf326881befe03bbbe5cd4145ddafd0828310",
         "baselineSha256": "1d5cffa78d6dbcc95e75cf7eb665a9910e26ed4f4fd8ad393598a226abe8ab77",
         "changedFromBaseline": true,
-        "semanticReview": "Five narrow JS-0038 comments preserve literal GitHub expression and Docker ARG matching; all pinned image, hardened build, no-runtime-installation and binary vulnerability assertions remain byte-identical after removing these comments.",
+        "semanticReview": "Five narrow JS-0038 comments preserve literal GitHub expression and Docker ARG matching. At 15eb0a16c4fc232851ff9abb33431d216ca34621 only govulncheck module and sum assertions were updated from golang.org/x/vuln v1.6.0 to v1.8.0 and an exact golang.org/x/mod v0.41.0 sum assertion was added; pinned image, hardened build and no-runtime-installation checks remain. The previously reviewed non-literal-regexp occurrence and its line-46 digest are unchanged.",
         "priorSourceReview": {
           "path": "tests/test_monitoring_artifacts.js",
           "normalizedSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
@@ -67791,9 +67791,9 @@
           "semanticReview": "Reviewed all replacements of escaped-interpolation template literals with equivalent ordinary strings. Expected Docker/workflow marker bytes remain identical; the fixed requiredAlert regex source is untouched."
         },
         "currentSourceBinding": {
-          "baseRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
-          "dirty": true,
-          "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d"
+          "baseRevision": "15eb0a16c4fc232851ff9abb33431d216ca34621",
+          "dirty": false,
+          "sha256": "d41a06aef9e7f10161ed097a5623f6b93871202695fb5bb47e498d1fe532ece2"
         }
       },
       {
@@ -67867,11 +67867,11 @@
       },
       {
         "path": "tests/test_supply_chain.js",
-        "normalizedSha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b",
-        "gitBlob": "21135ca66c248a871cc5d12716e1e9b8060379a4",
+        "normalizedSha256": "d38952eaa1bb2bfcd780d4b78da5bcee0a84cccf74e2f1a6fdc9a30fe0dc6136",
+        "gitBlob": "453a8607c4b4daad7403b360fddfd32d894e6183",
         "baselineSha256": "a748f6d6110d647378177d0bb29aed38c66b9440824586f065f43c01f75fbabf",
         "changedFromBaseline": true,
-        "semanticReview": "Three new public Sonar issue identities are a finite sorted set checked by count, uniqueness, grammar and a literal SHA256 before either RegExp constructor. The line and path expressions must exactly equal anchored templates; the rule remains generic-api-key with AND and exact JSON-field/file restrictions. Existing native fixtures cover accepted IDs and unknown IDs, credential-shaped values, wrong fields and wrong files through the same loop. No scanner exception or authentication value is introduced by the test delta.",
+        "semanticReview": "Three public Sonar issue identities remain a finite sorted set checked by count, uniqueness, grammar and a literal SHA256 before either RegExp constructor. At 15eb0a16c4fc232851ff9abb33431d216ca34621 the test also adds this reviewed PR73 public-ID allowlist and updates exact govulncheck module and sum assertions from golang.org/x/vuln v1.6.0 to v1.8.0, including golang.org/x/mod v0.41.0. Existing secret-test and non-literal-regexp occurrences at lines 80, 81 and 184 retain all seven line digests and their prior fixture restrictions; no authentication value or scanner exclusion is introduced.",
         "priorSourceReview": {
           "path": "tests/test_supply_chain.js",
           "normalizedSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
@@ -67881,9 +67881,9 @@
           "semanticReview": "Reviewed all replacements of escaped-interpolation template literals with equivalent ordinary strings. Pinned build-stage/image/verifier command expectations remain identical; the fixed manifest/action regex and public identifier findings retain their reviewed provenance. Additional 2026-09-20 review: reordered exact pinned APK arguments and replaced first-argument sqlite regex with extraction of the APK argument list plus exact ordered-array assertion. All three existing reported public-identifier/regex occurrences and their controlling fixture patterns at lines 80/81/181 are unchanged. New regexes are fixed literals applied to trusted checked-out Dockerfile bytes, not user input. This change does not broaden an allowlist or weaken version pin assertions. Later delta: two fixed literal workflow assertions now require direct node node_modules/playwright/cli.js invocation for install/test with unchanged flags. Existing Codacy constructor and public-ID occurrences remain unchanged; these fixed regex literals introduce no dynamic pattern input."
         },
         "currentSourceBinding": {
-          "baseRevision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
-          "dirty": true,
-          "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b"
+          "baseRevision": "15eb0a16c4fc232851ff9abb33431d216ca34621",
+          "dirty": false,
+          "sha256": "d38952eaa1bb2bfcd780d4b78da5bcee0a84cccf74e2f1a6fdc9a30fe0dc6136"
         },
         "previousSemanticBindings": [
           {
