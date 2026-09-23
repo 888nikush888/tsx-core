@@ -1,5 +1,9 @@
 # Sonar backlog implementation
 
+## Neues Produkt- und Liveziel vom 23.09.2026
+
+[005 — UI-geführter sicherer Futures-Livebetrieb mit möglichst breiter CCXT-Abdeckung](005-ui-first-futures-live-goal.md) ist als **TODO / mehrstufiges Ziel** erfasst. Alle laufenden Betriebseinstellungen gehören in eine typisierte, autorisierte UI; Sicherheits-, Review-, CI- und Provider-Gates bleiben fest. Börsen werden je Produkt/Konto erst nach Implementierungs- und echter Providerabnahme zugelassen. Die Scanner-/Main-Basis aus Plan 004 und PR #73 ist die erste Abhängigkeit. Der Plan selbst erteilt keine Handels- oder Deploymentfreigabe.
+
 ## Aktueller Abschlussplan vom 20.09.2026
 
 [004 — Codacy, DeepSource und Sonar stabil abschließen](004-final-findings-stability.md) ist der aktuelle Plan gegen `1f21249adc48f74bf139562e89ca261b14aebc27`. Er führt die noch offenen Scanner-Abschlussarbeiten der historischen Pläne unten zusammen und ersetzt deren veraltete Bestandszahlen. Status: **IN PROGRESS / Umsetzung läuft; [aktueller Nachweis](../docs/testing/final-findings-followup-2026-09-20.md).**
