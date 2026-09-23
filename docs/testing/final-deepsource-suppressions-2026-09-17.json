@@ -49141,6 +49141,850 @@
       },
       "executionScope": "Append-only source/context renewal for the reviewed post-PR73 patch. Old entries, counts, rationale, tests, dates, hashes and earlier renewals retained verbatim. New exact-head CI and integrated acceptance remain outstanding.",
       "finalCloudAcceptance": false
+    },
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+      "dirtyTree": true,
+      "previousLedgerSha256": "01a80ff73f478a90b2961996274e63ac821a2df7acf88bce4979c141b05e59d4",
+      "reviews": [
+        {
+          "id": "baseline-skipcq-120",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/telegram_viewer_settings.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            },
+            {
+              "path": "src/telegram_viewer_settings.ts",
+              "sha256": "5dc1f131b92005841acfd206571b955dc6f54bcac2eb6fcd54a2e1bf7ed81be9"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-122",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/telegram_viewer_secrets.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            },
+            {
+              "path": "src/telegram_viewer_secrets.ts",
+              "sha256": "13c7035e10820c34e6851b311fc741f481eaa27fd01f61be1062bdf8a555835a"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-250",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "tests/test_signal_contract_validation.js",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "tests/test_signal_contract_validation.js"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "The undefined expected arguments at these three existing assert.equal sites are untouched. Nearby new TypeError/cause assertions strengthen negative cases without dropping required expected arguments."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_signal_contract_validation.js",
+              "sha256": "74e286b2a219b40af094e6a98834319aa53db6ff655af146a257ff35fca76ba4"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-270",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "tests/test_forwarder_error_types.js",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "tests/test_forwarder_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "The undefined expected arguments at these three existing assert.equal sites are untouched. Nearby new TypeError/cause assertions strengthen negative cases without dropping required expected arguments."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-271",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "tests/test_forwarder_error_types.js",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "tests/test_forwarder_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "The undefined expected arguments at these three existing assert.equal sites are untouched. Nearby new TypeError/cause assertions strengthen negative cases without dropping required expected arguments."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-310",
+          "rule": [
+            "JS-R1002"
+          ],
+          "issuePath": "src/signal_contract.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/signal_contract.ts",
+            "tests/test_signal_contract_validation.js"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "safePattern still constructs RegExp solely for syntax validation and does not execute an untrusted pattern outside the separate matcher budget. Only additionalFieldBound changes rejected-type error subclass. Its accepted scalar values, decimal parser and bound comparisons remain unchanged; no extra RegExp execution is added."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/signal_contract.ts",
+              "sha256": "9d5736e7065420b63cd19db78768b8ca416b286bfc929b5ec237201e4d0da9d7"
+            },
+            {
+              "path": "tests/test_signal_contract_validation.js",
+              "sha256": "74e286b2a219b40af094e6a98834319aa53db6ff655af146a257ff35fca76ba4"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-311",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/runtime_settings.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            },
+            {
+              "path": "src/runtime_settings.ts",
+              "sha256": "043b16d0c066bf550a8e83eba53082f52d89b6d49d3a48553650ad4beab7379c"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-324",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/mcp_maintenance.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            },
+            {
+              "path": "src/mcp_maintenance.ts",
+              "sha256": "c44700235c16da79c32ec98648255f47b65455b77ca8b479d8d66f080448e118"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-327",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/mcp_control_bridge.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            },
+            {
+              "path": "src/mcp_control_bridge.ts",
+              "sha256": "7c9e2bc745fde0f72da520b17545d62163ab91b2a54b31b50b9f8ea1c46acda5"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-330",
+          "rule": [
+            "JS-0263"
+          ],
+          "issuePath": "src/forwarder.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts",
+            "tests/test_forwarder_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "The typed-ID guard is separate from fatal process handlers, graceful shutdown/startup exits and in-place config clearing. Guard exceptions remain wrapped/handled by lookup; no fatal-handler or shared-config implementation changes."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            },
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-331",
+          "rule": [
+            "JS-0263"
+          ],
+          "issuePath": "src/forwarder.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts",
+            "tests/test_forwarder_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "The typed-ID guard is separate from fatal process handlers, graceful shutdown/startup exits and in-place config clearing. Guard exceptions remain wrapped/handled by lookup; no fatal-handler or shared-config implementation changes."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            },
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-332",
+          "rule": [
+            "JS-0263"
+          ],
+          "issuePath": "src/forwarder.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "The typed-ID guard is separate from fatal process handlers, graceful shutdown/startup exits and in-place config clearing. Guard exceptions remain wrapped/handled by lookup; no fatal-handler or shared-config implementation changes."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-333",
+          "rule": [
+            "JS-0263"
+          ],
+          "issuePath": "src/forwarder.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "The typed-ID guard is separate from fatal process handlers, graceful shutdown/startup exits and in-place config clearing. Guard exceptions remain wrapped/handled by lookup; no fatal-handler or shared-config implementation changes."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-334",
+          "rule": [
+            "JS-0320"
+          ],
+          "issuePath": "src/forwarder.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "The typed-ID guard is separate from fatal process handlers, graceful shutdown/startup exits and in-place config clearing. Guard exceptions remain wrapped/handled by lookup; no fatal-handler or shared-config implementation changes."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-335",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/forwarder.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-336",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/forwarder.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-337",
+          "rule": [
+            "JS-0263"
+          ],
+          "issuePath": "src/forwarder.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "The typed-ID guard is separate from fatal process handlers, graceful shutdown/startup exits and in-place config clearing. Guard exceptions remain wrapped/handled by lookup; no fatal-handler or shared-config implementation changes."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-343",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/db.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-347",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/db.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-350",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/db.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-351",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/db.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-357",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/crash_guard.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/crash_guard.ts",
+              "sha256": "1a8887034291cbe185cb8fd0fb47c4c1c1bc68a295842c7f600389f8b6bba4d5"
+            },
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-360",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/backup_generation.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/backup_generation.ts",
+              "sha256": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f"
+            },
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-361",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/backup_generation.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/backup_generation.ts",
+              "sha256": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f"
+            },
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "baseline-skipcq-362",
+          "rule": [
+            "JS-0116"
+          ],
+          "issuePath": "src/backup_generation.ts",
+          "originalDisposition": "retain_existing_site",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/backup_generation.ts",
+              "sha256": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f"
+            },
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        }
+      ],
+      "reviewedSixFileInputs": [
+        {
+          "path": "src/forwarder.ts",
+          "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+        },
+        {
+          "path": "src/signal_contract.ts",
+          "sha256": "9d5736e7065420b63cd19db78768b8ca416b286bfc929b5ec237201e4d0da9d7"
+        },
+        {
+          "path": "src/trading_fill_identity.ts",
+          "sha256": "e937e237fabd3f4d275971a72a2c4c67987e51f918cd39f95061d5dba6f1a2e2"
+        },
+        {
+          "path": "tests/test_forwarder_error_types.js",
+          "sha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89"
+        },
+        {
+          "path": "tests/test_signal_contract_validation.js",
+          "sha256": "74e286b2a219b40af094e6a98834319aa53db6ff655af146a257ff35fca76ba4"
+        },
+        {
+          "path": "tests/test_exchange_fill_identity.js",
+          "sha256": "617a11ff1170cac03265ff2e7981c8575b5fffe0b614989de0f2ef75162ed404"
+        }
+      ],
+      "actualScopedExecution": {
+        "originalAttempt": {
+          "path": "reports/final-findings/pr73-sonar-three-actual-regressions.log",
+          "sha256": "3c8eeed5200e4d0b8e92fbc90b4c152eeb8b43cdb5700b7f07331fa844d92b99",
+          "result": "2 passed,1 failed: malformed canonical fillId rejected at existing identifier guard before native proof; earlier generic null expectation was incorrect.",
+          "historicalPreserved": true
+        },
+        "correctedAttempt": {
+          "path": "reports/final-findings/pr73-sonar-three-actual-retry1.log",
+          "sha256": "377e72f7e8bf23b1a5cddf2255b30f5ee78c9c195249238f6e243e747ff17299",
+          "result": "ALL 3 TEST FILES PASSED!",
+          "scope": [
+            "tests/test_forwarder_error_types.js",
+            "tests/test_signal_contract_validation.js",
+            "tests/test_exchange_fill_identity.js"
+          ],
+          "provenance": "Existing actual runner log inspected, not rerun by this reviewer."
+        },
+        "limits": "Not full-suite/mutation/cloud acceptance; original failed log is retained and never relabeled."
+      },
+      "executionScope": "Append-only actual source-context review. Original issue IDs, dispositions, source hashes, snapshots and all earlier execution records unchanged. The final integrated run and exact-head provider scan remain pending.",
+      "finalCloudAcceptance": false
+    },
+    {
+      "date": "2026-09-23",
+      "sourceRevision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+      "dirtyTree": true,
+      "previousLedgerSha256": "387f5a9461b36af0cbc7168d191dc869bcbc0f35cdd715263b19c7c48b8b46b0",
+      "reviews": [
+        {
+          "id": "baseline-skipcq-234",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "tests/test_supply_chain.js",
+          "originalDisposition": "retain_existing_site",
+          "rationale": "The two explicit assert.equal arguments and undefined expectation remain unchanged. Adding a fourth public-ID fixture group earlier in the test does not alter this guarded optional-input assertion or its required-arity rationale.",
+          "currentSourceBinding": {
+            "path": "tests/test_supply_chain.js",
+            "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b",
+            "targetStartLine": 421,
+            "targetEndLine": 421,
+            "lineTextSha256": "ed5597141aada2e186f8cb4c174aaec178b43557e81a07ab67a74d8563016ca8",
+            "lineHashMeaning": "UTF-8 source line excluding newline delimiter; identical before and after."
+          },
+          "priorHeadBinding": {
+            "revision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+            "gitBytesSha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+            "targetLine": 418,
+            "lineTextSha256": "ed5597141aada2e186f8cb4c174aaec178b43557e81a07ab67a74d8563016ca8"
+          },
+          "historicalEntryHashesPreserved": [
+            {
+              "jsonPointer": "$/entries/233/source/sha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/233/source/targetSha256",
+              "historicalHash": "f5546dd2b4f1569f671fa203811f861b697f6e78c45391f77bca847617c3d0ff"
+            },
+            {
+              "jsonPointer": "$/entries/233/testEvidence/0/sha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            }
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b"
+            },
+            {
+              "path": ".gitleaks.toml",
+              "sha256": "9d04a4feac430079e1c6cfef54f60636473cc86ce7739edc4aafabfac2389857"
+            },
+            {
+              "path": "docs/testing/final-sonar-pr73-2026-09-20.json",
+              "sha256": "8bd942e939e9324413c6f95212ad6af8eef9c0c1b06363ed46309c593e9ab32b"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact new candidate scan",
+          "finalCloudAcceptance": false,
+          "currentCommentLine": 420
+        },
+        {
+          "id": "baseline-skipcq-235",
+          "rule": [
+            "JS-W1042"
+          ],
+          "issuePath": "tests/test_supply_chain.js",
+          "originalDisposition": "retain_existing_site",
+          "rationale": "The two explicit assert.equal arguments and undefined expectation remain unchanged. Adding a fourth public-ID fixture group earlier in the test does not alter this guarded optional-input assertion or its required-arity rationale.",
+          "currentSourceBinding": {
+            "path": "tests/test_supply_chain.js",
+            "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b",
+            "targetStartLine": 423,
+            "targetEndLine": 423,
+            "lineTextSha256": "f002312e45ebeef6149f956a6cc0669f5fa4dd7020c37f14407f65fc68f39517",
+            "lineHashMeaning": "UTF-8 source line excluding newline delimiter; identical before and after."
+          },
+          "priorHeadBinding": {
+            "revision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+            "gitBytesSha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+            "targetLine": 420,
+            "lineTextSha256": "f002312e45ebeef6149f956a6cc0669f5fa4dd7020c37f14407f65fc68f39517"
+          },
+          "historicalEntryHashesPreserved": [
+            {
+              "jsonPointer": "$/entries/234/source/sha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/234/source/targetSha256",
+              "historicalHash": "9e0e34cbeff51d8818f4d7dc18fbbcdf1ddb14d0a712414d2b10ca4616dec214"
+            },
+            {
+              "jsonPointer": "$/entries/234/testEvidence/0/sha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            }
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b"
+            },
+            {
+              "path": ".gitleaks.toml",
+              "sha256": "9d04a4feac430079e1c6cfef54f60636473cc86ce7739edc4aafabfac2389857"
+            },
+            {
+              "path": "docs/testing/final-sonar-pr73-2026-09-20.json",
+              "sha256": "8bd942e939e9324413c6f95212ad6af8eef9c0c1b06363ed46309c593e9ab32b"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact new candidate scan",
+          "finalCloudAcceptance": false,
+          "currentCommentLine": 422
+        }
+      ],
+      "sourceDelta": "Only3 lines inserted at93-95 add exact three public Sonar PR73 issue IDs (set-hash pinned), exact issueKey field and ledger path to existing real-Gitleaks positive/negative fixture machinery. Existing runtime checks iterate over all groups and still reject wrong paths, wrong fields, unknown IDs and credential fixtures. Real scanner portion runs only when TSX_GITLEAKS_BINARY is selected; source inspection alone is not an executed-scanner claim.",
+      "executionScope": "Current source delta and coordinates reviewed. No test rerun by this reviewer. Every earlier validation/log/hash remains historical; actual new test and provider results must be recorded separately.",
+      "finalCloudAcceptance": false
     }
   ]
 }

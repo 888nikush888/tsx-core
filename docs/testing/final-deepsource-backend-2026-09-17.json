@@ -6036,6 +6036,194 @@
       },
       "executionScope": "Append-only source/context renewal for the reviewed post-PR73 patch. Old entries, counts, rationale, tests, dates, hashes and earlier renewals retained verbatim. New exact-head CI and integrated acceptance remain outstanding.",
       "finalCloudAcceptance": false
+    },
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+      "dirtyTree": true,
+      "previousLedgerSha256": "af753c425804a2819ddc82a8384901114435a52947a189bde699585261cb8c43",
+      "reviews": [
+        {
+          "id": "T2NjdXJyZW5jZTpqd2dlZG1lank=",
+          "rule": "JS-0105",
+          "issuePath": "src/trading_engine.ts",
+          "originalDisposition": "source_change_pending_rescan",
+          "changedSupportingPaths": [
+            "tests/test_exchange_fill_identity.js"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "persistRemoteFill remains the same static async method. Supporting nativeIntegerText changes only ASCII [0-9] to JavaScript \\d under u; both denote ASCII digits. Anchors,1..256 length, trim equality, safe integer rejection and native spelling stay intact. New fullwidth/257-character/newline cases expand rejection coverage.",
+            "The expanded fill-identity test now checks both distinct existing failure surfaces: invalid canonical fillId (257 digits or trailing newline) throws at identifier before proof; corresponding native oid/orderId evidence is unproved and returns null. Fullwidth digit rejection remains in the native scalar matrix. No production fallback or guard was relaxed to make a test pass."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/trading_engine.ts",
+              "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874"
+            },
+            {
+              "path": "tests/test_exchange_fill_identity.js",
+              "sha256": "617a11ff1170cac03265ff2e7981c8575b5fffe0b614989de0f2ef75162ed404"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpyZWt5bmdyb3I=",
+          "rule": "JS-0116",
+          "issuePath": "src/db.ts",
+          "originalDisposition": "reviewed_expected_behavior",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTptcmRvbmxrcXk=",
+          "rule": "JS-0116",
+          "issuePath": "src/db.ts",
+          "originalDisposition": "reviewed_expected_behavior",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/db.ts",
+              "sha256": "96f8b93372cc6ad73c939cd00634c9695d87d32e6c6898e1bdac3e5a1c51cf19"
+            },
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpuZ3d2ZGp4a2w=",
+          "rule": "JS-0116",
+          "issuePath": "src/forwarder.ts",
+          "originalDisposition": "reviewed_expected_behavior",
+          "changedSupportingPaths": [
+            "src/forwarder.ts",
+            "tests/test_forwarder_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            },
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTprdnlrZGdwbGQ=",
+          "rule": "JS-0116",
+          "issuePath": "src/trading_repository.ts",
+          "originalDisposition": "reviewed_expected_behavior",
+          "changedSupportingPaths": [
+            "src/forwarder.ts"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "Changing only the private returned-ID rejection from Error to TypeError does not alter native async declarations, Promise adoption, database/outbox methods or forwarding caller dispatch. Public username lookup retains outer Error/message and exposes a more specific cause; numeric lookup keeps catch/fallback/final Error. This is a deliberate cause category change, not byte-equivalent exception metadata."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            },
+            {
+              "path": "src/trading_repository.ts",
+              "sha256": "a1cb63b2be3b73d557c02761c014f1984fd0764ebd49e23aa5a8883f1482b221"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        }
+      ],
+      "reviewedSixFileInputs": [
+        {
+          "path": "src/forwarder.ts",
+          "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+        },
+        {
+          "path": "src/signal_contract.ts",
+          "sha256": "9d5736e7065420b63cd19db78768b8ca416b286bfc929b5ec237201e4d0da9d7"
+        },
+        {
+          "path": "src/trading_fill_identity.ts",
+          "sha256": "e937e237fabd3f4d275971a72a2c4c67987e51f918cd39f95061d5dba6f1a2e2"
+        },
+        {
+          "path": "tests/test_forwarder_error_types.js",
+          "sha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89"
+        },
+        {
+          "path": "tests/test_signal_contract_validation.js",
+          "sha256": "74e286b2a219b40af094e6a98834319aa53db6ff655af146a257ff35fca76ba4"
+        },
+        {
+          "path": "tests/test_exchange_fill_identity.js",
+          "sha256": "617a11ff1170cac03265ff2e7981c8575b5fffe0b614989de0f2ef75162ed404"
+        }
+      ],
+      "actualScopedExecution": {
+        "originalAttempt": {
+          "path": "reports/final-findings/pr73-sonar-three-actual-regressions.log",
+          "sha256": "3c8eeed5200e4d0b8e92fbc90b4c152eeb8b43cdb5700b7f07331fa844d92b99",
+          "result": "2 passed,1 failed: malformed canonical fillId rejected at existing identifier guard before native proof; earlier generic null expectation was incorrect.",
+          "historicalPreserved": true
+        },
+        "correctedAttempt": {
+          "path": "reports/final-findings/pr73-sonar-three-actual-retry1.log",
+          "sha256": "377e72f7e8bf23b1a5cddf2255b30f5ee78c9c195249238f6e243e747ff17299",
+          "result": "ALL 3 TEST FILES PASSED!",
+          "scope": [
+            "tests/test_forwarder_error_types.js",
+            "tests/test_signal_contract_validation.js",
+            "tests/test_exchange_fill_identity.js"
+          ],
+          "provenance": "Existing actual runner log inspected, not rerun by this reviewer."
+        },
+        "limits": "Not full-suite/mutation/cloud acceptance; original failed log is retained and never relabeled."
+      },
+      "executionScope": "Append-only actual source-context review. Original issue IDs, dispositions, source hashes, snapshots and all earlier execution records unchanged. The final integrated run and exact-head provider scan remain pending.",
+      "finalCloudAcceptance": false
     }
   ]
 }

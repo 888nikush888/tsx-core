@@ -33,7 +33,11 @@ let boundCoercions = 0;
 for (const bound of [['1.25'], Object(1.25), { toString() { boundCoercions += 1; return '1.25'; } }]) {
   for (const key of ['minimum', 'maximum']) {
     rejects(definition => { definition.additionalFields = [{ path: 'memo', type: 'decimal', required: false, [key]: bound }]; },
-      /scalar decimal/);
+      error => {
+        assert.ok(error instanceof TypeError, 'Structured contract bounds fail with their explicit type category.');
+        assert.equal(error.message, `additionalFields[0].${key} must be a scalar decimal.`);
+        return true;
+      });
   }
 }
 assert.equal(boundCoercions, 0, 'Structured bounds cannot supply decimal limits through coercion.');

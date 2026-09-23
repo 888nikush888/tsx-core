@@ -1686,6 +1686,209 @@
       },
       "executionScope": "Append-only source/context renewal for the reviewed post-PR73 patch. Old entries, counts, rationale, tests, dates, hashes and earlier renewals retained verbatim. New exact-head CI and integrated acceptance remain outstanding.",
       "finalCloudAcceptance": false
+    },
+    {
+      "date": "2026-09-23",
+      "sourceRevision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+      "dirtyTree": true,
+      "previousLedgerSha256": "34c3cec87215ab1aee7ce544b54fd0b3732d2fc232a053ac8a19ae40e32f4cba",
+      "reviews": [
+        {
+          "id": "T2NjdXJyZW5jZTphbmFqdmxqZ2w=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_supply_chain.js",
+          "originalDisposition": "source_change_pending_rescan",
+          "rationale": "The exact quoted literal at this site still matches raw Dockerfile/GitHub workflow text. The three inserted fixture lines execute earlier public-ID checks but do not interpolate or change this literal, assertion argument, or compared source. Both the old JS-R1004 no-substitution-template correction and the newer precise JS-0038 literal suppression retain their rationale.",
+          "currentSourceBinding": {
+            "path": "tests/test_supply_chain.js",
+            "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b",
+            "targetStartLine": 372,
+            "targetEndLine": 372,
+            "lineTextSha256": "db64fa1f246808e6cedf1c7ece82e600b0f815a0f0f30714e0661a87d594b6ec",
+            "lineHashMeaning": "UTF-8 source line excluding newline delimiter; identical before and after."
+          },
+          "priorHeadBinding": {
+            "revision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+            "gitBytesSha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+            "targetLine": 369,
+            "lineTextSha256": "db64fa1f246808e6cedf1c7ece82e600b0f815a0f0f30714e0661a87d594b6ec"
+          },
+          "historicalEntryHashesPreserved": [
+            {
+              "jsonPointer": "$/entries/0/beforeSha256",
+              "historicalHash": "a748f6d6110d647378177d0bb29aed38c66b9440824586f065f43c01f75fbabf"
+            },
+            {
+              "jsonPointer": "$/entries/0/afterSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            }
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b"
+            },
+            {
+              "path": ".gitleaks.toml",
+              "sha256": "9d04a4feac430079e1c6cfef54f60636473cc86ce7739edc4aafabfac2389857"
+            },
+            {
+              "path": "docs/testing/final-sonar-pr73-2026-09-20.json",
+              "sha256": "8bd942e939e9324413c6f95212ad6af8eef9c0c1b06363ed46309c593e9ab32b"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact new candidate scan",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpsbXF4ZGx4ZXc=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_supply_chain.js",
+          "originalDisposition": "source_change_pending_rescan",
+          "rationale": "The exact quoted literal at this site still matches raw Dockerfile/GitHub workflow text. The three inserted fixture lines execute earlier public-ID checks but do not interpolate or change this literal, assertion argument, or compared source. Both the old JS-R1004 no-substitution-template correction and the newer precise JS-0038 literal suppression retain their rationale.",
+          "currentSourceBinding": {
+            "path": "tests/test_supply_chain.js",
+            "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b",
+            "targetStartLine": 288,
+            "targetEndLine": 288,
+            "lineTextSha256": "fa0c67569f3251ecc596237ff8e5773cf1a81d37b9cce451cc17367fd73e9aec",
+            "lineHashMeaning": "UTF-8 source line excluding newline delimiter; identical before and after."
+          },
+          "priorHeadBinding": {
+            "revision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+            "gitBytesSha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+            "targetLine": 285,
+            "lineTextSha256": "fa0c67569f3251ecc596237ff8e5773cf1a81d37b9cce451cc17367fd73e9aec"
+          },
+          "historicalEntryHashesPreserved": [
+            {
+              "jsonPointer": "$/entries/1/beforeSha256",
+              "historicalHash": "a748f6d6110d647378177d0bb29aed38c66b9440824586f065f43c01f75fbabf"
+            },
+            {
+              "jsonPointer": "$/entries/1/afterSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            }
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b"
+            },
+            {
+              "path": ".gitleaks.toml",
+              "sha256": "9d04a4feac430079e1c6cfef54f60636473cc86ce7739edc4aafabfac2389857"
+            },
+            {
+              "path": "docs/testing/final-sonar-pr73-2026-09-20.json",
+              "sha256": "8bd942e939e9324413c6f95212ad6af8eef9c0c1b06363ed46309c593e9ab32b"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact new candidate scan",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpkYWtqd2xqZWc=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_supply_chain.js",
+          "originalDisposition": "source_change_pending_rescan",
+          "rationale": "The exact quoted literal at this site still matches raw Dockerfile/GitHub workflow text. The three inserted fixture lines execute earlier public-ID checks but do not interpolate or change this literal, assertion argument, or compared source. Both the old JS-R1004 no-substitution-template correction and the newer precise JS-0038 literal suppression retain their rationale.",
+          "currentSourceBinding": {
+            "path": "tests/test_supply_chain.js",
+            "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b",
+            "targetStartLine": 283,
+            "targetEndLine": 283,
+            "lineTextSha256": "d2e51dd3c70df8aa9594a987fe5558515f3a1fbe82bead3a3190cc689134aaab",
+            "lineHashMeaning": "UTF-8 source line excluding newline delimiter; identical before and after."
+          },
+          "priorHeadBinding": {
+            "revision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+            "gitBytesSha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+            "targetLine": 280,
+            "lineTextSha256": "d2e51dd3c70df8aa9594a987fe5558515f3a1fbe82bead3a3190cc689134aaab"
+          },
+          "historicalEntryHashesPreserved": [
+            {
+              "jsonPointer": "$/entries/2/beforeSha256",
+              "historicalHash": "a748f6d6110d647378177d0bb29aed38c66b9440824586f065f43c01f75fbabf"
+            },
+            {
+              "jsonPointer": "$/entries/2/afterSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            }
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b"
+            },
+            {
+              "path": ".gitleaks.toml",
+              "sha256": "9d04a4feac430079e1c6cfef54f60636473cc86ce7739edc4aafabfac2389857"
+            },
+            {
+              "path": "docs/testing/final-sonar-pr73-2026-09-20.json",
+              "sha256": "8bd942e939e9324413c6f95212ad6af8eef9c0c1b06363ed46309c593e9ab32b"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact new candidate scan",
+          "finalCloudAcceptance": false
+        },
+        {
+          "id": "T2NjdXJyZW5jZTpxcGVnbmRnYXY=",
+          "rule": "JS-R1004",
+          "issuePath": "tests/test_supply_chain.js",
+          "originalDisposition": "source_change_pending_rescan",
+          "rationale": "The exact quoted literal at this site still matches raw Dockerfile/GitHub workflow text. The three inserted fixture lines execute earlier public-ID checks but do not interpolate or change this literal, assertion argument, or compared source. Both the old JS-R1004 no-substitution-template correction and the newer precise JS-0038 literal suppression retain their rationale.",
+          "currentSourceBinding": {
+            "path": "tests/test_supply_chain.js",
+            "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b",
+            "targetStartLine": 277,
+            "targetEndLine": 277,
+            "lineTextSha256": "d1e9025d91509a4e844bc87ec95d26013eb572409959fe63b51e0bf2b9f1c528",
+            "lineHashMeaning": "UTF-8 source line excluding newline delimiter; identical before and after."
+          },
+          "priorHeadBinding": {
+            "revision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+            "gitBytesSha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+            "targetLine": 274,
+            "lineTextSha256": "d1e9025d91509a4e844bc87ec95d26013eb572409959fe63b51e0bf2b9f1c528"
+          },
+          "historicalEntryHashesPreserved": [
+            {
+              "jsonPointer": "$/entries/3/beforeSha256",
+              "historicalHash": "a748f6d6110d647378177d0bb29aed38c66b9440824586f065f43c01f75fbabf"
+            },
+            {
+              "jsonPointer": "$/entries/3/afterSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            }
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b"
+            },
+            {
+              "path": ".gitleaks.toml",
+              "sha256": "9d04a4feac430079e1c6cfef54f60636473cc86ce7739edc4aafabfac2389857"
+            },
+            {
+              "path": "docs/testing/final-sonar-pr73-2026-09-20.json",
+              "sha256": "8bd942e939e9324413c6f95212ad6af8eef9c0c1b06363ed46309c593e9ab32b"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact new candidate scan",
+          "finalCloudAcceptance": false
+        }
+      ],
+      "sourceDelta": "Only3 lines inserted at93-95 add exact three public Sonar PR73 issue IDs (set-hash pinned), exact issueKey field and ledger path to existing real-Gitleaks positive/negative fixture machinery. Existing runtime checks iterate over all groups and still reject wrong paths, wrong fields, unknown IDs and credential fixtures. Real scanner portion runs only when TSX_GITLEAKS_BINARY is selected; source inspection alone is not an executed-scanner claim.",
+      "executionScope": "Current source delta and coordinates reviewed. No test rerun by this reviewer. Every earlier validation/log/hash remains historical; actual new test and provider results must be recorded separately.",
+      "finalCloudAcceptance": false
     }
   ]
 }

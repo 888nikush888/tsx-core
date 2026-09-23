@@ -879,6 +879,115 @@
       },
       "executionScope": "Append-only source/context renewal for the reviewed post-PR73 patch. Old entries, counts, rationale, tests, dates, hashes and earlier renewals retained verbatim. New exact-head CI and integrated acceptance remain outstanding.",
       "finalCloudAcceptance": false
+    },
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+      "dirtyTree": true,
+      "previousLedgerSha256": "59793ac9a694ac111e45bab1c1570b17be9d6f8a6f4530250c368009c501b9d1",
+      "reviews": [
+        {
+          "id": "AaCvLE4KFuOCeZdBf0dp",
+          "rule": "typescript:S6551",
+          "path": "src/forwarder.ts",
+          "rationale": "Existing primitive string/safe-integer producer guard and same fallback remain. Rejected provider value now creates TypeError; public username lookup retains Error wrapper/message with typed cause; numeric lookup still catches and attempts existing fallback. New test verifies cause explicitly, retains no-coercion and fallback assertions.",
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            },
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89"
+            }
+          ],
+          "historicalEvidencePreserved": true
+        },
+        {
+          "id": "AaCvLE4KFuOCeZdBf0dq",
+          "rule": "typescript:S6551",
+          "path": "src/forwarder.ts",
+          "rationale": "Existing primitive string/safe-integer producer guard and same fallback remain. Rejected provider value now creates TypeError; public username lookup retains Error wrapper/message with typed cause; numeric lookup still catches and attempts existing fallback. New test verifies cause explicitly, retains no-coercion and fallback assertions.",
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            },
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89"
+            }
+          ],
+          "historicalEvidencePreserved": true
+        },
+        {
+          "id": "AaCvLE4KFuOCeZdBf0dr",
+          "rule": "typescript:S6551",
+          "path": "src/forwarder.ts",
+          "rationale": "Existing primitive string/safe-integer producer guard and same fallback remain. Rejected provider value now creates TypeError; public username lookup retains Error wrapper/message with typed cause; numeric lookup still catches and attempts existing fallback. New test verifies cause explicitly, retains no-coercion and fallback assertions.",
+          "dependencyBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            },
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89"
+            }
+          ],
+          "historicalEvidencePreserved": true
+        },
+        {
+          "id": "AaCvLE9UFuOCeZdBf0dy",
+          "rule": "typescript:S6551",
+          "path": "src/signal_contract.ts",
+          "rationale": "String/number/bigint accepted bounds and undefined/empty omission retained; structured rejection gains TypeError category with unchanged label/message. Existing API and MCP consumers use Error/message; precise changed class is documented, not claimed identical. Strengthened bound tests retain no-coercion invariant.",
+          "dependencyBindings": [
+            {
+              "path": "src/signal_contract.ts",
+              "sha256": "9d5736e7065420b63cd19db78768b8ca416b286bfc929b5ec237201e4d0da9d7"
+            },
+            {
+              "path": "tests/test_signal_contract_validation.js",
+              "sha256": "74e286b2a219b40af094e6a98834319aa53db6ff655af146a257ff35fca76ba4"
+            }
+          ],
+          "historicalEvidencePreserved": true
+        },
+        {
+          "id": "AaCvLE9UFuOCeZdBf0dz",
+          "rule": "typescript:S6551",
+          "path": "src/signal_contract.ts",
+          "rationale": "String/number/bigint accepted bounds and undefined/empty omission retained; structured rejection gains TypeError category with unchanged label/message. Existing API and MCP consumers use Error/message; precise changed class is documented, not claimed identical. Strengthened bound tests retain no-coercion invariant.",
+          "dependencyBindings": [
+            {
+              "path": "src/signal_contract.ts",
+              "sha256": "9d5736e7065420b63cd19db78768b8ca416b286bfc929b5ec237201e4d0da9d7"
+            },
+            {
+              "path": "tests/test_signal_contract_validation.js",
+              "sha256": "74e286b2a219b40af094e6a98834319aa53db6ff655af146a257ff35fca76ba4"
+            }
+          ],
+          "historicalEvidencePreserved": true
+        }
+      ],
+      "validation": {
+        "kind": "actual-focused-three-suite-run",
+        "evidence": {
+          "path": "reports/final-findings/pr73-sonar-three-actual-retry1.log",
+          "sha256": "377e72f7e8bf23b1a5cddf2255b30f5ee78c9c195249238f6e243e747ff17299"
+        },
+        "exitCode": 0,
+        "testFiles": [
+          "tests/test_forwarder_error_types.js",
+          "tests/test_signal_contract_validation.js",
+          "tests/test_exchange_fill_identity.js"
+        ],
+        "scope": "Actual adopted dirty source bytes, three targeted suites only; final frozen integrated run and fresh Sonar scan still required. Earlier failed test and historical isolated/integrated executions retained."
+      },
+      "executionScope": "Append-only current source context with separately named actual focused evidence. Does not relabel any prior execution, observed hash, baseline disposition or scanner result.",
+      "rootAdoptionPending": true
     }
   ]
 }

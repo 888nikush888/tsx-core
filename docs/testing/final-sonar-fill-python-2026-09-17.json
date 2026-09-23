@@ -836,6 +836,93 @@
         "manifestSha256": "92321ceb0e2a00453516797c34c9391ef7194a1c135e2c3d9c536db9bcf0a561",
         "scope": "Reviewed concrete source deltas, exact input bindings and per-ID caller/target rationale. Historical executions and earlier fields retained verbatim. Final integrated and provider acceptance remain pending."
       }
+    },
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+      "dirtyTree": true,
+      "previousLedgerSha256": "9afb93213d9ab75cc5b64f9d26ecb354ecc47b96a191800eb75095ded6892e92",
+      "reviews": [
+        {
+          "id": "AaCvLE3aFuOCeZdBf0dm",
+          "rule": "typescript:S6551",
+          "path": "src/trading_fill_identity.ts",
+          "rationale": "Native integer spelling guard changes ASCII digit syntax only: anchored1..256/u and trim equality remain, as do safe-number and non-null proof checks. Exhaustive isolated Unicode comparison supports equivalent language. Public evidence tests additionally reject fullwidth digits,257-character values and trailing newline; existing256-digit acceptance and Arabic-digit rejection retained.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_fill_identity.ts",
+              "sha256": "e937e237fabd3f4d275971a72a2c4c67987e51f918cd39f95061d5dba6f1a2e2"
+            },
+            {
+              "path": "tests/test_exchange_fill_identity.js",
+              "sha256": "617a11ff1170cac03265ff2e7981c8575b5fffe0b614989de0f2ef75162ed404"
+            },
+            {
+              "path": "tests/test_trading_fill_identity_backfill.js",
+              "sha256": "5c0bcec0bb2367dc0a27efaa2f87561fcc2f441e96eaa8cf915c1a7a7a71a4b0"
+            }
+          ],
+          "historicalEvidencePreserved": true
+        },
+        {
+          "id": "AaCvLE3bFuOCeZdBf0dn",
+          "rule": "typescript:S6551",
+          "path": "src/trading_fill_identity.ts",
+          "rationale": "Native integer spelling guard changes ASCII digit syntax only: anchored1..256/u and trim equality remain, as do safe-number and non-null proof checks. Exhaustive isolated Unicode comparison supports equivalent language. Public evidence tests additionally reject fullwidth digits,257-character values and trailing newline; existing256-digit acceptance and Arabic-digit rejection retained.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_fill_identity.ts",
+              "sha256": "e937e237fabd3f4d275971a72a2c4c67987e51f918cd39f95061d5dba6f1a2e2"
+            },
+            {
+              "path": "tests/test_exchange_fill_identity.js",
+              "sha256": "617a11ff1170cac03265ff2e7981c8575b5fffe0b614989de0f2ef75162ed404"
+            },
+            {
+              "path": "tests/test_trading_fill_identity_backfill.js",
+              "sha256": "5c0bcec0bb2367dc0a27efaa2f87561fcc2f441e96eaa8cf915c1a7a7a71a4b0"
+            }
+          ],
+          "historicalEvidencePreserved": true
+        },
+        {
+          "id": "AaCvLE3bFuOCeZdBf0do",
+          "rule": "typescript:S6551",
+          "path": "src/trading_fill_identity.ts",
+          "rationale": "Native integer spelling guard changes ASCII digit syntax only: anchored1..256/u and trim equality remain, as do safe-number and non-null proof checks. Exhaustive isolated Unicode comparison supports equivalent language. Public evidence tests additionally reject fullwidth digits,257-character values and trailing newline; existing256-digit acceptance and Arabic-digit rejection retained.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_fill_identity.ts",
+              "sha256": "e937e237fabd3f4d275971a72a2c4c67987e51f918cd39f95061d5dba6f1a2e2"
+            },
+            {
+              "path": "tests/test_exchange_fill_identity.js",
+              "sha256": "617a11ff1170cac03265ff2e7981c8575b5fffe0b614989de0f2ef75162ed404"
+            },
+            {
+              "path": "tests/test_trading_fill_identity_backfill.js",
+              "sha256": "5c0bcec0bb2367dc0a27efaa2f87561fcc2f441e96eaa8cf915c1a7a7a71a4b0"
+            }
+          ],
+          "historicalEvidencePreserved": true
+        }
+      ],
+      "validation": {
+        "kind": "actual-focused-three-suite-run",
+        "evidence": {
+          "path": "reports/final-findings/pr73-sonar-three-actual-retry1.log",
+          "sha256": "377e72f7e8bf23b1a5cddf2255b30f5ee78c9c195249238f6e243e747ff17299"
+        },
+        "exitCode": 0,
+        "testFiles": [
+          "tests/test_forwarder_error_types.js",
+          "tests/test_signal_contract_validation.js",
+          "tests/test_exchange_fill_identity.js"
+        ],
+        "scope": "Actual adopted dirty source bytes, three targeted suites only; final frozen integrated run and fresh Sonar scan still required. Earlier failed test and historical isolated/integrated executions retained."
+      },
+      "executionScope": "Append-only current source context with separately named actual focused evidence. Does not relabel any prior execution, observed hash, baseline disposition or scanner result.",
+      "rootAdoptionPending": true
     }
   ]
 }

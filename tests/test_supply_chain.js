@@ -90,6 +90,9 @@ const publicSonarAllowlists = [
     '6d528132bbddbac361798d0e86d2107e056781996520ed963126a89234132c11'),
   reviewedSonarAllowlist('Reviewed public Sonar PR29 issue ID', 'issueKey', 'sonar-reviewed-pr29-decision.json', 1,
     'adb877876b555ad8fae05e35d1afdc26b4ba930d0a7bbabcf243d9a55c2b8934'),
+  reviewedSonarAllowlist('Reviewed public Sonar PR73 issue IDs in the exact new findings ledger', 'issueKey',
+    'final-sonar-pr73-2026-09-20.json', 3,
+    'a4da88206d0d73af2dfd3252899f9da9b63499b025881a272d8ce5e94c4a209e'),
 ];
 assert.ok(publicSonarAllowlists[1].ids.every(id => publicSonarAllowlists[0].ids.includes(id)));
 const fixtureCredential = createHash('sha256').update('synthetic scanner regression, never a provider credential').digest('base64url').slice(0, 32);

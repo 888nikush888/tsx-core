@@ -104,7 +104,7 @@ function safePattern(value: unknown, label: string): string | undefined {
 function additionalFieldBound(value: unknown, label: string): string | undefined {
   if (value === undefined || value === '') return undefined;
   if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'bigint') {
-    throw new Error(`${label} must be a scalar decimal.`);
+    throw new TypeError(`${label} must be a scalar decimal.`);
   }
   return decimal(String(value));
 }

@@ -73,3 +73,11 @@ condition = "AND"
 regexTarget = "line"
 regexes = ['''^\n?[ \t]*"issueKey"[ \t]*:[ \t]*"(?:AaCvLE3aFuOCeZdBf0dm|AaCvLE3bFuOCeZdBf0dn|AaCvLE3bFuOCeZdBf0do|AaCvLFU3FuOCeZdBf0ej|AaCvLFVUFuOCeZdBf0ek|AaCvLFVUFuOCeZdBf0el|AaCvLFVUFuOCeZdBf0em|AaCvLFVUFuOCeZdBf0en|AaCvLFVuFuOCeZdBf0eo|AaCvLFW4FuOCeZdBf0eq|AaCvLFWUFuOCeZdBf0ep|AaCvLFX_FuOCeZdBf0es|AaCvLFX_FuOCeZdBf0et|AaCvLFXqFuOCeZdBf0er|AaCvLFYmFuOCeZdBf0eu)"[ \t]*,?[ \t]*\r?$''']
 paths = ['''^docs/testing/final\-sonar\-fill\-python\-2026\-09\-17\.json$''']
+
+[[allowlists]]
+description = "Reviewed public Sonar PR73 issue IDs in the exact new findings ledger"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\n?[ \t]*"issueKey"[ \t]*:[ \t]*"(?:AaC_FaSkgUv0fnrT0UHw|AaC_FaXZgUv0fnrT0UHx|AaC_FaYzgUv0fnrT0UHy)"[ \t]*,?[ \t]*\r?$''']
+paths = ['''^docs/testing/final-sonar-pr73-2026-09-20\.json$''']

@@ -178,7 +178,13 @@ async function verifyResolvedChatIds(source) {
   for (const id of [null, undefined, true, [-100123], Object(-100123),
     { toString() { idCoercions += 1; return '-100123'; } }, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
     response = { id };
-    await assert.rejects(resolve('@fixture_channel'), /TDLib chat ID/);
+    await assert.rejects(resolve('@fixture_channel'), error => {
+      assert.equal(error.name, 'Error', 'Public lookup keeps its existing wrapper category.');
+      assert.ok(error.cause instanceof TypeError, 'Malformed provider identity keeps a typed cause.');
+      assert.equal(error.cause.message, 'TDLib chat ID must be a string or safe integer.');
+      assert.match(error.message, /TDLib chat ID/);
+      return true;
+    });
     await assert.rejects(resolve('-100123'), /konnte nicht geladen/);
   }
   assert.equal(idCoercions, 0, 'A returned object must not manufacture a resolved chat identity.');

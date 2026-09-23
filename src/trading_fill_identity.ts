@@ -52,7 +52,7 @@ function matchesHyperliquid(info: Record<string, unknown>, fill: ExchangeFill, i
 
 /** Native numeric evidence preserves its spelling; structured or rounded originals cannot prove identity. */
 function nativeIntegerText(value: unknown): string | null {
-  if (typeof value === 'string') return /^[0-9]{1,256}$/u.test(value) && value.trim() === value ? value : null;
+  if (typeof value === 'string') return /^\d{1,256}$/u.test(value) && value.trim() === value ? value : null;
   if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return String(value);
   return null;
 }

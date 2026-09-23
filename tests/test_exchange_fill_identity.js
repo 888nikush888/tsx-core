@@ -63,7 +63,7 @@ for (const [field, normalizedField, expected] of [['tid', 'exchangeFillId', '123
     assertUnprovedNativeScalar('hyperliquid', field, value);
   }
   for (const value of [true, false, 123n, NaN, Infinity, -1, 1.5, Number.MAX_SAFE_INTEGER + 1,
-    '+123', '1e3', '123.0', '\u0661\u0662\u0663']) {
+    '+123', '1e3', '123.0', '\u0661\u0662\u0663', '\uff11\uff12\uff13']) {
     assertUnprovedNativeScalar('hyperliquid', field, value, { [normalizedField]: String(value) });
   }
   for (const value of [0, -0, Number.MAX_SAFE_INTEGER, '0', '0001', '9007199254740993', '0'.repeat(256)]) {
@@ -71,6 +71,14 @@ for (const [field, normalizedField, expected] of [['tid', 'exchangeFillId', '123
     original.raw.info[field] = value;
     assert.ok(provenFillIdentity(account('hyperliquid'), original), 'Exact digit spelling and safe integers remain supported.');
   }
+}
+for (const value of ['0'.repeat(257), '123\n']) {
+  const original = nativeFillFixture('hyperliquid', { ...fill, exchangeFillId: value });
+  original.raw.info.tid = value;
+  assert.throws(() => provenFillIdentity(account('hyperliquid'), original),
+    /FILL_IDENTITY_UNPROVEN: missing exact provider identifier/u,
+    'Malformed canonical fill identifiers must fail before native proof comparison.');
+  assertUnprovedNativeScalar('hyperliquid', 'oid', value, { exchangeOrderId: value });
 }
 assert.equal(coercions, 0, 'Native evidence objects must never execute coercion hooks.');
 assertUnprovedNativeScalar('hyperliquid', 'oid', null, { exchangeOrderId: null });

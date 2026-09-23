@@ -679,7 +679,7 @@ async function parseSignalNative(
 function resolvedTdlibChatId(chat: unknown): string {
   const id = (chat as { id?: unknown } | null | undefined)?.id;
   if (typeof id !== 'string' && (typeof id !== 'number' || !Number.isSafeInteger(id))) {
-    throw new Error('TDLib chat ID must be a string or safe integer.');
+    throw new TypeError('TDLib chat ID must be a string or safe integer.');
   }
   return String(id);
 }

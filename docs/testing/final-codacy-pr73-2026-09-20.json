@@ -308,7 +308,39 @@
         }
       ],
       "limitations": "Keep production-source extraction and hostile ID assertions. Record exact new sink and upstream literal-source boundary; do not replace Function with eval, copied implementation, or weaker assertions merely to hide the finding.",
-      "providerApplied": false
+      "providerApplied": false,
+      "typedErrorContextRenewals": [
+        {
+          "reviewedAt": "2026-09-20T14:14:27.395773+00:00",
+          "baseRevision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+          "dirtySource": true,
+          "priorFinalSourcePaths": [
+            "tests/test_forwarder_error_types.js",
+            "src/forwarder.ts",
+            "src/forwarder_errors.ts",
+            "src/contract_values.ts"
+          ],
+          "priorFinalEvidence": [
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "line": 169,
+              "normalizedLineSha256": "e27cab6d09ec16f9aed1d1fafdd44cedccc1a07c2c4f4d9d4d43b82e02df1b44"
+            }
+          ],
+          "rationale": "Only extracted provider-ID helper rejection becomes TypeError; test now asserts public wrapper remains Error, cause isTypeError, original message preserved. AST named-declaration/count selection, literal module-relative read and injected fake client remain. Fixture data never enters executable compilation.",
+          "actualDelta": "Wrong-type rejection Error\u2192TypeError plus stronger native-cause/type tests; provider status and earlier disposition unchanged.",
+          "sourceBindings": [
+            {
+              "path": "src/forwarder.ts",
+              "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+            },
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89"
+            }
+          ]
+        }
+      ]
     }
   ],
   "finalReview": {
@@ -356,13 +388,27 @@
       },
       {
         "path": "tests/test_forwarder_error_types.js",
-        "normalizedSha256": "d33fb217d2e59788d8d92f53340b495443cf8bb3d198cb95b6825607b5818333",
-        "semanticReview": "Literal forwarder.ts read, three exact named declarations/count assertion, transpilation and injected fake client only; response now initialized null but assigned in each loop before any resolve invocation."
+        "normalizedSha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89",
+        "semanticReview": "Actual test now asserts public wrapper Error, native TypeError cause and unchanged messages for rejected provider IDs. Literal checked-out source AST/count gate and injected local client remain; no executable from fixture input.",
+        "previousSemanticBindings": [
+          {
+            "path": "tests/test_forwarder_error_types.js",
+            "normalizedSha256": "d33fb217d2e59788d8d92f53340b495443cf8bb3d198cb95b6825607b5818333",
+            "semanticReview": "Literal forwarder.ts read, three exact named declarations/count assertion, transpilation and injected fake client only; response now initialized null but assigned in each loop before any resolve invocation."
+          }
+        ]
       },
       {
         "path": "src/forwarder.ts",
-        "normalizedSha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0",
-        "semanticReview": "Selected resolveChatId, supergroupFallback and resolvedTdlibChatId implement TDLib lookup and primitive identity validation, using only injected client/invoke/log in this fixture."
+        "normalizedSha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44",
+        "semanticReview": "Actual adopted delta replaces Error by TypeError only inside primitive TDLib ID rejection. Existing public username wrapper remains Error with cause, numeric fallback unchanged; configuration destination and HTTP listener dataflows unchanged.",
+        "previousSemanticBindings": [
+          {
+            "path": "src/forwarder.ts",
+            "normalizedSha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0",
+            "semanticReview": "Selected resolveChatId, supergroupFallback and resolvedTdlibChatId implement TDLib lookup and primitive identity validation, using only injected client/invoke/log in this fixture."
+          }
+        ]
       },
       {
         "path": "src/forwarder_errors.ts",
@@ -375,12 +421,22 @@
         "semanticReview": "unknownErrorMessage fixture dependency treats unexpected values without arbitrary coercion; no executable source or target URL from supplied test IDs."
       }
     ],
-    "sourceManifestSha256": "73fa28a853254331f4c39eb712a2e9414089186ee8596467def169de04037fc0",
+    "sourceManifestSha256": "c7be03a4447349a920be7a4c0f024a7551915469d2d11becfe09f0f374358e27",
     "cliRenewal": {
       "sourceDirty": true,
       "reviewedAt": "2026-09-20T13:21:38.826383+00:00",
       "priorExecutionUnchanged": true,
       "providerComplete": false
+    },
+    "sourceRevision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+    "sourceIsDirty": true,
+    "typedErrorRenewal": {
+      "reviewedAt": "2026-09-20T14:14:27.395773+00:00",
+      "affectedIds": [
+        "96c70e58dbd13a7871ea404b36bbf023"
+      ],
+      "currentExecutionClaim": false,
+      "providerScanRenewed": false
     }
   },
   "additiveAnchor": {
@@ -891,6 +947,78 @@
           "semanticReview": "unknownErrorMessage fixture dependency treats unexpected values without arbitrary coercion; no executable source or target URL from supplied test IDs."
         }
       ]
+    },
+    {
+      "status": "complete",
+      "sources": [
+        {
+          "path": "scripts/check_final_codacy_review.js",
+          "normalizedSha256": "c930f9dbe10f6db520b10dd98aaa3b893d7556ce700772d0d6d85fbaa3673205",
+          "semanticReview": "CLI requires both fixed local ledgers and runs existing per-ledger semantic/source/line checks before combining results with exact ordinal-sorted case-sensitive ID digests. Pins independently match all439 historical API IDs and five Added PR73 API IDs. Missing, duplicate, case-changed and overlapping sets fail. No provider write or status relabel. Dynamic readSource retains safePath/registered-source guards; fixed supplement read adds no external path input.",
+          "previousCliReview": {
+            "path": "scripts/check_final_codacy_review.js",
+            "normalizedSha256": "79fe4a776a0ca13d13d6d111c5ee9a5b7076c6cb2ab8e38b5c6ed2786652b220",
+            "semanticReview": "Read count lookups and all source read callers: fixed ledger URL-root, safePath-bound registered source names, line hashes and semantic status remain mandatory; no provider writes."
+          }
+        },
+        {
+          "path": "tests/test_final_codacy_review.js",
+          "normalizedSha256": "4d4b092145353067a6ce9756839d8c70c537a1a5134cf7212b95fb30e46ec6f8",
+          "semanticReview": "New tests read two fixed module-relative ledgers and assert positive exact ID inventories, count-consistent historical deletion, missing new ID, overlap, uppercase ID and missing supplement rejection. Existing semantic/source drift tests stay intact. These identity tests do not establish successful provider coverage.",
+          "previousCliReview": {
+            "path": "tests/test_final_codacy_review.js",
+            "normalizedSha256": "e19ec6812ce7e032134fe2e0cdcf2e04f5b219a9629e4f1f61b692b29894dba6",
+            "semanticReview": "Existing explicit tests reject changed source bytes, missing context, missing location, unsafe path, duplicate IDs and counts; no implication of provider success."
+          }
+        },
+        {
+          "path": "src/backup_generation.ts",
+          "normalizedSha256": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f",
+          "semanticReview": "Template walk uses real-directory root, native Dirent names, symbolic-link and safeMember checks before recursion, depth/count limits and bounded regular-file reads; local concurrent replacement race not prevented atomically."
+        },
+        {
+          "path": "src/backup.ts",
+          "normalizedSha256": "0dcd692ef7051bd9ed24c41bdf621f7ae15af6f84c10b78bb795683cddb5288b",
+          "semanticReview": "backupConfigurationSources derives configuration/runtime/templates locations from local environment helpers and database argument and returns that fixed mapping, not a remote request path."
+        },
+        {
+          "path": "src/backup_cli.ts",
+          "normalizedSha256": "d0fd89cea0779ef15598a6d07d1ce7930ee2c9df815c71a2036ed0ef17c8fd7d",
+          "semanticReview": "Offline initialization obtains owner-scoped process lock and passes backupConfigurationSources(databasePath) to configuration generation; no provider request path reaches template walk."
+        },
+        {
+          "path": "src/process_lock.ts",
+          "normalizedSha256": "48b870af4bbabb513e3361fbeef26aa8948354d40a4dbc2feb624a8349d64f70",
+          "semanticReview": "withProcessLockOwner verifies the retained owned lock context around generation operations; this is process ownership, not filesystem sandboxing against a hostile local actor."
+        },
+        {
+          "path": "tests/test_forwarder_error_types.js",
+          "normalizedSha256": "d33fb217d2e59788d8d92f53340b495443cf8bb3d198cb95b6825607b5818333",
+          "semanticReview": "Literal forwarder.ts read, three exact named declarations/count assertion, transpilation and injected fake client only; response now initialized null but assigned in each loop before any resolve invocation."
+        },
+        {
+          "path": "src/forwarder.ts",
+          "normalizedSha256": "e797d8e3081d77ba3a3922a096aebb0cf7d7a9de25cdabc2ecfe2fda14a0bab0",
+          "semanticReview": "Selected resolveChatId, supergroupFallback and resolvedTdlibChatId implement TDLib lookup and primitive identity validation, using only injected client/invoke/log in this fixture."
+        },
+        {
+          "path": "src/forwarder_errors.ts",
+          "normalizedSha256": "c2ed10cfee7a3417ed642ce89e9db1507127b6eadd8776ad08635644e1978430",
+          "semanticReview": "Error classifier imported by fixture preserves scalar error handling; no arbitrary executable text introduced into extracted chat-ID contract."
+        },
+        {
+          "path": "src/contract_values.ts",
+          "normalizedSha256": "fafb0a4342b0430278764c9fd27a5e9aef85de597edfd0e4bbd2c03be859fd41",
+          "semanticReview": "unknownErrorMessage fixture dependency treats unexpected values without arbitrary coercion; no executable source or target URL from supplied test IDs."
+        }
+      ],
+      "sourceManifestSha256": "73fa28a853254331f4c39eb712a2e9414089186ee8596467def169de04037fc0",
+      "cliRenewal": {
+        "sourceDirty": true,
+        "reviewedAt": "2026-09-20T13:21:38.826383+00:00",
+        "priorExecutionUnchanged": true,
+        "providerComplete": false
+      }
     }
   ]
 }
