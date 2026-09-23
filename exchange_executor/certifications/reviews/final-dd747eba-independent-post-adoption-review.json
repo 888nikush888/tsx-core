@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent_post_adoption_evidence_review",
+  "reviewedAt": "2026-09-23T11:45:53.967131+00:00",
+  "reviewedSourceRevision": "dd747ebab66f3290863007b501973c9e483212f3",
+  "sourceTreeHash": "3e087213c9b49de244d8736a69ec330a053304919ef6ab0d7a0716034ec94871",
+  "receiptSha256": "90dd3f4ec6ad9774c11f8d47631a5d4cb07ef9ce7729555daf1cec8793be4ae9",
+  "authoritySha256": "51c9a02327de70ced52802fb290ecf47a6a2030ae8db422626344e985939d563",
+  "authorityExactHyperliquidProfile1Only": true,
+  "copiedArtifacts": [
+    {
+      "path": "exchange_executor/certifications/reviews/final-dd747eba-independent-receipt-review.json",
+      "sha256": "1d8542979dff3aa49472a313757b1201d703b54544d52fc52f4a7888d941e4c8",
+      "identicalToIgnoredOriginal": true
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-dd747eba-receipt-adoption-approval.json",
+      "sha256": "31c59af09d187b2d19633041bdae5984b452ff294f9eb57073110ef245d1d631",
+      "identicalToIgnoredOriginal": true
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-dd747eba-receipt-evidence-manifest.json",
+      "sha256": "7e753ec939469a5aa283ea57f52acad46eb4f993e93037154a5188a9ac9a1d7b",
+      "identicalToIgnoredOriginal": true
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-dd747eba-receipt-evidence.tar.gz",
+      "sha256": "14c56bc99618b7129fe3ca0f755871d92c68bfe3072f072b6af83f8ebda34849",
+      "identicalToIgnoredOriginal": true
+    }
+  ],
+  "archiveFilesVerified": 53,
+  "archiveInternalManifestByteIdentical": true,
+  "gitAndWorkingTreeInputFilesVerified": 1000,
+  "groups": [
+    {
+      "group": "foundation",
+      "reportSha256": "49cd161676c00af4e57da8c72c3c2b9981e75253fb3d27da9a758309c2112ea9",
+      "commandCount": 14,
+      "terminalSuccessAndExactSourceBinding": true
+    },
+    {
+      "group": "backend",
+      "reportSha256": "b6d38bee0dced0a11358a3fa134f0c9b591fd51f9ae04744e5ce93014388bee8",
+      "commandCount": 2,
+      "terminalSuccessAndExactSourceBinding": true
+    },
+    {
+      "group": "python",
+      "reportSha256": "a6fbc699fc1c7fdf4a668f45819860df1476793fd002ac02692dd4eee7a8152c",
+      "commandCount": 3,
+      "terminalSuccessAndExactSourceBinding": true
+    },
+    {
+      "group": "frontend",
+      "reportSha256": "19cada997294c1385a6eb8ac9a8c04d125cc8223d3f1c86db5cba2c02c241388",
+      "commandCount": 1,
+      "terminalSuccessAndExactSourceBinding": true
+    },
+    {
+      "group": "build",
+      "reportSha256": "f855945ba26e21d743c8ab743333e8c636c00608ed274262988b95d9e69a38cc",
+      "commandCount": 1,
+      "terminalSuccessAndExactSourceBinding": true
+    },
+    {
+      "group": "browser",
+      "reportSha256": "8f23d5b923a32248feadeb0ab60bf94fce3132df5cf8fdbb5edfcde9316adebf",
+      "commandCount": 1,
+      "terminalSuccessAndExactSourceBinding": true
+    },
+    {
+      "group": "mutations",
+      "reportSha256": "9c855098a665d0343af5b27f7e653a9eb61a665d2df4d9f9708deb9e7f983df1",
+      "commandCount": 1,
+      "terminalSuccessAndExactSourceBinding": true
+    },
+    {
+      "group": "dependencies",
+      "reportSha256": "bd0bb8102fb42b4c74a01bac1d1ced6e6b705b4afc6b17e61d648d50e504cf50",
+      "commandCount": 3,
+      "terminalSuccessAndExactSourceBinding": true
+    }
+  ],
+  "postAdoptionLogs": [
+    {
+      "name": "production-gate",
+      "sha256": "f49d7ffbc72a136f45070619fc5cb78c6d59a26632e1633d4de91851d1620abb",
+      "exitCode": 0
+    },
+    {
+      "name": "bridge",
+      "sha256": "cb0e786bb2f29a89090dbb2e37f839dbe5703519ac3978eb01d3c2e60d7b7cef",
+      "exitCode": 0,
+      "passedFiles": 1
+    },
+    {
+      "name": "certification-evidence",
+      "sha256": "f553f07b2459d13e494c6863bc70ae704e205cb1953daf91531ec7f0a75b32f3",
+      "exitCode": 0,
+      "passedTests": 12
+    },
+    {
+      "name": "implementation-runtime",
+      "sha256": "3bb7bd187a7377738311c5b0bccce1908a7867e9eba88c17fde4708b4b321e8b",
+      "exitCode": 0,
+      "passedTests": 12
+    }
+  ],
+  "previousFailedAttemptsVerified": 1,
+  "issues": [],
+  "scope": "Read-only review of installed offline receipt, exact Git inputs, sealed execution evidence and four archived post-adoption commands. No tests, provider checks, or live trading performed by this reviewer.",
+  "providerAcceptanceVerified": false,
+  "liveTradingApproved": false,
+  "quarantinedProfiles": [
+    "bybit",
+    "krakenfutures"
+  ]
+}
