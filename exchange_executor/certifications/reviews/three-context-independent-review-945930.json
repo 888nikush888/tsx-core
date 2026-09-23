@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "reviewKind": "independent-current-source-context-review",
+  "reviewedAt": "2026-09-23T19:05:20.542517+00:00",
+  "reviewedRevision": "945930f3bceac2af44f6ad5ff3e78e26653c4c60",
+  "scannerArtifacts": {
+    "sarif": {
+      "path": "reports/final-findings/snyk-code-945930/code.sarif.json",
+      "sha256": "7555b00f95baa0ef1eea4eb583665fa346dee070fca18902367035584d200fcf"
+    },
+    "review": {
+      "path": "reports/final-findings/snyk-code-945930/code.review.json",
+      "sha256": "70a7858e7a6f5690ccc2944ce4db863a40e81cc6bb175c49e6d472886771c0d3"
+    }
+  },
+  "priorEvidence": {
+    "ledger": {
+      "path": "exchange_executor/certifications/reviews/snyk-code-scalar-contracts-review-2026-09-15.json",
+      "sha256": "8abb231b5fa6a1a40daf90aa5128866cd6de8b26803543cf0f78b930147338dd"
+    },
+    "sonar": {
+      "path": "exchange_executor/certifications/reviews/final-sonar-vendored-1258689e-snyk-code-context-review.json",
+      "sha256": "552d2f16573f5371365d9da10b3f975ce8333a75a86f077b7b3d61bbd728391d"
+    }
+  },
+  "currentBindings": {
+    "findingSourcePath": "scripts/verify_exchange_implementation.js",
+    "findingSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
+    "authorityPath": "exchange_executor/ccxt_implementation_reviews.py",
+    "priorAuthoritySha256": "a82912c2049d0594cd9f3d2cf98256b5a82ab2dea98538215f3e146f08da31da",
+    "currentAuthoritySha256": "898d8dde7524cd5231f08b4ab078bbc217b121bda73d71302963b3b45127f468",
+    "operativeReceiptSha256": "eefcdd4d9af1c81482569577508b5e330ade162496073d7adb9ea7bc7e30cfc9",
+    "adoptionApprovalSha256": "a2896c13ec79f2ef2b61224b5b352fefd461b4ce72bff5545152af94ed622720",
+    "contextSha256ByPath": {
+      "exchange_executor/ccxt_certification.py": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2",
+      "exchange_executor/ccxt_certification_evidence.py": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8",
+      "exchange_executor/ccxt_implementation_reviews.py": "898d8dde7524cd5231f08b4ab078bbc217b121bda73d71302963b3b45127f468",
+      "exchange_executor/ccxt_profiles.py": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd",
+      "package.json": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+    }
+  },
+  "findings": [
+    {
+      "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+      "ruleId": "javascript/PT",
+      "reportedSinkLine": 94,
+      "scannerFlowLines": [
+        340,
+        340,
+        340,
+        340,
+        340,
+        342,
+        342,
+        311,
+        316,
+        286,
+        290,
+        290,
+        290,
+        293,
+        293,
+        293,
+        297,
+        297,
+        297,
+        297,
+        297,
+        299,
+        299,
+        304,
+        304,
+        304,
+        304,
+        316,
+        321,
+        321,
+        321,
+        322,
+        322,
+        328,
+        328,
+        328,
+        82,
+        86,
+        86,
+        86,
+        94,
+        94
+      ],
+      "scannerFingerprints": {
+        "snyk/asset/finding/v1": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "identity": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "0": "761a0080a6e6ea87b9502ffed02b52dfa7d849e623a4212c9d34d24f0eb06e68",
+        "1": "f3d714f2.4773f344.eec2c252.d7919eeb.4a62e1e5.292a53dc.c08dd55c.eb397db7.214d3e14.b6e32c83.96e35b6b.c8688b2b.6c287ca9.5fce695c.f0256597.62f49dc2"
+      },
+      "priorDisposition": "false-positive",
+      "disposition": "false-positive",
+      "requiresCodeFix": false,
+      "assessment": "The scanner labels readSync a path sink, but line 94 passes an already opened numeric descriptor. The local CLI-selected Python executable runs only the fixed -I -B -c bridge. That bridge enumerates local PROFILES and returns a row only after certification_result enforces a strict exchange identifier, matching profile and pinned receipt. The final receipt path uses that exchange under a fixed directory. stableBytes checks a canonical parent, ordinary non-symlink single-link file and byte limit; it opens read-only with O_NOFOLLOW where available and checks descriptor/file identity before, during and after the read. The renewed pin changes receipt bytes only, not the path flow."
+    },
+    {
+      "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+      "ruleId": "javascript/IndirectCommandInjection",
+      "reportedSinkLine": 293,
+      "scannerFlowLines": [
+        340,
+        340,
+        340,
+        340,
+        340,
+        342,
+        342,
+        311,
+        316,
+        286,
+        290,
+        290,
+        290,
+        293,
+        293
+      ],
+      "scannerFingerprints": {
+        "snyk/asset/finding/v1": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "identity": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "0": "6eaaea772d87a13454aeb95635b84c56f8280e739d3c1b8b582865d60498baed",
+        "1": "bbc827ce.4773f344.8b18f948.d7919eeb.ef9f7d82.d4a8c500.83265159.3e55546e.bbc827ce.3df76230.2736cee9.c8688b2b.3f452f8c.93224842.83265159.62f49dc2"
+      },
+      "priorDisposition": "false-positive",
+      "disposition": "false-positive",
+      "requiresCodeFix": false,
+      "assessment": "The CLI accepts exactly --python and one absolute local executable path. runtimeReceipts resolves and validates that executable and its parent. spawnSync receives an argument array with fixed -I, -B, -c, fixed bridge text and fixed repository root, with shell:false, timeout and output cap. Metacharacters cannot become shell syntax. Selecting a local executable is explicit operator execution authority. The new receipt pin changes no executable or command argument."
+    },
+    {
+      "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+      "ruleId": "javascript/PT",
+      "reportedSinkLine": 86,
+      "scannerFlowLines": [
+        340,
+        340,
+        340,
+        340,
+        340,
+        342,
+        342,
+        311,
+        316,
+        286,
+        290,
+        290,
+        290,
+        293,
+        293,
+        293,
+        297,
+        297,
+        297,
+        297,
+        297,
+        299,
+        299,
+        304,
+        304,
+        304,
+        304,
+        316,
+        321,
+        321,
+        321,
+        322,
+        322,
+        328,
+        328,
+        328,
+        82,
+        86,
+        86
+      ],
+      "scannerFingerprints": {
+        "identity": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "0": "629230d40d6da4bad6b5d472e9978de155e90efb40897b9db49e41ce83333789",
+        "1": "b6950d85.4773f344.4dd76406.d7919eeb.3a121ca8.d4a8c500.c08dd55c.eb397db7.bbc827ce.277c621c.cf0dc3a8.5e127924.3f452f8c.93224842.f43bf3be.bd73fe9f",
+        "snyk/asset/finding/v1": "7039073d-34a6-4901-9897-4c0a40ca7b0a"
+      },
+      "priorDisposition": "false-positive",
+      "disposition": "false-positive",
+      "requiresCodeFix": false,
+      "assessment": "The scanner suggests arbitrary-file manipulation at openSync, but the flags are O_RDONLY plus O_NOFOLLOW where available. stableBytes validates the canonical parent, ordinary non-symlink single-link file and size, checks opened descriptor identity, then checks file and parent again after reading. For the later receipt read, the fixed bridge obtains exchange only from local PROFILES after strict identifier/profile checks and pinned receipt validation, and joins it beneath the fixed certifications directory. The pin renewal adds no path source and cannot grant write access."
+    }
+  ],
+  "checks": {
+    "exactlyThreeReviewedSourceChanged": true,
+    "scannerFingerprintsAndFullFlowLocationsMatchPriorEvidence": true,
+    "findingSourceAndOtherPriorContextBytesUnchanged": true,
+    "authorityDiffOnlyExistingHyperliquidProfile1Digest": true,
+    "newPinMatchesApprovedCurrentReceiptBytes": true,
+    "freshProviderScanPerformed": false,
+    "scannerDispositionApplied": false,
+    "providerAcceptanceVerified": false
+  },
+  "scope": "Review of three existing Snyk Code CI findings against current source and offline receipt pin. No scanner closure, new receipt approval, provider acceptance, deployment or trading authority."
+}

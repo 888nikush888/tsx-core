@@ -1,2 +1,3 @@
-# Preserve the archived approval's exact bytes and SHA-256 on every checkout.
+# Preserve reviewed evidence bytes and SHA-256 on every checkout.
 govuln9740-receipt-adoption-approval.json -text whitespace=cr-at-eol
+three-context-independent-review-945930.json -text whitespace=cr-at-eol
