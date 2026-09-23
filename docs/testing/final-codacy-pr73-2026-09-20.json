@@ -110,7 +110,8 @@
         ],
         "rationale": "checkCounts reads a rule-indexed JSON count record and compares active/ignored numeric totals. The key originates in this ledger family map, never becomes executable code or a property write. Inherited names cannot inject behavior into JSON-parsed rules; a mismatch reports a failed integrity check."
       },
-      "currentCliSemanticRenewal": "CLI requires both fixed local ledgers and runs existing per-ledger semantic/source/line checks before combining results with exact ordinal-sorted case-sensitive ID digests. Pins independently match all439 historical API IDs and five Added PR73 API IDs. Missing, duplicate, case-changed and overlapping sets fail. No provider write or status relabel. Dynamic readSource retains safePath/registered-source guards; fixed supplement read adds no external path input."
+      "currentCliSemanticRenewal": "CLI requires both fixed local ledgers and runs existing per-ledger semantic/source/line checks before combining results with exact ordinal-sorted case-sensitive ID digests. Pins independently match all439 historical API IDs and five Added PR73 API IDs. Missing, duplicate, case-changed and overlapping sets fail. No provider write or status relabel. Dynamic readSource retains safePath/registered-source guards; fixed supplement read adds no external path input.",
+      "testContextRenewal": "For this rule-count read, the omitted argument at test line 93 only exercises the missing-supplement inventory rejection. The existing wrongCount negative test still covers ruleCounts, and the script line 51 occurrence and its final line evidence are unchanged."
     },
     {
       "issueId": "26cffb07d9d0225b95b7e2fc3daad52e",
@@ -164,7 +165,8 @@
         ],
         "rationale": "Dynamic source reader is called by bindSource only after safePath rejects absolute paths, empty/dot/dot-dot segments and backslashes/colon, or by checkLine only for a path registered by bindSource. The source set belongs to a reviewed local repository ledger; it is read and hashed, not executed or sent externally. safePath is lexical; it does not reject local checkout symlink parents."
       },
-      "currentCliSemanticRenewal": "CLI requires both fixed local ledgers and runs existing per-ledger semantic/source/line checks before combining results with exact ordinal-sorted case-sensitive ID digests. Pins independently match all439 historical API IDs and five Added PR73 API IDs. Missing, duplicate, case-changed and overlapping sets fail. No provider write or status relabel. Dynamic readSource retains safePath/registered-source guards; fixed supplement read adds no external path input."
+      "currentCliSemanticRenewal": "CLI requires both fixed local ledgers and runs existing per-ledger semantic/source/line checks before combining results with exact ordinal-sorted case-sensitive ID digests. Pins independently match all439 historical API IDs and five Added PR73 API IDs. Missing, duplicate, case-changed and overlapping sets fail. No provider write or status relabel. Dynamic readSource retains safePath/registered-source guards; fixed supplement read adds no external path input.",
+      "testContextRenewal": "For this dynamic-source read, the omitted argument at test line 93 reaches only the inventory helper, never bindSource or checkLine. Existing unsafePath and source-drift negative tests remain; the script line 134 occurrence and its final line evidence are unchanged."
     },
     {
       "issueId": "329a4ebf6ed7872f91258fa5f4bb8381",
@@ -263,7 +265,8 @@
         ],
         "rationale": "CLI ledger read combines module-derived ROOT with a fixed module constant LEDGER. No argv, environment, network, or ledger-controlled path selects this file."
       },
-      "currentCliSemanticRenewal": "CLI requires both fixed local ledgers and runs existing per-ledger semantic/source/line checks before combining results with exact ordinal-sorted case-sensitive ID digests. Pins independently match all439 historical API IDs and five Added PR73 API IDs. Missing, duplicate, case-changed and overlapping sets fail. No provider write or status relabel. Dynamic readSource retains safePath/registered-source guards; fixed supplement read adds no external path input."
+      "currentCliSemanticRenewal": "CLI requires both fixed local ledgers and runs existing per-ledger semantic/source/line checks before combining results with exact ordinal-sorted case-sensitive ID digests. Pins independently match all439 historical API IDs and five Added PR73 API IDs. Missing, duplicate, case-changed and overlapping sets fail. No provider write or status relabel. Dynamic readSource retains safePath/registered-source guards; fixed supplement read adds no external path input.",
+      "testContextRenewal": "For this fixed-ledger read, both files are loaded via the same module-relative test URLs before the missing-supplement helper call. Omitting its second argument cannot select a CLI input path; the script line 132 occurrence and its final line evidence are unchanged."
     },
     {
       "issueId": "96c70e58dbd13a7871ea404b36bbf023",
@@ -358,12 +361,17 @@
       },
       {
         "path": "tests/test_final_codacy_review.js",
-        "normalizedSha256": "4d4b092145353067a6ce9756839d8c70c537a1a5134cf7212b95fb30e46ec6f8",
-        "semanticReview": "New tests read two fixed module-relative ledgers and assert positive exact ID inventories, count-consistent historical deletion, missing new ID, overlap, uppercase ID and missing supplement rejection. Existing semantic/source drift tests stay intact. These identity tests do not establish successful provider coverage.",
+        "normalizedSha256": "d51b8caecaaaf084411262d367cff51c5d105f52dcd54cd1e8672dcc616fe65a",
+        "semanticReview": "The integrity tests still read both fixed module-relative ledgers and assert exact ID inventories, count-consistent historical deletion, missing new ID, overlap, uppercase ID, and missing supplement rejection. At line 93, omitting the second argument passes undefined to checkFinalCodacyInventories, exactly as the previous explicit undefined did. Its optional supplement?.entries access remains an empty inventory, so the pinned five-ID digest fails. No file read, source path, scanner occurrence, or provider state changes; these tests do not establish provider coverage.",
         "previousCliReview": {
           "path": "tests/test_final_codacy_review.js",
           "normalizedSha256": "e19ec6812ce7e032134fe2e0cdcf2e04f5b219a9629e4f1f61b692b29894dba6",
           "semanticReview": "Existing explicit tests reject changed source bytes, missing context, missing location, unsafe path, duplicate IDs and counts; no implication of provider success."
+        },
+        "previousTestReview": {
+          "path": "tests/test_final_codacy_review.js",
+          "normalizedSha256": "4d4b092145353067a6ce9756839d8c70c537a1a5134cf7212b95fb30e46ec6f8",
+          "semanticReview": "New tests read two fixed module-relative ledgers and assert positive exact ID inventories, count-consistent historical deletion, missing new ID, overlap, uppercase ID and missing supplement rejection. Existing semantic/source drift tests stay intact. These identity tests do not establish successful provider coverage."
         }
       },
       {

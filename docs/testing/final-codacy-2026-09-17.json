@@ -67688,11 +67688,11 @@
       },
       {
         "path": "tests/test_final_codacy_review.js",
-        "normalizedSha256": "4d4b092145353067a6ce9756839d8c70c537a1a5134cf7212b95fb30e46ec6f8",
+        "normalizedSha256": "d51b8caecaaaf084411262d367cff51c5d105f52dcd54cd1e8672dcc616fe65a",
         "gitBlob": "16bb596c20319e0abf8ac93db6e7e799285142f4",
         "baselineSha256": null,
         "changedFromBaseline": true,
-        "semanticReview": "New tests read two fixed module-relative ledgers and assert positive exact ID inventories, count-consistent historical deletion, missing new ID, overlap, uppercase ID and missing supplement rejection. Existing semantic/source drift tests stay intact. These identity tests do not establish successful provider coverage.",
+        "semanticReview": "The integrity tests still read both fixed module-relative ledgers and assert exact ID inventories, count-consistent historical deletion, missing new ID, overlap, uppercase ID, and missing supplement rejection. At line 93, omitting the second argument passes undefined to checkFinalCodacyInventories, exactly as the previous explicit undefined did. Its optional supplement?.entries access remains an empty inventory, so the pinned five-ID digest fails. No file read, source path, scanner occurrence, or provider state changes; these tests do not establish provider coverage.",
         "previousCliReview": {
           "path": "tests/test_final_codacy_review.js",
           "normalizedSha256": "e19ec6812ce7e032134fe2e0cdcf2e04f5b219a9629e4f1f61b692b29894dba6",
@@ -67700,6 +67700,11 @@
           "baselineSha256": null,
           "changedFromBaseline": true,
           "semanticReview": "Reviewed the new isolated in-memory integrity contract suite. It exercises changed source/caller, missing bindings/context/location, pending semantic approval, malformed inventory and read-only behavior without rewriting repository fixtures or provider state."
+        },
+        "previousTestReview": {
+          "path": "tests/test_final_codacy_review.js",
+          "normalizedSha256": "4d4b092145353067a6ce9756839d8c70c537a1a5134cf7212b95fb30e46ec6f8",
+          "semanticReview": "New tests read two fixed module-relative ledgers and assert positive exact ID inventories, count-consistent historical deletion, missing new ID, overlap, uppercase ID and missing supplement rejection. Existing semantic/source drift tests stay intact. These identity tests do not establish successful provider coverage."
         }
       },
       {

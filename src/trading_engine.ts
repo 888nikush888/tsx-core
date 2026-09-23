@@ -2025,6 +2025,7 @@ export class TradingEngine {
     }
   }
 
+  // skipcq: JS-0105 - keep this instance seam for per-engine failure isolation in emergency and money-value regressions.
   private async ingestOwnedState(
     account: TradingAccount,
     remote: ExchangeOpenState,

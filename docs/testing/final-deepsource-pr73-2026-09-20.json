@@ -385,10 +385,16 @@
       },
       "currentSourceBinding": {
         "path": "src/trading_engine.ts",
+        "sha256": "5bee3a6f524df4d051e09e4488fe1c8aa3611271ef153edc47d40a87ac803776",
+        "line": 2074
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "priorCurrentSourceBinding": {
+        "path": "src/trading_engine.ts",
         "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874",
         "line": 2073
       },
-      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "currentDeltaReview": "The historical JS-0105 target persistRemoteExecutions remains private static async and its sole production call stays class-qualified; its body and awaited write order are unchanged. The one new line is a narrow JS-0105 comment above a different method, ingestOwnedState, which remains an instance seam called with this and replaced per engine in emergency and money-value regressions. This comment changes no executable statement or error timing. A new exact-head DeepSource scan must confirm both the historical target and comment scope; neither is marked cloud-accepted here.",
       "historicalSourceReview": {
         "id": "Q2hlY2tJc3N1ZTpwcXd3am9lYWs=",
         "rule": "JS-0105",
@@ -2412,6 +2418,49 @@
       ],
       "sourceDelta": "Only3 lines inserted at93-95 add exact three public Sonar PR73 issue IDs (set-hash pinned), exact issueKey field and ledger path to existing real-Gitleaks positive/negative fixture machinery. Existing runtime checks iterate over all groups and still reject wrong paths, wrong fields, unknown IDs and credential fixtures. Real scanner portion runs only when TSX_GITLEAKS_BINARY is selected; source inspection alone is not an executed-scanner claim.",
       "executionScope": "Current source delta and coordinates reviewed. No test rerun by this reviewer. Every earlier validation/log/hash remains historical; actual new test and provider results must be recorded separately.",
+      "finalCloudAcceptance": false
+    },
+    {
+      "date": "2026-09-23",
+      "sourceRevision": "312c5a36edd0a52f14b292d2535c8a4761dc0d6d",
+      "dirtyTree": true,
+      "previousLedgerSha256": "4787cc11a999df27bf0db634fc3affab268d6c11c1dcbb08562ba92e4186b1de",
+      "reviews": [
+        {
+          "id": "Q2hlY2tJc3N1ZTpwcXd3am9lYWs=",
+          "rule": "JS-0105",
+          "issuePath": "src/trading_engine.ts",
+          "historicalTarget": "persistRemoteExecutions",
+          "currentTargetLine": 2074,
+          "currentSourceSha256": "5bee3a6f524df4d051e09e4488fe1c8aa3611271ef153edc47d40a87ac803776",
+          "rationale": "The existing PR73 issue targeted persistRemoteExecutions, already made private static async with its sole production call class-qualified. The added comment is above a different instance method and does not revert the existing fix, alter either method body, or change awaited reconciliation order. The original issue identity and historical scan stay unchanged.",
+          "finalCloudAcceptance": false
+        }
+      ],
+      "unscannedLocalRuleReviews": [
+        {
+          "rule": "JS-0105",
+          "path": "src/trading_engine.ts",
+          "providerIssueId": null,
+          "sourceSha256": "5bee3a6f524df4d051e09e4488fe1c8aa3611271ef153edc47d40a87ac803776",
+          "commentLine": 2028,
+          "commentLineSha256": "84d5f5d6f7ed169e5b0e3182579aeca5c6cd60a7ed6a3cf7a611a66fb2c1cf03",
+          "targetMethodLine": 2029,
+          "rationale": "ingestOwnedState does not use this internally but remains an instance seam: both production call sites invoke this.ingestOwnedState, and emergency and money-value regressions replace it on individual engine instances to isolate failures. Making this method static would remove that tested per-engine seam. The precise skipcq comment applies to this method alone; provider suppression has not been verified.",
+          "providerSuppressionVerified": false
+        },
+        {
+          "rule": "JS-W1042",
+          "path": "tests/test_final_codacy_review.js",
+          "providerIssueId": null,
+          "sourceSha256": "d51b8caecaaaf084411262d367cff51c5d105f52dcd54cd1e8672dcc616fe65a",
+          "targetLine": 93,
+          "targetLineSha256": "b239002b297cf0eefa0523ee31c5c06963430be662b24af45245a3fabca5c9ae",
+          "rationale": "The last negative inventory assertion omits an explicit undefined second argument. JavaScript supplies undefined for the missing parameter; checkFinalCodacyInventories reads supplement?.entries and treats that value as an empty list, so the assertion still proves that a missing supplemental inventory fails. The separate PR73 JS-W1042 provider issue belongs to tests/test_signal_parser.js and is not reassigned to this line.",
+          "finalCloudAcceptance": false
+        }
+      ],
+      "executionScope": "Four focused registered test files passed locally: final Codacy integrity contracts, trading emergency, trading money-value and DeepSource export. This run does not replace eight integrated verification groups or an exact-head DeepSource scan.",
       "finalCloudAcceptance": false
     }
   ]

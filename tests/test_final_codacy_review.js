@@ -90,5 +90,5 @@ assert.equal(checkFinalCodacyInventories(historical, overlapping).ok, false);
 const renamed = structuredClone(supplement);
 renamed.entries[0].issueId = renamed.entries[0].issueId.toUpperCase();
 assert.equal(checkFinalCodacyInventories(historical, renamed).ok, false, 'Issue identities are case-sensitive.');
-assert.equal(checkFinalCodacyInventories(historical, undefined).ok, false);
+assert.equal(checkFinalCodacyInventories(historical).ok, false);
 console.log('Codacy retained historical and supplemental identity inventories passed.');
