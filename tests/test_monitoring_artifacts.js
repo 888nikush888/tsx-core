@@ -127,8 +127,9 @@ assert.match(alertmanagerDockerfile, /COPY --chmod=0444 monitoring\/alertmanager
 assert.match(alertmanagerDockerfile, /GOFLAGS=-mod=readonly/);
 assert.doesNotMatch(alertmanagerDockerfile, /\bgo (?:get|install)\b/);
 assert.match(alertmanagerSumLock, /golang\.org\/x\/text v0\.41\.0 h1:/);
-assert.match(vulncheckModuleLock, /require golang\.org\/x\/vuln v1\.6\.0/);
-assert.match(vulncheckSumLock, /golang\.org\/x\/vuln v1\.6\.0 h1:/);
+assert.match(vulncheckModuleLock, /require golang\.org\/x\/vuln v1\.8\.0/);
+assert.match(vulncheckSumLock, /golang\.org\/x\/vuln v1\.8\.0 h1:/);
+assert.match(vulncheckSumLock, /golang\.org\/x\/mod v0\.41\.0 h1:/);
 assert.match(alertmanagerDockerfile, /CGO_ENABLED=0/);
 assert.match(alertmanagerDockerfile, /^ARG SOURCE_DATE_EPOCH=1783191941$/m);
 assert.match(alertmanagerDockerfile, /^FROM --platform=\$\{BUILDPLATFORM\} \$\{GO_IMAGE\} AS builder$/m);

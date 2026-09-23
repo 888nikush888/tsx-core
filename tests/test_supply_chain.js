@@ -453,8 +453,9 @@ assert.match(alertmanagerDockerfile, /github\.com\/prometheus\/common\/version\.
 assert.match(alertmanagerModuleLock, /github\.com\/klauspost\/compress v1\.18\.7/);
 assert.match(alertmanagerModuleLock, /go\.opentelemetry\.io\/otel v1\.44\.0/);
 assert.match(alertmanagerSumLock, /github\.com\/klauspost\/compress v1\.18\.7 h1:/);
-assert.match(vulncheckModuleLock, /require golang\.org\/x\/vuln v1\.6\.0/);
-assert.match(vulncheckSumLock, /golang\.org\/x\/vuln v1\.6\.0 h1:/);
+assert.match(vulncheckModuleLock, /require golang\.org\/x\/vuln v1\.8\.0/);
+assert.match(vulncheckSumLock, /golang\.org\/x\/vuln v1\.8\.0 h1:/);
+assert.match(vulncheckSumLock, /golang\.org\/x\/mod v0\.41\.0 h1:/);
 assert.match(alertmanagerDockerfile, /GOFLAGS=-mod=readonly/);
 assert.doesNotMatch(alertmanagerDockerfile, /\bgo (?:get|install)\b/);
 assert.match(alertmanagerDockerfile, /^ARG SOURCE_DATE_EPOCH=1783191941$/m);
