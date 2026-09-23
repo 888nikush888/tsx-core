@@ -1,0 +1,104 @@
+{
+  "completedAt": "2026-09-23T21:45:41.667122+00:00",
+  "revision": "c23272a3228a8e25c3604a556131b978822abe56",
+  "receiptSha256": "62e10f900734a3c0a1295dddad68a54cdb67dbd1a6a9e594a15f56f3038d1592",
+  "sourceTreeHash": "2e5fc760e96e35a029d632a1c2bf024c8a4448ee79a20196198b0a7b583e1c8c",
+  "commands": [
+    {
+      "name": "production-gate",
+      "command": [
+        "C:/Users/nikla/AppData/Local/Programs/node22/node-v22.23.2-win-x64/node.exe",
+        "scripts/verify_exchange_implementation.js",
+        "--python",
+        "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {},
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/codacy-c232-post-adoption-logs.tar.gz",
+          "sha256": "e9a3f0f5dd3c9158d6f67669b20a8e66573d941ae55ae46c1ea6f51dfdac933f"
+        },
+        "member": "codacy-c232-post-adoption-production-gate.log",
+        "sha256": "1352e904ed4262eb86fb853d83d628b236e62b92a931bae03f569353c8b7ddc7"
+      }
+    },
+    {
+      "name": "bridge",
+      "command": [
+        "C:/Users/nikla/AppData/Local/Programs/node22/node-v22.23.2-win-x64/node.exe",
+        "tests/run_all.js",
+        "test_exchange_implementation_bridge.js"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {
+        "TSX_TEST_PYTHON": "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe"
+      },
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/codacy-c232-post-adoption-logs.tar.gz",
+          "sha256": "e9a3f0f5dd3c9158d6f67669b20a8e66573d941ae55ae46c1ea6f51dfdac933f"
+        },
+        "member": "codacy-c232-post-adoption-bridge.log",
+        "sha256": "cb0e786bb2f29a89090dbb2e37f839dbe5703519ac3978eb01d3c2e60d7b7cef"
+      }
+    },
+    {
+      "name": "certification-evidence",
+      "command": [
+        "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "exchange_executor/tests",
+        "-p",
+        "test_certification_evidence.py",
+        "-v"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {},
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/codacy-c232-post-adoption-logs.tar.gz",
+          "sha256": "e9a3f0f5dd3c9158d6f67669b20a8e66573d941ae55ae46c1ea6f51dfdac933f"
+        },
+        "member": "codacy-c232-post-adoption-certification-evidence.log",
+        "sha256": "3918bba765c9fec2c51ae132faa8fe13073dfb7ee98635f34f8ed25d52aecdef"
+      }
+    },
+    {
+      "name": "implementation-runtime",
+      "command": [
+        "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "exchange_executor/tests",
+        "-p",
+        "test_implementation_runtime.py",
+        "-v"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {},
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/codacy-c232-post-adoption-logs.tar.gz",
+          "sha256": "e9a3f0f5dd3c9158d6f67669b20a8e66573d941ae55ae46c1ea6f51dfdac933f"
+        },
+        "member": "codacy-c232-post-adoption-implementation-runtime.log",
+        "sha256": "92dca770695d90c209de7116ea9b0eff4ac2f9fe7f44a23c01689a7df12e92b9"
+      }
+    }
+  ],
+  "allCommandsPassed": true,
+  "providerAcceptanceVerified": false,
+  "quarantinedProfiles": [
+    "bybit",
+    "krakenfutures"
+  ],
+  "previousAttempts": []
+}
