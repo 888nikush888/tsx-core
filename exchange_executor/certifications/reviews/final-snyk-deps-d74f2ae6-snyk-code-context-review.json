@@ -1,0 +1,220 @@
+{
+  "kind": "read-only-snyk-code-context-renewal-review",
+  "revision": "d74f2ae68722a1a86f71af6c1a872dd4cfbf3f0d",
+  "ledger": {
+    "path": "exchange_executor/certifications/reviews/snyk-code-scalar-contracts-review-2026-09-15.json",
+    "sha256": "6cf10738f5f89bc73a50a00d202c5a886c3fa4bf69193151114b3221e981b60c",
+    "entries": 86,
+    "dispositions": {
+      "falsePositive": 82,
+      "open": 4
+    }
+  },
+  "historicalSarif": {
+    "path": "../tsx-core-findings-review-20260916/reports/final-findings/pr73-snyk-code-d1f04b58/code.sarif.json",
+    "sha256": "24de01e3ce01493dd2ef652cc14a439b7c47eabee66853787655cdee92137ea6",
+    "scannerExit": 1,
+    "results": 86,
+    "identityRulePathFingerprintFlowMismatches": []
+  },
+  "currentValidator": {
+    "reviewedFalsePositives": 78,
+    "ownerAcceptedOpenRisks": 4,
+    "remaining": 4,
+    "unresolved": [
+      {
+        "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-source-changed"
+      },
+      {
+        "findingId": "164aa45d-3766-4932-9dd7-4f2729603758",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-source-changed"
+      },
+      {
+        "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "ruleId": "javascript/IndirectCommandInjection",
+        "disposition": "reviewed-source-changed"
+      },
+      {
+        "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "ruleId": "javascript/PT",
+        "disposition": "reviewed-source-changed"
+      }
+    ]
+  },
+  "contextRenewal": {
+    "changedHashBindings": 7,
+    "affectedIds": 4,
+    "authority": {
+      "path": "exchange_executor/ccxt_implementation_reviews.py",
+      "priorSha256": "51c9a02327de70ced52802fb290ecf47a6a2030ae8db422626344e985939d563",
+      "currentSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b",
+      "bindings": 3
+    },
+    "rootPackage": {
+      "path": "package.json",
+      "priorSha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e",
+      "currentSha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2",
+      "bindings": 4,
+      "onlyD1fToD74fManifestChange": "Hono override 4.13.5 to 4.13.7"
+    },
+    "records": [
+      {
+        "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "ruleId": "javascript/PT",
+        "sourcePath": "scripts/verify_exchange_implementation.js",
+        "sourceLine": 94,
+        "disposition": "false-positive",
+        "reviewedSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
+        "changedBindings": [
+          {
+            "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+            "ruleId": "javascript/PT",
+            "findingPath": "scripts/verify_exchange_implementation.js",
+            "findingLine": 94,
+            "contextIndex": 2,
+            "contextPath": "exchange_executor/ccxt_implementation_reviews.py",
+            "priorSha256": "51c9a02327de70ced52802fb290ecf47a6a2030ae8db422626344e985939d563",
+            "currentSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
+          },
+          {
+            "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+            "ruleId": "javascript/PT",
+            "findingPath": "scripts/verify_exchange_implementation.js",
+            "findingLine": 94,
+            "contextIndex": 4,
+            "contextPath": "package.json",
+            "priorSha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e",
+            "currentSha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+          }
+        ],
+        "individualCurrentAssessment": "Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added.",
+        "preserveFingerprintEvidenceAndHistoricalRationale": true
+      },
+      {
+        "findingId": "164aa45d-3766-4932-9dd7-4f2729603758",
+        "ruleId": "javascript/PT",
+        "sourcePath": "src/signal_parser.ts",
+        "sourceLine": 598,
+        "disposition": "false-positive",
+        "reviewedSourceSha256": "d72b7a27439e2f5801e982af18fd802bfd1cb331338569533e686bd50bb78378",
+        "changedBindings": [
+          {
+            "findingId": "164aa45d-3766-4932-9dd7-4f2729603758",
+            "ruleId": "javascript/PT",
+            "findingPath": "src/signal_parser.ts",
+            "findingLine": 598,
+            "contextIndex": 0,
+            "contextPath": "package.json",
+            "priorSha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e",
+            "currentSha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+          }
+        ],
+        "individualCurrentAssessment": "CLI signal parser readFile at line 598 still receives only explicit local --file argv inside isMain. Only root package.json Hono override 4.13.5 to 4.13.7 changed; parser and CLI source bytes are unchanged.",
+        "preserveFingerprintEvidenceAndHistoricalRationale": true
+      },
+      {
+        "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "ruleId": "javascript/IndirectCommandInjection",
+        "sourcePath": "scripts/verify_exchange_implementation.js",
+        "sourceLine": 293,
+        "disposition": "false-positive",
+        "reviewedSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
+        "changedBindings": [
+          {
+            "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+            "ruleId": "javascript/IndirectCommandInjection",
+            "findingPath": "scripts/verify_exchange_implementation.js",
+            "findingLine": 293,
+            "contextIndex": 2,
+            "contextPath": "exchange_executor/ccxt_implementation_reviews.py",
+            "priorSha256": "51c9a02327de70ced52802fb290ecf47a6a2030ae8db422626344e985939d563",
+            "currentSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
+          },
+          {
+            "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+            "ruleId": "javascript/IndirectCommandInjection",
+            "findingPath": "scripts/verify_exchange_implementation.js",
+            "findingLine": 293,
+            "contextIndex": 4,
+            "contextPath": "package.json",
+            "priorSha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e",
+            "currentSha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+          }
+        ],
+        "individualCurrentAssessment": "Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added.",
+        "preserveFingerprintEvidenceAndHistoricalRationale": true
+      },
+      {
+        "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "ruleId": "javascript/PT",
+        "sourcePath": "scripts/verify_exchange_implementation.js",
+        "sourceLine": 86,
+        "disposition": "false-positive",
+        "reviewedSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
+        "changedBindings": [
+          {
+            "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+            "ruleId": "javascript/PT",
+            "findingPath": "scripts/verify_exchange_implementation.js",
+            "findingLine": 86,
+            "contextIndex": 2,
+            "contextPath": "exchange_executor/ccxt_implementation_reviews.py",
+            "priorSha256": "51c9a02327de70ced52802fb290ecf47a6a2030ae8db422626344e985939d563",
+            "currentSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
+          },
+          {
+            "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+            "ruleId": "javascript/PT",
+            "findingPath": "scripts/verify_exchange_implementation.js",
+            "findingLine": 86,
+            "contextIndex": 4,
+            "contextPath": "package.json",
+            "priorSha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e",
+            "currentSha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+          }
+        ],
+        "individualCurrentAssessment": "Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added.",
+        "preserveFingerprintEvidenceAndHistoricalRationale": true
+      }
+    ]
+  },
+  "receipt": {
+    "path": "exchange_executor/certifications/hyperliquid.json",
+    "sha256": "04c443cb8318783f2544aa0b3e2d172a2be9383f6c0b4176e2172de1603fbd7d",
+    "sourceRevision": "d74f2ae68722a1a86f71af6c1a872dd4cfbf3f0d",
+    "sourceTreeHash": "ba9cf9697874d2e8f5bf32645bdd5360ac2f43eccab8399cfaed2b0383effbf6",
+    "providerAcceptanceVerified": false
+  },
+  "historicalApprovalCorrection": {
+    "path": "exchange_executor/certifications/reviews/final-snyk-deps-d74f2ae6-receipt-adoption-approval.json",
+    "sha256": "50324b89eafc455f288781c4bd144ed9901febde10da30ec7ccc25ef6595d9e4",
+    "priorText": "Renew the three affected Snyk Code authority context bindings, publish PR73 head, and obtain fresh CI/provider scans before protected merge.",
+    "currentInventory": "Four affected finding IDs and seven context hash bindings, including package.json, not just three authority bindings.",
+    "instruction": "Preserve sealed historical approval bytes; record corrected inventory in new renewal/follow-up evidence."
+  },
+  "expectedAfterRenewal": {
+    "reviewedFalsePositives": 82,
+    "ownerAcceptedOpenRisks": 4,
+    "remaining": 0,
+    "conditionalOn": "Only the seven reviewed context SHA256 bindings are updated, all identities/flows/dispositions remain identical, and fresh exact-head SARIF is separately verified."
+  },
+  "validatorCommandHistoricalPreflight": "node scripts/check_snyk_code_review.js ../tsx-core-findings-review-20260916/reports/final-findings/pr73-snyk-code-d1f04b58/code.sarif.json 1 exchange_executor/certifications/reviews/snyk-code-scalar-contracts-review-2026-09-15.json reports/final-findings/snyk-code-d74f2ae6-preflight.json",
+  "trackedFilesEdited": false,
+  "providerAcceptanceVerified": false,
+  "postAdoptionReview": {
+    "path": "exchange_executor/certifications/reviews/final-snyk-deps-d74f2ae6-independent-post-adoption-review.json",
+    "sha256": "dee71fbb8761da1d7678a47f6832fe1355f1eac3e0c48c7321ab39b2853551c7",
+    "issues": 0,
+    "receiptSha256": "04c443cb8318783f2544aa0b3e2d172a2be9383f6c0b4176e2172de1603fbd7d",
+    "providerAcceptanceVerified": false
+  },
+  "receiptEvidence": {
+    "manifestPath": "exchange_executor/certifications/reviews/final-snyk-deps-d74f2ae6-receipt-evidence-manifest.json",
+    "manifestSha256": "8c101dc8c544646429c62968de7a4bd9071888a8cec326500f194523c677d829",
+    "archivePath": "exchange_executor/certifications/reviews/final-snyk-deps-d74f2ae6-receipt-evidence.tar.gz",
+    "archiveSha256": "4ccf1d0970f5353efc94bcc49e6f6692d7071db1ec5f0cf585273834fbd4bd65"
+  }
+}

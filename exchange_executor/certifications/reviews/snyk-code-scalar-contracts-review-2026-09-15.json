@@ -139,7 +139,7 @@
       "line": 94,
       "reviewedSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
       "disposition": "false-positive",
-      "rationale": "Independent current review at6677d8947b88fdb19f01e1d3189cdce7ef3015ea: Individually traced full CLI-selected absolute Python -> realpath/ordinary-file/canonical-parent -> fixed -I -B -c bridge and root argv -> bounded runtime result -> pinned receipt comparison flow to readSync. Canonical source directories, safeRelative, no-follow, single-link and pre/open/post file identity checks remain; spawn is shell:false with fixed code, timeout and maxBuffer. Verifier and all contexts except authority file are byte-identical. Authority delta changes only existing Hyperliquid/profile1 digest1427d769... to independently root-approved cf9aea59...; no added exchange/profile, executable, path or command. Separate28c adoption evidence establishes provenance; this review itself grants neither provider acceptance nor new receipt authority.",
+      "rationale": "Independent current review at6677d8947b88fdb19f01e1d3189cdce7ef3015ea: Individually traced full CLI-selected absolute Python -> realpath/ordinary-file/canonical-parent -> fixed -I -B -c bridge and root argv -> bounded runtime result -> pinned receipt comparison flow to readSync. Canonical source directories, safeRelative, no-follow, single-link and pre/open/post file identity checks remain; spawn is shell:false with fixed code, timeout and maxBuffer. Verifier and all contexts except authority file are byte-identical. Authority delta changes only existing Hyperliquid/profile1 digest1427d769... to independently root-approved cf9aea59...; no added exchange/profile, executable, path or command. Separate28c adoption evidence establishes provenance; this review itself grants neither provider acceptance nor new receipt authority. Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -151,7 +151,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "51c9a02327de70ced52802fb290ecf47a6a2030ae8db422626344e985939d563"
+          "sha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -159,7 +159,7 @@
         },
         {
           "path": "package.json",
-          "sha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e"
+          "sha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
         }
       ],
       "codeFlowLocations": [
@@ -1370,7 +1370,28 @@
           "providerScanRenewed": false,
           "remoteDecisionApplied": false
         }
-      ]
+      ],
+      "currentContextRenewal": {
+        "sourceRevision": "d74f2ae68722a1a86f71af6c1a872dd4cfbf3f0d",
+        "priorLedgerSha256": "6cf10738f5f89bc73a50a00d202c5a886c3fa4bf69193151114b3221e981b60c",
+        "changedBindings": [
+          {
+            "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+            "path": "exchange_executor/ccxt_implementation_reviews.py",
+            "priorSha256": "51c9a02327de70ced52802fb290ecf47a6a2030ae8db422626344e985939d563",
+            "currentSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
+          },
+          {
+            "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+            "path": "package.json",
+            "priorSha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e",
+            "currentSha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+          }
+        ],
+        "rationale": "Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition.",
+        "scannerEvidenceUnchanged": true,
+        "providerScanRenewed": false
+      }
     },
     {
       "findingId": "88fce105-6148-4b77-904c-f82f35a3d8d9",
@@ -1584,11 +1605,11 @@
       "line": 598,
       "reviewedSourceSha256": "d72b7a27439e2f5801e982af18fd802bfd1cb331338569533e686bd50bb78378",
       "disposition": "false-positive",
-      "rationale": "Scoped review at 7293f5b578a1e32ecada1e40d6d92ddd0f08ef66. The reported readFile path is populated only from local --file argv within isMain. Exported parser receives message text and cannot choose this CLI pathname. Current binding review: src/signal_parser.ts: CLI read still confined to isMain and explicit local --file argv. Type cleanup, hoisted abort handler and nullish error views do not introduce filesystem input; read current entire CLI block. package.json: Only fast-uri override3.1.7 to3.1.8. No script, interpreter, CLI argument, path source or approval authority change.",
+      "rationale": "Scoped review at 7293f5b578a1e32ecada1e40d6d92ddd0f08ef66. The reported readFile path is populated only from local --file argv within isMain. Exported parser receives message text and cannot choose this CLI pathname. Current binding review: src/signal_parser.ts: CLI read still confined to isMain and explicit local --file argv. Type cleanup, hoisted abort handler and nullish error views do not introduce filesystem input; read current entire CLI block. package.json: Only fast-uri override3.1.7 to3.1.8. No script, interpreter, CLI argument, path source or approval authority change. Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. CLI signal parser readFile at line 598 still receives only explicit local --file argv inside isMain. Only root package.json Hono override 4.13.5 to 4.13.7 changed; parser and CLI source bytes are unchanged. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition.",
       "contextPaths": [
         {
           "path": "package.json",
-          "sha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e"
+          "sha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
         }
       ],
       "codeFlowLocations": [
@@ -1659,7 +1680,22 @@
           "newSha256": "7ba58e572cfd6c50e47b750ebd133c4c200f4d0ba4c48e7caa72a6aadb530432"
         }
       ],
-      "flowChanged": true
+      "flowChanged": true,
+      "currentContextRenewal": {
+        "sourceRevision": "d74f2ae68722a1a86f71af6c1a872dd4cfbf3f0d",
+        "priorLedgerSha256": "6cf10738f5f89bc73a50a00d202c5a886c3fa4bf69193151114b3221e981b60c",
+        "changedBindings": [
+          {
+            "findingId": "164aa45d-3766-4932-9dd7-4f2729603758",
+            "path": "package.json",
+            "priorSha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e",
+            "currentSha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+          }
+        ],
+        "rationale": "Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. CLI signal parser readFile at line 598 still receives only explicit local --file argv inside isMain. Only root package.json Hono override 4.13.5 to 4.13.7 changed; parser and CLI source bytes are unchanged. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition.",
+        "scannerEvidenceUnchanged": true,
+        "providerScanRenewed": false
+      }
     },
     {
       "findingId": "142dd478-3551-4536-9562-b365bf50d287",
@@ -5724,7 +5760,7 @@
       "line": 293,
       "reviewedSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
       "disposition": "false-positive",
-      "rationale": "Independent current review at6677d8947b88fdb19f01e1d3189cdce7ef3015ea: Individually traced full CLI-selected absolute Python -> realpath/ordinary-file/canonical-parent -> fixed -I -B -c bridge and root argv -> bounded runtime result -> pinned receipt comparison flow to spawnSync. Canonical source directories, safeRelative, no-follow, single-link and pre/open/post file identity checks remain; spawn is shell:false with fixed code, timeout and maxBuffer. Verifier and all contexts except authority file are byte-identical. Authority delta changes only existing Hyperliquid/profile1 digest1427d769... to independently root-approved cf9aea59...; no added exchange/profile, executable, path or command. Separate28c adoption evidence establishes provenance; this review itself grants neither provider acceptance nor new receipt authority.",
+      "rationale": "Independent current review at6677d8947b88fdb19f01e1d3189cdce7ef3015ea: Individually traced full CLI-selected absolute Python -> realpath/ordinary-file/canonical-parent -> fixed -I -B -c bridge and root argv -> bounded runtime result -> pinned receipt comparison flow to spawnSync. Canonical source directories, safeRelative, no-follow, single-link and pre/open/post file identity checks remain; spawn is shell:false with fixed code, timeout and maxBuffer. Verifier and all contexts except authority file are byte-identical. Authority delta changes only existing Hyperliquid/profile1 digest1427d769... to independently root-approved cf9aea59...; no added exchange/profile, executable, path or command. Separate28c adoption evidence establishes provenance; this review itself grants neither provider acceptance nor new receipt authority. Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -5736,7 +5772,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "51c9a02327de70ced52802fb290ecf47a6a2030ae8db422626344e985939d563"
+          "sha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -5744,7 +5780,7 @@
         },
         {
           "path": "package.json",
-          "sha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e"
+          "sha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
         }
       ],
       "codeFlowLocations": [
@@ -6523,7 +6559,28 @@
           "providerScanRenewed": false,
           "remoteDecisionApplied": false
         }
-      ]
+      ],
+      "currentContextRenewal": {
+        "sourceRevision": "d74f2ae68722a1a86f71af6c1a872dd4cfbf3f0d",
+        "priorLedgerSha256": "6cf10738f5f89bc73a50a00d202c5a886c3fa4bf69193151114b3221e981b60c",
+        "changedBindings": [
+          {
+            "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+            "path": "exchange_executor/ccxt_implementation_reviews.py",
+            "priorSha256": "51c9a02327de70ced52802fb290ecf47a6a2030ae8db422626344e985939d563",
+            "currentSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
+          },
+          {
+            "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+            "path": "package.json",
+            "priorSha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e",
+            "currentSha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+          }
+        ],
+        "rationale": "Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition.",
+        "scannerEvidenceUnchanged": true,
+        "providerScanRenewed": false
+      }
     },
     {
       "findingId": "4bd5af47-516b-4885-9a70-71b7fa515f95",
@@ -6613,7 +6670,7 @@
       "line": 86,
       "reviewedSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
       "disposition": "false-positive",
-      "rationale": "Independent current review at6677d8947b88fdb19f01e1d3189cdce7ef3015ea: Individually traced full CLI-selected absolute Python -> realpath/ordinary-file/canonical-parent -> fixed -I -B -c bridge and root argv -> bounded runtime result -> pinned receipt comparison flow to openSync. Canonical source directories, safeRelative, no-follow, single-link and pre/open/post file identity checks remain; spawn is shell:false with fixed code, timeout and maxBuffer. Verifier and all contexts except authority file are byte-identical. Authority delta changes only existing Hyperliquid/profile1 digest1427d769... to independently root-approved cf9aea59...; no added exchange/profile, executable, path or command. Separate28c adoption evidence establishes provenance; this review itself grants neither provider acceptance nor new receipt authority.",
+      "rationale": "Independent current review at6677d8947b88fdb19f01e1d3189cdce7ef3015ea: Individually traced full CLI-selected absolute Python -> realpath/ordinary-file/canonical-parent -> fixed -I -B -c bridge and root argv -> bounded runtime result -> pinned receipt comparison flow to openSync. Canonical source directories, safeRelative, no-follow, single-link and pre/open/post file identity checks remain; spawn is shell:false with fixed code, timeout and maxBuffer. Verifier and all contexts except authority file are byte-identical. Authority delta changes only existing Hyperliquid/profile1 digest1427d769... to independently root-approved cf9aea59...; no added exchange/profile, executable, path or command. Separate28c adoption evidence establishes provenance; this review itself grants neither provider acceptance nor new receipt authority. Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition.",
       "contextPaths": [
         {
           "path": "exchange_executor/ccxt_certification.py",
@@ -6625,7 +6682,7 @@
         },
         {
           "path": "exchange_executor/ccxt_implementation_reviews.py",
-          "sha256": "51c9a02327de70ced52802fb290ecf47a6a2030ae8db422626344e985939d563"
+          "sha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
         },
         {
           "path": "exchange_executor/ccxt_profiles.py",
@@ -6633,7 +6690,7 @@
         },
         {
           "path": "package.json",
-          "sha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e"
+          "sha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
         }
       ],
       "codeFlowLocations": [
@@ -7796,7 +7853,28 @@
           "providerScanRenewed": false,
           "remoteDecisionApplied": false
         }
-      ]
+      ],
+      "currentContextRenewal": {
+        "sourceRevision": "d74f2ae68722a1a86f71af6c1a872dd4cfbf3f0d",
+        "priorLedgerSha256": "6cf10738f5f89bc73a50a00d202c5a886c3fa4bf69193151114b3221e981b60c",
+        "changedBindings": [
+          {
+            "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+            "path": "exchange_executor/ccxt_implementation_reviews.py",
+            "priorSha256": "51c9a02327de70ced52802fb290ecf47a6a2030ae8db422626344e985939d563",
+            "currentSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
+          },
+          {
+            "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+            "path": "package.json",
+            "priorSha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e",
+            "currentSha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+          }
+        ],
+        "rationale": "Current d74f2ae6 context re-review: Historical rationale above describes earlier source bytes. Verifier flow still uses fixed repository/certification paths, canonical ordinary-file no-follow checks, and fixed Python -I -B -c bridge with shell:false. Only existing Hyperliquid/profile1 receipt digest was renewed; root package.json only changed Hono override 4.13.5 to 4.13.7. No executable, CLI arg, path source, exchange/profile, or provider scope was added. The finding source and full scanner flow are unchanged; this review neither grants provider acceptance nor changes the existing disposition.",
+        "scannerEvidenceUnchanged": true,
+        "providerScanRenewed": false
+      }
     }
   ],
   "independentReviewEvidence": {
@@ -29034,5 +29112,78 @@
         "publishedLfSha256": "0fc6bc013918678d08f829a399d684eaa4c858eed00f89057622dd72c761316f"
       }
     ]
+  },
+  "dependencyAndAuthorityContextRenewal": {
+    "reviewedAt": "2026-09-23T14:04:08.346Z",
+    "sourceRevision": "d74f2ae68722a1a86f71af6c1a872dd4cfbf3f0d",
+    "sourceDirty": true,
+    "priorLedgerSha256": "6cf10738f5f89bc73a50a00d202c5a886c3fa4bf69193151114b3221e981b60c",
+    "affectedIds": [
+      "ca8d4075-1f15-40f9-9432-667e0a033660",
+      "164aa45d-3766-4932-9dd7-4f2729603758",
+      "4494650c-4f77-4efc-9956-2a491467ddaf",
+      "7039073d-34a6-4901-9897-4c0a40ca7b0a"
+    ],
+    "changedBindings": [
+      {
+        "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "path": "exchange_executor/ccxt_implementation_reviews.py",
+        "priorSha256": "51c9a02327de70ced52802fb290ecf47a6a2030ae8db422626344e985939d563",
+        "currentSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
+      },
+      {
+        "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+        "path": "package.json",
+        "priorSha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e",
+        "currentSha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+      },
+      {
+        "findingId": "164aa45d-3766-4932-9dd7-4f2729603758",
+        "path": "package.json",
+        "priorSha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e",
+        "currentSha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+      },
+      {
+        "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "path": "exchange_executor/ccxt_implementation_reviews.py",
+        "priorSha256": "51c9a02327de70ced52802fb290ecf47a6a2030ae8db422626344e985939d563",
+        "currentSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
+      },
+      {
+        "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+        "path": "package.json",
+        "priorSha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e",
+        "currentSha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+      },
+      {
+        "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "path": "exchange_executor/ccxt_implementation_reviews.py",
+        "priorSha256": "51c9a02327de70ced52802fb290ecf47a6a2030ae8db422626344e985939d563",
+        "currentSha256": "ab50661f4e90e6cfc766c8b050994f76e09a84ac4303046141e115f0873e704b"
+      },
+      {
+        "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+        "path": "package.json",
+        "priorSha256": "2184a95e032f8fbc5ece5a8b6c628d784babd0595385d0bb2ffb2a33e809e73e",
+        "currentSha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+      }
+    ],
+    "findingCountsUnchanged": {
+      "false-positive": 82,
+      "open": 4
+    },
+    "independentPostAdoptionReview": {
+      "path": "exchange_executor/certifications/reviews/final-snyk-deps-d74f2ae6-independent-post-adoption-review.json",
+      "sha256": "dee71fbb8761da1d7678a47f6832fe1355f1eac3e0c48c7321ab39b2853551c7"
+    },
+    "independentContextReview": {
+      "path": "exchange_executor/certifications/reviews/final-snyk-deps-d74f2ae6-snyk-code-context-review.json",
+      "sha256": "ce556747cc02e564700f2bd6ac7414ae41f83287a4c3a154c32cc6dffb8a49ea"
+    },
+    "historicalApprovalCorrection": "The sealed receipt approval mentioned three authority-context IDs. The root package.json override also changes a fourth Snyk Code finding context, making the exact current renewal seven bindings across four IDs. The historical approval remains unchanged.",
+    "scannerEvidenceUnchanged": true,
+    "providerScanRenewed": false,
+    "providerAcceptanceVerified": false,
+    "scope": "Only current context hashes and individual rationales are renewed. Existing 86 scanner identities, fingerprints, code flows, 82 false-positive decisions and four owner-accepted HTTP risks remain unchanged. A fresh exact-head Snyk Code scan is still required."
   }
 }

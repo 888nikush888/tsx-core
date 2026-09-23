@@ -1,0 +1,103 @@
+{
+  "completedAt": "2026-09-23T13:43:05.207110+00:00",
+  "revision": "d74f2ae68722a1a86f71af6c1a872dd4cfbf3f0d",
+  "receiptSha256": "04c443cb8318783f2544aa0b3e2d172a2be9383f6c0b4176e2172de1603fbd7d",
+  "sourceTreeHash": "ba9cf9697874d2e8f5bf32645bdd5360ac2f43eccab8399cfaed2b0383effbf6",
+  "commands": [
+    {
+      "name": "production-gate",
+      "command": [
+        "C:/Users/nikla/AppData/Local/Programs/node22/node-v22.23.2-win-x64/node.exe",
+        "scripts/verify_exchange_implementation.js",
+        "--python",
+        "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {},
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/final-snyk-deps-d74f2ae6-post-adoption-logs.tar.gz",
+          "sha256": "b5ada277ba971546017ee1dad156d1366dc91c3b485a84cf481aad5b835d043e"
+        },
+        "member": "final-snyk-deps-d74f2ae6-post-adoption-production-gate.log",
+        "sha256": "235a48bce6366e04b8c41f7bcd188bc67b1158030054b593ee5d7c628b12f932"
+      }
+    },
+    {
+      "name": "bridge",
+      "command": [
+        "C:/Users/nikla/AppData/Local/Programs/node22/node-v22.23.2-win-x64/node.exe",
+        "tests/run_all.js",
+        "test_exchange_implementation_bridge.js"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {
+        "TSX_TEST_PYTHON": "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe"
+      },
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/final-snyk-deps-d74f2ae6-post-adoption-logs.tar.gz",
+          "sha256": "b5ada277ba971546017ee1dad156d1366dc91c3b485a84cf481aad5b835d043e"
+        },
+        "member": "final-snyk-deps-d74f2ae6-post-adoption-bridge.log",
+        "sha256": "cb0e786bb2f29a89090dbb2e37f839dbe5703519ac3978eb01d3c2e60d7b7cef"
+      }
+    },
+    {
+      "name": "certification-evidence",
+      "command": [
+        "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "exchange_executor/tests",
+        "-p",
+        "test_certification_evidence.py",
+        "-v"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {},
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/final-snyk-deps-d74f2ae6-post-adoption-logs.tar.gz",
+          "sha256": "b5ada277ba971546017ee1dad156d1366dc91c3b485a84cf481aad5b835d043e"
+        },
+        "member": "final-snyk-deps-d74f2ae6-post-adoption-certification-evidence.log",
+        "sha256": "1c27a524a5f18e3a27cc295b0c5d66b00a305c30ccd901bd40f2acb04ff812dd"
+      }
+    },
+    {
+      "name": "implementation-runtime",
+      "command": [
+        "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "exchange_executor/tests",
+        "-p",
+        "test_implementation_runtime.py",
+        "-v"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {},
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/final-snyk-deps-d74f2ae6-post-adoption-logs.tar.gz",
+          "sha256": "b5ada277ba971546017ee1dad156d1366dc91c3b485a84cf481aad5b835d043e"
+        },
+        "member": "final-snyk-deps-d74f2ae6-post-adoption-implementation-runtime.log",
+        "sha256": "488770e9427faad5bce9a454268d61b9ac66cbccc1471b681125d1f53f58a3e2"
+      }
+    }
+  ],
+  "allCommandsPassed": true,
+  "providerAcceptanceVerified": false,
+  "quarantinedProfiles": [
+    "bybit",
+    "krakenfutures"
+  ]
+}
