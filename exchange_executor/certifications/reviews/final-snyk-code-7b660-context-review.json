@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "reviewKind": "independent-exact-tree-snyk-code-context-review",
+  "prHeadRevision": "7b660b90ce70bd9d76852fa7e6d6135367921928",
+  "scannerMergeRevision": "3df3038cc08f41d3308dacb2aea248041536f89b",
+  "scannerMergeParents": [
+    "58c01bc74f83cc212849ddcd7e487412ff06b2b7",
+    "7b660b90ce70bd9d76852fa7e6d6135367921928"
+  ],
+  "identicalGitTreeOid": "7c4aefd23080490417badcaa5911fcbc299301d2",
+  "scannerVersion": "1.1307.1",
+  "scannerArtifacts": {
+    "status": {
+      "path": "tmp/snyk-code-7b660/code.status.json",
+      "sha256": "b1146d7834290b794ab6f4a753f3193a17044a2825b5ebfd321f327d9f8756a5"
+    },
+    "sarif": {
+      "path": "tmp/snyk-code-7b660/code.sarif.json",
+      "sha256": "4953e4900e086897991d89c7a33d11b4ccbddf35d63fa01a1f718cfb69027035"
+    },
+    "review": {
+      "path": "tmp/snyk-code-7b660/code.review.json",
+      "sha256": "70a7858e7a6f5690ccc2944ce4db863a40e81cc6bb175c49e6d472886771c0d3"
+    }
+  },
+  "priorEvidence": {
+    "ledger": {
+      "path": "docs/testing/snyk-code-independent-review-2026-09-08.json",
+      "sha256": "82475ac7a167f62bcd6dbe483df08fd27a2d0a3945adc46738008c2f92bb2e67"
+    },
+    "intermediateIndependentReview": {
+      "path": "reports/final-findings/snyk-code-945930/three-context-independent-review-945930.json",
+      "sha256": "de094ee13015668db398275ee22901aa041cd24fcea21391f22a7fa7dd567fd6"
+    }
+  },
+  "receiptPinChangeSince945930": {
+    "path": "exchange_executor/ccxt_implementation_reviews.py",
+    "priorFileSha256": "898d8dde7524cd5231f08b4ab078bbc217b121bda73d71302963b3b45127f468",
+    "currentFileSha256": "036131df2d2f0b1784ac6a06a18cb9d0a321134a346ea9e37545c7549f12a936",
+    "exchange": "hyperliquid",
+    "profileVersion": 1,
+    "priorReceiptSha256": "eefcdd4d9af1c81482569577508b5e330ade162496073d7adb9ea7bc7e30cfc9",
+    "currentReceiptSha256": "62e10f900734a3c0a1295dddad68a54cdb67dbd1a6a9e594a15f56f3038d1592"
+  },
+  "findings": [
+    {
+      "findingId": "ca8d4075-1f15-40f9-9432-667e0a033660",
+      "ruleId": "javascript/PT",
+      "reportedSinkLine": 94,
+      "sourcePath": "scripts/verify_exchange_implementation.js",
+      "ledgerSourceSha256": "8910b121889e7dd25f3f72f4ee1f2b3bffd9dd69dd30550bf131f5cfe52b26d9",
+      "currentSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
+      "ledgerContextSha256ByPath": {
+        "exchange_executor/ccxt_certification.py": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2",
+        "exchange_executor/ccxt_certification_evidence.py": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8",
+        "exchange_executor/ccxt_implementation_reviews.py": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289",
+        "exchange_executor/ccxt_profiles.py": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd",
+        "package.json": "3e1199ce34f23ea3f4421f83375f719606c8fe81893620f45f2261e11a3f86bf"
+      },
+      "currentContextSha256ByPath": {
+        "exchange_executor/ccxt_certification.py": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2",
+        "exchange_executor/ccxt_certification_evidence.py": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8",
+        "exchange_executor/ccxt_implementation_reviews.py": "036131df2d2f0b1784ac6a06a18cb9d0a321134a346ea9e37545c7549f12a936",
+        "exchange_executor/ccxt_profiles.py": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd",
+        "package.json": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+      },
+      "scannerFlowLines": [340, 340, 340, 340, 340, 342, 342, 311, 316, 286, 290, 290, 290, 293, 293, 293, 297, 297, 297, 297, 297, 299, 299, 304, 304, 304, 304, 316, 321, 321, 321, 322, 322, 328, 328, 328, 82, 86, 86, 86, 94, 94],
+      "disposition": "false-positive",
+      "requiresCodeFix": false,
+      "assessment": "The reported readSync path sink receives the numeric descriptor opened at line 86, not a path. The final receipt name comes from the fixed Python bridge's local PROFILES after a strict exchange identifier/profile match and independently pinned receipt validation. stableBytes requires a canonical parent, ordinary single-link file, byte limit and matching file identity before, during and after a read-only open. The later pin renewal changes no source path or read primitive."
+    },
+    {
+      "findingId": "4494650c-4f77-4efc-9956-2a491467ddaf",
+      "ruleId": "javascript/IndirectCommandInjection",
+      "reportedSinkLine": 293,
+      "sourcePath": "scripts/verify_exchange_implementation.js",
+      "ledgerSourceSha256": "8910b121889e7dd25f3f72f4ee1f2b3bffd9dd69dd30550bf131f5cfe52b26d9",
+      "currentSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
+      "ledgerContextSha256ByPath": {
+        "exchange_executor/ccxt_certification.py": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2",
+        "exchange_executor/ccxt_certification_evidence.py": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8",
+        "exchange_executor/ccxt_implementation_reviews.py": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289",
+        "exchange_executor/ccxt_profiles.py": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd",
+        "package.json": "3e1199ce34f23ea3f4421f83375f719606c8fe81893620f45f2261e11a3f86bf"
+      },
+      "currentContextSha256ByPath": {
+        "exchange_executor/ccxt_certification.py": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2",
+        "exchange_executor/ccxt_certification_evidence.py": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8",
+        "exchange_executor/ccxt_implementation_reviews.py": "036131df2d2f0b1784ac6a06a18cb9d0a321134a346ea9e37545c7549f12a936",
+        "exchange_executor/ccxt_profiles.py": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd",
+        "package.json": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+      },
+      "scannerFlowLines": [340, 340, 340, 340, 340, 342, 342, 311, 316, 286, 290, 290, 290, 293, 293],
+      "disposition": "false-positive",
+      "requiresCodeFix": false,
+      "assessment": "The only CLI option selects an explicit absolute local Python executable; runtimeReceipts resolves it and checks the ordinary executable and canonical parent. spawnSync passes fixed -I, -B, -c bridge text and the fixed repository root as separate arguments with shell:false, timeout and output cap. Shell metacharacters cannot alter command syntax. The receipt pin does not select an executable or command argument; choosing a malicious local interpreter is already operator execution authority."
+    },
+    {
+      "findingId": "7039073d-34a6-4901-9897-4c0a40ca7b0a",
+      "ruleId": "javascript/PT",
+      "reportedSinkLine": 86,
+      "sourcePath": "scripts/verify_exchange_implementation.js",
+      "ledgerSourceSha256": "8910b121889e7dd25f3f72f4ee1f2b3bffd9dd69dd30550bf131f5cfe52b26d9",
+      "currentSourceSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
+      "ledgerContextSha256ByPath": {
+        "exchange_executor/ccxt_certification.py": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2",
+        "exchange_executor/ccxt_certification_evidence.py": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8",
+        "exchange_executor/ccxt_implementation_reviews.py": "d931fca11ab1b7a2f0e64380f7a9376af4e4acc5f9ce9e0e0c411fdba8cf5289",
+        "exchange_executor/ccxt_profiles.py": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd",
+        "package.json": "3e1199ce34f23ea3f4421f83375f719606c8fe81893620f45f2261e11a3f86bf"
+      },
+      "currentContextSha256ByPath": {
+        "exchange_executor/ccxt_certification.py": "afef48c814541220ec58c6897a551cfc1bb522b570518edadcb6f16b07a6d4c2",
+        "exchange_executor/ccxt_certification_evidence.py": "b356ef6376d20aa9197ef0e0133c24cb38664af01088df719cf13bfd5ab8c6e8",
+        "exchange_executor/ccxt_implementation_reviews.py": "036131df2d2f0b1784ac6a06a18cb9d0a321134a346ea9e37545c7549f12a936",
+        "exchange_executor/ccxt_profiles.py": "86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd",
+        "package.json": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2"
+      },
+      "scannerFlowLines": [340, 340, 340, 340, 340, 342, 342, 311, 316, 286, 290, 290, 290, 293, 293, 293, 297, 297, 297, 297, 297, 299, 299, 304, 304, 304, 304, 316, 321, 321, 321, 322, 322, 328, 328, 328, 82, 86, 86],
+      "disposition": "false-positive",
+      "requiresCodeFix": false,
+      "assessment": "The scanner's arbitrary-file manipulation claim ends at openSync with O_RDONLY plus O_NOFOLLOW where available, so this sink cannot write. stableBytes checks the canonical parent, regular non-symlink single-link file, size and opened descriptor/file identity. The final receipt path is under the fixed certifications directory and uses an exchange from local PROFILES only after strict profile and pinned receipt validation. No receipt content chooses an arbitrary file path."
+    }
+  ],
+  "performedReadOnlyChecks": [
+    "Compared git tree OIDs and full git diff of scanner merge commit and PR head: identical source tree.",
+    "Parsed CI status, review and SARIF; result count 86 and exactly these three reviewed-source-changed findings.",
+    "Compared each entire selected SARIF result to the 945930 scan after JSON key-order normalization: identical fingerprints, messages, sink locations and complete flow sequences.",
+    "Rehashed the finding source, five ledger context paths, current Hyperliquid receipt and scanner artifacts from disk.",
+    "Compared 945930 and PR-head versions of the finding source and five context paths: only the existing Hyperliquid/profile-1 receipt digest changed in the authority file.",
+    "Inspected the current JavaScript verifier, fixed Python bridge, Python certification identifier/receipt checks, independent pin and CI executable setup."
+  ],
+  "scope": "Independent contextual false-positive assessment of three unchanged scanner flows. No code fix, ledger modification, scanner closure, new provider acceptance, deployment or live trading authority."
+}
