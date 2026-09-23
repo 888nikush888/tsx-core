@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "scope": "Publication newline canonicalization only; preserves archive-original bytes and all Snyk dispositions, fingerprints and historical decisions.",
+  "sourceRevision": "312c5a36edd0a52f14b292d2535c8a4761dc0d6d",
+  "files": [
+    {
+      "path": "exchange_executor/certifications/reviews/final-312c5a36-receipt-adoption-approval.json",
+      "reviewedCrLfSha256": "4045ef935da13a9356152c266340c412cd3f2cc029de9801731457c1ad4bd352",
+      "publishedLfSha256": "654a5875dc74e2a6fcf7c90b8d9e75c3f0e765c67d4e7f88cdeacadf0d2852f7",
+      "parsedValueEqual": true,
+      "stagedBlobEqual": true
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-312c5a36-post-adoption-checks.json",
+      "reviewedCrLfSha256": "6c282d2ba809cf6ea1c8e515195af707bce4b6f3cc5791afa5ffacf117146978",
+      "publishedLfSha256": "0fc6bc013918678d08f829a399d684eaa4c858eed00f89057622dd72c761316f",
+      "parsedValueEqual": true,
+      "stagedBlobEqual": true
+    }
+  ],
+  "archivedApprovalOriginalVerified": true,
+  "snykCandidateSha256": "8411bf3ee46e88f32f5b3cb43841c97443c21e5e3b850e5f8ed87fb0bf87fc9f",
+  "publishedSnykLedgerSha256": "350459a98741c5e2229d79488dd9b85aec376429ff5dbc5a16535b593f1afa4e",
+  "changedCurrentReferences": 8,
+  "candidateOtherwiseIdentical": true,
+  "scannerEvidenceRenewed": false,
+  "providerAcceptanceVerified": false
+}

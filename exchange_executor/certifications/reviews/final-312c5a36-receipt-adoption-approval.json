@@ -1,0 +1,43 @@
+{
+  "revision": "312c5a36edd0a52f14b292d2535c8a4761dc0d6d",
+  "candidate": {
+    "path": "reports/final-findings/final-312c5a36-hyperliquid-receipt-candidate.json",
+    "sha256": "441423bdcc0e8d561d3a0a74f749441d3931518770615d65300cbb95bbcd3869"
+  },
+  "approved": true,
+  "reviewedAt": "2026-09-23T10:08:00.086280+00:00",
+  "reviewer": "root",
+  "scope": "Adopt exact offline implementation receipt for existing Hyperliquid profile1 only after deterministic archive verification. No provider acceptance, live trading, publication, deployment or external scanner transition granted by this receipt approval.",
+  "independentReview": {
+    "path": "reports/final-findings/final-312c5a36-independent-receipt-review.json",
+    "sha256": "0fd17346ae01ff5e9c52bf32072f47141b49589105e9f9a2f9dc4fa96c7e13d3"
+  },
+  "completeSourceReview": {
+    "path": "reports/final-findings/final-312c5a36-receipt-source-review-root.json",
+    "sha256": "a6191630fcf18dcf5b419cbcdabed13a67a30eb17d51db6f1c75cdfb005efd0d"
+  },
+  "validationAttempts": [
+    {
+      "path": "reports/final-findings/independent-receipt-validation-attempt-312c5a36-failed1.json",
+      "sha256": "6670fda398ac29c1050c232b4d9d6c72aab9703263153933d59ecabbcd54aef2"
+    },
+    {
+      "path": "reports/final-findings/independent-receipt-validation-attempt-312c5a36-failed2.json",
+      "sha256": "c3664e5fd3f28d8e02d699cd3d4908e9e0d4d7f9efd415b84d27f82fe1df5cf0"
+    }
+  ],
+  "rootChecks": [
+    "All eight actual current-revision groups are terminal green with unchanged 1000 Git inputs and the same runtime context",
+    "30 changed build inputs individually reviewed; 62 original requirement identities and 97 ordered witness path/SHA pairs preserved",
+    "Sealed historical witness metadata and three archive-internal member references verified against fixed prior archive",
+    "Independent Python production validator and Node production comparator passed with temporary comparison-only pin; operative authority still unchanged",
+    "Original failed validator attempts remain historical and are not relabeled as successes"
+  ],
+  "providerAcceptanceVerified": false,
+  "operativeReceiptOrPinsChanged": false,
+  "remaining": [
+    "Verify deterministic evidence archive and then install exact candidate and authority pin",
+    "Run actual production implementation gate and bridge/certification regressions",
+    "Publish reviewed PR head; obtain fresh CI and provider scans before any protected merge"
+  ]
+}
