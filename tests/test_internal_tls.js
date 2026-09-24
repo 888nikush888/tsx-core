@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { writeFileSync } from 'node:fs';
+import { symlinkSync, writeFileSync } from 'node:fs';
 import https from 'node:https';
 import path from 'node:path';
 import { internalTlsServerOptions } from '../src/internal_tls.js';
@@ -32,6 +32,21 @@ try {
   process.env.DASHBOARD_TLS_CERT_FILE = oversized;
   assert.throws(() => internalTlsServerOptions('DASHBOARD_TLS_CERT_FILE', 'DASHBOARD_TLS_KEY_FILE'),
     /regular, bounded TLS file/);
+  const empty = path.join(path.dirname(fixture.cert), 'empty.pem');
+  writeFileSync(empty, Buffer.alloc(0));
+  process.env.DASHBOARD_TLS_CERT_FILE = empty;
+  assert.throws(() => internalTlsServerOptions('DASHBOARD_TLS_CERT_FILE', 'DASHBOARD_TLS_KEY_FILE'),
+    /regular, bounded TLS file/);
+  process.env.DASHBOARD_TLS_CERT_FILE = path.dirname(fixture.cert);
+  assert.throws(() => internalTlsServerOptions('DASHBOARD_TLS_CERT_FILE', 'DASHBOARD_TLS_KEY_FILE'),
+    /regular, bounded TLS file/);
+  if (process.platform !== 'win32') {
+    const symlink = path.join(path.dirname(fixture.cert), 'linked.pem');
+    symlinkSync(fixture.cert, symlink);
+    process.env.DASHBOARD_TLS_CERT_FILE = symlink;
+    assert.throws(() => internalTlsServerOptions('DASHBOARD_TLS_CERT_FILE', 'DASHBOARD_TLS_KEY_FILE'),
+      /regular, bounded TLS file/);
+  }
   process.env.DASHBOARD_TLS_CERT_FILE = fixture.expiredCert;
   assert.throws(() => internalTlsServerOptions('DASHBOARD_TLS_CERT_FILE', 'DASHBOARD_TLS_KEY_FILE'),
     /not currently valid/);
