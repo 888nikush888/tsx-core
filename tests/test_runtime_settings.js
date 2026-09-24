@@ -64,7 +64,7 @@ try {
   const writeFailurePath = path.join(directory, 'clock-migration-write-failure.json');
   await writeFile(writeFailurePath, JSON.stringify({ ...DEFAULT_RUNTIME_SETTINGS, clockMaxDriftMs: undefined }));
   const failedMigration = new ManagedRuntimeSettingsStore(writeFailurePath, { CLOCK_MAX_DRIFT_MS: '450' });
-  failedMigration.writeFile = async () => { throw new Error('simulated migration write failure'); };
+  failedMigration.writeFile = () => { throw new Error('simulated migration write failure'); };
   await failedMigration.initialize({ recoverInvalidFile: true });
   assert.equal(failedMigration.recoveryStatus().active, true,
     'A failed migration write must enter recovery rather than start with a relaxed guard.');
@@ -76,7 +76,7 @@ try {
   const originalSettings = { ...DEFAULT_RUNTIME_SETTINGS, shutdownGraceMs: 60_000, clockMaxDriftMs: undefined };
   await writeFile(missingDuringWritePath, JSON.stringify(originalSettings));
   const missingDuringWrite = new ManagedRuntimeSettingsStore(missingDuringWritePath, { CLOCK_MAX_DRIFT_MS: '450' });
-  missingDuringWrite.writeFile = async () => {
+  missingDuringWrite.writeFile = () => {
     const error = new Error('simulated ENOENT during migration write');
     error.code = 'ENOENT';
     throw error;
