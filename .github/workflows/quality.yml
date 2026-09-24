@@ -97,7 +97,6 @@ jobs:
       - name: Static and type gates
         run: |
           npm run lint
-          ./node_modules/.bin/eslint "services/b2-audit-receiver/*.mjs" "services/b2-audit-receiver/tests/*.mjs" --quiet
           npm run lint:frontend
           npm run lint:python
           python -m ruff check scripts/check_internal_tls.py scripts/hyperliquid_bound_preflight.py scripts/hyperliquid_testnet_preflight.py tests/test_internal_tls_preflight.py tests/test_hyperliquid_bound_preflight.py tests/fixtures/internal_tls_fixture.py
@@ -115,6 +114,7 @@ jobs:
           npm test --prefix services/b2-backup-gateway
           npm run test:coverage:b2-gateway
           npm test --prefix services/b2-audit-receiver
+          npm run test:coverage:b2-audit
           npm run test:coverage:modules
           python -m coverage run --branch --source=exchange_executor -m unittest discover -s exchange_executor/tests -v
           python -m unittest discover -s tests -p test_internal_tls_preflight.py -v
@@ -231,11 +231,13 @@ jobs:
           npm ci --prefix frontend --ignore-scripts --no-audit --no-fund
           npm rebuild --prefix frontend esbuild
           npm ci --prefix services/b2-backup-gateway --ignore-scripts --no-audit --no-fund
+          npm ci --prefix services/b2-audit-receiver --ignore-scripts --no-audit --no-fund
           python -m pip install --require-hashes -r exchange_executor/requirements.lock -r exchange_executor/requirements-dev.lock
       - name: Produce JavaScript and TypeScript coverage
         run: |
           ./node_modules/.bin/c8 --all --include="src/**/*.ts" --exclude="src/*_cli.ts" --reporter=lcov --reports-dir=coverage node tests/run_all.js
           npm run test:coverage:b2-gateway
+          npm run test:coverage:b2-audit
           npm run test:coverage --prefix frontend
           node scripts/normalize_lcov_paths.js
       - name: Produce Python coverage
@@ -282,6 +284,7 @@ jobs:
             reports/sonar-reviewed-decisions/
             coverage/lcov.info
             coverage/b2-backup-gateway/lcov.info
+            coverage/b2-audit-receiver/lcov.info
             frontend/coverage/lcov.info
             exchange_executor/coverage.xml
           if-no-files-found: error
@@ -316,10 +319,11 @@ jobs:
         with:
           name: sonarcloud-evidence-${{ env.CODACY_EXPECTED_REVISION }}
           path: .
-      - name: Require all four coverage reports
+      - name: Require all five coverage reports
         run: |
           test -s coverage/lcov.info
           test -s coverage/b2-backup-gateway/lcov.info
+          test -s coverage/b2-audit-receiver/lcov.info
           test -s frontend/coverage/lcov.info
           test -s exchange_executor/coverage.xml
           python scripts/verify_codacy_coverage_paths.py
@@ -339,6 +343,7 @@ jobs:
         run: |
           "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --force-coverage-parser lcov -r coverage/lcov.info
           "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --force-coverage-parser lcov -r coverage/b2-backup-gateway/lcov.info
+          "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --force-coverage-parser lcov -r coverage/b2-audit-receiver/lcov.info
           "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --force-coverage-parser lcov -r frontend/coverage/lcov.info
           "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --prefix exchange_executor/ --force-coverage-parser cobertura -r exchange_executor/coverage.xml
           "$REPORTER" final --commit-uuid "$CODACY_EXPECTED_REVISION"
@@ -473,6 +478,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             frontend/package-lock.json
+            services/b2-backup-gateway/package-lock.json
             services/b2-audit-receiver/package-lock.json
       - name: Enforce private-repository dependency evidence
         if: github.event.repository.private

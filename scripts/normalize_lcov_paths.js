@@ -13,7 +13,9 @@ function relativeSource(root, filename) {
 async function normalizeSource(line, root, sourceDirectory) {
   const source = line.slice(3).replaceAll('\\', path.sep);
   if (!source) throw new Error('LCOV source is empty.');
-  const resolved = path.resolve(sourceDirectory, source);
+  const sourcePrefix = path.relative(root, sourceDirectory).split(path.sep).join('/');
+  const alreadyNormalized = sourcePrefix && source.split(path.sep).join('/').startsWith(`${sourcePrefix}/`);
+  const resolved = path.resolve(alreadyNormalized ? root : sourceDirectory, source);
   relativeSource(root, resolved);
   // A report pointing at missing files or a symlink outside the repository is
   // invalid evidence. Never silently drop records to remove scanner warnings.
@@ -46,6 +48,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
     for (const [report, sourceRoot] of [
       ['coverage/lcov.info', repositoryRoot],
       ['coverage/b2-backup-gateway/lcov.info', repositoryRoot],
+      ['coverage/b2-audit-receiver/lcov.info', repositoryRoot],
       ['frontend/coverage/lcov.info', path.join(repositoryRoot, 'frontend')]
     ]) {
       const content = await normalizeLcov(await readFile(report, 'utf8'), { repositoryRoot, sourceRoot });

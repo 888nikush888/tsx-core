@@ -15,6 +15,8 @@ try {
   assert.equal(normalized, record.replaceAll('\r\n', '\n').replace('SF:src/', 'SF:frontend/src/'));
   const absolute = record.replace('src/app.tsx', path.join(sourceRoot, 'src', 'app.tsx'));
   assert.equal(await normalizeLcov(absolute, { repositoryRoot, sourceRoot }), normalized);
+  assert.equal(await normalizeLcov(normalized, { repositoryRoot, sourceRoot }), normalized,
+    'Already normalized reports remain valid when a coverage job is retried.');
   const windowsSeparators = record.replace('src/app.tsx', 'src\\app.tsx');
   assert.equal(await normalizeLcov(windowsSeparators, { repositoryRoot, sourceRoot }), normalized);
   for (const invalid of ['TN:\n', 'SF:\n', 'SF:../../outside.ts\n', 'SF:src/missing.ts\n', 'SF:src\n']) {
@@ -43,6 +45,7 @@ try {
   assert.match(codacyJob, /ref: \$\{\{ env\.CODACY_EXPECTED_REVISION \}\}/u);
   assert.match(codacyJob, /name: sonarcloud-evidence-\$\{\{ env\.CODACY_EXPECTED_REVISION \}\}/u);
   for (const report of ['coverage/lcov.info', 'coverage/b2-backup-gateway/lcov.info',
+    'coverage/b2-audit-receiver/lcov.info',
     'frontend/coverage/lcov.info', 'exchange_executor/coverage.xml']) {
     assert.ok(codacyJob.split(/\r?\n/u).some(line => line.trim() === `test -s ${report}`),
       `${report}: missing exact coverage-report check`);
@@ -57,22 +60,28 @@ try {
   const reportRoot = path.join(repositoryRoot, 'codacy-reports');
   await mkdir(path.join(reportRoot, 'coverage'), { recursive: true });
   await mkdir(path.join(reportRoot, 'coverage', 'b2-backup-gateway'), { recursive: true });
+  await mkdir(path.join(reportRoot, 'coverage', 'b2-audit-receiver'), { recursive: true });
   await mkdir(path.join(reportRoot, 'frontend', 'coverage'), { recursive: true });
   await mkdir(path.join(reportRoot, 'exchange_executor'), { recursive: true });
   const backendReport = path.join(reportRoot, 'coverage', 'lcov.info');
   const gatewayReport = path.join(reportRoot, 'coverage', 'b2-backup-gateway', 'lcov.info');
+  const auditReport = path.join(reportRoot, 'coverage', 'b2-audit-receiver', 'lcov.info');
   const pythonReport = path.join(reportRoot, 'exchange_executor', 'coverage.xml');
   await writeFile(backendReport, 'SF:src/alert_relay.ts\nDA:1,1\nend_of_record\n');
   await writeFile(gatewayReport, 'SF:services/b2-backup-gateway/gateway.js\nDA:1,1\nend_of_record\n');
+  await writeFile(auditReport, 'SF:services/b2-audit-receiver/audit-core.mjs\nDA:1,1\nend_of_record\n');
   await writeFile(path.join(reportRoot, 'frontend', 'coverage', 'lcov.info'),
     'SF:frontend/src/app/operator-app.tsx\nDA:1,1\nend_of_record\n');
   await writeFile(pythonReport, '<coverage><packages><package><classes><class filename="account_log_reader.py"/></classes></package></packages></coverage>');
   const checkCodacyPaths = () => spawnSync('python', ['scripts/verify_codacy_coverage_paths.py', '--report-root', reportRoot],
     { encoding: 'utf8', windowsHide: true });
-  assert.equal(checkCodacyPaths().status, 0, 'All four real repository path forms must validate.');
+  assert.equal(checkCodacyPaths().status, 0, 'All five real repository path forms must validate.');
   await writeFile(gatewayReport, 'SF:services/b2-backup-gateway/../untracked.js\nDA:1,1\nend_of_record\n');
   assert.notEqual(checkCodacyPaths().status, 0, 'A gateway path outside tracked source must fail before upload.');
   await writeFile(gatewayReport, 'SF:services/b2-backup-gateway/gateway.js\nDA:1,1\nend_of_record\n');
+  await writeFile(auditReport, 'SF:services/b2-audit-receiver/../untracked.mjs\nDA:1,1\nend_of_record\n');
+  assert.notEqual(checkCodacyPaths().status, 0, 'An audit path outside tracked source must fail before upload.');
+  await writeFile(auditReport, 'SF:services/b2-audit-receiver/audit-core.mjs\nDA:1,1\nend_of_record\n');
   await writeFile(backendReport, 'SF:src/../untracked.ts\nDA:1,1\nend_of_record\n');
   assert.notEqual(checkCodacyPaths().status, 0, 'A path outside tracked source must fail before upload.');
   await writeFile(backendReport, 'SF:src/alert_relay.ts\nDA:1,1\nend_of_record\n');
