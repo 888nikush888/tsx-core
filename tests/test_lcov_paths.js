@@ -42,7 +42,8 @@ try {
     'Coverage credentials must not be available to fork pull requests.');
   assert.match(codacyJob, /ref: \$\{\{ env\.CODACY_EXPECTED_REVISION \}\}/u);
   assert.match(codacyJob, /name: sonarcloud-evidence-\$\{\{ env\.CODACY_EXPECTED_REVISION \}\}/u);
-  for (const report of ['coverage/lcov.info', 'frontend/coverage/lcov.info', 'exchange_executor/coverage.xml']) {
+  for (const report of ['coverage/lcov.info', 'coverage/b2-backup-gateway/lcov.info',
+    'frontend/coverage/lcov.info', 'exchange_executor/coverage.xml']) {
     assert.ok(codacyJob.split(/\r?\n/u).some(line => line.trim() === `test -s ${report}`),
       `${report}: missing exact coverage-report check`);
   }
@@ -55,17 +56,23 @@ try {
   assert.match(codacyJob, /final --commit-uuid "\$CODACY_EXPECTED_REVISION"/u);
   const reportRoot = path.join(repositoryRoot, 'codacy-reports');
   await mkdir(path.join(reportRoot, 'coverage'), { recursive: true });
+  await mkdir(path.join(reportRoot, 'coverage', 'b2-backup-gateway'), { recursive: true });
   await mkdir(path.join(reportRoot, 'frontend', 'coverage'), { recursive: true });
   await mkdir(path.join(reportRoot, 'exchange_executor'), { recursive: true });
   const backendReport = path.join(reportRoot, 'coverage', 'lcov.info');
+  const gatewayReport = path.join(reportRoot, 'coverage', 'b2-backup-gateway', 'lcov.info');
   const pythonReport = path.join(reportRoot, 'exchange_executor', 'coverage.xml');
   await writeFile(backendReport, 'SF:src/alert_relay.ts\nDA:1,1\nend_of_record\n');
+  await writeFile(gatewayReport, 'SF:services/b2-backup-gateway/gateway.js\nDA:1,1\nend_of_record\n');
   await writeFile(path.join(reportRoot, 'frontend', 'coverage', 'lcov.info'),
     'SF:frontend/src/app/operator-app.tsx\nDA:1,1\nend_of_record\n');
   await writeFile(pythonReport, '<coverage><packages><package><classes><class filename="account_log_reader.py"/></classes></package></packages></coverage>');
   const checkCodacyPaths = () => spawnSync('python', ['scripts/verify_codacy_coverage_paths.py', '--report-root', reportRoot],
     { encoding: 'utf8', windowsHide: true });
-  assert.equal(checkCodacyPaths().status, 0, 'All three real repository path forms must validate.');
+  assert.equal(checkCodacyPaths().status, 0, 'All four real repository path forms must validate.');
+  await writeFile(gatewayReport, 'SF:services/b2-backup-gateway/../untracked.js\nDA:1,1\nend_of_record\n');
+  assert.notEqual(checkCodacyPaths().status, 0, 'A gateway path outside tracked source must fail before upload.');
+  await writeFile(gatewayReport, 'SF:services/b2-backup-gateway/gateway.js\nDA:1,1\nend_of_record\n');
   await writeFile(backendReport, 'SF:src/../untracked.ts\nDA:1,1\nend_of_record\n');
   assert.notEqual(checkCodacyPaths().status, 0, 'A path outside tracked source must fail before upload.');
   await writeFile(backendReport, 'SF:src/alert_relay.ts\nDA:1,1\nend_of_record\n');

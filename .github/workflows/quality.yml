@@ -109,6 +109,7 @@ jobs:
         run: |
           npm run test:coverage
           npm test --prefix services/b2-backup-gateway
+          npm run test:coverage:b2-gateway
           npm run test:coverage:modules
           python -m coverage run --branch --source=exchange_executor -m unittest discover -s exchange_executor/tests -v
           python -m unittest discover -s tests -p test_internal_tls_preflight.py -v
@@ -223,10 +224,12 @@ jobs:
           npm rebuild sqlite3 --build-from-source
           npm ci --prefix frontend --ignore-scripts --no-audit --no-fund
           npm rebuild --prefix frontend esbuild
+          npm ci --prefix services/b2-backup-gateway --ignore-scripts --no-audit --no-fund
           python -m pip install --require-hashes -r exchange_executor/requirements.lock -r exchange_executor/requirements-dev.lock
       - name: Produce JavaScript and TypeScript coverage
         run: |
           ./node_modules/.bin/c8 --all --include="src/**/*.ts" --exclude="src/*_cli.ts" --reporter=lcov --reports-dir=coverage node tests/run_all.js
+          npm run test:coverage:b2-gateway
           npm run test:coverage --prefix frontend
           node scripts/normalize_lcov_paths.js
       - name: Produce Python coverage
@@ -272,6 +275,7 @@ jobs:
             reports/sonarcloud/
             reports/sonar-reviewed-decisions/
             coverage/lcov.info
+            coverage/b2-backup-gateway/lcov.info
             frontend/coverage/lcov.info
             exchange_executor/coverage.xml
           if-no-files-found: error
@@ -306,9 +310,10 @@ jobs:
         with:
           name: sonarcloud-evidence-${{ env.CODACY_EXPECTED_REVISION }}
           path: .
-      - name: Require all three coverage reports
+      - name: Require all four coverage reports
         run: |
           test -s coverage/lcov.info
+          test -s coverage/b2-backup-gateway/lcov.info
           test -s frontend/coverage/lcov.info
           test -s exchange_executor/coverage.xml
           python scripts/verify_codacy_coverage_paths.py
@@ -327,6 +332,7 @@ jobs:
           REPORTER: ${{ runner.temp }}/codacy-coverage-reporter-linux
         run: |
           "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --force-coverage-parser lcov -r coverage/lcov.info
+          "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --force-coverage-parser lcov -r coverage/b2-backup-gateway/lcov.info
           "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --force-coverage-parser lcov -r frontend/coverage/lcov.info
           "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --prefix exchange_executor/ --force-coverage-parser cobertura -r exchange_executor/coverage.xml
           "$REPORTER" final --commit-uuid "$CODACY_EXPECTED_REVISION"

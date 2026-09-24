@@ -43,7 +43,11 @@ export async function normalizeLcov(content, { repositoryRoot, sourceRoot = repo
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const repositoryRoot = process.cwd();
   try {
-    for (const [report, sourceRoot] of [['coverage/lcov.info', repositoryRoot], ['frontend/coverage/lcov.info', path.join(repositoryRoot, 'frontend')]]) {
+    for (const [report, sourceRoot] of [
+      ['coverage/lcov.info', repositoryRoot],
+      ['coverage/b2-backup-gateway/lcov.info', repositoryRoot],
+      ['frontend/coverage/lcov.info', path.join(repositoryRoot, 'frontend')]
+    ]) {
       const content = await normalizeLcov(await readFile(report, 'utf8'), { repositoryRoot, sourceRoot });
       await writeFile(report, content, 'utf8');
     }
