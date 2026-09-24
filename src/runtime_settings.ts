@@ -111,6 +111,17 @@ function safeRecoveryClockLimit(env: NodeJS.ProcessEnv): number {
   }
 }
 
+function validatedStoredRuntimeSettings(input: unknown, env: NodeJS.ProcessEnv): { settings: RuntimeSettings; migrated: boolean } {
+  // Persist a legacy host limit through the managed atomic writer before
+  // startup. A failed migration enters recovery instead of resetting it.
+  const migrated = input !== null && typeof input === 'object' && !Array.isArray(input)
+    && !Object.hasOwn(input, 'clockMaxDriftMs');
+  const candidate = migrated
+    ? { ...(input as RuntimeSettingsRecord), clockMaxDriftMs: clockDriftLimitFromEnvironment(env) }
+    : input;
+  return { settings: validateRuntimeSettings(candidate), migrated };
+}
+
 const KEYS = new Set(Object.keys(DEFAULT_RUNTIME_SETTINGS));
 const BOOLEAN_SETTING_NAMES = [
   'enterpriseMode',
@@ -409,16 +420,9 @@ export class ManagedRuntimeSettingsStore {
         throw new Error('Runtime settings must be a small regular file.');
       }
       const loaded: unknown = JSON.parse(await fs.readFile(resolved, 'utf8'));
-      // Persist a legacy host limit through the managed atomic writer before
-      // startup. A failed migration enters recovery instead of resetting it.
-      const missingClockLimit = loaded && typeof loaded === 'object' && !Array.isArray(loaded)
-        && !Object.hasOwn(loaded, 'clockMaxDriftMs');
-      if (missingClockLimit) {
-        (loaded as RuntimeSettingsRecord).clockMaxDriftMs = clockDriftLimitFromEnvironment(this.env);
-      }
-      const validated = validateRuntimeSettings(loaded);
-      if (missingClockLimit) await this.write(validated);
-      else this.settings = validated;
+      const stored = validatedStoredRuntimeSettings(loaded, this.env);
+      if (stored.migrated) await this.write(stored.settings);
+      else this.settings = stored.settings;
     } catch (error: unknown) {
       if (!existingFileObserved && (error as { code?: unknown } | null | undefined)?.code === 'ENOENT') {
         await this.write({ ...DEFAULT_RUNTIME_SETTINGS, clockMaxDriftMs: clockDriftLimitFromEnvironment(this.env) });
