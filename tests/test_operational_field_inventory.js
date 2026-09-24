@@ -233,14 +233,15 @@ for (const testFile of resourceSizingSlice.contractTests) await access(path.join
 const adaptiveGroup = firstSlice.groups.find(group => group.id === 'adaptive-risk-policy');
 assert.equal(adaptiveGroup.class, 'versioned-draft');
 assert.deepEqual(adaptiveGroup.paths, [
+  'resource.adaptive_risk.enabled',
   'resource.adaptive_risk.mode',
   'resource.adaptive_risk.startingTier',
   'resource.adaptive_risk.lockedTier',
 ]);
 for (const contractTest of adaptiveGroup.contractTests) await access(path.join(root, contractTest));
 const enabledField = fields.fields.find(item => item.path === 'resource.adaptive_risk.enabled');
-assert.equal(enabledField.evidenceStatus, 'unverified', 'Disabled-policy engine effect needs separate proof');
-assert.equal(enabledField.firstSliceGroup, null);
+assert.equal(enabledField.evidenceStatus, 'first-slice-static', 'Disabled-policy engine effect has a no-order contract test');
+assert.equal(enabledField.firstSliceGroup, 'adaptive-risk-policy');
 const counted = verifyCatalog(catalog, fields);
 const slicePathCount = firstSlice.groups.reduce((count, group) => count + group.paths.length, 0);
 assert.equal(firstSliceByPath.size, slicePathCount, 'First-slice path must occur in exactly one group.');

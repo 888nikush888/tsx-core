@@ -1013,8 +1013,8 @@
       "path": "resource.adaptive_risk.enabled",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "adaptive-risk-policy"
     },
     {
       "path": "resource.adaptive_risk.mode",
