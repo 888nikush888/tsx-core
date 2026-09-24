@@ -63,8 +63,8 @@ function close(server) {
   return new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }
 
-let viewer;
-let relay;
+let viewer = null;
+let relay = null;
 try {
   await endpoint('dashboard', 'forwarder', 8080, '/', [200, 301, 302, 401, 403]);
   await endpoint('metrics', 'forwarder', 9100, '/healthz', [200]);
