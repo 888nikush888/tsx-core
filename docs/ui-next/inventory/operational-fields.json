@@ -824,29 +824,29 @@
       "path": "strategy.safety.maxDailyLossMode",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "strategy-safety"
     },
     {
       "path": "strategy.safety.maxDailyLoss",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "strategy-safety"
     },
     {
       "path": "strategy.safety.maxSlippagePercent",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "strategy-safety"
     },
     {
       "path": "strategy.safety.entryOrderTtlSeconds",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "strategy-safety"
     },
     {
       "path": "strategy.safety.requireProtectiveStop",

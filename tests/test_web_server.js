@@ -14,6 +14,9 @@ import { UiOperationStore } from '../src/ui_operation_store.js';
 import { exportPortableSetupBundle } from '../src/setup_bundle.js';
 import { getActiveWorkflow } from '../src/workflow_repository.js';
 import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
+import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
+import { createTradingStrategyDraft, getTradingStrategyVersion, publishTradingStrategyVersion } from '../src/trading_repository.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 
 const ADMIN_TOKEN = 'admin-token-0123456789abcdef0123456789abcdef';
 const VIEWER_TOKEN = 'viewer-token-0123456789abcdef0123456789abcdef';
@@ -954,6 +957,62 @@ async function testTradingStrategyDeletion(baseUrl, appState) {
     assert.strictEqual(response.status, 200, 'Confirmed strategy deletion must reach the trading control plane');
     assert.strictEqual((await response.json()).result, true);
     assert.deepStrictEqual(removed, ['strategy-delete']);
+  } finally {
+    appState.tradingControl = original;
+  }
+}
+
+async function testStrategySafetyMutationAudit(baseUrl, appState, controls) {
+  await seedTradingFixtures();
+  const original = appState.tradingControl;
+  const activeBefore = (await getActiveWorkflow())?.id ?? null;
+  appState.tradingControl = {
+    createStrategy: payload => createTradingStrategyDraft(payload),
+    publishStrategy: id => publishTradingStrategyVersion(id),
+  };
+  const configuration = structuredClone(DEFAULT_STRATEGY_CONFIGURATION);
+  Object.assign(configuration.safety, {
+    maxDailyLossMode: 'equity_percent', maxDailyLoss: '2.5',
+    maxSlippagePercent: '1.25', entryOrderTtlSeconds: 45,
+  });
+  try {
+    const body = JSON.stringify({ name: 'Audited safety limits', configuration });
+    let response = await fetch(`${baseUrl}/api/trading/strategies`, {
+      method: 'POST', headers: headers(VIEWER_TOKEN, {
+        'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard',
+      }), body,
+    });
+    assert.equal(response.status, 403, 'Viewer must not change strategy safety limits.');
+    response = await fetch(`${baseUrl}/api/trading/strategies`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ name: 'Unsafe strategy', configuration: {
+        ...configuration, safety: { ...configuration.safety, requireProtectiveStop: false },
+      } }),
+    });
+    assert.equal(response.status, 409, 'The immutable protective stop must fail closed.');
+    response = await fetch(`${baseUrl}/api/trading/strategies`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body,
+    });
+    assert.equal(response.status, 201);
+    const draft = (await response.json()).result;
+    assert.equal(draft.status, 'draft');
+    assert.deepEqual(draft.configuration.safety, configuration.safety);
+    assert.equal((await getActiveWorkflow())?.id ?? null, activeBefore);
+    const acceptedAudit = controls.auditEvents.findLast(event =>
+      event.phase === 'completed' && event.path === '/api/trading/strategies' && event.statusCode === 201);
+    assert.equal(acceptedAudit.action, 'trading.strategies.post');
+    assert.equal(acceptedAudit.target.request.configuration.safety.entryOrderTtlSeconds, 45);
+    assert.equal(acceptedAudit.after.response.result.configuration.safety.maxSlippagePercent, '1.25');
+    response = await fetch(`${baseUrl}/api/trading/strategies/publish`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ id: draft.id }),
+    });
+    assert.equal(response.status, 200);
+    assert.equal((await getTradingStrategyVersion(draft.id)).status, 'published');
+    assert.equal((await getActiveWorkflow())?.id ?? null, activeBefore,
+      'Publishing an audited strategy must not activate a graph.');
+    assert.ok(controls.auditEvents.some(event => event.phase === 'completed'
+      && event.path === '/api/trading/strategies/publish' && event.statusCode === 200));
   } finally {
     appState.tradingControl = original;
   }
@@ -2118,6 +2177,7 @@ async function runTests() {
     await testBrowserAndDestructiveContracts(baseUrl, appState);
     await testRuntimeSettingsControl(baseUrl, controls);
     await testRecoveryMode(baseUrl, appState, controls);
+    await testStrategySafetyMutationAudit(baseUrl, appState, controls);
     await testAccessTokenManagement(baseUrl);
 
     await stopWebServer();

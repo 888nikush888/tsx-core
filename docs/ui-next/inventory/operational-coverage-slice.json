@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "scope": "Audited static slices of parameters.json: managed runtime, account identity/state, Telegram Viewer settings, deployment evidence, and the mandatory protective-stop gate. Other parameter families remain unaudited here.",
-  "classes": ["runtime-editable", "create-only", "read-only-evidence", "host-bootstrap", "immutable-gate"],
+  "scope": "Audited source-scoped slices of parameters.json: managed runtime, account identity/state, four versioned strategy safety limits, Telegram Viewer settings, deployment evidence, and the mandatory protective-stop gate. Other parameter families remain unaudited here.",
+  "classes": ["runtime-editable", "create-only", "versioned-draft", "read-only-evidence", "host-bootstrap", "immutable-gate"],
   "groups": [
     {
       "id": "managed-runtime",
@@ -70,6 +70,18 @@
       "uiRoute": "/trading/accounts",
       "uiControl": "frontend/src/features/accounts/account-detail.tsx",
       "effect": "Observed state; kill-switch release and credential rotation are separate guarded commands, not direct field edits."
+    },
+    {
+      "id": "strategy-safety",
+      "class": "versioned-draft",
+      "paths": ["strategy.safety.maxDailyLossMode", "strategy.safety.maxDailyLoss", "strategy.safety.maxSlippagePercent", "strategy.safety.entryOrderTtlSeconds"],
+      "uiRoute": "/workflows/builder",
+      "uiControl": "frontend/src/app/workflow/resource-editor.tsx",
+      "mutationRoutes": ["POST /api/trading/strategies", "POST /api/trading/strategies/publish", "POST /api/workflow/mutate"],
+      "backendValidator": "src/trading_strategy.ts:validateStrategyConfiguration",
+      "auditActions": ["trading.strategies.post", "trading.strategies.publish.post", "dashboard.workflow.mutate.post"],
+      "contractTests": ["frontend/tests/workflow-resource-editor.test.tsx", "tests/test_web_server.js", "tests/test_workflow_builder.js"],
+      "effect": "All four fields are bound to an immutable published strategy and take effect for new intents only after the graph pins and activates that resource version. Existing intents and prior workflow revisions retain their former values. This synthetic proof is not a live-host sign-off."
     },
     {
       "id": "telegram-viewer-settings",

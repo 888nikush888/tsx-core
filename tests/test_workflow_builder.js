@@ -5,8 +5,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { closeDb, getDatabase, initDb, saveSignal } from '../src/db.js';
 import {
-  createSignalContract, createTradingAccount, listSignalContracts, listTradingAccounts, listTradingStrategies,
-  publishSignalContractVersion, updateTradingRuntimeState,
+  createSignalContract, createTradingAccount, createTradingStrategyDraft, getTradingStrategyVersion,
+  listSignalContracts, listTradingAccounts, listTradingStrategies, publishSignalContractVersion,
+  publishTradingStrategyVersion, updateTradingRuntimeState, updateTradingStrategyDraft,
 } from '../src/trading_repository.js';
 import {
   WORKFLOW_IMPACT_CONFIRMATION,
@@ -27,6 +28,7 @@ import {
 } from '../src/workflow_repository.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
 import { uiWorkflowDetail } from '../src/ui_workflow_reads.js';
+import { createEntryPriceBoundary, resolveDailyLossLimit, resolveEntryExpiresAt } from '../src/trading_risk.js';
 
 
 // Persisted shapes from the historical pre-route-group and pre-policy writers.
@@ -783,6 +785,82 @@ try {
     deleteWorkflowResourceFamily(resources.channel.resourceId),
     /historical workflow revisions reference it/i,
   );
+
+  // Four operator-editable safety values take effect only after a new version is pinned
+  // by an activated graph. Draft and publication alone must leave existing intents alone.
+  const safetyDraftConfiguration = structuredClone(strategy.configuration);
+  safetyDraftConfiguration.safety.maxDailyLossMode = 'equity_percent';
+  const safetyDraft = await createTradingStrategyDraft({
+    strategyId: strategy.strategyId, name: 'Safety limits v2', configuration: safetyDraftConfiguration,
+  });
+  const safetyConfiguration = structuredClone(safetyDraft.configuration);
+  Object.assign(safetyConfiguration.safety, {
+    maxDailyLossMode: 'equity_percent', maxDailyLoss: '2.5',
+    maxSlippagePercent: '1.25', entryOrderTtlSeconds: 45,
+  });
+  const updatedSafetyDraft = await updateTradingStrategyDraft(safetyDraft.id, {
+    name: 'Safety limits v2', configuration: safetyConfiguration,
+  });
+  assert.deepEqual(updatedSafetyDraft.configuration.safety, safetyConfiguration.safety);
+  assert.equal((await getActiveWorkflow()).id, changedWorkflow.id);
+  const publishedSafety = await publishTradingStrategyVersion(safetyDraft.id);
+  assert.equal(publishedSafety.status, 'published');
+  assert.equal((await getActiveWorkflow()).id, changedWorkflow.id,
+    'Publishing strategy limits alone must not change the active graph.');
+  const safetyResourceDraft = await createWorkflowResourceDraft({
+    resourceId: resources.strategy.resourceId, kind: 'strategy',
+    name: 'Safety limits resource v2', configuration: { strategyVersionId: publishedSafety.id },
+  });
+  const safetyResource = await publishWorkflowResource(safetyResourceDraft.id);
+  const safetyGraph = { ...changedGraph, nodes: changedGraph.nodes.map(candidate => candidate.id === 'strategy'
+    ? { ...candidate, resourceVersionId: safetyResource.id } : candidate) };
+  await assert.rejects(saveWorkflowRevision({
+    baseRevisionId: changedWorkflow.id, graph: safetyGraph, actorId: 'test:safety-no-confirmation',
+  }), /WORKFLOW_IMPACT_CONFIRMATION_REQUIRED/);
+  assert.equal((await getActiveWorkflow()).id, changedWorkflow.id,
+    'Missing impact confirmation must preserve the old active graph.');
+  const safetyWorkflow = await saveWorkflowRevision({
+    baseRevisionId: changedWorkflow.id, graph: safetyGraph,
+    actorId: 'test:safety-confirmed', confirmation: WORKFLOW_IMPACT_CONFIRMATION,
+  });
+  assert.equal((await getActiveWorkflow()).id, safetyWorkflow.id);
+  const safetyPath = safetyWorkflow.compiled.paths.find(candidate => candidate.accountId === firstAccount.id);
+  assert.ok(safetyPath);
+  const safetyDetail = await uiWorkflowDetail('paths', safetyPath.id);
+  for (const [field, expected] of Object.entries({
+    'safety.maxDailyLossMode': 'equity_percent', 'safety.maxDailyLoss': '2.5',
+    'safety.maxSlippagePercent': '1.25', 'safety.entryOrderTtlSeconds': 45,
+  })) {
+    const parameter = safetyDetail.parameterEffects.find(item => item.field === field);
+    assert.equal(parameter.value, expected, `${field} must be visible as an effective value.`);
+    assert.equal(parameter.sourceVersionId, publishedSafety.id);
+    assert.equal(parameter.overridesStrategy, false);
+  }
+  assert.equal(safetyPath.effectiveConfiguration.strategyConfiguration.safety.requireProtectiveStop, true);
+  assert.equal(resolveDailyLossLimit(publishedSafety.configuration.safety, '10000'), '250');
+  assert.equal(createEntryPriceBoundary({ side: 'LONG', referencePrice: '100', priceTick: '0.1',
+    maxSlippagePercent: publishedSafety.configuration.safety.maxSlippagePercent }).limitPrice, '101.2');
+  assert.equal(resolveEntryExpiresAt(1_700_000_000_000,
+    publishedSafety.configuration.safety.entryOrderTtlSeconds), 1_700_000_045_000);
+  assert.equal(changedWorkflow.compiled.paths.find(candidate => candidate.accountId === firstAccount.id)
+    .effectiveConfiguration.strategyConfiguration.safety.maxDailyLoss, strategy.configuration.safety.maxDailyLoss);
+  assert.ok(intents.every(intent => intent.strategyVersionId === strategy.id),
+    'Existing intents must retain their original strategy version.');
+  await saveSignal('workflow-signal-safety', '-100-workflow', 2, '<signal/>', '<signal/>');
+  const safetyIntents = await createWorkflowTradingIntents({
+    sourceSignalId: 'workflow-signal-safety', channelId: '-100-workflow', sourceText: 'BTCUSDT LONG', signal,
+  });
+  assert.equal(safetyIntents.length, 2);
+  assert.ok(safetyIntents.every(intent => intent.strategyVersionId === publishedSafety.id
+    && intent.workflowRevisionId === safetyWorkflow.id));
+  const storedSafety = await getDatabase().get(
+    'SELECT configuration_json, configuration_sha256 FROM trading_strategy_versions WHERE id = ?', [publishedSafety.id]);
+  assert.deepEqual(JSON.parse(storedSafety.configuration_json).safety, publishedSafety.configuration.safety);
+  assert.equal(storedSafety.configuration_sha256, publishedSafety.configurationSha256);
+  await closeDb();
+  await initDb(path.join(directory, 'forwarder.db'));
+  assert.equal((await getActiveWorkflow()).id, safetyWorkflow.id);
+  assert.equal((await getTradingStrategyVersion(publishedSafety.id)).configuration.safety.maxDailyLoss, '2.5');
   console.log('Workflow builder tests passed.');
 } finally {
   await (async () => closeDb())().catch(() => undefined);
