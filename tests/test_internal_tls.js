@@ -9,6 +9,8 @@ import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
 const fixture = await setupInternalTlsTest();
 let server = null;
 try {
+  assert.throws(() => internalTlsServerOptions('UNSUPPORTED_TLS_FILE', 'DASHBOARD_TLS_KEY_FILE'),
+    /Unsupported internal TLS file name/);
   const options = internalTlsServerOptions('DASHBOARD_TLS_CERT_FILE', 'DASHBOARD_TLS_KEY_FILE');
   assert.equal(options.minVersion, 'TLSv1.2');
   server = https.createServer(options, (_request, response) => response.end('healthy'));
