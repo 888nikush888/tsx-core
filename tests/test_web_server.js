@@ -1464,6 +1464,22 @@ async function testRuntimeSettingsControl(baseUrl, controls) {
   let response = await fetch(`${baseUrl}/api/runtime-settings`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200);
   const settings = (await response.json()).settings;
+  assert.strictEqual(settings.clockMaxDriftMs, 1000);
+  response = await fetch(`${baseUrl}/api/runtime-settings`, {
+    method: 'POST', headers: { ...headers(VIEWER_TOKEN), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clockMaxDriftMs: 500 })
+  });
+  assert.strictEqual(response.status, 403, 'A viewer cannot change the clock guard threshold.');
+  for (const invalidClockLimit of [99, 5001, 500.5, '500']) {
+    response = await fetch(`${baseUrl}/api/runtime-settings`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ clockMaxDriftMs: invalidClockLimit })
+    });
+    assert.strictEqual(response.status, 400, 'The API must reject an invalid clock threshold.');
+  }
+  response = await fetch(`${baseUrl}/api/runtime-settings`, { headers: headers(ADMIN_TOKEN) });
+  assert.strictEqual((await response.json()).settings.clockMaxDriftMs, 1000,
+    'Rejected updates must leave the persisted clock threshold unchanged.');
   const incompleteEnterprise = {
     ...settings,
     enterpriseMode: true,
@@ -1484,13 +1500,18 @@ async function testRuntimeSettingsControl(baseUrl, controls) {
   });
   assert.strictEqual(response.status, 409, 'Enterprise activation must reject missing write-only integration secrets');
   settings.shutdownGraceMs = 45_000;
+  settings.clockMaxDriftMs = 500;
   response = await fetch(`${baseUrl}/api/runtime-settings`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(settings)
   });
   assert.strictEqual(response.status, 200);
-  assert.strictEqual((await response.json()).restartRequired, true);
+  const updatedRuntime = await response.json();
+  assert.strictEqual(updatedRuntime.restartRequired, true);
+  assert.strictEqual(updatedRuntime.settings.clockMaxDriftMs, 500);
+  assert.strictEqual(updatedRuntime.active, null,
+    'UI save must not claim a new active guard before service restart.');
   response = await fetch(`${baseUrl}/api/restart`, {
     method: 'POST',
     headers: mutationHeaders({ 'X-Destructive-Confirmation': 'restart-service' })

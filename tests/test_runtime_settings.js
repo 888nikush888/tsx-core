@@ -23,6 +23,74 @@ try {
   // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.equal(env.DASHBOARD_ALLOWED_ORIGIN, undefined);
   assert.equal(env.TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES, 'false');
+  assert.equal(env.CLOCK_MAX_DRIFT_MS, '1000');
+
+  const legacyEnvironment = { CLOCK_MAX_DRIFT_MS: '450' };
+  const legacyPath = path.join(directory, 'legacy-runtime-settings.json');
+  await writeFile(legacyPath, JSON.stringify({ ...DEFAULT_RUNTIME_SETTINGS, shutdownGraceMs: 45_000, clockMaxDriftMs: undefined }));
+  const legacyStore = new ManagedRuntimeSettingsStore(legacyPath, legacyEnvironment);
+  await legacyStore.initialize();
+  assert.equal(legacyStore.snapshot().clockMaxDriftMs, 450, 'Upgrade must preserve the existing host clock limit.');
+  assert.equal(JSON.parse(await readFile(legacyPath, 'utf8')).clockMaxDriftMs, 450,
+    'Upgrade must persist the inherited threshold before startup.');
+  assert.equal(legacyStore.snapshot().shutdownGraceMs, 45_000, 'Migration must retain other runtime settings.');
+  const withoutHostAfterMigration = {};
+  const migratedRestart = new ManagedRuntimeSettingsStore(legacyPath, withoutHostAfterMigration);
+  await migratedRestart.initialize();
+  migratedRestart.applyToEnvironment();
+  assert.equal(withoutHostAfterMigration.CLOCK_MAX_DRIFT_MS, '450',
+    'Losing the old host variable after migration must not relax the guard on restart.');
+  legacyStore.applyToEnvironment();
+  assert.equal(legacyEnvironment.CLOCK_MAX_DRIFT_MS, '450');
+  await legacyStore.set({ clockMaxDriftMs: 500 });
+  assert.equal(JSON.parse(await readFile(legacyPath, 'utf8')).clockMaxDriftMs, 500);
+  assert.equal(legacyStore.describe().active.clockMaxDriftMs, 450, 'Saving cannot change the active guard before restart.');
+  const restartedLegacyStore = new ManagedRuntimeSettingsStore(legacyPath, legacyEnvironment);
+  await restartedLegacyStore.initialize();
+  restartedLegacyStore.applyToEnvironment();
+  assert.equal(legacyEnvironment.CLOCK_MAX_DRIFT_MS, '500', 'A restart applies the saved bounded limit.');
+  const newHostEnvironment = { CLOCK_MAX_DRIFT_MS: '350' };
+  const newHostStore = new ManagedRuntimeSettingsStore(path.join(directory, 'new-host-runtime-settings.json'), newHostEnvironment);
+  await newHostStore.initialize();
+  assert.equal(newHostStore.snapshot().clockMaxDriftMs, 350, 'First startup must retain a valid host clock limit.');
+  assert.equal(JSON.parse(await readFile(path.join(directory, 'new-host-runtime-settings.json'), 'utf8')).clockMaxDriftMs, 350);
+  const invalidLegacyPath = path.join(directory, 'invalid-legacy-clock.json');
+  await writeFile(invalidLegacyPath, JSON.stringify({ ...DEFAULT_RUNTIME_SETTINGS, clockMaxDriftMs: undefined }));
+  const invalidLegacy = new ManagedRuntimeSettingsStore(invalidLegacyPath, { CLOCK_MAX_DRIFT_MS: '9000' });
+  await invalidLegacy.initialize({ recoverInvalidFile: true });
+  assert.equal(invalidLegacy.recoveryStatus().active, true,
+    'An unsafe legacy host limit must require recovery instead of silently becoming 1000ms.');
+  assert.match(invalidLegacy.recoveryStatus().reason, /CLOCK_MAX_DRIFT_MS must be an integer between 100 and 5000/);
+  const writeFailurePath = path.join(directory, 'clock-migration-write-failure.json');
+  await writeFile(writeFailurePath, JSON.stringify({ ...DEFAULT_RUNTIME_SETTINGS, clockMaxDriftMs: undefined }));
+  const failedMigration = new ManagedRuntimeSettingsStore(writeFailurePath, { CLOCK_MAX_DRIFT_MS: '450' });
+  failedMigration.writeFile = async () => { throw new Error('simulated migration write failure'); };
+  await failedMigration.initialize({ recoverInvalidFile: true });
+  assert.equal(failedMigration.recoveryStatus().active, true,
+    'A failed migration write must enter recovery rather than start with a relaxed guard.');
+  assert.equal(failedMigration.snapshot().clockMaxDriftMs, 450,
+    'Recovery must retain a valid legacy clock threshold while entries remain blocked.');
+  assert.equal(JSON.parse(await readFile(writeFailurePath, 'utf8')).clockMaxDriftMs, undefined,
+    'A failed migration must leave the old source unchanged.');
+  const missingDuringWritePath = path.join(directory, 'clock-migration-enoent-write.json');
+  const originalSettings = { ...DEFAULT_RUNTIME_SETTINGS, shutdownGraceMs: 60_000, clockMaxDriftMs: undefined };
+  await writeFile(missingDuringWritePath, JSON.stringify(originalSettings));
+  const missingDuringWrite = new ManagedRuntimeSettingsStore(missingDuringWritePath, { CLOCK_MAX_DRIFT_MS: '450' });
+  missingDuringWrite.writeFile = async () => {
+    const error = new Error('simulated ENOENT during migration write');
+    error.code = 'ENOENT';
+    throw error;
+  };
+  await missingDuringWrite.initialize({ recoverInvalidFile: true });
+  assert.equal(missingDuringWrite.recoveryStatus().active, true,
+    'An ENOENT during migration write must not be mistaken for a missing original file.');
+  assert.deepEqual(JSON.parse(await readFile(missingDuringWritePath, 'utf8')), JSON.parse(JSON.stringify(originalSettings)),
+    'The legacy file and unrelated runtime values must survive migration write failure.');
+  const explicitManaged = new ManagedRuntimeSettingsStore(legacyPath, { CLOCK_MAX_DRIFT_MS: '9000' });
+  await explicitManaged.initialize();
+  explicitManaged.applyToEnvironment();
+  assert.equal(explicitManaged.snapshot().clockMaxDriftMs, 500,
+    'An explicit managed setting takes precedence over a stale host variable.');
 
   const fixedPropertyEnv = {};
   Object.defineProperty(fixedPropertyEnv, 'DASHBOARD_ALLOWED_ORIGIN', {
@@ -44,7 +112,11 @@ try {
   const before = store.describe();
   assert.equal(before.active.shutdownGraceMs, DEFAULT_RUNTIME_SETTINGS.shutdownGraceMs);
   assert.equal(before.restartRequired, true);
-  assert.equal(before.parameters.length, 35);
+  assert.equal(before.parameters.length, 36);
+  const clockParameter = before.parameters.find(parameter => parameter.path === 'clockMaxDriftMs');
+  assert.deepEqual(clockParameter.range, [100, 5_000]);
+  assert.equal(clockParameter.environmentName, 'CLOCK_MAX_DRIFT_MS');
+  assert.equal(clockParameter.requiresRestart, true);
   const concurrent = await Promise.allSettled([
     store.set({ shutdownGraceMs: 50_000 }, before.revision),
     store.set({ shutdownGraceMs: 60_000 }, before.revision),
@@ -134,6 +206,11 @@ try {
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, shutdownGraceMs: 999 }), /between 1000 and 120000/);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, shutdownGraceMs: 120001 }), /between 1000 and 120000/);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, shutdownGraceMs: 1.5 }), /integer/);
+  for (const invalidClockLimit of [99, 5_001, 500.5, '500', null, false]) {
+    assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, clockMaxDriftMs: invalidClockLimit }), /clockMaxDriftMs must be an integer between 100 and 5000/);
+  }
+  assert.equal(validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, clockMaxDriftMs: 100 }).clockMaxDriftMs, 100);
+  assert.equal(validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, clockMaxDriftMs: 5_000 }).clockMaxDriftMs, 5_000);
 
   const retentionBoundary = {
     ...DEFAULT_RUNTIME_SETTINGS,

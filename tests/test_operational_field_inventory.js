@@ -189,20 +189,22 @@ function verifyExternal(controls, composeText, ruleText) {
       `${binding.name}: TLS artifact mapping drift`);
   }
   for (const id of ['host.BACKUP_DIR', 'host.BACKUP_OFFSITE_TOKEN', 'host.BACKUP_ENCRYPTION_KEY',
-    'host.AUDIT_LOG_PATH', 'host.CLOCK_MAX_DRIFT_MS', 'tailscale.serveBackend']) {
+    'host.AUDIT_LOG_PATH', 'tailscale.serveBackend']) {
     assert.ok(IDs.has(id), `${id}: missing host control`);
   }
   assert.equal(byId.get('host.BACKUP_ENCRYPTION_KEY').class, 'write-once-secret',
     'Backup encryption key must not be rotated through an ordinary secret editor');
-  assert.equal(byId.get('host.CLOCK_MAX_DRIFT_MS').invariant,
-    'The drift guard remains enabled; integer threshold 100..5000 ms.');
+  assert.ok(!IDs.has('host.CLOCK_MAX_DRIFT_MS'), 'Managed clock threshold must not be double-counted as a host control.');
   return { composeCount: composeNames.size, alertCount: alertNames.size, externalCount: IDs.size };
 }
 
 assert.equal(fields.schemaVersion, 1);
 assert.equal(external.schemaVersion, 1);
 const counted = verifyCatalog(catalog, fields);
-assert.equal(runtimeEnvironment.size, 35, 'Managed runtime mapping denominator drift');
+assert.equal(runtimeEnvironment.size, 36, 'Managed runtime mapping denominator drift');
+const clockParameter = catalog.find(item => item.path === 'runtime.clockMaxDriftMs');
+assert.equal(clockParameter.constraints, '100..5000');
+assert.equal(clockParameter.editable, true);
 const composeText = (await Promise.all(external.composeSources.map(read))).join('\n');
 const externalCounted = verifyExternal(external.controls, composeText, await read('monitoring/rules.yml'));
 assert.match(await read('src/secret_store.ts'), /BACKUP_ENCRYPTION_KEY is immutable because rotating it/);
@@ -210,7 +212,7 @@ assert.match(await read('src/clock_guard.ts'), /CLOCK_MAX_DRIFT_MS must be an in
 for (const control of external.controls) for (const source of control.source) await access(path.join(root, source));
 assert.equal(externalCounted.composeCount, 23, 'Re-audit Compose variable denominator on change');
 assert.equal(externalCounted.alertCount, 18, 'Re-audit alert rule denominator on change');
-assert.equal(counted.catalogCount, 311, 'Re-audit catalog denominator on change');
+assert.equal(counted.catalogCount, 312, 'Re-audit catalog denominator on change');
 const expandedAggregates = ['deployment.hostPorts', 'deployment.cpu', 'deployment.memory'];
 for (const name of expandedAggregates) assert.ok(catalog.some(item => item.path === name), `${name}: aggregate missing`);
 const sourceScopedControlCount = counted.catalogCount - expandedAggregates.length + externalCounted.externalCount;
@@ -240,8 +242,9 @@ assert.throws(() => verifyExternal(external.controls, composeText, alteredDetect
 const rotatingBackupKey = structuredClone(external.controls);
 rotatingBackupKey.find(item => item.id === 'host.BACKUP_ENCRYPTION_KEY').class = 'write-only-secret';
 assert.throws(() => verifyExternal(rotatingBackupKey, composeText, ruleText), /Backup encryption key must not be rotated/);
-const disabledClockInvariant = structuredClone(external.controls);
-delete disabledClockInvariant.find(item => item.id === 'host.CLOCK_MAX_DRIFT_MS').invariant;
-assert.throws(() => verifyExternal(disabledClockInvariant, composeText, ruleText), /drift guard remains enabled/);
+const duplicateClockControl = structuredClone(external.controls);
+duplicateClockControl.push({ id: 'host.CLOCK_MAX_DRIFT_MS', family: 'host', source: ['src/clock_guard.ts'],
+  relation: 'duplicate', class: 'host-maintenance', evidenceStatus: 'unverified' });
+assert.throws(() => verifyExternal(duplicateClockControl, composeText, ruleText), /must not be double-counted/);
 
 console.log(`Operational inventory passed: ${counted.classifiedCount} catalog fields, ${externalCounted.externalCount} external controls (${externalCounted.composeCount} Compose variables, ${externalCounted.alertCount} alert rules); ${sourceScopedControlCount} source-scoped control records; UI E2E remains unverified.`);

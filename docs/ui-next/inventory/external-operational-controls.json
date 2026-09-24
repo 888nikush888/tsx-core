@@ -1177,18 +1177,6 @@
       "evidenceStatus": "unverified"
     },
     {
-      "id": "host.CLOCK_MAX_DRIFT_MS",
-      "family": "host",
-      "source": [
-        "src/clock_guard.ts"
-      ],
-      "relatedCatalogPath": null,
-      "relation": "bounded-safety-setting",
-      "class": "host-maintenance",
-      "evidenceStatus": "unverified",
-      "invariant": "The drift guard remains enabled; integer threshold 100..5000 ms."
-    },
-    {
       "id": "host.PROMETHEUS_URL",
       "family": "host",
       "source": [

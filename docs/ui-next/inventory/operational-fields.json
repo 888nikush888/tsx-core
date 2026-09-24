@@ -272,6 +272,14 @@
       "runtimeEnvironmentName": "SHUTDOWN_GRACE_MS"
     },
     {
+      "path": "runtime.clockMaxDriftMs",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "CLOCK_MAX_DRIFT_MS"
+    },
+    {
       "path": "runtime.jsonLogging",
       "class": "runtime-editable",
       "catalogEditable": true,

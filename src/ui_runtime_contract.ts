@@ -7,7 +7,7 @@ export const RUNTIME_INTEGER_RANGES = {
   backupRetentionCount: [1, 10_000], dataRetentionDays: [1, 3_650],
   dataRetentionIntervalMs: [300_000, 86_400_000], dataRetentionBatchSize: [100, 10_000],
   dataMinFreeBytes: [67_108_864, 1_099_511_627_776], deliveryConfirmTimeoutMs: [1_000, 300_000],
-  shutdownGraceMs: [1_000, 120_000],
+  shutdownGraceMs: [1_000, 120_000], clockMaxDriftMs: [100, 5_000],
 } as const;
 
 const RUNTIME_GROUP_PREFIXES: ReadonlyArray<[string, string]> = [

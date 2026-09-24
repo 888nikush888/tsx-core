@@ -4,6 +4,7 @@ import { configurationPathFromEnvironment } from './config.js';
 import { withManagedConfigurationWrite } from './backup_generation.js';
 import { configurationRevision } from './ui_configuration.js';
 import { RUNTIME_INTEGER_RANGES, runtimeFieldGroup, runtimeFieldUnit } from './ui_runtime_contract.js';
+import { DEFAULT_MAX_CLOCK_DRIFT_MS, clockDriftLimitFromEnvironment } from './clock_guard.js';
 
 export interface RuntimeSettings {
   enterpriseMode: boolean;
@@ -39,6 +40,7 @@ export interface RuntimeSettings {
   dataMinFreeBytes: number;
   deliveryConfirmTimeoutMs: number;
   shutdownGraceMs: number;
+  clockMaxDriftMs: number;
   jsonLogging: boolean;
   isolateUnavailableMarketFailures: boolean;
 }
@@ -86,6 +88,7 @@ export const DEFAULT_RUNTIME_SETTINGS: RuntimeSettings = {
   dataMinFreeBytes: 1024 * 1024 * 1024,
   deliveryConfirmTimeoutMs: 30_000,
   shutdownGraceMs: 30_000,
+  clockMaxDriftMs: DEFAULT_MAX_CLOCK_DRIFT_MS,
   jsonLogging: true,
   isolateUnavailableMarketFailures: false,
 };
@@ -97,6 +100,16 @@ const SAFE_RECOVERY_RUNTIME_SETTINGS: RuntimeSettings = {
   ...DEFAULT_RUNTIME_SETTINGS,
   dashboardLocalTrust: false,
 };
+
+function safeRecoveryClockLimit(env: NodeJS.ProcessEnv): number {
+  try {
+    return clockDriftLimitFromEnvironment(env);
+  } catch {
+    // The recovery gate blocks new entries; keep the bounded default if the
+    // legacy host value itself is invalid.
+    return DEFAULT_MAX_CLOCK_DRIFT_MS;
+  }
+}
 
 const KEYS = new Set(Object.keys(DEFAULT_RUNTIME_SETTINGS));
 const BOOLEAN_SETTING_NAMES = [
@@ -318,6 +331,7 @@ export function validateRuntimeSettings(input: unknown): RuntimeSettings {
     dataMinFreeBytes: integer(merged.dataMinFreeBytes, 'dataMinFreeBytes', 64 * 1024 * 1024, 1024 * 1024 * 1024 * 1024),
     deliveryConfirmTimeoutMs: integer(merged.deliveryConfirmTimeoutMs, 'deliveryConfirmTimeoutMs', 1_000, 300_000),
     shutdownGraceMs: integer(merged.shutdownGraceMs, 'shutdownGraceMs', 1_000, 120_000),
+    clockMaxDriftMs: integer(merged.clockMaxDriftMs, 'clockMaxDriftMs', 100, 5_000),
     jsonLogging: merged.jsonLogging as boolean,
     isolateUnavailableMarketFailures: merged.isolateUnavailableMarketFailures as boolean,
   };
@@ -357,6 +371,7 @@ const ENVIRONMENT_MAPPING: Record<keyof RuntimeSettings, string> = {
   dataMinFreeBytes: 'DATA_MIN_FREE_BYTES',
   deliveryConfirmTimeoutMs: 'DELIVERY_CONFIRM_TIMEOUT_MS',
   shutdownGraceMs: 'SHUTDOWN_GRACE_MS',
+  clockMaxDriftMs: 'CLOCK_MAX_DRIFT_MS',
   jsonLogging: 'JSON_LOGGING',
   isolateUnavailableMarketFailures: 'TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES',
 };
@@ -386,19 +401,31 @@ export class ManagedRuntimeSettingsStore {
   async initialize(options: RuntimeSettingsStoreOptions = {}): Promise<void> {
     const resolved = path.resolve(this.filePath);
     await fs.mkdir(path.dirname(resolved), { recursive: true, mode: 0o700 });
+    let existingFileObserved = false;
     try {
       const stats = await fs.lstat(resolved);
+      existingFileObserved = true;
       if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 128 * 1024) {
         throw new Error('Runtime settings must be a small regular file.');
       }
-      this.settings = validateRuntimeSettings(JSON.parse(await fs.readFile(resolved, 'utf8')));
+      const loaded: unknown = JSON.parse(await fs.readFile(resolved, 'utf8'));
+      // Persist a legacy host limit through the managed atomic writer before
+      // startup. A failed migration enters recovery instead of resetting it.
+      const missingClockLimit = loaded && typeof loaded === 'object' && !Array.isArray(loaded)
+        && !Object.hasOwn(loaded, 'clockMaxDriftMs');
+      if (missingClockLimit) {
+        (loaded as RuntimeSettingsRecord).clockMaxDriftMs = clockDriftLimitFromEnvironment(this.env);
+      }
+      const validated = validateRuntimeSettings(loaded);
+      if (missingClockLimit) await this.write(validated);
+      else this.settings = validated;
     } catch (error: unknown) {
-      if ((error as { code?: unknown } | null | undefined)?.code === 'ENOENT') {
-        await this.write(DEFAULT_RUNTIME_SETTINGS);
+      if (!existingFileObserved && (error as { code?: unknown } | null | undefined)?.code === 'ENOENT') {
+        await this.write({ ...DEFAULT_RUNTIME_SETTINGS, clockMaxDriftMs: clockDriftLimitFromEnvironment(this.env) });
         return;
       }
       if (!options.recoverInvalidFile) throw error;
-      this.settings = structuredClone(SAFE_RECOVERY_RUNTIME_SETTINGS);
+      this.settings = { ...SAFE_RECOVERY_RUNTIME_SETTINGS, clockMaxDriftMs: safeRecoveryClockLimit(this.env) };
       this.recoveryReason = error instanceof Error ? (error as { message?: string }).message : 'Managed runtime settings could not be read.';
     }
   }

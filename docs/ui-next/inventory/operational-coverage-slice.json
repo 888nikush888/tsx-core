@@ -17,7 +17,7 @@
         "runtime.backupOffsiteMaxRecoveryBytes", "runtime.backupOffsiteRetentionDays", "runtime.backupIntervalMs",
         "runtime.backupRetentionCount", "runtime.dataRetentionDays", "runtime.dataRetentionIntervalMs",
         "runtime.dataRetentionBatchSize", "runtime.dataMinFreeBytes", "runtime.deliveryConfirmTimeoutMs",
-        "runtime.shutdownGraceMs", "runtime.jsonLogging", "runtime.isolateUnavailableMarketFailures"
+        "runtime.shutdownGraceMs", "runtime.clockMaxDriftMs", "runtime.jsonLogging", "runtime.isolateUnavailableMarketFailures"
       ],
       "uiRoute": "/operations/settings",
       "uiControl": "frontend/src/features/operations/runtime-parameters.tsx",

@@ -28,7 +28,7 @@ Die Begleitdateien enthalten:
 |---|---:|---|
 | Fachliche Arbeitspakete | 72 | Nachvollziehbare Umsetzungseinheiten, keine Anzahl aller Programmfunktionen |
 | Authentifiziert registrierte Dashboard-Routen | 106 | Vollständige Zuordnung der erfassten `API_ROUTES`; zusätzlich drei öffentliche Bootstrap-/Session-Routen |
-| Runtime-Einstellungen | 35 | Bereits heute explizit oder generisch erreichbar; Erklärung und Wirksamkeit verbessern |
+| Runtime-Einstellungen | 36 | Bereits heute explizit oder generisch erreichbar; Erklärung und Wirksamkeit verbessern |
 | Workflow-Bausteinarten | 13 | Alle erhalten eine konkrete Bedien- und Abnahmezuordnung |
 | Kuratierte Parameter-/Eingabe-/Anzeigefelder | 281 | Enthält auch Read-only- und Legacy-Felder, nicht 281 frei editierbare Einstellungen |
 | Literal erkannte MCP-Werkzeugnamen | 48 | Discovery; kein generischer unbeschränkter Tool-Runner |
@@ -117,7 +117,7 @@ Der bestehende Router lenkt auf `/dashboard`; Workspaces, Unterbereiche und Obje
 
 Nicht neu zu erfinden sind die 13 Workflow-Bausteine, viele Strategie-/Sizingfelder, die weitreichenden Schema-/Vertragsformulare, Fallback-Ketten samt kanalbezogener Regeln, die fünf Schritte Builder-History, Kontenverwaltung, Verifizierung, globale Runtime-Steuerung, Kill-Switch-Freigaben, Risikoquittierung, Backuperstellung/-prüfung/-restore, Offsite-Rückholung, Setup-Bundles, MCP-Agentenrechte und die Telegram-Viewer-Einstellungen. [S04, S08, S15, S16]
 
-Die 35 Runtimefelder sind bereits über explizite Eingaben und einen generischen Detailbereich erreichbar. Hier ist der wichtigste Umbau die Gruppierung, Erklärung, Validierung und Darstellung von gespeichertem versus aktivem Wert. Nicht alle sind schlicht „vergessen“ worden. [S16]
+Die 36 Runtimefelder sind bereits über explizite Eingaben und einen generischen Detailbereich erreichbar. Hier ist der wichtigste Umbau die Gruppierung, Erklärung, Validierung und Darstellung von gespeichertem versus aktivem Wert. Nicht alle sind schlicht „vergessen“ worden. [S16]
 
 Bestehende Sicherheitsregeln bleiben unverändert: keine ungesicherten Entries, keine automatische Wiederholung unbekannter Order-/Versandergebnisse, keine erfundenen Fills oder Identitäten, keine frei editierbaren Schutzbeweise, keine automatische Live-Freigabe durch einen öffentlichen Börsentest und keine nachträgliche Veränderung gepinnter Handelspläne.
 
@@ -274,7 +274,7 @@ Interne Viewer-Service-Tokens und MCP-Bearer dürfen nicht als Abkürzung in den
 
 ### 6.10 Einstellungen, Backups, Audit und Wartung
 
-Die 35 Runtimefelder werden in Authentifizierung, Beobachtbarkeit, Audit/Alerts, Backups/Offsite, Retention und Laufzeit gruppiert. Für jedes Feld zeigt die Oberfläche gespeichert, aktiv, Quelle, editierbar und notwendiger Neustart. Die tatsächliche Präzedenz des Stores wird dargestellt; „Environment gewinnt immer“ darf nicht einfach angenommen werden.
+Die 36 Runtimefelder werden in Authentifizierung, Beobachtbarkeit, Audit/Alerts, Backups/Offsite, Retention und Laufzeit gruppiert. Für jedes Feld zeigt die Oberfläche gespeichert, aktiv, Quelle, editierbar und notwendiger Neustart. Die tatsächliche Präzedenz des Stores wird dargestellt; „Environment gewinnt immer“ darf nicht einfach angenommen werden.
 
 Secrets bleiben write-only. Extern verwaltete Secrets sind sichtbar als konfiguriert, aber nicht fälschlich editierbar. Leeres Feld bedeutet beibehalten, wenn dies der Vertrag vorsieht. Löschen oder Rotieren ist eine separate bewusste Aktion. Ein Diagnoseexport enthält keine gespeicherten Tokens, API-Keys, Login-Codes oder unredigierten Providerantworten.
 

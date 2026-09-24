@@ -3,7 +3,7 @@
 Specification: [MASTERPLAN.md](MASTERPLAN.md), supplied 2026-09-05. Working branch: `codex/ui-next`.
 Base: `326cf1804a4df80811f29182538d94f1ab64ac83` (`origin/main`). The plan reviewed `93ed1c4`; the subsequent fixes for local-session authentication, isolated emergency paths and break-even references are retained. A fresh fetch on 2026-09-06 found no further main-branch delta.
 
-The companion matrices were not attached. The current [register](REGISTER.md) reconstructs the actual handlers, validators, consumers and UI entry points: **138 authenticated routes, three separate bootstrap/session boundaries, 311 parameter contracts, 35 runtime settings and all 13 resource kinds**. Historical inventory counts are not acceptance targets. A register entry is not proof of a live exchange action.
+The companion matrices were not attached. The current [register](REGISTER.md) reconstructs the actual handlers, validators, consumers and UI entry points: **138 authenticated routes, three separate bootstrap/session boundaries, 312 parameter contracts, 36 runtime settings and all 13 resource kinds**. Historical inventory counts are not acceptance targets. A register entry is not proof of a live exchange action.
 
 ## Scope and acceptance status
 

@@ -14,7 +14,7 @@ export interface RuntimeParameterPayload {
   active?: Record<string, unknown> | null;
 }
 
-const labels: Record<string, string> = { dashboardAuthMode: 'Authentifizierung', dashboardLocalTrust: 'Lokale Vertrauenssitzung', dashboardAllowedOrigin: 'Erlaubter Browser-Ursprung', tailscaleServeTrustedProxy: 'Tailscale-Serve-Proxy vertrauen', tailscaleAdminUsers: 'Tailscale Admin-Logins', tailscaleViewerUsers: 'Tailscale Viewer-Logins', enterpriseMode: 'Enterprise-Modus' };
+const labels: Record<string, string> = { dashboardAuthMode: 'Authentifizierung', dashboardLocalTrust: 'Lokale Vertrauenssitzung', dashboardAllowedOrigin: 'Erlaubter Browser-Ursprung', tailscaleServeTrustedProxy: 'Tailscale-Serve-Proxy vertrauen', tailscaleAdminUsers: 'Tailscale Admin-Logins', tailscaleViewerUsers: 'Tailscale Viewer-Logins', enterpriseMode: 'Enterprise-Modus', clockMaxDriftMs: 'Maximale Uhrabweichung (Guard bleibt aktiv)' };
 function invalidRuntimeNumber(value: number, range: Parameter['range']) {
   if (!Number.isSafeInteger(value)) return true;
   return Boolean(range && (value < range[0] || value > range[1]));

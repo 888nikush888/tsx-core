@@ -80,7 +80,7 @@ Bei Backup-Restore, Migration-Rollback oder Factory Reset stoppt TSX Core die in
 3. Keine Uhrzeit manuell zurückstellen, solange der Dienst läuft. Erst Ursache und Host-Offset korrigieren, dann den Forwarder kontrolliert neu starten.
 4. Nach Neustart müssen Clock-Metrik und Readiness grün bleiben. Vor Wiederfreigabe von Trading eine erfolgreiche Exchange-Reconciliation und den dokumentierten synthetischen Test abwarten.
 
-`CLOCK_MAX_DRIFT_MS` akzeptiert 100 bis 5000 Millisekunden und ist standardmäßig 1000. Der Guard erkennt Sprünge relativ zur monotonen Prozessuhr; die anfängliche absolute UTC-Synchronisation bleibt eine Host-/NTP-Vorbedingung und muss durch Infrastruktur-Monitoring belegt werden.
+`CLOCK_MAX_DRIFT_MS` akzeptiert 100 bis 5000 Millisekunden und ist standardmäßig 1000. Admins können den Grenzwert unter **Betrieb & Sicherheit → Runtime-Einstellungen** speichern; die laufende Guard-Instanz ändert sich erst durch einen kontrollierten Neustart. Bei der Umstellung übernimmt ein bestehender Host-Wert die erste verwaltete Fassung. Den Grenzwert nicht als Ersatz für die Behebung einer instabilen Host-Uhr erhöhen: Der Guard bleibt immer aktiv und ein ausgelöster Guard bleibt bis zum Neustart gelatcht. Er erkennt Sprünge relativ zur monotonen Prozessuhr; die anfängliche absolute UTC-Synchronisation bleibt eine Host-/NTP-Vorbedingung und muss durch Infrastruktur-Monitoring belegt werden.
 
 ## Retention und Speicherdruck
 
