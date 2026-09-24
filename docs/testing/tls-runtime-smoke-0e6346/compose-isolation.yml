@@ -1,0 +1,20 @@
+services:
+  forwarder:
+    restart: "no"
+  exchange-executor:
+    restart: "no"
+  telegram-viewer:
+    restart: "no"
+  alert-relay:
+    restart: "no"
+  prometheus:
+    restart: "no"
+  alertmanager:
+    restart: "no"
+networks:
+  core-network:
+    internal: true
+  viewer-network:
+    internal: true
+  default:
+    internal: true
