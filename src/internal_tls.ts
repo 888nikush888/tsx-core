@@ -22,6 +22,7 @@ function configuredTlsPath(name: TlsFileName): string | undefined {
     case 'ALERT_RELAY_TLS_KEY_FILE': return process.env.ALERT_RELAY_TLS_KEY_FILE;
     case 'TELEGRAM_VIEWER_TLS_CERT_FILE': return process.env.TELEGRAM_VIEWER_TLS_CERT_FILE;
     case 'TELEGRAM_VIEWER_TLS_KEY_FILE': return process.env.TELEGRAM_VIEWER_TLS_KEY_FILE;
+    default: throw new Error('Unsupported internal TLS file name.');
   }
 }
 
