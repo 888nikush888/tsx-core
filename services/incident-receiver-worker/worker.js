@@ -54,15 +54,22 @@ class RejectedPayload extends Error {
 
 async function boundedStream(stream, limit) {
   const reader = stream.getReader();
-  const result = new Uint8Array(limit);
+  let result = new Uint8Array(Math.min(limit, 1024));
   let length = 0;
   try {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       if (value.byteLength > limit - length) throw new RejectedPayload(413);
+      const needed = length + value.byteLength;
+      if (needed > result.byteLength) {
+        const capacity = Math.min(limit, Math.max(needed, result.byteLength * 2));
+        const grown = new Uint8Array(capacity);
+        grown.set(result.subarray(0, length));
+        result = grown;
+      }
       result.set(value, length);
-      length += value.byteLength;
+      length = needed;
     }
   } catch (error) {
     try { await reader.cancel(); } catch { /* Caller still fails closed. */ }

@@ -162,6 +162,23 @@ assert.equal((await invoke(request(exactPayload), boundaryEnv, boundaryFetch)).s
 const exactDocument = JSON.parse(await boundarySends[2].options.body.get('document').text());
 assert.equal(exactDocument.alerts[0].correlation_id, exactId);
 assert.equal(boundarySends.length, 3, 'one Telegram request must contain each complete alert group');
+const encodedExact = new TextEncoder().encode(exactPayload);
+let offset = 0;
+const chunkedExact = new ReadableStream({
+  pull(controller) {
+    if (offset === encodedExact.byteLength) { controller.close(); return; }
+    const end = Math.min(offset + 4096, encodedExact.byteLength);
+    controller.enqueue(encodedExact.subarray(offset, end));
+    offset = end;
+  },
+});
+const chunkedRequest = new Request('https://incident.example/alerts', {
+  method: 'POST', body: chunkedExact, duplex: 'half',
+  headers: { Authorization: `Bearer ${relayToken}`, 'X-Alert-Source': 'tsx-core',
+    'Content-Type': 'application/json' },
+});
+assert.equal((await invoke(chunkedRequest, boundaryEnv, boundaryFetch)).status, 202);
+assert.equal(boundarySends.length, 3, 'identical chunked bytes must deduplicate');
 
 for (const [req, expected] of [
   [request(body(), { Authorization: 'Bearer wrong' }), 401],
