@@ -9,7 +9,8 @@ import {
 import { evaluateGithubGovernance } from '../scripts/verify_github_governance.js';
 
 const EXCLUDED_ENCODING_DIRECTORIES = new Set([
-  '.git', 'coverage', 'coverage-modules', 'dist', 'node_modules', 'reports',
+  '.git', 'coverage', 'coverage-modules', 'dist', 'node_modules',
+  'playwright-report', 'reports', 'test-results',
 ]);
 const ANALYZED_TEXT_EXTENSIONS = new Set([
   '.css', '.html', '.in', '.js', '.json', '.lock', '.md', '.mjs', '.properties',
