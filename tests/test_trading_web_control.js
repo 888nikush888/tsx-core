@@ -561,7 +561,7 @@ try {
   }), /different external exchange account/);
   hyperliquid.candidateExternalAccountId = null;
   assert.equal((await control.setAccountEnabled(live.id, false)).status, 'disabled');
-  assert.equal((await control.setAccountEnabled(live.id, true)).status, 'ready');
+  await assert.rejects(control.setAccountEnabled(live.id, true), /provider acceptance is not pinned/);
   const removable = await control.createAccount({
     name: 'Removable Bybit', exchange: 'bybit', mode: 'testnet',
     credentials: { apiKey: 'removable-api-key', secret: 'removable-api-secret' },
@@ -581,10 +581,15 @@ try {
   await assert.rejects(control.verifyAccount('missing-account'), /does not exist/);
   const redacted = JSON.stringify(await control.snapshot());
   assert.doesNotMatch(redacted, /official-api-(key|secret)/, 'Exchange credentials must never be returned.');
-  await control.setRoute({ channelId: '-100003', strategyVersionId: published[0].id, accountId: live.id, enabled: true });
+  await control.setRoute({ channelId: '-100003', strategyVersionId: published[0].id, accountId: paperAccount.id, enabled: true });
   await assert.rejects(control.setRuntime({ action: 'live', enabled: true, confirmation: 'yes' }), /exact confirmation/);
-  await control.setRuntime({ action: 'live', enabled: true, confirmation: 'ENABLE LIVE TRADING' });
-  assert.equal((await control.snapshot()).overview.runtime.liveTradingEnabled, true);
+  await assert.rejects(control.setRuntime({ action: 'live', enabled: true, confirmation: 'ENABLE LIVE TRADING' }),
+    /at least one enabled, verified live account/);
+  assert.equal((await control.snapshot()).overview.runtime.liveTradingEnabled, false);
+  await getDatabase().run("UPDATE trading_accounts SET enabled = 1, status = 'ready' WHERE id = ?", [live.id]);
+  await assert.rejects(control.setRuntime({ action: 'live', enabled: true, confirmation: 'ENABLE LIVE TRADING' }),
+    /provider acceptance is not pinned/, 'A persisted ready live row cannot bypass independent acceptance.');
+  await getDatabase().run("UPDATE trading_accounts SET enabled = 0, status = 'disabled' WHERE id = ?", [live.id]);
 
   await control.setRuntime({ action: 'kill-switch', active: true, reason: 'Contract test' });
   assert.equal(entryRuntime.enabled, false, 'The kill switch must close the in-memory entry latch immediately.');

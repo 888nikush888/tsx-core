@@ -32,6 +32,8 @@ services:
       CONFIG_PATH: "/app/config/config.json"
       RUNTIME_SETTINGS_PATH: "/app/config/runtime-settings.json"
       MANAGED_SECRET_DIR: "/app/secrets"
+      PROVIDER_ACCEPTANCE_REVIEWER_KEY_FILE: "/run/provider-acceptance/reviewer.pem"
+      PROVIDER_ACCEPTANCE_GRANTS_FILE: "/run/provider-acceptance/grants.json"
       TELEGRAM_VIEWER_SETTINGS_PATH: "/app/config/telegram-viewer-settings.json"
       TELEGRAM_VIEWER_SECRET_DIR: "/app/telegram_viewer_secrets"
       TELEGRAM_VIEWER_STATUS_URL: "https://telegram-viewer:8081/status"
@@ -42,6 +44,7 @@ services:
     volumes:
       - forwarder_config:/app/config
       - forwarder_secrets:/app/secrets
+      - provider_acceptance:/run/provider-acceptance:ro
       - telegram_viewer_secrets:/app/telegram_viewer_secrets
       # Bind files individually: no service can read another service's private key.
       - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/ca.pem:/run/tsx-tls/ca.pem:ro
@@ -101,11 +104,14 @@ services:
       EXECUTOR_HOST: "0.0.0.0"
       EXECUTOR_PORT: "8090"
       MANAGED_SECRET_DIR: "/app/secrets"
+      PROVIDER_ACCEPTANCE_REVIEWER_KEY_FILE: "/run/provider-acceptance/reviewer.pem"
+      PROVIDER_ACCEPTANCE_GRANTS_FILE: "/run/provider-acceptance/grants.json"
       EXECUTOR_TLS_CERT_FILE: "/run/tsx-tls/executor.crt"
       EXECUTOR_TLS_KEY_FILE: "/run/tsx-tls/executor.key"
       TSX_INTERNAL_CA_FILE: "/run/tsx-tls/ca.pem"
     volumes:
       - forwarder_secrets:/app/secrets:ro
+      - provider_acceptance:/run/provider-acceptance:ro
       - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/ca.pem:/run/tsx-tls/ca.pem:ro
       - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/executor.crt:/run/tsx-tls/executor.crt:ro
       - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/executor.key:/run/tsx-tls/executor.key:ro
@@ -252,6 +258,7 @@ services:
 volumes:
   forwarder_config:
   forwarder_secrets:
+  provider_acceptance:
   forwarder_templates:
   forwarder_session_data:
   forwarder_session_files:

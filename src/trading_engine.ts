@@ -31,6 +31,7 @@ import {
   TradingRiskError,
 } from './trading_risk.js';
 import { ClockGuard, type ClockHealthMonitor } from './clock_guard.js';
+import { liveProviderAcceptancePinned } from './provider_acceptance.js';
 import { assertBoundedEntryProfile, assertEntryModeEvidence, readEntryModeEvidence } from './trading_execution_constraints.js';
 import { LeverageTierError } from './trading_leverage_tiers.js';
 import { FxEvidenceError } from './trading_fx_contract.js';
@@ -451,6 +452,9 @@ function assertExecutionPreconditions(
   }
   if (account.exchange !== 'paper' && (!account.externalAccountId || !account.credentialGeneration)) {
     throw new TradingRiskError('ACCOUNT_IDENTITY_UNVERIFIED', 'Verify the account credential generation before creating new orders.');
+  }
+  if (!liveProviderAcceptancePinned(account)) {
+    throw new TradingRiskError('PROVIDER_ACCEPTANCE_ABSENT', 'Independent provider acceptance is required for live entries.');
   }
   if (account.mode === 'live' && !runtime.liveTradingEnabled) {
     throw new TradingRiskError('LIVE_TRADING_DISABLED', 'Live trading is disabled.');

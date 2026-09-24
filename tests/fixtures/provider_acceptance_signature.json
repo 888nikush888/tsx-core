@@ -1,0 +1,16 @@
+{
+  "grant": {
+    "accountId": "account-1",
+    "credentialGeneration": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "exchange": "hyperliquid",
+    "externalAccountId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "mode": "live",
+    "product": "swap:linear",
+    "reviewId": "review-1",
+    "validFrom": 1700000000000,
+    "validUntil": 1700000060000,
+    "version": 1
+  },
+  "signature": "teKF6p4uDmPsb7pHwozuNIs4XMSQyIzCGWBJBiWpKWhV3HGc78vKKxrVVe1akIV4KcFNqJRpeaq1eVYRMPk9Aw==",
+  "reviewerPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=\n-----END PUBLIC KEY-----\n"
+}

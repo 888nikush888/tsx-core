@@ -2,3 +2,4 @@
 # package and provides the private/public WebSocket watchers used by the
 # executor. Runtime dependencies are fully resolved and hash-pinned below.
 ccxt==4.5.75
+cryptography==50.0.0

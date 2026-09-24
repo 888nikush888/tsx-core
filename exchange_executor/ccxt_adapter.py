@@ -17,6 +17,7 @@ from common import (
 )
 from order_identity import cancel_target, correlate_batch, order_identifier, write_order_identity
 from provider_order_identity import batch_tag_params, observed_parent_fields
+from provider_acceptance_gate import assert_provider_acceptance
 from fill_identity import native_fill_identity
 from fill_quantity_provenance import observe_fill_quantity
 from order_evidence import merge_ccxt_order, normalized_status as _status
@@ -36,6 +37,11 @@ from entry_deadline import EntryDeadline, assert_entry_deadline, entry_deadline_
 from symbol_resolver import SymbolResolutionError, requested_base, resolve_symbol
 
 INVALID_CONTRACT_SIZE = "CCXT market has an invalid contract size."
+
+
+def _assert_live_acceptance(clients: AccountClients, market: dict[str, Any], reduce_only: bool) -> None:
+    if clients.account["mode"] == "live" and not reduce_only:
+        assert_provider_acceptance(clients.account, market)
 
 
 def _canonical_symbol(market: dict[str, Any]) -> str:
@@ -535,6 +541,7 @@ class CcxtAdapter:
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         assert_entry_deadline(request)
         market, spec = self._base_order_request(clients, request)
+        _assert_live_acceptance(clients, market, spec["params"]["reduceOnly"])
         await self._apply_market_slippage(clients, request, spec, deadline)
         await self._fence_order_entry(clients, market, request, spec, deadline)
         return spec, market
@@ -592,6 +599,7 @@ class CcxtAdapter:
         self.registry.assert_binding(clients.account, clients)
         assert_entry_constraints(clients, market, mode)
         assert_tier_entry(clients, market, request, spec, tiers)
+        _assert_live_acceptance(clients, market, False)
         await self._apply_entry_leverage(clients, spec["symbol"], request, mode, deadline)
         if clients.account["exchange"] == "bybit":
             spec["params"]["positionIdx"] = 0
@@ -663,6 +671,7 @@ class CcxtAdapter:
             assert_entry_constraints(clients, market, mode)
         self.registry.assert_binding(account, clients)
         assert_entry_deadline(request)
+        _assert_live_acceptance(clients, market, spec["params"]["reduceOnly"])
         order = await _within(deadline, clients.rest.create_order(**spec))
         try:
             return _market_order_result(order, market, spec["params"]["clientOrderId"])
@@ -726,6 +735,7 @@ class CcxtAdapter:
             assert_final_entry_spec(_clients_profile(clients), entry, specs[0],
                                     _precision_step(market.get('precision', {}).get('price'), 'price tick'))
         assert_entry_deadline(entry)
+        _assert_live_acceptance(clients, market, False)
         try:
             orders = await _within(deadline, clients.rest.create_orders(list(specs)))
         except Exception as error:
