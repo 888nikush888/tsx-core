@@ -557,7 +557,7 @@ export async function createBackupArtifact(
   }
 }
 
-export async function pruneBackupArtifacts(backupDirectory: string, retainCount: number): Promise<number> {
+export async function pruneBackupArtifacts(backupDirectory: string, retainCount: number, protectedArtifactPath?: string): Promise<number> {
   if (!Number.isSafeInteger(retainCount) || retainCount < 1 || retainCount > 10_000) {
     throw new Error('Backup retention count must be between 1 and 10000.');
   }
@@ -568,8 +568,18 @@ export async function pruneBackupArtifacts(backupDirectory: string, retainCount:
     .map(entry => entry.name)
     .sort((left, right) => left < right ? -1 : Number(left > right))
     .reverse();
+  const protectedPath = protectedArtifactPath ? path.resolve(protectedArtifactPath) : null;
+  if (protectedPath && (path.dirname(protectedPath) !== root || !artifacts.includes(path.basename(protectedPath)))) {
+    throw new Error('Latest verified backup artifact is not a directory in the backup root.');
+  }
+  const kept = new Set<string>();
+  if (protectedPath) kept.add(path.basename(protectedPath));
+  for (const artifact of artifacts) {
+    if (kept.size >= retainCount) break;
+    kept.add(artifact);
+  }
   let removed = 0;
-  for (const artifact of artifacts.slice(retainCount)) {
+  for (const artifact of artifacts.filter(name => !kept.has(name))) {
     const target = path.resolve(root, artifact);
     if (path.dirname(target) !== root) throw new Error(`Refusing to prune path outside backup root: ${target}`);
     await fs.rm(target, { recursive: true, force: true });
@@ -936,8 +946,9 @@ export class BackupScheduler {
     if (this.activeRun !== null) await this.activeRun;
   }
 
-  public getStatus(): BackupStatus & { healthy: boolean; offsiteHealthy: boolean; offsiteRequired: boolean; driveMirrorHealthy: boolean; driveMirrorRequired: boolean; driveMirrorConfigured: boolean } {
+  public getStatus(): BackupStatus & { healthy: boolean; offsiteHealthy: boolean; offsiteRequired: boolean; offsiteConfigured: boolean; driveMirrorHealthy: boolean; driveMirrorRequired: boolean; driveMirrorConfigured: boolean } {
     const status = structuredClone(this.status);
+    const offsiteConfigured = this.replicator !== null;
     const offsiteHealthy = !this.replicator && !this.offsiteRequired
       ? true
       : Boolean(status.lastOffsiteSuccessAt) && status.offsiteVerified !== null
@@ -945,9 +956,7 @@ export class BackupScheduler {
         && (!status.lastError || status.lastError === status.driveMirrorLastError)
         && Date.now() - status.lastOffsiteSuccessAt <= this.intervalMs * 2;
     const driveMirrorConfigured = this.replicator?.driveMirrorConfigured === true;
-    const driveMirrorHealthy = !driveMirrorConfigured && !this.driveMirrorRequired && !status.driveMirrorVerified && !status.driveMirrorLastError
-      ? true
-      : status.driveMirrorVerified !== null && !status.driveMirrorLastError
+    const driveMirrorHealthy = driveMirrorConfigured && status.driveMirrorVerified !== null && !status.driveMirrorLastError
         && status.driveMirrorVerified.artifactSha256 === status.integrityVerified?.artifactSha256
         && Date.now() - status.driveMirrorVerified.verifiedAt <= this.intervalMs * 2;
     return {
@@ -956,6 +965,7 @@ export class BackupScheduler {
         && (!this.driveMirrorRequired || driveMirrorHealthy),
       offsiteHealthy,
       offsiteRequired: this.offsiteRequired,
+      offsiteConfigured,
       driveMirrorHealthy,
       driveMirrorRequired: this.driveMirrorRequired,
       driveMirrorConfigured
@@ -1016,24 +1026,38 @@ export class BackupScheduler {
     if (this.activeRun !== null) return Promise.reject(new Error('A backup is already running.'));
     this.status.running = true;
     const operation = (async () => {
+      let verifiedArtifact: string | null = null;
+      let pruningAttempted = false;
       try {
         const artifact = await createBackupArtifact(this.backupDirectory, this.configProvider());
         const local = await inspectBackupArtifact(artifact);
         this.recordLocalEvidence(artifact, local);
+        verifiedArtifact = artifact;
         const replication = this.replicator ? await this.replicator.replicate(artifact) : null;
         if (replication) {
           this.recordOffsiteEvidence(replication, local.artifactSha256);
           this.recordDriveMirrorEvidence(replication);
-          if (this.driveMirrorRequired && this.status.driveMirrorLastError) throw new Error(this.status.driveMirrorLastError);
         }
-        await pruneBackupArtifacts(this.backupDirectory, this.retainCount);
+        // Local retention still runs when a required secondary mirror fails.
+        pruningAttempted = true;
+        await pruneBackupArtifacts(this.backupDirectory, this.retainCount, artifact);
+        if (this.driveMirrorRequired && this.status.driveMirrorLastError) throw new Error(this.status.driveMirrorLastError);
         this.status = { ...this.status, lastError: null, running: false };
         this.logger(`[INFO] Verified backup created: ${artifact}`);
         if (replication) this.logger(`[INFO] Encrypted off-site backup verified: ${replication.objectName}`);
         return artifact;
       } catch (error: unknown) {
-        this.status = { ...this.status, lastError: (error as { message?: string }).message, running: false };
-        throw error;
+        let failure = error;
+        if (verifiedArtifact && !pruningAttempted) {
+          try {
+            // Also bound growth during repeated primary replication failures.
+            await pruneBackupArtifacts(this.backupDirectory, this.retainCount, verifiedArtifact);
+          } catch (pruneError) {
+            failure = new AggregateError([error, pruneError], 'Backup failed and local retention pruning also failed.');
+          }
+        }
+        this.status = { ...this.status, lastError: (failure as { message?: string }).message, running: false };
+        throw failure;
       }
     })();
     this.activeRun = operation;

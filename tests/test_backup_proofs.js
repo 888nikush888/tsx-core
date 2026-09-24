@@ -171,6 +171,17 @@ async function schedulerProofs(databasePath) {
   assert.ok(!JSON.stringify(primaryOnly).includes('sensitive-provider-token'));
   assert.equal(primaryOnly.driveMirrorHealthy, false);
   assert.equal(primaryOnly.healthy, false);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await assert.rejects(dual.runNow(), /Drive mirror upload or verification failed/);
+    const failedMirror = dual.getStatus();
+    const retained = (await readdir(path.join(root, 'dual-scheduled'))).filter(name => name.startsWith('backup-'));
+    assert.ok(retained.length <= 3, 'Repeated required Drive failures must respect local retention.');
+    assert.ok(retained.includes(path.basename(failedMirror.lastArtifact)), 'The newest verified local backup must survive pruning.');
+    assert.equal(failedMirror.offsiteVerified.artifactSha256, failedMirror.integrityVerified.artifactSha256);
+    assert.equal(failedMirror.offsiteHealthy, true);
+    assert.equal(failedMirror.driveMirrorHealthy, false);
+    assert.equal(failedMirror.healthy, false);
+  }
   mirrorAvailable = true;
   await dual.runNow();
   const both = dual.getStatus();
@@ -186,6 +197,11 @@ async function schedulerProofs(databasePath) {
   assert.equal(optionalFailure.offsiteHealthy, true);
   assert.equal(optionalFailure.driveMirrorHealthy, false);
   assert.equal(optionalFailure.healthy, true, 'An optional Drive failure leaves verified primary health intact.');
+  const unconfigured = new BackupScheduler(path.join(root, 'unconfigured-scheduled'), () => ({ apiId: 17 }), 60_000, 1,
+    () => undefined);
+  await unconfigured.runNow();
+  assert.equal(unconfigured.getStatus().driveMirrorHealthy, false, 'Unconfigured mirror is never reported healthy.');
+  assert.equal(unconfigured.getStatus().healthy, true, 'An optional unconfigured mirror does not block local backup health.');
   await closeDb();
 }
 

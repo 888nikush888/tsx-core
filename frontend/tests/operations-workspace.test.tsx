@@ -175,7 +175,7 @@ function bodyForExtended(url: string) {
   if (url === "/api/recovery") return { active: false, issues: [] }
   if (url === "/api/operations") return { operations: { audit: { healthy: true }, backup: { healthy: true,
     integrityVerified: { verifiedAt: now, artifactSha256: "a".repeat(64) }, configurationCoherent: { verifiedAt: now, artifactSha256: "a".repeat(64) },
-    offsiteVerified: { verifiedAt: now, artifactSha256: "a".repeat(64) }, offsiteHealthy: true,
+    offsiteVerified: { verifiedAt: now, artifactSha256: "a".repeat(64) }, offsiteHealthy: true, offsiteConfigured: true,
     driveMirrorVerified: { verifiedAt: now, artifactSha256: "a".repeat(64) }, driveMirrorHealthy: true, driveMirrorConfigured: true,
     restoreEligibility: { status: "eligible", checkedAt: now }, restoreDrill: null }, mcp: { healthy: true } } }
   return { success: true, result: {}, artifact: "backup-v3.1.0", token: "one-time-token" }
@@ -446,6 +446,7 @@ describe("operations workspace", () => {
     const diagButton = await screen.findByRole("button", { name: "Diagnosestatus öffnen" })
     expect(screen.getByText("Letzte Integritätsprüfung")).toBeInTheDocument()
     expect(screen.getByText("Primär-Backup zurückgelesen und geprüft")).toBeInTheDocument()
+    expect(screen.getByText("Primär-Backup Zustand").parentElement).toHaveTextContent("bereit")
     expect(screen.getByText("Drive-Zweitkopie zurückgelesen und geprüft")).toBeInTheDocument()
     expect(screen.getByText("Letzter tatsächlich durchgeführter Probelauf").parentElement).toHaveTextContent("–")
     fireEvent.click(diagButton)
@@ -488,7 +489,20 @@ describe("operations workspace", () => {
     expect(screen.getByText("ccxt-pro")).toBeInTheDocument();
     expect(screen.getByText("rest")).toBeInTheDocument();
     expect(await screen.findByText("nicht aktuell oder nicht wiederherstellbar – Aktion gesperrt")).toBeInTheDocument();
+    expect(screen.getByText("Primär-Backup Zustand").parentElement).toHaveTextContent("nicht eingerichtet");
+    expect(screen.getByText("Drive-Zweitkopie Zustand").parentElement).toHaveTextContent("nicht eingerichtet");
   })
+
+  it("shows a configured primary without a receipt as not ready", async () => {
+    api.apiFetch.mockImplementation((url: string) => {
+      if (url === "/api/operations") return json({ operations: { audit: { healthy: true }, backup: {
+        healthy: false, offsiteConfigured: true, offsiteHealthy: false, offsiteVerified: null
+      } } });
+      return json(bodyFor(url));
+    });
+    workspace("system");
+    expect((await screen.findByText("Primär-Backup Zustand")).parentElement).toHaveTextContent("nicht bereit");
+  });
 
   it("does not turn integrity/offsite health into restore eligibility", async () => {
     api.apiFetch.mockImplementation((url: string) => {

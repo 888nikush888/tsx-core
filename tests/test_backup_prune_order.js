@@ -23,6 +23,10 @@ try {
   assert.deepEqual((await readdir(generated)).sort(), names.slice(1));
   await assert.rejects(pruneBackupArtifacts(generated, 0), /retention count/);
   assert.deepEqual((await readdir(generated)).sort(), names.slice(1));
+  assert.equal(await pruneBackupArtifacts(generated, 1, path.join(generated, names[1])), 1);
+  assert.deepEqual(await readdir(generated), [names[1]], 'The latest verified local artifact is protected even if another name sorts later.');
+  await assert.rejects(pruneBackupArtifacts(generated, 1, path.join(directory, 'outside')), /Latest verified backup artifact/);
+  assert.deepEqual(await readdir(generated), [names[1]]);
   console.log('Backup pruning UTF-16 ordering tests passed.');
 } finally {
   assert.equal(path.dirname(path.resolve(directory)), path.resolve(os.tmpdir()));

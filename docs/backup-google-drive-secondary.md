@@ -12,7 +12,10 @@ decrypted and checked against the backup artifact. Only after the primary
 retention receipt and round trip pass does the adapter receive that same
 encrypted file and expected SHA-256. The scheduler stores separate primary and
 Drive receipts and health; a required Drive failure fails the backup run after
-preserving the valid primary receipt. A Drive receipt cannot satisfy the
+preserving the valid primary receipt. Local retention still runs after primary
+or required mirror failures and protects the latest verified local artifact.
+An unconfigured mirror reports unhealthy on its own status while remaining
+optional for overall backup health. A Drive receipt cannot satisfy the
 primary retention gate. Provider error text is replaced with a generic status
 message so tokens cannot leak through the backup UI or log.
 Google Drive permits owner deletion, so it is not an immutable audit or backup

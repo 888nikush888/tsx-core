@@ -501,6 +501,13 @@ async function assertBackupScheduler(root, databasePath) {
   await assert.rejects(failedScheduler.runNow(), /replication unavailable/);
   assert.match(failedScheduler.getStatus().lastError || '', /replication unavailable/);
   assert.strictEqual(failedScheduler.getStatus().offsiteHealthy, false);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await assert.rejects(failedScheduler.runNow(), /replication unavailable/);
+    const failedStatus = failedScheduler.getStatus();
+    const retained = (await readdir(path.join(root, 'failed-offsite-scheduled'))).filter(name => name.startsWith('backup-'));
+    assert.ok(retained.length <= 2, 'Repeated primary replication failures must respect local retention.');
+    assert.ok(retained.includes(path.basename(failedStatus.lastArtifact)), 'Newest verified local backup must remain available.');
+  }
 
   let releaseReplication = null;
   const { promise: replicationStarted, resolve: markReplicationStarted } = Promise.withResolvers();

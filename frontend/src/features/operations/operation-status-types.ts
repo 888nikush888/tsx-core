@@ -32,6 +32,7 @@ export interface OperationsObservation {
     healthy: boolean;
     offsiteHealthy?: boolean;
     offsiteRequired?: boolean;
+    offsiteConfigured?: boolean;
     integrityVerified: BackupProof | null;
     configurationCoherent: BackupProof | null;
     offsiteVerified: BackupOffsiteProof | null;
