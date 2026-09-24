@@ -62,7 +62,10 @@ class HyperliquidTestnetReadOnlyTests(unittest.TestCase):
 
         def requester(payload):
             requests.append(payload)
-            return next(responses)
+            try:
+                return next(responses)
+            except StopIteration as exc:
+                raise AssertionError("Preflight sent more than three Info requests") from exc
 
         result = preflight.probe(ADDRESS, requester=requester)
         self.assertEqual([row["type"] for row in requests], ["userRole", "clearinghouseState", "openOrders"])

@@ -62,7 +62,10 @@ def validate_endpoint(endpoint: str) -> str:
         or parsed.port is not None
     ):
         raise PreflightError("Only the official Hyperliquid Testnet Info endpoint is allowed")
-    return parsed.hostname
+    hostname = parsed.hostname
+    if hostname is None:
+        raise PreflightError("Only the official Hyperliquid Testnet Info endpoint is allowed")
+    return hostname
 
 
 def post_info(payload: dict[str, str], *, endpoint: str = INFO_ENDPOINT, connection_factory=None):
@@ -121,6 +124,22 @@ def _signed_decimal(value, field: str) -> Decimal:
     return parsed
 
 
+def _position_count(rows: list[object]) -> int:
+    count = 0
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get("position"), dict):
+            raise PreflightError("Invalid position in Testnet response")
+        if _signed_decimal(row["position"].get("szi"), "position size") != 0:
+            count += 1
+    return count
+
+
+def _validate_open_orders(orders: list[object]) -> None:
+    for order in orders:
+        if not isinstance(order, dict) or not isinstance(order.get("coin"), str) or not order.get("coin"):
+            raise PreflightError("Invalid open order in Testnet response")
+
+
 def summarize(role_data, account_data, orders_data) -> dict[str, object]:
     role = role_data.get("role") if isinstance(role_data, dict) else None
     if not isinstance(role, str) or role not in ALLOWED_ROLES:
@@ -134,15 +153,8 @@ def summarize(role_data, account_data, orders_data) -> dict[str, object]:
     value = _nonnegative_decimal(summary.get("accountValue"), "account value")
     notional = _nonnegative_decimal(summary.get("totalNtlPos"), "position notional")
     withdrawable = _signed_decimal(account_data.get("withdrawable"), "withdrawable amount")
-    position_count = 0
-    for row in account_data["assetPositions"]:
-        if not isinstance(row, dict) or not isinstance(row.get("position"), dict):
-            raise PreflightError("Invalid position in Testnet response")
-        if _signed_decimal(row["position"].get("szi"), "position size") != 0:
-            position_count += 1
-    for order in orders_data:
-        if not isinstance(order, dict) or not isinstance(order.get("coin"), str) or not order.get("coin"):
-            raise PreflightError("Invalid open order in Testnet response")
+    position_count = _position_count(account_data["assetPositions"])
+    _validate_open_orders(orders_data)
     return {
         "environment": "hyperliquid-testnet",
         "readOnly": True,
