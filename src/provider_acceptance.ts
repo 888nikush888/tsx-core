@@ -64,8 +64,15 @@ export function canonicalProviderGrant(grant: Record<string, unknown>): Buffer {
   // Match Python json.dumps(sort_keys=True, ensure_ascii=True, separators=(',', ':')).
   // Escape UTF-16 code units (including surrogate pairs); never truncate Unicode into ASCII.
   const json = JSON.stringify(Object.fromEntries(FIELDS.map(field => [field, grant[field]])));
-  return Buffer.from(json.replace(/[\u007f-\uffff]/g, character =>
-    `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`), 'ascii');
+  return Buffer.from(json.replace(/[^\u0000-\u007e]/gu, escapeJsonCodeUnits), 'ascii');
+}
+
+function escapeJsonCodeUnits(character: string): string {
+  let escaped = '';
+  for (let index = 0; index < character.length; index += 1) {
+    escaped += `\\u${character.charCodeAt(index).toString(16).padStart(4, '0')}`;
+  }
+  return escaped;
 }
 
 export function signedGrantValid(value: unknown, account: GrantAccount, now: number, key: ReturnType<typeof createPublicKey>): boolean {

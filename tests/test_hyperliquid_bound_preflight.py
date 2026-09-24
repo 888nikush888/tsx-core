@@ -46,10 +46,13 @@ class FakeSdk:
     drift_after_bootstrap = False
     constructed = 0
     closed = 0
+    instances: list[FakeSdk] = []
 
     def __init__(self, config):
         FakeSdk.constructed += 1
         self.config = config
+        self.was_closed = False
+        FakeSdk.instances.append(self)
         self.urls = {"api": {"public": "https://api.hyperliquid.xyz", "private": "https://api.hyperliquid.xyz"}}
         self.aiohttp_trust_env = config["aiohttp_trust_env"]
         self.market_data = dict(type(self).product)
@@ -70,12 +73,14 @@ class FakeSdk:
         return await self.fetch(self.urls["api"]["public"] + "/info", "POST", body=json.dumps(payload))
 
     async def close(self):
+        self.was_closed = True
         FakeSdk.closed += 1
 
 
 class BoundHyperliquidPreflightTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         FakeSdk.constructed = FakeSdk.closed = 0
+        FakeSdk.instances = []
         FakeSdk.bootstrap_url = ORIGIN + "/info"
         FakeSdk.bootstrap_body = {"type": "metaAndAssetCtxs"}
         FakeSdk.product = MARKET
@@ -124,12 +129,18 @@ class BoundHyperliquidPreflightTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result["providerAcceptanceVerified"])
         self.assertEqual(result["requestCount"], len(self.sent))
         self.assertEqual(FakeSdk.closed, 2)
+        self.assertEqual(len(FakeSdk.instances), 2)
+        self.assertTrue(all(client.was_closed for client in FakeSdk.instances))
         self.assertTrue(all(url == ORIGIN + "/info" for _, url in self.sent))
         rendered = json.dumps(result)
         self.assertNotIn(WALLET, rendered)
         self.assertNotIn(PRIVATE_KEY, rendered)
         self.assertNotIn("totalNtlPos", rendered)
         self.assertEqual({p["type"] for p, _ in self.sent}, set(self.responses))
+        self.assertEqual([p["type"] for p, _ in self.sent], [
+            "metaAndAssetCtxs", "userRole", "userAbstraction", "clearinghouseState", "openOrders",
+            "activeAssetData", "clearinghouseState", "openOrders",
+        ], "Role, abstraction and two flat-state observations must retain their exact request order.")
 
     async def test_bad_master_key_or_account_generation_never_constructs_sdk(self):
         for account, secret in [
@@ -168,6 +179,18 @@ class BoundHyperliquidPreflightTests(unittest.IsolatedAsyncioTestCase):
                     await self.inspect()
                 self.setUp()
         self.assertEqual(FakeSdk.constructed, FakeSdk.closed)
+        self.assertTrue(all(client.was_closed for client in FakeSdk.instances))
+
+    def test_market_scope_requires_exact_flags_and_text_coin(self):
+        for field in ("contract", "swap", "linear", "inverse", "spot", "option", "future", "active"):
+            for value in (None, int(MARKET[field]), not MARKET[field]):
+                invalid = {**MARKET, field: value}
+                with self.subTest(field=field, value=value), self.assertRaises(BoundPreflightRefused):
+                    bound._market_scope(invalid, "BTC/USDC:USDC")
+        for info in (None, {}, {"name": None}, {"name": 17}, {"name": []}, {"name": "xyz:BTC"}):
+            invalid = {**MARKET, "info": info}
+            with self.subTest(info=info), self.assertRaises(BoundPreflightRefused):
+                bound._market_scope(invalid, "BTC/USDC:USDC")
 
     async def test_sdk_url_drift_and_mutating_or_ambiguous_requests_never_reach_transport(self):
         for url, payload in [
@@ -185,10 +208,9 @@ class BoundHyperliquidPreflightTests(unittest.IsolatedAsyncioTestCase):
                     await self.inspect()
                 self.assertEqual(self.sent, [])
         self.assertEqual(FakeSdk.constructed, FakeSdk.closed)
+        self.assertTrue(all(client.was_closed for client in FakeSdk.instances))
 
     async def test_guard_installed_on_actual_pinned_sdk_before_any_request(self):
-        import ccxt.async_support as ccxt_async
-
         async def never_sent(_payload, _url):
             self.fail("network transport invoked")
 
@@ -198,7 +220,7 @@ class BoundHyperliquidPreflightTests(unittest.IsolatedAsyncioTestCase):
                 await client.fetch(ORIGIN + "/exchange", "POST", body='{"type":"order"}')
             with self.assertRaises(BoundPreflightRefused):
                 await client.fetch("https://api.hyperliquid.xyz/info", "POST", body='{"type":"metaAndAssetCtxs"}')
-            self.assertEqual(client._preflight_requests, 0)
+            self.assertEqual(client.preflight_request_count(), 0)
         finally:
             await client.close()
 
@@ -244,13 +266,15 @@ class BoundHyperliquidPreflightTests(unittest.IsolatedAsyncioTestCase):
                 with self.assertRaises(BoundPreflightRefused):
                     await self.inspect()
         self.assertEqual(FakeSdk.constructed, FakeSdk.closed)
+        self.assertTrue(all(client.was_closed for client in FakeSdk.instances))
 
     async def test_error_traceback_suppresses_sensitive_cause(self):
         marker = "synthetic-private-error-marker"
-        with patch.object(bound, "_assert_hyperliquid_master_key_binding",
-                          side_effect=ValueError(marker)):
-            with self.assertRaises(BoundPreflightRefused) as raised:
-                await self.inspect()
+        with (
+            patch.object(bound, "_assert_hyperliquid_master_key_binding", side_effect=ValueError(marker)),
+            self.assertRaises(BoundPreflightRefused) as raised,
+        ):
+            await self.inspect()
         rendered = "".join(traceback.format_exception(raised.exception))
         self.assertNotIn(marker, rendered)
         self.assertIsNone(raised.exception.__cause__)

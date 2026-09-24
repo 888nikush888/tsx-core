@@ -28,7 +28,7 @@ import ccxt_profiles  # noqa: E402
 from ccxt_client import _assert_hyperliquid_master_key_binding, _credential_fingerprint  # noqa: E402
 from ccxt_profiles import PROFILES  # noqa: E402
 from ccxt_sdk_policy import HyperliquidNoAutomaticSetup  # noqa: E402
-from common import ExchangeContractError, external_account_cache_key, external_account_id  # noqa: E402
+from common import external_account_cache_key, external_account_id  # noqa: E402
 from hyperliquid_testnet_preflight import INFO_ENDPOINT, INFO_REQUEST_FIELDS, post_info  # noqa: E402
 
 ORIGIN = "https://api.hyperliquid-testnet.xyz"
@@ -62,7 +62,7 @@ def _request(url: Any, method: Any, body: Any, wallet: str, coin: str | None) ->
             and len(body.encode("utf-8")) <= MAX_BODY_BYTES)
     try:
         payload = json.loads(body, object_pairs_hook=_object_pairs)
-    except (ValueError, TypeError, UnicodeError):
+    except (ValueError, TypeError):
         raise BoundPreflightRefused("Hyperliquid Testnet read-only preflight is unproved.") from None
     _refuse(isinstance(payload, dict) and isinstance(payload.get("type"), str)
             and set(payload) == INFO_REQUEST_FIELDS.get(payload["type"]))
@@ -84,6 +84,18 @@ class ReadOnlyInfoFetch:
     _preflight_wallet: str
     _preflight_coin: str | None
     _preflight_requests: int
+
+    def configure_preflight(self, transport: InfoTransport, wallet: str) -> None:
+        self._preflight_transport = transport
+        self._preflight_wallet = wallet
+        self._preflight_coin = None
+        self._preflight_requests = 0
+
+    def bind_preflight_coin(self, coin: str) -> None:
+        self._preflight_coin = coin
+
+    def preflight_request_count(self) -> int:
+        return self._preflight_requests
 
     async def fetch(self, url: Any, method: Any = "GET", headers: Any = None, body: Any = None) -> Any:
         _refuse(self._preflight_requests < MAX_REQUESTS)
@@ -107,10 +119,7 @@ async def _sdk_client(sdk_class: type[Any], secret: dict[str, str], wallet: str,
         "options": {"defaultType": "swap", "builderFee": False,
                     "fetchMarkets": {"types": ["swap"]}},
     })
-    client._preflight_transport = transport
-    client._preflight_wallet = wallet
-    client._preflight_coin = None
-    client._preflight_requests = 0
+    client.configure_preflight(transport, wallet)
     try:
         client.set_sandbox_mode(True)
         api = client.urls.get("api")
@@ -147,15 +156,20 @@ def _leverage(value: Any) -> Decimal:
 
 
 def _market_scope(market: Any, symbol: str) -> str:
-    _refuse(isinstance(market, dict) and market.get("symbol") == symbol
-            and market.get("contract") is True and market.get("swap") is True
-            and market.get("linear") is True and market.get("inverse") is False
-            and market.get("spot") is False and market.get("option") is False
-            and market.get("future") is False and market.get("settle") == "USDC"
-            and market.get("active") is True and market.get("expiry") is None)
+    _refuse(isinstance(market, dict) and market.get("symbol") == symbol)
+    flags = {"contract": True, "swap": True, "linear": True, "inverse": False,
+             "spot": False, "option": False, "future": False, "active": True}
+    _refuse(all(market.get(field) is expected for field, expected in flags.items())
+            and market.get("settle") == "USDC" and market.get("expiry") is None)
+    return _market_coin(market)
+
+
+def _market_coin(market: dict[str, Any]) -> str:
     info = market.get("info")
     coin = info.get("name") if isinstance(info, dict) else None
-    _refuse(isinstance(coin, str) and re.fullmatch(r"[A-Z0-9]{1,24}", coin) is not None
+    if not isinstance(coin, str):
+        raise BoundPreflightRefused("Hyperliquid Testnet read-only preflight is unproved.")
+    _refuse(re.fullmatch(r"[A-Z0-9]{1,24}", coin) is not None
             and market.get("base") == coin and ":" not in coin)
     return coin
 
@@ -190,25 +204,7 @@ async def _inspect_bound_testnet_account_for_test(
     transport: InfoTransport, rest_class: type[Any], pro_class: type[Any],
 ) -> dict[str, Any]:
     """Private fake seam for offline tests; callers must use the pinned public entrypoint."""
-    _refuse(ccxt.__version__ == "4.5.75" and isinstance(account, dict)
-            and account.get("exchange") == "hyperliquid" and account.get("mode") == "testnet"
-            and isinstance(account.get("id"), str) and bool(account["id"])
-            and isinstance(secret, dict) and set(secret) == {"privateKey", "walletAddress"}
-            and isinstance(symbol, str) and SYMBOL.fullmatch(symbol) is not None
-            and callable(transport))
-    try:
-        _assert_hyperliquid_master_key_binding(secret, "hyperliquid")
-        wallet = secret["walletAddress"].lower()
-        fingerprint = _credential_fingerprint(secret, "hyperliquid", "testnet")
-        generation = external_account_cache_key("credential-generation", "v1", fingerprint)
-        identity = external_account_id("hyperliquid", "testnet", wallet)
-    except (ExchangeContractError, KeyError, TypeError, ValueError):
-        raise BoundPreflightRefused("Hyperliquid Testnet read-only preflight is unproved.") from None
-    _refuse(WALLET.fullmatch(wallet) is not None
-            and isinstance(account.get("expectedAccountFingerprint"), str)
-            and isinstance(account.get("credentialGeneration"), str)
-            and hmac.compare_digest(identity, account["expectedAccountFingerprint"])
-            and hmac.compare_digest(generation, account["credentialGeneration"]))
+    wallet, identity, generation = _bound_identity(account, secret, symbol, transport)
     rest = pro = None
     started = int(time.time() * 1000)
     try:
@@ -216,25 +212,8 @@ async def _inspect_bound_testnet_account_for_test(
         pro = await _sdk_client(pro_class, secret, wallet, transport)
         await asyncio.wait_for(rest.load_markets(), timeout=30)
         coin = _market_scope(rest.market(symbol), symbol)
-        rest._preflight_coin = coin
-        role = await rest.publicPostInfo({"type": "userRole", "user": wallet})
-        _refuse(isinstance(role, dict) and role.get("role") == "user")
-        abstraction = await rest.publicPostInfo({"type": "userAbstraction", "user": wallet})
-        _refuse(abstraction == "disabled")
-        first_state = await rest.publicPostInfo({"type": "clearinghouseState", "user": wallet})
-        _flat_state(first_state)
-        first_orders = await rest.publicPostInfo({"type": "openOrders", "user": wallet})
-        _refuse(isinstance(first_orders, list) and len(first_orders) == 0)
-        asset = await rest.publicPostInfo({"type": "activeAssetData", "user": wallet, "coin": coin})
-        _refuse(isinstance(asset, dict) and isinstance(asset.get("user"), str)
-                and asset["user"].lower() == wallet and asset.get("coin") == coin
-                and isinstance(asset.get("leverage"), dict)
-                and asset["leverage"].get("type") == "cross"
-                and _leverage(asset["leverage"].get("value")) > 0)
-        state = await rest.publicPostInfo({"type": "clearinghouseState", "user": wallet})
-        _flat_state(state)
-        orders = await rest.publicPostInfo({"type": "openOrders", "user": wallet})
-        _refuse(isinstance(orders, list) and len(orders) == 0)
+        rest.bind_preflight_coin(coin)
+        await _inspect_account_state(rest, wallet, coin)
         ended = int(time.time() * 1000)
         _refuse(ended >= started and ended - started <= 30_000)
         profile_bytes = Path(ccxt_profiles.__file__).read_bytes()
@@ -246,7 +225,7 @@ async def _inspect_bound_testnet_account_for_test(
             "ccxtVersion": ccxt.__version__, "profileVersion": PROFILES["hyperliquid"].profile_version,
             "profileFileSha256": hashlib.sha256(profile_bytes).hexdigest(),
             "accountReferenceHash": identity, "credentialGeneration": generation,
-            "startedAt": started, "finishedAt": ended, "requestCount": rest._preflight_requests,
+            "startedAt": started, "finishedAt": ended, "requestCount": rest.preflight_request_count(),
             "flat": True, "openOrderCount": 0,
         }
     except (BoundPreflightRefused, asyncio.TimeoutError):
@@ -261,3 +240,53 @@ async def _inspect_bound_testnet_account_for_test(
                     await client.close()
                 except Exception:
                     pass
+
+
+def _bound_identity(account: dict[str, str], secret: dict[str, str], symbol: str,
+                    transport: InfoTransport) -> tuple[str, str, str]:
+    _validate_bound_inputs(account, secret, symbol, transport)
+    try:
+        _assert_hyperliquid_master_key_binding(secret, "hyperliquid")
+        wallet = secret["walletAddress"].lower()
+        fingerprint = _credential_fingerprint(secret, "hyperliquid", "testnet")
+        generation = external_account_cache_key("credential-generation", "v1", fingerprint)
+        identity = external_account_id("hyperliquid", "testnet", wallet)
+    except (KeyError, TypeError, ValueError):
+        raise BoundPreflightRefused("Hyperliquid Testnet read-only preflight is unproved.") from None
+    _refuse(WALLET.fullmatch(wallet) is not None
+            and isinstance(account.get("expectedAccountFingerprint"), str)
+            and isinstance(account.get("credentialGeneration"), str)
+            and hmac.compare_digest(identity, account["expectedAccountFingerprint"])
+            and hmac.compare_digest(generation, account["credentialGeneration"]))
+    return wallet, identity, generation
+
+
+async def _inspect_account_state(rest: Any, wallet: str, coin: str) -> None:
+    role = await rest.publicPostInfo({"type": "userRole", "user": wallet})
+    _refuse(isinstance(role, dict) and role.get("role") == "user")
+    abstraction = await rest.publicPostInfo({"type": "userAbstraction", "user": wallet})
+    _refuse(abstraction == "disabled")
+    first_state = await rest.publicPostInfo({"type": "clearinghouseState", "user": wallet})
+    _flat_state(first_state)
+    first_orders = await rest.publicPostInfo({"type": "openOrders", "user": wallet})
+    _refuse(isinstance(first_orders, list) and len(first_orders) == 0)
+    asset = await rest.publicPostInfo({"type": "activeAssetData", "user": wallet, "coin": coin})
+    _refuse(isinstance(asset, dict) and isinstance(asset.get("user"), str)
+            and asset["user"].lower() == wallet and asset.get("coin") == coin
+            and isinstance(asset.get("leverage"), dict)
+            and asset["leverage"].get("type") == "cross"
+            and _leverage(asset["leverage"].get("value")) > 0)
+    state = await rest.publicPostInfo({"type": "clearinghouseState", "user": wallet})
+    _flat_state(state)
+    orders = await rest.publicPostInfo({"type": "openOrders", "user": wallet})
+    _refuse(isinstance(orders, list) and len(orders) == 0)
+
+
+def _validate_bound_inputs(account: dict[str, str], secret: dict[str, str], symbol: str,
+                           transport: InfoTransport) -> None:
+    _refuse(ccxt.__version__ == "4.5.75" and isinstance(account, dict)
+            and account.get("exchange") == "hyperliquid" and account.get("mode") == "testnet"
+            and isinstance(account.get("id"), str) and bool(account["id"])
+            and isinstance(secret, dict) and set(secret) == {"privateKey", "walletAddress"}
+            and isinstance(symbol, str) and SYMBOL.fullmatch(symbol) is not None
+            and callable(transport))

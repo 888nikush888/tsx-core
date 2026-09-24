@@ -100,6 +100,9 @@ for (const vector of unicodeFixture.vectors) {
   assert.equal(signedGrantValid({ grant: vector.grant, signature: vector.signature }, unicodeAccount,
     at, createPublicKey(unicodeFixture.reviewerPublicKeyPem)), true);
 }
+const astralGrant = { ...canonicalVector, accountId: 'account-\u{1f600}-\u{10ffff}' };
+assert.ok(canonicalProviderGrant(astralGrant).toString('ascii').includes('account-\\ud83d\\ude00-\\udbff\\udfff'),
+  'Each astral code point must encode both UTF-16 units in Python-compatible ASCII JSON.');
 const collisionGrant = { ...canonicalVector, accountId: '\u0161ccount-1' };
 assert.notDeepEqual(canonicalProviderGrant(collisionGrant), canonicalProviderGrant(canonicalVector));
 rejects('A Unicode account alias cannot reuse the original signature.',
@@ -149,12 +152,13 @@ try {
   }, () => restoreFilesystem('openSync', () => () => { assert.fail('A nonregular file must not be opened.'); }, () => {
     assert.throws(() => readProviderAcceptanceFile(evidenceFile, 5), /bounded regular single-link/);
   }));
-  let descriptor;
+  let descriptor = null;
   restoreFilesystem('openSync', original => (...args) => { descriptor = original(...args); return descriptor; }, () => {
     restoreFilesystem('readSync', original => (...args) => {
       writeFileSync(evidenceFile, 'longer-than-the-bound');
       return original(...args);
     }, () => assert.throws(() => readProviderAcceptanceFile(evidenceFile, 5), /size changed/));
+    assert.equal(typeof descriptor, 'number', 'The failed read must have opened a descriptor.');
     assert.throws(() => fs.fstatSync(descriptor), /bad file descriptor|EBADF/i, 'Failure closes the opened descriptor.');
   });
   writeFileSync(evidenceFile, 'valid');
