@@ -13,6 +13,30 @@ const immutableGate = 'strategy.safety.requireProtectiveStop';
 const accountCreateOnly = new Set(['account.name', 'account.exchange', 'account.mode']);
 const accountRuntimeEditable = new Set(['account.enabled', 'account.maxConcurrentPositions']);
 
+function validateClass(name, group, parameter) {
+  if (name.startsWith('runtime.') || accountRuntimeEditable.has(name)) assert.equal(group.class, 'runtime-editable', `${name}: class drift`);
+  if (accountCreateOnly.has(name)) assert.equal(group.class, 'create-only', `${name}: class drift`);
+  if (name.startsWith('deployment.')) assert.equal(group.class, 'host-bootstrap', `${name}: class drift`);
+  if (name === immutableGate) assert.equal(group.class, 'immutable-gate', `${name}: class drift`);
+  if (['runtime-editable', 'create-only'].includes(group.class)) assert.equal(parameter.editable, true, `${name}: editability drift`);
+  else assert.equal(parameter.editable, false, `${name}: must not be a direct editable field`);
+}
+
+function validateEvidence(name, group) {
+  if (group.class === 'runtime-editable' || group.class === 'create-only') {
+    for (const key of ['uiRoute', 'uiControl', 'mutationRoute', 'backendValidator', 'auditAction', 'contractTest']) {
+      assert.ok(group[key], `${name}: undocumented writable ${key}`);
+    }
+  }
+  if (group.class === 'host-bootstrap') {
+    assert.equal(group.gap, 'host-maintenance-ui', `${name}: host UI gap must remain visible`);
+    assert.ok(!group.mutationRoute, `${name}: host mutation must not be claimed`);
+    assert.ok(group.evidence?.[name]?.detail, `${name}: exact evidence limit must be documented`);
+    assert.ok(['build-value', 'presence-only', 'partial', 'absent'].includes(group.evidence[name].visibility), `${name}: unknown evidence visibility`);
+  }
+  if (group.class === 'immutable-gate') assert.ok(!group.mutationRoute && !group.uiControl, `${name}: gate must not have an editor`);
+}
+
 function validateCoverage(parameters, coverage) {
   const classified = new Map();
   for (const group of coverage.groups) {
@@ -23,24 +47,8 @@ function validateCoverage(parameters, coverage) {
       const parameter = parameters.get(name);
       assert.ok(parameter, `${name}: absent from parameter catalog`);
       classified.set(name, group);
-      if (name.startsWith('runtime.') || accountRuntimeEditable.has(name)) assert.equal(group.class, 'runtime-editable', `${name}: class drift`);
-      if (accountCreateOnly.has(name)) assert.equal(group.class, 'create-only', `${name}: class drift`);
-      if (name.startsWith('deployment.')) assert.equal(group.class, 'host-bootstrap', `${name}: class drift`);
-      if (name === immutableGate) assert.equal(group.class, 'immutable-gate', `${name}: class drift`);
-      if (['runtime-editable', 'create-only'].includes(group.class)) assert.equal(parameter.editable, true, `${name}: editability drift`);
-      else assert.equal(parameter.editable, false, `${name}: must not be a direct editable field`);
-      if (group.class === 'runtime-editable' || group.class === 'create-only') {
-        for (const key of ['uiRoute', 'uiControl', 'mutationRoute', 'backendValidator', 'auditAction', 'contractTest']) {
-          assert.ok(group[key], `${name}: undocumented writable ${key}`);
-        }
-      }
-      if (group.class === 'host-bootstrap') {
-        assert.equal(group.gap, 'host-maintenance-ui', `${name}: host UI gap must remain visible`);
-        assert.ok(!group.mutationRoute, `${name}: host mutation must not be claimed`);
-        assert.ok(group.evidence?.[name]?.detail, `${name}: exact evidence limit must be documented`);
-        assert.ok(['build-value', 'presence-only', 'partial', 'absent'].includes(group.evidence[name].visibility), `${name}: unknown evidence visibility`);
-      }
-      if (group.class === 'immutable-gate') assert.ok(!group.mutationRoute && !group.uiControl, `${name}: gate must not have an editor`);
+      validateClass(name, group, parameter);
+      validateEvidence(name, group);
     }
   }
   const expected = [...parameters.keys()].filter(name => auditedPrefixes.some(prefix => name.startsWith(prefix)) || name === immutableGate);
