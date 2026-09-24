@@ -2,15 +2,22 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import http from 'node:http';
 import { once } from 'node:events';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { Readable } from 'node:stream';
 import { afterEach, test } from 'node:test';
-import { createGateway } from '../gateway.js';
+import { createGateway, validateTemporaryRoot } from '../gateway.js';
 
 const servers = [];
+const tempRoots = [];
 const token = 't'.repeat(64);
 const name = 'backup-2026-fixture.tgfb';
 const fixedNow = Date.parse('2026-09-24T00:00:00.000Z');
 const sha = data => createHash('sha256').update(data).digest('hex');
+const encrypted = data => Buffer.concat([
+  Buffer.from('TGFE1\0', 'ascii'), Buffer.alloc(12), Buffer.from(data), Buffer.alloc(16)
+]);
 
 class FakeB2 {
   constructor() {
@@ -22,6 +29,7 @@ class FakeB2 {
     this.wrongSize = false;
     this.tamper = false;
     this.extraVersionOnRead = false;
+    this.beforePut = async () => {};
   }
 
   async send(command) {
@@ -37,6 +45,7 @@ class FakeB2 {
         .map(entry => ({ Key: entry.key, VersionId: entry.version })), IsTruncated: false };
     }
     if (type === 'PutObjectCommand') {
+      await this.beforePut();
       assert.equal(command.input.IfNoneMatch, '*');
       assert.equal(command.input.ObjectLockMode, 'COMPLIANCE');
       assert.equal(command.input.ContentType, 'application/octet-stream');
@@ -76,9 +85,11 @@ class FakeB2 {
 
 async function fixture(options = {}) {
   const client = new FakeB2();
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'tsx-b2-test-'));
+  tempRoots.push(tempRoot);
   const gateway = createGateway({
     client, bucket: 'test-backup-bucket', bearerToken: token,
-    maxObjectBytes: 128, now: () => fixedNow, ...options
+    tempRoot, maxObjectBytes: 128, now: () => fixedNow, ...options
   });
   const server = http.createServer((request, response) => {
     gateway(request, response).catch(() => response.destroy());
@@ -102,11 +113,12 @@ function request(url, method = 'GET', body, extraHeaders = {}) {
 
 afterEach(async () => {
   await Promise.all(servers.splice(0).map(server => new Promise(resolve => server.close(resolve))));
+  await Promise.all(tempRoots.splice(0).map(root => rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 })));
 });
 
 test('PUT verifies bytes, applies compliance lock, checks HEAD and returns retention only then; GET returns exact bytes', async () => {
   const { client, url } = await fixture();
-  const bytes = Buffer.from('encrypted backup bytes');
+  const bytes = encrypted('encrypted backup bytes');
   const put = await request(url, 'PUT', bytes);
   assert.equal(put.status, 201);
   assert.equal(put.headers.get('x-backup-retention-until'), new Date(fixedNow + 31 * 86400000).toISOString());
@@ -131,19 +143,19 @@ test('rejects missing or incorrect authorization, unsafe names and unsupported m
   assert.equal(client.calls.length, 0);
 });
 
-test('rejects over-limit, invalid hash and replay without storing another version', async () => {
-  const { client, url } = await fixture({ maxObjectBytes: 32 });
-  const bytes = Buffer.from('safe');
-  assert.equal((await request(url, 'PUT', Buffer.alloc(33))).status, 400);
+test('rejects over-limit, missing length, invalid hash and invalid encrypted header', async () => {
+  const { client, url } = await fixture({ maxObjectBytes: 48 });
+  const bytes = encrypted('safe');
+  assert.equal((await request(url, 'PUT', Buffer.alloc(49))).status, 400);
   const chunked = await fetch(url, {
     method: 'PUT', duplex: 'half', body: Readable.from([bytes]),
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/octet-stream', 'X-Backup-SHA256': sha(bytes) }
   });
   assert.equal(chunked.status, 400);
   assert.equal((await request(url, 'PUT', bytes, { 'X-Backup-SHA256': '0'.repeat(64) })).status, 502);
+  assert.equal((await request(url, 'PUT', Buffer.alloc(bytes.length))).status, 502);
   assert.equal(client.entries.length, 0);
   assert.equal((await request(url, 'PUT', bytes)).status, 201);
-  assert.equal((await request(url, 'PUT', bytes)).status, 409);
   assert.equal(client.entries.length, 1);
 });
 
@@ -151,7 +163,7 @@ test('never issues a retention receipt if provider omits or changes lock, hash, 
   for (const setting of ['omitLock', 'wrongLock', 'wrongHash', 'wrongSize']) {
     const { client, url } = await fixture();
     client[setting] = true;
-    const put = await request(url, 'PUT', Buffer.from(setting));
+    const put = await request(url, 'PUT', encrypted(setting));
     assert.equal(put.status, 502, setting);
     assert.equal(put.headers.get('x-backup-retention-until'), null, setting);
   }
@@ -165,12 +177,12 @@ test('never issues a retention receipt if provider omits or changes lock, hash, 
     }
     return result;
   };
-  assert.equal((await request(url, 'PUT', Buffer.from('too short'))).status, 502);
+  assert.equal((await request(url, 'PUT', encrypted('too short'))).status, 502);
 });
 
 test('fails closed on extra version or altered provider download', async () => {
   const { client, url } = await fixture();
-  const bytes = Buffer.from('safe object');
+  const bytes = encrypted('safe object');
   assert.equal((await request(url, 'PUT', bytes)).status, 201);
   client.tamper = true;
   const bad = await request(url);
@@ -183,7 +195,7 @@ test('fails closed on extra version or altered provider download', async () => {
 
 test('still reads the sole verified version after its retention period expires', async () => {
   const { client, url } = await fixture();
-  const bytes = Buffer.from('older locked backup');
+  const bytes = encrypted('older locked backup');
   assert.equal((await request(url, 'PUT', bytes)).status, 201);
   client.entries[0].until = new Date(fixedNow - 86400000);
   const get = await request(url);
@@ -194,6 +206,81 @@ test('still reads the sole verified version after its retention period expires',
 test('rejects external versions before upload', async () => {
   const { client, url } = await fixture();
   client.entries.push({ key: `tsx-core/${name}`, version: 'external', bytes: Buffer.from('x'), metadata: { sha256: sha('x') }, until: new Date(fixedNow + 31 * 86400000) });
-  assert.equal((await request(url, 'PUT', Buffer.from('new'))).status, 409);
+  assert.equal((await request(url, 'PUT', encrypted('new'))).status, 502);
   assert.equal(client.entries.length, 1);
+});
+
+test('re-adopts only a byte-identical retained version after full version-pinned readback', async () => {
+  const { client, url } = await fixture({ maxObjectBytes: 100000, maxTemporaryBytes: 100000 });
+  const bytes = encrypted(Buffer.alloc(65536, 7));
+  assert.equal((await request(url, 'PUT', bytes)).status, 201);
+  const firstPutCount = client.calls.filter(call => call.type === 'PutObjectCommand').length;
+  const replay = await request(url, 'PUT', bytes);
+  assert.equal(replay.status, 200);
+  assert.equal(replay.headers.get('x-backup-retention-until'), new Date(fixedNow + 31 * 86400000).toISOString());
+  assert.equal(client.calls.filter(call => call.type === 'PutObjectCommand').length, firstPutCount);
+  assert.ok(client.calls.some(call => call.type === 'GetObjectCommand' && call.input.VersionId === 'version-1'));
+  assert.equal((await request(url, 'PUT', encrypted(Buffer.alloc(65536, 8)))).status, 502);
+  client.tamper = true;
+  const badReplay = await request(url, 'PUT', bytes);
+  assert.equal(badReplay.status, 502);
+  assert.equal(badReplay.headers.get('x-backup-retention-until'), null);
+  assert.equal(client.entries.length, 1);
+});
+
+test('replay fails if retention has shortened or a second version exists', async () => {
+  const { client, url } = await fixture();
+  const bytes = encrypted('same');
+  assert.equal((await request(url, 'PUT', bytes)).status, 201);
+  client.entries[0].until = new Date(fixedNow + 29 * 86400000);
+  assert.equal((await request(url, 'PUT', bytes)).status, 502);
+  client.entries[0].until = new Date(fixedNow + 31 * 86400000);
+  client.entries.push({ ...client.entries[0], version: 'external-version' });
+  assert.equal((await request(url, 'PUT', bytes)).status, 409);
+});
+
+test('global concurrency limit blocks parallel distinct keys before another provider write', async () => {
+  const { client, url } = await fixture({ maxConcurrentOperations: 1 });
+  let release;
+  let entered;
+  const hold = new Promise(resolve => { release = resolve; });
+  const started = new Promise(resolve => { entered = resolve; });
+  client.beforePut = async () => { entered(); await hold; };
+  const first = request(url, 'PUT', encrypted('first'));
+  await started;
+  const secondUrl = url.replace(name, 'backup-2026-second.tgfb');
+  assert.equal((await request(secondUrl, 'PUT', encrypted('second'))).status, 503);
+  release();
+  assert.equal((await first).status, 201);
+  assert.equal(client.entries.length, 1);
+});
+
+test('temporary disk budget blocks parallel distinct keys and is released after completion', async () => {
+  const bytes = encrypted('first');
+  const { client, url } = await fixture({ maxConcurrentOperations: 2, maxTemporaryBytes: bytes.length });
+  let release;
+  let entered;
+  const hold = new Promise(resolve => { release = resolve; });
+  const started = new Promise(resolve => { entered = resolve; });
+  client.beforePut = async () => { entered(); await hold; };
+  const first = request(url, 'PUT', bytes);
+  await started;
+  const secondUrl = url.replace(name, 'backup-2026-second.tgfb');
+  assert.equal((await request(secondUrl, 'PUT', encrypted('other'))).status, 507);
+  release();
+  assert.equal((await first).status, 201);
+  client.beforePut = async () => {};
+  assert.equal((await request(secondUrl, 'PUT', encrypted('other'))).status, 201);
+});
+
+test('protected temporary storage rejects a regular file and relative path', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'tsx-b2-root-test-'));
+  tempRoots.push(root);
+  const file = path.join(root, 'not-a-directory');
+  await writeFile(file, 'x');
+  await assert.rejects(validateTemporaryRoot(file), /not private/);
+  assert.throws(() => createGateway({
+    client: new FakeB2(), bucket: 'test-backup-bucket', bearerToken: token,
+    tempRoot: 'relative/path'
+  }), /Invalid backup gateway configuration/);
 });

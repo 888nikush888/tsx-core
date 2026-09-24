@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import https from 'node:https';
 import { S3Client } from '@aws-sdk/client-s3';
-import { createGateway } from './gateway.js';
+import { createGateway, validateTemporaryRoot } from './gateway.js';
 
 const required = name => {
   const value = process.env[name];
@@ -17,6 +17,8 @@ const region = required('B2_S3_REGION');
 if (endpoint !== `https://s3.${region}.backblazeb2.com`) throw new Error('B2 endpoint and region disagree.');
 const port = Number(process.env.BACKUP_GATEWAY_PORT || '8443');
 if (!Number.isSafeInteger(port) || port < 1 || port > 65535) throw new Error('Invalid BACKUP_GATEWAY_PORT.');
+const tempRoot = required('BACKUP_GATEWAY_TEMP_DIR');
+await validateTemporaryRoot(tempRoot);
 
 const client = new S3Client({
   region, endpoint, forcePathStyle: true, maxAttempts: 1,
@@ -31,7 +33,10 @@ const handler = createGateway({
   bucket: required('B2_BUCKET'),
   prefix: process.env.B2_OBJECT_PREFIX || 'tsx-core/',
   bearerToken: required('BACKUP_OFFSITE_TOKEN'),
-  maxObjectBytes: Number(process.env.BACKUP_GATEWAY_MAX_OBJECT_BYTES || '5000000000')
+  tempRoot,
+  maxObjectBytes: Number(process.env.BACKUP_GATEWAY_MAX_OBJECT_BYTES || '5000000000'),
+  maxTemporaryBytes: Number(process.env.BACKUP_GATEWAY_TEMP_BUDGET_BYTES || '5000000000'),
+  maxConcurrentOperations: Number(process.env.BACKUP_GATEWAY_MAX_CONCURRENT || '2')
 });
 const tls = {
   key: await readFile(required('BACKUP_GATEWAY_TLS_KEY_FILE')),
