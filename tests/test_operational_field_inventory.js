@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const read = async file => readFile(path.join(root, file), 'utf8');
+const read = file => readFile(path.join(root, file), 'utf8');
 const catalog = JSON.parse(await read('docs/ui-next/inventory/parameters.json')).parameters;
 const firstSlice = JSON.parse(await read('docs/ui-next/inventory/operational-coverage-slice.json'));
 const fields = JSON.parse(await read('docs/ui-next/inventory/operational-fields.json'));
@@ -50,24 +50,9 @@ function expectedClass(parameter) {
   return 'runtime-editable';
 }
 
-function verifyCatalog(parameters, inventory) {
-  const source = new Map();
-  for (const parameter of parameters) {
-    assert.ok(typeof parameter.path === 'string' && parameter.path, 'catalog path required');
-    assert.ok(!source.has(parameter.path), `${parameter.path}: duplicate catalog path`);
-    source.set(parameter.path, parameter);
-  }
-  const classified = new Set();
-  for (const field of inventory.fields) {
-    assert.ok(typeof field.path === 'string' && field.path, 'inventory path required');
-    assert.ok(!classified.has(field.path), `${field.path}: duplicate field classification`);
-    classified.add(field.path);
-    const parameter = source.get(field.path);
-    assert.ok(parameter, `${field.path}: unknown catalog field`);
-    assert.ok(allowedClasses.has(field.class), `${field.path}: unknown class`);
-    assert.equal(field.class, expectedClass(parameter), `${field.path}: lifecycle class drift`);
-    assert.ok(allowedStatuses.has(field.evidenceStatus), `${field.path}: unknown or unproven evidence status`);
-    assert.equal(field.catalogEditable, parameter.editable, `${field.path}: stale editability snapshot`);
+function verifyFieldProvenance(field, parameter) {
+  assert.ok(allowedStatuses.has(field.evidenceStatus), `${field.path}: unknown or unproven evidence status`);
+  assert.equal(field.catalogEditable, parameter.editable, `${field.path}: stale editability snapshot`);
     if (derivedDraft.has(field.path)) {
       assert.equal(parameter.editable, true, `${field.path}: catalog metadata conflict needs review`);
       assert.equal(field.metadataConflict,
@@ -87,6 +72,9 @@ function verifyCatalog(parameters, inventory) {
       assert.equal(field.firstSliceGroup, null, `${field.path}: invented first-slice group`);
       assert.equal(field.evidenceStatus, 'unverified', `${field.path}: unproven field promoted`);
     }
+}
+
+function verifyFieldClassInvariants(field, parameter) {
     if (immutableGates.has(field.path)) {
       assert.equal(field.class, 'immutable-gate', `${field.path}: hard gate reclassified`);
       assert.equal(parameter.editable, false, `${field.path}: hard gate became editable`);
@@ -103,6 +91,26 @@ function verifyCatalog(parameters, inventory) {
     }
     if (field.class === 'read-only-evidence') assert.equal(parameter.editable, false,
       `${field.path}: read-only class contradicts catalog`);
+}
+
+function verifyCatalog(parameters, inventory) {
+  const source = new Map();
+  for (const parameter of parameters) {
+    assert.ok(typeof parameter.path === 'string' && parameter.path, 'catalog path required');
+    assert.ok(!source.has(parameter.path), `${parameter.path}: duplicate catalog path`);
+    source.set(parameter.path, parameter);
+  }
+  const classified = new Set();
+  for (const field of inventory.fields) {
+    assert.ok(typeof field.path === 'string' && field.path, 'inventory path required');
+    assert.ok(!classified.has(field.path), `${field.path}: duplicate field classification`);
+    classified.add(field.path);
+    const parameter = source.get(field.path);
+    assert.ok(parameter, `${field.path}: unknown catalog field`);
+    assert.ok(allowedClasses.has(field.class), `${field.path}: unknown class`);
+    assert.equal(field.class, expectedClass(parameter), `${field.path}: lifecycle class drift`);
+    verifyFieldProvenance(field, parameter);
+    verifyFieldClassInvariants(field, parameter);
   }
   assert.deepEqual([...classified].sort(), [...source.keys()].sort(), 'Catalog and field classification differ');
   return { catalogCount: source.size, classifiedCount: classified.size };
@@ -127,7 +135,7 @@ function verifyExternal(controls, composeText, ruleText) {
   const composeNames = new Set([...composeText.matchAll(/\$\{([A-Z][A-Z0-9_]*)(?::[-?][^}]*)?\}/g)].map(match => match[1]));
   assert.deepEqual([...IDs].filter(id => id.startsWith('compose.')).map(id => id.slice(8)).sort(),
     [...composeNames].sort(), 'Compose substitutions require exact external rows');
-  const environmentNames = new Set([...composeText.matchAll(/^      ([A-Z][A-Z0-9_]*):/gm)].map(match => match[1]));
+  const environmentNames = new Set([...composeText.matchAll(/^ {6}([A-Z][A-Z0-9_]*):/gm)].map(match => match[1]));
   assert.deepEqual(external.composeEnvironmentBindings.map(binding => binding.name).sort(), [...environmentNames].sort(),
     'Compose environment wiring inventory drift');
   for (const binding of external.composeEnvironmentBindings) {

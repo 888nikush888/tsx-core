@@ -68,6 +68,8 @@ try {
   await writeFile(backendReport, 'SF:src/alert_relay.ts\nDA:1,1\nend_of_record\n');
   await writeFile(pythonReport, '<coverage><packages><package><classes><class filename="untracked.py"/></classes></package></packages></coverage>');
   assert.notEqual(checkCodacyPaths().status, 0, 'A stale Python class path must fail before upload.');
+  await writeFile(pythonReport, '<!DOCTYPE coverage [<!ENTITY x SYSTEM "file:///etc/passwd">]><coverage><class filename="account_log_reader.py"/></coverage>');
+  assert.notEqual(checkCodacyPaths().status, 0, 'Coverage XML must reject DTD and external entity expansion.');
 } finally {
   await rm(repositoryRoot, { recursive: true, force: true });
 }
