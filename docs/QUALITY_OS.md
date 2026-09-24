@@ -105,10 +105,9 @@ Das in `quality-baseline.json` geratchete Budget steht bei null ESLint-Warnungen
 
 SonarQube-Cloud-Funde können revisionsgebunden und read-only exportiert werden:
 
+Vor dem Aufruf müssen `SONAR_TOKEN` aus dem Secret Store, `SONAR_PROJECT_KEY` und `SONAR_EXPECTED_REVISION` (vollständiger 40-stelliger Commit-SHA) in der Prozessumgebung bereitstehen.
+
 ```bash
-SONAR_TOKEN='from-secret-store' \
-SONAR_PROJECT_KEY='owner_project' \
-SONAR_EXPECTED_REVISION='40-character-commit' \
 npm run quality:sonar-export
 ```
 
