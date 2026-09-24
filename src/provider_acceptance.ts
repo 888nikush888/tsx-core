@@ -69,8 +69,11 @@ export function canonicalProviderGrant(grant: Record<string, unknown>): Buffer {
 
 function escapeJsonCodeUnits(character: string): string {
   let escaped = '';
-  for (let index = 0; index < character.length; index += 1) {
-    escaped += `\\u${character.charCodeAt(index).toString(16).padStart(4, '0')}`;
+  // split('') preserves UTF-16 code units, including each half of a surrogate pair.
+  for (const unit of character.split('')) {
+    const codeUnit = unit.codePointAt(0);
+    if (codeUnit === undefined) throw new Error('Empty UTF-16 code unit.');
+    escaped += String.raw`\u${codeUnit.toString(16).padStart(4, '0')}`;
   }
   return escaped;
 }
