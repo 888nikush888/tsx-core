@@ -102,7 +102,9 @@ class FakeD1 {
 function result(changes) { return { success: true, meta: { changes } }; }
 function env(db = new FakeD1()) { return { RELAY_TOKEN: relayToken, DEDUPE_SECRET: dedupeSecret,
   TELEGRAM_BOT_TOKEN: botToken, TELEGRAM_CHAT_ID: chatId, DB: db }; }
-function success(messageId = 42) { return new Response(JSON.stringify({ ok: true, result: { message_id: messageId } }),
+function success(messageId = 42) { return new Response(JSON.stringify({ ok: true, result: {
+  message_id: messageId, chat: { id: Number(chatId) }, document: { file_id: `document-${messageId}` },
+} }),
   { status: 200, headers: { 'Content-Type': 'application/json' } }); }
 
 const db = new FakeD1();
@@ -190,6 +192,10 @@ for (const [req, expected] of [
   [request(JSON.stringify({ status: 'firing', alerts: Array.from({ length: 101 }, () =>
     ({ labels: { alertname: 'TooMany', severity: 'high' } })) })), 400],
   [request(JSON.stringify({ status: 'firing', alerts: [{ labels: { alertname: 5, severity: 'critical' } }] })), 400],
+  [request('{"status":"firing","alerts":[{"labels":{"alertname":"Bad","severity":"critical","correlation_id":9007199254740993}}]}'), 400],
+  [request(JSON.stringify({ status: 'firing', alerts: [{ labels: {
+    alertname: 'Bad', severity: 'critical', service: null,
+  } }] })), 400],
   [request('x'.repeat(1024 * 1024 + 1)), 413],
 ]) {
   assert.equal((await invoke(req)).status, expected);
@@ -239,6 +245,23 @@ const rejectedPayload = body('firing', { groupKey: 'provider-rejected-document' 
 assert.equal((await invoke(request(rejectedPayload), env(rejectedByTelegram), rejectedFetch)).status, 503);
 assert.equal((await invoke(request(rejectedPayload), env(rejectedByTelegram), rejectedFetch)).status, 503);
 assert.equal(rejectedCalls, 1, 'unconfirmed provider failure must not silently retry');
+
+for (const [suffix, result] of [
+  ['wrong-chat', { message_id: 43, chat: { id: -100987654321 }, document: { file_id: 'doc-43' } }],
+  ['missing-document', { message_id: 44, chat: { id: Number(chatId) } }],
+]) {
+  const ledger = new FakeD1();
+  let calls = 0;
+  const provider = async () => {
+    calls += 1;
+    return new Response(JSON.stringify({ ok: true, result }), { status: 200 });
+  };
+  const payload = body('firing', { groupKey: suffix });
+  assert.equal((await invoke(request(payload), env(ledger), provider)).status, 503);
+  assert.equal((await invoke(request(payload), env(ledger), provider)).status, 503);
+  assert.equal(calls, 1, `${suffix} must not confirm delivery or retry automatically`);
+  assert.equal([...ledger.rows.values()][0].state, 'unknown');
+}
 
 const lostCommit = new FakeD1();
 lostCommit.failDelivered = true;

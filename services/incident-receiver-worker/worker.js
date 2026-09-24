@@ -111,7 +111,10 @@ function alertDocument(bytes) {
     }
     const selected = { alertname: alert.labels.alertname, severity: alert.labels.severity };
     for (const name of ['service', 'correlation_id']) {
-      if (Object.hasOwn(alert.labels, name)) selected[name] = alert.labels[name];
+      if (Object.hasOwn(alert.labels, name)) {
+        if (typeof alert.labels[name] !== 'string') throw new RejectedPayload(400);
+        selected[name] = alert.labels[name];
+      }
     }
     return selected;
   });
@@ -161,7 +164,7 @@ async function telegramSend(env, alert, key, fetchImpl) {
   catch { return { state: 'unknown' }; }
   let parsed;
   try { parsed = JSON.parse(body); } catch { return { state: 'unknown' }; }
-  return telegramOutcome(response.status, parsed);
+  return telegramOutcome(response.status, parsed, env.TELEGRAM_CHAT_ID);
 }
 
 function retryDelay(parsed) {
@@ -170,15 +173,19 @@ function retryDelay(parsed) {
     && retryAfter >= 1 && retryAfter <= 3600 ? retryAfter * 1000 : null;
 }
 
-function confirmedMessageId(parsed) {
+function confirmedMessageId(parsed, expectedChatId) {
   const messageId = parsed?.result?.message_id;
-  return parsed?.ok === true && Number.isSafeInteger(messageId) && messageId > 0 ? messageId : null;
+  const chatId = parsed?.result?.chat?.id;
+  const documentId = parsed?.result?.document?.file_id;
+  return parsed?.ok === true && Number.isSafeInteger(messageId) && messageId > 0
+    && Number.isSafeInteger(chatId) && String(chatId) === expectedChatId
+    && typeof documentId === 'string' && documentId.length > 0 ? messageId : null;
 }
 
-function telegramOutcome(status, parsed) {
+function telegramOutcome(status, parsed, expectedChatId) {
   const delay = retryDelay(parsed);
   if (status === 429 && delay !== null) return { state: 'retryable', retryAfterMs: delay };
-  const messageId = confirmedMessageId(parsed);
+  const messageId = confirmedMessageId(parsed, expectedChatId);
   if (status >= 200 && status < 300 && messageId !== null) return { state: 'delivered', messageId };
   return { state: 'unknown' };
 }
