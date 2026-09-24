@@ -91,11 +91,11 @@ function ViewerStatusSection({ service, readiness, botConfigured }: Readonly<{ s
   );
 }
 
-function ViewerGeneralSection({ settings, setSettings }: Readonly<{ settings: TelegramViewerDraft; setSettings: (value: TelegramViewerDraft) => void }>) {
+function ViewerGeneralSection({ settings, setSettings, readOnly }: Readonly<{ settings: TelegramViewerDraft; setSettings: (value: TelegramViewerDraft) => void; readOnly: boolean }>) {
   return (
       <section className="operations-card system-form">
         <h3>Allgemein</h3>
-        <label className="builder-toggle">
+        <fieldset disabled={readOnly}><label className="builder-toggle">
           <input aria-label="Viewer aktiv" type="checkbox" checked={settings.enabled}
             onChange={(event) => setSettings({ ...settings, enabled: event.target.checked })} />
           <span aria-hidden="true" /> Viewer aktiv
@@ -105,19 +105,19 @@ function ViewerGeneralSection({ settings, setSettings }: Readonly<{ settings: Te
           <label>Sprache/Locale<Input value={settings.locale} onChange={(event) => setSettings({ ...settings, locale: event.target.value })} /></label>
           <label>Abfrageintervall (ms)<Input aria-label="Abfrageintervall (ms)" type="number" min={1000} max={60000}
             value={settings.eventPollingIntervalMs} onChange={(event) => setSettings({ ...settings, eventPollingIntervalMs: Number(event.target.value) })} /></label>
-        </div>
+        </div></fieldset>
       </section>
   );
 }
 
-function ViewerAccessSection({ allowedUsers, setAllowedUsers }: Readonly<{ allowedUsers: string; setAllowedUsers: (value: string) => void }>) {
+function ViewerAccessSection({ allowedUsers, setAllowedUsers, readOnly }: Readonly<{ allowedUsers: string; setAllowedUsers: (value: string) => void; readOnly: boolean }>) {
   return (
       <section className="operations-card system-form">
         <h3>Zugriff</h3>
-        <label>Erlaubte Telegram User IDs{" "}
+        <fieldset disabled={readOnly}><label>Erlaubte Telegram User IDs{" "}
           <textarea aria-label="Erlaubte Telegram User IDs" rows={5} value={allowedUsers}
             onChange={(event) => setAllowedUsers(event.target.value)} placeholder="Eine numerische User ID pro Zeile" />
-        </label>
+        </label></fieldset>
       </section>
   );
 }
@@ -131,6 +131,7 @@ function ViewerDisplayFields({ settings, setSettings }: Readonly<{
             onChange={(event) => setSettings({ ...settings, display: { ...settings.display, detailLevel: event.target.value as TelegramViewerSettings["display"]["detailLevel"] } })}>
             <option value="compact">Kompakt</option><option value="normal">Normal</option><option value="detailed">Detailliert</option>
           </select></label>
+          <p>Uhrzeitformat: {settings.display.timeFormat} (fest vorgegeben).</p>
           <label>PnL-Anzeige<select value={settings.display.pnlMode}
             onChange={(event) => setSettings({ ...settings, display: { ...settings.display, pnlMode: event.target.value as TelegramViewerSettings["display"]["pnlMode"] } })}>
             <option value="absolute">Absolut</option><option value="absolute_and_percent">Absolut und Prozent</option>
@@ -146,17 +147,17 @@ function ViewerDisplaySection({ settings, setSettings, busy, conflict, readOnly,
   return (
       <section className="operations-card system-form">
         <h3>Darstellung</h3>
-        <ViewerDisplayFields settings={settings} setSettings={setSettings} />
+        <fieldset disabled={readOnly}><ViewerDisplayFields settings={settings} setSettings={setSettings} /></fieldset>
         <div className="system-actions"><Button type="button" disabled={Boolean(busy) || conflict || readOnly} onClick={() => { saveSettings(); }}>Einstellungen speichern</Button></div>
       </section>
   );
 }
 
-function ViewerNotificationsSection({ settings, setSettings }: Readonly<{ settings: TelegramViewerDraft; setSettings: (value: TelegramViewerDraft) => void }>) {
+function ViewerNotificationsSection({ settings, setSettings, readOnly }: Readonly<{ settings: TelegramViewerDraft; setSettings: (value: TelegramViewerDraft) => void; readOnly: boolean }>) {
   return (
       <section className="operations-card system-form">
         <h3>Benachrichtigungen</h3>
-        <div className="builder-field-grid">
+        <fieldset disabled={readOnly} className="builder-field-grid">
           {TELEGRAM_NOTIFICATION_LABELS.map(([key, label]) => (
             <label className="builder-toggle" key={key}>
               <input type="checkbox" checked={Boolean(settings.notifications[key])}
@@ -164,13 +165,13 @@ function ViewerNotificationsSection({ settings, setSettings }: Readonly<{ settin
               <span aria-hidden="true" /> {label}
             </label>
           ))}
-        </div>
+        </fieldset>
       </section>
   );
 }
 
-function ViewerTokenSection({ botConfigured, botToken, setBotToken, busy, setToken, deleteBotToken, rotateServiceToken }: Readonly<{
-  botConfigured: boolean; botToken: string; setBotToken: (value: string) => void; busy: string;
+function ViewerTokenSection({ botConfigured, botToken, setBotToken, busy, readOnly, setToken, deleteBotToken, rotateServiceToken }: Readonly<{
+  botConfigured: boolean; botToken: string; setBotToken: (value: string) => void; busy: string; readOnly: boolean;
   setToken: () => void | Promise<void>; deleteBotToken: () => void | Promise<void>; rotateServiceToken: () => void | Promise<void>;
 }>) {
   return (
@@ -178,13 +179,13 @@ function ViewerTokenSection({ botConfigured, botToken, setBotToken, busy, setTok
         <h3>Bot-Token</h3>
         <strong>{botConfigured ? "Bot-Token konfiguriert" : "Kein Bot-Token konfiguriert"}</strong>
         <p className="operations-help">Der gespeicherte Wert wird niemals angezeigt.</p>
-        <label>Neuer Bot-Token<Input aria-label="Neuer Bot-Token" type="password" autoComplete="off" value={botToken}
+        <label>Neuer Bot-Token<Input aria-label="Neuer Bot-Token" type="password" autoComplete="off" disabled={readOnly} value={botToken}
           onChange={(event) => setBotToken(event.target.value)} placeholder="123456789:…" /></label>
         <div className="system-actions">
-          <Button type="button" disabled={Boolean(busy) || !botToken} onClick={() => { setToken(); }}>Bot-Token setzen</Button>
-          <Button type="button" variant="destructive" disabled={Boolean(busy) || !botConfigured}
+          <Button type="button" disabled={readOnly || Boolean(busy) || !botToken} onClick={() => { setToken(); }}>Bot-Token setzen</Button>
+          <Button type="button" variant="destructive" disabled={readOnly || Boolean(busy) || !botConfigured}
             onClick={() => { deleteBotToken(); }}>Bot-Token löschen</Button>
-          <Button type="button" variant="outline" disabled={Boolean(busy)}
+          <Button type="button" variant="outline" disabled={readOnly || Boolean(busy)}
             onClick={() => { rotateServiceToken(); }}>Dienst-Token rotieren</Button>
         </div>
       </section>
@@ -202,15 +203,15 @@ function ViewerDiagnosticsSection({ service, settings }: Readonly<{ service: Tel
   );
 }
 
-function ViewerTestSection({ testMessage, setTestMessage, busy, mutate }: Readonly<{
-  testMessage: string; setTestMessage: (value: string) => void; busy: string;
+function ViewerTestSection({ testMessage, setTestMessage, busy, readOnly, mutate }: Readonly<{
+  testMessage: string; setTestMessage: (value: string) => void; busy: string; readOnly: boolean;
   mutate: (label: string, url: string, init: RequestInit, accepted?: (value: Record<string, unknown>) => void) => Promise<void>;
 }>) {
   return (
       <section className="operations-card system-form">
         <h3>Testnachricht</h3>
-        <label>Testnachricht<Input aria-label="Testnachricht" value={testMessage} onChange={(event) => setTestMessage(event.target.value)} /></label>
-        <div className="system-actions"><Button type="button" disabled={Boolean(busy) || !testMessage.trim()}
+        <label>Testnachricht<Input aria-label="Testnachricht" disabled={readOnly} value={testMessage} onChange={(event) => setTestMessage(event.target.value)} /></label>
+        <div className="system-actions"><Button type="button" disabled={readOnly || Boolean(busy) || !testMessage.trim()}
           onClick={() => { mutate("Test angenommen", "/api/telegram-viewer/test", {
             method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: testMessage }),
           }); }}>Test senden</Button></div>
@@ -321,19 +322,19 @@ export function TelegramViewer() {
 
       <ViewerStatusSection service={service} readiness={serviceReadiness} botConfigured={botConfigured} />
 
-      <ViewerGeneralSection settings={settings} setSettings={setSettings} />
+      <ViewerGeneralSection settings={settings} setSettings={setSettings} readOnly={readOnly} />
 
-      <ViewerAccessSection allowedUsers={allowedUsers} setAllowedUsers={setAllowedUsers} />
+      <ViewerAccessSection allowedUsers={allowedUsers} setAllowedUsers={setAllowedUsers} readOnly={readOnly} />
 
       <ViewerDisplaySection settings={settings} setSettings={setSettings} busy={busy} conflict={form.conflict} readOnly={readOnly} saveSettings={saveSettings} />
 
-      <ViewerNotificationsSection settings={settings} setSettings={setSettings} />
+      <ViewerNotificationsSection settings={settings} setSettings={setSettings} readOnly={readOnly} />
 
-      <ViewerTokenSection botConfigured={botConfigured} botToken={botToken} setBotToken={setBotToken} busy={busy} setToken={setToken} deleteBotToken={deleteBotToken} rotateServiceToken={rotateServiceToken} />
+      <ViewerTokenSection botConfigured={botConfigured} botToken={botToken} setBotToken={setBotToken} busy={busy} readOnly={readOnly} setToken={setToken} deleteBotToken={deleteBotToken} rotateServiceToken={rotateServiceToken} />
 
       <ViewerDiagnosticsSection service={service} settings={settings} />
 
-      <ViewerTestSection testMessage={testMessage} setTestMessage={setTestMessage} busy={busy} mutate={mutate} />
+      <ViewerTestSection testMessage={testMessage} setTestMessage={setTestMessage} busy={busy} readOnly={readOnly} mutate={mutate} />
     </div>
   );
 }

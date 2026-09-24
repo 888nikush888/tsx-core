@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "scope": "First audited slice of parameters.json: managed runtime, account identity/state, deployment evidence, and the mandatory protective-stop gate. Other parameter families remain unaudited here.",
+  "scope": "Audited static slices of parameters.json: managed runtime, account identity/state, Telegram Viewer settings, deployment evidence, and the mandatory protective-stop gate. Other parameter families remain unaudited here.",
   "classes": ["runtime-editable", "create-only", "read-only-evidence", "host-bootstrap", "immutable-gate"],
   "groups": [
     {
@@ -70,6 +70,35 @@
       "uiRoute": "/trading/accounts",
       "uiControl": "frontend/src/features/accounts/account-detail.tsx",
       "effect": "Observed state; kill-switch release and credential rotation are separate guarded commands, not direct field edits."
+    },
+    {
+      "id": "telegram-viewer-settings",
+      "class": "runtime-editable",
+      "paths": [
+        "viewer.enabled", "viewer.allowedUserIds", "viewer.timezone", "viewer.locale", "viewer.eventPollingIntervalMs",
+        "viewer.notifications.positionOpened", "viewer.notifications.takeProfitFilled", "viewer.notifications.stopLossFilled",
+        "viewer.notifications.positionClosed", "viewer.notifications.executionFailed", "viewer.notifications.accountIncidentOpened",
+        "viewer.notifications.accountIncidentResolved", "viewer.notifications.exchangeStreamDegraded",
+        "viewer.notifications.exchangeStreamRecovered", "viewer.notifications.killSwitchActivated",
+        "viewer.notifications.signalReceived", "viewer.notifications.signalValidated", "viewer.notifications.intentCreated",
+        "viewer.notifications.exchangeAcknowledged", "viewer.display.detailLevel", "viewer.display.pnlMode"
+      ],
+      "uiRoute": "/integrations/telegram-viewer",
+      "uiControl": "frontend/src/features/telegram-viewer/telegram-viewer.tsx",
+      "mutationRoute": "POST /api/telegram-viewer/settings",
+      "backendValidator": "src/telegram_viewer_settings.ts",
+      "auditAction": "telegram-viewer.settings.update",
+      "contractTest": "tests/test_telegram_viewer_api.js",
+      "effect": "A revision-bound admin update replaces the complete validated viewer settings document; the separate viewer service observes the persisted settings. Bot and service tokens use separate write-only commands."
+    },
+    {
+      "id": "telegram-viewer-fixed-time-format",
+      "class": "read-only-evidence",
+      "paths": ["viewer.display.timeFormat"],
+      "uiRoute": "/integrations/telegram-viewer",
+      "uiControl": "frontend/src/features/telegram-viewer/telegram-viewer.tsx",
+      "backendValidator": "src/telegram_viewer_settings.ts",
+      "effect": "The fixed 24h value is visible but has no editor; the validator rejects any other value."
     },
     {
       "id": "deployment-bootstrap",

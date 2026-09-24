@@ -8,13 +8,14 @@ const inventory = JSON.parse(await readFile(path.join(root, 'docs/ui-next/invent
 const source = new Map(JSON.parse(await readFile(path.join(root, 'docs/ui-next/inventory/parameters.json'), 'utf8')).parameters
   .map(parameter => [parameter.path, parameter]));
 const routes = JSON.parse(await readFile(path.join(root, 'docs/ui-next/inventory/api-routes.json'), 'utf8')).routes;
-const auditedPrefixes = ['runtime.', 'account.', 'deployment.'];
+const auditedPrefixes = ['runtime.', 'account.', 'viewer.', 'deployment.'];
 const immutableGate = 'strategy.safety.requireProtectiveStop';
 const accountCreateOnly = new Set(['account.name', 'account.exchange', 'account.mode']);
 const accountRuntimeEditable = new Set(['account.enabled', 'account.maxConcurrentPositions']);
 
 function validateClass(name, group, parameter) {
   if (name.startsWith('runtime.') || accountRuntimeEditable.has(name)) assert.equal(group.class, 'runtime-editable', `${name}: class drift`);
+  if (name.startsWith('viewer.')) assert.equal(group.class, name === 'viewer.display.timeFormat' ? 'read-only-evidence' : 'runtime-editable', `${name}: viewer class drift`);
   if (accountCreateOnly.has(name)) assert.equal(group.class, 'create-only', `${name}: class drift`);
   if (name.startsWith('deployment.')) assert.equal(group.class, 'host-bootstrap', `${name}: class drift`);
   if (name === immutableGate) assert.equal(group.class, 'immutable-gate', `${name}: class drift`);
@@ -35,6 +36,10 @@ function validateEvidence(name, group) {
     assert.ok(['build-value', 'presence-only', 'partial', 'absent'].includes(group.evidence[name].visibility), `${name}: unknown evidence visibility`);
   }
   if (group.class === 'immutable-gate') assert.ok(!group.mutationRoute && !group.uiControl, `${name}: gate must not have an editor`);
+  if (name === 'viewer.display.timeFormat') {
+    assert.ok(group.uiRoute && group.uiControl && group.backendValidator, 'Fixed viewer format must remain visible and validated');
+    assert.ok(!group.mutationRoute, 'Fixed viewer format must not have an editor');
+  }
 }
 
 function validateCoverage(parameters, coverage) {
@@ -85,10 +90,29 @@ const runtimeUi = await readFile(path.join(root, 'frontend/src/features/operatio
 assert.match(runtimeUi, /parameters\.filter\(item => item\.group === group\)\.map\(field =>/);
 assert.match(runtimeUi, /field\.editable/);
 assert.match(runtimeUi, /field\.path/);
+const viewerUi = await readFile(path.join(root, 'frontend/src/features/telegram-viewer/telegram-viewer.tsx'), 'utf8');
+assert.match(viewerUi, /TELEGRAM_NOTIFICATION_LABELS\.map/);
+const notificationLabels = viewerUi.split('const TELEGRAM_NOTIFICATION_LABELS')[1]?.split('];')[0];
+assert.ok(notificationLabels, 'Viewer notification controls are missing');
+const notificationUiPaths = [...notificationLabels.matchAll(/\["([A-Za-z]+)",/g)].map(match => `viewer.notifications.${match[1]}`);
+const notificationCatalogPaths = inventory.groups.find(group => group.id === 'telegram-viewer-settings').paths.filter(name => name.startsWith('viewer.notifications.'));
+assert.deepEqual(notificationUiPaths.sort(), notificationCatalogPaths.sort(), 'Viewer notification catalog and controls differ');
+for (const anchor of ['settings.enabled', 'settings.timezone', 'settings.locale', 'settings.eventPollingIntervalMs', 'allowedUsersText', 'settings.display.detailLevel', 'settings.display.pnlMode']) {
+  assert.ok(viewerUi.includes(anchor), `${anchor}: viewer UI control missing`);
+}
+assert.match(viewerUi, /settings\.display\.timeFormat/);
+assert.match(viewerUi, /disabled=\{readOnly\}/);
+assert.match(viewerUi, /'If-Match': String\(form\.baseRevision\)/);
+const viewerValidator = await readFile(path.join(root, 'src/telegram_viewer_settings.ts'), 'utf8');
+assert.match(viewerValidator, /source\.timeFormat !== '24h'/);
+assert.match(viewerValidator, /validateTelegramViewerSettings\(input\)/);
+assert.match(viewerValidator, /baseRevision !== configurationRevision\(this\.settings\)/);
 const server = await readFile(path.join(root, 'src/web_server.ts'), 'utf8');
 assert.match(server, /'\/api\/runtime-settings': 'runtime\.settings\.update'/);
 assert.match(server, /'POST \/api\/runtime-settings', postRuntimeSettingsHandler/);
 assert.match(server, /trading\.\$\{target \|\| 'control'\}\.\$\{method\.toLowerCase\(\)\}/);
+assert.match(server, /'\/api\/telegram-viewer\/settings': 'telegram-viewer\.settings\.update'/);
+assert.match(server, /'POST \/api\/telegram-viewer\/settings', updateTelegramViewerSettingsHandler/);
 for (const group of inventory.groups.filter(item => item.auditAction?.startsWith('trading.'))) {
   const expected = `trading.${group.mutationRoute.slice('POST /api/trading/'.length).replaceAll('/', '.')}.post`;
   assert.equal(group.auditAction, expected, `${group.id}: incorrect audit event name`);
@@ -123,4 +147,4 @@ assert.throws(() => validateCoverage(source, classDrift), /class drift/);
 const missingCreateAudit = structuredClone(inventory);
 delete missingCreateAudit.groups.find(group => group.id === 'account-creation').auditAction;
 assert.throws(() => validateCoverage(source, missingCreateAudit), /undocumented writable auditAction/);
-console.log(`Operational UI coverage slice passed: ${classified.size} classified parameters, ${inventory.groups.find(group => group.id === 'managed-runtime').paths.length} managed runtime controls; six host-maintenance gaps remain explicit.`);
+console.log(`Operational UI coverage slice passed: ${classified.size} classified parameters, ${inventory.groups.find(group => group.id === 'managed-runtime').paths.length} managed runtime controls and 22 viewer fields; six host-maintenance gaps remain explicit.`);

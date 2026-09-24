@@ -530,155 +530,155 @@
       "path": "viewer.enabled",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.allowedUserIds",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.timezone",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.locale",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.eventPollingIntervalMs",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.notifications.positionOpened",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.notifications.takeProfitFilled",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.notifications.stopLossFilled",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.notifications.positionClosed",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.notifications.executionFailed",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.notifications.accountIncidentOpened",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.notifications.accountIncidentResolved",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.notifications.exchangeStreamDegraded",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.notifications.exchangeStreamRecovered",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.notifications.killSwitchActivated",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.notifications.signalReceived",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.notifications.signalValidated",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.notifications.intentCreated",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.notifications.exchangeAcknowledged",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.display.detailLevel",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.display.pnlMode",
       "class": "runtime-editable",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-settings"
     },
     {
       "path": "viewer.display.timeFormat",
       "class": "read-only-evidence",
       "catalogEditable": false,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "telegram-viewer-fixed-time-format"
     },
     {
       "path": "strategy.schemaVersion",
