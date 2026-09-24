@@ -29,6 +29,11 @@ JSON. Changing a field, rotating credentials, altering the reviewer key,
 expiring the grant, deleting it from the file, or removing the file closes the
 gate. The Node check requires at least one valid product grant for that
 account; the executor checks the actual resolved product on every new order.
+The signer must emit `version`, `validFrom`, and `validUntil` as JSON integer
+literals (for example `1`, never `1.0` or `1e0`). Python rejects floating-point
+literals even when they represent integers; Node's JSON parser does not retain
+that lexical distinction. Both readers require bounded, single-link regular
+files under real directories and verify the opened file before using its bytes.
 
 **Current release state:** the reviewer-key digest is intentionally empty in
 both modules. A separate source/SDK/profile provenance verifier also returns
