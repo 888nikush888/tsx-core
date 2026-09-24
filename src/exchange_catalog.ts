@@ -159,12 +159,13 @@ function catalogEntry(value: unknown): ExchangeCatalogEntry {
 function executorCatalog(value: unknown): ExchangeCatalog {
   const input = object(value, 'Exchange executor catalog');
   const implementation = object(input.implementation, 'Exchange executor implementation');
+  const reviewedInventoryHash = implementation.reviewedInventoryHash ?? null;
   if (implementation.library !== 'ccxt' || implementation.streaming !== 'ccxt-pro'
     || implementation.orderAuthority !== 'rest'
     || typeof implementation.version !== 'string' || !/^\d+\.\d+\.\d+$/.test(implementation.version)
-    || implementation.reviewedInventoryHash !== null
-      && (typeof implementation.reviewedInventoryHash !== 'string'
-        || !/^[0-9a-f]{64}$/.test(implementation.reviewedInventoryHash))) {
+    || reviewedInventoryHash !== null
+      && (typeof reviewedInventoryHash !== 'string'
+        || !/^[0-9a-f]{64}$/.test(reviewedInventoryHash))) {
     throw new Error('Exchange executor returned invalid implementation metadata.');
   }
   if (!Array.isArray(input.exchanges)) throw new Error('Exchange executor returned an invalid exchange list.');
@@ -176,7 +177,7 @@ function executorCatalog(value: unknown): ExchangeCatalog {
     implementation: {
       library: 'ccxt',
       version: implementation.version,
-      reviewedInventoryHash: implementation.reviewedInventoryHash as string | null,
+      reviewedInventoryHash: reviewedInventoryHash as string | null,
       streaming: 'ccxt-pro',
       orderAuthority: 'rest',
     },
