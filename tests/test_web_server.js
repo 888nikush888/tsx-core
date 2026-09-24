@@ -623,7 +623,7 @@ function assertWorkflowHistoryApplyAudit(controls, secondMutation, workflow, und
   assert.equal(typeof applyAudit.target.impact.destructive, 'boolean');
 }
 
-async function assertWorkflowHistoryViewerReadOnly(baseUrl) {
+async function assertWorkflowHistoryViewerReadOnly(baseUrl, graph) {
   let response = await fetch(`${baseUrl}/api/workflow/history`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 403, 'Workflow history metadata must remain administrator-only.');
   for (const route of ['/api/workflow/history/impact', '/api/workflow/history/apply']) {
@@ -647,6 +647,18 @@ async function assertWorkflowHistoryViewerReadOnly(baseUrl) {
     body: JSON.stringify({ confirmation: 'WORKFLOW-HISTORIE ZURÜCKSETZEN' }),
   });
   assert.strictEqual(response.status, 403, 'Viewers must never reset workflow history.');
+  response = await fetch(`${baseUrl}/api/workflow/mutate`, {
+    method: 'POST', headers: headers(VIEWER_TOKEN, {
+      'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard',
+    }), body: JSON.stringify({ baseRevisionId: null, graph }),
+  });
+  assert.equal(response.status, 403, 'A viewer must not activate a graph revision.');
+}
+
+function assertWorkflowMutationAudit(controls) {
+  assert.ok(controls.auditEvents.some(event => event.phase === 'completed'
+    && event.action === 'dashboard.workflow.mutate.post' && event.statusCode === 201),
+  'Graph activation must retain its mutation audit event.');
 }
 
 async function testWorkflowHistoryRecoveryApi(baseUrl, controls, activeWorkflowId) {
@@ -687,19 +699,13 @@ async function testWorkflowHistoryRecoveryApi(baseUrl, controls, activeWorkflowI
 
 async function testWorkflowRevisionApi(baseUrl, controls) {
   const graph = { schemaVersion: 1, nodes: [], edges: [] };
-  await assertWorkflowHistoryViewerReadOnly(baseUrl);
+  await assertWorkflowHistoryViewerReadOnly(baseUrl, graph);
   let response = await fetch(`${baseUrl}/api/workflow/history`, { headers: headers(ADMIN_TOKEN) });
   assert.strictEqual(response.status, 200);
   assert.deepEqual(await response.json(), {
     limit: 5, undoCount: 0, redoCount: 0, canUndo: false, canRedo: false,
     undoLabel: null, redoLabel: null,
   });
-  response = await fetch(`${baseUrl}/api/workflow/mutate`, {
-    method: 'POST', headers: headers(VIEWER_TOKEN, {
-      'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard',
-    }), body: JSON.stringify({ baseRevisionId: null, graph }),
-  });
-  assert.equal(response.status, 403, 'A viewer must not activate a graph revision.');
   response = await fetch(`${baseUrl}/api/workflow/impact`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
@@ -717,9 +723,7 @@ async function testWorkflowRevisionApi(baseUrl, controls) {
   assert.strictEqual(workflow.revision, 1);
   assert.equal(firstMutation.history.undoCount, 1);
   assert.equal(firstMutation.history.undoLabel, 'Leeren Workflow angelegt');
-  assert.ok(controls.auditEvents.some(event => event.phase === 'completed'
-    && event.action === 'dashboard.workflow.mutate.post' && event.statusCode === 201),
-  'Graph activation must retain its mutation audit event.');
+  assertWorkflowMutationAudit(controls);
   response = await fetch(`${baseUrl}/api/workflow/mutate`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
