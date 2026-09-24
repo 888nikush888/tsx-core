@@ -35,3 +35,4 @@ await mkdir(outputDirectory, { recursive: true });
 await generate('backend', root);
 await generate('frontend', path.join(root, 'frontend'));
 await generate('b2-backup-gateway', path.join(root, 'services', 'b2-backup-gateway'));
+await generate('b2-audit-receiver', path.join(root, 'services', 'b2-audit-receiver'));

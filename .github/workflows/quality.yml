@@ -66,6 +66,7 @@ jobs:
             package-lock.json
             frontend/package-lock.json
             services/b2-backup-gateway/package-lock.json
+            services/b2-audit-receiver/package-lock.json
       - name: Configure pinned Python
         uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548
         with:
@@ -81,12 +82,14 @@ jobs:
           npm ci --prefix frontend --ignore-scripts --no-audit --no-fund
           npm rebuild --prefix frontend esbuild
           npm ci --prefix services/b2-backup-gateway --ignore-scripts --no-audit --no-fund
+          npm ci --prefix services/b2-audit-receiver --ignore-scripts --no-audit --no-fund
           python -m pip install --require-hashes -r exchange_executor/requirements.lock -r exchange_executor/requirements-dev.lock
       - name: Dependency vulnerability gates
         run: |
           npm audit --audit-level=moderate
           npm audit --prefix frontend --audit-level=moderate
           npm audit --prefix services/b2-backup-gateway --audit-level=moderate
+          npm audit --prefix services/b2-audit-receiver --audit-level=moderate
       - name: License policy gate
         run: |
           npm run quality:licenses
@@ -94,6 +97,7 @@ jobs:
       - name: Static and type gates
         run: |
           npm run lint
+          ./node_modules/.bin/eslint "services/b2-audit-receiver/*.mjs" "services/b2-audit-receiver/tests/*.mjs" --quiet
           npm run lint:frontend
           npm run lint:python
           python -m ruff check scripts/check_internal_tls.py scripts/hyperliquid_bound_preflight.py scripts/hyperliquid_testnet_preflight.py tests/test_internal_tls_preflight.py tests/test_hyperliquid_bound_preflight.py tests/fixtures/internal_tls_fixture.py
@@ -110,6 +114,7 @@ jobs:
           npm run test:coverage
           npm test --prefix services/b2-backup-gateway
           npm run test:coverage:b2-gateway
+          npm test --prefix services/b2-audit-receiver
           npm run test:coverage:modules
           python -m coverage run --branch --source=exchange_executor -m unittest discover -s exchange_executor/tests -v
           python -m unittest discover -s tests -p test_internal_tls_preflight.py -v
@@ -210,6 +215,7 @@ jobs:
             package-lock.json
             frontend/package-lock.json
             services/b2-backup-gateway/package-lock.json
+            services/b2-audit-receiver/package-lock.json
       - name: Configure pinned Python
         uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548
         with:
@@ -467,12 +473,14 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             frontend/package-lock.json
+            services/b2-audit-receiver/package-lock.json
       - name: Enforce private-repository dependency evidence
         if: github.event.repository.private
         run: |
           npm audit --audit-level=moderate
           npm audit --prefix frontend --audit-level=moderate
           npm audit --prefix services/b2-backup-gateway --audit-level=moderate
+          npm audit --prefix services/b2-audit-receiver --audit-level=moderate
           npm run quality:dependencies
 
   container:

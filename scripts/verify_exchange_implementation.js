@@ -34,7 +34,7 @@ const commitmentKeys = ['sourceTreeHash', 'nodeSourcesHash', 'testSourcesHash', 
 export const BUILD_INPUT_POLICY = Object.freeze({
   recursiveRoots: Object.freeze(['src', 'scripts', 'tests', 'exchange_executor/tests', 'exchange_executor/tools',
     'frontend/src', 'frontend/public', 'frontend/tests', 'frontend/e2e', '.github', 'config', 'security', 'monitoring',
-    'services/b2-backup-gateway', 'docs']),
+    'services/b2-backup-gateway', 'services/b2-audit-receiver', 'docs']),
   requiredFiles: Object.freeze(['package.json', 'package-lock.json', 'tsconfig.json', 'eslint.config.js',
     'stryker.config.mjs', 'c8.critical.json', 'c8.modules.json', 'coverage-baseline.json', 'quality-baseline.json',
     'ruff.toml', 'sonar-project.properties', '.gitattributes', '.npmrc', '.nvmrc', '.python-version', '.coveragerc', '.dockerignore',
@@ -47,7 +47,12 @@ export const BUILD_INPUT_POLICY = Object.freeze({
     'tests/test_exchange_implementation_bridge.js', 'tests/run_all.js',
     'services/b2-backup-gateway/package.json', 'services/b2-backup-gateway/package-lock.json',
     'services/b2-backup-gateway/gateway.js', 'services/b2-backup-gateway/server.js',
-    'services/b2-backup-gateway/test/gateway.test.js']),
+    'services/b2-backup-gateway/test/gateway.test.js',
+    'services/b2-audit-receiver/package.json', 'services/b2-audit-receiver/package-lock.json',
+    'services/b2-audit-receiver/audit-core.mjs', 'services/b2-audit-receiver/b2-store.mjs',
+    'services/b2-audit-receiver/server.mjs',
+    'services/b2-audit-receiver/tests/audit-receiver.test.mjs',
+    'services/b2-audit-receiver/tests/b2-store.test.mjs']),
   maxFileBytes: 8 * 1024 * 1024,
   maxTreeBytes: 128 * 1024 * 1024,
   maxEntries: 20_000,
@@ -117,7 +122,7 @@ function fixturePath(relative) {
 
 function category(relative) {
   if (fixturePath(relative)) return 'fixture';
-  if (/^(?:tests|exchange_executor\/tests|frontend\/(?:tests|e2e)|services\/b2-backup-gateway\/test)\//.test(relative)
+  if (/^(?:tests|exchange_executor\/tests|frontend\/(?:tests|e2e)|services\/b2-backup-gateway\/test|services\/b2-audit-receiver\/tests)\//.test(relative)
     || /^frontend\/src\/.*\.(?:test|spec)\.[^/]+$/.test(relative)) return 'test';
   if (/^exchange_executor\/[^/]+\.py$/.test(relative)) return 'executor';
   return 'node';
@@ -142,7 +147,7 @@ function discoverFiles(root) {
     const directory = path.join(root, relative);
     canonicalDirectory(directory);
     for (const name of readdirSync(directory)) {
-      if (ignoredCache(name) || (relative === 'services/b2-backup-gateway' && name === 'node_modules')) continue;
+      if (ignoredCache(name) || ((relative === 'services/b2-backup-gateway' || relative === 'services/b2-audit-receiver') && name === 'node_modules')) continue;
       requireBuild(++visited <= BUILD_INPUT_POLICY.maxEntries, 'source entry budget exceeded');
       const file = relative ? `${relative}/${name}` : name;
       safeRelative(file);

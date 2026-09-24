@@ -82,6 +82,8 @@ function testBoundPositiveIsComparisonOnly(context) {
   assert.ok(actual.files.some(file => file.path === 'frontend/src/Order.test.tsx' && file.category === 'test'));
   assert.ok(actual.files.some(file => file.path === 'services/b2-backup-gateway/gateway.js' && file.category === 'node'));
   assert.ok(actual.files.some(file => file.path === 'services/b2-backup-gateway/test/gateway.test.js' && file.category === 'test'));
+  assert.ok(actual.files.some(file => file.path === 'services/b2-audit-receiver/b2-store.mjs' && file.category === 'node'));
+  assert.ok(actual.files.some(file => file.path === 'services/b2-audit-receiver/tests/b2-store.test.mjs' && file.category === 'test'));
   assert.ok(actual.files.some(file => file.path === 'exchange_executor/tests/fixtures/original.json' && file.category === 'fixture'));
 }
 
@@ -91,6 +93,7 @@ function testAllInputClassesDrift(context) {
     'exchange_executor/tests/test_contract.py', 'tests/fixtures/order.json',
     'exchange_executor/tests/fixtures/original.json', 'package-lock.json', 'frontend/package-lock.json',
     'services/b2-backup-gateway/gateway.js', 'services/b2-backup-gateway/package-lock.json',
+    'services/b2-audit-receiver/b2-store.mjs', 'services/b2-audit-receiver/package-lock.json',
     'exchange_executor/requirements.lock', 'scripts/test_registry.js', '.github/workflows/quality.yml',
     'exchange_executor/ccxt_adapter.py', 'exchange_executor/ccxt_profiles.py']) {
     const original = readFileSync(path.join(root, file));
