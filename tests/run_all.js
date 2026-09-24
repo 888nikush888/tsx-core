@@ -173,6 +173,7 @@ const allTests = [
   'test_audit_cli.js',
   'test_dashboard_auth.js',
   'test_alert_relay.js',
+  'test_incident_receiver_worker.js',
   'test_monitoring_artifacts.js',
   'test_staging_e2e.js',
   'test_soak_window.js',
