@@ -1,7 +1,7 @@
 import { createHash, X509Certificate } from 'node:crypto';
-import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import tls from 'node:tls';
+import { readBoundedTlsFile } from './bounded_tls_file.js';
 
 const MAX_CERTIFICATE_BYTES = 64 * 1024;
 const PROBE_TIMEOUT_MS = 1200;
@@ -43,6 +43,7 @@ function configuredCertificateFile(environmentName: CertificateFileEnvironment):
     case 'TELEGRAM_VIEWER_TLS_CERT_FILE': return process.env.TELEGRAM_VIEWER_TLS_CERT_FILE;
     case 'EXECUTOR_TLS_CERT_FILE': return process.env.EXECUTOR_TLS_CERT_FILE;
     case 'NODE_EXTRA_CA_CERTS': return process.env.NODE_EXTRA_CA_CERTS;
+    default: throw new Error('Unsupported TLS certificate environment.');
   }
 }
 
@@ -50,12 +51,12 @@ function readFixedCertificateFile(environmentName: CertificateFileEnvironment): 
   const configured = configuredCertificateFile(environmentName)?.trim();
   if (!configured || !path.isAbsolute(configured)) throw new Error('not_configured');
   const file = path.resolve(configured);
-  let metadata;
-  try { metadata = lstatSync(file); }
-  catch { throw new Error('missing'); }
-  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size < 1 || metadata.size > MAX_CERTIFICATE_BYTES
-    || realpathSync.native(file) !== file) throw new Error('invalid');
-  return readFileSync(file);
+  try {
+    return readBoundedTlsFile(file, MAX_CERTIFICATE_BYTES, 'invalid');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') throw new Error('missing', { cause: error });
+    throw error;
+  }
 }
 
 function details(certificate: X509Certificate): CertificateDetails {

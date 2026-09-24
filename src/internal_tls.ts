@@ -1,8 +1,8 @@
 import { createPrivateKey, X509Certificate } from 'node:crypto';
-import { closeSync, constants, fstatSync, lstatSync, openSync, readSync, realpathSync } from 'node:fs';
 import https from 'node:https';
 import path from 'node:path';
 import tls from 'node:tls';
+import { readBoundedTlsFile } from './bounded_tls_file.js';
 
 const MAX_PEM_BYTES = 64 * 1024;
 
@@ -30,35 +30,7 @@ function pemFromEnvironment(name: TlsFileName): Buffer {
   const configured = configuredTlsPath(name)?.trim();
   if (!configured || !path.isAbsolute(configured)) throw new Error(`${name} must name an absolute TLS file.`);
   const file = path.resolve(configured);
-  const before = lstatSync(file);
-  if (!before.isFile() || before.isSymbolicLink() || realpathSync.native(file) !== file) {
-    throw new Error(`${name} must name a regular, bounded TLS file.`);
-  }
-  const descriptor = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-  try {
-    const opened = fstatSync(descriptor);
-    if (!opened.isFile() || opened.size < 1 || opened.size > MAX_PEM_BYTES
-      || opened.dev !== before.dev || opened.ino !== before.ino) {
-      throw new Error(`${name} must name a regular, bounded TLS file.`);
-    }
-    const content = Buffer.alloc(opened.size);
-    let offset = 0;
-    while (offset < content.length) {
-      const count = readSync(descriptor, content, offset, content.length - offset, null);
-      if (count === 0) throw new Error(`${name} changed while reading the TLS file.`);
-      offset += count;
-    }
-    if (readSync(descriptor, Buffer.alloc(1), 0, 1, null) !== 0) {
-      throw new Error(`${name} changed while reading the TLS file.`);
-    }
-    const after = fstatSync(descriptor);
-    if (after.size !== opened.size || after.mtimeMs !== opened.mtimeMs || after.ctimeMs !== opened.ctimeMs) {
-      throw new Error(`${name} changed while reading the TLS file.`);
-    }
-    return content;
-  } finally {
-    closeSync(descriptor);
-  }
+  return readBoundedTlsFile(file, MAX_PEM_BYTES, `${name} must name a regular, bounded TLS file.`);
 }
 
 export function internalTlsServerOptions(certName: TlsFileName, keyName: TlsFileName): https.ServerOptions {

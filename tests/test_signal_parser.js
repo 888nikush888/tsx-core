@@ -589,7 +589,7 @@ async function runTests() {
   console.log('ALL STRICT SIGNAL PARSER TESTS PASSED!');
 }
 
-await (async () => runTests())().catch(error => {
+await runTests().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

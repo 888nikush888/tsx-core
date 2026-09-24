@@ -116,6 +116,12 @@ try {
   const missingPeerFile = await uiTlsStatus(activeDashboardCertificate);
   assert.equal(missingPeerFile.endpoints[1].file.state, 'missing');
   assert.equal(missingPeerFile.endpoints[0].active.state, 'observed', 'Peer file failures must not break dashboard status.');
+  const oversizedCaPath = path.join(path.dirname(fixture.ca), 'oversized-ca.pem');
+  writeFileSync(oversizedCaPath, Buffer.alloc(65 * 1024));
+  process.env.NODE_EXTRA_CA_CERTS = oversizedCaPath;
+  const oversizedCa = await uiTlsStatus(activeDashboardCertificate);
+  assert.equal(oversizedCa.trustAnchor.state, 'invalid', 'Oversized CA files must not be read or trusted.');
+  assert.equal(oversizedCa.endpoints[1].active.state, 'not_checked');
   console.log('Read-only TLS deployment status and absence handling passed.');
 } finally {
   await new Promise(resolve => metricsServer.close(resolve));
