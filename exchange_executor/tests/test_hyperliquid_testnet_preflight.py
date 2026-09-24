@@ -89,6 +89,8 @@ class HyperliquidTestnetReadOnlyTests(unittest.TestCase):
     def test_malformed_provider_data_fails_closed(self):
         invalid = [
             ({"role": "unknown"}, ACCOUNT, []),
+            ({"role": ["user"]}, ACCOUNT, []),
+            ({"role": {"name": "user"}}, ACCOUNT, []),
             ({"role": "user"}, {**ACCOUNT, "assetPositions": "empty"}, []),
             ({"role": "user"}, {**ACCOUNT, "withdrawable": "NaN"}, []),
             ({"role": "user"}, {**ACCOUNT, "marginSummary": {"accountValue": "Infinity", "totalNtlPos": "0"}}, []),

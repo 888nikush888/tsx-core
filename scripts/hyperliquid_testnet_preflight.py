@@ -122,7 +122,8 @@ def _signed_decimal(value, field: str) -> Decimal:
 
 
 def summarize(role_data, account_data, orders_data) -> dict[str, object]:
-    if not isinstance(role_data, dict) or role_data.get("role") not in ALLOWED_ROLES:
+    role = role_data.get("role") if isinstance(role_data, dict) else None
+    if not isinstance(role, str) or role not in ALLOWED_ROLES:
         raise PreflightError("Invalid account role in Testnet response")
     if not isinstance(account_data, dict) or not isinstance(account_data.get("assetPositions"), list):
         raise PreflightError("Invalid perpetual account state in Testnet response")
@@ -145,7 +146,7 @@ def summarize(role_data, account_data, orders_data) -> dict[str, object]:
     return {
         "environment": "hyperliquid-testnet",
         "readOnly": True,
-        "role": role_data["role"],
+        "role": role,
         "positionCount": position_count,
         "flat": position_count == 0 and notional == 0,
         "openOrderCount": len(orders_data),
