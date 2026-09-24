@@ -50,6 +50,8 @@ try {
   assert.doesNotMatch(codacyJob, /secrets\.CODACY_API_TOKEN|--api-token|--project-token/u,
     'Only the repository-scoped token may authenticate coverage uploads.');
   assert.match(codacyJob, /sha512sum --check --status/u);
+  assert.ok(codacyJob.includes('--prefix exchange_executor/ --force-coverage-parser cobertura -r exchange_executor/coverage.xml'),
+    'Cobertura filenames must retain the exchange_executor/ separator when uploaded.');
   assert.match(codacyJob, /final --commit-uuid "\$CODACY_EXPECTED_REVISION"/u);
   const reportRoot = path.join(repositoryRoot, 'codacy-reports');
   await mkdir(path.join(reportRoot, 'coverage'), { recursive: true });

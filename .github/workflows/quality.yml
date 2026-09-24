@@ -322,7 +322,7 @@ jobs:
         run: |
           "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --force-coverage-parser lcov -r coverage/lcov.info
           "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --force-coverage-parser lcov -r frontend/coverage/lcov.info
-          "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --prefix exchange_executor --force-coverage-parser cobertura -r exchange_executor/coverage.xml
+          "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --prefix exchange_executor/ --force-coverage-parser cobertura -r exchange_executor/coverage.xml
           "$REPORTER" final --commit-uuid "$CODACY_EXPECTED_REVISION"
 
   mutation:
