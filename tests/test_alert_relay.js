@@ -28,6 +28,7 @@ function secureFetch(url, { method = 'GET', headers = {}, body = '' } = {}) {
 }
 let outgoingStatus = 204;
 let deliveredBody = null;
+let deliveredCount = 0;
 for (const host of [undefined, '0.0.0.0']) {
   const scopedRelay = startAlertRelay({ incomingToken, webhookToken: outgoingToken, webhookUrl: 'https://incident.example/alerts' }, 0, host);
   try {
@@ -43,6 +44,7 @@ const receiver = http.createServer(async (request, response) => {
   const chunks = [];
   for await (const chunk of request) chunks.push(Buffer.from(chunk));
   deliveredBody = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  deliveredCount++;
   response.writeHead(outgoingStatus).end();
 });
 let activeRelay = null;
@@ -79,6 +81,19 @@ try {
   });
   assert.equal(response.status, 202);
   assert.equal(deliveredBody.alerts[0].labels.alertname, 'Synthetic');
+  const deliveriesBeforeInvalidLabels = deliveredCount;
+  for (const invalidBody of [
+    '{"status":"firing","alerts":[{"labels":{"alertname":"Synthetic","severity":"critical","correlation_id":9007199254740993}}]}',
+    JSON.stringify({ status: 'firing', alerts: [{ labels: { alertname: 'Synthetic', severity: 'critical', service: 42 } }] })
+  ]) {
+    response = await secureFetch(`${baseUrl}/alerts`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${incomingToken}`, 'Content-Type': 'application/json' },
+      body: invalidBody
+    });
+    assert.equal(response.status, 400, 'Non-string optional labels cannot be delivered with exact identity.');
+  }
+  assert.equal(deliveredCount, deliveriesBeforeInvalidLabels, 'Rejected labels must not reach the incident receiver.');
 
   response = await secureFetch(`${baseUrl}/alerts`, {
     method: 'POST',

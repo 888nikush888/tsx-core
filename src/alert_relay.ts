@@ -100,9 +100,11 @@ function validAlertLabels(alert: unknown): boolean {
   if (!alert || typeof alert !== 'object') return false;
   const labels = (alert as { labels?: unknown }).labels;
   if (!labels || typeof labels !== 'object') return false;
-  const names = labels as { alertname?: unknown; severity?: unknown };
+  const names = labels as { alertname?: unknown; severity?: unknown; service?: unknown; correlation_id?: unknown };
   return typeof names.alertname === 'string'
-    && typeof names.severity === 'string';
+    && typeof names.severity === 'string'
+    && (names.service === undefined || typeof names.service === 'string')
+    && (names.correlation_id === undefined || typeof names.correlation_id === 'string');
 }
 
 function validateAlertPayload(body: Buffer): AlertSummary {
