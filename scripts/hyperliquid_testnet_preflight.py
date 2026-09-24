@@ -22,14 +22,36 @@ MAX_ADDRESS_FILE_BYTES = 100
 MAX_RESPONSE_BYTES = 64 * 1024
 REQUEST_TIMEOUT_SECONDS = 5
 ALLOWED_ROLES = frozenset({"user", "agent", "vault", "subAccount", "missing"})
+INFO_REQUEST_FIELDS = {
+    "userRole": frozenset({"type", "user"}),
+    "userAbstraction": frozenset({"type", "user"}),
+    "clearinghouseState": frozenset({"type", "user"}),
+    "openOrders": frozenset({"type", "user"}),
+    "activeAssetData": frozenset({"type", "user", "coin"}),
+    "metaAndAssetCtxs": frozenset({"type"}),
+    "spotMeta": frozenset({"type"}),
+}
 
 
 class PreflightError(Exception):
     """A deliberately non-sensitive, operator-facing diagnostic error."""
 
 
+def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise PreflightError("Duplicate field in Testnet Info response")
+        result[key] = value
+    return result
+
+
+def _invalid_constant(_value: str) -> None:
+    raise PreflightError("Non-finite value in Testnet Info response")
+
+
 def public_address(value: str) -> str:
-    if not ADDRESS_PATTERN.fullmatch(value):
+    if not isinstance(value, str) or not ADDRESS_PATTERN.fullmatch(value):
         raise PreflightError("Public wallet address must be 0x followed by 40 hex digits")
     return value
 
@@ -71,9 +93,14 @@ def validate_endpoint(endpoint: str) -> str:
 def post_info(payload: dict[str, str], *, endpoint: str = INFO_ENDPOINT, connection_factory=None):
     """Direct HTTPS connection: http.client has no proxy or redirect machinery."""
     host = validate_endpoint(endpoint)
-    if payload.get("type") not in {"userRole", "clearinghouseState", "openOrders"} or set(payload) != {"type", "user"}:
+    if not isinstance(payload, dict) or not isinstance(payload.get("type"), str) \
+            or set(payload) != INFO_REQUEST_FIELDS.get(payload["type"]):
         raise PreflightError("Unsupported read-only Info request")
-    public_address(payload["user"])
+    if "user" in payload:
+        public_address(payload["user"])
+    if "coin" in payload and (not isinstance(payload["coin"], str)
+                              or not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", payload["coin"])):
+        raise PreflightError("Invalid first-DEX coin")
     factory = connection_factory or http.client.HTTPSConnection
     connection = None
     try:
@@ -89,7 +116,7 @@ def post_info(payload: dict[str, str], *, endpoint: str = INFO_ENDPOINT, connect
         raw = response.read(MAX_RESPONSE_BYTES + 1)
         if len(raw) > MAX_RESPONSE_BYTES:
             raise PreflightError("Testnet Info response exceeds size limit")
-        return json.loads(raw)
+        return json.loads(raw, object_pairs_hook=_unique_object, parse_constant=_invalid_constant)
     except (OSError, http.client.HTTPException, ValueError) as exc:
         raise PreflightError("Testnet Info request or response failed validation") from exc
     finally:

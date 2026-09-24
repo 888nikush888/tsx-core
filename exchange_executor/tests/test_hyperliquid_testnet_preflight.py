@@ -168,6 +168,20 @@ class HyperliquidTestnetReadOnlyTests(unittest.TestCase):
             preflight.post_info({"type": "exchange", "user": ADDRESS}, connection_factory=FakeConnection)
         self.assertEqual(FakeConnection.calls, [])
 
+    def test_bound_reader_metadata_stays_on_info_and_rejects_ambiguous_responses(self):
+        for payload in ({"type": "spotMeta"}, {"type": "metaAndAssetCtxs"},
+                        {"type": "activeAssetData", "user": ADDRESS, "coin": "BTC"}):
+            FakeConnection.calls = []
+            FakeConnection.response = FakeResponse(b"{}")
+            self.assertEqual(preflight.post_info(payload, connection_factory=FakeConnection), {})
+            self.assertEqual(FakeConnection.calls[1][:3], ("request", "POST", "/info"))
+        for body in (b'{"role":"user","role":"agent"}', b'{"value":NaN}'):
+            FakeConnection.calls = []
+            FakeConnection.response = FakeResponse(body)
+            with self.assertRaises(preflight.PreflightError):
+                preflight.post_info({"type": "userRole", "user": ADDRESS}, connection_factory=FakeConnection)
+            self.assertEqual(FakeConnection.calls[-1], ("close",))
+
 
 if __name__ == "__main__":
     unittest.main()

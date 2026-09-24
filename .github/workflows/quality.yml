@@ -93,7 +93,7 @@ jobs:
           npm run lint
           npm run lint:frontend
           npm run lint:python
-          python -m ruff check scripts/check_internal_tls.py tests/test_internal_tls_preflight.py tests/fixtures/internal_tls_fixture.py
+          python -m ruff check scripts/check_internal_tls.py scripts/hyperliquid_bound_preflight.py scripts/hyperliquid_testnet_preflight.py tests/test_internal_tls_preflight.py tests/test_hyperliquid_bound_preflight.py tests/fixtures/internal_tls_fixture.py
           npm run typecheck
           npm run quality:architecture
           npm run quality:complexity
@@ -108,6 +108,7 @@ jobs:
           npm run test:coverage:modules
           python -m coverage run --branch --source=exchange_executor -m unittest discover -s exchange_executor/tests -v
           python -m unittest discover -s tests -p test_internal_tls_preflight.py -v
+          python -m unittest discover -s tests -p test_hyperliquid_bound_preflight.py -v
           python -m coverage report --fail-under=60
           python -m coverage xml -o exchange_executor/coverage.xml
       - name: Duplicate ratio gate
@@ -531,7 +532,7 @@ jobs:
           test "$(docker image inspect tsx-core-exchange-executor:${{ github.sha }} --format '{{.Config.User}}')" = 65532:65532
           docker run --rm --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -c "from importlib.metadata import version; import ccxt.async_support, ccxt.pro; assert version('ccxt') == '4.5.75'"
           docker run --rm --network none --read-only --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -E -B /app/verify_implementation_runtime.py
-          docker run --rm -e PYTHONPATH=/app:/ -v "$RUNNER_TEMP/tsx-reviewed-source/exchange_executor/tests:/exchange_executor/tests:ro" -v "$RUNNER_TEMP/tsx-reviewed-source/exchange_executor/tools:/app/tools:ro" -v "$RUNNER_TEMP/tsx-reviewed-source/plans:/plans:ro" -v "$RUNNER_TEMP/tsx-reviewed-source/tests:/tests:ro" -v "$RUNNER_TEMP/tsx-reviewed-source/docs/testing/ccxt-expansion-matrix.json:/docs/testing/ccxt-expansion-matrix.json:ro" --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -m unittest discover -s /exchange_executor/tests -v
+          docker run --rm -e PYTHONPATH=/app:/ -v "$RUNNER_TEMP/tsx-reviewed-source/exchange_executor/tests:/exchange_executor/tests:ro" -v "$RUNNER_TEMP/tsx-reviewed-source/exchange_executor/tools:/app/tools:ro" -v "$RUNNER_TEMP/tsx-reviewed-source/plans:/plans:ro" -v "$RUNNER_TEMP/tsx-reviewed-source/tests:/tests:ro" -v "$RUNNER_TEMP/tsx-reviewed-source/scripts/hyperliquid_testnet_preflight.py:/scripts/hyperliquid_testnet_preflight.py:ro" -v "$RUNNER_TEMP/tsx-reviewed-source/docs/testing/ccxt-expansion-matrix.json:/docs/testing/ccxt-expansion-matrix.json:ro" --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -m unittest discover -s /exchange_executor/tests -v
           test "$(docker image inspect tsx-core-prometheus:${{ github.sha }} --format '{{.Architecture}}/{{.Config.User}}')" = amd64/65534:65534
           docker run --rm --entrypoint /usr/bin/prometheus tsx-core-prometheus:${{ github.sha }} --version
           docker run --rm --entrypoint /usr/bin/promtool tsx-core-prometheus:${{ github.sha }} --version
