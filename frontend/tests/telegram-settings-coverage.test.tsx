@@ -199,7 +199,7 @@ describe('Telegram access, secrets and routing', () => {
   it('preserves a failed credential submission and releases the busy lock without retrying', async () => {
     setup(); const respond = api.jsonRequest.getMockImplementation();
     if (!respond) throw new Error('Expected the configured request fixture.');
-    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => init?.method === 'POST' ? Promise.reject('credential write unavailable') : respond(url, init));
+    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => init?.method === 'POST' ? Promise.reject(new Error('credential write unavailable')) : respond(url, init));
     mount(); await screen.findByLabelText('Telegram API Hash · gespeichert');
     change('Telegram API Hash · gespeichert', 'retain-for-retry');
     fireEvent.click(screen.getByRole('button', { name: 'Telegram-/KI-Zugangsdaten speichern' }));

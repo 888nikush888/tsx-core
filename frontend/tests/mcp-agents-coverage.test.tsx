@@ -173,7 +173,7 @@ describe('MCP agent editor and command behavior', () => {
     let refreshFails = false;
     api.jsonRequest.mockImplementation((_url: string, options?: RequestInit) => {
       if (options?.method) return new Promise(resolve => { resolveRotation = resolve; });
-      return refreshFails ? Promise.reject('Refresh unavailable') : snapshot();
+      return refreshFails ? Promise.reject(new Error('Refresh unavailable')) : snapshot();
     });
     mount('?agentId=auditor');
     await screen.findByDisplayValue('Auditor');
