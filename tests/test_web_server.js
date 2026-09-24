@@ -2126,7 +2126,7 @@ async function runTests() {
   }
 }
 
-await (async () => runTests())().catch(error => {
+await runTests().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

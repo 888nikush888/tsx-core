@@ -109,7 +109,7 @@ function trustAnchor() {
   }
 }
 
-async function probe(host: string, port: number, ca: Buffer): Promise<ActiveObservation> {
+function probe(host: string, port: number, ca: Buffer): Promise<ActiveObservation> {
   return new Promise(resolve => {
     let settled = false;
     let socket: tls.TLSSocket;
@@ -142,8 +142,8 @@ function cachedProbe(endpointId: string, host: string, port: number, ca: Buffer)
   const previous = probeCache.get(endpointId);
   if (previous?.identity === identity && (previous.pending || previous.expiresAt > Date.now())) return previous.promise;
   if (previous?.pending) return Promise.resolve({ state: 'not_checked', certificate: null, checkedAt: null });
-  const entry: ProbeCacheEntry = { identity, expiresAt: 0, pending: true, promise: undefined! };
-  entry.promise = probe(host, port, ca).catch(() => ({ state: 'unreachable' as const, certificate: null, checkedAt: Date.now() }))
+  const entry: ProbeCacheEntry = { identity, expiresAt: 0, pending: true, promise: probe(host, port, ca) };
+  entry.promise = entry.promise.catch(() => ({ state: 'unreachable' as const, certificate: null, checkedAt: Date.now() }))
     .then(observation => { entry.pending = false; entry.expiresAt = Date.now() + PROBE_CACHE_MS; return observation; });
   probeCache.set(endpointId, entry);
   return entry.promise;
