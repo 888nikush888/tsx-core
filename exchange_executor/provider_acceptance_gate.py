@@ -9,7 +9,6 @@ create or replace that trust anchor.
 from __future__ import annotations
 
 import base64
-import binascii
 import hashlib
 import json
 import os
@@ -68,13 +67,8 @@ def canonical_provider_grant(grant: dict[str, Any]) -> bytes:
     return json.dumps(grant, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
 
 
-def signed_grant_valid(
-    document: Any, key: Ed25519PublicKey, account: dict[str, str], product: str, now_ms: int,
-) -> bool:
-    if not isinstance(document, dict) or set(document) != {"grant", "signature"}:
-        return False
-    grant, signature = document["grant"], document["signature"]
-    if not isinstance(grant, dict) or set(grant) != GRANT_FIELDS or not isinstance(signature, str):
+def _grant_identity_valid(grant: dict[str, Any], account: dict[str, str], product: str) -> bool:
+    if set(grant) != GRANT_FIELDS:
         return False
     if type(grant.get("version")) is not int or grant["version"] != 1:
         return False
@@ -90,15 +84,32 @@ def signed_grant_valid(
     if any(not isinstance(grant.get(field), str) or HEX_64.fullmatch(grant[field]) is None
            for field in ("externalAccountId", "credentialGeneration")):
         return False
+    return True
+
+
+def _grant_time_valid(grant: dict[str, Any], now_ms: int) -> bool:
     start, end = grant.get("validFrom"), grant.get("validUntil")
-    if any(not isinstance(value, int) or isinstance(value, bool) for value in (start, end)):
+    if not isinstance(start, int) or isinstance(start, bool):
         return False
-    if not start <= now_ms < end or end - start > 7 * 86_400_000:
+    if not isinstance(end, int) or isinstance(end, bool):
+        return False
+    return start <= now_ms < end and end - start <= 7 * 86_400_000
+
+
+def signed_grant_valid(
+    document: Any, key: Ed25519PublicKey, account: dict[str, str], product: str, now_ms: int,
+) -> bool:
+    if not isinstance(document, dict) or set(document) != {"grant", "signature"}:
+        return False
+    grant, signature = document["grant"], document["signature"]
+    if not isinstance(grant, dict) or not isinstance(signature, str):
+        return False
+    if not _grant_identity_valid(grant, account, product) or not _grant_time_valid(grant, now_ms):
         return False
     try:
         encoded = canonical_provider_grant(grant)
         key.verify(base64.b64decode(signature, validate=True), encoded)
-    except (InvalidSignature, ValueError, TypeError, binascii.Error):
+    except (InvalidSignature, ValueError, TypeError):
         return False
     return True
 

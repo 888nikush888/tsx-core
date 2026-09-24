@@ -131,9 +131,8 @@ class ProviderAcceptanceGateTests(unittest.TestCase):
         entry = {"entryExpiresAt": int(time.time() * 1000) + 10_000, "leverage": 2}
 
         async def checks():
-            with patch("ccxt_adapter.assert_entry_constraints"):
-                with self.assertRaisesRegex(ExchangeContractError, "provenance"):
-                    await adapter._submit_order_owned(clients, ACCOUNT, entry, deadline)
+            with patch("ccxt_adapter.assert_entry_constraints"), self.assertRaisesRegex(ExchangeContractError, "provenance"):
+                await adapter._submit_order_owned(clients, ACCOUNT, entry, deadline)
             rest.create_order.assert_not_awaited()
             rest.set_leverage.assert_not_awaited()
             adapter._order_spec.return_value = ({"params": {"reduceOnly": True, "clientOrderId": "exit-1"}}, market)
@@ -157,9 +156,8 @@ class ProviderAcceptanceGateTests(unittest.TestCase):
         entry = {"entryExpiresAt": int(time.time() * 1000) + 10_000}
 
         async def checks():
-            with patch("ccxt_adapter.assert_entry_constraints"):
-                with self.assertRaisesRegex(ExchangeContractError, "provenance"):
-                    await adapter._create_protected_orders(clients, market, specs, deadline, 2, entry)
+            with patch("ccxt_adapter.assert_entry_constraints"), self.assertRaisesRegex(ExchangeContractError, "provenance"):
+                await adapter._create_protected_orders(clients, market, specs, deadline, 2, entry)
             rest.create_orders.assert_not_awaited()
 
         asyncio.run(checks())
