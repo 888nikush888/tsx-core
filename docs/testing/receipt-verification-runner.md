@@ -4,6 +4,22 @@
 
 Run it only after the source is frozen and all build inputs are committed. From the repository root, with Node 22/npm 10.9 and the hash-locked Python 3.12/CCXT 4.5.75 environment installed:
 
+On the current WSL staging host, use the verified Linux Node distribution and the separately installed Python lockfile environment; do not let the Windows npm executable on WSL `PATH` supply the runtime:
+
+```bash
+revision=$(git rev-parse HEAD)
+git_binary=$(command -v git)
+git_digest=$(sha256sum "$git_binary" | cut -d ' ' -f 1)
+node_binary="$HOME/.local/tsx-node-22.22.1/bin/node"
+python_binary="$HOME/.local/tsx-core-python-3.12/bin/python"
+tag=freeze-20260925-01
+for group in foundation backend python frontend build browser mutations dependencies; do
+  "$node_binary" scripts/run_receipt_verification.mjs --sha "$revision" --python "$python_binary" --git "$git_binary" --git-sha256 "$git_digest" --group "$group" --tag "$tag" || exit 1
+done
+```
+
+The downloaded Node archive was checked against the official Node release SHA-256 list, and the Python environment was installed using both repository `requirements*.lock` files with `--require-hashes`. Record and independently review those installation commands, manifest/digests, and the clean `npm ci` installations before treating any local command output as dependency-bound evidence. The following PowerShell example is for a separately provisioned Windows Node 22/npm 10.9 host, not the current Windows Node 24 shell:
+
 ```powershell
 $revision = (git rev-parse HEAD).Trim()
 $python = 'C:\Users\nikla\Documents\ChatGPT\TSX CORE SERVER INSTALLATION\tmp\tsx-security-python-env\Scripts\python.exe'
