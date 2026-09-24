@@ -1,9 +1,9 @@
 """Generate disposable internal-TLS test certificates; never write keys to Git."""
 
 import ipaddress
-import json
 import os
 import sys
+import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -33,10 +33,8 @@ def certificate_builder(subject: x509.Name, issuer: x509.Name, public_key, now: 
     )
 
 
-def main() -> None:
-    if len(sys.argv) != 2:
-        raise SystemExit("usage: internal_tls_fixture.py EMPTY_DIRECTORY")
-    directory = Path(sys.argv[1]).resolve(strict=True)
+def generate(directory: Path) -> dict[str, str]:
+    directory = directory.resolve(strict=True)
     if not directory.is_dir() or any(directory.iterdir()):
         raise SystemExit("TLS fixture requires an empty directory")
     now = datetime.now(timezone.utc)
@@ -86,7 +84,13 @@ def main() -> None:
         "otherKey": write_new(directory, "other-key.pem", other_key.private_bytes(key_encoding, key_format, no_encryption), 0o600),
         "expiredCert": write_new(directory, "expired.pem", expired_cert.public_bytes(key_encoding), 0o644),
     }
-    print(json.dumps(paths))
+    return paths
+
+
+def main() -> None:
+    if len(sys.argv) != 2:
+        raise SystemExit("usage: internal_tls_fixture.py EMPTY_DIRECTORY")
+    print(json.dumps(generate(Path(sys.argv[1]))))
 
 
 if __name__ == "__main__":
