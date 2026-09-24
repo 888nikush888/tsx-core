@@ -12,18 +12,29 @@ export function exchangeAssessmentLabel(entry: CatalogEntry): { product: string;
   const product = entry.assessment.products.length > 0
     ? `CCXT-SDK-Inventur, keine TSX-Handelsfreigabe: ${entry.assessment.products.map((scope) => {
       const [kind, settlement] = scope.split(":");
-      const productName = kind === "swap" ? "Swap" : kind === "future" ? "Future" : kind;
-      const settlementName = settlement === "linear" ? "linear" : settlement === "inverse" ? "invers" : "Abwicklung ungeklärt";
+      let productName = kind;
+      if (kind === "swap") {
+        productName = "Swap";
+      } else if (kind === "future") {
+        productName = "Future";
+      }
+      let settlementName = "Abwicklung ungeklärt";
+      if (settlement === "linear") {
+        settlementName = "linear";
+      } else if (settlement === "inverse") {
+        settlementName = "invers";
+      }
       return `${productName} (${settlementName})`;
     }).join(" · ")}`
     : "Keine Derivate laut gepinnter CCXT-Inventur";
-  const decision = entry.id === "hyperliquid" && entry.assessment.decision === "existing"
-    ? "TSX lokal nur first-DEX/USDC/linear/Perp mit Master-Key offline geprüft; Provider-, Konto- und Release-Nachweise offen"
-    : entry.assessment.decision === "existing"
-      ? "Bestehendes Profil; Produkt- und Provider-Scope gesondert nachweisen"
-    : entry.assessment.decision === "not_derivative"
-      ? "Keine Futures-Eignung"
-      : "Für TSX Core derzeit nicht freigabereif";
+  let decision = "Für TSX Core derzeit nicht freigabereif";
+  if (entry.id === "hyperliquid" && entry.assessment.decision === "existing") {
+    decision = "TSX lokal nur first-DEX/USDC/linear/Perp mit Master-Key offline geprüft; Provider-, Konto- und Release-Nachweise offen";
+  } else if (entry.assessment.decision === "existing") {
+    decision = "Bestehendes Profil; Produkt- und Provider-Scope gesondert nachweisen";
+  } else if (entry.assessment.decision === "not_derivative") {
+    decision = "Keine Futures-Eignung";
+  }
   return { product, decision, reasons: entry.assessment.reasonCodes.join(" · ") };
 }
 

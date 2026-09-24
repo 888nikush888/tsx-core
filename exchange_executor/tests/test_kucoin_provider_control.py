@@ -173,8 +173,9 @@ class KucoinControlTests(unittest.IsolatedAsyncioTestCase):
                     **malformed_stop,
                 }
                 response = {"code": "200000", "data": [accepted_entry, stop]}
+                prepared_expected_legs = expected_legs()
                 with self.assertRaises(UnresolvedOrderOutcome) as captured:
-                    classify_kucoin_batch_ack(response, expected_legs())
+                    classify_kucoin_batch_ack(response, prepared_expected_legs)
                 details = captured.exception.details
                 self.assertEqual([row["clientOrderId"] for row in details["confirmedOrders"]],
                                  ["tsx-entry"])
