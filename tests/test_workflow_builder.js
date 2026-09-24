@@ -18,6 +18,7 @@ import {
   deleteWorkflowResourceFamily,
   deleteWorkflowResourceDraft,
   getActiveWorkflow,
+  getWorkflowResourceById,
   getWorkflowRevisionById,
   getWorkflowSignalPlans,
   listWorkflowResources,
@@ -961,6 +962,104 @@ try {
       'SELECT strategy_version_id, workflow_revision_id FROM trading_trade_intents WHERE id = ?', [intent.id],
     ), { strategy_version_id: sizingStrategy.id, workflow_revision_id: sizingWorkflow.id });
   }
+  await assertHistoricalSafetyPinned();
+
+  // Unlike strategy sizing defaults, all six fields on the required sizing
+  // resource become effective for new intents only after a graph revision pins it.
+  const historicalSizingWorkflow = await getWorkflowRevisionById(sizingWorkflow.id);
+  const historicalSizingIntentRows = await Promise.all(sizingIntents.map(intent => getDatabase().get(
+    'SELECT * FROM trading_trade_intents WHERE id = ?', [intent.id],
+  )));
+  const effectiveSizingValues = {
+    positionSizingMode: 'risk_percent', riskPerTradePercent: '2', maxAdaptiveRiskPercent: '4',
+    maxPositionNotional: '5000', defaultLeverage: 3, maxLeverage: 8,
+  };
+  const effectiveSizingDraft = await createWorkflowResourceDraft({
+    resourceId: changedSizing.resourceId, kind: 'sizing', name: 'Effective sizing draft',
+    configuration: changedSizing.configuration,
+  });
+  const updatedEffectiveSizingDraft = await updateWorkflowResourceDraft(effectiveSizingDraft.id, {
+    name: 'Effective sizing v2', configuration: effectiveSizingValues,
+  });
+  assert.deepEqual(updatedEffectiveSizingDraft.configuration, effectiveSizingValues);
+  assert.equal((await getActiveWorkflow()).id, sizingWorkflow.id);
+  const publishedEffectiveSizing = await publishWorkflowResource(effectiveSizingDraft.id);
+  assert.equal(publishedEffectiveSizing.status, 'published');
+  assert.equal((await getActiveWorkflow()).id, sizingWorkflow.id,
+    'Publishing a sizing resource alone must not change the active risk source.');
+  const effectiveSizingGraph = { ...sizingGraph, nodes: sizingGraph.nodes.map(candidate => candidate.id === 'sizing-a'
+    ? { ...candidate, resourceVersionId: publishedEffectiveSizing.id } : candidate) };
+  await assert.rejects(saveWorkflowRevision({
+    baseRevisionId: sizingWorkflow.id, graph: effectiveSizingGraph, actorId: 'test:sizing-unconfirmed',
+  }), /WORKFLOW_IMPACT_CONFIRMATION_REQUIRED/);
+  assert.equal((await getActiveWorkflow()).id, sizingWorkflow.id);
+  const effectiveSizingWorkflow = await saveWorkflowRevision({
+    baseRevisionId: sizingWorkflow.id, graph: effectiveSizingGraph,
+    actorId: 'test:sizing-confirmed', confirmation: WORKFLOW_IMPACT_CONFIRMATION,
+  });
+  const effectiveSizingPath = effectiveSizingWorkflow.compiled.paths.find(candidate => candidate.accountId === firstAccount.id);
+  assert.deepEqual(effectiveSizingPath.effectiveConfiguration.strategyConfiguration.sizing, effectiveSizingValues);
+  assert.equal(effectiveSizingPath.sizingResourceVersionId, publishedEffectiveSizing.id);
+  assert.deepEqual(effectiveSizingWorkflow.compiled.paths.find(candidate => candidate.accountId === secondAccount.id)
+    .effectiveConfiguration.strategyConfiguration.sizing,
+  sizingWorkflow.compiled.paths.find(candidate => candidate.accountId === secondAccount.id)
+    .effectiveConfiguration.strategyConfiguration.sizing,
+  'A different account path must retain its independently pinned sizing resource.');
+  const effectiveSizingDetail = await uiWorkflowDetail('paths', effectiveSizingPath.id);
+  for (const [field, value] of Object.entries(effectiveSizingValues)) {
+    const parameter = effectiveSizingDetail.parameterEffects.find(item => item.field === `sizing.${field}`);
+    assert.equal(parameter.value, value);
+    assert.equal(parameter.strategyValue, authoredSizing[field]);
+    assert.equal(parameter.sourceVersionId, publishedEffectiveSizing.id);
+    assert.equal(parameter.overridesStrategy, true);
+  }
+  await saveSignal('workflow-signal-effective-sizing', '-100-workflow', 4, '<signal/>', '<signal/>');
+  const effectiveSizingIntents = await createWorkflowTradingIntents({
+    sourceSignalId: 'workflow-signal-effective-sizing', channelId: '-100-workflow', sourceText: 'BTCUSDT LONG', signal,
+  });
+  assert.equal(effectiveSizingIntents.length, 2);
+  const firstEffectiveIntent = effectiveSizingIntents.find(intent => intent.accountId === firstAccount.id);
+  assert.equal(firstEffectiveIntent.workflowRevisionId, effectiveSizingWorkflow.id);
+  assert.equal(firstEffectiveIntent.strategyVersionId, sizingStrategy.id);
+  assert.equal(firstEffectiveIntent.executionPathId, effectiveSizingPath.id);
+  const effectiveRiskInput = { ...riskInput, intentId: firstEffectiveIntent.id };
+  const effectiveStrategy = effectiveSizingPath.effectiveConfiguration.strategyConfiguration;
+  const plan = (sizing = {}, extras = {}) => createTradingPlan({
+    ...effectiveRiskInput, ...extras,
+    strategy: { ...effectiveStrategy, sizing: { ...effectiveStrategy.sizing, ...sizing } },
+  });
+  const activeSizingPlan = plan();
+  assert.notEqual(activeSizingPlan.quantity, plan({ positionSizingMode: 'equity_percent_margin' }).quantity);
+  assert.notEqual(activeSizingPlan.quantity, plan({ riskPerTradePercent: '1' }).quantity);
+  assert.notEqual(plan({}, { effectiveRiskPercent: '9' }).quantity,
+    plan({ maxAdaptiveRiskPercent: '2' }, { effectiveRiskPercent: '9' }).quantity);
+  const closeStopSignal = { ...effectiveRiskInput.signal, stopLoss: '99' };
+  assert.notEqual(plan({}, { signal: closeStopSignal }).quantity,
+    plan({ maxPositionNotional: '10000' }, { signal: closeStopSignal }).quantity);
+  assert.notEqual(activeSizingPlan.leverage, plan({ defaultLeverage: 5 }).leverage);
+  const highLeverageSignal = { ...effectiveRiskInput.signal, suggestedLeverage: 15 };
+  assert.notEqual(plan({}, { signal: highLeverageSignal }).leverage,
+    plan({ maxLeverage: 12 }, { signal: highLeverageSignal }).leverage);
+  assert.notDeepEqual([activeSizingPlan.quantity, activeSizingPlan.riskAmount, activeSizingPlan.leverage],
+    [strategyOnlyPlan.quantity, strategyOnlyPlan.riskAmount, strategyOnlyPlan.leverage],
+    'The new sizing resource must affect the trade-risk plan relative to the strategy defaults.');
+  await closeDb();
+  await initDb(path.join(directory, 'forwarder.db'));
+  assert.equal((await getActiveWorkflow()).id, effectiveSizingWorkflow.id);
+  assert.deepEqual((await getWorkflowResourceById(publishedEffectiveSizing.id)).configuration, effectiveSizingValues);
+  assert.deepEqual((await getWorkflowRevisionById(effectiveSizingWorkflow.id)).compiled.paths
+    .find(candidate => candidate.accountId === firstAccount.id).effectiveConfiguration.strategyConfiguration.sizing,
+  effectiveSizingValues);
+  assert.deepEqual((await getWorkflowRevisionById(sizingWorkflow.id)).graph, historicalSizingWorkflow.graph);
+  assert.deepEqual((await getWorkflowRevisionById(sizingWorkflow.id)).compiled, historicalSizingWorkflow.compiled);
+  assert.deepEqual(await Promise.all(sizingIntents.map(intent => getDatabase().get(
+    'SELECT * FROM trading_trade_intents WHERE id = ?', [intent.id],
+  ))), historicalSizingIntentRows, 'Original strategy-only intents must remain unchanged after sizing activation.');
+  assert.deepEqual(await getDatabase().get(
+    'SELECT workflow_revision_id, strategy_version_id, execution_path_id FROM trading_trade_intents WHERE id = ?',
+    [firstEffectiveIntent.id],
+  ), { workflow_revision_id: effectiveSizingWorkflow.id, strategy_version_id: sizingStrategy.id,
+    execution_path_id: effectiveSizingPath.id });
   await assertHistoricalSafetyPinned();
   console.log('Workflow builder tests passed.');
 } finally {

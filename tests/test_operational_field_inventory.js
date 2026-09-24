@@ -222,6 +222,14 @@ for (const name of strategySizingDefaults) {
     'Strategy sizing defaults cannot be promoted while the mandatory sizing resource overrides them.');
   assert.equal(field.firstSliceGroup, null);
 }
+const resourceSizingSlice = firstSlice.groups.find(group => group.id === 'resource-sizing');
+assert.equal(resourceSizingSlice.class, 'versioned-draft');
+assert.deepEqual(resourceSizingSlice.paths, strategySizingDefaults.map(name => `resource.sizing.${name}`));
+assert.deepEqual(resourceSizingSlice.contractTests, [
+  'frontend/tests/workflow-resource-editor.test.tsx',
+  'tests/test_web_server.js', 'tests/test_workflow_builder.js',
+]);
+for (const testFile of resourceSizingSlice.contractTests) await access(path.join(root, testFile));
 const counted = verifyCatalog(catalog, fields);
 const slicePathCount = firstSlice.groups.reduce((count, group) => count + group.paths.length, 0);
 assert.equal(firstSliceByPath.size, slicePathCount, 'First-slice path must occur in exactly one group.');

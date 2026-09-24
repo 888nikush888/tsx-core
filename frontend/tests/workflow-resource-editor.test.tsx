@@ -130,6 +130,27 @@ describe('workflow resource contracts', () => {
     expect(defaultConfiguration('account', trading)).toEqual({ accountId: 'account-1' })
   })
 
+  it('submits all six effective sizing-resource controls as one versioned resource', async () => {
+    const onSave = editor('sizing', undefined, trading, workflowResource('sizing', {
+      positionSizingMode: 'equity_percent_margin', riskPerTradePercent: '5', maxAdaptiveRiskPercent: '10',
+      maxPositionNotional: '1000000000', defaultLeverage: 10, maxLeverage: 10,
+    }))
+    fireEvent.change(screen.getByLabelText('Größenmodus'), { target: { value: 'risk_percent' } })
+    fireEvent.change(screen.getByLabelText('Basis pro Trade (%)'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('Max. adaptiv (%)'), { target: { value: '4' } })
+    fireEvent.change(screen.getByLabelText('Notional-Obergrenze'), { target: { value: '5000' } })
+    fireEvent.change(screen.getByLabelText(/Maximaler Hebel/), { target: { value: '8' } })
+    fireEvent.change(screen.getByLabelText(/Standard-Hebel/), { target: { value: '3' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      configuration: {
+        positionSizingMode: 'risk_percent', riskPerTradePercent: '2', maxAdaptiveRiskPercent: '4',
+        maxPositionNotional: '5000', defaultLeverage: 3, maxLeverage: 8,
+      },
+    })))
+    expect(api.apiFetch).not.toHaveBeenCalled()
+  })
+
   it('saves a channel resource through its popup', async () => {
     const onSave = editor('channel')
     fireEvent.change(screen.getByLabelText(/Telegram-Kanal-ID/), { target: { value: '-100123' } })

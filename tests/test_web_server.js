@@ -484,6 +484,73 @@ async function testWorkflowResourceApi(baseUrl) {
 
 }
 
+async function testWorkflowSizingResourceApi(baseUrl, controls) {
+  const originalSizing = {
+    positionSizingMode: 'equity_percent_margin', riskPerTradePercent: '5', maxAdaptiveRiskPercent: '10',
+    maxPositionNotional: '1000000000', defaultLeverage: 10, maxLeverage: 10,
+  };
+  const configuration = {
+    positionSizingMode: 'risk_percent', riskPerTradePercent: '2', maxAdaptiveRiskPercent: '4',
+    maxPositionNotional: '5000', defaultLeverage: 3, maxLeverage: 8,
+  };
+  const request = configurationValue => JSON.stringify({
+    kind: 'sizing', name: 'Audited sizing v2', configuration: configurationValue,
+  });
+  let response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'POST', headers: headers(VIEWER_TOKEN, {
+      'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard',
+    }), body: request(configuration),
+  });
+  assert.equal(response.status, 403, 'Viewer must not change effective sizing limits.');
+  for (const invalid of [
+    { ...configuration, positionSizingMode: 'cash' },
+    { ...configuration, riskPerTradePercent: '0' },
+    { ...configuration, maxAdaptiveRiskPercent: '1' },
+    { ...configuration, maxPositionNotional: '0' },
+    { ...configuration, defaultLeverage: 9 },
+    { ...configuration, maxLeverage: 0 },
+  ]) {
+    response = await fetch(`${baseUrl}/api/workflow/resources`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: request(invalid),
+    });
+    assert.equal(response.status, 409, 'Invalid sizing settings must be rejected before persistence.');
+  }
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: request(originalSizing),
+  });
+  assert.equal(response.status, 201);
+  const draft = (await response.json()).resource;
+  assert.equal(draft.status, 'draft');
+  assert.deepEqual(draft.configuration, originalSizing);
+  const acceptedAudit = controls.auditEvents.findLast(event => event.phase === 'completed'
+    && event.path === '/api/workflow/resources' && event.statusCode === 201);
+  assert.equal(acceptedAudit.action, 'dashboard.workflow.resources.post');
+  assert.deepEqual(acceptedAudit.target.request.configuration, originalSizing);
+  assert.deepEqual(acceptedAudit.after.response.resource.configuration, originalSizing);
+  response = await fetch(`${baseUrl}/api/workflow/resources/update`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: draft.id, name: 'Audited sizing v2', configuration }),
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual((await response.json()).resource.configuration, configuration);
+  const updateAudit = controls.auditEvents.findLast(event => event.phase === 'completed'
+    && event.action === 'dashboard.workflow.resources.update.post' && event.statusCode === 200);
+  assert.deepEqual(updateAudit.target.request.configuration, configuration);
+  assert.deepEqual(updateAudit.after.response.resource.configuration, configuration);
+  response = await fetch(`${baseUrl}/api/workflow/resources/publish`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: draft.id }),
+  });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).resource.status, 'published');
+  assert.ok(controls.auditEvents.some(event => event.phase === 'completed'
+    && event.action === 'dashboard.workflow.resources.publish.post' && event.statusCode === 200));
+  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=${encodeURIComponent(draft.id)}`,
+    { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 200);
+  assert.deepEqual((await response.json()).resource.configuration, configuration);
+}
+
 async function testWorkflowResourceFamilyArchiveApi(baseUrl) {
   let response = await fetch(`${baseUrl}/api/workflow/resources`, {
     method: 'POST',
@@ -627,6 +694,12 @@ async function testWorkflowRevisionApi(baseUrl, controls) {
     limit: 5, undoCount: 0, redoCount: 0, canUndo: false, canRedo: false,
     undoLabel: null, redoLabel: null,
   });
+  response = await fetch(`${baseUrl}/api/workflow/mutate`, {
+    method: 'POST', headers: headers(VIEWER_TOKEN, {
+      'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard',
+    }), body: JSON.stringify({ baseRevisionId: null, graph }),
+  });
+  assert.equal(response.status, 403, 'A viewer must not activate a graph revision.');
   response = await fetch(`${baseUrl}/api/workflow/impact`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
@@ -644,6 +717,9 @@ async function testWorkflowRevisionApi(baseUrl, controls) {
   assert.strictEqual(workflow.revision, 1);
   assert.equal(firstMutation.history.undoCount, 1);
   assert.equal(firstMutation.history.undoLabel, 'Leeren Workflow angelegt');
+  assert.ok(controls.auditEvents.some(event => event.phase === 'completed'
+    && event.action === 'dashboard.workflow.mutate.post' && event.statusCode === 201),
+  'Graph activation must retain its mutation audit event.');
   response = await fetch(`${baseUrl}/api/workflow/mutate`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
@@ -725,6 +801,7 @@ async function testWorkflowRevisionApi(baseUrl, controls) {
 async function testWorkflowControlPlane(baseUrl, appState) {
   await testExchangeCatalogApi(baseUrl, appState);
   await testWorkflowResourceApi(baseUrl);
+  await testWorkflowSizingResourceApi(baseUrl, appState.controls);
   await testWorkflowResourceFamilyArchiveApi(baseUrl);
   await testWorkflowRevisionApi(baseUrl, appState.controls);
 }

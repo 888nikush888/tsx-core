@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "scope": "Audited source-scoped slices of parameters.json: managed runtime, account identity/state, four versioned strategy safety limits, Telegram Viewer settings, deployment evidence, and the mandatory protective-stop gate. Other parameter families remain unaudited here.",
+  "scope": "Audited source-scoped slices of parameters.json: managed runtime, account identity/state, four versioned strategy safety limits, six effective sizing-resource controls, Telegram Viewer settings, deployment evidence, and the mandatory protective-stop gate. Other parameter families remain unaudited here.",
   "classes": ["runtime-editable", "create-only", "versioned-draft", "read-only-evidence", "host-bootstrap", "immutable-gate"],
   "groups": [
     {
@@ -82,6 +82,18 @@
       "auditActions": ["trading.strategies.post", "trading.strategies.publish.post", "dashboard.workflow.mutate.post"],
       "contractTests": ["frontend/tests/workflow-resource-editor.test.tsx", "tests/test_web_server.js", "tests/test_workflow_builder.js"],
       "effect": "All four fields are bound to an immutable published strategy and take effect for new intents only after the graph pins and activates that resource version. Existing intents and prior workflow revisions retain their former values. This synthetic proof is not a live-host sign-off."
+    },
+    {
+      "id": "resource-sizing",
+      "class": "versioned-draft",
+      "paths": ["resource.sizing.positionSizingMode", "resource.sizing.riskPerTradePercent", "resource.sizing.maxAdaptiveRiskPercent", "resource.sizing.maxPositionNotional", "resource.sizing.defaultLeverage", "resource.sizing.maxLeverage"],
+      "uiRoute": "/workflows/builder",
+      "uiControl": "frontend/src/app/workflow/resource-editor.tsx",
+      "mutationRoutes": ["POST /api/workflow/resources", "POST /api/workflow/resources/update", "POST /api/workflow/resources/publish", "POST /api/workflow/mutate"],
+      "backendValidator": "src/workflow_repository.ts:validateSizingConfiguration",
+      "auditActions": ["dashboard.workflow.resources.post", "dashboard.workflow.resources.update.post", "dashboard.workflow.resources.publish.post", "dashboard.workflow.mutate.post"],
+      "contractTests": ["frontend/tests/workflow-resource-editor.test.tsx", "tests/test_web_server.js", "tests/test_workflow_builder.js"],
+      "effect": "The mandatory sizing resource overrides strategy sizing defaults. All six values are effective for newly created intents on a path only after a published sizing version is pinned by an activated graph revision; existing intents and prior revisions retain their values. Field-specific synthetic trade-plan probes show each value can affect risk sizing under a suitable input. No real order or live-host sign-off is claimed."
     },
     {
       "id": "telegram-viewer-settings",

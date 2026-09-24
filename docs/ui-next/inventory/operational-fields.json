@@ -971,43 +971,43 @@
       "path": "resource.sizing.positionSizingMode",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "resource-sizing"
     },
     {
       "path": "resource.sizing.riskPerTradePercent",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "resource-sizing"
     },
     {
       "path": "resource.sizing.maxAdaptiveRiskPercent",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "resource-sizing"
     },
     {
       "path": "resource.sizing.maxPositionNotional",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "resource-sizing"
     },
     {
       "path": "resource.sizing.defaultLeverage",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "resource-sizing"
     },
     {
       "path": "resource.sizing.maxLeverage",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "resource-sizing"
     },
     {
       "path": "resource.adaptive_risk.enabled",
