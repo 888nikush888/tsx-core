@@ -151,7 +151,7 @@ async function runTests() {
   console.log('ALL DELIVERY CONFIRMATION TESTS PASSED!');
 }
 
-await (async () => runTests())().catch(error => {
+await runTests().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

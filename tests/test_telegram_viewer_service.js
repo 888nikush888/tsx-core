@@ -426,7 +426,7 @@ async function verifyDeliveryMessageContracts() {
   }
 }
 
-(async () => verifyStoredStringContracts())().then(verifyDeliveryMessageContracts).then(run).catch(error => {
+verifyStoredStringContracts().then(verifyDeliveryMessageContracts).then(run).catch(error => {
   console.error(error);
   process.exit(1);
 });
