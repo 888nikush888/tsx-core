@@ -62,7 +62,8 @@ def main() -> None:
                                           cwd=repository).decode().strip("\0").split("\0"))
     totals = {}
     for report in ("coverage/lcov.info", "coverage/b2-backup-gateway/lcov.info",
-                   "coverage/b2-audit-receiver/lcov.info", "frontend/coverage/lcov.info"):
+                   "coverage/b2-audit-receiver/lcov.info", "coverage/incident-receiver-worker/lcov.info",
+                   "frontend/coverage/lcov.info"):
         lines = (arguments.report_root / report).read_text(encoding="utf-8").splitlines()
         paths = {verified_path(line[3:], tracked) for line in lines if line.startswith("SF:")}
         if not paths:

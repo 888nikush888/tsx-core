@@ -289,7 +289,7 @@ assert.match(codeowners, /^\*\s+@888nikush888\s*$/m);
 assert.doesNotMatch(workflow, /^\s{2}release:\s*$/m);
 assert.doesNotMatch(workflow, /create-github-app-token|PR risk approval gate|release-governance|pr-risk-publisher/);
 assert.match(sonarCloud, /^sonar\.python\.version=3\.12$/m);
-assert.match(sonarCloud, /^sonar\.javascript\.lcov\.reportPaths=coverage\/lcov\.info,frontend\/coverage\/lcov\.info$/m);
+assert.match(sonarCloud, /^sonar\.javascript\.lcov\.reportPaths=coverage\/lcov\.info,coverage\/b2-backup-gateway\/lcov\.info,coverage\/b2-audit-receiver\/lcov\.info,coverage\/incident-receiver-worker\/lcov\.info,frontend\/coverage\/lcov\.info$/m);
 assert.match(sonarCloud, /^sonar\.python\.coverage\.reportPaths=exchange_executor\/coverage\.xml$/m);
 assert.match(sonarCloud, /^sonar\.qualitygate\.wait=true$/m);
 assert.match(workflow, /name: SonarQube Cloud quality gate/);

@@ -49,6 +49,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
       ['coverage/lcov.info', repositoryRoot],
       ['coverage/b2-backup-gateway/lcov.info', repositoryRoot],
       ['coverage/b2-audit-receiver/lcov.info', repositoryRoot],
+      ['coverage/incident-receiver-worker/lcov.info', repositoryRoot],
       ['frontend/coverage/lcov.info', path.join(repositoryRoot, 'frontend')]
     ]) {
       const content = await normalizeLcov(await readFile(report, 'utf8'), { repositoryRoot, sourceRoot });

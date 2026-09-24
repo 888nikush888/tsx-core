@@ -115,6 +115,7 @@ jobs:
           npm run test:coverage:b2-gateway
           npm test --prefix services/b2-audit-receiver
           npm run test:coverage:b2-audit
+          npm run test:coverage:incident-receiver
           npm run test:coverage:modules
           python -m coverage run --branch --source=exchange_executor -m unittest discover -s exchange_executor/tests -v
           python -m unittest discover -s tests -p test_internal_tls_preflight.py -v
@@ -238,6 +239,7 @@ jobs:
           ./node_modules/.bin/c8 --all --include="src/**/*.ts" --exclude="src/*_cli.ts" --reporter=lcov --reports-dir=coverage node tests/run_all.js
           npm run test:coverage:b2-gateway
           npm run test:coverage:b2-audit
+          npm run test:coverage:incident-receiver
           npm run test:coverage --prefix frontend
           node scripts/normalize_lcov_paths.js
       - name: Produce Python coverage
@@ -285,6 +287,7 @@ jobs:
             coverage/lcov.info
             coverage/b2-backup-gateway/lcov.info
             coverage/b2-audit-receiver/lcov.info
+            coverage/incident-receiver-worker/lcov.info
             frontend/coverage/lcov.info
             exchange_executor/coverage.xml
           if-no-files-found: error
@@ -319,11 +322,12 @@ jobs:
         with:
           name: sonarcloud-evidence-${{ env.CODACY_EXPECTED_REVISION }}
           path: .
-      - name: Require all five coverage reports
+      - name: Require all six coverage reports
         run: |
           test -s coverage/lcov.info
           test -s coverage/b2-backup-gateway/lcov.info
           test -s coverage/b2-audit-receiver/lcov.info
+          test -s coverage/incident-receiver-worker/lcov.info
           test -s frontend/coverage/lcov.info
           test -s exchange_executor/coverage.xml
           python scripts/verify_codacy_coverage_paths.py
@@ -344,6 +348,7 @@ jobs:
           "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --force-coverage-parser lcov -r coverage/lcov.info
           "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --force-coverage-parser lcov -r coverage/b2-backup-gateway/lcov.info
           "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --force-coverage-parser lcov -r coverage/b2-audit-receiver/lcov.info
+          "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --force-coverage-parser lcov -r coverage/incident-receiver-worker/lcov.info
           "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --force-coverage-parser lcov -r frontend/coverage/lcov.info
           "$REPORTER" report --commit-uuid "$CODACY_EXPECTED_REVISION" --partial --prefix exchange_executor/ --force-coverage-parser cobertura -r exchange_executor/coverage.xml
           "$REPORTER" final --commit-uuid "$CODACY_EXPECTED_REVISION"
