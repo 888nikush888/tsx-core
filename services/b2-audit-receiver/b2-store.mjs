@@ -144,6 +144,13 @@ export class B2AuditStore {
     }
   }
 
+  async assertSoleVersion(key, versionId, signal) {
+    const versions = await this.versions(key, signal);
+    if (versions.length !== 1 || versions[0].VersionId !== versionId) {
+      throw new Error('Audit object version changed during verification.');
+    }
+  }
+
   async verifyPredecessor(record, signal) {
     if (record.sequence === 1) return;
     const predecessorKey = objectKey(this.sourceId, record.sequence - 1);
@@ -154,6 +161,7 @@ export class B2AuditStore {
     if (previous.sequence !== record.sequence - 1 || previous.hash !== record.previousHash) {
       throw new AuditConflictError('Audit previousHash does not match the immutable predecessor.');
     }
+    await this.assertSoleVersion(predecessorKey, predecessor[0].VersionId, signal);
   }
 
   async persist(record, body) {
@@ -166,6 +174,7 @@ export class B2AuditStore {
     const existing = await this.versions(key, signal);
     if (existing.length === 1) {
       await this.verifyVersion(key, existing[0], body, false, signal);
+      await this.assertSoleVersion(key, existing[0].VersionId, signal);
       return 'replayed';
     }
     // B2's published S3 Put Object contract does not guarantee If-None-Match.
@@ -188,6 +197,7 @@ export class B2AuditStore {
       const afterError = await this.versions(key, signal);
       if (afterError.length === 1) {
         await this.verifyVersion(key, afterError[0], body, false, signal);
+        await this.assertSoleVersion(key, afterError[0].VersionId, signal);
         return 'replayed';
       }
       throw error;
@@ -198,6 +208,7 @@ export class B2AuditStore {
       throw new Error('Audit object version changed during persistence.');
     }
     await this.verifyVersion(key, after[0], body, true, signal);
+    await this.assertSoleVersion(key, versionId, signal);
     return 'stored';
   }
 }

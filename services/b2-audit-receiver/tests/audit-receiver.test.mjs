@@ -32,11 +32,25 @@ async function serve(store, bodyTimeoutMs) {
   return `http://127.0.0.1:${server.address().port}/v1/records`;
 }
 
-async function post(url, body, headers = {}) {
+async function post(url, body, headers = {}, signal) {
   return fetch(url, {
     method: 'POST',
     headers: { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json', ...headers },
-    body
+    body,
+    signal
+  });
+}
+
+async function incompleteRequestStatus(url) {
+  const endpoint = new URL(url);
+  return new Promise((resolve, reject) => {
+    const socket = net.connect(Number(endpoint.port), endpoint.hostname);
+    let response = '';
+    socket.setTimeout(1_000, () => socket.destroy(new Error('fixture response timed out')));
+    socket.on('data', chunk => { response += chunk.toString(); });
+    socket.on('error', error => { if (error.code !== 'ECONNRESET') reject(error); });
+    socket.on('close', () => resolve(Number(/^HTTP\/1\.1 (\d{3})/.exec(response)?.[1])));
+    socket.on('connect', () => socket.write(`POST /v1/records HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer ${TOKEN}\r\nContent-Type: application/json\r\nContent-Length: 1000\r\n\r\n{`));
   });
 }
 
@@ -106,6 +120,20 @@ test('a failed storage operation releases the serialized receiver for a retry', 
   assert.equal(calls, 2);
 });
 
+test('invalid bodies and failed stores release every reserved slot', async () => {
+  let fail = true;
+  const url = await serve({ persist: async () => {
+    if (fail) throw new Error('B2 unavailable');
+    return 'stored';
+  } });
+  for (let index = 0; index < 5; index += 1) {
+    assert.equal((await post(url, Buffer.from('{}'))).status, 400);
+    assert.equal((await post(url, auditBody())).status, 503);
+  }
+  fail = false;
+  assert.equal((await post(url, auditBody())).status, 201);
+});
+
 test('an incomplete incoming body is closed by its absolute deadline without blocking the next record', async () => {
   let count = 0;
   const url = await serve({ persist: async () => { count += 1; return 'stored'; } }, 50);
@@ -122,4 +150,46 @@ test('an incomplete incoming body is closed by its absolute deadline without blo
   assert.doesNotMatch(received, /201 Created/);
   assert.equal(count, 0);
   assert.equal((await post(url, auditBody())).status, 201);
+});
+
+test('a held store caps authenticated bodies before reading and disconnect frees a queued slot', async () => {
+  let releaseStore;
+  const held = new Promise(resolve => { releaseStore = resolve; });
+  let firstStarted;
+  const began = new Promise(resolve => { firstStarted = resolve; });
+  let calls = 0;
+  const url = await serve({ persist: async () => {
+    calls += 1;
+    if (calls === 1) { firstStarted(); await held; }
+    return 'stored';
+  } });
+  const first = post(url, auditBody());
+  await began;
+  const cancelled = new AbortController();
+  let queuedOne;
+  let queuedTwo;
+  let queuedThree;
+  let replacement;
+  try {
+    queuedOne = post(url, auditBody(), {}, cancelled.signal);
+    await new Promise(resolve => setTimeout(resolve, 15));
+    queuedTwo = post(url, auditBody());
+    await new Promise(resolve => setTimeout(resolve, 15));
+    queuedThree = post(url, auditBody());
+    await new Promise(resolve => setTimeout(resolve, 25));
+    assert.equal(await incompleteRequestStatus(url), 503, 'saturated receiver must reject before the body completes');
+    cancelled.abort();
+    await assert.rejects(queuedOne, /abort/i);
+    await new Promise(resolve => setTimeout(resolve, 25));
+    replacement = post(url, auditBody());
+    releaseStore();
+    const statuses = await Promise.all([first, queuedTwo, queuedThree, replacement].map(async request => (await request).status));
+    assert.deepEqual(statuses, [201, 201, 201, 201]);
+    assert.equal(calls, 4, 'disconnected queued request must not reach the store');
+    assert.equal((await post(url, auditBody())).status, 201, 'successful requests must release all reservations');
+  } finally {
+    releaseStore();
+    cancelled.abort();
+    await Promise.allSettled([first, queuedOne, queuedTwo, queuedThree, replacement].filter(Boolean));
+  }
 });

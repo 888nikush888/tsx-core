@@ -171,6 +171,36 @@ test('lost upload response and atomic conditional race reconcile only a verified
   await assert.rejects(store(conflict).persist(first.record, first.body), AuditConflictError);
 });
 
+test('a competing version during read-back blocks fresh, replay, and uncertain receipts', async () => {
+  const { record, body } = recordBody();
+  for (const mode of ['fresh', 'replay', 'uncertain']) {
+    const mock = mockB2();
+    if (mode === 'replay') await store(mock).persist(record, body);
+    if (mode === 'uncertain') mock.loseResponse();
+    let injected = false;
+    mock.beforeRead(() => {
+      if (injected) return;
+      injected = true;
+      mock.objects.push({ ...mock.objects[0], versionId: `competing-${mode}` });
+    });
+    await assert.rejects(store(mock).persist(record, body), /multiple|changed/);
+    assert.equal(injected, true, `${mode} must read back the object before acknowledging`);
+  }
+});
+
+test('a competing predecessor version blocks the next sequence before its upload', async () => {
+  const mock = mockB2();
+  const first = recordBody();
+  const second = recordBody('next', 2, first.record.hash);
+  await store(mock).persist(first.record, first.body);
+  mock.beforeRead(() => {
+    mock.beforeRead(null);
+    mock.objects.push({ ...mock.objects[0], versionId: 'competing-predecessor' });
+  });
+  await assert.rejects(store(mock).persist(second.record, second.body), /multiple|changed/);
+  assert.equal(mock.objects.some(object => object.key.endsWith('0002.json')), false);
+});
+
 test('stalled B2 request aborts, frees the queue, and permits a verified retry', async () => {
   const mock = mockB2();
   const originalSend = mock.client.send.bind(mock.client);

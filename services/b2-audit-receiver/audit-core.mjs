@@ -2,6 +2,8 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 
 const HASH = /^[a-f0-9]{64}$/;
 const MAX_BODY_BYTES = 256 * 1024;
+const MAX_PENDING_RECORDS = 4;
+const MAX_RESERVED_BYTES = 1024 * 1024;
 
 export class AuditConflictError extends Error {}
 
@@ -80,13 +82,56 @@ function reply(response, status, message) {
   response.end(JSON.stringify({ status: message }));
 }
 
+function serialWorkQueue() {
+  const waiting = [];
+  let active = false;
+  function drain() {
+    if (active) return;
+    const item = waiting.shift();
+    if (!item) return;
+    active = true;
+    item.started = true;
+    const finish = outcome => {
+      active = false;
+      item.resolve(outcome);
+      drain();
+    };
+    Promise.resolve().then(item.run).then(
+      result => finish({ result }),
+      error => finish({ error })
+    );
+  }
+  return run => {
+    let item;
+    const completion = new Promise(resolve => {
+      item = { run, resolve, started: false };
+      waiting.push(item);
+    });
+    drain();
+    return {
+      completion,
+      get started() { return item.started; },
+      cancel() {
+        if (item.started) return false;
+        const index = waiting.indexOf(item);
+        if (index < 0) return false;
+        waiting.splice(index, 1);
+        item.resolve({ cancelled: true });
+        return true;
+      }
+    };
+  };
+}
+
 export function createAuditReceiver({ bearerToken, store, bodyTimeoutMs = 8_000 }) {
   if (typeof bearerToken !== 'string' || bearerToken.length < 32) throw new Error('Audit bearer token must contain at least 32 characters.');
   if (!store || typeof store.persist !== 'function') throw new Error('Audit store is required.');
   if (!Number.isSafeInteger(bodyTimeoutMs) || bodyTimeoutMs < 10 || bodyTimeoutMs > 10_000) {
     throw new Error('Audit request body timeout must be between 10 and 10000 ms.');
   }
-  let serial = Promise.resolve();
+  const enqueue = serialWorkQueue();
+  let pendingRecords = 0;
+  let reservedBytes = 0;
   return async (request, response) => {
     if (request.url !== '/v1/records') return reply(response, 404, 'not_found');
     if (request.method !== 'POST') return reply(response, 405, 'method_not_allowed');
@@ -94,23 +139,53 @@ export function createAuditReceiver({ bearerToken, store, bodyTimeoutMs = 8_000 
     if (request.headers['content-type'] !== 'application/json' || request.headers['content-encoding']) {
       return reply(response, 415, 'unsupported_media_type');
     }
-    let body;
-    let record;
-    try {
-      body = await boundedBody(request, bodyTimeoutMs);
-      record = parseAuditRecord(body);
-    } catch (error) {
-      if (request.aborted || response.destroyed) return;
-      return reply(response, error instanceof RangeError ? 413 : 400, 'invalid_record');
+    if (pendingRecords >= MAX_PENDING_RECORDS || reservedBytes + MAX_BODY_BYTES > MAX_RESERVED_BYTES) {
+      response.setHeader('connection', 'close');
+      return reply(response, 503, 'busy');
     }
-    const operation = serial.then(() => store.persist(record, body));
-    serial = operation.catch(() => undefined);
+    pendingRecords += 1;
+    reservedBytes += MAX_BODY_BYTES;
+    let released = false;
+    let disconnected = false;
+    let queued = null;
+    const release = () => {
+      if (released) return;
+      released = true;
+      pendingRecords -= 1;
+      reservedBytes -= MAX_BODY_BYTES;
+    };
+    const onClose = () => {
+      if (response.writableEnded) return;
+      disconnected = true;
+      if (queued?.cancel()) release();
+      else if (!queued) request.destroy();
+    };
+    response.once('close', onClose);
     try {
-      const result = await operation;
+      let body;
+      let record;
+      try {
+        body = await boundedBody(request, bodyTimeoutMs);
+        record = parseAuditRecord(body);
+      } catch (error) {
+        if (request.aborted || disconnected || response.destroyed) return;
+        return reply(response, error instanceof RangeError ? 413 : 400, 'invalid_record');
+      }
+      if (disconnected) return;
+      queued = enqueue(() => store.persist(record, body));
+      const outcome = await queued.completion;
+      if (disconnected || outcome.cancelled) return;
+      if (outcome.error) throw outcome.error;
+      const result = outcome.result;
       if (result !== 'stored' && result !== 'replayed') throw new Error('Audit store returned no verified receipt.');
       reply(response, result === 'replayed' ? 200 : 201, result === 'replayed' ? 'replayed' : 'stored');
     } catch (error) {
-      reply(response, error instanceof AuditConflictError ? 409 : 503, error instanceof AuditConflictError ? 'conflict' : 'storage_unavailable');
+      if (!disconnected && !response.destroyed) {
+        reply(response, error instanceof AuditConflictError ? 409 : 503, error instanceof AuditConflictError ? 'conflict' : 'storage_unavailable');
+      }
+    } finally {
+      response.off('close', onClose);
+      release();
     }
   };
 }
