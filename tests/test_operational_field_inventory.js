@@ -157,7 +157,9 @@ function verifyExternal(controls, composeText, ruleText) {
       assert.equal(item.detectionPolicy, 'immutable-expression-duration-severity', `${name}: detection policy drift`);
       assert.equal(item.deliveryControl, 'monitoring.alertmanager.receiver_url', `${name}: delivery is separate`);
       const parts = ['expr', 'for', 'severity'].map(key => {
-        const value = body.match(new RegExp(`^\\s+${key}:\\s*(.*?)\\s*$`, 'm'))?.[1];
+        const line = body.split(/\r?\n/u).find(candidate => /^\s/u.test(candidate)
+          && candidate.trimStart().startsWith(`${key}:`));
+        const value = line?.trimStart().slice(key.length + 1).trim();
         assert.ok(value, `${name}: missing ${key} in critical detection`);
         return value;
       });
@@ -177,7 +179,13 @@ function verifyExternal(controls, composeText, ruleText) {
   for (const binding of external.tlsEnvironmentBindings) {
     assert.ok(environmentNames.has(binding.name), `${binding.name}: missing Compose TLS binding`);
     assert.ok(tlsFiles.includes(binding.artifact), `${binding.name}: unknown TLS artifact`);
-    assert.match(composeText, new RegExp(`^      ${binding.name}: ["']?/run/tsx-tls/${binding.artifact.replace('.', '\\.')}["']?$`, 'm'),
+    const artifactPath = `/run/tsx-tls/${binding.artifact}`;
+    assert.ok(composeText.split(/\r?\n/u).some(line => [
+      `      ${binding.name}: ${artifactPath}`,
+      `      ${binding.name}: "${artifactPath}"`,
+      `      ${binding.name}: '${artifactPath}'`,
+    ]
+      .includes(line)),
       `${binding.name}: TLS artifact mapping drift`);
   }
   for (const id of ['host.BACKUP_DIR', 'host.BACKUP_OFFSITE_TOKEN', 'host.BACKUP_ENCRYPTION_KEY',

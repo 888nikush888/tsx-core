@@ -43,7 +43,8 @@ try {
   assert.match(codacyJob, /ref: \$\{\{ env\.CODACY_EXPECTED_REVISION \}\}/u);
   assert.match(codacyJob, /name: sonarcloud-evidence-\$\{\{ env\.CODACY_EXPECTED_REVISION \}\}/u);
   for (const report of ['coverage/lcov.info', 'frontend/coverage/lcov.info', 'exchange_executor/coverage.xml']) {
-    assert.match(codacyJob, new RegExp(`test -s ${report.replace('.', '\\.')}\\b`, 'u'));
+    assert.ok(codacyJob.split(/\r?\n/u).some(line => line.trim() === `test -s ${report}`),
+      `${report}: missing exact coverage-report check`);
   }
   assert.match(codacyJob, /secrets\.CODACY_PROJECT_TOKEN/u);
   assert.doesNotMatch(codacyJob, /secrets\.CODACY_API_TOKEN|--api-token|--project-token/u,
