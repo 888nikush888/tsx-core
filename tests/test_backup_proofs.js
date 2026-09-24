@@ -160,6 +160,8 @@ async function schedulerProofs(databasePath) {
         driveFileId: 'drive-file-id-1', verifiedAt: Date.now(), reused: false }, driveMirrorError: null }
       : { ...primary, driveMirror: null, driveMirrorError: 'sensitive-provider-token' };
   } };
+  assert.throws(() => new BackupScheduler(path.join(root, 'missing-drive-scheduled'), () => ({ apiId: 17 }),
+    60_000, 3, () => undefined, replicator, true, true), /Required Drive backup mirror is not configured/);
   const dual = new BackupScheduler(path.join(root, 'dual-scheduled'), () => ({ apiId: 17 }), 60_000, 3,
     () => undefined, dualReplicator, true, true);
   await assert.rejects(dual.runNow(), /Drive mirror upload or verification failed/);

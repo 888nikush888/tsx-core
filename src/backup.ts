@@ -131,6 +131,35 @@ export interface BackupStatus {
   restoreDrill: BackupRestoreDrillProof | null;
 }
 
+function assertBackupSchedulerOptions(
+  intervalMs: number, retainCount: number, replicator: BackupReplicator | null,
+  offsiteRequired: boolean, driveMirrorRequired: boolean,
+): void {
+  if (!Number.isSafeInteger(intervalMs) || intervalMs < 60_000 || intervalMs > 15 * 60_000) {
+    throw new Error('Backup interval must be between 1 and 15 minutes for the local snapshot target.');
+  }
+  if (!Number.isSafeInteger(retainCount) || retainCount < 1 || retainCount > 10_000) {
+    throw new Error('Backup retention count must be between 1 and 10000.');
+  }
+  if (offsiteRequired && !replicator) throw new Error('Required off-site backup replication is not configured.');
+  if (driveMirrorRequired && replicator?.driveMirrorConfigured !== true) {
+    throw new Error('Required Drive backup mirror is not configured.');
+  }
+}
+
+function hasFreshOffsiteProof(status: BackupStatus, intervalMs: number): boolean {
+  return Boolean(status.lastOffsiteSuccessAt) && status.offsiteVerified !== null
+    && status.offsiteVerified.artifactSha256 === status.integrityVerified?.artifactSha256
+    && (!status.lastError || status.lastError === status.driveMirrorLastError)
+    && Date.now() - status.lastOffsiteSuccessAt <= intervalMs * 2;
+}
+
+function hasFreshDriveMirrorProof(status: BackupStatus, intervalMs: number): boolean {
+  return status.driveMirrorVerified !== null && !status.driveMirrorLastError
+    && status.driveMirrorVerified.artifactSha256 === status.integrityVerified?.artifactSha256
+    && Date.now() - status.driveMirrorVerified.verifiedAt <= intervalMs * 2;
+}
+
 function normalizedConfigKey(key: string): string {
   return key.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 }
@@ -920,15 +949,7 @@ export class BackupScheduler {
     private readonly offsiteRequired = false,
     private readonly driveMirrorRequired = false
   ) {
-    if (!Number.isSafeInteger(intervalMs) || intervalMs < 60_000 || intervalMs > 15 * 60_000) {
-      throw new Error('Backup interval must be between 1 and 15 minutes for the local snapshot target.');
-    }
-    if (!Number.isSafeInteger(retainCount) || retainCount < 1 || retainCount > 10_000) {
-      throw new Error('Backup retention count must be between 1 and 10000.');
-    }
-    if (offsiteRequired && !replicator) throw new Error('Required off-site backup replication is not configured.');
-    if (driveMirrorRequired && !replicator) throw new Error('Required Drive backup mirror is not configured.');
-    if (driveMirrorRequired && replicator?.driveMirrorConfigured === false) throw new Error('Required Drive backup mirror is not configured.');
+    assertBackupSchedulerOptions(intervalMs, retainCount, replicator, offsiteRequired, driveMirrorRequired);
   }
 
   public async start(): Promise<void> {
@@ -949,16 +970,10 @@ export class BackupScheduler {
   public getStatus(): BackupStatus & { healthy: boolean; offsiteHealthy: boolean; offsiteRequired: boolean; offsiteConfigured: boolean; driveMirrorHealthy: boolean; driveMirrorRequired: boolean; driveMirrorConfigured: boolean } {
     const status = structuredClone(this.status);
     const offsiteConfigured = this.replicator !== null;
-    const offsiteHealthy = !this.replicator && !this.offsiteRequired
-      ? true
-      : Boolean(status.lastOffsiteSuccessAt) && status.offsiteVerified !== null
-        && status.offsiteVerified.artifactSha256 === status.integrityVerified?.artifactSha256
-        && (!status.lastError || status.lastError === status.driveMirrorLastError)
-        && Date.now() - status.lastOffsiteSuccessAt <= this.intervalMs * 2;
+    const offsiteHealthy = (!this.replicator && !this.offsiteRequired)
+      || hasFreshOffsiteProof(status, this.intervalMs);
     const driveMirrorConfigured = this.replicator?.driveMirrorConfigured === true;
-    const driveMirrorHealthy = driveMirrorConfigured && status.driveMirrorVerified !== null && !status.driveMirrorLastError
-        && status.driveMirrorVerified.artifactSha256 === status.integrityVerified?.artifactSha256
-        && Date.now() - status.driveMirrorVerified.verifiedAt <= this.intervalMs * 2;
+    const driveMirrorHealthy = driveMirrorConfigured && hasFreshDriveMirrorProof(status, this.intervalMs);
     return {
       ...status,
       healthy: Boolean(status.lastSuccessAt) && !status.lastError && Date.now() - status.lastSuccessAt <= this.intervalMs * 2 && offsiteHealthy
