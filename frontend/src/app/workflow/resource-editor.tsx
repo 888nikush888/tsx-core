@@ -958,8 +958,9 @@ function StrategyForm({
         <div className="strategy-section-heading">
           <strong>Fallback-Positionsgröße</strong>
           <small>
-            Ein nachgeschalteter Positionsgrößen-Baustein überschreibt diese
-            Grundwerte für seinen konkreten Pfad.
+            Im Workflow ist ein Positionsgrößen-Baustein Pflicht. Er überschreibt
+            alle sechs Grundwerte für jeden aktiven Pfad. Änderungen hier allein
+            ändern die Ordergröße nicht; bearbeite dafür den Baustein im Graphen.
           </small>
         </div>
         {fieldGrid3}

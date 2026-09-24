@@ -962,7 +962,7 @@ async function testTradingStrategyDeletion(baseUrl, appState) {
   }
 }
 
-async function testStrategySafetyMutationAudit(baseUrl, appState, controls) {
+async function testStrategyAuthoringMutationAudit(baseUrl, appState, controls) {
   await seedTradingFixtures();
   const original = appState.tradingControl;
   const activeBefore = (await getActiveWorkflow())?.id ?? null;
@@ -974,6 +974,10 @@ async function testStrategySafetyMutationAudit(baseUrl, appState, controls) {
   Object.assign(configuration.safety, {
     maxDailyLossMode: 'equity_percent', maxDailyLoss: '2.5',
     maxSlippagePercent: '1.25', entryOrderTtlSeconds: 45,
+  });
+  Object.assign(configuration.sizing, {
+    positionSizingMode: 'risk_percent', riskPerTradePercent: '1.25', maxAdaptiveRiskPercent: '3.5',
+    maxPositionNotional: '2500', defaultLeverage: 4, maxLeverage: 8,
   });
   try {
     const body = JSON.stringify({ name: 'Audited safety limits', configuration });
@@ -991,18 +995,28 @@ async function testStrategySafetyMutationAudit(baseUrl, appState, controls) {
     });
     assert.equal(response.status, 409, 'The immutable protective stop must fail closed.');
     response = await fetch(`${baseUrl}/api/trading/strategies`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ name: 'Invalid sizing defaults', configuration: {
+        ...configuration, sizing: { ...configuration.sizing, defaultLeverage: 9 },
+      } }),
+    });
+    assert.equal(response.status, 409, 'Default leverage above the strategy maximum must be rejected.');
+    response = await fetch(`${baseUrl}/api/trading/strategies`, {
       method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body,
     });
     assert.equal(response.status, 201);
     const draft = (await response.json()).result;
     assert.equal(draft.status, 'draft');
     assert.deepEqual(draft.configuration.safety, configuration.safety);
+    assert.deepEqual(draft.configuration.sizing, configuration.sizing);
     assert.equal((await getActiveWorkflow())?.id ?? null, activeBefore);
     const acceptedAudit = controls.auditEvents.findLast(event =>
       event.phase === 'completed' && event.path === '/api/trading/strategies' && event.statusCode === 201);
     assert.equal(acceptedAudit.action, 'trading.strategies.post');
     assert.equal(acceptedAudit.target.request.configuration.safety.entryOrderTtlSeconds, 45);
     assert.equal(acceptedAudit.after.response.result.configuration.safety.maxSlippagePercent, '1.25');
+    assert.equal(acceptedAudit.target.request.configuration.sizing.maxPositionNotional, '2500');
+    assert.equal(acceptedAudit.after.response.result.configuration.sizing.maxLeverage, 8);
     response = await fetch(`${baseUrl}/api/trading/strategies/publish`, {
       method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ id: draft.id }),
@@ -2177,7 +2191,7 @@ async function runTests() {
     await testBrowserAndDestructiveContracts(baseUrl, appState);
     await testRuntimeSettingsControl(baseUrl, controls);
     await testRecoveryMode(baseUrl, appState, controls);
-    await testStrategySafetyMutationAudit(baseUrl, appState, controls);
+    await testStrategyAuthoringMutationAudit(baseUrl, appState, controls);
     await testAccessTokenManagement(baseUrl);
 
     await stopWebServer();

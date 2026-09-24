@@ -211,6 +211,17 @@ assert.deepEqual(strategySafetySlice.contractTests, [
   'tests/test_web_server.js', 'tests/test_workflow_builder.js',
 ]);
 for (const testFile of strategySafetySlice.contractTests) await access(path.join(root, testFile));
+const strategySizingDefaults = [
+  'positionSizingMode', 'riskPerTradePercent', 'maxAdaptiveRiskPercent',
+  'maxPositionNotional', 'defaultLeverage', 'maxLeverage',
+];
+for (const name of strategySizingDefaults) {
+  const field = fields.fields.find(item => item.path === `strategy.sizing.${name}`);
+  assert.equal(field.class, 'versioned-draft');
+  assert.equal(field.evidenceStatus, 'unverified',
+    'Strategy sizing defaults cannot be promoted while the mandatory sizing resource overrides them.');
+  assert.equal(field.firstSliceGroup, null);
+}
 const counted = verifyCatalog(catalog, fields);
 const slicePathCount = firstSlice.groups.reduce((count, group) => count + group.paths.length, 0);
 assert.equal(firstSliceByPath.size, slicePathCount, 'First-slice path must occur in exactly one group.');

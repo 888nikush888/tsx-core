@@ -235,6 +235,37 @@ describe('workflow resource contracts', () => {
     })
   })
 
+  it('submits all six strategy sizing defaults and explains the mandatory graph override', async () => {
+    api.apiFetch.mockImplementation((url: string) => {
+      if (url === '/api/trading/strategies') return response({ result: { id: 'sizing-strategy-v2' } }, 201)
+      if (url === '/api/trading/strategies/publish') return response({ result: { id: 'sizing-strategy-v2' } })
+      return response({ success: true, result: {} })
+    })
+    const onSave = editor('strategy', undefined, trading,
+      workflowResource('strategy', { strategyVersionId: 'strategy-v1' }))
+    expect(screen.getByText(/Änderungen hier allein ändern die Ordergröße nicht/)).toBeVisible()
+    fireEvent.change(screen.getByLabelText('Größenmodus'), { target: { value: 'risk_percent' } })
+    fireEvent.change(screen.getByLabelText('Basis pro Trade (%)'), { target: { value: '1.25' } })
+    fireEvent.change(screen.getByLabelText('Max. adaptiv (%)'), { target: { value: '3.5' } })
+    fireEvent.change(screen.getByLabelText('Notional-Obergrenze'), { target: { value: '2500' } })
+    fireEvent.change(screen.getByLabelText(/Maximaler Hebel/), { target: { value: '8' } })
+    fireEvent.change(screen.getByLabelText(/Standard-Hebel/), { target: { value: '4' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      configuration: { strategyVersionId: 'sizing-strategy-v2' },
+    })))
+    const calls = api.apiFetch.mock.calls.map(([url]) => url)
+    expect(calls.indexOf('/api/trading/strategies')).toBeLessThan(calls.indexOf('/api/trading/strategies/publish'))
+    const request = api.apiFetch.mock.calls.find(([url]) => url === '/api/trading/strategies')?.[1] as RequestInit
+    expect(JSON.parse(String(request.body)).configuration.sizing).toEqual({
+      positionSizingMode: 'risk_percent', riskPerTradePercent: '1.25', maxAdaptiveRiskPercent: '3.5',
+      maxPositionNotional: '2500', defaultLeverage: 4, maxLeverage: 8,
+    })
+    expect(trading.strategies[0].configuration.sizing).toMatchObject({
+      positionSizingMode: 'equity_percent_margin', riskPerTradePercent: '5', maxLeverage: 50,
+    })
+  })
+
   it('keeps a model as a draft and reuses its confirmed result after resource saving fails', async () => {
     api.apiFetch.mockImplementation((url: string) => url === '/api/trading/strategies' ? response({ result: { id: 'strategy-draft-v2' } }, 201) : response({}))
     const onSave = vi.fn().mockResolvedValue(false)
