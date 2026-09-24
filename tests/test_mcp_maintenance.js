@@ -87,6 +87,27 @@ for (const code of ['EPERM', 'EACCES', 'EBUSY', 'EIO', 'ACCESSOR', uncoercibleCo
   });
 }
 
+if (process.platform !== 'win32') {
+  await fixture(async ({ directory, databasePath, owner }) => {
+    const handle = await member(databasePath);
+    const lease = await beginMcpSharedMaintenance('Windows retry policy on a non-Windows runner', databasePath, owner);
+    const file = path.join(directory, '.mcp-participants', `${handle.participant.id}.json`);
+    try {
+      await injectClosedRecordRename(file, 'EPERM', 2, async ({ attempts }) => {
+        const platform = Object.getOwnPropertyDescriptor(process, 'platform');
+        assert.equal(platform?.configurable, true);
+        Object.defineProperty(process, 'platform', { ...platform, value: 'win32' });
+        try { await handle.close(); }
+        finally { Object.defineProperty(process, 'platform', platform); }
+        assert.equal(attempts.length, 3, 'The Windows policy retries only the transient replacement.');
+      });
+      await lease.waitForQuiescence();
+      await lease.assertQuiescent();
+      assert.equal((await readdir(path.join(directory, '.mcp-participants'))).some(name => name.endsWith('.tmp')), false);
+    } finally { await handle.close(); await lease.release(); }
+  });
+}
+
 await fixture(async ({ directory, databasePath, owner }) => {
   const handle = await member(databasePath);
   const lease = await beginMcpSharedMaintenance('persistent evidence lock remains a failure', databasePath, owner);
