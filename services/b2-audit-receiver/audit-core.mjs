@@ -50,17 +50,22 @@ export function parseAuditRecord(body) {
   return record;
 }
 
-async function boundedBody(request) {
+async function boundedBody(request, timeoutMs) {
   const length = request.headers['content-length'];
   if (length !== undefined && (!/^(0|[1-9][0-9]*)$/.test(length) || Number(length) > MAX_BODY_BYTES)) {
     throw new RangeError('Audit body exceeds its limit.');
   }
+  const timer = setTimeout(() => request.destroy(new Error('Audit request body timed out.')), timeoutMs);
   const parts = [];
   let count = 0;
-  for await (const part of request) {
-    count += part.length;
-    if (count > MAX_BODY_BYTES) throw new RangeError('Audit body exceeds its limit.');
-    parts.push(part);
+  try {
+    for await (const part of request) {
+      count += part.length;
+      if (count > MAX_BODY_BYTES) throw new RangeError('Audit body exceeds its limit.');
+      parts.push(part);
+    }
+  } finally {
+    clearTimeout(timer);
   }
   if (length !== undefined && count !== Number(length)) throw new Error('Audit body length mismatch.');
   return Buffer.concat(parts, count);
@@ -75,9 +80,12 @@ function reply(response, status, message) {
   response.end(JSON.stringify({ status: message }));
 }
 
-export function createAuditReceiver({ bearerToken, store }) {
+export function createAuditReceiver({ bearerToken, store, bodyTimeoutMs = 8_000 }) {
   if (typeof bearerToken !== 'string' || bearerToken.length < 32) throw new Error('Audit bearer token must contain at least 32 characters.');
   if (!store || typeof store.persist !== 'function') throw new Error('Audit store is required.');
+  if (!Number.isSafeInteger(bodyTimeoutMs) || bodyTimeoutMs < 10 || bodyTimeoutMs > 10_000) {
+    throw new Error('Audit request body timeout must be between 10 and 10000 ms.');
+  }
   let serial = Promise.resolve();
   return async (request, response) => {
     if (request.url !== '/v1/records') return reply(response, 404, 'not_found');
@@ -89,9 +97,10 @@ export function createAuditReceiver({ bearerToken, store }) {
     let body;
     let record;
     try {
-      body = await boundedBody(request);
+      body = await boundedBody(request, bodyTimeoutMs);
       record = parseAuditRecord(body);
     } catch (error) {
+      if (request.aborted || response.destroyed) return;
       return reply(response, error instanceof RangeError ? 413 : 400, 'invalid_record');
     }
     const operation = serial.then(() => store.persist(record, body));

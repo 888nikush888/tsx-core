@@ -18,11 +18,15 @@ Provision a **separate private B2 bucket with Object Lock enabled**, independent
 | `B2_AUDIT_KEY_ID`, `B2_AUDIT_APPLICATION_KEY` | Dedicated B2 S3-compatible key pair |
 | `B2_AUDIT_SOURCE_ID` | Stable slug for one sender chain |
 | `B2_AUDIT_RETENTION_DAYS` | 31–3000, default 90; one-day margin ensures at least 30 days remain after write verification |
+| `B2_AUDIT_OPERATION_TIMEOUT_MS` | Each B2 call and object stream, 100–10000 ms, default 3000 |
+| `B2_AUDIT_TOTAL_TIMEOUT_MS` | Whole record operation, at least the per-call deadline and at most 25000 ms, default 8000 |
 | `AUDIT_RECEIVER_TOKEN` | At least 32 characters, same value as sender `AUDIT_WEBHOOK_TOKEN` |
 | `AUDIT_RECEIVER_TLS_CERT`, `AUDIT_RECEIVER_TLS_KEY` | PEM file paths for a trusted TLS server certificate and key |
 | `AUDIT_RECEIVER_HOST`, `AUDIT_RECEIVER_PORT` | Default `127.0.0.1:9445`; off-host reverse proxy or direct restricted TLS listener |
 
 **B2 is off-host immutable storage; it does not make the receiver process itself off-host.** Running this receiver on the same VPS as TSX Core leaves their compute, network, and administrative failure domains shared and cannot complete the independent-audit-host gate. Deploy it on a separate host or independently controlled service (for example a separately operated container host or a Worker implementation with the same verified contract), with its own credentials and monitoring. Bind sender `AUDIT_WEBHOOK_URL` to `https://<audit-host>/v1/records` and enable remote-required Enterprise mode only after end-to-end verification. A single active receiver instance per source is required: in-process serialization cannot arbitrate multiple hosts. The B2 object key must never be reused for a different sender or audit epoch.
+
+The receiver closes incomplete request bodies after eight seconds; the HTTPS listener also bounds header, request, idle, and keep-alive time. Every SDK call carries an abort signal. The Smithy HTTP handler enforces connection/request timeouts and throws on request timeout; an outer per-call deadline covers SDK stalls and object stream reads, while a whole-record deadline releases the serial queue. The sender's `AUDIT_WEBHOOK_TIMEOUT_MS` must exceed the measured receiver end-to-end latency but remain within its 30-second limit. The defaults are designed to fail closed within the sender's 10-second default; any tuning requires a latency/outage test.
 
 ## Release blockers
 

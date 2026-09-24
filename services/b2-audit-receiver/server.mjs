@@ -21,11 +21,15 @@ async function main() {
     client,
     bucket: environment.B2_AUDIT_BUCKET,
     sourceId: environment.B2_AUDIT_SOURCE_ID,
-    retentionDays: Number(environment.B2_AUDIT_RETENTION_DAYS || 90)
+    retentionDays: Number(environment.B2_AUDIT_RETENTION_DAYS ?? 90),
+    operationTimeoutMs: Number(environment.B2_AUDIT_OPERATION_TIMEOUT_MS ?? 3_000),
+    totalTimeoutMs: Number(environment.B2_AUDIT_TOTAL_TIMEOUT_MS ?? 8_000)
   });
   const server = https.createServer({ cert, key }, createAuditReceiver({ bearerToken, store }));
   server.requestTimeout = 15_000;
   server.headersTimeout = 10_000;
+  server.timeout = 15_000;
+  server.keepAliveTimeout = 5_000;
   server.maxRequestsPerSocket = 100;
   server.listen(port(environment.AUDIT_RECEIVER_PORT), environment.AUDIT_RECEIVER_HOST || '127.0.0.1', () => {
     process.stdout.write('B2 audit receiver listening over HTTPS.\n');

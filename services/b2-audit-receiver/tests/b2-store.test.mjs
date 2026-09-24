@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { Readable } from 'node:stream';
+import { PassThrough, Readable } from 'node:stream';
 import { test } from 'node:test';
 import { createHash } from 'node:crypto';
 import { B2AuditStore, b2ClientFromEnvironment } from '../b2-store.mjs';
@@ -7,7 +7,6 @@ import { AuditConflictError } from '../audit-core.mjs';
 
 const NOW = Date.parse('2026-09-24T00:00:00.000Z');
 const BUCKET = 'tsx-private-audit';
-const KEY = 'source-1/v1/0000000000000001.json';
 
 function recordBody(action = 'test', sequence = 1, previousHash = '0'.repeat(64)) {
   const unsigned = {
@@ -28,8 +27,10 @@ function mockB2() {
   let lostResponse = false;
   let beforePut = null;
   let beforeRead = null;
+  let bodyStream = null;
   const client = {
-    async send(command) {
+    async send(command, options) {
+      assert.ok(options.abortSignal instanceof AbortSignal, 'every B2 request must carry an AbortSignal');
       calls.push(command);
       const name = command.constructor.name;
       const input = command.input;
@@ -61,14 +62,14 @@ function mockB2() {
       };
       if (name === 'GetObjectCommand') return {
         VersionId: object.versionId,
-        Body: Readable.from((async function* () { beforeRead?.(); yield object.body; })())
+        Body: bodyStream?.() || Readable.from((async function* () { beforeRead?.(); yield object.body; })())
       };
       throw new Error(`Unexpected ${name}`);
     }
   };
   return { client, objects, calls, setMode: value => { mode = value; }, rejectPut: () => { failPut = true; },
     loseResponse: () => { lostResponse = true; }, beforePut: callback => { beforePut = callback; },
-    beforeRead: callback => { beforeRead = callback; } };
+    beforeRead: callback => { beforeRead = callback; }, bodyStream: factory => { bodyStream = factory; } };
 }
 
 function store(mock, now = () => NOW, retentionDays = 90) {
@@ -170,9 +171,77 @@ test('lost upload response and atomic conditional race reconcile only a verified
   await assert.rejects(store(conflict).persist(first.record, first.body), AuditConflictError);
 });
 
-test('requires a fixed HTTPS Backblaze endpoint and dedicated credentials', () => {
+test('stalled B2 request aborts, frees the queue, and permits a verified retry', async () => {
+  const mock = mockB2();
+  const originalSend = mock.client.send.bind(mock.client);
+  let first = true;
+  let aborted = false;
+  mock.client.send = (command, options) => {
+    if (first) {
+      first = false;
+      return new Promise((_, reject) => options.abortSignal.addEventListener('abort', () => {
+        aborted = true;
+        reject(new Error('mock request aborted'));
+      }, { once: true }));
+    }
+    return originalSend(command, options);
+  };
+  const { record, body } = recordBody();
+  const receiverStore = store(mock);
+  receiverStore.operationTimeoutMs = 30;
+  receiverStore.totalTimeoutMs = 120;
+  await assert.rejects(receiverStore.persist(record, body), /timed out/);
+  assert.equal(aborted, true);
+  assert.equal(await receiverStore.persist(record, body), 'stored');
+});
+
+test('stalled B2 object body is destroyed and a replay verifies the existing version', async () => {
+  const mock = mockB2();
+  const stalled = new PassThrough();
+  mock.bodyStream(() => stalled);
+  const { record, body } = recordBody();
+  const receiverStore = store(mock);
+  receiverStore.operationTimeoutMs = 30;
+  receiverStore.totalTimeoutMs = 120;
+  await assert.rejects(receiverStore.persist(record, body), /timed out/);
+  assert.equal(stalled.destroyed, true);
+  mock.bodyStream(null);
+  assert.equal(await receiverStore.persist(record, body), 'replayed');
+});
+
+test('whole-record deadline aborts a sequence of individually bounded requests', async () => {
+  const mock = mockB2();
+  const originalSend = mock.client.send.bind(mock.client);
+  let delay = true;
+  let aborts = 0;
+  mock.client.send = (command, options) => {
+    if (!delay) return originalSend(command, options);
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => originalSend(command, options).then(resolve, reject), 70);
+      options.abortSignal.addEventListener('abort', () => {
+        clearTimeout(timer);
+        aborts += 1;
+        reject(new Error('mock request aborted'));
+      }, { once: true });
+    });
+  };
+  const { record, body } = recordBody();
+  const receiverStore = store(mock);
+  receiverStore.operationTimeoutMs = 100;
+  receiverStore.totalTimeoutMs = 125;
+  await assert.rejects(receiverStore.persist(record, body), /timed out/);
+  assert.ok(aborts >= 1);
+  delay = false;
+  assert.equal(await receiverStore.persist(record, body), 'stored');
+});
+
+test('requires a fixed HTTPS Backblaze endpoint and dedicated credentials', async () => {
   const env = { B2_AUDIT_REGION: 'us-east-005', B2_AUDIT_ENDPOINT: 'https://s3.us-east-005.backblazeb2.com', B2_AUDIT_KEY_ID: 'id', B2_AUDIT_APPLICATION_KEY: 'secret' };
-  assert.ok(b2ClientFromEnvironment(env));
+  const client = b2ClientFromEnvironment(env);
+  const handler = await client.config.requestHandler.configProvider;
+  assert.equal(handler.connectionTimeout, 1000);
+  assert.equal(handler.requestTimeout, 3000);
+  assert.equal(handler.throwOnRequestTimeout, true);
   assert.throws(() => b2ClientFromEnvironment({ ...env, B2_AUDIT_ENDPOINT: 'http://127.0.0.1' }), /endpoint/);
   assert.throws(() => b2ClientFromEnvironment({ ...env, B2_AUDIT_APPLICATION_KEY: '' }), /credentials/);
 });
