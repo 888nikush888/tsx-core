@@ -55,7 +55,7 @@ describe("groupExchangeCatalog", () => {
       },
     } as unknown as ExchangeCatalog["exchanges"][number];
     expect(exchangeAssessmentLabel(blocked)).toEqual({
-      product: "Swap (linear) · Future (invers)",
+      product: "CCXT-SDK-Inventur, keine TSX-Handelsfreigabe: Swap (linear) · Future (invers)",
       decision: "Für TSX Core derzeit nicht freigabereif",
       reasons: "optional_child_lifecycle_not_representable",
     });
@@ -67,6 +67,20 @@ describe("groupExchangeCatalog", () => {
       },
     };
     expect(exchangeAssessmentLabel(noDerivatives).product).toBe("Keine Derivate laut gepinnter CCXT-Inventur");
+    const hyperliquid = {
+      ...blocked,
+      id: "hyperliquid",
+      assessment: {
+        decision: "existing" as const,
+        products: ["swap:inverse", "swap:linear"],
+        reasonCodes: ["master_key_only_scope_locally_reviewed", "bound_parity_and_execution_receipt_required"],
+      },
+    };
+    const hyperliquidLabel = exchangeAssessmentLabel(hyperliquid);
+    expect(hyperliquidLabel.product).toContain("CCXT-SDK-Inventur, keine TSX-Handelsfreigabe");
+    expect(hyperliquidLabel.product).toContain("Swap (invers)");
+    expect(hyperliquidLabel.decision).toContain("nur first-DEX/USDC/linear/Perp");
+    expect(hyperliquidLabel.decision).toContain("Provider-, Konto- und Release-Nachweise offen");
     expect(groupExchangeCatalog({
       implementation: { library: "ccxt", version: "4.5.75", reviewedInventoryHash: "a".repeat(64), streaming: "ccxt-pro", orderAuthority: "rest" },
       exchanges: [blocked],
@@ -85,7 +99,7 @@ describe("groupExchangeCatalog", () => {
       }],
     } as ExchangeCatalog;
     render(createElement(Accounts, { trading: null, catalog, onRefresh: () => undefined }));
-    expect(screen.getByText("Swap (linear) · Für TSX Core derzeit nicht freigabereif")).toBeDefined();
+    expect(screen.getByText("CCXT-SDK-Inventur, keine TSX-Handelsfreigabe: Swap (linear) · Für TSX Core derzeit nicht freigabereif")).toBeDefined();
     expect(screen.getByText("Prüf-/Blockgründe: optional_child_lifecycle_not_representable")).toBeDefined();
     expect(screen.getByRole("button", { name: "Konto" }).hasAttribute("disabled")).toBe(true);
   });

@@ -383,6 +383,17 @@ const driftedAssessmentClient = catalogClientForPayload({
 assert.equal((await driftedAssessmentClient.browserCatalog()).exchanges[1].id, 'okx',
   'The read-only assessment must not alter the existing account-creation catalog contract.');
 await assert.rejects(driftedAssessmentClient.browserCatalog(false, true), /version or inventory/i);
+const oldExecutorImplementation = { ...executorCatalogPayload(candidateCatalogEntry).implementation };
+delete oldExecutorImplementation.reviewedInventoryHash;
+const oldExecutorClient = catalogClientForPayload({
+  ...executorCatalogPayload(candidateCatalogEntry),
+  implementation: oldExecutorImplementation,
+});
+assert.equal((await oldExecutorClient.browserCatalog()).exchanges[1].id, 'okx',
+  'An older executor must preserve the existing account-creation catalog.');
+assert.equal((await oldExecutorClient.executorCatalog()).implementation.reviewedInventoryHash, null);
+await assert.rejects(oldExecutorClient.browserCatalog(false, true), /version or inventory/i,
+  'The assessment display must fail closed until the executor provides the reviewed inventory pin.');
 await assert.rejects(
   catalogClientForPayload(candidateCatalogEntry, { ok: false, status: 503 }).probe('okx'),
   /status 503/i,
