@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import type { ExchangeCatalog, TradingAccount, TradingSnapshot } from "@/app/workflow/types";
-import { groupExchangeCatalog } from "@/app/workflow/exchange-catalog";
+import { exchangeAssessmentLabel, groupExchangeCatalog } from "@/app/workflow/exchange-catalog";
 import { useDirtyGuard } from "@/shared/forms/use-dirty-guard";
 import { useOperatorReadOnly } from "@/shared/api/operator-session";
 
@@ -130,6 +130,17 @@ function KillSwitchReleaseDialog({ releaseTarget, releaseConfirmation, setReleas
   );
 }
 
+function CatalogAssessment({ entry }: Readonly<{ entry: ExchangeCatalog['exchanges'][number] }>) {
+  const assessment = exchangeAssessmentLabel(entry);
+  return (
+    <span className="exchange-assessment">
+      <span>{entry.name} · {entry.status}</span>
+      <small>{assessment.product} · {assessment.decision}</small>
+      {assessment.reasons && <small>Prüf-/Blockgründe: {assessment.reasons}</small>}
+    </span>
+  );
+}
+
 function CatalogGroupsSection({ catalogGroups, busy, probeCandidate }: Readonly<{
   catalogGroups: ReturnType<typeof groupExchangeCatalog>; busy: string; probeCandidate: (exchangeId: string) => Promise<void>;
 }>) {
@@ -139,7 +150,7 @@ function CatalogGroupsSection({ catalogGroups, busy, probeCandidate }: Readonly<
             <h4>Zertifiziert</h4>
             {catalogGroups.certified.map((item) => (
               <div className="system-line" key={item.id}>
-                <span>{item.name}</span>
+                <CatalogAssessment entry={item} />
                 <strong>{item.modes.join(" · ")}</strong>
               </div>
             ))}
@@ -148,7 +159,7 @@ function CatalogGroupsSection({ catalogGroups, busy, probeCandidate }: Readonly<
             <h4>Kandidaten</h4>
             {catalogGroups.candidates.map((item) => (
               <div className="system-line" key={item.id}>
-                <span>{item.name}</span>
+                <CatalogAssessment entry={item} />
                 <Button
                   type="button"
                   variant="outline"
@@ -165,7 +176,7 @@ function CatalogGroupsSection({ catalogGroups, busy, probeCandidate }: Readonly<
             <h4>Weitere / nicht kompatibel</h4>
             {catalogGroups.others.map((item) => (
               <div className="system-line" key={item.id}>
-                <span>{item.name} · {item.status}</span>
+                <CatalogAssessment entry={item} />
                 <strong>{item.reason || "Noch nicht für TSX zertifiziert"}</strong>
               </div>
             ))}
