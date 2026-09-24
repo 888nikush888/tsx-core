@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { createHash, createPublicKey, generateKeyPairSync, sign } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { canonicalProviderGrant, liveProviderAcceptancePinned, signedGrantValid } from '../src/provider_acceptance.js';
+import fs, { readFileSync, mkdtempSync, writeFileSync, rmSync, linkSync, symlinkSync } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { canonicalProviderGrant, liveProviderAcceptancePinned, signedGrantValid, readProviderAcceptanceFile } from '../src/provider_acceptance.js';
 
 const account = {
   id: 'account-1', exchange: 'hyperliquid', mode: 'live',
@@ -86,3 +90,101 @@ try {
   else process.env.PROVIDER_ACCEPTANCE_GRANTS_FILE = beforeGrants;
 }
 console.log('Provider acceptance control-plane gate tests passed.');
+
+const unicodeFixture = JSON.parse(readFileSync(new URL('./fixtures/provider_acceptance_unicode.json', import.meta.url), 'utf8'));
+for (const vector of unicodeFixture.vectors) {
+  const unicodeAccount = { ...account, id: vector.grant.accountId };
+  assert.equal(canonicalProviderGrant(vector.grant).toString('ascii'), vector.canonical);
+  assert.equal(signedGrantValid(vector, unicodeAccount, at, createPublicKey(unicodeFixture.reviewerPublicKeyPem)), false,
+    'Vector metadata must not become an extra signed document field.');
+  assert.equal(signedGrantValid({ grant: vector.grant, signature: vector.signature }, unicodeAccount,
+    at, createPublicKey(unicodeFixture.reviewerPublicKeyPem)), true);
+}
+const collisionGrant = { ...canonicalVector, accountId: '\u0161ccount-1' };
+assert.notDeepEqual(canonicalProviderGrant(collisionGrant), canonicalProviderGrant(canonicalVector));
+rejects('A Unicode account alias cannot reuse the original signature.',
+  { ...valid, grant: collisionGrant }, { ...account, id: collisionGrant.accountId });
+for (const field of ['accountId', 'exchange', 'externalAccountId', 'credentialGeneration', 'mode', 'product', 'reviewId']) {
+  for (const value of [1, [canonicalVector[field]], null, '\ud800', 'trailing\n']) {
+    rejects(`Strict string field: ${field}`, signed({ ...canonicalVector, [field]: value }));
+  }
+}
+
+const evidenceDirectory = mkdtempSync(path.join(os.tmpdir(), 'provider-file-boundary-'));
+const evidenceFile = path.join(evidenceDirectory, 'grant.json');
+const restoreFilesystem = (name, replacement, operation) => {
+  const original = fs[name];
+  fs[name] = replacement(original);
+  syncBuiltinESMExports();
+  try { operation(); } finally { fs[name] = original; syncBuiltinESMExports(); }
+};
+try {
+  writeFileSync(evidenceFile, 'valid');
+  assert.equal(readProviderAcceptanceFile(evidenceFile, 5).toString(), 'valid');
+  assert.throws(() => readProviderAcceptanceFile(evidenceFile, 4));
+  assert.throws(() => readProviderAcceptanceFile('relative', 5));
+  assert.throws(() => readProviderAcceptanceFile(evidenceDirectory, 5));
+  const linked = path.join(evidenceDirectory, 'hardlink');
+  linkSync(evidenceFile, linked);
+  assert.throws(() => readProviderAcceptanceFile(evidenceFile, 5));
+  rmSync(linked);
+  const directoryLink = path.join(evidenceDirectory, 'parent-link');
+  symlinkSync(evidenceDirectory, directoryLink, process.platform === 'win32' ? 'junction' : 'dir');
+  assert.throws(() => readProviderAcceptanceFile(path.join(directoryLink, 'grant.json'), 5));
+  rmSync(directoryLink);
+  if (process.platform !== 'win32') {
+    const symbolic = path.join(evidenceDirectory, 'symlink');
+    symlinkSync(evidenceFile, symbolic);
+    assert.throws(() => readProviderAcceptanceFile(symbolic, 5));
+    const fifo = path.join(evidenceDirectory, 'fifo');
+    assert.equal(spawnSync('mkfifo', [fifo], { timeout: 5000 }).status, 0);
+    restoreFilesystem('openSync', () => () => { throw new Error('Special file must be rejected before open'); }, () => {
+      assert.throws(() => readProviderAcceptanceFile(fifo, 5), /bounded regular single-link/);
+    });
+  }
+  restoreFilesystem('lstatSync', original => (target, options) => {
+    const stat = original(target, options);
+    if (target === evidenceFile) stat.isFile = () => false;
+    return stat;
+  }, () => restoreFilesystem('openSync', () => () => { assert.fail('A nonregular file must not be opened.'); }, () => {
+    assert.throws(() => readProviderAcceptanceFile(evidenceFile, 5), /bounded regular single-link/);
+  }));
+  let descriptor;
+  restoreFilesystem('openSync', original => (...args) => { descriptor = original(...args); return descriptor; }, () => {
+    restoreFilesystem('readSync', original => (...args) => {
+      writeFileSync(evidenceFile, 'longer-than-the-bound');
+      return original(...args);
+    }, () => assert.throws(() => readProviderAcceptanceFile(evidenceFile, 5), /size changed/));
+    assert.throws(() => fs.fstatSync(descriptor), /bad file descriptor|EBADF/i, 'Failure closes the opened descriptor.');
+  });
+  writeFileSync(evidenceFile, 'valid');
+  let replaced = false;
+  restoreFilesystem('readSync', original => (...args) => {
+    const count = original(...args);
+    if (!replaced) {
+      replaced = true;
+      const replacement = path.join(evidenceDirectory, 'replacement-after-read');
+      writeFileSync(replacement, 'valid');
+      fs.renameSync(replacement, evidenceFile);
+    }
+    return count;
+  }, () => assert.throws(() => readProviderAcceptanceFile(evidenceFile, 5), error =>
+    process.platform === 'win32' ? error.code === 'EPERM' : /changed during/.test(error.message)));
+  restoreFilesystem('fstatSync', original => (...args) => {
+    const stat = original(...args);
+    return Object.assign(stat, { ino: stat.ino + 1n });
+  }, () => assert.throws(() => readProviderAcceptanceFile(evidenceFile, 5), /changed during/));
+  restoreFilesystem('lstatSync', original => (target, options) => {
+    const stat = original(target, options);
+    if (target === evidenceFile && options?.bigint) {
+      // Replace the directory entry after the pre-open snapshot; the open sees a different inode.
+      const replacement = path.join(evidenceDirectory, 'replacement');
+      writeFileSync(replacement, 'valid');
+      fs.renameSync(replacement, evidenceFile);
+    }
+    return stat;
+  }, () => assert.throws(() => readProviderAcceptanceFile(evidenceFile, 5), /changed during/));
+} finally {
+  rmSync(evidenceDirectory, { recursive: true, force: true });
+}
+console.log('Provider grant Unicode signatures and bounded descriptor file boundaries passed.');

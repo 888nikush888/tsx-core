@@ -1,7 +1,8 @@
 /** A separately signed grant is required for live provider exposure. */
 import { createHash, createPublicKey, verify } from 'node:crypto';
-import { readFileSync, statSync } from 'node:fs';
-import { isAbsolute } from 'node:path';
+import { closeSync, constants, fstatSync, lstatSync, openSync, readSync } from 'node:fs';
+import type { BigIntStats } from 'node:fs';
+import { dirname, isAbsolute, resolve } from 'node:path';
 import type { TradingAccount } from './trading_types.js';
 
 type GrantAccount = Pick<TradingAccount, 'id' | 'exchange' | 'mode' | 'externalAccountId' | 'credentialGeneration'>;
@@ -27,14 +28,26 @@ function liveProvenanceVerified(): boolean {
 function grantMatches(value: unknown, account: GrantAccount, now: number): value is Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const grant = value as Record<string, unknown>;
-  if (Object.keys(grant).sort().join(',') !== FIELDS.join(',')) return false;
+  if (Object.keys(grant).sort((left, right) => left.localeCompare(right)).join(',') !== FIELDS.join(',')) return false;
   if (grant.version !== 1 || grant.mode !== 'live' || account.mode !== 'live') return false;
-  if (!REVIEW_ID.test(String(grant.reviewId)) || !PRODUCTS.has(String(grant.product))) return false;
+  if (!grantStringsValid(grant)) return false;
+  if (!REVIEW_ID.test(grant.reviewId as string) || !PRODUCTS.has(grant.product as string)) return false;
   return grantAccountMatches(grant, account) && grantTimeValid(grant, now);
+}
+
+function grantStringsValid(grant: Record<string, unknown>): boolean {
+  return FIELDS.filter(field => !['version', 'validFrom', 'validUntil'].includes(field))
+    .every(field => validGrantString(grant[field]));
+}
+
+function validGrantString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && Array.from(value).length <= 128
+    && !/[\u0000-\u001f\ud800-\udfff]/u.test(value);
 }
 
 function grantAccountMatches(grant: Record<string, unknown>, account: GrantAccount): boolean {
   if (!account.externalAccountId || !account.credentialGeneration
+    || account.externalAccountId.length !== 64 || account.credentialGeneration.length !== 64
     || !HEX_64.test(account.externalAccountId) || !HEX_64.test(account.credentialGeneration)) return false;
   return grant.accountId === account.id && grant.exchange === account.exchange
     && grant.externalAccountId === account.externalAccountId
@@ -48,20 +61,23 @@ function grantTimeValid(grant: Record<string, unknown>, now: number): boolean {
 }
 
 export function canonicalProviderGrant(grant: Record<string, unknown>): Buffer {
-  return Buffer.from(JSON.stringify(Object.fromEntries(FIELDS.map(field => [field, grant[field]]))), 'ascii');
+  // Match Python json.dumps(sort_keys=True, ensure_ascii=True, separators=(',', ':')).
+  // Escape UTF-16 code units (including surrogate pairs); never truncate Unicode into ASCII.
+  const json = JSON.stringify(Object.fromEntries(FIELDS.map(field => [field, grant[field]])));
+  return Buffer.from(json.replace(/[\u007f-\uffff]/g, character =>
+    `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`), 'ascii');
 }
 
 export function signedGrantValid(value: unknown, account: GrantAccount, now: number, key: ReturnType<typeof createPublicKey>): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
-  if (Object.keys(row).sort().join(',') !== 'grant,signature' || !grantMatches(row.grant, account, now)) return false;
-  if (typeof row.signature !== 'string' || !/^(?:[A-Za-z0-9+/]{4}){21}[A-Za-z0-9+/]{2}==$/u.test(row.signature)) return false;
+  if (Object.keys(row).sort((left, right) => left.localeCompare(right)).join(',') !== 'grant,signature' || !grantMatches(row.grant, account, now)) return false;
+  if (typeof row.signature !== 'string' || row.signature.length !== 88 || !/^(?:[A-Za-z0-9+/]{4}){21}[A-Za-z0-9+/]{2}==$/u.test(row.signature)) return false;
   return verify(null, canonicalProviderGrant(row.grant), key, Buffer.from(row.signature, 'base64'));
 }
 
 function pinnedReviewerKey(path: string): ReturnType<typeof createPublicKey> | null {
-  if (statSync(path).size > 4096) return null;
-  const key = createPublicKey(readFileSync(path));
+  const key = createPublicKey(readProviderAcceptanceFile(path, 4096));
   if (key.asymmetricKeyType !== 'ed25519') return null;
   const der = key.export({ format: 'der', type: 'spki' });
   return createHash('sha256').update(der).digest('hex') === PINNED_REVIEWER_KEY_SHA256 ? key : null;
@@ -75,15 +91,67 @@ export function liveProviderAcceptancePinned(account: GrantAccount): boolean {
   const grantsPath = process.env.PROVIDER_ACCEPTANCE_GRANTS_FILE ?? '';
   if (!isAbsolute(keyPath) || !isAbsolute(grantsPath)) return false;
   try {
-    if (statSync(grantsPath).size > 131_072) return false;
     const key = pinnedReviewerKey(keyPath);
     if (!key) return false;
-    const source = readFileSync(grantsPath);
-    if (source.length > 131_072) return false;
-    const rows: unknown = JSON.parse(source.toString('utf8'));
+    const source = readProviderAcceptanceFile(grantsPath, 131_072);
+    const rows: unknown = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(source));
     return Array.isArray(rows) && rows.length <= 100
       && rows.some(row => signedGrantValid(row, account, Date.now(), key));
   } catch {
     return false;
   }
+}
+
+function assertUnlinkedParents(path: string): void {
+  for (let parent = dirname(path); ; parent = dirname(parent)) {
+    if (!lstatSync(parent).isDirectory()) throw new Error('Acceptance file parent must be a real directory.');
+    if (dirname(parent) === parent) return;
+  }
+}
+
+function assertAcceptanceFile(stat: BigIntStats, maximum: number): void {
+  if (!stat.isFile() || stat.nlink !== 1n || stat.size < 1n || stat.size > BigInt(maximum)) {
+    throw new Error('Acceptance evidence must be a bounded regular single-link file.');
+  }
+}
+
+function assertSameAcceptanceFile(before: BigIntStats, after: BigIntStats): void {
+  const fields = ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs', 'nlink'] as const;
+  if (!after.isFile() || fields.some(field => before[field] !== after[field])) {
+    throw new Error('Acceptance evidence changed during reading.');
+  }
+}
+
+/** No authority is granted here; caller must still validate the pinned key and signature. */
+export function readProviderAcceptanceFile(path: string, maximum: number): Buffer {
+  if (!isAbsolute(path) || !Number.isSafeInteger(maximum) || maximum < 1 || maximum > 131_072) {
+    throw new Error('Invalid acceptance evidence file boundary.');
+  }
+  const target = resolve(path);
+  assertUnlinkedParents(target);
+  const before = lstatSync(target, { bigint: true });
+  assertAcceptanceFile(before, maximum);
+  const descriptor = openSync(target, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
+  try {
+    assertSameAcceptanceFile(before, fstatSync(descriptor, { bigint: true }));
+    const content = readBoundedDescriptor(descriptor, maximum);
+    if (BigInt(content.length) !== before.size) throw new Error('Acceptance evidence size changed during reading.');
+    assertSameAcceptanceFile(before, fstatSync(descriptor, { bigint: true }));
+    assertSameAcceptanceFile(before, lstatSync(target, { bigint: true }));
+    assertUnlinkedParents(target);
+    return content;
+  } finally {
+    closeSync(descriptor);
+  }
+}
+
+function readBoundedDescriptor(descriptor: number, maximum: number): Buffer {
+  const content = Buffer.alloc(maximum + 1);
+  let length = 0;
+  while (length < content.length) {
+    const received = readSync(descriptor, content, length, content.length - length, null);
+    if (received === 0) break;
+    length += received;
+  }
+  return content.subarray(0, length);
 }
