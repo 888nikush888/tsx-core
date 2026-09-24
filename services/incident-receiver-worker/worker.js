@@ -1,6 +1,7 @@
 // External incident receiver candidate. No Node APIs, account access, or background sends.
-const MAX_BODY_BYTES = 64 * 1024;
-const MAX_ALERTS = 20;
+const MAX_BODY_BYTES = 1024 * 1024;
+const MAX_DOCUMENT_BYTES = 2 * 1024 * 1024;
+const MAX_ALERTS = 100;
 const DEDUPE_MS = 20 * 60 * 1000;
 const TELEGRAM_TIMEOUT_MS = 8_000;
 const encoder = new TextEncoder();
@@ -53,15 +54,15 @@ class RejectedPayload extends Error {
 
 async function boundedStream(stream, limit) {
   const reader = stream.getReader();
-  const chunks = [];
+  const result = new Uint8Array(limit);
   let length = 0;
   try {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+      if (value.byteLength > limit - length) throw new RejectedPayload(413);
+      result.set(value, length);
       length += value.byteLength;
-      if (length > limit) throw new RejectedPayload(413);
-      chunks.push(value);
     }
   } catch (error) {
     try { await reader.cancel(); } catch { /* Caller still fails closed. */ }
@@ -69,10 +70,7 @@ async function boundedStream(stream, limit) {
   } finally {
     reader.releaseLock();
   }
-  const result = new Uint8Array(length);
-  let offset = 0;
-  for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.byteLength; }
-  return result;
+  return result.subarray(0, length);
 }
 
 async function boundedBody(request) {
@@ -86,45 +84,35 @@ async function boundedBody(request) {
   return bytes;
 }
 
-function label(value, max, required = true) {
-  if (value === undefined && !required) return null;
-  return typeof value === 'string' && value.length <= max
-    && /^[A-Za-z0-9_.:/-]+$/u.test(value) ? value : false;
-}
-
-function alertSummary(bytes) {
+function alertDocument(bytes) {
   let envelope;
-  try { envelope = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); }
+  try { envelope = JSON.parse(new TextDecoder('utf-8').decode(bytes)); }
   catch { throw new RejectedPayload(400); }
   if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)
     || !['firing', 'resolved'].includes(envelope.status)
-    || !Array.isArray(envelope.alerts) || envelope.alerts.length < 1 || envelope.alerts.length > MAX_ALERTS
+    || !Array.isArray(envelope.alerts) || envelope.alerts.length > MAX_ALERTS
     || (envelope.truncatedAlerts !== undefined && envelope.truncatedAlerts !== 0)) {
-    throw new RejectedPayload(400);
+    throw new RejectedPayload(envelope?.truncatedAlerts ? 422 : 400);
   }
   const alerts = envelope.alerts.map(alert => {
     if (!alert || typeof alert !== 'object' || Array.isArray(alert)
       || !alert.labels || typeof alert.labels !== 'object' || Array.isArray(alert.labels)) {
       throw new RejectedPayload(400);
     }
-    const name = label(alert.labels.alertname, 48);
-    const severity = label(alert.labels.severity, 16);
-    const service = label(alert.labels.service, 32, false);
-    const correlationId = label(alert.labels.correlation_id, 64, false);
-    if (!name || !severity || service === false || correlationId === false) throw new RejectedPayload(400);
-    return { name, severity, service, correlationId };
+    if (typeof alert.labels.alertname !== 'string' || typeof alert.labels.severity !== 'string') {
+      throw new RejectedPayload(400);
+    }
+    const selected = { alertname: alert.labels.alertname, severity: alert.labels.severity };
+    for (const name of ['service', 'correlation_id']) {
+      if (Object.hasOwn(alert.labels, name)) selected[name] = alert.labels[name];
+    }
+    return selected;
   });
-  return { status: envelope.status, alerts };
-}
-
-function message(summary) {
-  const lines = [`TSX Core alerts: ${summary.status.toUpperCase()}`, `Count: ${summary.alerts.length}`];
-  for (const [index, alert] of summary.alerts.entries()) {
-    lines.push(`${index + 1}. ${alert.severity} | ${alert.name}${alert.service ? ` | ${alert.service}` : ''}${alert.correlationId ? ` | correlation_id=${alert.correlationId}` : ''}`);
-  }
-  const result = lines.join('\n');
-  if (result.length > 4096) throw new RejectedPayload(400);
-  return result;
+  let document;
+  try { document = encoder.encode(JSON.stringify({ status: envelope.status, count: alerts.length, alerts })); }
+  catch { throw new RejectedPayload(400); }
+  if (document.byteLength > MAX_DOCUMENT_BYTES) throw new RejectedPayload(413);
+  return { document, caption: `TSX Core ${envelope.status.toUpperCase()}: ${alerts.length} alerts. Exact IDs in attached JSON.` };
 }
 
 async function deliveryKey(secret, bytes) {
@@ -147,13 +135,16 @@ async function reserve(db, key, now) {
   return prior?.state === 'delivered' ? 'delivered' : 'blocked';
 }
 
-async function telegramSend(env, text, fetchImpl) {
-  const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`;
+async function telegramSend(env, alert, key, fetchImpl) {
+  const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendDocument`;
+  const form = new FormData();
+  form.set('chat_id', env.TELEGRAM_CHAT_ID);
+  form.set('caption', `${alert.caption}\nreceipt=${key}`);
+  form.set('disable_notification', 'false');
+  form.set('document', new Blob([alert.document], { type: 'application/json' }), 'tsx-core-alerts.json');
   const response = await fetchImpl(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text, disable_notification: false,
-      link_preview_options: { is_disabled: true } }),
+    body: form,
     redirect: 'error',
     signal: AbortSignal.timeout(TELEGRAM_TIMEOUT_MS),
   });
@@ -197,7 +188,7 @@ function gate(request, env) {
   return null;
 }
 
-async function sendReserved(env, bytes, text, fetchImpl, now) {
+async function sendReserved(env, bytes, alert, fetchImpl, now) {
   let key;
   try {
     key = await deliveryKey(env.DEDUPE_SECRET, bytes);
@@ -206,7 +197,7 @@ async function sendReserved(env, bytes, text, fetchImpl, now) {
     if (reservation !== 'send') return reply(503);
   } catch { return reply(503); }
   let outcome;
-  try { outcome = await telegramSend(env, text, fetchImpl); }
+  try { outcome = await telegramSend(env, alert, key, fetchImpl); }
   catch { outcome = { state: 'unknown' }; }
   try {
     if (outcome.state === 'delivered') {
@@ -226,14 +217,14 @@ export async function handleIncidentRequest(request, env, { fetchImpl = fetch, n
   const rejected = gate(request, env);
   if (rejected) return rejected;
   let bytes;
-  let text;
+  let alert;
   try {
     bytes = await boundedBody(request);
-    text = message(alertSummary(bytes));
+    alert = alertDocument(bytes);
   } catch (error) {
     return reply(error instanceof RejectedPayload ? error.status : 400);
   }
-  return sendReserved(env, bytes, text, fetchImpl, now);
+  return sendReserved(env, bytes, alert, fetchImpl, now);
 }
 
 export default {

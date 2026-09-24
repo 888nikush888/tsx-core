@@ -117,37 +117,68 @@ assert.equal((await invoke(new Request('https://incident.example/healthz'), {}))
 let response = await invoke(request());
 assert.equal(response.status, 202);
 assert.equal(sends.length, 1);
-assert.equal(sends[0].url, `https://api.telegram.org/bot${botToken}/sendMessage`);
-const outgoing = JSON.parse(sends[0].options.body);
-assert.equal(outgoing.chat_id, chatId);
-assert.match(outgoing.text, /FIRING/u);
-assert.match(outgoing.text, /correlation_id=single_-1001_42/u);
-assert.doesNotMatch(outgoing.text, /PRIVATE ALERT BODY/u);
-assert.equal(Object.hasOwn(outgoing, 'parse_mode'), false);
+assert.equal(sends[0].url, `https://api.telegram.org/bot${botToken}/sendDocument`);
+const outgoing = sends[0].options.body;
+assert.ok(outgoing instanceof FormData);
+assert.equal(outgoing.get('chat_id'), chatId);
+assert.match(outgoing.get('caption'), /FIRING/u);
+assert.match(outgoing.get('caption'), /receipt=[a-f0-9]{64}/u);
+assert.match(outgoing.get('caption'), new RegExp(`receipt=${[...db.rows.keys()][0]}`, 'u'));
+assert.equal(sends[0].options.headers, undefined, 'fetch must set the multipart boundary');
+const sentDocument = JSON.parse(await outgoing.get('document').text());
+assert.equal(sentDocument.alerts[0].correlation_id, 'single_-1001_42');
+assert.equal(JSON.stringify(sentDocument).includes('PRIVATE ALERT BODY'), false);
 assert.equal((await invoke(request())).status, 202);
 assert.equal(sends.length, 1, 'a delivered replay must not send twice');
 assert.equal((await invoke(request(body('resolved')))).status, 202);
-assert.match(JSON.parse(sends[1].options.body).text, /RESOLVED/u);
+assert.match(sends[1].options.body.get('caption'), /RESOLVED/u);
 assert.equal(sends.length, 2);
+
+const boundarySends = [];
+const boundaryFetch = async (url, options) => {
+  boundarySends.push({ url, options });
+  return success(100 + boundarySends.length);
+};
+const boundaryEnv = env(new FakeD1());
+assert.equal((await invoke(request(JSON.stringify({ status: 'firing', alerts: [] })), boundaryEnv, boundaryFetch)).status, 202);
+assert.deepEqual(JSON.parse(await boundarySends[0].options.body.get('document').text()).alerts, []);
+const hundred = JSON.stringify({ status: 'firing', alerts: Array.from({ length: 100 }, (_, index) => ({
+  labels: { alertname: `Alarm${index}`, severity: '', correlation_id: `id-${index}-🐙\n` },
+})) });
+assert.equal((await invoke(request(hundred), boundaryEnv, boundaryFetch)).status, 202);
+const hundredDocument = JSON.parse(await boundarySends[1].options.body.get('document').text());
+assert.equal(hundredDocument.count, 100);
+assert.equal(hundredDocument.alerts[99].correlation_id, 'id-99-🐙\n');
+assert.equal(hundredDocument.alerts[0].severity, '', 'empty required strings are sender-valid');
+
+const prefix = '🌍漢字\n';
+const exactBody = id => JSON.stringify({ status: 'firing', alerts: [{
+  labels: { alertname: 'LongCorrelation', severity: 'critical', correlation_id: id },
+}] });
+const exactId = prefix + 'z'.repeat(1024 * 1024 - Buffer.byteLength(exactBody(prefix)));
+const exactPayload = exactBody(exactId);
+assert.equal(Buffer.byteLength(exactPayload), 1024 * 1024);
+assert.equal((await invoke(request(exactPayload), boundaryEnv, boundaryFetch)).status, 202);
+const exactDocument = JSON.parse(await boundarySends[2].options.body.get('document').text());
+assert.equal(exactDocument.alerts[0].correlation_id, exactId);
+assert.equal(boundarySends.length, 3, 'one Telegram request must contain each complete alert group');
 
 for (const [req, expected] of [
   [request(body(), { Authorization: 'Bearer wrong' }), 401],
   [request(body(), { 'X-Alert-Source': 'foreign' }), 403],
   [request(body(), { 'Content-Type': 'text/plain' }), 415],
+  [request(body(), { 'Content-Length': String(1024 * 1024 + 1) }), 413],
   [request('{bad json'), 400],
-  [request(body('firing', { truncatedAlerts: 1 })), 400],
-  [request(JSON.stringify({ status: 'firing', alerts: [] })), 400],
-  [request(JSON.stringify({ status: 'firing', alerts: Array.from({ length: 21 }, () =>
+  [request(body('firing', { truncatedAlerts: 1 })), 422],
+  [request(JSON.stringify({ status: 'firing', alerts: Array.from({ length: 101 }, () =>
     ({ labels: { alertname: 'TooMany', severity: 'high' } })) })), 400],
-  [request(JSON.stringify({ status: 'firing', alerts: [{ labels: { alertname: 'Bad\nName', severity: 'critical' } }] })), 400],
-  [request(JSON.stringify({ status: 'firing', alerts: [{ labels: {
-    alertname: 'Bad', severity: 'critical', correlation_id: 'leak\nsecond-line' } }] })), 400],
-  [request('x'.repeat(64 * 1024 + 1)), 413],
+  [request(JSON.stringify({ status: 'firing', alerts: [{ labels: { alertname: 5, severity: 'critical' } }] })), 400],
+  [request('x'.repeat(1024 * 1024 + 1)), 413],
 ]) {
   assert.equal((await invoke(req)).status, expected);
 }
 const oversizedStream = new ReadableStream({
-  start(controller) { controller.enqueue(new Uint8Array(64 * 1024 + 1)); controller.close(); },
+  start(controller) { controller.enqueue(new Uint8Array(1024 * 1024 + 1)); controller.close(); },
 });
 const streamedRequest = new Request('https://incident.example/alerts', {
   method: 'POST', body: oversizedStream, duplex: 'half',
@@ -180,6 +211,17 @@ const malformedPayload = body('firing', { groupKey: 'malformed-telegram-reply' }
 assert.equal((await invoke(request(malformedPayload), env(malformedReply), malformedFetch)).status, 503);
 assert.equal((await invoke(request(malformedPayload), env(malformedReply), malformedFetch)).status, 503);
 assert.equal(malformedCalls, 1);
+
+const rejectedByTelegram = new FakeD1();
+let rejectedCalls = 0;
+const rejectedFetch = async () => {
+  rejectedCalls += 1;
+  return new Response(JSON.stringify({ ok: false, description: 'invalid document' }), { status: 400 });
+};
+const rejectedPayload = body('firing', { groupKey: 'provider-rejected-document' });
+assert.equal((await invoke(request(rejectedPayload), env(rejectedByTelegram), rejectedFetch)).status, 503);
+assert.equal((await invoke(request(rejectedPayload), env(rejectedByTelegram), rejectedFetch)).status, 503);
+assert.equal(rejectedCalls, 1, 'unconfirmed provider failure must not silently retry');
 
 const lostCommit = new FakeD1();
 lostCommit.failDelivered = true;
