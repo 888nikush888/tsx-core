@@ -3,9 +3,13 @@ from __future__ import annotations
 
 import json
 import sys
+import traceback
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+import ccxt.async_support as ccxt_async
+import ccxt.pro as ccxt_pro
 from ccxt.async_support.base.exchange import Exchange as CcxtExchange
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
@@ -13,8 +17,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "exchange_executor"
 
 from ccxt_client import _credential_fingerprint  # noqa: E402
 from common import external_account_cache_key, external_account_id  # noqa: E402
+import hyperliquid_bound_preflight as bound  # noqa: E402
 from hyperliquid_bound_preflight import (  # noqa: E402
-    ORIGIN, BoundPreflightRefused, _sdk_client, inspect_bound_testnet_account,
+    ORIGIN, BoundPreflightRefused, _inspect_bound_testnet_account_for_test, _sdk_client,
+    inspect_bound_testnet_account,
 )
 
 PRIVATE_KEY = "0x" + "1" * 64  # Fixed, public test vector; never an operational credential.
@@ -79,7 +85,7 @@ class BoundHyperliquidPreflightTests(unittest.IsolatedAsyncioTestCase):
             "metaAndAssetCtxs": [{"universe": [{"name": "BTC"}]}, []],
             "userRole": {"role": "user"},
             "userAbstraction": "disabled",
-            "activeAssetData": {"user": WALLET, "coin": "BTC", "leverage": {"type": "cross", "value": "2"}},
+            "activeAssetData": {"user": WALLET, "coin": "BTC", "leverage": {"type": "cross", "value": 2}},
             "clearinghouseState": {"assetPositions": [], "marginSummary": {"totalNtlPos": "0"}},
             "openOrders": [],
         }
@@ -89,10 +95,25 @@ class BoundHyperliquidPreflightTests(unittest.IsolatedAsyncioTestCase):
         return self.responses[payload["type"]]
 
     async def inspect(self, account=None, secret=None, symbol="BTC/USDC:USDC"):
-        return await inspect_bound_testnet_account(
+        return await _inspect_bound_testnet_account_for_test(
             account or ACCOUNT, secret or SECRET, symbol, transport=self.transport,
             rest_class=FakeSdk, pro_class=FakeSdk,
         )
+
+    async def test_operational_entrypoint_pins_direct_transport_and_sdk_classes(self):
+        captured = {}
+
+        async def fake_private(*args, **kwargs):
+            captured.update(kwargs)
+            return {"scope": "synthetic-test-only"}
+
+        with patch.object(bound, "_inspect_bound_testnet_account_for_test", fake_private):
+            result = await inspect_bound_testnet_account(ACCOUNT, SECRET, "BTC/USDC:USDC")
+        self.assertEqual(result["scope"], "synthetic-test-only")
+        self.assertIs(captured["transport"], bound.direct_testnet_info)
+        self.assertIs(captured["rest_class"], ccxt_async.hyperliquid)
+        self.assertIs(captured["pro_class"], ccxt_pro.hyperliquid)
+        self.assertEqual(self.sent, [])
 
     async def test_bound_snapshot_is_redacted_and_never_grants_acceptance(self):
         result = await self.inspect()
@@ -134,7 +155,7 @@ class BoundHyperliquidPreflightTests(unittest.IsolatedAsyncioTestCase):
         FakeSdk.product = MARKET
         for kind, invalid in [
             ("userRole", {"role": "agent"}), ("userAbstraction", "unifiedAccount"),
-            ("activeAssetData", {"user": WALLET, "coin": "BTC", "leverage": {"type": "isolated", "value": "2"}}),
+            ("activeAssetData", {"user": WALLET, "coin": "BTC", "leverage": {"type": "isolated", "value": 2}}),
             ("clearinghouseState", {"assetPositions": [], "marginSummary": {"totalNtlPos": "0.01"}}),
             ("clearinghouseState", {"assetPositions": [{"type": "oneWay", "position": {"szi": "1"}}],
                                     "marginSummary": {"totalNtlPos": "0"}}),
@@ -202,10 +223,39 @@ class BoundHyperliquidPreflightTests(unittest.IsolatedAsyncioTestCase):
             {"universe": [{"name": "BTC", "szDecimals": 3, "maxLeverage": 50}]},
             [{"markPx": "100"}],
         ]
-        result = await inspect_bound_testnet_account(ACCOUNT, SECRET, "BTC/USDC:USDC", transport=self.transport)
+        result = await _inspect_bound_testnet_account_for_test(
+            ACCOUNT, SECRET, "BTC/USDC:USDC", transport=self.transport,
+            rest_class=ccxt_async.hyperliquid, pro_class=ccxt_pro.hyperliquid,
+        )
         self.assertEqual(result["symbol"], "BTC/USDC:USDC")
         self.assertTrue(all(url == ORIGIN + "/info" for _, url in self.sent))
         self.assertFalse(any(payload.get("type") == "exchange" for payload, _ in self.sent))
+
+    async def test_provider_numeric_leverage_and_bad_values(self):
+        for value in (1, 2, 3.0, 50):
+            with self.subTest(valid=value):
+                self.responses["activeAssetData"]["leverage"]["value"] = value
+                result = await self.inspect()
+                self.assertFalse(result["providerAcceptanceVerified"])
+        for value in (True, False, 0, -1, 2.5, 51, 10**100, float("nan"),
+                      float("inf"), float("-inf"), "3", None, {}, []):
+            with self.subTest(invalid=value):
+                self.responses["activeAssetData"]["leverage"]["value"] = value
+                with self.assertRaises(BoundPreflightRefused):
+                    await self.inspect()
+        self.assertEqual(FakeSdk.constructed, FakeSdk.closed)
+
+    async def test_error_traceback_suppresses_sensitive_cause(self):
+        marker = "synthetic-private-error-marker"
+        with patch.object(bound, "_assert_hyperliquid_master_key_binding",
+                          side_effect=ValueError(marker)):
+            with self.assertRaises(BoundPreflightRefused) as raised:
+                await self.inspect()
+        rendered = "".join(traceback.format_exception(raised.exception))
+        self.assertNotIn(marker, rendered)
+        self.assertIsNone(raised.exception.__cause__)
+        self.assertTrue(raised.exception.__suppress_context__)
+        self.assertEqual(self.sent, [])
 
 
 if __name__ == "__main__":

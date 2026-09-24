@@ -365,7 +365,13 @@ assert.match(containerJob, /find "\$RUNNER_TEMP\/tsx-reviewed-source" .* -type f
 const implementationBlock = containerJob.slice(implementationStep, containerJob.indexOf('\n      - name:', implementationStep + 1));
 assert.match(implementationBlock, /node "\$RUNNER_TEMP\/tsx-reviewed-source\/scripts\/verify_exchange_implementation\.js" --python "\$RUNNER_TEMP\/tsx-verifier\/bin\/python3\.12"/);
 assert.match(containerJob, /docker build --tag tsx-core:\$\{\{ github\.sha \}\} "\$RUNNER_TEMP\/tsx-reviewed-source"/);
-assert.match(containerJob, /docker build --tag tsx-core-exchange-executor:\$\{\{ github\.sha \}\} "\$RUNNER_TEMP\/tsx-reviewed-source\/exchange_executor"/);
+assert.match(containerJob, /docker build --file "\$RUNNER_TEMP\/tsx-reviewed-source\/exchange_executor\/Dockerfile" --tag tsx-core-exchange-executor:\$\{\{ github\.sha \}\} "\$RUNNER_TEMP\/tsx-reviewed-source"/);
+assert.match(executorDockerfile, /^COPY exchange_executor\/requirements\.lock \.\/requirements\.lock$/m);
+assert.match(executorDockerfile, /^COPY --chown=0:0 --chmod=0444 exchange_executor\/\*\.py \.\/$/m);
+assert.match(executorDockerfile, /^COPY --chown=0:0 --chmod=0444 scripts\/hyperliquid_bound_preflight\.py scripts\/hyperliquid_testnet_preflight\.py \.\/$/m);
+assert.match(dockerCompose, /exchange-executor:\s*\n\s*build:\s*\n\s*context: \.\s*\n\s*dockerfile: exchange_executor\/Dockerfile/);
+assert.match(containerJob, /docker run --rm --network none --read-only --entrypoint python tsx-core-exchange-executor:\$\{\{ github\.sha \}\} -E -B -c "import hyperliquid_bound_preflight, hyperliquid_testnet_preflight;/);
+assert.match(containerJob, /docker run --rm --network none --read-only -v "\$RUNNER_TEMP\/tsx-reviewed-source\/tests:\/tests:ro" --entrypoint python tsx-core-exchange-executor:\$\{\{ github\.sha \}\} -B -m unittest discover -s \/tests -p test_hyperliquid_bound_preflight\.py -v/);
 assert.match(containerJob, /--file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/prometheus\.Dockerfile"/);
 assert.match(containerJob, /--file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/alertmanager\.Dockerfile"/);
 assert.doesNotMatch(containerJob, /(?:docker build|docker buildx build)[^\n]*(?:\s\.\s*$|\sexchange_executor\s*$)/m,

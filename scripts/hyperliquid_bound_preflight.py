@@ -1,7 +1,7 @@
 """Bound, read-only Hyperliquid Testnet diagnostic; never grants provider acceptance.
 
-The injected transport makes offline tests mandatory before anyone supplies the
-direct HTTPS transport. There is no command-line key loader or order command.
+The public entrypoint pins the direct HTTPS transport and CCXT classes. A separate
+private seam admits synthetic transports only for offline tests. No key loader or order command.
 """
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import asyncio
 import hashlib
 import hmac
 import json
+import math
 import re
 import sys
 import time
@@ -61,8 +62,8 @@ def _request(url: Any, method: Any, body: Any, wallet: str, coin: str | None) ->
             and len(body.encode("utf-8")) <= MAX_BODY_BYTES)
     try:
         payload = json.loads(body, object_pairs_hook=_object_pairs)
-    except (ValueError, TypeError, UnicodeError) as error:
-        raise BoundPreflightRefused("Hyperliquid Testnet read-only preflight is unproved.") from error
+    except (ValueError, TypeError, UnicodeError):
+        raise BoundPreflightRefused("Hyperliquid Testnet read-only preflight is unproved.") from None
     _refuse(isinstance(payload, dict) and isinstance(payload.get("type"), str)
             and set(payload) == INFO_REQUEST_FIELDS.get(payload["type"]))
     if "user" in payload:
@@ -127,9 +128,21 @@ def _decimal(value: Any) -> Decimal:
     _refuse(isinstance(value, str) and len(value) <= 64)
     try:
         parsed = Decimal(value)
-    except InvalidOperation as error:
-        raise BoundPreflightRefused("Hyperliquid Testnet read-only preflight is unproved.") from error
+    except InvalidOperation:
+        raise BoundPreflightRefused("Hyperliquid Testnet read-only preflight is unproved.") from None
     _refuse(parsed.is_finite())
+    return parsed
+
+
+def _leverage(value: Any) -> Decimal:
+    """Provider JSON numeric leverage, without accepting bool or non-finite floats."""
+    _refuse(type(value) in (int, float) and 1 <= value <= 50
+            and (type(value) is int or math.isfinite(value)))
+    try:
+        parsed = Decimal(str(value))
+    except InvalidOperation:
+        raise BoundPreflightRefused("Hyperliquid Testnet read-only preflight is unproved.") from None
+    _refuse(parsed.is_finite() and parsed == parsed.to_integral_value() and 1 <= parsed <= 50)
     return parsed
 
 
@@ -163,11 +176,20 @@ async def direct_testnet_info(payload: dict[str, str], endpoint: str) -> Any:
 
 
 async def inspect_bound_testnet_account(
-    account: dict[str, str], secret: dict[str, str], symbol: str, *,
-    transport: InfoTransport, rest_class: type[Any] = ccxt_async.hyperliquid,
-    pro_class: type[Any] = ccxt_pro.hyperliquid,
+    account: dict[str, str], secret: dict[str, str], symbol: str,
 ) -> dict[str, Any]:
-    """Diagnostic only. The caller supplies credentials; this module opens no key file."""
+    """Operational diagnostic: pinned SDK and direct HTTPS only; never grants acceptance."""
+    return await _inspect_bound_testnet_account_for_test(
+        account, secret, symbol, transport=direct_testnet_info,
+        rest_class=ccxt_async.hyperliquid, pro_class=ccxt_pro.hyperliquid,
+    )
+
+
+async def _inspect_bound_testnet_account_for_test(
+    account: dict[str, str], secret: dict[str, str], symbol: str, *,
+    transport: InfoTransport, rest_class: type[Any], pro_class: type[Any],
+) -> dict[str, Any]:
+    """Private fake seam for offline tests; callers must use the pinned public entrypoint."""
     _refuse(ccxt.__version__ == "4.5.75" and isinstance(account, dict)
             and account.get("exchange") == "hyperliquid" and account.get("mode") == "testnet"
             and isinstance(account.get("id"), str) and bool(account["id"])
@@ -180,8 +202,8 @@ async def inspect_bound_testnet_account(
         fingerprint = _credential_fingerprint(secret, "hyperliquid", "testnet")
         generation = external_account_cache_key("credential-generation", "v1", fingerprint)
         identity = external_account_id("hyperliquid", "testnet", wallet)
-    except (ExchangeContractError, KeyError, TypeError, ValueError) as error:
-        raise BoundPreflightRefused("Hyperliquid Testnet read-only preflight is unproved.") from error
+    except (ExchangeContractError, KeyError, TypeError, ValueError):
+        raise BoundPreflightRefused("Hyperliquid Testnet read-only preflight is unproved.") from None
     _refuse(WALLET.fullmatch(wallet) is not None
             and isinstance(account.get("expectedAccountFingerprint"), str)
             and isinstance(account.get("credentialGeneration"), str)
@@ -208,7 +230,7 @@ async def inspect_bound_testnet_account(
                 and asset["user"].lower() == wallet and asset.get("coin") == coin
                 and isinstance(asset.get("leverage"), dict)
                 and asset["leverage"].get("type") == "cross"
-                and _decimal(asset["leverage"].get("value")) > 0)
+                and _leverage(asset["leverage"].get("value")) > 0)
         state = await rest.publicPostInfo({"type": "clearinghouseState", "user": wallet})
         _flat_state(state)
         orders = await rest.publicPostInfo({"type": "openOrders", "user": wallet})

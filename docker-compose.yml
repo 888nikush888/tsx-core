@@ -94,8 +94,8 @@ services:
 
   exchange-executor:
     build:
-      context: ./exchange_executor
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: exchange_executor/Dockerfile
     image: ${EXCHANGE_EXECUTOR_IMAGE:-tsx-core-exchange-executor:local}
     init: true
     restart: unless-stopped
