@@ -32,10 +32,14 @@ def cobertura_class_paths(report: Path) -> set[str]:
     def reject_xml_declaration(*_args: object) -> None:
         raise ValueError("DTD and entity declarations are forbidden in coverage XML")
 
+    def reject_external_entity(_context: str, _base: str | None,
+                               _system_id: str | None, _public_id: str | None) -> int:
+        raise ValueError("External entities are forbidden in coverage XML")
+
     parser.StartElementHandler = start_element
     parser.StartDoctypeDeclHandler = reject_xml_declaration
     parser.EntityDeclHandler = reject_xml_declaration
-    parser.ExternalEntityRefHandler = reject_xml_declaration
+    parser.ExternalEntityRefHandler = reject_external_entity
     parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
     with report.open("rb") as source:
         while chunk := source.read(64 * 1024):
