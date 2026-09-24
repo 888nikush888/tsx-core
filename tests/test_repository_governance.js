@@ -9,8 +9,10 @@ import {
 import { evaluateGithubGovernance } from '../scripts/verify_github_governance.js';
 
 const EXCLUDED_ENCODING_DIRECTORIES = new Set([
-  '.git', 'coverage', 'coverage-modules', 'dist', 'node_modules',
-  'playwright-report', 'reports', 'test-results',
+  '.git', 'coverage', 'coverage-modules', 'dist', 'node_modules', 'reports',
+]);
+const EXCLUDED_ENCODING_PATHS = new Set([
+  'frontend/playwright-report', 'frontend/test-results',
 ]);
 const ANALYZED_TEXT_EXTENSIONS = new Set([
   '.css', '.html', '.in', '.js', '.json', '.lock', '.md', '.mjs', '.properties',
@@ -28,8 +30,11 @@ function isAnalyzedTextFile(fileName) {
 
 async function assertUtf8Tree(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (entry.isDirectory() && EXCLUDED_ENCODING_DIRECTORIES.has(entry.name)) continue;
     const filePath = path.join(directory, entry.name);
+    const relativePath = path.relative('.', filePath).split(path.sep).join('/');
+    if (entry.isDirectory() && (
+      EXCLUDED_ENCODING_DIRECTORIES.has(entry.name) || EXCLUDED_ENCODING_PATHS.has(relativePath)
+    )) continue;
     if (entry.isDirectory()) await assertUtf8Tree(filePath);
     if (!entry.isFile() || !isAnalyzedTextFile(entry.name)) continue;
     const bytes = await readFile(filePath);
