@@ -232,7 +232,7 @@ def executor_tls_context() -> ssl.SSLContext:
         context.minimum_version = ssl.TLSVersion.TLSv1_2
         context.load_cert_chain(certificate, private_key)
         return context
-    except (OSError, ValueError, ssl.SSLError):
+    except (OSError, ValueError):
         raise RuntimeError("Executor TLS certificate or private key is invalid.") from None
 
 

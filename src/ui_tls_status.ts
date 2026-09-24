@@ -76,12 +76,16 @@ function inspectedFile(environmentName: CertificateEnvironment, absentState: Fil
     if (certificate.ca !== expectAuthority) throw new Error('invalid');
     const inspection = details(certificate);
     const now = Date.now();
-    const state = Date.parse(inspection.expiresAt) <= now ? 'expired'
-      : Date.parse(certificate.validFrom) > now ? 'not_yet_valid' : 'available';
+    let state: FileState = 'available';
+    if (Date.parse(inspection.expiresAt) <= now) state = 'expired';
+    else if (Date.parse(certificate.validFrom) > now) state = 'not_yet_valid';
     return { state, certificate: inspection };
   } catch (error) {
     const reason = error instanceof Error ? error.message : '';
-    return { state: reason === 'missing' ? 'missing' : reason === 'not_configured' ? 'not_configured' : 'invalid', certificate: null };
+    let state: FileState = 'invalid';
+    if (reason === 'missing') state = 'missing';
+    else if (reason === 'not_configured') state = 'not_configured';
+    return { state, certificate: null };
   }
 }
 
@@ -119,8 +123,10 @@ function trustAnchor() {
     return { state, certificates, earliestExpiryAt, pem: state === 'available' ? pem : null };
   } catch (error) {
     const reason = error instanceof Error ? error.message : '';
-    return { state: reason === 'missing' ? 'missing' : reason === 'not_configured' ? 'not_configured' : 'invalid',
-      certificates: [], earliestExpiryAt: null, pem: null };
+    let state: FileState = 'invalid';
+    if (reason === 'missing') state = 'missing';
+    else if (reason === 'not_configured') state = 'not_configured';
+    return { state, certificates: [], earliestExpiryAt: null, pem: null };
   }
 }
 

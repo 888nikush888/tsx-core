@@ -62,6 +62,12 @@ const activeState: Record<string, string> = {
   observed: 'TLS aktiv beobachtet', unreachable: 'nicht erreichbar', untrusted: 'TLS-Vertrauen fehlgeschlagen', not_checked: 'nicht geprüft',
 };
 
+function describeCertificateMatch(matches: boolean | null): string {
+  if (matches === null) return 'nicht vergleichbar';
+  if (matches) return 'ja';
+  return 'nein – Datei und Listener weichen ab';
+}
+
 function TlsDeploymentEvidence({ tls }: Readonly<{ tls: TlsObservation }>) {
   const rows = tls.endpoints.map(endpoint => ({
     id: endpoint.id,
@@ -75,7 +81,7 @@ function TlsDeploymentEvidence({ tls }: Readonly<{ tls: TlsObservation }>) {
     activeExpiry: endpoint.active.certificate?.expiresAt,
     fileExpiry: endpoint.file.certificate?.expiresAt,
     checkedAt: endpoint.active.checkedAt ? new Date(endpoint.active.checkedAt).toLocaleString('de-DE') : null,
-    match: endpoint.activeMatchesFile === null ? 'nicht vergleichbar' : endpoint.activeMatchesFile ? 'ja' : 'nein – Datei und Listener weichen ab',
+    match: describeCertificateMatch(endpoint.activeMatchesFile),
   }));
   return <section aria-label="Interne TLS-Verbindungen" className="space-y-3">
     <h3>Interne TLS-Verbindungen</h3>
