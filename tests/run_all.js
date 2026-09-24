@@ -163,6 +163,7 @@ const allTests = [
   'test_backup_generation_crash.js',
   'test_backup_generation_ownership.js',
   'test_backup_replication.js',
+  'test_google_drive_backup_mirror.js',
   'test_retention.js',
   'test_retention_accounting.js',
   'test_metrics.js',
