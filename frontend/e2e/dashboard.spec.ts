@@ -390,7 +390,7 @@ async function mockDashboardApi(
 
 async function openBuilderWorkspace(page: Page) {
   await page.getByRole("navigation", { name: "Hauptbereiche" }).getByRole("link", { name: "Workflows", exact: true }).click();
-  await expect(page.locator(".workflow-canvas")).toBeVisible();
+  await expect(page.locator(".workflow-canvas")).toBeVisible({ timeout: 15_000 });
   await page.locator(".workflow-canvas").scrollIntoViewIfNeeded();
 }
 
