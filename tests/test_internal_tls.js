@@ -5,7 +5,7 @@ import { internalTlsServerOptions } from '../src/internal_tls.js';
 import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
 
 const fixture = await setupInternalTlsTest();
-let server;
+let server = null;
 try {
   const options = internalTlsServerOptions('DASHBOARD_TLS_CERT_FILE', 'DASHBOARD_TLS_KEY_FILE');
   assert.equal(options.minVersion, 'TLSv1.2');
