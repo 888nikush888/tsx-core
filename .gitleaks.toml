@@ -81,3 +81,19 @@ condition = "AND"
 regexTarget = "line"
 regexes = ['''^\n?[ \t]*"issueKey"[ \t]*:[ \t]*"(?:AaC_FaSkgUv0fnrT0UHw|AaC_FaXZgUv0fnrT0UHx|AaC_FaYzgUv0fnrT0UHy)"[ \t]*,?[ \t]*\r?$''']
 paths = ['''^docs/testing/final-sonar-pr73-2026-09-20\.json$''']
+
+[[allowlists]]
+description = "Reviewed Sonar parser and frontend review issue IDs"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\n?[ \t]*"sonarIssueKey"[ \t]*:[ \t]*"(?:AaCaApiiQzi\-Va3r5ZAS|AaCaAphgQzi\-Va3r5ZAQ)"[ \t]*,?[ \t]*\r?$''']
+paths = ['''^exchange_executor/certifications/reviews/fixer\-sonar\-parser\-engine\-complexity\-fixes\-2026\-09\-13\.json$''']
+
+[[allowlists]]
+description = "Reviewed Sonar parser and frontend review issue IDs"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\n?[ \t]*"key"[ \t]*:[ \t]*"(?:AaCaAplkQzi\-Va3r5ZAx|AaCaApndQzi\-Va3r5ZA3|AaCaApnvQzi\-Va3r5ZA4|AaCaApmqQzi\-Va3r5ZA2|AaCaApl3Qzi\-Va3r5ZAy|AaCaApl3Qzi\-Va3r5ZAz|AaCaApl3Qzi\-Va3r5ZA0|AaCaApl3Qzi\-Va3r5ZA1)"[ \t]*,?[ \t]*\r?$''']
+paths = ['''^exchange_executor/certifications/reviews/fixer\-sonar\-frontend\-review\-2026\-09\-13\.json$''']
