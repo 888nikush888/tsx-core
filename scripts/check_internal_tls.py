@@ -51,6 +51,32 @@ def _outside_checkout(directory: Path) -> Path:
     return resolved
 
 
+def _check_file_permissions(opened: os.stat_result, name: str, *, private: bool, container_uid: int) -> None:
+    if os.name == "nt":
+        return
+    mode = stat.S_IMODE(opened.st_mode)
+    if private:
+        if mode & ~0o600 or opened.st_uid != container_uid or not mode & 0o400:
+            raise PreflightError(f"{name} must be owner-only and readable by container UID {container_uid}.")
+    elif mode & 0o022 or not mode & 0o004:
+        raise PreflightError(f"{name} must be public-readable and not group/other-writable.")
+
+
+def _read_opened(
+    descriptor: int, metadata: os.stat_result, name: str, *, private: bool, container_uid: int
+) -> bytes:
+    opened = os.fstat(descriptor)
+    if not stat.S_ISREG(opened.st_mode) or (opened.st_dev, opened.st_ino) != (metadata.st_dev, metadata.st_ino):
+        raise PreflightError(f"{name} changed during preflight.")
+    if not 1 <= opened.st_size <= MAX_PEM_BYTES:
+        raise PreflightError(f"{name} must contain a bounded PEM file.")
+    _check_file_permissions(opened, name, private=private, container_uid=container_uid)
+    content = os.read(descriptor, MAX_PEM_BYTES + 1)
+    if len(content) != opened.st_size:
+        raise PreflightError(f"{name} changed during preflight.")
+    return content
+
+
 def _read_regular(directory: Path, name: str, *, private: bool, container_uid: int) -> bytes:
     target = directory / name
     try:
@@ -60,22 +86,7 @@ def _read_regular(directory: Path, name: str, *, private: bool, container_uid: i
         flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
         descriptor = os.open(target, flags)
         try:
-            opened = os.fstat(descriptor)
-            if not stat.S_ISREG(opened.st_mode) or (opened.st_dev, opened.st_ino) != (metadata.st_dev, metadata.st_ino):
-                raise PreflightError(f"{name} changed during preflight.")
-            if not 1 <= opened.st_size <= MAX_PEM_BYTES:
-                raise PreflightError(f"{name} must contain a bounded PEM file.")
-            if os.name != "nt":
-                mode = stat.S_IMODE(opened.st_mode)
-                if private:
-                    if mode & ~0o600 or opened.st_uid != container_uid or not mode & 0o400:
-                        raise PreflightError(f"{name} must be owner-only and readable by container UID {container_uid}.")
-                elif mode & 0o022 or not mode & 0o004:
-                    raise PreflightError(f"{name} must be public-readable and not group/other-writable.")
-            content = os.read(descriptor, MAX_PEM_BYTES + 1)
-            if len(content) != opened.st_size:
-                raise PreflightError(f"{name} changed during preflight.")
-            return content
+            return _read_opened(descriptor, metadata, name, private=private, container_uid=container_uid)
         finally:
             os.close(descriptor)
     except FileNotFoundError as error:

@@ -64,10 +64,9 @@ class ProviderAcceptanceSafetyTests(unittest.TestCase):
             "socket.getaddrinfo", side_effect=AssertionError("DNS queried")
         ), patch("provider_acceptance_runner.AcceptanceJournal", side_effect=AssertionError("journal opened")), patch.dict(
             os.environ, {"HYPERLIQUID_PRIVATE_KEY": "never-log-this-test-secret"}
-        ):
-            with self.assertRaisesRegex(AcceptanceRefused, "transport is not implemented") as refused:
-                run_acceptance(prepared_plan, execute=True, authorization="RUN APPROVED TESTNET ACCEPTANCE",
-                               expected_source_sha=SHA, expected_profile_hash=PROFILE_HASH)
+        ), self.assertRaisesRegex(AcceptanceRefused, "transport is not implemented") as refused:
+            run_acceptance(prepared_plan, execute=True, authorization="RUN APPROVED TESTNET ACCEPTANCE",
+                           expected_source_sha=SHA, expected_profile_hash=PROFILE_HASH)
         self.assertNotIn("never-log-this-test-secret", str(refused.exception))
 
     def test_hyperliquid_execute_cannot_substitute_mainnet_or_lookalike_origin(self):
@@ -82,10 +81,13 @@ class ProviderAcceptanceSafetyTests(unittest.TestCase):
             prepared_plan = plan("hyperliquid")
             prepared_plan["host"] = host
             prepared_plan["allowedTestnetOrigins"] = [host]
-            with self.subTest(host=host), patch("socket.socket", side_effect=AssertionError("network opened")):
-                with self.assertRaises(AcceptanceRefused):
-                    run_acceptance(prepared_plan, execute=True, authorization="RUN APPROVED TESTNET ACCEPTANCE",
-                                   expected_source_sha=SHA, expected_profile_hash=PROFILE_HASH)
+            with (
+                self.subTest(host=host),
+                patch("socket.socket", side_effect=AssertionError("network opened")),
+                self.assertRaises(AcceptanceRefused),
+            ):
+                run_acceptance(prepared_plan, execute=True, authorization="RUN APPROVED TESTNET ACCEPTANCE",
+                               expected_source_sha=SHA, expected_profile_hash=PROFILE_HASH)
 
     def test_preflight_rejects_missing_limits_mainnet_and_revision_drift(self):
         for exchange in HOSTS:

@@ -27,10 +27,12 @@ class ExecutorListenerTests(unittest.TestCase):
             await site.start()
             port = site._server.sockets[0].getsockname()[1]
             client_context = ssl.create_default_context(cafile=certificate_paths["ca"])
-            async with ClientSession() as client:
-                async with client.get(f"https://127.0.0.1:{port}/healthz", ssl=client_context) as response:
-                    self.assertEqual(response.status, 200)
-                    self.assertEqual(await response.json(), {"status": "ok"})
+            async with (
+                ClientSession() as client,
+                client.get(f"https://127.0.0.1:{port}/healthz", ssl=client_context) as response,
+            ):
+                self.assertEqual(response.status, 200)
+                self.assertEqual(await response.json(), {"status": "ok"})
         finally:
             await runner.cleanup()
             application.close.assert_awaited_once_with()
@@ -52,9 +54,12 @@ class ExecutorListenerTests(unittest.TestCase):
                                             ssl_context=sentinel.tls_context, print=None, shutdown_timeout=30)
 
     def test_tls_configuration_is_required_before_secrets_are_loaded(self):
-        with patch.dict(os.environ, {}, clear=True), patch.object(server, "Application") as application:
-            with self.assertRaisesRegex(RuntimeError, "TLS certificate and private key paths are required"):
-                server.main()
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch.object(server, "Application") as application,
+            self.assertRaisesRegex(RuntimeError, "TLS certificate and private key paths are required"),
+        ):
+            server.main()
         application.assert_not_called()
 
     def test_tls_context_validates_certificates_and_private_key(self):
@@ -74,6 +79,9 @@ class ExecutorListenerTests(unittest.TestCase):
                 {**configured, "EXECUTOR_TLS_KEY_FILE": paths["otherKey"]},
                 {**configured, "EXECUTOR_TLS_KEY_FILE": "relative-key.pem"},
             ]:
-                with self.subTest(bad_config=bad_config), patch.dict(os.environ, bad_config, clear=True):
-                    with self.assertRaises(RuntimeError):
-                        server.executor_tls_context()
+                with (
+                    self.subTest(bad_config=bad_config),
+                    patch.dict(os.environ, bad_config, clear=True),
+                    self.assertRaises(RuntimeError),
+                ):
+                    server.executor_tls_context()
