@@ -14,11 +14,14 @@ type ActiveState = 'observed' | 'unreachable' | 'untrusted' | 'not_checked';
 type ActiveObservation = { state: ActiveState; certificate: CertificateDetails | null; checkedAt: number | null };
 type ProbeCacheEntry = { identity: string; expiresAt: number; pending: boolean; promise: Promise<ActiveObservation> };
 const probeCache = new Map<string, ProbeCacheEntry>();
+type CertificateEnvironment = 'DASHBOARD_TLS_CERT_FILE' | 'METRICS_TLS_CERT_FILE'
+  | 'ALERT_RELAY_TLS_CERT_FILE' | 'TELEGRAM_VIEWER_TLS_CERT_FILE' | 'EXECUTOR_TLS_CERT_FILE';
+type CertificateFileEnvironment = CertificateEnvironment | 'NODE_EXTRA_CA_CERTS';
 
 type Endpoint = {
   id: string;
   label: string;
-  certificateEnvironment: string;
+  certificateEnvironment: CertificateEnvironment;
   localFile: boolean;
   host?: string;
   port?: number;
@@ -32,8 +35,19 @@ const ENDPOINTS: readonly Endpoint[] = [
   { id: 'exchange-executor', label: 'Exchange Executor', certificateEnvironment: 'EXECUTOR_TLS_CERT_FILE', localFile: false, host: 'exchange-executor', port: 8090 },
 ];
 
-function readFixedCertificateFile(environmentName: string): Buffer {
-  const configured = process.env[environmentName]?.trim();
+function configuredCertificateFile(environmentName: CertificateFileEnvironment): string | undefined {
+  switch (environmentName) {
+    case 'DASHBOARD_TLS_CERT_FILE': return process.env.DASHBOARD_TLS_CERT_FILE;
+    case 'METRICS_TLS_CERT_FILE': return process.env.METRICS_TLS_CERT_FILE;
+    case 'ALERT_RELAY_TLS_CERT_FILE': return process.env.ALERT_RELAY_TLS_CERT_FILE;
+    case 'TELEGRAM_VIEWER_TLS_CERT_FILE': return process.env.TELEGRAM_VIEWER_TLS_CERT_FILE;
+    case 'EXECUTOR_TLS_CERT_FILE': return process.env.EXECUTOR_TLS_CERT_FILE;
+    case 'NODE_EXTRA_CA_CERTS': return process.env.NODE_EXTRA_CA_CERTS;
+  }
+}
+
+function readFixedCertificateFile(environmentName: CertificateFileEnvironment): Buffer {
+  const configured = configuredCertificateFile(environmentName)?.trim();
   if (!configured || !path.isAbsolute(configured)) throw new Error('not_configured');
   const file = path.resolve(configured);
   let metadata;
@@ -54,8 +68,8 @@ function details(certificate: X509Certificate): CertificateDetails {
   };
 }
 
-function inspectedFile(environmentName: string, absentState: FileState, expectAuthority = false) {
-  if (!process.env[environmentName]) return { state: absentState, certificate: null };
+function inspectedFile(environmentName: CertificateEnvironment, absentState: FileState, expectAuthority = false) {
+  if (!configuredCertificateFile(environmentName)) return { state: absentState, certificate: null };
   try {
     const certificate = new X509Certificate(readFixedCertificateFile(environmentName));
     if (certificate.ca !== expectAuthority) throw new Error('invalid');
@@ -94,7 +108,7 @@ function caValidity(parsed: X509Certificate[], certificates: CertificateDetails[
 
 function trustAnchor() {
   const environmentName = 'NODE_EXTRA_CA_CERTS';
-  if (!process.env[environmentName]) return { state: 'not_configured', certificates: [], earliestExpiryAt: null, pem: null };
+  if (!configuredCertificateFile(environmentName)) return { state: 'not_configured', certificates: [], earliestExpiryAt: null, pem: null };
   try {
     const pem = readFixedCertificateFile(environmentName);
     const parsed = parseCaBundle(pem);
@@ -125,9 +139,11 @@ function probe(host: string, port: number, ca: Buffer): Promise<ActiveObservatio
         checkServerIdentity: (_servername, certificate) => tls.checkServerIdentity(host, certificate),
       });
     } catch { resolve({ state: 'untrusted', certificate: null, checkedAt: Date.now() }); return; }
-    socket.setTimeout(PROBE_TIMEOUT_MS, () => finish('unreachable'));
-    socket.once('error', error => finish(/CERT|TLS|SSL|VERIFY|SIGNATURE/.test((error as NodeJS.ErrnoException).code || '')
-      ? 'untrusted' : 'unreachable'));
+    socket.setTimeout(PROBE_TIMEOUT_MS, () => { finish('unreachable'); });
+    socket.once('error', error => {
+      finish(/CERT|TLS|SSL|VERIFY|SIGNATURE/.test((error as NodeJS.ErrnoException).code || '')
+        ? 'untrusted' : 'unreachable');
+    });
     socket.once('secureConnect', () => {
       try {
         const peer = socket.getPeerX509Certificate();
