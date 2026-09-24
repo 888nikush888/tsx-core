@@ -157,6 +157,7 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
             "version": "4.5.75",
             "streaming": "ccxt-pro",
             "orderAuthority": "rest",
+            "reviewedInventoryHash": "5a76c0381e97811ce155f2eaa523570cabdd0bc0d8e81b72c8950f0d8f0dd69f",
         })
         self.assertEqual(StaticExchange.network_calls, 0)
         for exchange in ("hyperliquid", "bybit", "krakenfutures"):
@@ -216,6 +217,7 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
             certifications_directory=ROOT / "certifications",
         ).catalog()
         entries = {entry["id"]: entry for entry in catalog["exchanges"]}
+        self.assertIsNone(catalog["implementation"]["reviewedInventoryHash"])
         self.assertEqual(entries["hyperliquid"]["status"], "quarantined")
         self.assertIn("version", entries["hyperliquid"]["reason"].lower())
 

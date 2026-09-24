@@ -212,7 +212,7 @@ export class TradingWebControl {
   }
 
   exchangeCatalog(): Promise<ExchangeCatalog> {
-    return this.catalog.browserCatalog();
+    return this.catalog.browserCatalog(false, true);
   }
 
   probeExchange(exchange: unknown): Promise<ExchangeCatalogEntry> {
