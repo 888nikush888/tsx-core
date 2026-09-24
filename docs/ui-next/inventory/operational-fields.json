@@ -1969,10 +1969,11 @@
     },
     {
       "path": "graph.nodes[].id",
-      "class": "versioned-draft",
+      "class": "derived-draft",
       "catalogEditable": true,
       "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "firstSliceGroup": null,
+      "metadataConflict": "Catalog marks editable, but the builder generates this field; no direct field editor is proven."
     },
     {
       "path": "graph.nodes[].resourceVersionId",
@@ -1983,10 +1984,11 @@
     },
     {
       "path": "graph.schemaVersion",
-      "class": "versioned-draft",
+      "class": "derived-draft",
       "catalogEditable": true,
       "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "firstSliceGroup": null,
+      "metadataConflict": "Catalog marks editable, but the builder generates this field; no direct field editor is proven."
     },
     {
       "path": "graph.nodes[].kind",
@@ -2025,10 +2027,11 @@
     },
     {
       "path": "graph.edges[].id",
-      "class": "versioned-draft",
+      "class": "derived-draft",
       "catalogEditable": true,
       "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "firstSliceGroup": null,
+      "metadataConflict": "Catalog marks editable, but the builder generates this field; no direct field editor is proven."
     },
     {
       "path": "graph.edges[].kind",

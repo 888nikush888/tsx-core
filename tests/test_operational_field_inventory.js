@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +17,7 @@ const runtimeEnvironment = new Map([...runtimeBlock.matchAll(/^\s+([A-Za-z][A-Za
 
 const allowedClasses = new Set([
   'runtime-editable', 'create-only', 'versioned-draft', 'write-only-secret',
-  'issued-secret', 'read-only-evidence', 'host-maintenance', 'immutable-gate',
+  'issued-secret', 'read-only-evidence', 'host-maintenance', 'immutable-gate', 'derived-draft',
 ]);
 const allowedStatuses = new Set(['unverified', 'first-slice-static', 'known-gap']);
 const immutableGates = new Set([
@@ -26,10 +27,19 @@ const immutableGates = new Set([
 ]);
 const createOnly = new Set(['account.name', 'account.exchange', 'account.mode', 'schema.id', 'contract.id']);
 const issuedSecrets = new Set(['secrets.dashboardToken', 'secrets.viewerServiceToken', 'secrets.mcpAgentToken']);
+const derivedDraft = new Set(['graph.nodes[].id', 'graph.edges[].id', 'graph.schemaVersion']);
+const requiredSafetyAlerts = new Set([
+  'ForwarderMetricsMissing', 'ForwarderUnknownDelivery', 'ForwarderDatabaseUnavailable',
+  'ForwarderTelegramDisconnected', 'ForwarderBackupUnhealthy', 'ForwarderDiskCapacityUnsafe',
+  'ForwarderPendingTaskStale', 'ForwarderAuditTrailUnhealthy', 'ForwarderClockDriftUnsafe',
+  'TradingUnknownOrder', 'TradingUnprotectedPosition', 'TradingKillSwitchActive',
+  'TradingReconciliationStale',
+]);
 const firstSliceByPath = new Map(firstSlice.groups.flatMap(group => group.paths.map(name => [name, group])));
 
 function expectedClass(parameter) {
   const name = parameter.path;
+  if (derivedDraft.has(name)) return 'derived-draft';
   if (immutableGates.has(name)) return 'immutable-gate';
   if (name.startsWith('deployment.')) return 'host-maintenance';
   if (issuedSecrets.has(name)) return 'issued-secret';
@@ -58,6 +68,12 @@ function verifyCatalog(parameters, inventory) {
     assert.equal(field.class, expectedClass(parameter), `${field.path}: lifecycle class drift`);
     assert.ok(allowedStatuses.has(field.evidenceStatus), `${field.path}: unknown or unproven evidence status`);
     assert.equal(field.catalogEditable, parameter.editable, `${field.path}: stale editability snapshot`);
+    if (derivedDraft.has(field.path)) {
+      assert.equal(parameter.editable, true, `${field.path}: catalog metadata conflict needs review`);
+      assert.equal(field.metadataConflict,
+        'Catalog marks editable, but the builder generates this field; no direct field editor is proven.',
+        `${field.path}: generated field must remain an explicit catalog conflict`);
+    } else assert.ok(!('metadataConflict' in field), `${field.path}: invented metadata conflict`);
     if (field.path.startsWith('runtime.')) assert.equal(field.runtimeEnvironmentName, runtimeEnvironment.get(field.path),
       `${field.path}: runtime environment mapping drift`);
     else assert.ok(!('runtimeEnvironmentName' in field), `${field.path}: invented runtime environment mapping`);
@@ -94,12 +110,15 @@ function verifyCatalog(parameters, inventory) {
 
 function verifyExternal(controls, composeText, ruleText) {
   const IDs = new Set();
+  const byId = new Map();
   for (const control of controls) {
     assert.ok(typeof control.id === 'string' && control.id, 'external ID required');
     assert.ok(!IDs.has(control.id), `${control.id}: duplicate external control`);
     IDs.add(control.id);
+    byId.set(control.id, control);
     assert.equal(control.evidenceStatus, 'unverified', `${control.id}: unproven external UI control`);
-    assert.ok(['host-maintenance', 'write-only-secret'].includes(control.class), `${control.id}: invalid host class`);
+    assert.ok(['host-maintenance', 'write-only-secret', 'write-once-secret', 'safety-rule'].includes(control.class),
+      `${control.id}: invalid external class`);
     assert.ok(Array.isArray(control.source) && control.source.length, `${control.id}: source required`);
     assert.ok(control.relation, `${control.id}: relation required`);
     if (control.relatedCatalogPath) assert.ok(catalog.some(item => item.path === control.relatedCatalogPath),
@@ -118,6 +137,31 @@ function verifyExternal(controls, composeText, ruleText) {
   const alertNames = new Set([...ruleText.matchAll(/^\s+- alert: ([A-Za-z][A-Za-z0-9]+)\s*$/gm)].map(match => match[1]));
   assert.deepEqual([...IDs].filter(id => id.startsWith('monitoring.rule.')).map(id => id.slice(16)).sort(),
     [...alertNames].sort(), 'Monitoring rules require exact external rows');
+  const sections = [...ruleText.matchAll(/^\s+- alert: ([A-Za-z][A-Za-z0-9]+)\s*$/gm)];
+  const criticalNames = new Set();
+  for (let index = 0; index < sections.length; index += 1) {
+    const name = sections[index][1];
+    const body = ruleText.slice(sections[index].index, sections[index + 1]?.index ?? ruleText.length);
+    const item = byId.get(`monitoring.rule.${name}`);
+    if (/^\s+severity: critical\s*$/m.test(body)) {
+      criticalNames.add(name);
+      assert.equal(item.class, 'safety-rule', `${name}: critical detection cannot be a free host edit`);
+      assert.equal(item.detectionPolicy, 'immutable-expression-duration-severity', `${name}: detection policy drift`);
+      assert.equal(item.deliveryControl, 'monitoring.alertmanager.receiver_url', `${name}: delivery is separate`);
+      const parts = ['expr', 'for', 'severity'].map(key => {
+        const value = body.match(new RegExp(`^\\s+${key}:\\s*(.*?)\\s*$`, 'm'))?.[1];
+        assert.ok(value, `${name}: missing ${key} in critical detection`);
+        return value;
+      });
+      const fingerprint = createHash('sha256').update(parts.join('\n'), 'utf8').digest('hex');
+      assert.equal(item.detectionSourceSha256, fingerprint, `${name}: critical detection fingerprint drift`);
+    } else {
+      assert.equal(item.class, 'host-maintenance', `${name}: alert class drift`);
+      assert.ok(!item.detectionPolicy, `${name}: invented critical detection policy`);
+    }
+  }
+  assert.deepEqual([...criticalNames].sort(), [...requiredSafetyAlerts].sort(),
+    'Critical alert set changed; review immutable detection policy before accepting this inventory');
   const tlsFiles = ['ca.pem', ...['dashboard', 'metrics', 'alert-relay', 'viewer', 'executor']
     .flatMap(service => [`${service}.crt`, `${service}.key`])];
   for (const file of tlsFiles) assert.ok(IDs.has(`tls.${file}`), `${file}: missing TLS lifecycle control`);
@@ -125,9 +169,17 @@ function verifyExternal(controls, composeText, ruleText) {
   for (const binding of external.tlsEnvironmentBindings) {
     assert.ok(environmentNames.has(binding.name), `${binding.name}: missing Compose TLS binding`);
     assert.ok(tlsFiles.includes(binding.artifact), `${binding.name}: unknown TLS artifact`);
+    assert.match(composeText, new RegExp(`^      ${binding.name}: ["']?/run/tsx-tls/${binding.artifact.replace('.', '\\.')}["']?$`, 'm'),
+      `${binding.name}: TLS artifact mapping drift`);
   }
   for (const id of ['host.BACKUP_DIR', 'host.BACKUP_OFFSITE_TOKEN', 'host.BACKUP_ENCRYPTION_KEY',
-    'host.AUDIT_LOG_PATH', 'tailscale.serveBackend']) assert.ok(IDs.has(id), `${id}: missing host control`);
+    'host.AUDIT_LOG_PATH', 'host.CLOCK_MAX_DRIFT_MS', 'tailscale.serveBackend']) {
+    assert.ok(IDs.has(id), `${id}: missing host control`);
+  }
+  assert.equal(byId.get('host.BACKUP_ENCRYPTION_KEY').class, 'write-once-secret',
+    'Backup encryption key must not be rotated through an ordinary secret editor');
+  assert.equal(byId.get('host.CLOCK_MAX_DRIFT_MS').invariant,
+    'The drift guard remains enabled; integer threshold 100..5000 ms.');
   return { composeCount: composeNames.size, alertCount: alertNames.size, externalCount: IDs.size };
 }
 
@@ -137,6 +189,8 @@ const counted = verifyCatalog(catalog, fields);
 assert.equal(runtimeEnvironment.size, 35, 'Managed runtime mapping denominator drift');
 const composeText = (await Promise.all(external.composeSources.map(read))).join('\n');
 const externalCounted = verifyExternal(external.controls, composeText, await read('monitoring/rules.yml'));
+assert.match(await read('src/secret_store.ts'), /BACKUP_ENCRYPTION_KEY is immutable because rotating it/);
+assert.match(await read('src/clock_guard.ts'), /CLOCK_MAX_DRIFT_MS must be an integer between 100 and 5000/);
 for (const control of external.controls) for (const source of control.source) await access(path.join(root, source));
 assert.equal(externalCounted.composeCount, 23, 'Re-audit Compose variable denominator on change');
 assert.equal(externalCounted.alertCount, 18, 'Re-audit alert rule denominator on change');
@@ -144,7 +198,7 @@ assert.equal(counted.catalogCount, 311, 'Re-audit catalog denominator on change'
 const expandedAggregates = ['deployment.hostPorts', 'deployment.cpu', 'deployment.memory'];
 for (const name of expandedAggregates) assert.ok(catalog.some(item => item.path === name), `${name}: aggregate missing`);
 const sourceScopedControlCount = counted.catalogCount - expandedAggregates.length + externalCounted.externalCount;
-assert.equal(sourceScopedControlCount, 378, 'Re-audit source-scoped control-record denominator on change');
+assert.equal(sourceScopedControlCount, 379, 'Re-audit source-scoped control-record denominator on change');
 
 const newField = [...catalog, { path: 'runtime.newValue', editable: true, secret: false }];
 assert.throws(() => verifyCatalog(newField, fields), /Catalog and field classification differ/);
@@ -158,5 +212,20 @@ assert.throws(() => verifyExternal(missingCompose, composeText, ruleText),
 const weakenedGate = structuredClone(fields);
 weakenedGate.fields.find(item => item.path === 'strategy.safety.requireProtectiveStop').class = 'runtime-editable';
 assert.throws(() => verifyCatalog(catalog, weakenedGate), /lifecycle class drift/);
+const inventedGraphEditor = structuredClone(fields);
+inventedGraphEditor.fields.find(item => item.path === 'graph.schemaVersion').class = 'versioned-draft';
+assert.throws(() => verifyCatalog(catalog, inventedGraphEditor), /lifecycle class drift/);
+const weakenedAlarm = structuredClone(external.controls);
+weakenedAlarm.find(item => item.id === 'monitoring.rule.TradingUnprotectedPosition').class = 'host-maintenance';
+assert.throws(() => verifyExternal(weakenedAlarm, composeText, ruleText), /critical detection cannot be a free host edit/);
+const alteredDetection = ruleText.replace('tg_forwarder_trading_unprotected_positions > 0',
+  'tg_forwarder_trading_unprotected_positions > 1');
+assert.throws(() => verifyExternal(external.controls, composeText, alteredDetection), /critical detection fingerprint drift/);
+const rotatingBackupKey = structuredClone(external.controls);
+rotatingBackupKey.find(item => item.id === 'host.BACKUP_ENCRYPTION_KEY').class = 'write-only-secret';
+assert.throws(() => verifyExternal(rotatingBackupKey, composeText, ruleText), /Backup encryption key must not be rotated/);
+const disabledClockInvariant = structuredClone(external.controls);
+delete disabledClockInvariant.find(item => item.id === 'host.CLOCK_MAX_DRIFT_MS').invariant;
+assert.throws(() => verifyExternal(disabledClockInvariant, composeText, ruleText), /drift guard remains enabled/);
 
 console.log(`Operational inventory passed: ${counted.classifiedCount} catalog fields, ${externalCounted.externalCount} external controls (${externalCounted.composeCount} Compose variables, ${externalCounted.alertCount} alert rules); ${sourceScopedControlCount} source-scoped control records; UI E2E remains unverified.`);

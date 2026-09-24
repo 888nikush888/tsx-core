@@ -903,8 +903,11 @@
       ],
       "relatedCatalogPath": null,
       "relation": "new-control",
-      "class": "host-maintenance",
-      "evidenceStatus": "unverified"
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "333f3f75363843a1fb9ec9c80fbadb85b7c2d4fd9757afa7369dedb1e7202820"
     },
     {
       "id": "monitoring.rule.ForwarderUnknownDelivery",
@@ -914,8 +917,11 @@
       ],
       "relatedCatalogPath": null,
       "relation": "new-control",
-      "class": "host-maintenance",
-      "evidenceStatus": "unverified"
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "be46c38cc9e9f1282ee72a428a49280876036ef123546b548a9bdd44b6527b8e"
     },
     {
       "id": "monitoring.rule.ForwarderFailedDelivery",
@@ -936,8 +942,11 @@
       ],
       "relatedCatalogPath": null,
       "relation": "new-control",
-      "class": "host-maintenance",
-      "evidenceStatus": "unverified"
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "67c517744a0ae0bc9b5173d4a727cb95b7bf93b8fd4eb614d2ade4b43313294b"
     },
     {
       "id": "monitoring.rule.ForwarderTelegramDisconnected",
@@ -947,8 +956,11 @@
       ],
       "relatedCatalogPath": null,
       "relation": "new-control",
-      "class": "host-maintenance",
-      "evidenceStatus": "unverified"
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "637a3968f432d948c5b41237f596e76bd5e0919021ed482184f168df31a61a3d"
     },
     {
       "id": "monitoring.rule.ForwarderBackupUnhealthy",
@@ -958,8 +970,11 @@
       ],
       "relatedCatalogPath": null,
       "relation": "new-control",
-      "class": "host-maintenance",
-      "evidenceStatus": "unverified"
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "c1fdd3edb821b2417f5a699011e746e44478046d626360edf7807855141ee7e4"
     },
     {
       "id": "monitoring.rule.ForwarderRetentionBacklog",
@@ -980,8 +995,11 @@
       ],
       "relatedCatalogPath": null,
       "relation": "new-control",
-      "class": "host-maintenance",
-      "evidenceStatus": "unverified"
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "749f18fd57b64c4caba48627c0b0ce95cf00dd4d67ee00093772e2df8d91777c"
     },
     {
       "id": "monitoring.rule.ForwarderQueueBacklog",
@@ -1024,8 +1042,11 @@
       ],
       "relatedCatalogPath": null,
       "relation": "new-control",
-      "class": "host-maintenance",
-      "evidenceStatus": "unverified"
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "3c663278fb07b53c7a372d00371c9695f5a9d11007eeef75773c543886e42750"
     },
     {
       "id": "monitoring.rule.ForwarderAuditTrailUnhealthy",
@@ -1035,8 +1056,11 @@
       ],
       "relatedCatalogPath": null,
       "relation": "new-control",
-      "class": "host-maintenance",
-      "evidenceStatus": "unverified"
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "58a70a7b457150f4afee3b98995aac4030886c235b1d67c41207295f22ce7477"
     },
     {
       "id": "monitoring.rule.ForwarderClockDriftUnsafe",
@@ -1046,8 +1070,11 @@
       ],
       "relatedCatalogPath": null,
       "relation": "new-control",
-      "class": "host-maintenance",
-      "evidenceStatus": "unverified"
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "5cf7e9b13b13c80f9f0b9e6d6a8a72effbe6979264ca50a4e5bae43155d2bb5e"
     },
     {
       "id": "monitoring.rule.TradingUnknownOrder",
@@ -1057,8 +1084,11 @@
       ],
       "relatedCatalogPath": null,
       "relation": "new-control",
-      "class": "host-maintenance",
-      "evidenceStatus": "unverified"
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "07e64f0cd9f29dd3a9c53400ed5dbae48fe038da17e447ee421eafd850054b8d"
     },
     {
       "id": "monitoring.rule.TradingUnprotectedPosition",
@@ -1068,8 +1098,11 @@
       ],
       "relatedCatalogPath": null,
       "relation": "new-control",
-      "class": "host-maintenance",
-      "evidenceStatus": "unverified"
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "effd19c7c2a5475fdd28f1d108e8104ed7e2399349091de59a860ebfa67872de"
     },
     {
       "id": "monitoring.rule.TradingKillSwitchActive",
@@ -1079,8 +1112,11 @@
       ],
       "relatedCatalogPath": null,
       "relation": "new-control",
-      "class": "host-maintenance",
-      "evidenceStatus": "unverified"
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "205c650f4107859dbc39242306d8a6edf619e73e5d437abeda7d9818aa852f26"
     },
     {
       "id": "monitoring.rule.TradingReconciliationStale",
@@ -1090,8 +1126,11 @@
       ],
       "relatedCatalogPath": null,
       "relation": "new-control",
-      "class": "host-maintenance",
-      "evidenceStatus": "unverified"
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "796691270f31eb1d90c4dd9216350ec0fa8f8570f0a080719a7b485f6679da49"
     },
     {
       "id": "host.BACKUP_DIR",
@@ -1123,7 +1162,7 @@
       ],
       "relatedCatalogPath": null,
       "relation": "new-control",
-      "class": "write-only-secret",
+      "class": "write-once-secret",
       "evidenceStatus": "unverified"
     },
     {
@@ -1136,6 +1175,18 @@
       "relation": "same-feature-distinct-control",
       "class": "host-maintenance",
       "evidenceStatus": "unverified"
+    },
+    {
+      "id": "host.CLOCK_MAX_DRIFT_MS",
+      "family": "host",
+      "source": [
+        "src/clock_guard.ts"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "bounded-safety-setting",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified",
+      "invariant": "The drift guard remains enabled; integer threshold 100..5000 ms."
     },
     {
       "id": "host.PROMETHEUS_URL",
