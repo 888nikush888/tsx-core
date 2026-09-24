@@ -15,9 +15,27 @@ vi.mock('@/app/operator-page', () => ({ OperatorPage: ({ readOnly, onRefresh, ca
 
 beforeEach(() => { vi.clearAllMocks(); window.history.replaceState(null, '', '/operations/jobs'); Object.defineProperty(document, 'hidden', { configurable: true, value: false }); });
 afterEach(cleanup);
-async function refresh() { await act(async () => { document.dispatchEvent(new Event('visibilitychange')); }); }
+async function refresh() {
+  await act(() => new Promise<void>((resolve) => {
+    document.dispatchEvent(new Event('visibilitychange'));
+    resolve();
+  }));
+}
 
 describe('operator shell permission and connection evidence', () => {
+  it('dispatches refresh immediately and preserves rejected dispatch errors', async () => {
+    const observed = vi.fn();
+    document.addEventListener('visibilitychange', observed, { once: true });
+    const pending = refresh();
+    expect(observed).toHaveBeenCalledOnce();
+    await pending;
+
+    const error = new Error('visibility dispatch failed');
+    const dispatch = vi.spyOn(document, 'dispatchEvent').mockImplementation(() => { throw error; });
+    await expect(refresh()).rejects.toBe(error);
+    dispatch.mockRestore();
+  });
+
   it('clears a previously loaded exchange catalog when its next read fails', async () => {
     window.history.replaceState(null, '', '/trading/accounts');
     let catalogReads = 0;

@@ -15,7 +15,12 @@ function mount(element: ReactNode, readOnly = false) {
   return render(<NavigationProvider><OperatorReadOnlyContext.Provider value={readOnly}>{element}</OperatorReadOnlyContext.Provider></NavigationProvider>);
 }
 function writes() { return api.jsonRequest.mock.calls.filter(([, init]) => init?.method && init.method !== 'GET'); }
-async function refresh() { await act(async () => { document.dispatchEvent(new Event('visibilitychange')); }); }
+async function refresh() {
+  await act(() => new Promise<void>((resolve) => {
+    document.dispatchEvent(new Event('visibilitychange'));
+    resolve();
+  }));
+}
 beforeEach(() => { vi.clearAllMocks(); window.history.replaceState(null, '', '/workflows/resources'); Object.defineProperty(document, 'hidden', { configurable: true, value: false }); });
 afterEach(cleanup);
 
