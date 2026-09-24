@@ -12,7 +12,7 @@ Der eingefrorene Quellstand `28cfa93870323f835458bd00e8ce6932b7d06853` besteht a
 
 Der Implementierungsnachweis wurde unabhängig gegen vollständige aktuelle Quellen, historische Belege und tatsächliche Ausführungen geprüft. Archiv und Review liegen unter `exchange_executor/certifications/reviews/final-28cfa93-*`. Der Produktionsvergleich bestätigt identische Build-Eingaben und gültige Runtime-Receipts; das ist keine Provider- oder Live-Trading-Freigabe. Die weiter unten beschriebenen ursprünglichen Fehler sind historische Ausgangsbefunde.
 
-**Verbleibende Reihenfolge:** Lokale Nachweis-/Bridge-Nachprüfung ist bestanden; geprüften Kandidaten nach ausdrücklichem Veröffentlichungsauftrag veröffentlichen; Linux-/Docker-CI und vollständige Codacy-, DeepSource- und Sonar-Scans auf genau diesem Stand durchführen; alle alten/neuen IDs abgleichen; verbleibende Defekte in kleinen Paketen mit Regressionstests schließen; erst danach geschützter Merge und vollständiger main-Nachscan. Codacy-Analyzerabbrüche und die noch nicht akzeptierte zusätzliche Executor-HTTP-Verbindung bleiben ausdrücklich offen. Frühere vier HTTP-Akzeptanzen decken diesen zusätzlichen Endpunkt nicht ab.
+**Verbleibende Reihenfolge:** Lokale Nachweis-/Bridge-Nachprüfung ist bestanden; die veröffentlichten Draft-PRs #73–#78 auf einen exakten Kandidatenstand integrieren; Linux-/Docker-CI und vollständige Codacy-, DeepSource- und Sonar-Scans auf genau diesem Stand durchführen; alle alten/neuen IDs abgleichen; verbleibende Defekte in kleinen Paketen mit Regressionstests schließen; erst danach geschützter Merge und vollständiger main-Nachscan. Codacy-Analyzerabbrüche und neue Warnungen bleiben sichtbar. Der zusätzliche Executor-HTTP-Weg gehört inzwischen zum TLS-Umbau in PR #75; erst ein Betriebsnachweis schließt ihn ab.
 
 Lokale SonarJS-Messung: 43 TypeScript-Komplexitäts- und sechs Regex-Fälle unterschreiten die jeweiligen Grenzen 15/20, ohne Parserfehler. Das ersetzt weder SonarCloud noch die 23 noch dort zu messenden Python-Komplexitätsfälle. Ausschließlich DeepSource JS-R1005 ist ausgenommen. Der Gesamtplan bleibt IN PROGRESS, bis die externen Abschlusskriterien erfüllt sind.
 
@@ -21,7 +21,7 @@ Lokale SonarJS-Messung: 43 TypeScript-Komplexitäts- und sechs Regex-Fälle unte
 Alle Codacy-, DeepSource- und Sonar-Befunde einschließlich früherer False Positives erhalten eine aktuelle, einzeln belegte Entscheidung. Echte Defekte werden behoben. Ein Scannerstatus allein ist kein Funktionsnachweis. Stabilität, unveränderte Verträge und nachgewiesene Kontozuordnung haben Vorrang vor kosmetischen Verbesserungen.
 
 - Ausschließlich DeepSource **JS-R1005** ist auf ausdrücklichen Nutzerwunsch ausgenommen. Die Ausnahme gilt für diese Regel einschließlich neu auftretender Vorkommen, nicht für andere Komplexitätsregeln, Testabdeckung oder bestehende lokale Qualitätsbudgets. Keine großen Zerlegungen allein dafür; Schwellen unverändert lassen.
-- Aikido bleibt ausgeschlossen. Snyk bleibt bei Actions-Scans; die vier bereits akzeptierten internen HTTP-Risiken bleiben getrennt sichtbar und werden nicht zu False Positives umetikettiert. Bestehende Befristungen beachten.
+- Aikido bleibt ausgeschlossen. Snyk ist als aktive Integration entfernt; seine historischen Belege bleiben nachvollziehbar. Alle fünf früher akzeptierten internen HTTP-Wege werden mit TLS abgesichert; bis zum geprüften Rollout bleibt das Betriebsrisiko offen.
 - Keine Live-Trades, Provider-Mutationen, produktiven Restores, Datenbankrücksetzungen oder neuen Features. Keine neuen Live-/Testnetfreigaben aus Offline-Tests ableiten.
 - Keine pauschalen Regel-/Dateiausschlüsse, abgeschwächten Assertionen, niedrigeren Coverage-Grenzen oder catch-and-ignore-Workarounds.
 - Kein pauschales Entfernen von `async`: synchrone Ausführung bis zum ersten await, Promise-Rejection, Promise-Adoption und Aufruferverträge müssen erhalten bleiben.
@@ -172,7 +172,7 @@ Danach Implementierungs-Receipts, vollständiges Quellarchiv, aktuelle SDK-/Exec
 
 ### Stufe 6 — Geprüfte Veröffentlichung und main-Abschluss
 
-Erst nach Umsetzung und ausdrücklichem Veröffentlichungsauftrag: einen PR mit konkretem Fixumfang, offenen externen Abhängigkeiten, Tests und Rollback erstellen. Verpflichtende CI-/Security-/Snyk-Actions-Prüfungen für den exakten Head abwarten. Aktuellen Branchschutz/Reviewbedarf lesen; keine pauschale Ableitung aus früheren14Checks. Ausstehende Reviews nicht technisch umgehen. Mergekonflikte oder aktualisierte main-Basis erzeugen neue Prüfarbeit.
+Für den veröffentlichten Draft-PR-Stapel einen integrierten PR mit konkretem Fixumfang, offenen externen Abhängigkeiten, Tests und Rollback erstellen. Verpflichtende CI-/Security-Prüfungen und provider-unabhängige Abhängigkeitsnachweise für den exakten Head abwarten. Aktuellen Branchschutz/Reviewbedarf lesen; keine pauschale Ableitung aus früheren 14 Checks. Ausstehende Reviews nicht technisch umgehen. Mergekonflikte oder aktualisierte main-Basis erzeugen neue Prüfarbeit.
 
 Rollback: zusammenhängendes fehlerhaftes Änderungspaket über normalen Revert-PR zurücknehmen; keine Produktionsdaten löschen, historische Fill-Identität umschreiben oder alte Receipts auf neuen Code umhängen. Kein Deploy Teil dieser Scannerbereinigung.
 
