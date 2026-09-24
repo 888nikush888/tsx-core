@@ -155,9 +155,9 @@ async function assertDisabledAdaptiveRiskEnginePlan(disabled, sizingResourceId, 
   assert.equal(newIntent.workflowRevisionId, revision.id);
   assert.equal(newIntent.executionPathId, path.id);
   class NoOrderPaper extends PaperExchangeAdapter {
-    async submitOrder() { throw new Error('The risk contract must not submit an order.'); }
-    async submitProtectedEntry() { throw new Error('The risk contract must not submit a protected entry.'); }
-    async cancelOrder() { throw new Error('The risk contract must not cancel an order.'); }
+    submitOrder() { return Promise.reject(new Error(`${this.constructor.name} must not submit an order.`)); }
+    submitProtectedEntry() { return Promise.reject(new Error(`${this.constructor.name} must not submit a protected entry.`)); }
+    cancelOrder() { return Promise.reject(new Error(`${this.constructor.name} must not cancel an order.`)); }
   }
   const paper = new NoOrderPaper();
   await paper.setMarket(account.id, {
