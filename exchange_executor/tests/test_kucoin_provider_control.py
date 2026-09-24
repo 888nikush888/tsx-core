@@ -152,6 +152,34 @@ class KucoinControlTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result[1]["exchangeOrderId"], "9007199254740993002")
         self.assertEqual([row["status"] for row in result], ["accepted", "accepted"])
 
+    def test_batch_ack_requires_expected_client_order_id_before_processing(self):
+        for invalid in (None, ""):
+            with self.subTest(invalid=invalid):
+                prepared_expected_legs = expected_legs()
+                prepared_expected_legs[0]["clientOrderId"] = invalid
+                with self.assertRaises(ExchangeContractError):
+                    classify_kucoin_batch_ack({"code": "200000", "data": []}, prepared_expected_legs)
+
+    def test_batch_ack_missing_response_client_id_preserves_partial_outcome(self):
+        accepted_entry = {
+            "orderId": "11", "clientOid": "tsx-entry", "symbol": SYMBOL,
+            "code": "200000", "msg": "success",
+        }
+        for malformed_stop in ({"clientOid": None}, {}):
+            with self.subTest(malformed_stop=malformed_stop):
+                stop = {
+                    "orderId": "22", "symbol": SYMBOL,
+                    "code": "200000", "msg": "success",
+                    **malformed_stop,
+                }
+                response = {"code": "200000", "data": [accepted_entry, stop]}
+                with self.assertRaises(UnresolvedOrderOutcome) as captured:
+                    classify_kucoin_batch_ack(response, expected_legs())
+                details = captured.exception.details
+                self.assertEqual([row["clientOrderId"] for row in details["confirmedOrders"]],
+                                 ["tsx-entry"])
+                self.assertEqual(details["unresolvedClientOrderIds"], ["tsx-stop"])
+
     def test_batch_ack_preserves_explicit_per_leg_rejection(self):
         response = {
             "code": "200000",
