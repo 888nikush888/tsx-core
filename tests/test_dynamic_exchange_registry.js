@@ -252,7 +252,7 @@ const executorCatalogPayload = entry => ({
   implementation: { library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest' },
   exchanges: [entry],
 });
-const catalogClientForPayload = (payload, response = {}, baseUrl = 'http://127.0.0.1:8090') => new ExchangeCatalogClient(
+const catalogClientForPayload = (payload, response = {}, baseUrl = 'https://127.0.0.1:8090') => new ExchangeCatalogClient(
   { getOrCreateExecutorToken: () => Promise.resolve('f'.repeat(64)) },
   {
     baseUrl,
@@ -261,13 +261,17 @@ const catalogClientForPayload = (payload, response = {}, baseUrl = 'http://127.0
 );
 
 assert.throws(
-  () => catalogClientForPayload(executorCatalogPayload(candidateCatalogEntry), {}, 'https://executor.test'),
-  /plain internal HTTP origin/i,
+  () => catalogClientForPayload(executorCatalogPayload(candidateCatalogEntry), {}, 'http://127.0.0.1:8090'),
+  /plain internal HTTPS origin/i,
 );
 assert.throws(
-  () => catalogClientForPayload(executorCatalogPayload(candidateCatalogEntry), {}, 'http://public.example:8090'),
+  () => catalogClientForPayload(executorCatalogPayload(candidateCatalogEntry), {}, 'https://public.example:8090'),
   /internal executor host/i,
-  'Plain HTTP must never carry the executor bearer token to an external host.',
+  'Executor bearer tokens must never be sent to an external host.',
+);
+assert.throws(
+  () => catalogClientForPayload(executorCatalogPayload(candidateCatalogEntry), {}, 'https://exchange-executor:8091'),
+  /dedicated executor port/i,
 );
 
 const invalidCatalogFixtures = [
@@ -304,7 +308,7 @@ const requests = [];
 const catalogClient = new ExchangeCatalogClient(
   { getOrCreateExecutorToken: () => Promise.resolve('f'.repeat(64)) },
   {
-    baseUrl: 'http://127.0.0.1:8090',
+    baseUrl: 'https://127.0.0.1:8090',
     cacheTtlMs: 1_000,
     fetchImpl: (url, init) => {
       requests.push({ url, init });
@@ -323,13 +327,15 @@ assert.equal(browserCatalog.exchanges[0].id, 'paper');
 assert.equal(browserCatalog.exchanges[0].status, 'certified');
 assert.equal(browserCatalog.exchanges[1].id, 'okx');
 assert.equal(requests.length, 1);
-assert.equal(requests[0].url, 'http://127.0.0.1:8090/v1/exchange-catalog');
+assert.equal(requests[0].url, 'https://127.0.0.1:8090/v1/exchange-catalog');
 assert.equal(requests[0].init.headers.Authorization, `Bearer ${'f'.repeat(64)}`);
+assert.equal(requests[0].init.redirect, 'error');
 await catalogClient.browserCatalog();
 assert.equal(requests.length, 1, 'Catalog responses must use the bounded cache.');
 await assert.rejects(catalogClient.probe('paper'), /does not require/i);
 assert.equal((await catalogClient.probe('okx')).id, 'okx');
 assert.equal(requests.length, 2);
+assert.equal(requests[1].init.redirect, 'error', 'Probe bearer tokens must not follow redirects.');
 await catalogClient.browserCatalog();
 assert.equal(requests.length, 3, 'A public probe must invalidate the cached catalog.');
 await assert.rejects(
@@ -346,7 +352,7 @@ let concurrentCatalogRequests = 0;
 const concurrentCatalogClient = new ExchangeCatalogClient(
   { getOrCreateExecutorToken: () => Promise.resolve('f'.repeat(64)) },
   {
-    baseUrl: 'http://127.0.0.1:8090',
+    baseUrl: 'https://127.0.0.1:8090',
     fetchImpl: async () => {
       concurrentCatalogRequests += 1;
       await catalogRequestReleased;

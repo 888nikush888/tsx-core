@@ -156,6 +156,7 @@ function webOrigin(value: unknown): string {
   if (parsed.pathname !== '/' || parsed.search) {
     throw new Error('dashboardAllowedOrigin must contain only scheme, host and optional port.');
   }
+  if (parsed.protocol === 'http:') parsed.protocol = 'https:';
   return parsed.origin;
 }
 

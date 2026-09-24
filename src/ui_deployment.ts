@@ -19,7 +19,7 @@ export async function uiDeployment(listener: { address: string | undefined; port
     interpretation: 'Nur im Prozess vorhandene Deklaration; keine Beobachtung der tatsächlichen Host-/Compose-Zuordnung.',
   }));
   return { contractVersion: 1, observedAt: Date.now(), readOnly: true,
-    listener: { ...listener, source: 'Aktuelle HTTP-Verbindung: serverseitiger Socket', interpretation: 'Interner Listener. Proxy und veröffentlichter Hostport können abweichen.' },
+    listener: { ...listener, source: 'Aktuelle HTTPS-Verbindung: serverseitiger Socket', interpretation: 'Interner Listener. Proxy und veröffentlichter Hostport können abweichen.' },
     process: { platform: platform(), nodeVersion: process.version, availableCpuParallelism: availableParallelism(), operatingSystemMemoryBytes: String(totalmem()), source: 'Node os.availableParallelism / os.totalmem', interpretation: 'Betriebssystembeobachtung, kein garantierter Container- oder Hostvertrag.' },
     limits: { memory, cpu, interpretation: 'Linux cgroup v2 des sichtbaren Wurzelkontexts. max bedeutet dort unbegrenzt; übergeordnete Limits können zusätzlich gelten. Nicht lesbare Limits sind unbekannt.' },
     declarations,

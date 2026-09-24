@@ -16,9 +16,9 @@ Die wichtigsten Oberflächen sind:
 
 | Oberfläche | Standard | Zweck | Produktionsgrenze |
 | --- | --- | --- | --- |
-| Web-Dashboard/API | `127.0.0.1:8080` | visueller Workflow-Builder, Betrieb, Analytics, Journal, Backups, MCP und System | Bevorzugt Tailscale Serve im Tailnet; Enterprise alternativ/zusätzlich TLS/OIDC |
+| Web-Dashboard/API | `https://127.0.0.1:8080` | visueller Workflow-Builder, Betrieb, Analytics, Journal, Backups, MCP und System | Internes TLS mit verifizierter CA; bevorzugt Tailscale Serve im Tailnet |
 | MCP Streamable HTTP | `127.0.0.1:8091` | persistent schaltbare Agenten-Tools, Events und Kontrollanforderungen | Standarddienst, Werkseinstellung `disabled`, Bearer pro Agent, niemals Funnel |
-| Prometheus | `127.0.0.1:9100` | `/metrics`, `/healthz`, `/readyz` | Nur intern oder über read-only Monitoring-Zugriff |
+| Prometheus | `https://127.0.0.1:9100` | `/metrics`, `/healthz`, `/readyz` | Internes TLS mit verifizierter CA; nur intern oder über read-only Monitoring-Zugriff |
 | SQLite | `session_data/forwarder.db` | Inbox/Outbox, Verträge, Trading, Kanalrisiko, Telemetrie, MCP und Migrationen | Nie live kopieren oder manuell bearbeiten |
 | Audit-Kette | `logs/audit-chain.jsonl` | Manipulationsnachweis mutierender API-Aufrufe | Produktion verlangt unveränderlichen Off-host-Empfänger |
 | Backups | `backups/` plus Off-host-Store | Verifizierte, verschlüsselte Wiederherstellung | Lokales Verzeichnis allein erfüllt DR nicht |
@@ -37,6 +37,7 @@ Für lokale Verifikation:
 Für Produktion zusätzlich:
 
 - Linux-Host oder vergleichbare Containerplattform; das distroless Image läuft als UID/GID `65532:65532`, benannte Docker-Volumes werden vom Image passend initialisiert;
+- ein absolutes `INTERNAL_TLS_DIR` außerhalb des Checkouts mit CA und fünf gültigen Dienstzertifikat-/Schlüsselpaaren; Details und SANs stehen im [internen TLS-Runbook](runbooks/internal-tls.md);
 - Tailscale mit MagicDNS/HTTPS für den bevorzugten tailnet-internen Remote-Zugriff oder ein gehärteter TLS-Reverse-Proxy und OIDC-Provider;
 - unveränderlicher externer Audit-Empfänger;
 - authentifizierter, rücklesbarer Off-host-Objektspeicher und davon getrennt verwalteter AES-Schlüssel;
@@ -82,7 +83,7 @@ npm audit --prefix frontend --omit=dev --audit-level=moderate
 
 ## 4. Nicht geheime Anwendungskonfiguration
 
-Im normalen Docker-Betrieb wird keine Host-Datei vorbereitet. Compose initialisiert `forwarder_config`; das Dashboard schreibt die validierte Konfiguration atomar nach `/app/config/config.json`. Kanäle, Filter, Parser-Prompt, Signal-Schema, Signal-Vertrag und Strategie werden direkt als Bausteine im Builder gepflegt. Der Import/Export im Bereich **System & Backup** enthält ausschließlich Nicht-Secrets.
+Im normalen Docker-Betrieb wird keine Host-Datei für die nicht geheime Anwendungskonfiguration vorbereitet. Die TLS-Zertifikate und privaten Schlüssel müssen dagegen vor Compose außerhalb des Checkouts bereitstehen. Compose initialisiert `forwarder_config`; das Dashboard schreibt die validierte Konfiguration atomar nach `/app/config/config.json`. Kanäle, Filter, Parser-Prompt, Signal-Schema, Signal-Vertrag und Strategie werden direkt als Bausteine im Builder gepflegt. Der Import/Export im Bereich **System & Backup** enthält ausschließlich Nicht-Secrets.
 
 Regeln:
 
@@ -107,13 +108,13 @@ Zusätzliche Admin- und read-only Viewer-Bearer-Keys werden unter **System & Bac
 
 ### Tailscale Serve
 
-Für WLAN/VPN ist Tailscale Serve der bevorzugte Remote-Pfad. Das Dashboard bleibt auf `127.0.0.1`; der Tailscale-Daemon terminiert Tailnet-HTTPS und setzt verifizierte Identitätsheader. Unter **System & Backup** wird `dashboardAuthMode=tailscale`, `dashboardLocalTrust=false`, `tailscaleServeTrustedProxy=true`, die exakte `https://…ts.net`-Origin und mindestens ein Admin-Login gespeichert. TSX Core ignoriert nicht erlaubte Logins und vertraut Headern nur in dieser expliziten Konfiguration.
+Für WLAN/VPN ist Tailscale Serve der bevorzugte Remote-Pfad. Das Dashboard bleibt auf `https://127.0.0.1:8080`; der Tailscale-Daemon terminiert Tailnet-HTTPS und verbindet sich seinerseits per HTTPS mit dem Dashboard. Vor der Umstellung muss die interne CA im Trust Store des Docker-/Tailscale-Hosts vertrauenswürdig sein. Unter **System & Backup** wird `dashboardAuthMode=tailscale`, `dashboardLocalTrust=false`, `tailscaleServeTrustedProxy=true`, die exakte `https://…ts.net`-Origin und mindestens ein Admin-Login gespeichert. TSX Core ignoriert nicht erlaubte Logins und vertraut Headern nur in dieser expliziten Konfiguration.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\configure_tailscale_serve.ps1
 ```
 
-Das Script prüft den Tailnet-Status, deaktiviert Funnel für den HTTPS-Port und proxyt ausschließlich auf Host-Loopback. **Funnel darf für Dashboard oder MCP niemals aktiviert werden.** Für den MCP-Port kann derselbe Ablauf mit `-DashboardPort 8091 -HttpsPort 8443` verwendet werden; der MCP-Bearer bleibt zwingend. Enterprise-Modus erzwingt weiterhin OIDC und die externen Audit-/Backup-Gates.
+Das Script prüft den Tailnet-Status und das CA-verifizierte Dashboard-Backend, deaktiviert Funnel für den HTTPS-Port und proxyt ausschließlich auf Host-Loopback. **Funnel darf für Dashboard oder MCP niemals aktiviert werden.** Der derzeit HTTP-basierte MCP-Port 8091 gehört nicht zu diesem TLS-Umbau; `configure_tailscale_serve.ps1` darf nicht für ihn wiederverwendet werden. Seine etwaige Remote-Bereitstellung benötigt eine separate Sicherheitsprüfung und TLS-Lösung. Enterprise-Modus erzwingt weiterhin OIDC und die externen Audit-/Backup-Gates.
 
 ### Enterprise-Modus
 
@@ -159,6 +160,21 @@ Codes und Passwörter werden nur an das aktive TDLib-Promise übergeben, nicht p
 - ein Sessionverlust wird durch erneutes Starten und die Web-Anmeldung behoben, nicht über ein SQLite-Restore.
 
 ## 7. Nutzung und täglicher Betrieb
+
+Vor jedem Compose-Start `INTERNAL_TLS_DIR` auf ein absolutes Verzeichnis außerhalb des Checkouts setzen und die TLS-Dateien prüfen. Die folgende Prüfung bestätigt Pfad und Dateityp; CA-Kette, SANs, Gültigkeit, Schlüsselzuordnung und Leserechte für UID 65532 müssen zusätzlich gemäß [TLS-Runbook](runbooks/internal-tls.md) nachgewiesen werden. Fehlende Dateien dürfen nicht durch Compose als Verzeichnisse angelegt werden.
+
+```bash
+export INTERNAL_TLS_DIR=/srv/tsx-core-internal-tls
+test -d "$INTERNAL_TLS_DIR" || exit 1
+case "$INTERNAL_TLS_DIR" in /*) ;; *) echo 'INTERNAL_TLS_DIR muss absolut sein' >&2; exit 1 ;; esac
+tls_dir="$(realpath "$INTERNAL_TLS_DIR")"
+repo_dir="$(pwd -P)"
+case "$tls_dir" in "$repo_dir"|"$repo_dir"/*) echo 'TLS-Dateien dürfen nicht im Checkout liegen' >&2; exit 1 ;; esac
+for name in ca.pem dashboard.crt dashboard.key metrics.crt metrics.key executor.crt executor.key viewer.crt viewer.key alert-relay.crt alert-relay.key; do
+  test -f "$INTERNAL_TLS_DIR/$name" && test ! -L "$INTERNAL_TLS_DIR/$name" || { echo "TLS-Datei fehlt oder ist ein Symlink: $name" >&2; exit 1; }
+done
+docker compose -f docker-compose.yml -f docker-compose.monitoring.yml config --quiet
+```
 
 Start und Update im Standalone-Modus:
 
@@ -211,9 +227,9 @@ Vor dem Löschen stoppt die Anwendung Trading, storniert offene Entries, prüft 
 Status prüfen:
 
 ```bash
-curl --fail http://127.0.0.1:9100/healthz
-curl --fail http://127.0.0.1:9100/readyz
-curl --fail http://127.0.0.1:9100/metrics
+curl --fail --cacert "$INTERNAL_TLS_DIR/ca.pem" https://127.0.0.1:9100/healthz
+curl --fail --cacert "$INTERNAL_TLS_DIR/ca.pem" https://127.0.0.1:9100/readyz
+curl --fail --cacert "$INTERNAL_TLS_DIR/ca.pem" https://127.0.0.1:9100/metrics
 ```
 
 `healthz=200` beweist nur, dass der Prozess antwortet. Nur `readyz=200` erlaubt Routing; Telegram, DB, Queue, Backup, Audit, Retention, Disk und weitere Einzelchecks müssen dabei grün sein. Nach jedem Update werden im Dashboard Verbindung, Queue, `failed`/`unknown`-Outbox, letzter erfolgreicher Forward und Backupstatus geprüft.
@@ -233,8 +249,9 @@ Der einfache lokale Build ist für Standalone und Staging gedacht:
 ```bash
 docker compose up --build -d
 docker compose ps
-curl --fail http://127.0.0.1:${HOST_METRICS_PORT:-9100}/healthz
-curl --fail http://127.0.0.1:${HOST_METRICS_PORT:-9100}/readyz
+curl --fail --cacert "$INTERNAL_TLS_DIR/ca.pem" "https://127.0.0.1:${HOST_WEB_PORT:-8080}/api/bootstrap/status"
+curl --fail --cacert "$INTERNAL_TLS_DIR/ca.pem" "https://127.0.0.1:${HOST_METRICS_PORT:-9100}/healthz"
+curl --fail --cacert "$INTERNAL_TLS_DIR/ca.pem" "https://127.0.0.1:${HOST_METRICS_PORT:-9100}/readyz"
 ```
 
 Für einen verwalteten Produktionsbetrieb veröffentlicht der Betreiber die lokal und in CI geprüften Images in einer eigenen Registry und dokumentiert die unveränderlichen Digests. TSX Core besitzt keinen automatischen Registry-Publisher. Beispiel:
@@ -273,7 +290,8 @@ Ungeklärte Outbox-Einträge abrufen:
 
 ```bash
 curl -H "Authorization: Bearer $DASHBOARD_TOKEN" \
-  "http://127.0.0.1:8080/api/outbox?status=failed,unknown"
+  --cacert "$INTERNAL_TLS_DIR/ca.pem" \
+  "https://127.0.0.1:${HOST_WEB_PORT:-8080}/api/outbox?status=failed,unknown"
 ```
 
 Eine `unknown`-Zustellung wird zuerst im Zielkanal reconciled:

@@ -1,4 +1,5 @@
 import http from 'node:http';
+import https from 'node:https';
 import { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -80,6 +81,7 @@ import {
 import type { ManagedTelegramViewerSettingsStore } from './telegram_viewer_settings.js';
 import type { TelegramViewerSecretStore } from './telegram_viewer_secrets.js';
 import { constantTimeStringEqual } from './secure_compare.js';
+import { internalTlsServerOptions } from './internal_tls.js';
 import { uiIngressDetail, uiSignalPage, type UiSignalList } from './ui_signal_reads.js';
 import { uiSignalOriginal } from './ui_signal_original.js';
 import { uiDeployment } from './ui_deployment.js';
@@ -254,7 +256,7 @@ interface MutationAuditContext {
 
 type ApiHandler = (context: RequestContext) => Promise<void> | void;
 
-let server: http.Server | null = null;
+let server: https.Server | null = null;
 let mutationInProgress = false;
 const serverInstanceId = UI_PROCESS_INSTANCE_ID;
 const serverVersion = fsPromises.readFile(new URL('../package.json', import.meta.url), 'utf8')
@@ -296,11 +298,11 @@ function sendError(context: RequestContext, error: unknown): void {
 function isAllowedOrigin(origin: string | undefined): boolean {
   if (!origin) return true;
   const configuredOrigin = process.env.DASHBOARD_ALLOWED_ORIGIN?.trim();
-  if (configuredOrigin && origin === configuredOrigin) return true;
   try {
     const parsed = new URL(origin);
+    if (parsed.protocol !== 'https:') return false;
+    if (configuredOrigin && origin === configuredOrigin) return true;
     return (
-      parsed.protocol === 'http:' &&
       ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(parsed.hostname)
     );
   } catch {
@@ -311,7 +313,7 @@ function isAllowedOrigin(origin: string | undefined): boolean {
 function isLoopbackBrowserOrigin(origin: string): boolean {
   try {
     const parsed = new URL(origin);
-    return parsed.protocol === 'http:' && ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(parsed.hostname);
+    return parsed.protocol === 'https:' && ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(parsed.hostname);
   } catch {
     return false;
   }
@@ -3231,7 +3233,7 @@ async function handleRequest(
 ): Promise<void> {
   const requestId = randomUUID();
   res.setHeader('X-Request-Id', requestId);
-  const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+  const parsedUrl = new URL(req.url || '/', `https://${req.headers.host || 'localhost'}`);
   const url = parsedUrl.pathname;
   const method = req.method || 'GET';
   const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
@@ -3261,9 +3263,10 @@ export function startWebServer(
   port: number,
   appState: WebServerState,
   host = process.env.WEB_HOST?.trim() || '127.0.0.1'
-): http.Server {
+): https.Server {
   const authenticator = appState.authenticator ?? dashboardAuthenticatorFromEnvironment();
-  server = http.createServer((req, res) => {
+  const tlsOptions = internalTlsServerOptions('DASHBOARD_TLS_CERT_FILE', 'DASHBOARD_TLS_KEY_FILE');
+  server = https.createServer(tlsOptions, (req, res) => {
     handleRequest(req, res, appState, authenticator).catch((error) => {
       addLog(`[ERROR] Unhandled dashboard request error: ${errorMessage(error)}`);
       if (!res.headersSent) sendJson(res, 500, { error: 'Unexpected server error.' });
@@ -3276,7 +3279,7 @@ export function startWebServer(
   server.listen(port, host, () => {
     const address = server?.address();
     const listeningPort = typeof address === 'object' && address ? address.port : port;
-    console.log(`[INFO] Web Control Dashboard listening on http://${host}:${listeningPort}`);
+    console.log(`[INFO] Web Control Dashboard listening on https://${host}:${listeningPort}`);
     if (appState.uiOperations && appState.requestRestart) {
       restartCoordinator(appState).reconcile().catch(error => {
         addLog(`[CRITICAL] Durable restart reconciliation failed: ${errorMessage(error)}`);

@@ -101,7 +101,7 @@ try {
   assert.equal(
     validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, dashboardAllowedOrigin: 'http://127.0.0.1:8080' })
       .dashboardAllowedOrigin,
-    'http://127.0.0.1:8080'
+    'https://127.0.0.1:8080'
   );
   const tailscale = validateRuntimeSettings({
     ...DEFAULT_RUNTIME_SETTINGS,

@@ -31,5 +31,5 @@ USER 65532:65532
 EXPOSE 8090
 STOPSIGNAL SIGTERM
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
-  CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz', timeout=4).read()"]
+  CMD ["python", "-c", "import os,ssl,urllib.request; context=ssl.create_default_context(cafile=os.environ['TSX_INTERNAL_CA_FILE']); urllib.request.urlopen('https://127.0.0.1:8090/healthz', context=context, timeout=4).read()"]
 CMD ["python", "server.py"]

@@ -2081,6 +2081,7 @@ async function getTelegramViewerServiceStatus(secrets: TelegramViewerSecretStore
   const response = await fetch(endpoint, {
     method: 'GET',
     headers: { Authorization: `Bearer ${await secrets.serviceToken()}`, Accept: 'application/json' },
+    redirect: 'error',
     signal: AbortSignal.timeout(3_000),
   });
   const text = await response.text();

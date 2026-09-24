@@ -1,5 +1,6 @@
 import assert from 'assert';
 import { once } from 'events';
+import https from 'node:https';
 import { mkdir, mkdtemp, rm, writeFile } from 'fs/promises';
 import os from 'os';
 import path from 'path';
@@ -12,6 +13,7 @@ import { DEFAULT_CONFIG } from '../src/config.js';
 import { UiOperationStore } from '../src/ui_operation_store.js';
 import { exportPortableSetupBundle } from '../src/setup_bundle.js';
 import { getActiveWorkflow } from '../src/workflow_repository.js';
+import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
 
 const ADMIN_TOKEN = 'admin-token-0123456789abcdef0123456789abcdef';
 const VIEWER_TOKEN = 'viewer-token-0123456789abcdef0123456789abcdef';
@@ -25,6 +27,32 @@ function headers(token, extra = {}) {
 
 function mutationHeaders(extra = {}) {
   return headers(ADMIN_TOKEN, { 'X-Requested-With': 'forwarder-dashboard', ...extra });
+}
+
+async function assertCleartextOriginRejected(baseUrl) {
+  const response = await fetch(`${baseUrl}/api/local-session`, {
+    method: 'POST',
+    headers: {
+      Origin: baseUrl.replace('https:', 'http:'),
+      Authorization: `Bearer ${ADMIN_TOKEN}`,
+      'X-Requested-With': 'forwarder-dashboard',
+    },
+  });
+  assert.strictEqual(response.status, 403, 'Cleartext browser origins must not mint a local session.');
+}
+
+async function assertConfiguredCleartextOriginRejected(baseUrl) {
+  const previous = process.env.DASHBOARD_ALLOWED_ORIGIN;
+  try {
+    const origin = 'http://127.0.0.1:8080';
+    process.env.DASHBOARD_ALLOWED_ORIGIN = origin;
+    const response = await fetch(`${baseUrl}/api/status`, { headers: { ...headers(ADMIN_TOKEN), Origin: origin } });
+    assert.strictEqual(response.status, 403, 'Configured cleartext origins must not access the HTTPS dashboard.');
+    assert.strictEqual(response.headers.get('access-control-allow-origin'), null);
+  } finally {
+    if (previous === undefined) delete process.env.DASHBOARD_ALLOWED_ORIGIN;
+    else process.env.DASHBOARD_ALLOWED_ORIGIN = previous;
+  }
 }
 
 async function testAuthenticationAndReads(baseUrl) {
@@ -58,6 +86,8 @@ async function testAuthenticationAndReads(baseUrl) {
     headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
   });
   assert.strictEqual(response.status, 401, 'Spoofable browser headers must never mint an administrator session.');
+  await assertCleartextOriginRejected(baseUrl);
+  await assertConfiguredCleartextOriginRejected(baseUrl);
   response = await fetch(`${baseUrl}/api/local-session`, {
     method: 'POST',
     headers: {
@@ -1723,7 +1753,7 @@ async function testLocalStartupFirstRun(testDir, appState) {
     await once(firstRunServer, 'listening');
     const address = firstRunServer.address();
     assert.ok(address && typeof address === 'object');
-    const baseUrl = `http://127.0.0.1:${address.port}`;
+    const baseUrl = `https://127.0.0.1:${address.port}`;
     const bootstrapStatus = await fetch(`${baseUrl}/api/bootstrap/status`);
     assert.strictEqual(bootstrapStatus.status, 200);
     assert.deepStrictEqual(await bootstrapStatus.json(), {
@@ -1851,7 +1881,7 @@ async function testRecoveryLocalStartup(testDir, appState) {
     await once(recoveryServer, 'listening');
     const address = recoveryServer.address();
     assert.ok(address && typeof address === 'object');
-    const baseUrl = `http://127.0.0.1:${address.port}`;
+    const baseUrl = `https://127.0.0.1:${address.port}`;
     const response = await fetch(`${baseUrl}/api/local-session`, {
       method: 'POST',
       headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
@@ -1890,10 +1920,34 @@ async function testRecoveryLocalStartup(testDir, appState) {
   }
 }
 
+function fetchFromNonLoopback(url, peerAddress, { method = 'GET', headers = {}, body } = {}) {
+  return new Promise((resolve, reject) => {
+    const endpoint = new URL(url);
+    const request = https.request(endpoint, {
+      method,
+      headers,
+      // Connect through the real interface while verifying the fixture's localhost certificate.
+      lookup: (_hostname, options, callback) => {
+        if (options.all) callback(null, [{ address: peerAddress, family: 4 }]);
+        else callback(null, peerAddress, 4);
+      },
+    }, response => {
+      const chunks = [];
+      response.on('data', chunk => chunks.push(Buffer.from(chunk)));
+      response.on('end', () => resolve({
+        status: response.statusCode,
+        json: () => Promise.resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))),
+      }));
+    });
+    request.on('error', reject);
+    request.end(body);
+  });
+}
+
 async function testNonLoopbackCannotSpoofLocalTrust(testDir, appState) {
   const address = Object.values(os.networkInterfaces()).flat().find(candidate =>
     candidate && candidate.family === 'IPv4' && !candidate.internal);
-  assert.ok(address, 'The HTTP trust-boundary regression requires a non-loopback interface.');
+  assert.ok(address, 'The TLS trust-boundary regression requires a non-loopback interface.');
   process.env.DASHBOARD_ADMIN_TOKEN = ADMIN_TOKEN;
   process.env.DASHBOARD_VIEWER_TOKEN = VIEWER_TOKEN;
   process.env.DASHBOARD_LOCAL_TRUST = 'true';
@@ -1902,13 +1956,13 @@ async function testNonLoopbackCannotSpoofLocalTrust(testDir, appState) {
     await once(remoteServer, 'listening');
     const bound = remoteServer.address();
     assert.ok(bound && typeof bound === 'object');
-    const remoteBase = `http://${address.address}:${bound.port}`;
-    const status = await fetch(`${remoteBase}/api/bootstrap/status`);
+    const remoteBase = `https://localhost:${bound.port}`;
+    const status = await fetchFromNonLoopback(`${remoteBase}/api/bootstrap/status`, address.address);
     assert.equal((await status.json()).localSessionAvailable, false);
-    const response = await fetch(`${remoteBase}/api/local-session`, {
+    const response = await fetchFromNonLoopback(`${remoteBase}/api/local-session`, address.address, {
       method: 'POST',
       headers: {
-        Origin: `http://127.0.0.1:${bound.port}`,
+        Origin: `https://127.0.0.1:${bound.port}`,
         Authorization: `Bearer ${ADMIN_TOKEN}`,
         'X-Requested-With': 'forwarder-dashboard',
       },
@@ -1929,19 +1983,19 @@ async function testNonLoopbackCannotSpoofLocalTrust(testDir, appState) {
     await once(bootstrapServer, 'listening');
     const bound = bootstrapServer.address();
     assert.ok(bound && typeof bound === 'object');
-    const remoteBase = `http://${address.address}:${bound.port}`;
-    const origin = `http://127.0.0.1:${bound.port}`;
-    const status = await fetch(`${remoteBase}/api/bootstrap/status`);
+    const remoteBase = `https://localhost:${bound.port}`;
+    const origin = `https://127.0.0.1:${bound.port}`;
+    const status = await fetchFromNonLoopback(`${remoteBase}/api/bootstrap/status`, address.address);
     assert.deepEqual(await status.json(), {
       mode: 'token', required: true, available: true, localSessionAvailable: false, bootstrapProofRequired: true,
     });
-    let response = await fetch(`${remoteBase}/api/bootstrap`, {
+    let response = await fetchFromNonLoopback(`${remoteBase}/api/bootstrap`, address.address, {
       method: 'POST',
       headers: { Origin: origin, 'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard' },
       body: JSON.stringify({ bootstrapProof: 'forged-container-proof-0123456789abcdef' }),
     });
     assert.equal(response.status, 403, 'A viewer-network caller without the one-time proof must not seize first-run administration.');
-    response = await fetch(`${remoteBase}/api/bootstrap`, {
+    response = await fetchFromNonLoopback(`${remoteBase}/api/bootstrap`, address.address, {
       method: 'POST',
       headers: { Origin: origin, 'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard' },
       body: JSON.stringify({ bootstrapProof }),
@@ -1952,7 +2006,7 @@ async function testNonLoopbackCannotSpoofLocalTrust(testDir, appState) {
     assert.ok(bootstrapAudit, 'The proved bootstrap must retain a non-secret audit event.');
     assert.equal(JSON.stringify(bootstrapAudit).includes(bootstrapProof), false, 'Audit evidence must never retain the bootstrap proof.');
     assert.equal(process.env.DASHBOARD_BOOTSTRAP_PROOF, undefined, 'The process must consume the bootstrap proof immediately.');
-    response = await fetch(`${remoteBase}/api/bootstrap`, {
+    response = await fetchFromNonLoopback(`${remoteBase}/api/bootstrap`, address.address, {
       method: 'POST',
       headers: { Origin: origin, 'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard' },
       body: JSON.stringify({ bootstrapProof }),
@@ -1971,6 +2025,7 @@ async function runTests() {
   const previousLocalTrust = process.env.DASHBOARD_LOCAL_TRUST;
   const previousBootstrapProof = process.env.DASHBOARD_BOOTSTRAP_PROOF;
   const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-web-test-'));
+  const tlsFixture = await setupInternalTlsTest();
   const staticDirectory = path.resolve('frontend/dist/.directory-response-test');
   const staticAsset = path.resolve('frontend/dist/assets/.static-response-test.js');
   let stopped = false;
@@ -2007,7 +2062,10 @@ async function runTests() {
     const address = server.address();
     assert.ok(address && typeof address === 'object');
     assert.strictEqual(address.address, '127.0.0.1', 'Control plane must bind to loopback by default');
-    const baseUrl = `http://127.0.0.1:${address.port}`;
+    const baseUrl = `https://127.0.0.1:${address.port}`;
+    await assert.rejects(fetch(`${baseUrl.replace('https:', 'http:')}/api/bootstrap/status`, {
+      signal: AbortSignal.timeout(2_000),
+    }), /fetch failed/i, 'The dashboard listener must reject cleartext HTTP.');
 
     await testBootstrap(baseUrl);
     await testAuthenticationAndReads(baseUrl);
@@ -2059,6 +2117,7 @@ async function runTests() {
     else process.env.DASHBOARD_LOCAL_TRUST = previousLocalTrust;
     if (previousBootstrapProof === undefined) delete process.env.DASHBOARD_BOOTSTRAP_PROOF;
     else process.env.DASHBOARD_BOOTSTRAP_PROOF = previousBootstrapProof;
+    await tlsFixture.cleanup();
   }
 }
 

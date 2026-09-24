@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { once, EventEmitter } from 'node:events';
 import { promises as fs } from 'node:fs';
-import http from 'node:http';
+import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay, setImmediate } from 'node:timers/promises';
@@ -9,7 +9,9 @@ import { startWebServer, stopWebServer } from '../src/web_server.js';
 import { UiOperationStore } from '../src/ui_operation_store.js';
 import { assertRestartReceiptsPreserved, RESTART_RESPONSE_GRACE_MS, UiRestartCoordinator } from '../src/ui_restart_coordinator.js';
 import { ADMIN, VIEWER, COMMANDS, commandRequest, createRestartFixture, deferred } from './fixtures/ui_restart_fixture.js';
+import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
 
+const tlsFixture = await setupInternalTlsTest();
 const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tsx-restart-recovery-'));
 if (path.dirname(root) !== path.resolve(os.tmpdir()) || !path.basename(root).startsWith('tsx-restart-recovery-')) throw new Error('Unsafe fixture cleanup.');
 const oldEnvironment = { ...process.env };
@@ -25,7 +27,7 @@ async function fixture() {
   const fixture = await createRestartFixture(directory, 'http-generation');
   server = startWebServer(0, fixture.app);
   await once(server, 'listening');
-  return { ...fixture, directory, base: `http://127.0.0.1:${server.address().port}` };
+  return { ...fixture, directory, base: `https://127.0.0.1:${server.address().port}` };
 }
 
 async function request(fixture, command, id, overrides = {}) {
@@ -38,7 +40,7 @@ async function disconnectedCommand(fixture, command, id) {
   const closed = deferred();
   server.once('request', (_request, response) => response.once('close', closed.resolve));
   const options = commandRequest(command, id);
-  const client = http.request(fixture.base + command.route, options);
+  const client = https.request(fixture.base + command.route, options);
   client.on('error', () => undefined);
   client.end(options.body);
   await bounded(fixture.controls.entered.promise);
@@ -224,4 +226,5 @@ try {
   await fs.rm(root, { recursive: true, force: true });
   for (const key of Object.keys(process.env)) if (!(key in oldEnvironment)) delete process.env[key];
   Object.assign(process.env, oldEnvironment);
+  await tlsFixture.cleanup();
 }

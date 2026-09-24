@@ -93,6 +93,7 @@ jobs:
           npm run lint
           npm run lint:frontend
           npm run lint:python
+          python -m ruff check scripts/check_internal_tls.py tests/test_internal_tls_preflight.py tests/fixtures/internal_tls_fixture.py
           npm run typecheck
           npm run quality:architecture
           npm run quality:complexity
@@ -106,6 +107,7 @@ jobs:
           npm run test:coverage
           npm run test:coverage:modules
           python -m coverage run --branch --source=exchange_executor -m unittest discover -s exchange_executor/tests -v
+          python -m unittest discover -s tests -p test_internal_tls_preflight.py -v
           python -m coverage report --fail-under=60
           python -m coverage xml -o exchange_executor/coverage.xml
       - name: Duplicate ratio gate

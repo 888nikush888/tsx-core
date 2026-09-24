@@ -1,4 +1,6 @@
 import http from 'node:http';
+import https from 'node:https';
+import { internalTlsServerOptions } from '../internal_tls.js';
 import { constantTimeStringEqual } from '../secure_compare.js';
 
 type TokenProvider = string | (() => string | Promise<string>);
@@ -51,8 +53,8 @@ export function startTelegramViewerHealthServer(options: {
   port?: number;
   serviceToken: TokenProvider;
   status: () => Record<string, unknown>;
-}): http.Server {
-  const server = http.createServer((request, response) => {
+}): https.Server {
+  const server = https.createServer(internalTlsServerOptions('TELEGRAM_VIEWER_TLS_CERT_FILE', 'TELEGRAM_VIEWER_TLS_KEY_FILE'), (request, response) => {
     (async () => {
       if (request.method !== 'GET') {
         response.setHeader('Allow', 'GET');

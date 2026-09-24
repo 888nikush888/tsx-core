@@ -221,6 +221,7 @@ export class ExchangeCatalogClient {
     const token = await this.credentials.getOrCreateExecutorToken();
     const response = await this.fetchImpl(`${this.baseUrl}/v1/exchange-probe`, {
       method: 'POST',
+      redirect: 'error',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ exchange: id }),
       signal: AbortSignal.timeout(35_000),
@@ -236,6 +237,7 @@ export class ExchangeCatalogClient {
     const token = await this.credentials.getOrCreateExecutorToken();
     const response = await this.fetchImpl(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
+      redirect: 'error',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(10_000),

@@ -24,7 +24,7 @@ tests/                    Unit-, Integrations-, Contract- und Systemtests
 ## Architektur
 
 1. **SQLite-Persistenz**: Queue, Album-Buffer und Signale in `session_data/forwarder.db`
-2. **Prometheus**: `/metrics` + `/healthz` + `/readyz` auf Port 9100
+2. **Prometheus**: `/metrics` + `/healthz` + `/readyz` per HTTPS auf Port 9100
 3. **JSON-Logging**: strukturiert an stdout für Log-Aggregatoren
 4. **Multi-Stage Docker**: Build-Stufe kompiliert, Production-Image enthält nur Artefakte
 5. **Signalverträge**: versionierte SQLite-Datensätze, verwaltet im visuellen Builder
@@ -34,13 +34,26 @@ tests/                    Unit-, Integrations-, Contract- und Systemtests
 
 ---
 
-## 🚀 Schnellstart: vollständig über Docker und Web-UI
+## 🚀 Schnellstart: Docker, TLS-Preflight und Web-UI
 
-Voraussetzung ist Docker Desktop oder Docker Engine mit Docker Compose 2.24 oder neuer. Eine lokale Node.js-Installation, `.env`, `config.json`, manuell angelegte Ordner und eine Terminal-Anmeldung bei Telegram sind für die normale Nutzung nicht erforderlich.
+Voraussetzung sind Docker Desktop oder Docker Engine mit Docker Compose 2.24 oder neuer sowie Host-Python 3.12 für den TLS-Preflight. Dessen eigene virtuelle Umgebung installiert den hash-gepinnten `exchange_executor/requirements.lock`; dafür ist einmalig Netzwerkzugang nötig. Eine lokale Node.js-Installation, `.env`, `config.json` und eine Terminal-Anmeldung bei Telegram sind für die normale Nutzung nicht erforderlich. Vor Compose muss ein externes Verzeichnis mit interner CA und Dienstzertifikaten bereitstehen und mit `scripts/check_internal_tls.py` gemäß [internem TLS-Runbook](docs/runbooks/internal-tls.md) geprüft werden. Zertifikate und private Schlüssel gehören nie in Git.
 
-1. Repository auschecken, einen einmaligen Container-Bootstrap-Nachweis erzeugen und den Dienst starten (PowerShell):
+1. Repository auschecken, `INTERNAL_TLS_DIR` auf ein absolutes Verzeichnis außerhalb des Checkouts setzen, den vollständigen TLS-Preflight ausführen, einen einmaligen Container-Bootstrap-Nachweis erzeugen und den Dienst starten (PowerShell):
 
    ```powershell
+   py -3.12 --version
+   if ($LASTEXITCODE -ne 0) { throw 'Host-Python 3.12 fehlt.' }
+   $preflightVenv = Join-Path $env:LOCALAPPDATA 'TSXCore\tls-preflight-venv'
+   py -3.12 -m venv $preflightVenv
+   if ($LASTEXITCODE -ne 0) { throw 'TLS-Preflight-Venv konnte nicht angelegt werden.' }
+   $preflightPython = Join-Path $preflightVenv 'Scripts\python.exe'
+   & $preflightPython -m pip install --require-hashes -r exchange_executor/requirements.lock
+   if ($LASTEXITCODE -ne 0) { throw 'Gepinnte TLS-Preflight-Abhängigkeiten fehlen.' }
+   $env:INTERNAL_TLS_DIR = 'C:\TSXCore\internal-tls' # An den eigenen externen Zertifikatspfad anpassen
+   & $preflightPython scripts/check_internal_tls.py
+   if ($LASTEXITCODE -ne 0) { throw 'TLS-Preflight fehlgeschlagen; Compose wird nicht gestartet.' }
+   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml config --quiet
+   if ($LASTEXITCODE -ne 0) { throw 'Compose-Konfiguration ist ungültig.' }
    $bytes = [byte[]]::new(32)
    [Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
    $env:DASHBOARD_BOOTSTRAP_PROOF = [Convert]::ToHexString($bytes).ToLowerInvariant()
@@ -48,18 +61,18 @@ Voraussetzung ist Docker Desktop oder Docker Engine mit Docker Compose 2.24 oder
    docker compose up --build -d
    ```
 
-   `--build` ist auch nach jedem erneuten Download oder `git pull` erforderlich. Ein bloßes `docker compose up -d` darf ein bereits vorhandenes lokales Image weiterverwenden und würde dann eine ältere Oberfläche ausliefern. Persistente Volumes bleiben beim Neubau erhalten.
+   Unter Windows kann der Python-Preflight die Docker-ACL-/UID-Zuordnung nicht bestätigen. Vor einer Betriebsfreigabe deshalb in jedem gestarteten Container als UID 65532 nur lesend prüfen, dass CA und eigene Zertifikat-/Schlüsseldateien erreichbar sind und fremde Schlüssel nicht gemountet sind; bis dahin Trading-Einträge blockiert halten. Datei-ACLs dafür nicht pauschal öffnen. `--build` ist auch nach jedem erneuten Download oder `git pull` erforderlich. Ein bloßes `docker compose up -d` darf ein bereits vorhandenes lokales Image weiterverwenden und würde dann eine ältere Oberfläche ausliefern. Persistente Volumes bleiben beim Neubau erhalten.
 
-2. `http://127.0.0.1:8080` öffnen, den eben ausgegebenen Nachweis eingeben und **Create secure dashboard** wählen. Erst diese bewusste Erststartaktion erzeugt serverseitig einen starken dauerhaften Admin-Bearer-Token und zeigt ihn genau einmal zum Kopieren und sicheren Hinterlegen an. Der Bootstrap-Nachweis wird danach verbraucht. Vor diesem sichtbaren Schritt wird keine lokale Sitzung erzeugt; ein späterer Session-Token verlangt erneut den dauerhaften Admin-Bearer und wird nie allein aufgrund von Browser-Headern ausgegeben.
+2. `https://127.0.0.1:8080` in einem Browser öffnen, der der internen CA vertraut, den eben ausgegebenen Nachweis eingeben und **Create secure dashboard** wählen. Erst diese bewusste Erststartaktion erzeugt serverseitig einen starken dauerhaften Admin-Bearer-Token und zeigt ihn genau einmal zum Kopieren und sicheren Hinterlegen an. Der Bootstrap-Nachweis wird danach verbraucht. Vor diesem sichtbaren Schritt wird keine lokale Sitzung erzeugt; ein späterer Session-Token verlangt erneut den dauerhaften Admin-Bearer und wird nie allein aufgrund von Browser-Headern ausgegeben.
 3. Im Builder **Betrieb → System** öffnen, Telegram API ID und den 32-stelligen API Hash sowie bei KI-Nutzung den OpenRouter-Key write-only speichern. Dort auch das Routing starten. Telefon, Telegram-Code, E-Mail-Code und optionale 2FA werden ausschließlich im Web-Dialog abgefragt und nicht persistiert.
 4. Über **Baustein** einen Kanal, Filter, Parser, Schema, Vertrag, Strategie, Positionsgröße und Börsenkonto erstellen oder eine veröffentlichte Version wiederverwenden. Die Karten von links nach rechts verbinden. Erst vollständige Pfade sind ausführbar; ein Kanal darf in mehrere Kontopfade verzweigen. Alternativ lassen sich Kontobausteine als exklusive Reihenfolge verbinden. Die Fallback-Verbindung legt fest, ob ein eindeutig nicht verfügbares Handelspaar, ein erreichtes Positionslimit oder ein bereits belegtes Symbol zum nächsten Konto führen darf. Bestehende Verbindungen ohne eigene Policy behalten „Nur Handelspaar“. Kill-Switch, kritische Risiken, technische Fehler und ungeklärte Orderausgänge bleiben gesperrt.
 5. Unter **Betrieb → Konten** Paper, Hyperliquid, Bybit oder Kraken Futures anlegen, das kontoweite Positionslimit setzen und das Konto prüfen. Danach unter **Betrieb → Live** reconciliieren und die Ausführung bewusst aktivieren.
 6. Betriebszustand prüfen:
 
-   ```bash
+   ```powershell
    docker compose ps
-   curl --fail http://127.0.0.1:9100/healthz
-   curl --fail http://127.0.0.1:9100/readyz
+   curl.exe --fail --cacert "$env:INTERNAL_TLS_DIR/ca.pem" https://127.0.0.1:9100/healthz
+   curl.exe --fail --cacert "$env:INTERNAL_TLS_DIR/ca.pem" https://127.0.0.1:9100/readyz
    docker compose logs -f forwarder
    ```
 
@@ -106,7 +119,7 @@ Die Strategie bestimmt pro Kanalroute, ob **alle**, **keine** oder nur eine expl
 
 ### Sicherer Remote-Zugriff und MCP
 
-Für WLAN/VPN ist **Tailscale Serve** der bevorzugte Weg. Dashboard und MCP bleiben auf Host-Loopback; Serve veröffentlicht sie nur im Tailnet. **Tailscale Funnel ist verboten**, weil es einen öffentlichen Internet-Endpunkt erzeugt. Im Dashboard-Authentifizierungsmodus `tailscale` akzeptiert TSX Core ausschließlich die von einem ausdrücklich vertrauten lokalen Serve-Proxy gelieferten Identitätsheader und ordnet Login-Adressen einer Admin- oder Viewer-Allowlist zu. `scripts/configure_tailscale_serve.ps1` deaktiviert Funnel für den Zielport und richtet Serve auf den Loopback-Dienst ein.
+Für WLAN/VPN ist **Tailscale Serve** der bevorzugte Dashboard-Pfad. Das Dashboard bleibt per HTTPS auf Host-Loopback; der Host muss der internen CA vertrauen, bevor `scripts/configure_tailscale_serve.ps1` den verifizierten HTTPS-Backend-Pfad aktiviert. **Tailscale Funnel ist verboten**, weil es einen öffentlichen Internet-Endpunkt erzeugt. Im Dashboard-Authentifizierungsmodus `tailscale` akzeptiert TSX Core ausschließlich die von einem ausdrücklich vertrauten lokalen Serve-Proxy gelieferten Identitätsheader und ordnet Login-Adressen einer Admin- oder Viewer-Allowlist zu. MCP bleibt separat auf Host-Loopback über HTTP; das Dashboard-Serve-Script ist für Port 8091 ungeeignet. Remote-MCP benötigt eine eigene TLS- und Sicherheitsprüfung.
 
 Der MCP-Dienst startet automatisch als dritter, gehärteter Service. Seine fachliche Schnittstelle ist bei einer neuen oder zurückgesetzten Installation jedoch sicher **deaktiviert**:
 
@@ -125,12 +138,13 @@ Ungeklärte Zustellungen sind authentifiziert abrufbar:
 
 ```bash
 curl -H "Authorization: Bearer $DASHBOARD_TOKEN" \
-  "http://127.0.0.1:8080/api/outbox?status=failed,unknown"
+  --cacert "$INTERNAL_TLS_DIR/ca.pem" \
+  "https://127.0.0.1:${HOST_WEB_PORT:-8080}/api/outbox?status=failed,unknown"
 ```
 
 Ein Retry ist eine explizite Risikoentscheidung und benötigt den Admin-Token sowie `X-Destructive-Confirmation: retry-unknown-delivery`. Wurde die Zustellung im Zielkanal nachweislich gefunden, kann der Task mit Begründung über `/api/outbox/acknowledge` und `X-Destructive-Confirmation: acknowledge-unknown-delivery` abgeschlossen werden. Beide Aktionen werden mit Request-ID, Rolle, Pfad und HTTP-Status im Audit-Log erfasst.
 
-Bei `SIGTERM`, `SIGINT`, Dashboard-Stopp oder interaktivem Neustart wird die Queue zuerst pausiert, wartende In-Memory-Einträge werden verworfen (sie bleiben in SQLite `pending`), laufende Jobs erhalten ein Abort-Signal und der Prozess wartet bis zu `SHUTDOWN_GRACE_MS` (Standard 30 Sekunden) auf deren tatsächliches Ende. Erst danach werden TDLib, HTTP-Server und SQLite geschlossen. Läuft die Frist ab, bleibt der Routing-Lock als Recovery-Signal bestehen; ein neuer Routing-Start im selben Prozess wird verweigert.
+Bei `SIGTERM`, `SIGINT`, Dashboard-Stopp oder interaktivem Neustart wird die Queue zuerst pausiert, wartende In-Memory-Einträge werden verworfen (sie bleiben in SQLite `pending`), laufende Jobs erhalten ein Abort-Signal und der Prozess wartet bis zu `SHUTDOWN_GRACE_MS` (Standard 30 Sekunden) auf deren tatsächliches Ende. Erst danach werden TDLib, HTTPS-Server und SQLite geschlossen. Läuft die Frist ab, bleibt der Routing-Lock als Recovery-Signal bestehen; ein neuer Routing-Start im selben Prozess wird verweigert.
 
 Nach drei unerwarteten Abbrüchen innerhalb von fünf Minuten legt der Dienst `session_data/.crash_blocked` an und startet das Routing auch außerhalb des Zeitfensters nicht automatisch. Vor einer Freigabe müssen Operatoren die Ursache aus den Logs und Outbox-Zuständen klären und erst danach `.crash_blocked` sowie gegebenenfalls `.routing_active` entfernen. Das Löschen dieser Dateien ohne Ursachenklärung ist kein zulässiger Recovery-Schritt.
 
@@ -225,7 +239,7 @@ docker compose down
 docker volume ls --filter name=tsx-core_forwarder
 ```
 
-Dashboard, Metriken und der MCP-Port werden ausschließlich auf Host-Loopback veröffentlicht. Externer Zugriff erfolgt bevorzugt über Tailscale Serve oder alternativ einen authentifizierenden TLS-Reverse-Proxy. Compose verwendet `restart: unless-stopped`, damit ein kontrollierter Web-Neustart und ein Factory Reset den Dienst automatisch wieder in Betrieb nehmen; der persistente MCP-Modus bleibt dabei erhalten und wird beim Factory Reset wieder auf `disabled` gesetzt. Die anwendungsinterne Crash-Loop-Sperre verhindert trotzdem unkontrolliertes Routing nach wiederholten Fehlern. Das lokale Backup-Volume allein ist kein Enterprise-DR-Nachweis.
+Dashboard, Metriken und der MCP-Port werden ausschließlich auf Host-Loopback veröffentlicht. Dashboard und Metriken sprechen dort HTTPS; der MCP-Port bleibt ein separater HTTP-Dienst. Remote-Dashboard-Zugriff erfolgt bevorzugt über Tailscale Serve oder alternativ einen authentifizierenden TLS-Reverse-Proxy. Compose verwendet `restart: unless-stopped`, damit ein kontrollierter Web-Neustart und ein Factory Reset den Dienst automatisch wieder in Betrieb nehmen; der persistente MCP-Modus bleibt dabei erhalten und wird beim Factory Reset wieder auf `disabled` gesetzt. Die anwendungsinterne Crash-Loop-Sperre verhindert trotzdem unkontrolliertes Routing nach wiederholten Fehlern. Das lokale Backup-Volume allein ist kein Enterprise-DR-Nachweis.
 
 Incident-URL, internes Relay-Token und Incident-Gateway-Token werden vollständig im Web unter **System & Backup → Vollständige Runtime- und Enterprise-Konfiguration** beziehungsweise **Enterprise-Secrets** gesetzt. Danach startet `docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d` den Monitoring-Stack; Alertmanager und Relay lesen ausschließlich die verwalteten Config-/Secret-Volumes, nicht `.env` oder Host-Secret-Dateien. Prometheus verwendet einen unveränderlichen Multi-Arch-Digest. Alertmanager 0.33.1 wird lokal reproduzierbar aus dem verifizierten Upstream-Commit mit checksum-geprüften Quellen, Go 1.26.6 und gepatchten Go-Modulen in eine digest-gepinnte Distroless-Non-Root-Runtime gebaut. CI baut und scannt die `linux/amd64`- und `linux/arm64`-Kandidaten ohne VEX-Ausnahmen; eine Registry-Veröffentlichung erfolgt nicht automatisch. Beide Dienste speichern 30 Tage Metriken beziehungsweise fünf Tage Alertmanager-Zustand und veröffentlichen ihre UIs nur auf Host-Loopback.
 
@@ -245,9 +259,9 @@ METRICS_HOST=0.0.0.0
 ```
 
 ### Abrufen der Metriken
-* **Liveness**: `curl http://localhost:9100/healthz` -> HTTP 200, solange der Prozess HTTP-Anfragen bedienen kann.
-* **Readiness**: `curl http://localhost:9100/readyz` -> HTTP 200 nur bei erreichbarer SQLite-Datenbank, aktiver Telegram-Verbindung, laufendem Routing und nicht pausierter Queue; andernfalls HTTP 503 mit Einzelchecks.
-* **Prometheus Scraping**: `curl http://localhost:9100/metrics`
+* **Liveness**: `curl --fail --cacert "$INTERNAL_TLS_DIR/ca.pem" https://127.0.0.1:9100/healthz` -> HTTP 200, solange der Prozess HTTPS-Anfragen bedienen kann.
+* **Readiness**: `curl --fail --cacert "$INTERNAL_TLS_DIR/ca.pem" https://127.0.0.1:9100/readyz` -> HTTP 200 nur bei erreichbarer SQLite-Datenbank, aktiver Telegram-Verbindung, laufendem Routing und nicht pausierter Queue; andernfalls HTTP 503 mit Einzelchecks.
+* **Prometheus Scraping**: `curl --fail --cacert "$INTERNAL_TLS_DIR/ca.pem" https://127.0.0.1:9100/metrics`
   * Liefert bestätigte Zustellungen, Queue- und Outbox-Zustände einschließlich `failed`/`unknown`, Telegram-Verbindungszustand, letzten bestätigten Zustellzeitpunkt, Tagesverbrauch/-reservierung der KI sowie echte Prozess-RAM-/Uptime-Werte.
 
 Die Dashboard-Historie zeigt ausschließlich gemessenen Durchsatz, Queue, CPU und RAM. Die frühere aus HTTP-Latenz und Zufall abgeleitete angebliche Internet-Bandbreite wurde entfernt, da sie keine belastbare Betriebsmetrik war. Die versionierten Regeln unter `monitoring/` alarmieren auf fehlende Metriken, unbekannte/fehlgeschlagene Zustellungen, DB-/Telegram-Ausfall, Backup-/Retention-/Disk-Probleme und Queue-Rückstau. `npm run quality:monitoring` validiert Prometheus, Alertmanager und die Regeltests mit gepinnten Tool-Images.

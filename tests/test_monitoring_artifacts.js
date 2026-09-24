@@ -29,6 +29,46 @@ const alertmanagerImage = 'tsx-core-alertmanager:0.33.1-hardened';
 
 assert.match(prometheus, /alertmanager:9093/);
 assert.match(prometheus, /forwarder:9100/);
+assert.match(prometheus, /job_name: tsx-core\s+scheme: https\s+metrics_path: \/metrics\s+tls_config:\s+ca_file: \/run\/tsx-tls\/ca\.pem/);
+assert.match(alertmanager, /url: https:\/\/alert-relay:9095\/alerts[\s\S]*?tls_config:\s+ca_file: \/run\/tsx-tls\/ca\.pem/);
+assert.doesNotMatch(alertmanager, /url: http:\/\/alert-relay:/);
+
+function composeService(source, name) {
+  const normalized = source.replaceAll('\r\n', '\n');
+  const marker = `\n  ${name}:\n`;
+  const start = normalized.indexOf(marker);
+  assert.ok(start >= 0, `${name} must exist in Compose`);
+  const tail = normalized.slice(start + marker.length);
+  const nextService = tail.search(/\n {2}[a-z][\w-]*:\n/);
+  return nextService < 0 ? tail : tail.slice(0, nextService);
+}
+
+const tlsServices = [
+  [composeService(applicationCompose, 'forwarder'), ['dashboard', 'metrics']],
+  [composeService(applicationCompose, 'exchange-executor'), ['executor']],
+  [composeService(applicationCompose, 'telegram-viewer'), ['viewer']],
+  [composeService(compose, 'alert-relay'), ['alert-relay']],
+];
+for (const [service, allowedKeys] of tlsServices) {
+  const mountedKeys = [...service.matchAll(/\$\{INTERNAL_TLS_DIR:\?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout\}\/([\w-]+)\.key:[^\s]+/g)]
+    .map(match => {
+      assert.ok(match[0].endsWith('/run/tsx-tls/' + match[1] + '.key:ro'));
+      return match[1];
+    });
+  assert.deepEqual(mountedKeys.sort(), [...allowedKeys].sort(), 'Only the service-owned TLS private keys may be mounted');
+  assert.doesNotMatch(service, /NODE_TLS_REJECT_UNAUTHORIZED|--insecure|https?:\/\/[^\s]*--insecure/);
+}
+assert.match(applicationCompose, /NODE_EXTRA_CA_CERTS: "\/run\/tsx-tls\/ca\.pem"/);
+assert.match(applicationCompose, /TSX_INTERNAL_CA_FILE: "\/run\/tsx-tls\/ca\.pem"/);
+assert.match(composeService(compose, 'prometheus'), /core-network/);
+assert.match(composeService(compose, 'prometheus'), /\/ca\.pem:\/run\/tsx-tls\/ca\.pem:ro/);
+assert.match(composeService(compose, 'alertmanager'), /\/ca\.pem:\/run\/tsx-tls\/ca\.pem:ro/);
+assert.match(composeService(applicationCompose, 'forwarder'), /https:\/\/127\.0\.0\.1:9100\/healthz/);
+assert.match(composeService(applicationCompose, 'exchange-executor'), /HTTPSConnection\('127\.0\.0\.1',8090/);
+assert.match(composeService(applicationCompose, 'telegram-viewer'), /https:\/\/127\.0\.0\.1:8081\/healthz/);
+assert.match(composeService(compose, 'alert-relay'), /https:\/\/127\.0\.0\.1:9095\/healthz/);
+assert.match(composeService(compose, 'alert-relay'), /NODE_EXTRA_CA_CERTS: \/run\/tsx-tls\/ca\.pem/);
+assert.doesNotMatch(composeService(compose, 'alert-relay'), /http:\/\/127\.0\.0\.1:9100/);
 for (const requiredAlert of [
   'ForwarderMetricsMissing',
   'ForwarderUnknownDelivery',
