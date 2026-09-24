@@ -1,4 +1,5 @@
-// skipcq: SCT-A000 - This literal names a browser sessionStorage entry; it is not a credential.
+// This is the browser sessionStorage entry name, not a credential.
+// skipcq: SCT-A000
 const TOKEN_KEY = "forwarder-dashboard-token";
 const AUTH_REQUIRED_EVENT = "forwarder-dashboard-auth-required";
 
