@@ -1,0 +1,2223 @@
+{
+  "schemaVersion": 1,
+  "scope": "Exact path snapshot of parameters.json; classification is not proof of a working UI control.",
+  "evidenceStatuses": {
+    "unverified": "No field-level UI/API/validator/persistence/audit/E2E claim has been established.",
+    "first-slice-static": "Only the existing operational-coverage-slice static checks are claimed; not browser E2E.",
+    "known-gap": "Existing slice explicitly records a host-maintenance UI gap."
+  },
+  "fields": [
+    {
+      "path": "runtime.enterpriseMode",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "ENTERPRISE_MODE"
+    },
+    {
+      "path": "runtime.dashboardAuthMode",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DASHBOARD_AUTH_MODE"
+    },
+    {
+      "path": "runtime.dashboardLocalTrust",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DASHBOARD_LOCAL_TRUST"
+    },
+    {
+      "path": "runtime.dashboardAllowedOrigin",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DASHBOARD_ALLOWED_ORIGIN"
+    },
+    {
+      "path": "runtime.tailscaleServeTrustedProxy",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "TAILSCALE_SERVE_TRUSTED_PROXY"
+    },
+    {
+      "path": "runtime.tailscaleAdminUsers",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "TAILSCALE_ADMIN_USERS"
+    },
+    {
+      "path": "runtime.tailscaleViewerUsers",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "TAILSCALE_VIEWER_USERS"
+    },
+    {
+      "path": "runtime.oidcIssuer",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DASHBOARD_OIDC_ISSUER"
+    },
+    {
+      "path": "runtime.oidcAudience",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DASHBOARD_OIDC_AUDIENCE"
+    },
+    {
+      "path": "runtime.oidcJwksUrl",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DASHBOARD_OIDC_JWKS_URL"
+    },
+    {
+      "path": "runtime.oidcAdminRole",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DASHBOARD_OIDC_ADMIN_ROLE"
+    },
+    {
+      "path": "runtime.oidcViewerRole",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DASHBOARD_OIDC_VIEWER_ROLE"
+    },
+    {
+      "path": "runtime.oidcRoleClaim",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DASHBOARD_OIDC_ROLE_CLAIM"
+    },
+    {
+      "path": "runtime.oidcMaxTokenAgeSeconds",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DASHBOARD_OIDC_MAX_TOKEN_AGE_SECONDS"
+    },
+    {
+      "path": "runtime.auditWebhookUrl",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "AUDIT_WEBHOOK_URL"
+    },
+    {
+      "path": "runtime.alertWebhookUrl",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "ALERT_WEBHOOK_URL"
+    },
+    {
+      "path": "runtime.auditRemoteRequired",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "AUDIT_REMOTE_REQUIRED"
+    },
+    {
+      "path": "runtime.auditWebhookTimeoutMs",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "AUDIT_WEBHOOK_TIMEOUT_MS"
+    },
+    {
+      "path": "runtime.alertWebhookTimeoutMs",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "ALERT_WEBHOOK_TIMEOUT_MS"
+    },
+    {
+      "path": "runtime.auditLocalMaxBytes",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "AUDIT_LOCAL_MAX_BYTES"
+    },
+    {
+      "path": "runtime.backupOffsiteRequired",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "BACKUP_OFFSITE_REQUIRED"
+    },
+    {
+      "path": "runtime.backupOffsiteUrlTemplate",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "BACKUP_OFFSITE_URL_TEMPLATE"
+    },
+    {
+      "path": "runtime.backupOffsiteTimeoutMs",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "BACKUP_OFFSITE_TIMEOUT_MS"
+    },
+    {
+      "path": "runtime.backupOffsiteMaxRecoveryBytes",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "BACKUP_OFFSITE_MAX_RECOVERY_BYTES"
+    },
+    {
+      "path": "runtime.backupOffsiteRetentionDays",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "BACKUP_OFFSITE_RETENTION_DAYS"
+    },
+    {
+      "path": "runtime.backupIntervalMs",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "BACKUP_INTERVAL_MS"
+    },
+    {
+      "path": "runtime.backupRetentionCount",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "BACKUP_RETENTION_COUNT"
+    },
+    {
+      "path": "runtime.dataRetentionDays",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DATA_RETENTION_DAYS"
+    },
+    {
+      "path": "runtime.dataRetentionIntervalMs",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DATA_RETENTION_INTERVAL_MS"
+    },
+    {
+      "path": "runtime.dataRetentionBatchSize",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DATA_RETENTION_BATCH_SIZE"
+    },
+    {
+      "path": "runtime.dataMinFreeBytes",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DATA_MIN_FREE_BYTES"
+    },
+    {
+      "path": "runtime.deliveryConfirmTimeoutMs",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "DELIVERY_CONFIRM_TIMEOUT_MS"
+    },
+    {
+      "path": "runtime.shutdownGraceMs",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "SHUTDOWN_GRACE_MS"
+    },
+    {
+      "path": "runtime.jsonLogging",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "JSON_LOGGING"
+    },
+    {
+      "path": "runtime.isolateUnavailableMarketFailures",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES"
+    },
+    {
+      "path": "config.apiId",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.sourceChannels",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.targetChannel",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.forwardOptions.sendCopy",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.forwardOptions.removeCaption",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.forwardOptions.forwardToTarget",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.forwardOptions.maxConcurrency",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.forwardOptions.queueTimeoutSeconds",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.filters.allowedKeywords",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.filters.blockedKeywords",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.filters.allowedTypes",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.filters.regexPatterns",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.sourceFilters",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.sourceAliases",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.enabled",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.externalDataPolicyAccepted",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.saveToFile",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.forwardXmlToTarget",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.signalsDir",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.sourceTemplates",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.primaryModel",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.fallbackModel",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.timeout",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.aiLimits.maxInputChars",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.aiLimits.maxOutputTokens",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.aiLimits.primaryAttempts",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.aiLimits.fallbackAttempts",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.aiLimits.dailyRequestLimit",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.aiLimits.dailyTokenLimit",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.aiLimits.requestTimeoutMs",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.xmlParsing.aiLimits.backoffMs",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.dupeBlocker.enabled",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "config.dupeBlocker.cooldownHours",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.enabled",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.allowedUserIds",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.timezone",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.locale",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.eventPollingIntervalMs",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.notifications.positionOpened",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.notifications.takeProfitFilled",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.notifications.stopLossFilled",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.notifications.positionClosed",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.notifications.executionFailed",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.notifications.accountIncidentOpened",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.notifications.accountIncidentResolved",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.notifications.exchangeStreamDegraded",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.notifications.exchangeStreamRecovered",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.notifications.killSwitchActivated",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.notifications.signalReceived",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.notifications.signalValidated",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.notifications.intentCreated",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.notifications.exchangeAcknowledged",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.display.detailLevel",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.display.pnlMode",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "viewer.display.timeFormat",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.schemaVersion",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.allowedSignalSchemas",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.allowedSymbols",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.allowedSides",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.entry.orderType",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.entry.rangePrice",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.entry.postOnly",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.entry.timeoutSeconds",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.sizing.positionSizingMode",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.sizing.riskPerTradePercent",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.sizing.maxAdaptiveRiskPercent",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.sizing.maxPositionNotional",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.sizing.defaultLeverage",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.sizing.maxLeverage",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.exits.targetAllocationMode",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.exits.targetAllocationsPercent",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.exits.stopLossMode",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.exits.moveStopToBreakEvenAfterTarget",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.exits.trailingStopPercent",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.exits.closeRemainderAtLastTarget",
+      "class": "immutable-gate",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.safety.maxDailyLossMode",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.safety.maxDailyLoss",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.safety.maxSlippagePercent",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.safety.entryOrderTtlSeconds",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.safety.requireProtectiveStop",
+      "class": "immutable-gate",
+      "catalogEditable": false,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "mandatory-protective-stop"
+    },
+    {
+      "path": "strategy.safety.maxConcurrentPositions",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.channel.channelId",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.content_filter.allowedTypes",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.keyword_filter.allowedKeywords",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.keyword_filter.blockedKeywords",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.regex.patterns",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.regex.mode",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.parser.templateName",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.parser.primaryModel",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.parser.fallbackModel",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.parser.prompt",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.parser.timeoutMs",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.parser.saveToFile",
+      "class": "immutable-gate",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.schema.schemaId",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.contract.contractVersionId",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.strategy.strategyVersionId",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.sizing.positionSizingMode",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.sizing.riskPerTradePercent",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.sizing.maxAdaptiveRiskPercent",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.sizing.maxPositionNotional",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.sizing.defaultLeverage",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.sizing.maxLeverage",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.adaptive_risk.enabled",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.adaptive_risk.mode",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.adaptive_risk.tiers",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.adaptive_risk.tiers[].riskPercent",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.adaptive_risk.startingTier",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.adaptive_risk.lockedTier",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.adaptive_risk.lookbackWeeks",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.adaptive_risk.minimumClosedTrades",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.adaptive_risk.lossThresholdPercent",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.adaptive_risk.profitThresholdPercent",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.adaptive_risk.weakChannelAction",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.adaptive_risk.weakWeeksBeforeBlock",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.adaptive_risk.manuallyBlocked",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.account.accountId",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.dedupe.enabled",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.dedupe.cooldownHours",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.output.mode",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.schemaVersion",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.rootTag",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.actionPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.pairPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.stopLossPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.entry.minimumPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.entry.maximumPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.targets.containerPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.targets.itemTag",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.targets.minimumPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.targets.maximumPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.entry.typePath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.leveragePath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.riskPercentPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.averagingPricePath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.entry.mode",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.entry.marketValues",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.entry.rangeValues",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.targets.shape",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.targets.minimumItems",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.targets.maximumItems",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.targets.sequentialIds",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.geometry.stopOnLossSide",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.geometry.targetsOnProfitSide",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.geometry.orderedTargets",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.geometry.orderedRanges",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.grounding.action",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.grounding.pair",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.grounding.entry",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.grounding.targets",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.grounding.stopLoss",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.grounding.leverage",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.grounding.riskPercent",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.grounding.averagingPrice",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.additionalFields",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.additionalFields[].path",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.additionalFields[].type",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.additionalFields[].required",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.additionalFields[].allowedValues",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.additionalFields[].minimum",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.additionalFields[].maximum",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.additionalFields[].maximumLength",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.definition.additionalFields[].pattern",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.schemaVersion",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.rootTag",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.actionPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.pairPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.stopLossPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.entry.minimumPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.entry.maximumPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.targets.containerPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.targets.itemTag",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.targets.minimumPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.targets.maximumPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.entry.typePath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.leveragePath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.riskPercentPath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.averagingPricePath",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.entry.mode",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.entry.marketValues",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.entry.rangeValues",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.targets.shape",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.targets.minimumItems",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.targets.maximumItems",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.targets.sequentialIds",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.geometry.stopOnLossSide",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.geometry.targetsOnProfitSide",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.geometry.orderedTargets",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.geometry.orderedRanges",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.grounding.action",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.grounding.pair",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.grounding.entry",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.grounding.targets",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.grounding.stopLoss",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.grounding.leverage",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.grounding.riskPercent",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.grounding.averagingPrice",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.additionalFields",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.additionalFields[].path",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.additionalFields[].type",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.additionalFields[].required",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.additionalFields[].allowedValues",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.additionalFields[].minimum",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.additionalFields[].maximum",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.additionalFields[].maximumLength",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.definition.additionalFields[].pattern",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.name",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.description",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "resource.id",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.name",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.description",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "strategy.id",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.name",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.description",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.id",
+      "class": "create-only",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.name",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.description",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "contract.id",
+      "class": "create-only",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.templateName",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.parserSchema",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.contractVersionId",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "schema.enabled",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "account.name",
+      "class": "create-only",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "account-creation"
+    },
+    {
+      "path": "account.exchange",
+      "class": "create-only",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "account-creation"
+    },
+    {
+      "path": "account.mode",
+      "class": "create-only",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "account-creation"
+    },
+    {
+      "path": "account.enabled",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "account-enable"
+    },
+    {
+      "path": "account.maxConcurrentPositions",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "account-position-limit"
+    },
+    {
+      "path": "account.stateVersion",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "account-observation"
+    },
+    {
+      "path": "account.status",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "account-observation"
+    },
+    {
+      "path": "account.killSwitchActive",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "account-observation"
+    },
+    {
+      "path": "account.credentialGeneration",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "account-observation"
+    },
+    {
+      "path": "account.lastVerifiedAt",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "account-observation"
+    },
+    {
+      "path": "journal.review.notes",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "journal.review.tags",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "journal.review.rating",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "journal.review.reviewed",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "mcp.agent.name",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "mcp.agent.permissions",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "mcp.agent.eventSubscriptions",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "mcp.agent.enabled",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "mcp.runtime.mode",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "graph.nodes[].id",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "graph.nodes[].resourceVersionId",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "graph.schemaVersion",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "graph.nodes[].kind",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "graph.nodes[].position.x",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "graph.nodes[].position.y",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "graph.edges[].source",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "graph.edges[].target",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "graph.edges[].id",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "graph.edges[].kind",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "graph.edges[].channelNodeIds",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "graph.edges[].fallbackOn",
+      "class": "versioned-draft",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "graph.baseRevisionId",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "graph.editRevision",
+      "class": "read-only-evidence",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "paper.equity",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "paper.availableBalance",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "paper.market.symbol",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "paper.market.markPrice",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "paper.market.priceTick",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "paper.market.quantityStep",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "paper.market.minimumQuantity",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "paper.market.minimumNotional",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "paper.market.maxLeverage",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "secrets.telegramApiHash",
+      "class": "write-only-secret",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "secrets.openRouterApiKey",
+      "class": "write-only-secret",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "secrets.dashboardToken",
+      "class": "issued-secret",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "secrets.exchangeCredentials",
+      "class": "write-only-secret",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "secrets.viewerBotToken",
+      "class": "write-only-secret",
+      "catalogEditable": true,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "secrets.viewerServiceToken",
+      "class": "issued-secret",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "secrets.mcpAgentToken",
+      "class": "issued-secret",
+      "catalogEditable": false,
+      "evidenceStatus": "unverified",
+      "firstSliceGroup": null
+    },
+    {
+      "path": "deployment.VITE_BASENAME",
+      "class": "host-maintenance",
+      "catalogEditable": false,
+      "evidenceStatus": "known-gap",
+      "firstSliceGroup": "deployment-bootstrap"
+    },
+    {
+      "path": "deployment.VITE_GTM_ID",
+      "class": "host-maintenance",
+      "catalogEditable": false,
+      "evidenceStatus": "known-gap",
+      "firstSliceGroup": "deployment-bootstrap"
+    },
+    {
+      "path": "deployment.hostPorts",
+      "class": "host-maintenance",
+      "catalogEditable": false,
+      "evidenceStatus": "known-gap",
+      "firstSliceGroup": "deployment-bootstrap"
+    },
+    {
+      "path": "deployment.cpu",
+      "class": "host-maintenance",
+      "catalogEditable": false,
+      "evidenceStatus": "known-gap",
+      "firstSliceGroup": "deployment-bootstrap"
+    },
+    {
+      "path": "deployment.memory",
+      "class": "host-maintenance",
+      "catalogEditable": false,
+      "evidenceStatus": "known-gap",
+      "firstSliceGroup": "deployment-bootstrap"
+    },
+    {
+      "path": "deployment.imageDigest",
+      "class": "host-maintenance",
+      "catalogEditable": false,
+      "evidenceStatus": "known-gap",
+      "firstSliceGroup": "deployment-bootstrap"
+    }
+  ]
+}
