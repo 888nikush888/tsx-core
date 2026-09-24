@@ -12,6 +12,7 @@ const allTests = [
   'test_ui_register.js',
   'test_ui_operational_coverage.js',
   'test_internal_tls.js',
+  'test_uri_dependency_security.js',
   'test_ui_adaptive_risk.js',
   'test_ui_next_reads.js',
   'test_ui_evidence_failures.js',
