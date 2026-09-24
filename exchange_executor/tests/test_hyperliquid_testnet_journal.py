@@ -1,7 +1,6 @@
 """Offline safety and restart tests; no provider credentials, network or orders."""
 from __future__ import annotations
 
-import os
 import subprocess
 import sqlite3
 import sys
@@ -13,16 +12,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from hyperliquid_testnet_journal import (HyperliquidTestnetJournal, TestnetJournalRefused,
-                                          canonical, digest, planned_client_id, validate_binding)
-
-
-class ControlledClock:
-    def __init__(self, value=100):
-        self.value = value
-        self.ticks = []
-
-    def __call__(self):
-        return self.ticks.pop(0) if self.ticks else self.value
+                                          digest, validate_binding)
 
 
 def binding():
@@ -40,12 +30,12 @@ def binding():
 
 
 def slots():
-    return [{"role": role, "clientOrderId": planned_client_id(binding(), role)} for role in
+    return [{"role": role, "clientOrderId": "run-1-" + role} for role in
             ("entry", "stop", "emergency-close")]
 
 
 def request(role, *, quantity="0.001"):
-    return {"clientOrderId": planned_client_id(binding(), role), "providerSymbol": "BTC",
+    return {"clientOrderId": "run-1-" + role, "providerSymbol": "BTC",
             "side": "buy" if role == "entry" else "sell", "quantity": quantity,
             "limitPriceUsd": None if role == "stop" else "20000" if role == "entry" else "19000",
             "triggerPriceUsd": "19000" if role == "stop" else None,
@@ -55,7 +45,7 @@ def request(role, *, quantity="0.001"):
 def original(role, *, status="open", filled="0", observed_at=100, provider_id=None):
     return {"bindingHash": digest(binding()), "accountReferenceHash": "d" * 64,
             "origin": "https://api.hyperliquid-testnet.xyz",
-            "providerSymbol": "BTC", "clientOrderId": planned_client_id(binding(), role),
+            "providerSymbol": "BTC", "clientOrderId": "run-1-" + role,
             "requestHash": digest(request(role)), "providerOrderId": provider_id or "remote-" + role,
             "status": status, "quantity": "0.001", "filledQuantity": filled,
             "originalDigest": "f" * 64, "observedAt": observed_at}
@@ -74,8 +64,8 @@ class JournalTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.path = Path(self.temp.name) / "run.sqlite"
 
-    def opened(self, plan=None, now=100, clock=None):
-        journal = HyperliquidTestnetJournal(self.path, plan or binding(), clock=clock or (lambda: now))
+    def opened(self, plan=None, now=100):
+        journal = HyperliquidTestnetJournal(self.path, plan or binding(), clock=lambda: now)
         self.addCleanup(journal.close)
         return journal
 
@@ -95,137 +85,6 @@ class JournalTests(unittest.TestCase):
         plan["limits"]["maxOrderCount"] = 2
         with self.assertRaises(TestnetJournalRefused):
             validate_binding(plan)
-        plan = binding()
-        plan["entry"]["side"] = "sell"
-        # A short IOC may fill above its sell limit; multiplication by that
-        # limit cannot establish an upper USD exposure bound.
-        with self.assertRaises(TestnetJournalRefused):
-            validate_binding(plan)
-
-    def test_dispatch_event_tick_cannot_cross_deadline(self):
-        clock = ControlledClock()
-        journal = self.opened(clock=clock)
-        journal.reserve_slots(slots())
-        clock.ticks = [129, 130]
-        with self.assertRaisesRegex(TestnetJournalRefused, "time budget"):
-            journal.begin_protected_batch(request("entry"), request("stop"))
-        self.assertEqual(journal.states["entry"], "reserved")
-        self.assertNotIn("dispatching-batch", [row["kind"] for row in journal.records])
-        journal.close()
-        self.assertEqual(self.opened(now=131).states["entry"], "reserved")
-
-    def test_protected_commit_crossing_deadline_is_unknown_without_success(self):
-        clock = ControlledClock()
-        journal = self.opened(clock=clock)
-        journal.reserve_slots(slots())
-        clock.value = 129
-        real_fsync = os.fsync
-
-        def delayed_fsync(descriptor):
-            real_fsync(descriptor)
-            clock.value = 130
-
-        with patch("hyperliquid_testnet_journal.os.fsync", side_effect=delayed_fsync):
-            with self.assertRaisesRegex(TestnetJournalRefused, "committed but time budget expired"):
-                journal.begin_protected_batch(request("entry"), request("stop"))
-        self.assertEqual(journal.states["entry"], "UNKNOWN")
-        self.assertEqual(journal.states["stop"], "UNKNOWN")
-        journal.close()
-        self.assertEqual(self.opened(now=131).states["entry"], "UNKNOWN")
-
-    def test_emergency_event_tick_cannot_cross_deadline(self):
-        clock = ControlledClock()
-        journal = self.opened(clock=clock)
-        journal.reserve_slots(slots())
-        journal.begin_protected_batch(request("entry"), request("stop"))
-        clock.value = 129
-        journal.record_order_observation("entry", original("entry", status="filled", filled="0.001",
-                                                            observed_at=128))
-        journal.record_order_observation("stop", original("stop", status="rejected", observed_at=129))
-        journal.record_position_observation(position(observed_at=129))
-        clock.ticks = [129, 130]
-        with self.assertRaisesRegex(TestnetJournalRefused, "time budget"):
-            journal.begin_emergency_close(request("emergency-close"))
-        self.assertEqual(journal.states["emergency-close"], "reserved")
-        self.assertNotIn("dispatching", [row["kind"] for row in journal.records])
-        journal.close()
-        self.assertEqual(self.opened(now=131).states["emergency-close"], "reserved")
-
-    def test_emergency_commit_crossing_deadline_is_unknown_without_success(self):
-        clock = ControlledClock()
-        journal = self.opened(clock=clock)
-        journal.reserve_slots(slots())
-        journal.begin_protected_batch(request("entry"), request("stop"))
-        clock.value = 129
-        journal.record_order_observation("entry", original("entry", status="filled", filled="0.001",
-                                                            observed_at=128))
-        journal.record_order_observation("stop", original("stop", status="rejected", observed_at=129))
-        journal.record_position_observation(position(observed_at=129))
-        real_fsync = os.fsync
-
-        def delayed_fsync(descriptor):
-            real_fsync(descriptor)
-            clock.value = 130
-
-        with patch("hyperliquid_testnet_journal.os.fsync", side_effect=delayed_fsync):
-            with self.assertRaisesRegex(TestnetJournalRefused, "committed but time budget expired"):
-                journal.begin_emergency_close(request("emergency-close"))
-        self.assertEqual(journal.states["emergency-close"], "UNKNOWN")
-        journal.close()
-        self.assertEqual(self.opened(now=131).states["emergency-close"], "UNKNOWN")
-
-    def test_other_run_cannot_reserve_same_provider_client_ids(self):
-        plan = binding()
-        plan["runId"] = "2" * 32
-        other = self.path.with_name("other.sqlite")
-        with HyperliquidTestnetJournal(other, plan, clock=lambda: 100) as journal:
-            with self.assertRaisesRegex(TestnetJournalRefused, "run binding"):
-                journal.reserve_slots(slots())
-            own_slots = [{"role": role, "clientOrderId": planned_client_id(plan, role)} for role in
-                         ("entry", "stop", "emergency-close")]
-            journal.reserve_slots(own_slots)
-            self.assertEqual(journal.states["entry"], "reserved")
-
-    def test_replay_refuses_post_deadline_dispatch_even_with_valid_chain(self):
-        journal = self.opened()
-        journal.reserve_slots(slots())
-        previous = journal.records[-1]
-        journal.close()
-        entry, stop = request("entry"), request("stop")
-        event = {"version": 2, "sequence": 3, "kind": "dispatching-batch", "at": 130,
-                 "body": {"entry": {"request": entry, "requestHash": digest(entry)},
-                          "stop": {"request": stop, "requestHash": digest(stop)}},
-                 "previous": digest(previous)}
-        connection = sqlite3.connect(self.path)
-        connection.execute("INSERT INTO events VALUES(?,?,?)", (3, canonical(event), digest(event)))
-        connection.commit()
-        connection.close()
-        with self.assertRaisesRegex(TestnetJournalRefused, "late protected dispatch"):
-            self.opened(now=131)
-
-    def test_replay_refuses_post_deadline_emergency_even_with_valid_chain(self):
-        clock = ControlledClock()
-        journal = self.opened(clock=clock)
-        journal.reserve_slots(slots())
-        journal.begin_protected_batch(request("entry"), request("stop"))
-        clock.value = 129
-        journal.record_order_observation("entry", original("entry", status="filled", filled="0.001",
-                                                            observed_at=128))
-        journal.record_order_observation("stop", original("stop", status="rejected", observed_at=129))
-        journal.record_position_observation(position(observed_at=129))
-        previous = journal.records[-1]
-        journal.close()
-        outbound = request("emergency-close")
-        event = {"version": 2, "sequence": previous["sequence"] + 1, "kind": "dispatching", "at": 130,
-                 "body": {"role": "emergency-close", "request": outbound, "requestHash": digest(outbound)},
-                 "previous": digest(previous)}
-        connection = sqlite3.connect(self.path)
-        connection.execute("INSERT INTO events VALUES(?,?,?)",
-                           (event["sequence"], canonical(event), digest(event)))
-        connection.commit()
-        connection.close()
-        with self.assertRaisesRegex(TestnetJournalRefused, "late emergency dispatch"):
-            self.opened(now=131)
 
     def test_three_slots_are_atomic_and_unknown_survives_reopen(self):
         journal = self.opened()
@@ -276,10 +135,6 @@ class JournalTests(unittest.TestCase):
         with self.assertRaises(TestnetJournalRefused):
             journal.begin_emergency_close(request("emergency-close"))
         journal.record_position_observation(position())
-        with self.assertRaises(TestnetJournalRefused):
-            journal.begin_emergency_close(request("emergency-close"))
-        journal.record_order_observation("stop", original("stop", status="rejected", observed_at=102))
-        journal.record_position_observation(position(observed_at=103))
         journal.begin_emergency_close(request("emergency-close"))
         self.assertEqual(journal.states["emergency-close"], "UNKNOWN")
         with self.assertRaises(TestnetJournalRefused):

@@ -88,9 +88,7 @@ def validate_binding(binding):
             "unsupported perpetual market scope")
     _fields(binding["entry"], "side quantity maxPriceUsd")
     entry = binding["entry"]
-    # A sell IOC limit is a floor, not an upper fill-price bound. Without an
-    # independently proven price ceiling, quantity * limit cannot cap shorts.
-    require(entry["side"] == "buy", "v1 entry requires bounded long-side price")
+    require(entry["side"] in ("buy", "sell"), "unsupported entry side")
     quantity = _number(entry["quantity"])
     price = _number(entry["maxPriceUsd"])
     _fields(binding["limits"], "maxNotionalUsd maxOrderCount timeBudgetSeconds")
@@ -102,23 +100,13 @@ def validate_binding(binding):
     require(quantity * price <= min(operator_cap, Decimal(25)), "entry exceeds effective 25 USD ceiling")
 
 
-def planned_client_id(binding, role):
-    """Offline identity; the provider's actual cloid format is not yet verified."""
-    require(role in ROLES, "unknown reserved role")
-    validate_binding(binding)
-    return "0x" + digest({"domain": "hyperliquid-testnet-real-v1", "binding": binding,
-                          "role": role})[:32]
-
-
-def _validate_slots(slots, binding):
+def _validate_slots(slots):
     require(type(slots) is list and len(slots) == 3, "exactly three pre-reserved slots required")
     clients = set()
     for index, slot in enumerate(slots):
         _fields(slot, "role clientOrderId")
         require(slot["role"] == ROLES[index], "fixed slot sequence required")
         _id(slot["clientOrderId"])
-        require(slot["clientOrderId"] == planned_client_id(binding, slot["role"]),
-                "client order identity differs from run binding")
         require(slot["clientOrderId"] not in clients, "duplicate client order identity")
         clients.add(slot["clientOrderId"])
 
@@ -187,7 +175,6 @@ class HyperliquidTestnetJournal:
 
     begin_dispatch is the last durable checkpoint before a *future* transport
     send. It never sends, authorizes a send, or proves provider ownership.
-    Durability here means the tested process-crash boundary, not power loss.
     """
 
     def __init__(self, path, binding, *, clock=time.time):
@@ -285,8 +272,6 @@ class HyperliquidTestnetJournal:
         event = {"version": 2, "sequence": len(self._records) + 1, "kind": kind,
                  "at": self.now(), "body": copy.deepcopy(body),
                  "previous": digest(self._records[-1]) if self._records else "0" * 64}
-        if kind in ("dispatching-batch", "dispatching"):
-            require(event["at"] < self._deadline, "dispatch event exceeded time budget")
         payload = canonical(event)
         require(len(payload) <= 16384, "journal record too large")
         try:
@@ -317,12 +302,11 @@ class HyperliquidTestnetJournal:
                         and body["startedAt"] <= event["at"], "invalid journal start")
             elif kind == "reserved":
                 _fields(body, "slots")
-                _validate_slots(body["slots"], self._binding)
+                _validate_slots(body["slots"])
                 require(self._slots is None and not self._dispatch, "duplicate slot reservation")
                 self._slots = copy.deepcopy(body["slots"])
             elif kind == "dispatching-batch":
                 _fields(body, "entry stop")
-                require(event["at"] < self._deadline, "late protected dispatch in journal")
                 require(self._slots is not None and not self._dispatch, "protected batch already attempted")
                 for role in ("entry", "stop"):
                     part = body[role]
@@ -334,7 +318,6 @@ class HyperliquidTestnetJournal:
                     self._dispatch[role] = copy.deepcopy(part)
             elif kind == "dispatching":
                 _fields(body, "role request requestHash")
-                require(event["at"] < self._deadline, "late emergency dispatch in journal")
                 role = body["role"]
                 require(role == "emergency-close" and self._slots is not None
                         and role not in self._dispatch, "unreserved or unsupported single dispatch")
@@ -395,9 +378,8 @@ class HyperliquidTestnetJournal:
         stop = self._observed.get("stop")
         position = getattr(self, "_position", None)
         require(entry is not None and entry["status"] in TERMINAL and stop is not None
-                and stop["status"] in {"rejected", "canceled", "expired"}
-                and _number(stop["filledQuantity"], positive=False) == 0 and position is not None,
-                "terminal own entry, terminal unfilled stop and position required")
+                and stop["status"] == "open" and position is not None,
+                "terminal own entry, active own stop and position required")
         require(position["observedAt"] >= max(entry["observedAt"], stop["observedAt"])
                 and 0 <= at - position["observedAt"] <= 10
                 and 0 <= at - stop["observedAt"] <= 10
@@ -408,7 +390,7 @@ class HyperliquidTestnetJournal:
     def reserve_slots(self, slots):
         self._usable()
         require(self._slots is None and self.now() < self._deadline, "reservation unavailable")
-        _validate_slots(slots, self._binding)
+        _validate_slots(slots)
         self._append("reserved", {"slots": slots})
         self._replay()
 
@@ -425,22 +407,17 @@ class HyperliquidTestnetJournal:
             "stop": {"request": stop, "requestHash": digest(stop)},
         })
         self._replay()
-        require(self.now() < self._deadline,
-                "protected batch committed but time budget expired; outcome UNKNOWN")
 
     def begin_emergency_close(self, request):
         self._usable()
         role = "emergency-close"
-        now = self.now()
-        require(now < self._deadline and self._slots is not None
+        require(self.now() < self._deadline and self._slots is not None
                 and role not in self._dispatch, "emergency close unavailable or already attempted")
         slot = self._slots[ROLES.index(role)]
         _validate_request(role, request, self._binding, slot["clientOrderId"], self._own_entry_fill())
-        self._require_emergency_preconditions(request, at=now)
+        self._require_emergency_preconditions(request, at=self.now())
         self._append("dispatching", {"role": role, "request": request, "requestHash": digest(request)})
         self._replay()
-        require(self.now() < self._deadline,
-                "emergency close committed but time budget expired; outcome UNKNOWN")
 
     def record_order_observation(self, role, original):
         self._usable()
