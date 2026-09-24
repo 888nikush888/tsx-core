@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "scope": "Audited source-scoped slices of parameters.json: managed runtime, account identity/state, four versioned strategy safety limits, six effective sizing-resource controls, Telegram Viewer settings, deployment evidence, and the mandatory protective-stop gate. Other parameter families remain unaudited here.",
+  "scope": "Audited source-scoped slices of parameters.json: managed runtime, account identity/state, four versioned strategy safety limits, six effective sizing-resource controls, three adaptive-risk policy controls, Telegram Viewer settings, deployment evidence, and the mandatory protective-stop gate. Other parameter families remain unaudited here.",
   "classes": ["runtime-editable", "create-only", "versioned-draft", "read-only-evidence", "host-bootstrap", "immutable-gate"],
   "groups": [
     {
@@ -94,6 +94,18 @@
       "auditActions": ["dashboard.workflow.resources.post", "dashboard.workflow.resources.update.post", "dashboard.workflow.resources.publish.post", "dashboard.workflow.mutate.post"],
       "contractTests": ["frontend/tests/workflow-resource-editor.test.tsx", "tests/test_web_server.js", "tests/test_workflow_builder.js"],
       "effect": "The mandatory sizing resource overrides strategy sizing defaults. All six values are effective for newly created intents on a path only after a published sizing version is pinned by an activated graph revision; existing intents and prior revisions retain their values. Field-specific synthetic trade-plan probes show each value can affect risk sizing under a suitable input. No real order or live-host sign-off is claimed."
+    },
+    {
+      "id": "adaptive-risk-policy",
+      "class": "versioned-draft",
+      "paths": ["resource.adaptive_risk.mode", "resource.adaptive_risk.startingTier", "resource.adaptive_risk.lockedTier"],
+      "uiRoute": "/workflows/builder",
+      "uiControl": "frontend/src/app/workflow/resource-editor.tsx",
+      "mutationRoutes": ["POST /api/workflow/resources", "POST /api/workflow/resources/update", "POST /api/workflow/resources/publish", "POST /api/workflow/mutate"],
+      "backendValidator": "src/workflow_repository.ts:validateAdaptiveRiskConfiguration",
+      "auditActions": ["dashboard.workflow.resources.post", "dashboard.workflow.resources.update.post", "dashboard.workflow.resources.publish.post", "dashboard.workflow.mutate.post"],
+      "contractTests": ["frontend/tests/workflow-resource-editor.test.tsx", "tests/test_web_server.js", "tests/test_workflow_builder.js"],
+      "effect": "The graph pins a published adaptive-risk resource for new intents. Automatic mode applies a tier while shadow uses baseline risk; lockedTier overrides the selected tier. startingTier initializes only a fresh channel/account/resource-family state and does not reset an existing tier after version changes. Synthetic trade plans and historical pins are tested without order submission. The enabled switch remains a separately tracked unverified path."
     },
     {
       "id": "telegram-viewer-settings",

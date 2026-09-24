@@ -151,6 +151,22 @@ describe('workflow resource contracts', () => {
     expect(api.apiFetch).not.toHaveBeenCalled()
   })
 
+  it('submits the adaptive enable, mode and tier controls with one-based labels and zero-based storage', async () => {
+    const onSave = editor('adaptive_risk')
+    expect(screen.getByLabelText('Startstufe (1 bis N)')).toHaveValue(1)
+    fireEvent.click(screen.getByRole('switch', { name: 'Adaptives Risiko aktiv' }))
+    fireEvent.change(screen.getByLabelText('Modus'), { target: { value: 'shadow' } })
+    fireEvent.change(screen.getByLabelText('Startstufe (1 bis N)'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText(/Stufe festhalten/), { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      configuration: expect.objectContaining({
+        enabled: false, mode: 'shadow', startingTier: 1, lockedTier: 2,
+      }),
+    })))
+    expect(api.apiFetch).not.toHaveBeenCalled()
+  })
+
   it('saves a channel resource through its popup', async () => {
     const onSave = editor('channel')
     fireEvent.change(screen.getByLabelText(/Telegram-Kanal-ID/), { target: { value: '-100123' } })

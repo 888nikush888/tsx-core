@@ -551,6 +551,69 @@ async function testWorkflowSizingResourceApi(baseUrl, controls) {
   assert.deepEqual((await response.json()).resource.configuration, configuration);
 }
 
+async function testWorkflowAdaptiveControlsApi(baseUrl, controls) {
+  const configuration = {
+    enabled: false, mode: 'shadow',
+    tiers: [{ riskPercent: '1' }, { riskPercent: '2' }, { riskPercent: '3' }],
+    startingTier: 1, lockedTier: 2,
+  };
+  const request = candidate => JSON.stringify({
+    kind: 'adaptive_risk', name: 'Audited adaptive policy', configuration: candidate,
+  });
+  let response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'POST', headers: headers(VIEWER_TOKEN, {
+      'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard',
+    }), body: request(configuration),
+  });
+  assert.equal(response.status, 403, 'Viewers must not alter adaptive policy controls.');
+  for (const invalid of [
+    { ...configuration, enabled: 'no' },
+    { ...configuration, mode: 'dynamic' },
+    { ...configuration, startingTier: 3 },
+    { ...configuration, lockedTier: 3 },
+  ]) {
+    response = await fetch(`${baseUrl}/api/workflow/resources`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: request(invalid),
+    });
+    assert.equal(response.status, 409, 'Invalid adaptive controls must fail before persistence.');
+  }
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: request({ enabled: true, mode: 'automatic', tiers: configuration.tiers, startingTier: 0, lockedTier: null }),
+  });
+  assert.equal(response.status, 201);
+  const draft = (await response.json()).resource;
+  assert.equal(draft.status, 'draft');
+  assert.equal(controls.auditEvents.findLast(event => event.phase === 'completed'
+    && event.path === '/api/workflow/resources' && event.statusCode === 201).action,
+  'dashboard.workflow.resources.post');
+  response = await fetch(`${baseUrl}/api/workflow/resources/update`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: draft.id, name: 'Audited adaptive policy', configuration }),
+  });
+  assert.equal(response.status, 200);
+  const updated = (await response.json()).resource;
+  assert.deepEqual({ enabled: updated.configuration.enabled, mode: updated.configuration.mode,
+    startingTier: updated.configuration.startingTier, lockedTier: updated.configuration.lockedTier },
+  { enabled: false, mode: 'shadow', startingTier: 1, lockedTier: 2 });
+  const updateAudit = controls.auditEvents.findLast(event => event.phase === 'completed'
+    && event.action === 'dashboard.workflow.resources.update.post' && event.statusCode === 200);
+  assert.deepEqual(updateAudit.target.request.configuration, configuration);
+  assert.equal(updateAudit.after.response.resource.configuration.lockedTier, 2);
+  response = await fetch(`${baseUrl}/api/workflow/resources/publish`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: draft.id }),
+  });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).resource.status, 'published');
+  assert.ok(controls.auditEvents.some(event => event.phase === 'completed'
+    && event.action === 'dashboard.workflow.resources.publish.post' && event.statusCode === 200));
+  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=${encodeURIComponent(draft.id)}`,
+    { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).resource.configuration.lockedTier, 2);
+}
+
 async function testWorkflowResourceFamilyArchiveApi(baseUrl) {
   let response = await fetch(`${baseUrl}/api/workflow/resources`, {
     method: 'POST',
@@ -806,6 +869,7 @@ async function testWorkflowControlPlane(baseUrl, appState) {
   await testExchangeCatalogApi(baseUrl, appState);
   await testWorkflowResourceApi(baseUrl);
   await testWorkflowSizingResourceApi(baseUrl, appState.controls);
+  await testWorkflowAdaptiveControlsApi(baseUrl, appState.controls);
   await testWorkflowResourceFamilyArchiveApi(baseUrl);
   await testWorkflowRevisionApi(baseUrl, appState.controls);
 }

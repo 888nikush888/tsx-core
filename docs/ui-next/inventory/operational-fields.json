@@ -1020,8 +1020,8 @@
       "path": "resource.adaptive_risk.mode",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "adaptive-risk-policy"
     },
     {
       "path": "resource.adaptive_risk.tiers",
@@ -1041,15 +1041,15 @@
       "path": "resource.adaptive_risk.startingTier",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "adaptive-risk-policy"
     },
     {
       "path": "resource.adaptive_risk.lockedTier",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "adaptive-risk-policy"
     },
     {
       "path": "resource.adaptive_risk.lookbackWeeks",

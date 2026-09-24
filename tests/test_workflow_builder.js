@@ -30,6 +30,9 @@ import {
 } from '../src/workflow_repository.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
 import { uiWorkflowDetail } from '../src/ui_workflow_reads.js';
+import { resolveWorkflowAdaptiveRisk } from '../src/trading_channel_risk.js';
+import { recordTradingEquitySnapshot } from '../src/trading_telemetry.js';
+import { bindAccountReportingCurrency } from '../src/trading_money_ledger.js';
 import { createEntryPriceBoundary, createTradingPlan, resolveDailyLossLimit, resolveEntryExpiresAt } from '../src/trading_risk.js';
 
 
@@ -1061,6 +1064,188 @@ try {
   ), { workflow_revision_id: effectiveSizingWorkflow.id, strategy_version_id: sizingStrategy.id,
     execution_path_id: effectiveSizingPath.id });
   await assertHistoricalSafetyPinned();
+  const historicalAdaptiveBaseWorkflow = await getWorkflowRevisionById(effectiveSizingWorkflow.id);
+  const priorIntents = [...intents, ...safetyIntents, ...sizingIntents, ...effectiveSizingIntents];
+  const originalAdaptiveBaseIntentRows = await Promise.all(priorIntents.map(intent => getDatabase().get(
+    'SELECT * FROM trading_trade_intents WHERE id = ?', [intent.id],
+  )));
+  const riskNow = Date.UTC(2026, 8, 24, 20);
+  await bindAccountReportingCurrency({
+    accountId: secondAccount.id, accountFingerprint: `paper:${secondAccount.id}`,
+    profile: 'paper', reportingCurrency: 'USDT', settlementAssets: ['USDT'],
+    source: 'paper-contract-v1', verifiedAt: riskNow - 120_000,
+  });
+  await recordTradingEquitySnapshot(secondAccount.id, {
+    equity: '25000', availableBalance: '25000', unrealizedPnl: '0', marginUsed: '0',
+    accounting: { reportingCurrency: 'USDT', source: 'original-paper-observation' },
+  }, riskNow - 60_000);
+  const automaticConfiguration = {
+    enabled: true, mode: 'automatic',
+    tiers: [{ riskPercent: '1' }, { riskPercent: '2' }, { riskPercent: '3' }],
+    startingTier: 1, lockedTier: null, minimumClosedTrades: 1000, weakChannelAction: 'none',
+  };
+  const automaticDraft = await createWorkflowResourceDraft({
+    resourceId: resources.adaptive.resourceId, kind: 'adaptive_risk',
+    name: 'Adaptive controls v2', configuration: automaticConfiguration,
+  });
+  assert.equal((await getActiveWorkflow()).id, effectiveSizingWorkflow.id);
+  const automaticResource = await publishWorkflowResource(automaticDraft.id);
+  assert.equal((await getActiveWorkflow()).id, effectiveSizingWorkflow.id);
+  const automaticGraph = { ...effectiveSizingGraph, nodes: effectiveSizingGraph.nodes.map(candidate => candidate.id === 'adaptive'
+    ? { ...candidate, resourceVersionId: automaticResource.id } : candidate) };
+  await assert.rejects(saveWorkflowRevision({
+    baseRevisionId: effectiveSizingWorkflow.id, graph: automaticGraph, actorId: 'test:adaptive-no-confirmation',
+  }), /WORKFLOW_IMPACT_CONFIRMATION_REQUIRED/);
+  const automaticWorkflow = await saveWorkflowRevision({
+    baseRevisionId: effectiveSizingWorkflow.id, graph: automaticGraph,
+    actorId: 'test:adaptive-confirmed', confirmation: WORKFLOW_IMPACT_CONFIRMATION,
+  });
+  const automaticPath = automaticWorkflow.compiled.paths.find(candidate => candidate.accountId === secondAccount.id);
+  assert.equal(automaticPath.adaptiveRiskResourceVersionId, automaticResource.id);
+  assert.equal(automaticPath.effectiveConfiguration.resources.adaptive_risk.startingTier, 1);
+  await saveSignal('workflow-signal-adaptive', '-100-workflow', 5, '<signal/>', '<signal/>');
+  const automaticIntents = await createWorkflowTradingIntents({
+    sourceSignalId: 'workflow-signal-adaptive', channelId: '-100-workflow', sourceText: 'BTCUSDT LONG', signal,
+  });
+  const automaticIntent = automaticIntents.find(intent => intent.accountId === secondAccount.id);
+  assert.equal(automaticIntent.workflowRevisionId, automaticWorkflow.id);
+  assert.equal(automaticIntent.executionPathId, automaticPath.id);
+  const historicalAdaptiveRows = new Map();
+  const readIntentRow = intentId => getDatabase().get(
+    'SELECT * FROM trading_trade_intents WHERE id = ?', [intentId],
+  );
+  async function assertAdaptiveIntentHistory() {
+    for (const [intentId, originalRow] of historicalAdaptiveRows) {
+      assert.deepEqual(await readIntentRow(intentId), originalRow,
+        `A later adaptive policy activation must not rewrite historical intent ${intentId}.`);
+    }
+  }
+  historicalAdaptiveRows.set(automaticIntent.id, await readIntentRow(automaticIntent.id));
+  const automaticRisk = await resolveWorkflowAdaptiveRisk({
+    channelId: automaticIntent.channelId, accountId: automaticIntent.accountId,
+    adaptiveResourceVersionId: automaticPath.adaptiveRiskResourceVersionId,
+    configuration: automaticPath.effectiveConfiguration.resources.adaptive_risk,
+    strategy: automaticPath.effectiveConfiguration.strategyConfiguration,
+    currentEquity: '25000', reportingCurrency: 'USDT', now: riskNow,
+  });
+  assert.equal(automaticRisk.blocked, false, automaticRisk.reason);
+  assert.equal(automaticRisk.riskPercent, '2');
+  const originalAdaptiveState = await getDatabase().get(
+    'SELECT current_tier, locked_tier FROM workflow_adaptive_risk_state WHERE resource_id = ? AND account_id = ?',
+    [resources.adaptive.resourceId, secondAccount.id],
+  );
+  assert.deepEqual(originalAdaptiveState, { current_tier: 1, locked_tier: null },
+    'A fresh resource family must initialize its persisted state from startingTier.');
+  const riskSignal = { ...signal, targets: [{ min: '110', max: '110' }, { min: '120', max: '120' }] };
+  const adaptiveRiskInput = {
+    signal: riskSignal, account: { equity: '25000', availableBalance: '25000' },
+    market: { symbol: 'BTCUSDT', markPrice: '100', priceTick: '0.1', quantityStep: '0.001',
+      minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, observedAt: riskNow },
+  };
+  const automaticPlan = createTradingPlan({ ...adaptiveRiskInput, intentId: automaticIntent.id,
+    strategy: automaticPath.effectiveConfiguration.strategyConfiguration,
+    effectiveRiskPercent: automaticRisk.riskPercent });
+  const baselinePlan = createTradingPlan({ ...adaptiveRiskInput, intentId: automaticIntent.id,
+    strategy: automaticPath.effectiveConfiguration.strategyConfiguration,
+    effectiveRiskPercent: automaticPath.effectiveConfiguration.strategyConfiguration.sizing.riskPerTradePercent });
+  assert.notEqual(automaticPlan.quantity, baselinePlan.quantity,
+    'Automatic tier selection must change the synthetic risk plan for the new intent.');
+
+  async function activateAdaptivePolicy(base, baseGraph, configuration, label, signalId, sequence) {
+    const draft = await createWorkflowResourceDraft({
+      resourceId: resources.adaptive.resourceId, kind: 'adaptive_risk', name: label, configuration,
+    });
+    const version = await publishWorkflowResource(draft.id);
+    assert.equal((await getActiveWorkflow()).id, base.id,
+      'Publishing another adaptive policy must preserve the active graph.');
+    const nextGraph = { ...baseGraph, nodes: baseGraph.nodes.map(candidate => candidate.id === 'adaptive'
+      ? { ...candidate, resourceVersionId: version.id } : candidate) };
+    const revision = await saveWorkflowRevision({ baseRevisionId: base.id, graph: nextGraph,
+      actorId: `test:${label}`, confirmation: WORKFLOW_IMPACT_CONFIRMATION });
+    await assertAdaptiveIntentHistory();
+    const path = revision.compiled.paths.find(candidate => candidate.accountId === secondAccount.id);
+    assert.equal(path.adaptiveRiskResourceVersionId, version.id);
+    await saveSignal(signalId, '-100-workflow', sequence, '<signal/>', '<signal/>');
+    const newIntents = await createWorkflowTradingIntents({
+      sourceSignalId: signalId, channelId: '-100-workflow', sourceText: 'BTCUSDT LONG', signal,
+    });
+    const intent = newIntents.find(candidate => candidate.accountId === secondAccount.id);
+    assert.equal(intent.workflowRevisionId, revision.id);
+    assert.equal(intent.executionPathId, path.id);
+    await assertAdaptiveIntentHistory();
+    historicalAdaptiveRows.set(intent.id, await readIntentRow(intent.id));
+    return { version, revision, path, intent, graph: nextGraph };
+  }
+  const shadow = await activateAdaptivePolicy(automaticWorkflow, automaticGraph,
+    { ...automaticConfiguration, mode: 'shadow', startingTier: 0 },
+    'Adaptive shadow v3', 'workflow-signal-adaptive-shadow', 6);
+  const resolvePinnedRisk = (entry, timestamp) => resolveWorkflowAdaptiveRisk({
+    channelId: entry.intent.channelId, accountId: entry.intent.accountId,
+    adaptiveResourceVersionId: entry.path.adaptiveRiskResourceVersionId,
+    configuration: entry.path.effectiveConfiguration.resources.adaptive_risk,
+    strategy: entry.path.effectiveConfiguration.strategyConfiguration,
+    currentEquity: '25000', reportingCurrency: 'USDT', now: timestamp,
+  });
+  const shadowRisk = await resolvePinnedRisk(shadow, riskNow);
+  assert.equal(shadowRisk.blocked, false, shadowRisk.reason);
+  assert.equal(shadowRisk.riskPercent, shadow.path.effectiveConfiguration.strategyConfiguration.sizing.riskPerTradePercent,
+    'Shadow mode must leave the baseline trade risk unchanged.');
+  const shadowPlan = createTradingPlan({ ...adaptiveRiskInput, intentId: shadow.intent.id,
+    strategy: shadow.path.effectiveConfiguration.strategyConfiguration,
+    effectiveRiskPercent: shadowRisk.riskPercent });
+  assert.notEqual(shadowPlan.quantity, automaticPlan.quantity,
+    'Changing the pinned policy from automatic to shadow must alter the new-intent risk plan.');
+  assert.equal((await getDatabase().get(
+    'SELECT current_tier FROM workflow_adaptive_risk_state WHERE resource_id = ? AND account_id = ?',
+    [resources.adaptive.resourceId, secondAccount.id],
+  )).current_tier, 1, 'Changing startingTier on an existing policy family must not reset the persisted tier.');
+  const locked = await activateAdaptivePolicy(shadow.revision, shadow.graph,
+    { ...automaticConfiguration, startingTier: 0, lockedTier: 2 },
+    'Adaptive locked v4', 'workflow-signal-adaptive-locked', 7);
+  const lockedRisk = await resolvePinnedRisk(locked, riskNow);
+  assert.equal(lockedRisk.blocked, false, lockedRisk.reason);
+  assert.equal(lockedRisk.riskPercent, '3');
+  assert.deepEqual(await getDatabase().get(
+    'SELECT current_tier, locked_tier FROM workflow_adaptive_risk_state WHERE resource_id = ? AND account_id = ?',
+    [resources.adaptive.resourceId, secondAccount.id],
+  ), { current_tier: 1, locked_tier: 2 }, 'Locking a tier must not rewrite the previously earned state tier.');
+  const lockedPlan = createTradingPlan({ ...adaptiveRiskInput, intentId: locked.intent.id,
+    strategy: locked.path.effectiveConfiguration.strategyConfiguration,
+    effectiveRiskPercent: lockedRisk.riskPercent });
+  assert.notEqual(lockedPlan.quantity, automaticPlan.quantity);
+  const disabled = await activateAdaptivePolicy(locked.revision, locked.graph,
+    { ...automaticConfiguration, enabled: false, startingTier: 0 },
+    'Adaptive disabled v5', 'workflow-signal-adaptive-disabled', 8);
+  assert.equal(disabled.path.effectiveConfiguration.resources.adaptive_risk.enabled, false);
+  assert.equal(disabled.path.adaptiveRiskResourceVersionId, disabled.version.id);
+  assert.deepEqual((await getWorkflowResourceById(disabled.version.id)).configuration,
+    disabled.path.effectiveConfiguration.resources.adaptive_risk);
+  assert.equal(historicalAdaptiveRows.size, 4);
+  await closeDb();
+  await initDb(path.join(directory, 'forwarder.db'));
+  assert.equal((await getActiveWorkflow()).id, disabled.revision.id);
+  assert.deepEqual((await getWorkflowRevisionById(effectiveSizingWorkflow.id)).graph, historicalAdaptiveBaseWorkflow.graph);
+  assert.deepEqual((await getWorkflowRevisionById(effectiveSizingWorkflow.id)).compiled, historicalAdaptiveBaseWorkflow.compiled);
+  assert.deepEqual(await Promise.all(priorIntents.map(intent => getDatabase().get(
+    'SELECT * FROM trading_trade_intents WHERE id = ?', [intent.id],
+  ))), originalAdaptiveBaseIntentRows, 'Original intents must retain their pre-adaptive graph pins.');
+  assert.deepEqual((await getWorkflowResourceById(disabled.version.id)).configuration,
+    disabled.path.effectiveConfiguration.resources.adaptive_risk);
+  for (const entry of [
+    { revision: automaticWorkflow, path: automaticPath, intent: automaticIntent },
+    shadow, locked, disabled,
+  ]) {
+    const persisted = await getWorkflowRevisionById(entry.revision.id);
+    assert.deepEqual(persisted.graph, entry.revision.graph);
+    assert.deepEqual(persisted.compiled, entry.revision.compiled);
+    assert.equal(persisted.compiled.paths.find(candidate => candidate.accountId === secondAccount.id)
+      .adaptiveRiskResourceVersionId, entry.path.adaptiveRiskResourceVersionId);
+    assert.equal((await getDatabase().get('SELECT workflow_revision_id FROM trading_trade_intents WHERE id = ?',
+      [entry.intent.id])).workflow_revision_id, entry.revision.id);
+  }
+  await assertAdaptiveIntentHistory();
+  assert.equal((await getDatabase().get('SELECT workflow_revision_id FROM trading_trade_intents WHERE id = ?',
+    [disabled.intent.id])).workflow_revision_id, disabled.revision.id);
   console.log('Workflow builder tests passed.');
 } finally {
   await (async () => closeDb())().catch(() => undefined);
