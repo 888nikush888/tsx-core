@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "scope": "First audited slice of parameters.json: managed runtime, account identity/state, deployment evidence, and the mandatory protective-stop gate. Other parameter families remain unaudited here.",
+  "classes": ["runtime-editable", "create-only", "read-only-evidence", "host-bootstrap", "immutable-gate"],
+  "groups": [
+    {
+      "id": "managed-runtime",
+      "class": "runtime-editable",
+      "paths": [
+        "runtime.enterpriseMode", "runtime.dashboardAuthMode", "runtime.dashboardLocalTrust", "runtime.dashboardAllowedOrigin",
+        "runtime.tailscaleServeTrustedProxy", "runtime.tailscaleAdminUsers", "runtime.tailscaleViewerUsers",
+        "runtime.oidcIssuer", "runtime.oidcAudience", "runtime.oidcJwksUrl", "runtime.oidcAdminRole",
+        "runtime.oidcViewerRole", "runtime.oidcRoleClaim", "runtime.oidcMaxTokenAgeSeconds",
+        "runtime.auditWebhookUrl", "runtime.alertWebhookUrl", "runtime.auditRemoteRequired",
+        "runtime.auditWebhookTimeoutMs", "runtime.alertWebhookTimeoutMs", "runtime.auditLocalMaxBytes",
+        "runtime.backupOffsiteRequired", "runtime.backupOffsiteUrlTemplate", "runtime.backupOffsiteTimeoutMs",
+        "runtime.backupOffsiteMaxRecoveryBytes", "runtime.backupOffsiteRetentionDays", "runtime.backupIntervalMs",
+        "runtime.backupRetentionCount", "runtime.dataRetentionDays", "runtime.dataRetentionIntervalMs",
+        "runtime.dataRetentionBatchSize", "runtime.dataMinFreeBytes", "runtime.deliveryConfirmTimeoutMs",
+        "runtime.shutdownGraceMs", "runtime.jsonLogging", "runtime.isolateUnavailableMarketFailures"
+      ],
+      "uiRoute": "/operations/settings",
+      "uiControl": "frontend/src/features/operations/runtime-parameters.tsx",
+      "mutationRoute": "POST /api/runtime-settings",
+      "backendValidator": "src/runtime_settings.ts",
+      "auditAction": "runtime.settings.update",
+      "contractTest": "tests/test_runtime_settings.js",
+      "effect": "Saved while running; effective at restart, except immediate session revocation for access changes."
+    },
+    {
+      "id": "account-creation",
+      "class": "create-only",
+      "paths": ["account.name", "account.exchange", "account.mode"],
+      "uiRoute": "/trading/accounts",
+      "uiControl": "frontend/src/features/accounts/accounts.tsx",
+      "mutationRoute": "POST /api/trading/accounts",
+      "backendValidator": "src/trading_web_control.ts",
+      "auditAction": "trading.accounts.post",
+      "contractTest": "tests/test_trading_web_control.js",
+      "effect": "Account identity is bound at creation; a different exchange or mode requires a separately verified account."
+    },
+    {
+      "id": "account-enable",
+      "class": "runtime-editable",
+      "paths": ["account.enabled"],
+      "uiRoute": "/trading/accounts",
+      "uiControl": "frontend/src/features/accounts/accounts.tsx",
+      "mutationRoute": "POST /api/trading/accounts/state",
+      "backendValidator": "src/trading_web_control.ts",
+      "auditAction": "trading.accounts.state.post",
+      "contractTest": "tests/test_trading_web_control.js",
+      "effect": "Protected account state command; enabling is still subject to server-side admission gates."
+    },
+    {
+      "id": "account-position-limit",
+      "class": "runtime-editable",
+      "paths": ["account.maxConcurrentPositions"],
+      "uiRoute": "/trading/accounts",
+      "uiControl": "frontend/src/features/accounts/account-position-limit.tsx",
+      "mutationRoute": "POST /api/trading/accounts/configuration",
+      "backendValidator": "src/trading_web_control.ts",
+      "auditAction": "trading.accounts.configuration.post",
+      "contractTest": "tests/test_trading_web_control.js",
+      "effect": "Version-bound account limit, effective for new capacity reservations."
+    },
+    {
+      "id": "account-observation",
+      "class": "read-only-evidence",
+      "paths": ["account.stateVersion", "account.status", "account.killSwitchActive", "account.credentialGeneration", "account.lastVerifiedAt"],
+      "uiRoute": "/trading/accounts",
+      "uiControl": "frontend/src/features/accounts/account-detail.tsx",
+      "effect": "Observed state; kill-switch release and credential rotation are separate guarded commands, not direct field edits."
+    },
+    {
+      "id": "deployment-bootstrap",
+      "class": "host-bootstrap",
+      "paths": ["deployment.VITE_BASENAME", "deployment.VITE_GTM_ID", "deployment.hostPorts", "deployment.cpu", "deployment.memory", "deployment.imageDigest"],
+      "uiRoute": "/operations/deployment",
+      "uiControl": "frontend/src/features/operations/deployment.tsx",
+      "gap": "host-maintenance-ui",
+      "evidence": {
+        "deployment.VITE_BASENAME": { "visibility": "build-value", "detail": "Browser displays effective basename, with / for an unset value." },
+        "deployment.VITE_GTM_ID": { "visibility": "presence-only", "detail": "Browser displays only whether a GTM ID was configured; the value is not returned." },
+        "deployment.hostPorts": { "visibility": "partial", "detail": "Internal listener and optional process declarations do not prove published host/Compose port bindings." },
+        "deployment.cpu": { "visibility": "partial", "detail": "OS parallelism, visible cgroup-v2 root limit and optional process declaration do not prove effective host/container limits." },
+        "deployment.memory": { "visibility": "partial", "detail": "OS total memory, visible cgroup-v2 root limit and optional process declaration do not prove effective host/container limits." },
+        "deployment.imageDigest": { "visibility": "absent", "detail": "The current deployment UI does not show the running image digest." }
+      },
+      "effect": "Build/host-owned values are not editable in the Core UI. Visibility is partial or absent as detailed per field; a separately authorized maintenance and recovery plane is required for UI-managed changes."
+    },
+    {
+      "id": "mandatory-protective-stop",
+      "class": "immutable-gate",
+      "paths": ["strategy.safety.requireProtectiveStop"],
+      "backendValidator": "src/trading_strategy.ts",
+      "effect": "Server rejects false; no UI override is allowed."
+    }
+  ]
+}

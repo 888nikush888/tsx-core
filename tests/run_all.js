@@ -10,6 +10,7 @@ const testEnvironment = {
 };
 const allTests = [
   'test_ui_register.js',
+  'test_ui_operational_coverage.js',
   'test_ui_adaptive_risk.js',
   'test_ui_next_reads.js',
   'test_ui_evidence_failures.js',

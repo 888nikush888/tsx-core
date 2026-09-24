@@ -66,10 +66,10 @@ function objectParameters() {
     ...parameterFields(objects('account', 'Konto; gemeinsame Kapazität über alle Pfade', '/trading/accounts', 'src/trading_web_control.ts', 'src/trading_engine.ts; src/trading_repository.ts',
       'Kontoanlage, Verifikation und geschützte Zustandsänderung wirken unabhängig von Ressourcenpublikation.'), [
       ['name', 'string', 'Bei Anlage; nichtleer, 1..80 Zeichen. Danach unveränderlich.'], ['exchange', 'string', 'Bei Anlage; zertifizierte Börsen-ID aus dem Katalog. Danach unveränderlich.'], ['mode', 'enum', 'Bei Anlage paper|testnet|live. Danach unveränderlich.'],
-      ['enabled', 'boolean', 'true|false; geschützter Zustandswechsel'], ['maxConcurrentPositions', 'integer', '1..20; baseStateVersion erforderlich', 'Positionen und Reservierungen'],
+      ['enabled', 'boolean', 'true|false; geschützter Zustandswechsel'], ['maxConcurrentPositions', 'integer', '1..20; baseUpdatedAt für Versionsvergleich bei bestehendem Konto', 'Positionen und Reservierungen'],
       ['stateVersion', 'integer', 'Read-only Versionsbeleg'], ['status', 'enum', 'unverified|ready|disabled|error|degraded; Ergebnis der Verifikation'],
       ['killSwitchActive', 'boolean', 'Setzen und geschütztes Freigeben sind separate Commands; keine direkte Konfigurationsabkürzung'],
-      ['credentialGeneration', 'integer', 'Read-only Credential-Epoche'], ['lastVerifiedAt', 'timestamp|null', 'Originalzeitpunkt, kein Frischeersatz', 'Unix ms'],
+      ['credentialGeneration', 'string|null', 'Read-only: 64-stelliger kleingeschriebener Hex-Fingerprint oder null vor Verifikation'], ['lastVerifiedAt', 'timestamp|null', 'Originalzeitpunkt, kein Frischeersatz', 'Unix ms'],
     ]).map(field => ({ ...field, editable: ['account.name', 'account.exchange', 'account.mode', 'account.enabled', 'account.maxConcurrentPositions'].includes(field.path) })),
     ...parameterFields(objects('journal.review', 'Review eines Intents', '/trading/journal', 'src/trade_journal.ts:updateTradeJournalReview', 'src/trade_journal.ts', 'Nur Reviewdaten; niemals Order, Fill, Plan oder Herkunft.'), [
       ['notes', 'string', 'Bis 10000 Zeichen', undefined, 'Leer löscht die Notiz.'], ['tags', 'string[]', 'Bis 20 eindeutige Tags; jeweils bis 40 Zeichen', undefined, '[] entfernt die Tags.'],

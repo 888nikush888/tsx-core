@@ -37,6 +37,8 @@ Die anschließende vollständige Python-Suite erhält nur ihre erforderlichen Te
 
 `exchange_executor/tests/provider_acceptance_runner.py` ist derzeit **nur ein Offline-Preflight und ein getesteter Sicherheitsrahmen**, kein vollständiger echter Provider-Acceptance-Runner. Ohne Argumente meldet es `DRY_RUN`, null Netzwerkzugriffe und null Secretzugriffe. Selbst mit ausdrücklichem `--execute`, korrekter Autorisierung und gültigem Plan verweigert es die Ausführung, solange der überprüfte reale Transport fehlt. Es gibt weder einen versteckten SDK-Fallback noch eine Aktivierung über Umgebungsvariablen. Der fehlende reale Transport sowie die kontrollierten Börsen-Testsequenzen sind offene Implementierung, nicht bloß ausstehende Credentials.
 
+Für den engen Hyperliquid-Testnet-Slice beschreibt [der Realtransport-Entwurf](hyperliquid-testnet-transport-design.md) die getrennte Evidenz-/Journal-Version, Originbindung, maximalen Testbetrag, Unknown-Outcome-Behandlung und Cleanup-Gates. Er aktiviert keine echte Ausführung.
+
 Der Sicherheitsrahmen prüft vor der Vergabe einer Orderreservierung: exakte Version/Revision/Profilbindung, bekannte und zusätzlich explizit erlaubte Testnet-Origin, bestätigte Kontoidentität und `oneway`/`cross`, positive Notional-/Order-/Zeitlimits und ein erfolgreich geschriebenes Cleanupjournal. Unbewiesene fremde Order-IDs erhalten keine Cancel-Freigabe. Eine Reservierung vor unbekanntem Submit bleibt ungeklärt, bis die eigene Orderidentität belegt ist. Der Rahmen selbst sendet keine Orders. Sein injizierter Journal-Callback muss in einem späteren echten Runner dauerhaft schreiben; die Fake-Tests beweisen keine Festplatten-Durabilität.
 
 ## Evidenzformat, Version 1
