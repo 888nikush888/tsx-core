@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import importlib.util
 import ipaddress
+import io
 import os
-import subprocess
-import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -20,7 +21,8 @@ from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "check_internal_tls.py"
 SPEC = importlib.util.spec_from_file_location("check_internal_tls", SCRIPT)
-assert SPEC and SPEC.loader
+if SPEC is None or SPEC.loader is None:
+    raise ImportError("Cannot load internal TLS preflight module.")
 preflight_module = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(preflight_module)
 
@@ -161,15 +163,12 @@ class InternalTlsPreflightTests(unittest.TestCase):
         with self.assertRaisesRegex(preflight_module.PreflightError, "must be absolute"):
             preflight_module.preflight(Path("relative-tls"))
 
-    def test_cli_requires_explicit_directory_without_exposing_material(self) -> None:
-        environment = os.environ.copy()
-        environment.pop("INTERNAL_TLS_DIR", None)
-        result = subprocess.run(
-            [sys.executable, str(SCRIPT)], env=environment, text=True, capture_output=True, check=False
-        )
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("INTERNAL_TLS_DIR is required", result.stderr)
-        self.assertNotIn("PRIVATE KEY", result.stderr)
+    def test_main_requires_explicit_directory_without_exposing_material(self) -> None:
+        output = io.StringIO()
+        with patch.dict(os.environ, {"INTERNAL_TLS_DIR": ""}), redirect_stderr(output):
+            self.assertEqual(preflight_module.main(), 1)
+        self.assertIn("INTERNAL_TLS_DIR is required", output.getvalue())
+        self.assertNotIn("PRIVATE KEY", output.getvalue())
 
     @unittest.skipIf(os.name == "nt", "Creating symlinks can require Windows privileges.")
     def test_rejects_symlinked_key(self) -> None:

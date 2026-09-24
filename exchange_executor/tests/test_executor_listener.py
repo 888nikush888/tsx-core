@@ -1,9 +1,8 @@
 """Standalone listener defaults and explicit container binding remain distinct."""
 import asyncio
-import json
 import os
+import runpy
 import ssl
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -65,9 +64,7 @@ class ExecutorListenerTests(unittest.TestCase):
     def test_tls_context_validates_certificates_and_private_key(self):
         generator = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "internal_tls_fixture.py"
         with tempfile.TemporaryDirectory(prefix="tsx-executor-tls-") as directory:
-            generated = subprocess.run([sys.executable, str(generator), directory], check=True,
-                                       capture_output=True, text=True)
-            paths = json.loads(generated.stdout)
+            paths = runpy.run_path(str(generator))["generate"](Path(directory))
             configured = {"EXECUTOR_TLS_CERT_FILE": paths["cert"], "EXECUTOR_TLS_KEY_FILE": paths["key"]}
             with patch.dict(os.environ, configured, clear=True):
                 context = server.executor_tls_context()

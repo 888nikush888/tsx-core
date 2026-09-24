@@ -1,5 +1,7 @@
 # Plan 004: Codacy, DeepSource und Sonar stabil abschließen
 
+> **Änderung am 24.09.2026:** Auf Betreiberwunsch wird Snyk als aktive GitHub-/CI-Integration entfernt. Die unten stehenden älteren Snyk-Anweisungen beschreiben den damaligen Plan und gelten nicht mehr als Freigabekriterium. Frühere Befunde und Nachweise bleiben als Audit-Historie erhalten. Für die zwei `uri-js`-Schwachstellen liegt eine lokal verhaltensbasiert geprüfte Ersatzbibliothek vor; bis zu exakter CI- und Staging-Abnahme bleibt der Start blockiert. Die fünf früher akzeptierten internen HTTP-Wege werden in PR #75 auf TLS umgestellt; die Akzeptanz ersetzt keine Prüfung des tatsächlich ausgerollten Systems.
+
 Stand: 20.09.2026. Geplant gegen `1f21249adc48f74bf139562e89ca261b14aebc27`, Branch `codex/final-findings-2026-09-17`. Remote-main wurde am selben Tag lesend als `58c01bc74f83cc212849ddcd7e487412ff06b2b7` bestätigt; keine offenen PRs. Status: **IN PROGRESS / Umsetzung läuft; [aktueller Nachweis](../docs/testing/final-findings-followup-2026-09-20.md).** Aufwand L; Änderungsrisiko hoch im Trading-Kern, niedrig bei rein mechanischen Änderungen.
 
 Dieser Plan ersetzt die offenen Abschlussanweisungen der alten Scanner-Pläne 001–003 für diesen Arbeitsstand. Bereits vorhandene Änderungen bleiben erhalten und werden geprüft, nicht nochmals blind angewendet. Ausführende müssen den gesamten Plan lesen. Pfade und Befehle sind relativ zum Repository, sofern nicht anders angegeben.
