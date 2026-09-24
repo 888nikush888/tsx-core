@@ -373,7 +373,7 @@ Ein Rollback gilt erst als bewiesen, wenn der exakte vorherige Image-Digest mit 
 2. Alle lokalen Quality-OS-Gates auf exakt dem zu veröffentlichenden Snapshot abschließen.
 3. Den Commit direkt auf den einzigen Branch `main` pushen.
 4. Main-Workflow, Container-Scan, SBOM, SAST und Secret-History-Scan für exakt diesen SHA kontrollieren.
-5. Für einen Produktions-Deploy zusätzlich `staging.yml` sowie das erforderliche Betriebs-/SLO-Fenster nachweisen.
+5. Für einen Produktions-Deploy zusätzlich `staging.yml`, die 24-Stunden-Releasebeobachtung und die eigenständigen echten Paper-/Testnet-Lifecycle-Nachweise je freizugebendem Slice/Konto vorlegen. Das fortlaufende 30-Tage-SLO ist keine Wartepflicht vor GO.
 6. Restore-/Rollback-Probe, Alertzustellung, On-Call und Change-Fenster im Deployment-Record belegen.
 7. Images nur bei Bedarf manuell in die Betreiber-Registry veröffentlichen und die drei unveränderlichen Digests festhalten.
 8. Ausschließlich diese geprüften Digests deployen.
@@ -403,10 +403,11 @@ Der Code und die automatisierbaren lokalen Kontrollen sind implementiert. Der Pl
 | Echter Telegram-Staging-E2E | **NICHT VERIFIZIERT** ohne isolierten Account/Chats/Runner | Erfolgreiches `staging.yml`-Artefakt für exakt den Release-Commit, exakt eine Zielnachricht |
 | Live-AI-Golden-Set des Release-Commits | Muss pro KI-relevantem Release neu belegt werden | Erfolgreiches `npm run test:ai-eval` auf Staging mit freigegebenem Provider/Modell |
 | Reale Restore-/Rollback-Übung | Lokale automatisierte Tests ersetzen keine Infrastrukturübung | Off-host-Restore und vorheriger Image-Digest mit Datenabgleich und gemessener Dauer |
-| 30-Tage-Stabilität und SLO | **NICHT VERIFIZIERT**, solange kein vollständiges reales Messfenster vorliegt | `npm run ops:soak`: mindestens 30 Tage, 99,5 %, mindestens 100 Versuche, keine `unknown`, P95 und Ressourcenlimits eingehalten |
+| Releasebeobachtung und fortlaufendes SLO | **NICHT VERIFIZIERT**, solange kein vollständiges reales Messfenster vorliegt | Vor GO `npm run ops:release-observation`: 24 Stunden, mindestens 5732 Scrapes bei 15-Sekunden-Takt, 99,5 % Verfügbarkeit/Erfolg, mindestens 100 Zustellversuche und Trade-Intents, keine `unknown`/ungeschützten Positionen, P95 und Ressourcenlimits eingehalten. `npm run ops:soak` berichtet anschließend weiter das 30-Tage-SLO, ohne kalendarische GO-Sperre. |
 | Hyperliquid-/Bybit-Testnet-Lifecycle | **NICHT VERIFIZIERT** ohne reale isolierte Testnet-Konten | Je Exchange Entry, 1/2/3/5-TP-Signale, adaptive Allokation, Stop-Resize/Break-even/TP(i-2), Cancel, Timeout/Unknown, Neustart-Reconciliation und Notfall-Flatten belegen |
 | Trading-Key-/Subkonto-Isolation | **NICHT VERIFIZIERT** ohne reale Exchange-Konfiguration | Dediziertes Subkonto, minimale Trading-Rechte ohne Withdrawal, IP-Allowlist, Rotation und Owner belegen |
-| Trading 30-Tage-Soak und Live-Canary | **NICHT VERIFIZIERT** ohne verstrichene Betriebszeit | 30 Tage Paper/Testnet ohne Unknown/Unprotected/Drift, danach begrenzter Live-Canary mit Max-Notional und Kill-Switch-Übung |
+| Trading-Lifecycle und Live-Canary | **NICHT VERIFIZIERT** ohne echte Provider-/Kontonachweise | Je freizugebendem Slice/Konto Paper-/Testnet-Entry, Schutzstop, Fill, Gebühren/Funding, Unknown-/Restart-Reconciliation und Null-Restexposure unabhängig belegen; danach begrenzter Live-Canary mit Max-Notional, Kill-Switch-Übung und gesonderter Freigabe. Weder 24 Stunden Metriken noch das Datum ersetzen diese Akten. |
+| Live-Zielhost und interne TLS-Wege | **NICHT VERIFIZIERT**: WSL ist Staging; Live-Host noch nicht bestimmt | Vor Live-GO gewählten Host, Zertifikate/ACLs, alle fünf internen TLS-Verbindungen, Monitoring, Backup/Restore, Rollback und Bereitschaft am tatsächlichen Host prüfen. |
 
 Solange eine dieser für den konkreten Produktions-Deploy relevanten Zeilen offen ist, lautet die Produktionsentscheidung **NO-GO**. Es gibt keinen automatischen Tag- oder Release-Publisher; der Betreiber darf einen Deploy bei fehlender Staging-, Produktions-, Scan- oder Artefaktevidenz nicht manuell freigeben. Offen bedeutet damit nicht „später prüfen“, sondern „noch nicht deployen“.
 
@@ -424,7 +425,9 @@ GitHub-Governance-Evidenz:
 Off-host-Backup + Restore-Dauer:
 Rollback-Digest + Ergebnis:
 Testalarm-correlation_id:
-30-Tage-Soak-Artefakt:
+24-Stunden-Releasebeobachtungs-Artefakt und Paper-/Testnet-Lifecycle-Akten je Slice/Konto:
+Fortlaufender 30-Tage-SLO-Report (nach Start):
+Live-Host / interne TLS-Nachweise:
 OIDC-/TLS-Negativtest:
 On-Call / Eskalationsweg:
 Offene Risikoakzeptanzen:

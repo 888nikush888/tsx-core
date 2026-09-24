@@ -114,6 +114,7 @@ for (const governancePath of [
   '.github/workflows/quality.yml',
   '.github/workflows/staging.yml',
   '.github/workflows/production_evidence.yml',
+  '.github/workflows/release_observation.yml',
   '.github/workflows/synthetic.yml',
   '.github/CODEOWNERS',
   '.github/dependabot.yml',

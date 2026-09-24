@@ -13,6 +13,7 @@ const workflow = await readFile(path.join(root, '.github', 'workflows', 'quality
 const stagingWorkflow = await readFile(path.join(root, '.github', 'workflows', 'staging.yml'), 'utf8');
 const syntheticWorkflow = await readFile(path.join(root, '.github', 'workflows', 'synthetic.yml'), 'utf8');
 const productionEvidenceWorkflow = await readFile(path.join(root, '.github', 'workflows', 'production_evidence.yml'), 'utf8');
+const releaseObservationWorkflow = await readFile(path.join(root, '.github', 'workflows', 'release_observation.yml'), 'utf8');
 const dockerfile = await readFile(path.join(root, 'Dockerfile'), 'utf8');
 const executorDockerfile = await readFile(path.join(root, 'exchange_executor', 'Dockerfile'), 'utf8');
 const alertmanagerDockerfile = await readFile(path.join(root, 'monitoring', 'alertmanager.Dockerfile'), 'utf8');
@@ -36,7 +37,7 @@ const dockerCompose = await readFile(path.join(root, 'docker-compose.yml'), 'utf
 const gitleaksConfig = await readFile(path.join(root, '.gitleaks.toml'), 'utf8');
 const gitAttributes = await readFile(path.join(root, '.gitattributes'), 'utf8');
 
-const allWorkflows = `${workflow}\n${stagingWorkflow}\n${syntheticWorkflow}\n${productionEvidenceWorkflow}`;
+const allWorkflows = `${workflow}\n${stagingWorkflow}\n${syntheticWorkflow}\n${productionEvidenceWorkflow}\n${releaseObservationWorkflow}`;
 const actionReferences = [...allWorkflows.matchAll(/^\s*(?:-\s*)?uses:\s*([^\s#]+).*$/gm)].map(
   (match) => match[1]
 );
@@ -212,6 +213,12 @@ assert.doesNotMatch(
 assert.match(stagingWorkflow, /timeout-minutes:\s*30/);
 assert.match(stagingWorkflow, /AI_GOLDEN_CASE_DELAY_MS:\s*'5000'/);
 assert.match(stagingWorkflow, /run:\s*npm run test:ai-eval/);
+assert.match(releaseObservationWorkflow, /runs-on:\s*\[self-hosted, production-observer\]/);
+assert.match(releaseObservationWorkflow, /if:\s*github\.ref == 'refs\/heads\/main'/);
+assert.match(releaseObservationWorkflow, /environment:\s*production-observer/);
+assert.match(releaseObservationWorkflow, /ref:\s*\$\{\{ github\.sha \}\}/);
+assert.match(releaseObservationWorkflow, /persist-credentials:\s*false/);
+assert.match(releaseObservationWorkflow, /run:\s*npm run ops:release-observation/);
 
 assert.match(workflow, /shard:\s*\[queue, retry, schema, trading-risk\]/);
 assert.match(workflow, /npm run test:mutation -- \$\{\{ matrix\.shard \}\}/);

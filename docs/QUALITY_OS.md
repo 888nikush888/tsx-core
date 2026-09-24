@@ -87,7 +87,7 @@ Für Scores ab zehn ist eine unabhängige fachliche und sicherheitstechnische Pr
 | MCP-/Event-Contract-Kompatibilität                | Fail bei inkompatibler Änderung | Fail   | Fail                      |
 | Live KI-Golden-Set mit Staging-Provider           | Bei KI-Änderung Evidence      | Evidence | Fail                      |
 | Synthetischer E2E-Flow                            | Optional                      | Evidence | Fail                      |
-| Performance-/30-Tage-Soak                         | Bei Ressourcenänderung        | Evidence | Fail                      |
+| Performance-/Releasebeobachtung und 30-Tage-SLO   | Bei Ressourcenänderung        | Evidence | Fail                      |
 | Rollback- und Offline-Restore-Übung               | Bei betroffener Änderung      | Evidence | Fail                      |
 
 Der Workflow `.github/workflows/quality.yml` implementiert die Produkt- und Supply-Chain-Gates einschließlich getesteter Alarmregeln. Er baut und scannt Kandidaten, besitzt aber keine Release-Credentials und veröffentlicht weder GitHub Releases noch Registry-Images. `.github/workflows/staging.yml`, `.github/workflows/synthetic.yml` und `.github/workflows/production_evidence.yml` erzeugen die externen Staging-/SLO-Nachweise. Branch Protection, Runner-/Environment-Schutz, Eigentum am Off-host-Ziel, der konkrete Incident-Empfänger und die tatsächlichen Messwerte bleiben externe Betreiberkontrollen.
@@ -144,7 +144,7 @@ Automatisches **NO-GO** gilt bei jedem fehlenden Pflichtartefakt sowie bei kriti
 
 ## SLOs und Error Budget
 
-Die Werte sind die initialen verbindlichen Ziele; sie werden nach dem ersten belastbaren 30-Tage-Fenster nur per ADR geändert.
+Die Werte sind die initialen verbindlichen Ziele; sie werden nach dem ersten belastbaren 30-Tage-Fenster nur per ADR geändert. Vor dem ersten Live-GO gilt zusätzlich die gesonderte 24-Stunden-Releasebeobachtung mit vollständiger Stichprobe und realen Paper-/Testnet-Lifecycle-Akten. Das retrospektive 30-Tage-SLO bleibt für den laufenden Betrieb, ist aber keine pauschale Wartefrist.
 
 | SLI                                         |                SLO (30 Tage) |        Error Budget | Aktion bei Verletzung                                   |
 | ------------------------------------------- | ---------------------------: | ------------------: | ------------------------------------------------------- |
@@ -162,7 +162,7 @@ Die Werte sind die initialen verbindlichen Ziele; sie werden nach dem ersten bel
 | Managed Position ohne bestätigten Stop      |                            0 |                   0 | Sofort alarmieren und reduce-only Notfall-Flatten        |
 | Reconciliation-Alter bei aktiver Execution  |                        ≤30 s |                   0 | Execution sperren; Executor/Exchange untersuchen         |
 | Trading Kill-Switch im Steady State         |                            0 |                   0 | Release-/Feature-Freeze bis Ursachenbeleg                |
-| Paper/Testnet Trade Intents im Soak         |                     ≥100/30d |                  100 | 30-Tage-Gate bleibt NO-GO                                |
+| Paper/Testnet Trade Intents vor Live-GO     | ≥100/24h im Releasefenster |                  100 | Releasebeobachtung bleibt NO-GO; echte Slice-Lifecycles separat prüfen |
 
 Im echten Produktionsbetrieb muss ein extern überwachter Scheduler synthetische E2E-Prüfungen im Staging mindestens alle 15 Minuten auslösen; bis Runner und Scheduler eingerichtet sind, bleibt der Workflow manuell und diese SLO-Evidenz ausdrücklich offen. Monatlich werden Restore und kontrollierter Provider-/Netzwerkausfall geübt. Postmortems sind blameless, aber ein Regressionstest für jede technisch reproduzierbare Incident-Ursache ist verpflichtend.
 

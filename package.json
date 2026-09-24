@@ -27,6 +27,7 @@
     "audit:replay": "tsx src/audit_cli.ts replay",
     "ops:test-alert": "node scripts/send_synthetic_alert.js",
     "ops:soak": "node --import tsx scripts/check_soak_window.js",
+    "ops:release-observation": "node --import tsx scripts/check_soak_window.js --release",
     "test": "node tests/run_all.js",
     "test:coverage": "c8 --config c8.critical.json node tests/run_all.js",
     "test:coverage:modules": "node scripts/check_module_coverage.js",
