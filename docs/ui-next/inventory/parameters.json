@@ -453,7 +453,7 @@
       "path": "runtime.backupOffsiteTimeoutMs",
       "type": "integer",
       "unit": "ms",
-      "constraints": "1000..300000",
+      "constraints": "1000..900000",
       "default": 60000,
       "defaultPresent": true,
       "nullable": false,

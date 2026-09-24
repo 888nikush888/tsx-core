@@ -24,6 +24,10 @@ try {
   assert.equal(env.DASHBOARD_ALLOWED_ORIGIN, undefined);
   assert.equal(env.TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES, 'false');
   assert.equal(env.CLOCK_MAX_DRIFT_MS, '1000');
+  assert.equal(validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, backupOffsiteTimeoutMs: 900_000 }).backupOffsiteTimeoutMs,
+    900_000, 'The UI must allow the same bounded 15-minute off-site transfer deadline as the replicator.');
+  assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, backupOffsiteTimeoutMs: 900_001 }),
+    /backupOffsiteTimeoutMs/);
 
   const legacyEnvironment = { CLOCK_MAX_DRIFT_MS: '450' };
   const legacyPath = path.join(directory, 'legacy-runtime-settings.json');

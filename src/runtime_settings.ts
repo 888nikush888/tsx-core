@@ -331,7 +331,7 @@ export function validateRuntimeSettings(input: unknown): RuntimeSettings {
     auditLocalMaxBytes: integer(merged.auditLocalMaxBytes, 'auditLocalMaxBytes', 1024 * 1024, 1024 * 1024 * 1024),
     backupOffsiteRequired: merged.backupOffsiteRequired as boolean,
     backupOffsiteUrlTemplate: backupUrl,
-    backupOffsiteTimeoutMs: integer(merged.backupOffsiteTimeoutMs, 'backupOffsiteTimeoutMs', 1_000, 5 * 60_000),
+    backupOffsiteTimeoutMs: integer(merged.backupOffsiteTimeoutMs, 'backupOffsiteTimeoutMs', 1_000, 15 * 60_000),
     backupOffsiteMaxRecoveryBytes: integer(merged.backupOffsiteMaxRecoveryBytes, 'backupOffsiteMaxRecoveryBytes', 1024 * 1024, 8 * 1024 * 1024 * 1024),
     backupOffsiteRetentionDays: integer(merged.backupOffsiteRetentionDays, 'backupOffsiteRetentionDays', 0, 3_650),
     backupIntervalMs: integer(merged.backupIntervalMs, 'backupIntervalMs', 60_000, 15 * 60_000),
