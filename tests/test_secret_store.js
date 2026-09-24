@@ -66,8 +66,11 @@ try {
     alertWebhookToken: 'alert-token-0123456789abcdef0123456789abcdef',
     backupOffsiteToken: 'backup-token-0123456789abcdef0123456789abcdef',
     backupEncryptionKey: Buffer.alloc(32, 7).toString('base64'),
+    backupDriveAccessToken: 'test-drive-access-token-0123456789abcdef',
   });
   assert.equal(store.status().backupEncryptionKey.source, 'managed');
+  assert.deepEqual(store.status().backupDriveAccessToken, { configured: true, editable: true, source: 'managed' });
+  assert.ok(!JSON.stringify(store.status()).includes('test-drive-access-token'));
   assert.equal(store.status().backupEncryptionKey.editable, false);
   await store.set({ backupEncryptionKey: Buffer.alloc(32, 7).toString('base64') });
   await assert.rejects(
@@ -81,6 +84,7 @@ try {
   assert.equal(reloadedEnv.OPENROUTER_API_KEY, 'updated-realistic-test-key-1234567890');
   assert.equal(reloaded.status().dashboardAdminToken.source, 'managed');
   assert.equal(reloaded.status().auditWebhookToken.source, 'managed');
+  assert.equal(reloadedEnv.BACKUP_DRIVE_ACCESS_TOKEN, 'test-drive-access-token-0123456789abcdef');
 
   const externalDirectory = path.join(directory, 'external');
   const externalEnv = { TELEGRAM_API_HASH: 'b'.repeat(32) };

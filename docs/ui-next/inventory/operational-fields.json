@@ -208,6 +208,30 @@
       "runtimeEnvironmentName": "BACKUP_OFFSITE_RETENTION_DAYS"
     },
     {
+      "path": "runtime.backupDriveFolderId",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "BACKUP_DRIVE_FOLDER_ID"
+    },
+    {
+      "path": "runtime.backupDriveRequired",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "BACKUP_DRIVE_REQUIRED"
+    },
+    {
+      "path": "runtime.backupDriveTimeoutMs",
+      "class": "runtime-editable",
+      "catalogEditable": true,
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "managed-runtime",
+      "runtimeEnvironmentName": "BACKUP_DRIVE_TIMEOUT_MS"
+    },
+    {
       "path": "runtime.backupIntervalMs",
       "class": "runtime-editable",
       "catalogEditable": true,

@@ -32,6 +32,9 @@ export interface RuntimeSettings {
   backupOffsiteTimeoutMs: number;
   backupOffsiteMaxRecoveryBytes: number;
   backupOffsiteRetentionDays: number;
+  backupDriveFolderId: string;
+  backupDriveRequired: boolean;
+  backupDriveTimeoutMs: number;
   backupIntervalMs: number;
   backupRetentionCount: number;
   dataRetentionDays: number;
@@ -80,6 +83,9 @@ export const DEFAULT_RUNTIME_SETTINGS: RuntimeSettings = {
   backupOffsiteTimeoutMs: 60_000,
   backupOffsiteMaxRecoveryBytes: 2 * 1024 * 1024 * 1024,
   backupOffsiteRetentionDays: 0,
+  backupDriveFolderId: '',
+  backupDriveRequired: false,
+  backupDriveTimeoutMs: 60_000,
   backupIntervalMs: 15 * 60_000,
   backupRetentionCount: 672,
   dataRetentionDays: 90,
@@ -129,6 +135,7 @@ const BOOLEAN_SETTING_NAMES = [
   'tailscaleServeTrustedProxy',
   'auditRemoteRequired',
   'backupOffsiteRequired',
+  'backupDriveRequired',
   'jsonLogging',
   'isolateUnavailableMarketFailures',
 ] as const;
@@ -263,6 +270,16 @@ function validatedBackupUrl(settings: RuntimeSettingsRecord, enterprise: boolean
   return backupUrl;
 }
 
+function validatedDriveFolderId(settings: RuntimeSettingsRecord, enterprise: boolean): string {
+  const folderId = text(settings.backupDriveFolderId, 'backupDriveFolderId', 256);
+  if (folderId && !/^[A-Za-z0-9_-]{10,256}$/.test(folderId)) throw new Error('backupDriveFolderId is invalid.');
+  if (settings.backupDriveRequired === true && !folderId) throw new Error('Required Drive mirror needs backupDriveFolderId.');
+  if (settings.backupDriveRequired === true && !(enterprise || settings.backupOffsiteRequired === true)) {
+    throw new Error('Required Drive mirror also requires primary off-site backup.');
+  }
+  return folderId;
+}
+
 interface ValidatedOidcSettings {
   issuer: string;
   audience: string;
@@ -301,6 +318,7 @@ export function validateRuntimeSettings(input: unknown): RuntimeSettings {
   const dashboardAuthMode = validatedDashboardAuthMode(merged.dashboardAuthMode);
   validateEnterpriseProfile(merged, enterprise, dashboardAuthMode);
   const backupUrl = validatedBackupUrl(merged, enterprise);
+  const driveFolderId = validatedDriveFolderId(merged, enterprise);
   const oidc = validatedOidcSettings(merged, enterprise, dashboardAuthMode);
   const dashboardAllowedOrigin = webOrigin(merged.dashboardAllowedOrigin);
   const tailscale = validateTailscaleProfile(merged, dashboardAuthMode, dashboardAllowedOrigin);
@@ -334,6 +352,9 @@ export function validateRuntimeSettings(input: unknown): RuntimeSettings {
     backupOffsiteTimeoutMs: integer(merged.backupOffsiteTimeoutMs, 'backupOffsiteTimeoutMs', 1_000, 15 * 60_000),
     backupOffsiteMaxRecoveryBytes: integer(merged.backupOffsiteMaxRecoveryBytes, 'backupOffsiteMaxRecoveryBytes', 1024 * 1024, 8 * 1024 * 1024 * 1024),
     backupOffsiteRetentionDays: integer(merged.backupOffsiteRetentionDays, 'backupOffsiteRetentionDays', 0, 3_650),
+    backupDriveFolderId: driveFolderId,
+    backupDriveRequired: merged.backupDriveRequired as boolean,
+    backupDriveTimeoutMs: integer(merged.backupDriveTimeoutMs, 'backupDriveTimeoutMs', 1_000, 15 * 60_000),
     backupIntervalMs: integer(merged.backupIntervalMs, 'backupIntervalMs', 60_000, 15 * 60_000),
     backupRetentionCount: integer(merged.backupRetentionCount, 'backupRetentionCount', 1, 10_000),
     dataRetentionDays: integer(merged.dataRetentionDays, 'dataRetentionDays', 1, 3_650),
@@ -374,6 +395,9 @@ const ENVIRONMENT_MAPPING: Record<keyof RuntimeSettings, string> = {
   backupOffsiteTimeoutMs: 'BACKUP_OFFSITE_TIMEOUT_MS',
   backupOffsiteMaxRecoveryBytes: 'BACKUP_OFFSITE_MAX_RECOVERY_BYTES',
   backupOffsiteRetentionDays: 'BACKUP_OFFSITE_RETENTION_DAYS',
+  backupDriveFolderId: 'BACKUP_DRIVE_FOLDER_ID',
+  backupDriveRequired: 'BACKUP_DRIVE_REQUIRED',
+  backupDriveTimeoutMs: 'BACKUP_DRIVE_TIMEOUT_MS',
   backupIntervalMs: 'BACKUP_INTERVAL_MS',
   backupRetentionCount: 'BACKUP_RETENTION_COUNT',
   dataRetentionDays: 'DATA_RETENTION_DAYS',
@@ -534,6 +558,7 @@ export function managedRuntimeSettingsPathFromEnvironment(env: NodeJS.ProcessEnv
 }
 
 function runtimeFieldMaxLength(key: string): number {
+  if (key === 'backupDriveFolderId') return 256;
   if (/tailscale(Admin|Viewer)Users/.test(key)) return 4096;
   return /oidc(AdminRole|ViewerRole|Audience|RoleClaim)/.test(key) ? 256 : 2048;
 }

@@ -116,7 +116,7 @@ try {
   const before = store.describe();
   assert.equal(before.active.shutdownGraceMs, DEFAULT_RUNTIME_SETTINGS.shutdownGraceMs);
   assert.equal(before.restartRequired, true);
-  assert.equal(before.parameters.length, 36);
+  assert.equal(before.parameters.length, 39);
   const clockParameter = before.parameters.find(parameter => parameter.path === 'clockMaxDriftMs');
   assert.deepEqual(clockParameter.range, [100, 5_000]);
   assert.equal(clockParameter.environmentName, 'CLOCK_MAX_DRIFT_MS');
@@ -161,6 +161,23 @@ try {
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, dashboardLocalTrust: 'yes' }), /true or false/);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, auditRemoteRequired: 'yes' }), /true or false/);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, backupOffsiteRequired: 'yes' }), /true or false/);
+  assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, backupDriveRequired: true }), /backupDriveFolderId/);
+  assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, backupDriveFolderId: 'invalid' }), /backupDriveFolderId/);
+  assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, backupDriveTimeoutMs: 900_001 }), /backupDriveTimeoutMs/);
+  const stagedDrive = validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS,
+    backupOffsiteRequired: true, backupOffsiteUrlTemplate: 'https://backup.example.com/{artifact}',
+    backupDriveRequired: true, backupDriveFolderId: 'folder_1234567890' });
+  assert.equal(stagedDrive.backupDriveRequired, true);
+  const drivePath = path.join(directory, 'staged-drive-runtime.json');
+  const driveStore = new ManagedRuntimeSettingsStore(drivePath, {});
+  await driveStore.initialize();
+  await driveStore.set(stagedDrive);
+  const driveRestart = new ManagedRuntimeSettingsStore(drivePath, {});
+  await driveRestart.initialize();
+  driveRestart.applyToEnvironment();
+  assert.equal(driveRestart.snapshot().backupDriveFolderId, 'folder_1234567890');
+  assert.equal(driveRestart.describe().active.backupDriveRequired, true);
+  assert.equal(driveRestart.describe().active.backupDriveTimeoutMs, 60_000);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, jsonLogging: 'yes' }), /true or false/);
   assert.throws(() => validateRuntimeSettings({ ...DEFAULT_RUNTIME_SETTINGS, isolateUnavailableMarketFailures: 'yes' }), /true or false/);
   assert.throws(() => validateRuntimeSettings({ ...enterprise, dashboardLocalTrust: true }), /disable trusted local/);

@@ -12,7 +12,8 @@ export type ManagedSecretName =
   | 'alertRelayToken'
   | 'alertWebhookToken'
   | 'backupOffsiteToken'
-  | 'backupEncryptionKey';
+  | 'backupEncryptionKey'
+  | 'backupDriveAccessToken';
 export type ManagedSecretSource = 'managed' | 'external' | 'missing';
 
 interface SecretDefinition {
@@ -25,7 +26,8 @@ interface SecretDefinition {
     | 'ALERT_RELAY_TOKEN'
     | 'ALERT_WEBHOOK_TOKEN'
     | 'BACKUP_OFFSITE_TOKEN'
-    | 'BACKUP_ENCRYPTION_KEY';
+    | 'BACKUP_ENCRYPTION_KEY'
+    | 'BACKUP_DRIVE_ACCESS_TOKEN';
   fileName: string;
   validate(value: string): boolean;
   error: string;
@@ -106,6 +108,13 @@ const DEFINITIONS: Record<ManagedSecretName, SecretDefinition> = {
       }
     },
     error: 'Backup encryption key must be a canonical base64-encoded 32-byte key.',
+  },
+  backupDriveAccessToken: {
+    environmentName: 'BACKUP_DRIVE_ACCESS_TOKEN',
+    fileName: 'backup_drive_access_token',
+    validate: (value) => value.length >= 16 && value.length <= 4_096 && !/\s/.test(value)
+      && !/^(example|placeholder|your_)/i.test(value),
+    error: 'Staging Drive access token must be a non-placeholder single-line value of 16 to 4096 characters.',
   },
 };
 

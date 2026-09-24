@@ -14,7 +14,8 @@
         "runtime.auditWebhookUrl", "runtime.alertWebhookUrl", "runtime.auditRemoteRequired",
         "runtime.auditWebhookTimeoutMs", "runtime.alertWebhookTimeoutMs", "runtime.auditLocalMaxBytes",
         "runtime.backupOffsiteRequired", "runtime.backupOffsiteUrlTemplate", "runtime.backupOffsiteTimeoutMs",
-        "runtime.backupOffsiteMaxRecoveryBytes", "runtime.backupOffsiteRetentionDays", "runtime.backupIntervalMs",
+        "runtime.backupOffsiteMaxRecoveryBytes", "runtime.backupOffsiteRetentionDays",
+        "runtime.backupDriveFolderId", "runtime.backupDriveRequired", "runtime.backupDriveTimeoutMs", "runtime.backupIntervalMs",
         "runtime.backupRetentionCount", "runtime.dataRetentionDays", "runtime.dataRetentionIntervalMs",
         "runtime.dataRetentionBatchSize", "runtime.dataMinFreeBytes", "runtime.deliveryConfirmTimeoutMs",
         "runtime.shutdownGraceMs", "runtime.clockMaxDriftMs", "runtime.jsonLogging", "runtime.isolateUnavailableMarketFailures"

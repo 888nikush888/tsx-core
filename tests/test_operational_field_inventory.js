@@ -269,7 +269,7 @@ assert.deepEqual(documentedCounts.slice(1).map(Number), [
 const remainingGapCount = inventoryDoc.match(/^- (\d+) catalog paths have no field-level proof/m);
 assert.equal(Number(remainingGapCount?.[1]), statusCounts.unverified,
   'The documented remaining gap count must match unverified JSON rows.');
-assert.equal(runtimeEnvironment.size, 36, 'Managed runtime mapping denominator drift');
+assert.equal(runtimeEnvironment.size, 39, 'Managed runtime mapping denominator drift');
 const clockParameter = catalog.find(item => item.path === 'runtime.clockMaxDriftMs');
 assert.equal(clockParameter.constraints, '100..5000');
 assert.equal(clockParameter.editable, true);
@@ -280,11 +280,11 @@ assert.match(await read('src/clock_guard.ts'), /CLOCK_MAX_DRIFT_MS must be an in
 for (const control of external.controls) for (const source of control.source) await access(path.join(root, source));
 assert.equal(externalCounted.composeCount, 23, 'Re-audit Compose variable denominator on change');
 assert.equal(externalCounted.alertCount, 18, 'Re-audit alert rule denominator on change');
-assert.equal(counted.catalogCount, 312, 'Re-audit catalog denominator on change');
+assert.equal(counted.catalogCount, 315, 'Re-audit catalog denominator on change');
 const expandedAggregates = ['deployment.hostPorts', 'deployment.cpu', 'deployment.memory'];
 for (const name of expandedAggregates) assert.ok(catalog.some(item => item.path === name), `${name}: aggregate missing`);
 const sourceScopedControlCount = counted.catalogCount - expandedAggregates.length + externalCounted.externalCount;
-assert.equal(sourceScopedControlCount, 379, 'Re-audit source-scoped control-record denominator on change');
+assert.equal(sourceScopedControlCount, 382, 'Re-audit source-scoped control-record denominator on change');
 
 const newField = [...catalog, { path: 'runtime.newValue', editable: true, secret: false }];
 assert.throws(() => verifyCatalog(newField, fields), /Catalog and field classification differ/);

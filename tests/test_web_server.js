@@ -1715,6 +1715,31 @@ async function testRuntimeSettingsControl(baseUrl, controls) {
   response = await fetch(`${baseUrl}/api/runtime-settings`, { headers: headers(ADMIN_TOKEN) });
   assert.strictEqual((await response.json()).settings.clockMaxDriftMs, 1000,
     'Rejected updates must leave the persisted clock threshold unchanged.');
+  const driveSettings = { ...settings, backupOffsiteRequired: true,
+    backupOffsiteUrlTemplate: 'https://backup.example.com/{artifact}',
+    backupDriveFolderId: 'folder_1234567890', backupDriveRequired: true };
+  response = await fetch(`${baseUrl}/api/runtime-settings`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(driveSettings)
+  });
+  assert.strictEqual(response.status, 409, 'Drive mirror UI activation must require its managed secret first.');
+  const driveToken = 'staging-drive-access-token-0123456789abcdef';
+  response = await fetch(`${baseUrl}/api/secrets`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ backupDriveAccessToken: driveToken })
+  });
+  assert.strictEqual(response.status, 200);
+  const driveSecretStatus = await response.json();
+  assert.strictEqual(driveSecretStatus.secrets.backupDriveAccessToken.configured, true);
+  assert.ok(!JSON.stringify(driveSecretStatus).includes(driveToken), 'Write-only Drive token must not be returned.');
+  response = await fetch(`${baseUrl}/api/runtime-settings`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(driveSettings)
+  });
+  assert.strictEqual(response.status, 200, 'Authenticated staging Drive settings must be persisted after secret setup.');
+  const savedDriveSettings = await response.json();
+  assert.strictEqual(savedDriveSettings.settings.backupDriveRequired, true);
+  assert.strictEqual(savedDriveSettings.active, null, 'Drive mirror settings remain inactive until restart.');
   const incompleteEnterprise = {
     ...settings,
     enterpriseMode: true,

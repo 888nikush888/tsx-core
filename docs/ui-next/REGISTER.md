@@ -151,7 +151,7 @@ Full typed contracts, defaults, null/empty semantics, units, consumers, effects 
 
 | Family | Registered fields |
 |---|---:|
-| runtime | 36 |
+| runtime | 39 |
 | config | 33 |
 | viewer | 22 |
 | strategy | 29 |

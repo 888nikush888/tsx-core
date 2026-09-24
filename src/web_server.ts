@@ -149,12 +149,14 @@ const SECRET_CONFIG_KEYS = new Set([
   'alertWebhookToken',
   'backupOffsiteToken',
   'backupEncryptionKey',
+  'backupDriveAccessToken',
   'OPENROUTER_API_KEY',
   'TELEGRAM_API_HASH',
   'DASHBOARD_ADMIN_TOKEN',
   'DASHBOARD_VIEWER_TOKEN',
   'BACKUP_OFFSITE_TOKEN',
   'BACKUP_ENCRYPTION_KEY',
+  'BACKUP_DRIVE_ACCESS_TOKEN',
   'ALERT_RELAY_TOKEN',
   'ALERT_WEBHOOK_TOKEN',
   'PROMETHEUS_TOKEN',
@@ -728,6 +730,7 @@ async function postSecretsHandler(context: RequestContext): Promise<void> {
       'alertWebhookToken',
       'backupOffsiteToken',
       'backupEncryptionKey',
+      'backupDriveAccessToken',
     ]);
     const entries = Object.entries(payload);
     if (entries.length === 0 || entries.some(([name]) => !allowed.has(name))) {
@@ -1476,6 +1479,20 @@ async function recoveryStatusHandler({ res, appState, actor }: RequestContext): 
   });
 }
 
+function assertRuntimeIntegrationSecrets(payload: Record<string, unknown>, secretStore: Pick<ManagedSecretStore, 'status'>): void {
+  const secrets = secretStore.status();
+  if (payload.enterpriseMode === true) {
+    const missing = ['auditWebhookToken', 'alertRelayToken', 'alertWebhookToken', 'backupOffsiteToken', 'backupEncryptionKey']
+      .filter((name) => !secrets[name as keyof typeof secrets]?.configured);
+    if (missing.length > 0) {
+      throw new HttpError(409, `Enterprise mode requires configured managed secrets: ${missing.join(', ')}.`);
+    }
+  }
+  if (payload.backupDriveFolderId && !secrets.backupDriveAccessToken.configured) {
+    throw new HttpError(409, 'Drive mirror requires a configured staging access token.');
+  }
+}
+
 async function postRuntimeSettingsHandler(context: RequestContext): Promise<void> {
   if (!context.appState.runtimeSettings || !context.appState.secretStore) {
     sendJson(context.res, 503, { error: 'Managed runtime settings are unavailable.', requestId: context.requestId });
@@ -1483,14 +1500,7 @@ async function postRuntimeSettingsHandler(context: RequestContext): Promise<void
   }
   try {
     const payload = await readJsonBody(context.req, 128 * 1024);
-    if (payload?.enterpriseMode === true) {
-      const secrets = context.appState.secretStore.status();
-      const missing = ['auditWebhookToken', 'alertRelayToken', 'alertWebhookToken', 'backupOffsiteToken', 'backupEncryptionKey']
-        .filter((name) => !secrets[name as keyof typeof secrets]?.configured);
-      if (missing.length > 0) {
-        throw new HttpError(409, `Enterprise mode requires configured managed secrets: ${missing.join(', ')}.`);
-      }
-    }
+    assertRuntimeIntegrationSecrets(payload, context.appState.secretStore);
     const expected = context.req.headers['if-match'];
     const settings = await context.appState.runtimeSettings.set(payload, typeof expected === 'string' ? expected : undefined);
     if (!settings.dashboardLocalTrust || settings.enterpriseMode || settings.dashboardAuthMode !== 'token') {

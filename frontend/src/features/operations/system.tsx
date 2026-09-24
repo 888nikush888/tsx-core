@@ -87,9 +87,10 @@ function SecretsSection({ secrets, secretInput, setSecretInput, busy, saveSecret
             "alertWebhookToken",
             "backupOffsiteToken",
             "backupEncryptionKey",
+            "backupDriveAccessToken",
           ].map((name) => (
             <label key={name}>
-              {name} · {secrets?.[name]?.configured ? "gespeichert" : "fehlt"}
+              {name}{name === "backupDriveAccessToken" ? " (nur Staging; OAuth-Refresh fehlt)" : ""} · {secrets?.[name]?.configured ? "gespeichert" : "fehlt"}
               <input
                 type="password"
                 autoComplete="off"

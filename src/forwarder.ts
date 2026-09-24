@@ -1694,7 +1694,8 @@ async function startBackupRuntime(runtime: RuntimeConfiguration): Promise<void> 
     backupRetention,
     addLog,
     offsiteBackup.replicator,
-    offsiteBackup.required
+    offsiteBackup.required,
+    offsiteBackup.driveRequired
   );
   await backupScheduler.start();
 }

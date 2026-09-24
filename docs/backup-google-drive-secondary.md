@@ -22,21 +22,37 @@ Google Drive permits owner deletion, so it is not an immutable audit or backup
 destination by itself. No Drive credentials, folder, or real upload were used
 for this slice.
 
-This is an injectable core path, **not a runtime-enabled Drive connection**.
-No OAuth credentials or Drive API calls were used. To enable it safely:
+The backup startup path now constructs the adapter from managed runtime settings
+and a write-only managed secret. It remains **disabled by default**: an empty
+`backupDriveFolderId` creates no mirror, and `backupDriveRequired` defaults to
+`false`. An operator can stage a separate Drive copy under **System & Backup →
+Vollständige Runtime- und Enterprise-Konfiguration**:
+
+1. Configure the primary HTTPS backup gateway and its required B2 retention
+   proof first. Drive cannot replace the primary gateway or the separate audit
+   destination.
+2. Store a short-lived `backupDriveAccessToken` through **Enterprise-Secrets**.
+   The API returns only configured/source/editable status, never the token.
+3. Set `backupDriveFolderId`, choose `backupDriveRequired` deliberately, and
+   optionally tune `backupDriveTimeoutMs` in the runtime form. Save, audit the
+   `runtime.settings.update` and `secrets.update` events, then restart. The
+   settings file and secret file persist independently. A missing token for a
+   configured folder stops startup; a required mirror failure makes backup
+   health fail closed. A rotated managed token is read on the next backup run.
+
+This **static access-token mode is staging-only**. It is a bounded synthetic
+integration path; it is not OAuth consent/refresh, not a real Google account
+acceptance, and cannot close live H3 or H4. No Google credential, real upload,
+readback, restore, or provider quota test was used. Before live acceptance:
 
 1. Add an operator UI flow for OAuth consent with least-privilege `drive.file`
    scope and an app-created dedicated folder. Keep refresh tokens in the
-   existing enterprise secret store, not source or logs. Test token expiry,
+   enterprise secret store, not source or logs. Test expiry, refresh,
    revocation, reauthorization, and credential rotation.
-2. Add validated runtime settings and a secret-store-backed token resolver,
-   then pass the adapter to `HttpsBackupReplicator` and the required policy to
-   `BackupScheduler`. Keep the immutable B2 primary mandatory in enterprise
-   mode. Expose configured/required state separately in the operator UI.
-3. Add reconciliation for an ambiguous upload timeout and Drive's eventual
+2. Add reconciliation for an ambiguous upload timeout and Drive's eventual
    visibility: retries can create duplicate same-name files. Do not silently
    treat duplicates as success. Show and resolve them before release.
-4. Test a real, isolated Drive account with a small encrypted fixture, offline
+3. Test a real, isolated Drive account with a small encrypted fixture, offline
    failure, quota exhaustion, recovery by file ID, and a restore drill. Recheck
    free capacity against actual encrypted backup size and schedule.
 

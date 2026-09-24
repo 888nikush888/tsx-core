@@ -1,5 +1,7 @@
 # Host maintenance boundary at integration head `17abeb0f`
 
+The [Drive runtime candidate evidence](../testing/host-maintenance-boundary-drive-20260925.json) extends the source-scoped inventory to 93/6/216 catalog statuses and 99 slice paths. Its three staging controls do not promote any of the 70 host controls or six deployment gaps. The older evidence below remains an archival snapshot.
+
 This is a source-scoped design and read-only audit, not an operator control or release sign-off. The companion [machine audit](inventory/host-maintenance-boundary.json) accounts for all 70 external controls and all six deployment catalog gaps at integration head `17abeb0f2655f3c05560d047cc0c8a046b92865f`. The earlier [PR-head evidence](../testing/host-maintenance-boundary-efbcb568.json) remains an archival snapshot of `efbcb568`; [current evidence](../testing/host-maintenance-boundary-17abeb0f.json) binds the 90/6/216 inventory and 96-path slice to this integration base. `tests/test_host_maintenance_boundary.js` checks exact membership and verifies that none was promoted to UI evidence. No production configuration, credentials, order routing, or host service was changed.
 
 ## What the audit found

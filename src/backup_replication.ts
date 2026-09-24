@@ -6,7 +6,7 @@ import { pipeline } from 'node:stream/promises';
 import { createGunzip, createGzip } from 'node:zlib';
 import { inspectBackupArtifact, isSupportedBackupArtifactFileName, listBackupArtifactFiles, verifyBackupArtifact } from './backup.js';
 import { enterpriseMode } from './runtime_profile.js';
-import type { DriveMirrorReceipt, GoogleDriveBackupMirror } from './google_drive_backup_mirror.js';
+import { GoogleDriveBackupMirror, type DriveMirrorReceipt } from './google_drive_backup_mirror.js';
 
 const ENCRYPTED_MAGIC = Buffer.from('TGFE1\0', 'ascii');
 const ARCHIVE_MAGIC = Buffer.from('TGFA1\0', 'ascii');
@@ -531,8 +531,41 @@ function offsiteCredentials(env: NodeJS.ProcessEnv): { urlTemplate: string; bear
   return { urlTemplate, bearerToken, encryptionKeyValue };
 }
 
-export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.env): {
+interface OffsiteBackupTestOptions {
+  allowInsecureLoopback?: boolean;
+  driveFetchImpl?: typeof fetch;
+}
+
+function driveMirrorFromEnvironment(env: NodeJS.ProcessEnv, primaryRequired: boolean, fetchImpl?: typeof fetch): {
+  required: boolean; mirror: GoogleDriveBackupMirror | undefined;
+} {
+  const required = strictBoolean(env.BACKUP_DRIVE_REQUIRED, false);
+  const folderId = env.BACKUP_DRIVE_FOLDER_ID?.trim() || '';
+  if (required && !primaryRequired) throw new Error('Required Drive mirror also requires primary off-site backup.');
+  if (required && !folderId) throw new Error('Required Drive mirror needs BACKUP_DRIVE_FOLDER_ID.');
+  if (!folderId) return { required, mirror: undefined };
+  if (!env.BACKUP_DRIVE_ACCESS_TOKEN?.trim()) {
+    throw new Error('Configured Drive mirror needs a managed BACKUP_DRIVE_ACCESS_TOKEN.');
+  }
+  return { required, mirror: new GoogleDriveBackupMirror({
+    folderId,
+    // Resolve on every attempt so managed token rotation does not require a process restart.
+    accessToken: async () => {
+      const token = env.BACKUP_DRIVE_ACCESS_TOKEN?.trim();
+      if (!token) throw new Error('Drive mirror access token is unavailable.');
+      return token;
+    },
+    timeoutMs: Number(env.BACKUP_DRIVE_TIMEOUT_MS || 60_000),
+    fetchImpl
+  }) };
+}
+
+export function offsiteBackupFromEnvironment(
+  env: NodeJS.ProcessEnv = process.env,
+  testOptions: OffsiteBackupTestOptions = {}
+): {
   required: boolean;
+  driveRequired: boolean;
   replicator: BackupReplicator | null;
 } {
   const enterprise = enterpriseMode(env);
@@ -540,9 +573,10 @@ export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.en
     throw new Error('Off-site backup cannot be disabled in enterprise mode.');
   }
   const required = strictBoolean(env.BACKUP_OFFSITE_REQUIRED, enterprise);
+  const drive = driveMirrorFromEnvironment(env, required, testOptions.driveFetchImpl);
   const values = [env.BACKUP_OFFSITE_URL_TEMPLATE, env.BACKUP_OFFSITE_TOKEN, env.BACKUP_ENCRYPTION_KEY];
   const configured = values.some(value => Boolean(value?.trim()));
-  if (!configured && !required) return { required, replicator: null };
+  if (!configured && !required && !drive.mirror) return { required, driveRequired: drive.required, replicator: null };
   if (values.some(value => !value?.trim())) {
     throw new Error('Off-site backup requires BACKUP_OFFSITE_URL_TEMPLATE, BACKUP_OFFSITE_TOKEN and BACKUP_ENCRYPTION_KEY.');
   }
@@ -562,13 +596,16 @@ export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.en
   const { urlTemplate, bearerToken, encryptionKeyValue } = offsiteCredentials(env);
   return {
     required,
+    driveRequired: drive.required,
     replicator: new HttpsBackupReplicator({
       urlTemplate,
       bearerToken,
       encryptionKey: parseBackupEncryptionKey(encryptionKeyValue),
       timeoutMs: timeout,
+      allowInsecureLoopback: testOptions.allowInsecureLoopback,
       maxRecoveryBytes: configuredRecoveryLimit,
-      minRetentionDays: configuredRetentionDays || (enterprise ? 30 : undefined)
+      minRetentionDays: configuredRetentionDays || (enterprise ? 30 : undefined),
+      driveMirror: drive.mirror
     })
   };
 }
