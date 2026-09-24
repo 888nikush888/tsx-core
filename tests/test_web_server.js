@@ -1124,6 +1124,10 @@ async function testStrategyAuthoringMutationAudit(baseUrl, appState, controls) {
     positionSizingMode: 'risk_percent', riskPerTradePercent: '1.25', maxAdaptiveRiskPercent: '3.5',
     maxPositionNotional: '2500', defaultLeverage: 4, maxLeverage: 8,
   });
+  Object.assign(configuration, {
+    allowedSignalSchemas: ['standard'], allowedSymbols: ['BTCUSDT'], allowedSides: ['LONG'],
+  });
+  Object.assign(configuration.entry, { orderType: 'limit', rangePrice: 'far', postOnly: true, timeoutSeconds: 12 });
   try {
     const body = JSON.stringify({ name: 'Audited safety limits', configuration });
     let response = await fetch(`${baseUrl}/api/trading/strategies`, {
@@ -1147,6 +1151,13 @@ async function testStrategyAuthoringMutationAudit(baseUrl, appState, controls) {
     });
     assert.equal(response.status, 409, 'Default leverage above the strategy maximum must be rejected.');
     response = await fetch(`${baseUrl}/api/trading/strategies`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ name: 'Unsafe market entry', configuration: {
+        ...configuration, entry: { ...configuration.entry, orderType: 'market' },
+      } }),
+    });
+    assert.equal(response.status, 409, 'Market entries must reject post-only even through the API.');
+    response = await fetch(`${baseUrl}/api/trading/strategies`, {
       method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body,
     });
     assert.equal(response.status, 201);
@@ -1154,6 +1165,10 @@ async function testStrategyAuthoringMutationAudit(baseUrl, appState, controls) {
     assert.equal(draft.status, 'draft');
     assert.deepEqual(draft.configuration.safety, configuration.safety);
     assert.deepEqual(draft.configuration.sizing, configuration.sizing);
+    assert.deepEqual(draft.configuration.allowedSignalSchemas, ['standard']);
+    assert.deepEqual(draft.configuration.allowedSymbols, ['BTCUSDT']);
+    assert.deepEqual(draft.configuration.allowedSides, ['LONG']);
+    assert.deepEqual(draft.configuration.entry, configuration.entry);
     assert.equal((await getActiveWorkflow())?.id ?? null, activeBefore);
     const acceptedAudit = controls.auditEvents.findLast(event =>
       event.phase === 'completed' && event.path === '/api/trading/strategies' && event.statusCode === 201);
@@ -1162,6 +1177,8 @@ async function testStrategyAuthoringMutationAudit(baseUrl, appState, controls) {
     assert.equal(acceptedAudit.after.response.result.configuration.safety.maxSlippagePercent, '1.25');
     assert.equal(acceptedAudit.target.request.configuration.sizing.maxPositionNotional, '2500');
     assert.equal(acceptedAudit.after.response.result.configuration.sizing.maxLeverage, 8);
+    assert.deepEqual(acceptedAudit.target.request.configuration.entry, configuration.entry);
+    assert.deepEqual(acceptedAudit.after.response.result.configuration.allowedSymbols, ['BTCUSDT']);
     response = await fetch(`${baseUrl}/api/trading/strategies/publish`, {
       method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ id: draft.id }),

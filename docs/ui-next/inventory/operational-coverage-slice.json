@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "scope": "Audited source-scoped slices of parameters.json: managed runtime, account identity/state, four versioned strategy safety limits, six effective sizing-resource controls, four adaptive-risk policy controls, Telegram Viewer settings, deployment evidence, and the mandatory protective-stop gate. Other parameter families remain unaudited here.",
+  "scope": "Audited source-scoped slices of parameters.json: managed runtime, account identity/state, seven versioned strategy signal-access and entry controls, four versioned strategy safety limits, six effective sizing-resource controls, four adaptive-risk policy controls, Telegram Viewer settings, deployment evidence, and the mandatory protective-stop gate. Other parameter families remain unaudited here.",
   "classes": ["runtime-editable", "create-only", "versioned-draft", "read-only-evidence", "host-bootstrap", "immutable-gate"],
   "groups": [
     {
@@ -70,6 +70,18 @@
       "uiRoute": "/trading/accounts",
       "uiControl": "frontend/src/features/accounts/account-detail.tsx",
       "effect": "Observed state; kill-switch release and credential rotation are separate guarded commands, not direct field edits."
+    },
+    {
+      "id": "strategy-access-entry",
+      "class": "versioned-draft",
+      "paths": ["strategy.allowedSignalSchemas", "strategy.allowedSymbols", "strategy.allowedSides", "strategy.entry.orderType", "strategy.entry.rangePrice", "strategy.entry.postOnly", "strategy.entry.timeoutSeconds"],
+      "uiRoute": "/workflows/builder",
+      "uiControl": "frontend/src/app/workflow/resource-editor.tsx",
+      "mutationRoutes": ["POST /api/trading/strategies", "POST /api/trading/strategies/publish", "POST /api/workflow/mutate"],
+      "backendValidator": "src/trading_strategy.ts:validateStrategyConfiguration",
+      "auditActions": ["trading.strategies.post", "trading.strategies.publish.post", "dashboard.workflow.mutate.post"],
+      "contractTests": ["frontend/tests/workflow-resource-editor.test.tsx", "tests/test_web_server.js", "tests/test_workflow_builder.js"],
+      "effect": "The three access lists and four entry controls are pinned in an immutable published strategy. A new graph revision binds them to later intents. Synthetic range-signal trade plans prove field-specific access rejection, entry price, bounded market IOC, post-only and timeout behavior. Market signal type may override strategy orderType, and rangePrice/postOnly apply only to limit entries; no live-host or order-submission claim."
     },
     {
       "id": "strategy-safety",

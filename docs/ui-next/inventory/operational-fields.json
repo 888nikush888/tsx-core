@@ -691,50 +691,50 @@
       "path": "strategy.allowedSignalSchemas",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "strategy-access-entry"
     },
     {
       "path": "strategy.allowedSymbols",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "strategy-access-entry"
     },
     {
       "path": "strategy.allowedSides",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "strategy-access-entry"
     },
     {
       "path": "strategy.entry.orderType",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "strategy-access-entry"
     },
     {
       "path": "strategy.entry.rangePrice",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "strategy-access-entry"
     },
     {
       "path": "strategy.entry.postOnly",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "strategy-access-entry"
     },
     {
       "path": "strategy.entry.timeoutSeconds",
       "class": "versioned-draft",
       "catalogEditable": true,
-      "evidenceStatus": "unverified",
-      "firstSliceGroup": null
+      "evidenceStatus": "first-slice-static",
+      "firstSliceGroup": "strategy-access-entry"
     },
     {
       "path": "strategy.sizing.positionSizingMode",

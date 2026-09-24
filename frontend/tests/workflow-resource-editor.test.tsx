@@ -272,6 +272,42 @@ describe('workflow resource contracts', () => {
     })
   })
 
+  it('submits strategy signal access and entry controls as a new pinned version', async () => {
+    api.apiFetch.mockImplementation((url: string) => {
+      if (url === '/api/trading/strategies') return response({ result: { id: 'access-entry-v2' } }, 201)
+      if (url === '/api/trading/strategies/publish') return response({ result: { id: 'access-entry-v2' } })
+      return response({ success: true, result: {} })
+    })
+    const onSave = editor('strategy', undefined, trading,
+      workflowResource('strategy', { strategyVersionId: 'strategy-v1' }))
+    expect(screen.getByText(/Market-Signal erzwingt Market/)).toBeVisible()
+    fireEvent.change(screen.getByLabelText(/Erlaubte Signal-Schemas/), { target: { value: 'standard' } })
+    fireEvent.change(screen.getByLabelText(/Erlaubte Symbole/), { target: { value: 'btcusdt' } })
+    fireEvent.click(screen.getByRole('switch', { name: 'SHORT' }))
+    fireEvent.change(screen.getByLabelText(/Orderart/), { target: { value: 'market' } })
+    expect(screen.getByLabelText(/Preis im Entry-Bereich/)).toBeDisabled()
+    expect(screen.getByRole('switch', { name: 'Post-only (nur bei Limit)' })).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.change(screen.getByLabelText(/Orderart/), { target: { value: 'limit' } })
+    fireEvent.change(screen.getByLabelText(/Preis im Entry-Bereich/), { target: { value: 'far' } })
+    fireEvent.change(screen.getByLabelText(/Order-Timeout \(Sekunden\)/), { target: { value: '12' } })
+    fireEvent.click(screen.getByRole('switch', { name: 'Post-only (nur bei Limit)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      configuration: { strategyVersionId: 'access-entry-v2' },
+    })))
+    const urls = api.apiFetch.mock.calls.map(([url]) => url)
+    expect(urls.indexOf('/api/trading/strategies')).toBeLessThan(urls.indexOf('/api/trading/strategies/publish'))
+    const request = api.apiFetch.mock.calls.find(([url]) => url === '/api/trading/strategies')?.[1] as RequestInit
+    const submitted = JSON.parse(String(request.body)).configuration
+    expect(submitted).toMatchObject({
+      allowedSignalSchemas: ['standard'], allowedSymbols: ['BTCUSDT'], allowedSides: ['LONG'],
+      entry: { orderType: 'limit', rangePrice: 'far', postOnly: true, timeoutSeconds: 12 },
+    })
+    expect(trading.strategies[0].configuration.entry).toMatchObject({
+      orderType: 'limit', rangePrice: 'midpoint', postOnly: false, timeoutSeconds: 10,
+    })
+  })
+
   it('submits all six strategy sizing defaults and explains the mandatory graph override', async () => {
     api.apiFetch.mockImplementation((url: string) => {
       if (url === '/api/trading/strategies') return response({ result: { id: 'sizing-strategy-v2' } }, 201)

@@ -896,6 +896,12 @@ try {
     maxDailyLossMode: 'equity_percent', maxDailyLoss: '2.5',
     maxSlippagePercent: '1.25', entryOrderTtlSeconds: 45,
   });
+  Object.assign(safetyConfiguration, {
+    allowedSignalSchemas: ['standard'], allowedSymbols: ['BTCUSDT'], allowedSides: ['LONG'],
+  });
+  Object.assign(safetyConfiguration.entry, {
+    orderType: 'limit', rangePrice: 'far', postOnly: true, timeoutSeconds: 12,
+  });
   const updatedSafetyDraft = await updateTradingStrategyDraft(safetyDraft.id, {
     name: 'Safety limits v2', configuration: safetyConfiguration,
   });
@@ -924,6 +930,11 @@ try {
   assert.equal((await getActiveWorkflow()).id, safetyWorkflow.id);
   const safetyPath = safetyWorkflow.compiled.paths.find(candidate => candidate.accountId === firstAccount.id);
   assert.ok(safetyPath);
+  const accessEntryStrategy = safetyPath.effectiveConfiguration.strategyConfiguration;
+  for (const key of ['allowedSignalSchemas', 'allowedSymbols', 'allowedSides', 'entry']) {
+    assert.deepEqual(accessEntryStrategy[key], publishedSafety.configuration[key],
+      `${key} must come from the newly pinned strategy version.`);
+  }
   const safetyDetail = await uiWorkflowDetail('paths', safetyPath.id);
   for (const [field, expected] of Object.entries({
     'safety.maxDailyLossMode': 'equity_percent', 'safety.maxDailyLoss': '2.5',
@@ -948,6 +959,39 @@ try {
   assert.equal(safetyIntents.length, 2);
   assert.ok(safetyIntents.every(intent => intent.strategyVersionId === publishedSafety.id
     && intent.workflowRevisionId === safetyWorkflow.id));
+  const entrySignal = {
+    ...signal, entry: { type: 'range', min: '95', max: '99' },
+    targets: [{ min: '110', max: '110' }, { min: '120', max: '120' }],
+  };
+  const entryInput = {
+    intentId: 'synthetic-access-entry-plan',
+    signal: entrySignal, strategy: accessEntryStrategy,
+    account: { equity: '10000', availableBalance: '10000' },
+    market: { symbol: 'BTCUSDT', markPrice: '100', priceTick: '0.1', quantityStep: '0.001',
+      minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20, observedAt: Date.now() },
+  };
+  const entryPlan = createTradingPlan(entryInput);
+  assert.equal(entryPlan.entryPrice, '95', 'The selected far range price must set the entry price.');
+  assert.equal(entryPlan.orders[0].orderType, 'limit');
+  assert.equal(entryPlan.orders[0].postOnly, true);
+  assert.equal(entryPlan.entryTimeoutSeconds, 12);
+  const withEntry = changes => ({ ...accessEntryStrategy, entry: { ...accessEntryStrategy.entry, ...changes } });
+  assert.notEqual(createTradingPlan({ ...entryInput, strategy: withEntry({ rangePrice: 'midpoint' }) }).entryPrice,
+    entryPlan.entryPrice);
+  assert.equal(createTradingPlan({ ...entryInput, strategy: withEntry({ postOnly: false }) }).orders[0].postOnly, false);
+  assert.equal(createTradingPlan({ ...entryInput, strategy: withEntry({ timeoutSeconds: 10 }) }).entryTimeoutSeconds, 10);
+  const marketPlan = createTradingPlan({ ...entryInput,
+    strategy: withEntry({ orderType: 'market', postOnly: false }) });
+  assert.equal(marketPlan.orders[0].timeInForce, 'IOC', 'Market entry uses the bounded IOC contract.');
+  assert.notEqual(marketPlan.entryPrice, entryPlan.entryPrice);
+  for (const [property, value, error] of [
+    ['schema', 'loma', /does not allow loma/],
+    ['symbol', 'ETHUSDT', /does not allow ETHUSDT/],
+    ['action', 'SHORT', /does not allow SHORT/],
+  ]) {
+    assert.throws(() => createTradingPlan({ ...entryInput,
+      signal: { ...entrySignal, [property]: value } }), error);
+  }
   const storedSafety = await getDatabase().get(
     'SELECT configuration_json, configuration_sha256 FROM trading_strategy_versions WHERE id = ?', [publishedSafety.id]);
   assert.deepEqual(JSON.parse(storedSafety.configuration_json).safety, publishedSafety.configuration.safety);
@@ -956,6 +1000,11 @@ try {
   await initDb(path.join(directory, 'forwarder.db'));
   assert.equal((await getActiveWorkflow()).id, safetyWorkflow.id);
   assert.equal((await getTradingStrategyVersion(publishedSafety.id)).configuration.safety.maxDailyLoss, '2.5');
+  const reloadedStrategy = (await getWorkflowRevisionById(safetyWorkflow.id)).compiled.paths
+    .find(candidate => candidate.accountId === firstAccount.id).effectiveConfiguration.strategyConfiguration;
+  for (const key of ['allowedSignalSchemas', 'allowedSymbols', 'allowedSides', 'entry']) {
+    assert.deepEqual(reloadedStrategy[key], accessEntryStrategy[key]);
+  }
   await assertHistoricalSafetyPinned();
 
   // A sizing block is mandatory and overrides all six strategy sizing defaults.

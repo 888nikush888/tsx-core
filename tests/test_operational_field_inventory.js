@@ -200,6 +200,17 @@ function verifyExternal(controls, composeText, ruleText) {
 
 assert.equal(fields.schemaVersion, 1);
 assert.equal(external.schemaVersion, 1);
+const strategyAccessEntrySlice = firstSlice.groups.find(group => group.id === 'strategy-access-entry');
+assert.equal(strategyAccessEntrySlice.class, 'versioned-draft');
+assert.deepEqual(strategyAccessEntrySlice.paths, [
+  'strategy.allowedSignalSchemas', 'strategy.allowedSymbols', 'strategy.allowedSides',
+  'strategy.entry.orderType', 'strategy.entry.rangePrice', 'strategy.entry.postOnly', 'strategy.entry.timeoutSeconds',
+]);
+assert.deepEqual(strategyAccessEntrySlice.contractTests, [
+  'frontend/tests/workflow-resource-editor.test.tsx',
+  'tests/test_web_server.js', 'tests/test_workflow_builder.js',
+]);
+for (const testFile of strategyAccessEntrySlice.contractTests) await access(path.join(root, testFile));
 const strategySafetySlice = firstSlice.groups.find(group => group.id === 'strategy-safety');
 assert.equal(strategySafetySlice.class, 'versioned-draft');
 assert.deepEqual(strategySafetySlice.paths, [

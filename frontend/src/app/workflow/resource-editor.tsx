@@ -640,7 +640,7 @@ function StrategyForm({
 
   const fieldGrid2 = (
         <div className="builder-field-grid three">
-          <Field label="Orderart">
+          <Field label="Orderart" hint="Ein Market-Signal erzwingt Market; dieser Strategiewert gilt für Range-Signale.">
             <select
               value={value.entry.orderType}
               onChange={(event) =>
@@ -659,7 +659,7 @@ function StrategyForm({
           </Field>
           <Field
             label="Preis im Entry-Bereich"
-            hint="Near liegt näher am aktuellen Kurs, far weiter entfernt."
+            hint="Nur für Limit-Entries: Near liegt näher am aktuellen Kurs, Far weiter entfernt."
           >
             <select
               value={value.entry.rangePrice}
