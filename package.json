@@ -32,7 +32,7 @@
     "test:coverage": "c8 --config c8.critical.json node tests/run_all.js",
     "test:coverage:modules": "node scripts/check_module_coverage.js",
     "test:mutation": "node scripts/run_mutation_shards.js",
-    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.js\" \"scripts/**/*.js\" \"*.js\" --quiet",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.js\" \"scripts/**/*.js\" \"services/b2-backup-gateway/*.js\" \"services/b2-backup-gateway/test/*.js\" \"*.js\" --quiet",
     "lint:frontend": "npm run lint --prefix frontend",
     "lint:python": "python -m ruff check exchange_executor",
     "lint:report": "eslint \"src/**/*.ts\" \"tests/**/*.js\" \"scripts/**/*.js\" \"*.js\"",

@@ -96,21 +96,25 @@ export function evaluatePythonHashLock(requirementsIn, requirementsLock) {
   ];
 }
 
-const [manifest, lock, frontendManifest, frontendLock, requirementsIn, requirementsLock] = await Promise.all([
+const [manifest, lock, frontendManifest, frontendLock, gatewayManifest, gatewayLock, requirementsIn, requirementsLock] = await Promise.all([
   readFile(path.join(root, 'package.json'), 'utf8').then(JSON.parse),
   readFile(path.join(root, 'package-lock.json'), 'utf8').then(JSON.parse),
   readFile(path.join(root, 'frontend', 'package.json'), 'utf8').then(JSON.parse),
   readFile(path.join(root, 'frontend', 'package-lock.json'), 'utf8').then(JSON.parse),
+  readFile(path.join(root, 'services', 'b2-backup-gateway', 'package.json'), 'utf8').then(JSON.parse),
+  readFile(path.join(root, 'services', 'b2-backup-gateway', 'package-lock.json'), 'utf8').then(JSON.parse),
   readFile(path.join(root, 'exchange_executor', 'requirements.in'), 'utf8'),
   readFile(path.join(root, 'exchange_executor', 'requirements.lock'), 'utf8'),
 ]);
 const violations = [
   ...evaluateNpmDependencyPolicy('backend', manifest, lock),
   ...evaluateNpmDependencyPolicy('frontend', frontendManifest, frontendLock),
+  ...evaluateNpmDependencyPolicy('b2-backup-gateway', gatewayManifest, gatewayLock),
   ...evaluatePythonHashLock(requirementsIn, requirementsLock),
 ];
 if (manifest.packageManager !== 'npm@10.9.2') violations.push('backend packageManager must pin npm@10.9.2');
-for (const [name, value] of [['backend', manifest], ['frontend', frontendManifest]]) {
+if (gatewayManifest.packageManager !== 'npm@10.9.2') violations.push('b2-backup-gateway packageManager must pin npm@10.9.2');
+for (const [name, value] of [['backend', manifest], ['frontend', frontendManifest], ['b2-backup-gateway', gatewayManifest]]) {
   if (value.engines?.node !== '>=22 <23') violations.push(`${name} must constrain Node to major 22`);
 }
 if (violations.length > 0) {

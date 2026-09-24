@@ -65,6 +65,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             frontend/package-lock.json
+            services/b2-backup-gateway/package-lock.json
       - name: Configure pinned Python
         uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548
         with:
@@ -79,11 +80,13 @@ jobs:
           npm rebuild sqlite3 --build-from-source
           npm ci --prefix frontend --ignore-scripts --no-audit --no-fund
           npm rebuild --prefix frontend esbuild
+          npm ci --prefix services/b2-backup-gateway --ignore-scripts --no-audit --no-fund
           python -m pip install --require-hashes -r exchange_executor/requirements.lock -r exchange_executor/requirements-dev.lock
       - name: Dependency vulnerability gates
         run: |
           npm audit --audit-level=moderate
           npm audit --prefix frontend --audit-level=moderate
+          npm audit --prefix services/b2-backup-gateway --audit-level=moderate
       - name: License policy gate
         run: |
           npm run quality:licenses
@@ -105,6 +108,7 @@ jobs:
       - name: Test and per-file coverage gate
         run: |
           npm run test:coverage
+          npm test --prefix services/b2-backup-gateway
           npm run test:coverage:modules
           python -m coverage run --branch --source=exchange_executor -m unittest discover -s exchange_executor/tests -v
           python -m unittest discover -s tests -p test_internal_tls_preflight.py -v
@@ -204,6 +208,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             frontend/package-lock.json
+            services/b2-backup-gateway/package-lock.json
       - name: Configure pinned Python
         uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548
         with:
@@ -461,6 +466,7 @@ jobs:
         run: |
           npm audit --audit-level=moderate
           npm audit --prefix frontend --audit-level=moderate
+          npm audit --prefix services/b2-backup-gateway --audit-level=moderate
           npm run quality:dependencies
 
   container:

@@ -141,15 +141,17 @@ export function evaluatePythonLockedRequirements(directContent, lockedContent) {
   return { violations, inventory };
 }
 
-const [backendLock, frontendLock, pythonDirectRequirements, pythonLockedRequirements] = await Promise.all([
+const [backendLock, frontendLock, gatewayLock, pythonDirectRequirements, pythonLockedRequirements] = await Promise.all([
   readFile(path.join(root, 'package-lock.json'), 'utf8').then(JSON.parse),
   readFile(path.join(root, 'frontend', 'package-lock.json'), 'utf8').then(JSON.parse),
+  readFile(path.join(root, 'services', 'b2-backup-gateway', 'package-lock.json'), 'utf8').then(JSON.parse),
   readFile(path.join(root, 'exchange_executor', 'requirements.in'), 'utf8'),
   readFile(path.join(root, 'exchange_executor', 'requirements.lock'), 'utf8'),
 ]);
 const results = [
   evaluateNpmLicenses('backend', backendLock),
   evaluateNpmLicenses('frontend', frontendLock),
+  evaluateNpmLicenses('b2-backup-gateway', gatewayLock),
   evaluatePythonLockedRequirements(pythonDirectRequirements, pythonLockedRequirements),
 ];
 const violations = results.flatMap(result => result.violations);
