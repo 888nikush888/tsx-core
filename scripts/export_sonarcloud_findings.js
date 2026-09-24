@@ -7,6 +7,7 @@ import { readLongBranchIdentity, readPullRequestAnalysis, readPullRequestHotspot
 
 const DEFAULT_SONAR_HOST_URL = 'https://sonarcloud.io';
 const PAGE_SIZE = 500;
+const ISSUE_PARTITION_ATTEMPTS = 3;
 
 function requiredEnvironment(name, environment) {
   const value = environment[name]?.trim();
@@ -232,12 +233,27 @@ function validateFindings(issues, hotspots) {
   }
 }
 
+async function collectIssuePartitions(issueParameters, options) {
+  for (let attempt = 1; attempt <= ISSUE_PARTITION_ATTEMPTS; attempt += 1) {
+    const openIssues = await fetchPages('/api/issues/search', { ...issueParameters, resolved: false }, 'issues', options);
+    const resolvedIssues = await fetchPages('/api/issues/search', { ...issueParameters, resolved: true }, 'issues', options);
+    validateFindings(openIssues, []);
+    validateFindings(resolvedIssues, []);
+    const openKeys = new Set(openIssues.map(issue => issue.key));
+    if (!resolvedIssues.some(issue => openKeys.has(issue.key))) return { openIssues, resolvedIssues };
+    if (attempt === ISSUE_PARTITION_ATTEMPTS) break;
+    const delay = 500 * attempt;
+    if (options.deadline - options.monotonicNow() <= delay) break;
+    await options.sleepImpl(delay);
+  }
+  throw new Error('SonarCloud contains duplicate identities across status partitions.');
+}
+
 async function collectFindings(configuration, options) {
   const scope = configuration.pullRequest ? { pullRequest: configuration.pullRequest.key } : { branch: configuration.branch };
   const issueParameters = { componentKeys: configuration.projectKey, ...scope };
   const hotspotParameters = { projectKey: configuration.projectKey, branch: configuration.branch };
-  const openIssues = await fetchPages('/api/issues/search', { ...issueParameters, resolved: false }, 'issues', options);
-  const resolvedIssues = await fetchPages('/api/issues/search', { ...issueParameters, resolved: true }, 'issues', options);
+  const { openIssues, resolvedIssues } = await collectIssuePartitions(issueParameters, options);
   const hotspotReview = configuration.pullRequest ? await readPullRequestHotspotReview(configuration, options) : null;
   // The legacy hotspot search has no supported PR scope. PRs require explicit
   // scoped review measures; missing measures fail instead of importing main data.
