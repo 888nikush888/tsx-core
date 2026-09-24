@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
+import { writeFileSync } from 'node:fs';
 import https from 'node:https';
+import path from 'node:path';
 import { internalTlsServerOptions } from '../src/internal_tls.js';
 import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
 
@@ -23,6 +25,11 @@ try {
   assert.throws(() => internalTlsServerOptions('DASHBOARD_TLS_CERT_FILE', 'DASHBOARD_TLS_KEY_FILE'),
     /do not match/);
   process.env.DASHBOARD_TLS_KEY_FILE = fixture.key;
+  const oversized = path.join(path.dirname(fixture.cert), 'oversized.pem');
+  writeFileSync(oversized, Buffer.alloc(65 * 1024));
+  process.env.DASHBOARD_TLS_CERT_FILE = oversized;
+  assert.throws(() => internalTlsServerOptions('DASHBOARD_TLS_CERT_FILE', 'DASHBOARD_TLS_KEY_FILE'),
+    /regular, bounded TLS file/);
   process.env.DASHBOARD_TLS_CERT_FILE = fixture.expiredCert;
   assert.throws(() => internalTlsServerOptions('DASHBOARD_TLS_CERT_FILE', 'DASHBOARD_TLS_KEY_FILE'),
     /not currently valid/);
