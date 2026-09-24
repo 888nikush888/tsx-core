@@ -122,7 +122,7 @@
     {
       "route": "GET /api/ui/deployment",
       "handler": "uiDeploymentHandler",
-      "handlerSha256": "ca73452c8f10f8379810d04599475a9186a813c50661af1efadb4a07ba91e7aa",
+      "handlerSha256": "042b367d8d6d8083c610ea0c8e03d7e62e5776a994183678b8b274f5a4cfd9db",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [],

@@ -18,10 +18,11 @@ async function removeTlsFixture(directory) {
   await rm(resolved, { recursive: true, force: true });
 }
 
-export async function setupInternalTlsTest() {
+export async function setupInternalTlsTest({ caName } = {}) {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-internal-tls-test-'));
   const python = process.env.TSX_TEST_PYTHON || 'python';
-  const result = spawnSync(python, [generator, directory], { encoding: 'utf8', windowsHide: true });
+  const result = spawnSync(python, [generator, directory], { encoding: 'utf8', windowsHide: true,
+    env: caName ? { ...process.env, TSX_TEST_CA_NAME: caName } : process.env });
   if (result.error || result.status !== 0) {
     await removeTlsFixture(directory);
     throw new Error(`Cannot generate temporary TLS fixture: ${result.stderr || result.error?.message || result.status}`);

@@ -168,6 +168,11 @@ async function testUiRegisterHttpContracts(baseUrl) {
   const deployment = await deploymentResponse.json();
   assert.equal(deployment.listener.port, Number(new URL(baseUrl).port));
   assert.equal(deployment.process.nodeVersion, process.version); assert.equal(deployment.readOnly, true);
+  assert.equal(deployment.tls.endpoints.length, 5);
+  assert.equal(deployment.tls.endpoints[0].id, 'dashboard');
+  assert.equal(deployment.tls.endpoints[0].active.state, 'observed');
+  assert.equal(deployment.tls.endpoints[0].activeMatchesFile, true);
+  assert.ok(!JSON.stringify(deployment).includes('BEGIN PRIVATE KEY'));
   assert.deepEqual(deployment.declarations.map(entry => entry.name), ['HOST_WEB_PORT', 'HOST_METRICS_PORT', 'HOST_MCP_PORT', 'FORWARDER_MEMORY_LIMIT', 'FORWARDER_CPU_LIMIT', 'MCP_MEMORY_LIMIT', 'MCP_CPU_LIMIT']);
   for (const route of ['/api/signals/messages', '/api/ui/deployment', '/api/ui/attention', '/api/trading/objects?kind=risk-events', '/api/signals/original?id=absent']) {
     assert.equal((await fetch(`${baseUrl}${route}`)).status, 401);

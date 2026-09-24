@@ -41,9 +41,21 @@ def main() -> None:
         raise SystemExit("TLS fixture requires an empty directory")
     now = datetime.now(timezone.utc)
     ca_key = ec.generate_private_key(ec.SECP256R1())
-    ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "TSX Core disposable test CA")])
+    ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, os.environ.get("TSX_TEST_CA_NAME", "TSX Core disposable test CA"))])
     ca_cert = (
         certificate_builder(ca_name, ca_name, ca_key.public_key(), now)
+        .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
+        .add_extension(x509.KeyUsage(False, False, False, False, False, True, True, False, False), critical=True)
+        .sign(ca_key, hashes.SHA256())
+    )
+    expired_ca_cert = (
+        x509.CertificateBuilder()
+        .subject_name(ca_name)
+        .issuer_name(ca_name)
+        .public_key(ca_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - timedelta(days=3))
+        .not_valid_after(now - timedelta(days=2))
         .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
         .add_extension(x509.KeyUsage(False, False, False, False, False, True, True, False, False), critical=True)
         .sign(ca_key, hashes.SHA256())
@@ -76,15 +88,24 @@ def main() -> None:
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
         .sign(ca_key, hashes.SHA256())
     )
+    wrong_name_cert = (
+        certificate_builder(server_name, ca_name, server_key.public_key(), now)
+        .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+        .add_extension(x509.SubjectAlternativeName([x509.DNSName("wrong-name.example.test")]), critical=False)
+        .add_extension(x509.ExtendedKeyUsage([x509.oid.ExtendedKeyUsageOID.SERVER_AUTH]), critical=False)
+        .sign(ca_key, hashes.SHA256())
+    )
     key_encoding = serialization.Encoding.PEM
     key_format = serialization.PrivateFormat.PKCS8
     no_encryption = serialization.NoEncryption()
     paths = {
         "ca": write_new(directory, "ca.pem", ca_cert.public_bytes(key_encoding), 0o644),
+        "expiredCa": write_new(directory, "expired-ca.pem", expired_ca_cert.public_bytes(key_encoding), 0o644),
         "cert": write_new(directory, "server.pem", server_cert.public_bytes(key_encoding), 0o644),
         "key": write_new(directory, "server-key.pem", server_key.private_bytes(key_encoding, key_format, no_encryption), 0o600),
         "otherKey": write_new(directory, "other-key.pem", other_key.private_bytes(key_encoding, key_format, no_encryption), 0o600),
         "expiredCert": write_new(directory, "expired.pem", expired_cert.public_bytes(key_encoding), 0o644),
+        "wrongNameCert": write_new(directory, "wrong-name.pem", wrong_name_cert.public_bytes(key_encoding), 0o644),
     }
     print(json.dumps(paths))
 

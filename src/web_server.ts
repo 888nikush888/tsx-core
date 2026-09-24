@@ -838,7 +838,14 @@ async function signalOriginalHandler(context: RequestContext): Promise<void> {
 }
 
 async function uiDeploymentHandler(context: RequestContext): Promise<void> {
-  try { sendJson(context.res, 200, await uiDeployment({ address: context.req.socket.localAddress, port: context.req.socket.localPort })); }
+  try {
+    const localCertificate = (context.req.socket as import('node:tls').TLSSocket).getCertificate();
+    const activeDashboardCertificate = localCertificate && 'raw' in localCertificate && Buffer.isBuffer(localCertificate.raw)
+      ? localCertificate.raw : undefined;
+    sendJson(context.res, 200, await uiDeployment(
+      { address: context.req.socket.localAddress, port: context.req.socket.localPort }, activeDashboardCertificate,
+    ));
+  }
   catch (error) { sendError(context, error); }
 }
 

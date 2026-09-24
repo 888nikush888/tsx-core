@@ -70,8 +70,8 @@ export const UI_CAPABILITY_GROUPS: Group[] = [
     'Originale lesen und Policy als Workflowentwurf übernehmen.', { contractTests: ['tests/test_workflow_migration.js', 'tests/test_ui_adaptive_risk.js'], boundary: 'Legacy-Schreibverträge bleiben für Kompatibilität erhalten. Neue UI-Konfiguration verwendet gepinnte Workflow-Ressourcen; parallele Legacy-Änderungen würden deren Herkunft nicht verändern.' }),
   group('/api/import', 'Legacy-Signalimport', 'Historische Betriebsdaten', '/signals/processed', 'frontend/src/features/signals/signals-page.tsx',
     'Kompatibilitätsimport vorhandener Signale; keine neue KI-Ausführung.', { contractTests: ['tests/test_web_server.js'], boundary: 'Engineering-Kompatibilität für vorbereitete historische Importdaten. Die UI verwendet den einzeln geprüften Test-/Signalweg; kein beliebiger Datenimport als Handelscommand.' }),
-  group('/api/ui/deployment', 'Deployment und Browserbuild', 'Gelesene Dienstinstanz und tatsächlich geladener Browserbuild', '/operations/deployment', 'frontend/src/features/operations/deployment.tsx',
-    'Betriebssystem- und cgroup-Beobachtungen, interner Listener und getrennt deklarierte Hostwerte. Kein freier Hostcommand.', { contractTests: ['tests/test_web_server.js'] }),
+  group('/api/ui/deployment', 'Deployment, Browserbuild und TLS', 'Gelesene Dienstinstanz, geladener Browserbuild und Zertifikatsstatus', '/operations/deployment', 'frontend/src/features/operations/deployment.tsx',
+    'Betriebssystem- und cgroup-Beobachtungen, interner Listener, deklarierte Hostwerte und nicht geheime TLS-Metadaten. Kein freier Hostcommand.', { contractTests: ['tests/test_web_server.js', 'tests/test_ui_tls_status.js'] }),
   group('/api/ui/search /api/ui/capabilities /api/ui/parameters', 'Verzeichnis und Suche', 'Metadaten und berechtigte Ansichten', '/operations/capabilities', 'frontend/src/features/operations/capabilities.tsx',
     'Lesende Orientierung. Angezeigte Voraussetzungen ersetzen keine serverseitige Freigabe.', { contractTests: ['tests/test_ui_register.js'] }),
 ];
