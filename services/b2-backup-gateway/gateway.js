@@ -135,7 +135,10 @@ export async function validateTemporaryRoot(tempRoot, requiredBytes = 0) {
 async function readRemoteVersion(client, bucket, key, versionId, size, sha256, destination, signal) {
   const object = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key, VersionId: versionId }),
     { abortSignal: signal });
-  if (object.VersionId !== versionId || object.ContentLength !== size) throw new Error('Downloaded object version or size changed.');
+  if (object.VersionId !== versionId || object.ContentLength !== size) {
+    object.Body?.destroy?.();
+    throw new Error('Downloaded object version or size changed.');
+  }
   await consumeExact(object.Body, destination, size, sha256, signal);
 }
 
