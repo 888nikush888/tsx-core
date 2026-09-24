@@ -18,6 +18,7 @@ import {
   deleteWorkflowResourceFamily,
   deleteWorkflowResourceDraft,
   getActiveWorkflow,
+  getWorkflowRevisionById,
   getWorkflowSignalPlans,
   listWorkflowResources,
   previewWorkflowImpact,
@@ -788,6 +789,23 @@ try {
 
   // Four operator-editable safety values take effect only after a new version is pinned
   // by an activated graph. Draft and publication alone must leave existing intents alone.
+  const historicalWorkflow = await getWorkflowRevisionById(changedWorkflow.id);
+  assert.ok(historicalWorkflow);
+  const historicalIntentRows = await Promise.all(intents.map(intent => getDatabase().get(
+    'SELECT * FROM trading_trade_intents WHERE id = ?', [intent.id],
+  )));
+  assert.ok(historicalIntentRows.every(Boolean));
+  async function assertHistoricalSafetyPinned() {
+    const reloadedWorkflow = await getWorkflowRevisionById(changedWorkflow.id);
+    assert.deepEqual(reloadedWorkflow.graph, historicalWorkflow.graph,
+      'The prior revision must retain its persisted graph after strategy activation.');
+    assert.deepEqual(reloadedWorkflow.compiled, historicalWorkflow.compiled,
+      'The prior revision must retain its persisted effective strategy values.');
+    assert.equal(reloadedWorkflow.definitionSha256, historicalWorkflow.definitionSha256);
+    assert.deepEqual(await Promise.all(intents.map(intent => getDatabase().get(
+      'SELECT * FROM trading_trade_intents WHERE id = ?', [intent.id],
+    ))), historicalIntentRows, 'Original persisted intent rows must remain unchanged.');
+  }
   const safetyDraftConfiguration = structuredClone(strategy.configuration);
   safetyDraftConfiguration.safety.maxDailyLossMode = 'equity_percent';
   const safetyDraft = await createTradingStrategyDraft({
@@ -842,10 +860,7 @@ try {
     maxSlippagePercent: publishedSafety.configuration.safety.maxSlippagePercent }).limitPrice, '101.2');
   assert.equal(resolveEntryExpiresAt(1_700_000_000_000,
     publishedSafety.configuration.safety.entryOrderTtlSeconds), 1_700_000_045_000);
-  assert.equal(changedWorkflow.compiled.paths.find(candidate => candidate.accountId === firstAccount.id)
-    .effectiveConfiguration.strategyConfiguration.safety.maxDailyLoss, strategy.configuration.safety.maxDailyLoss);
-  assert.ok(intents.every(intent => intent.strategyVersionId === strategy.id),
-    'Existing intents must retain their original strategy version.');
+  await assertHistoricalSafetyPinned();
   await saveSignal('workflow-signal-safety', '-100-workflow', 2, '<signal/>', '<signal/>');
   const safetyIntents = await createWorkflowTradingIntents({
     sourceSignalId: 'workflow-signal-safety', channelId: '-100-workflow', sourceText: 'BTCUSDT LONG', signal,
@@ -861,6 +876,7 @@ try {
   await initDb(path.join(directory, 'forwarder.db'));
   assert.equal((await getActiveWorkflow()).id, safetyWorkflow.id);
   assert.equal((await getTradingStrategyVersion(publishedSafety.id)).configuration.safety.maxDailyLoss, '2.5');
+  await assertHistoricalSafetyPinned();
   console.log('Workflow builder tests passed.');
 } finally {
   await (async () => closeDb())().catch(() => undefined);

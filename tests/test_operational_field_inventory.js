@@ -212,6 +212,21 @@ assert.deepEqual(strategySafetySlice.contractTests, [
 ]);
 for (const testFile of strategySafetySlice.contractTests) await access(path.join(root, testFile));
 const counted = verifyCatalog(catalog, fields);
+const slicePathCount = firstSlice.groups.reduce((count, group) => count + group.paths.length, 0);
+assert.equal(firstSliceByPath.size, slicePathCount, 'First-slice path must occur in exactly one group.');
+const statusCounts = fields.fields.reduce((counts, field) => {
+  counts[field.evidenceStatus] = (counts[field.evidenceStatus] ?? 0) + 1;
+  return counts;
+}, { 'first-slice-static': 0, 'known-gap': 0, unverified: 0 });
+const inventoryDoc = await read('docs/ui-next/inventory/OPERATIONAL_FIELD_INVENTORY.md');
+const documentedCounts = inventoryDoc.match(/The current statuses are (\d+) `first-slice-static`, (\d+) `known-gap`, and \*\*(\d+) `unverified`\*\*\. The (\d+)-path slice/);
+assert.ok(documentedCounts, 'Inventory status-count statement missing.');
+assert.deepEqual(documentedCounts.slice(1).map(Number), [
+  statusCounts['first-slice-static'], statusCounts['known-gap'], statusCounts.unverified, slicePathCount,
+], 'Documented inventory counts must match the JSON rows and unique first-slice paths.');
+const remainingGapCount = inventoryDoc.match(/^- (\d+) catalog paths have no field-level proof/m);
+assert.equal(Number(remainingGapCount?.[1]), statusCounts.unverified,
+  'The documented remaining gap count must match unverified JSON rows.');
 assert.equal(runtimeEnvironment.size, 36, 'Managed runtime mapping denominator drift');
 const clockParameter = catalog.find(item => item.path === 'runtime.clockMaxDriftMs');
 assert.equal(clockParameter.constraints, '100..5000');
