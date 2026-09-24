@@ -1,6 +1,6 @@
 # Off-host-Backup, Audit und Alarm: Betreiber-Einrichtung
 
-Stand 24.09.2026. Dieses Dokument ist eine Einrichtungs- und Abnahmevorgabe, **kein** Nachweis eines bereits betriebenen Dienstes. WSL ist Staging; dieselben Prüfungen müssen auf dem noch bereitzustellenden Live-VPS wiederholt werden. Keine Zugangsdaten, Schlüssel, Wallet-Secrets oder Zertifikate in Chat, Git, CI-Logs oder dieses Dokument schreiben.
+Stand 25.09.2026. Dieses Dokument ist eine Einrichtungs- und Abnahmevorgabe, **kein** Nachweis eines bereits betriebenen Dienstes. WSL ist Staging; dieselben Prüfungen müssen auf dem noch bereitzustellenden Live-VPS wiederholt werden. Keine Zugangsdaten, Schlüssel, Wallet-Secrets oder Zertifikate in Chat, Git, CI-Logs oder dieses Dokument schreiben.
 
 ## Gewählte Speicherrollen
 
@@ -12,6 +12,10 @@ Stand 24.09.2026. Dieses Dokument ist eine Einrichtungs- und Abnahmevorgabe, **k
 | Cloudflare R2 Standard, optional | Dritte verschlüsselte Kopie bei einem anderen Anbieter. | 10 GB-Monate und bestimmte Operationen sind monatlich frei. Bucket-Lock-Regeln können mit Verwaltungsrechten entfernt werden und ersetzen B2 Compliance Object Lock nicht. |
 
 Quellen: [B2-Preise](https://www.backblaze.com/cloud-storage/pricing), [B2 Object Lock](https://www.backblaze.com/docs/cloud-storage-object-lock), [R2-Preise](https://developers.cloudflare.com/r2/pricing/), [R2 Bucket Locks](https://developers.cloudflare.com/r2/buckets/bucket-locks/), [Drive-Löschung](https://developers.google.com/workspace/drive/api/guides/delete). Preise und Freikontingente vor Aktivierung noch einmal im jeweiligen Konto prüfen. Die vorhandenen 5 TB Drive-Speicher bedeuten nicht, dass der API-Anschluss schon eingerichtet ist.
+
+Weitere geprüfte Alternativen: [Google Cloud Storage Always Free](https://cloud.google.com/storage/pricing) umfasst 5 GB-Monate in ausgewählten US-Regionen; eine [dauerhaft gesperrte Bucket-Retention](https://docs.cloud.google.com/storage/docs/bucket-lock) kann echte Unveränderlichkeit bieten. TSX Core hat dafür noch keinen geprüften Gateway-Adapter. [Oracle Object Storage Always Free](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm) umfasst laut Anbieter 20 GB im reinen Always-Free-Konto; [gesperrte Retention-Regeln](https://docs.oracle.com/en-us/iaas/Content/Object/Tasks/usingretentionrules_topic-To_create_a_retention_rule.htm) werden erst nach einer verpflichtenden 14-Tage-Verzögerung endgültig gesperrt. Auch dafür fehlen Adapter und Echtproben. Diese Optionen erhöhen die spätere Ausweichmöglichkeit, zählen aber nicht zu den bis 01.10. abgenommenen Speichern.
+
+Das Freikontingent ist keine Kapazitätszusage für die geplante Retention: 15-Minuten-Snapshots ergeben bei 30 Tagen bereits 2.880 Objekte. Bei vollen, voneinander unabhängigen Snapshots passen in 10 GB rechnerisch nur rund 3,5 MB je Objekt, noch ohne Auditdaten und Metadaten. Vor der Produktivkonfiguration müssen tatsächliche Artefaktgrößen, Aufbewahrung, Duplikation und Kosten-Caps gemessen werden; ein überschrittenes Freikontingent darf nicht stillschweigend den unveränderlichen Backup-Pfad stoppen.
 
 ## Was der Betreiber jetzt vorbereitet
 
