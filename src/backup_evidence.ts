@@ -4,7 +4,7 @@ import { promises as fs } from 'node:fs';
 import { RESTORE_ELIGIBILITY_SCOPE } from './ui_contracts.js';
 import type { RestoreEligibility, BackupCreationEvidence, BackupProof } from './ui_contracts.js';
 export { RESTORE_ELIGIBILITY_SCOPE } from './ui_contracts.js';
-export type { RestoreEligibility, BackupProof, BackupOffsiteProof, BackupRestoreDrillProof, BackupCreationEvidence, BackupVerificationEvidence } from './ui_contracts.js';
+export type { RestoreEligibility, BackupProof, BackupOffsiteProof, BackupDriveMirrorProof, BackupRestoreDrillProof, BackupCreationEvidence, BackupVerificationEvidence } from './ui_contracts.js';
 
 /** Read at most the manifest limit plus one byte, including a concurrent growth case. */
 export async function boundedBackupManifestBytes(destination: string): Promise<Buffer> {

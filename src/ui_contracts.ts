@@ -52,6 +52,12 @@ export interface BackupOffsiteProof extends BackupProof {
   encryptedObjectSha256: string;
 }
 
+/** Secondary copy evidence; it does not assert immutable retention. */
+export interface BackupDriveMirrorProof extends BackupOffsiteProof {
+  driveFileId: string;
+  encryptedObjectSize: number;
+}
+
 export interface BackupRestoreDrillProof {
   performedAt: number;
   artifactSha256: string;

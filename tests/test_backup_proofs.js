@@ -150,6 +150,42 @@ async function schedulerProofs(databasePath) {
   assert.equal(failed.lastSuccessAt, failed.integrityVerified.verifiedAt);
   failed.restoreDrill.performedAt = 0;
   assert.ok(scheduler.getStatus().restoreDrill.performedAt > 0, 'Status snapshots cannot mutate stored evidence.');
+  let mirrorAvailable = false;
+  const dualReplicator = { driveMirrorConfigured: true, replicate: async artifact => {
+    const local = await inspectBackupArtifact(artifact);
+    const primary = { objectName: 'backup-2026-dual.tgfb', sha256: 'b'.repeat(64), size: 42,
+      artifactSha256: local.artifactSha256, artifactCreatedAt: local.artifactCreatedAt, verifiedAt: Date.now() };
+    return mirrorAvailable
+      ? { ...primary, driveMirror: { objectName: primary.objectName, sha256: primary.sha256, size: primary.size,
+        driveFileId: 'drive-file-id-1', verifiedAt: Date.now(), reused: false }, driveMirrorError: null }
+      : { ...primary, driveMirror: null, driveMirrorError: 'sensitive-provider-token' };
+  } };
+  const dual = new BackupScheduler(path.join(root, 'dual-scheduled'), () => ({ apiId: 17 }), 60_000, 3,
+    () => undefined, dualReplicator, true, true);
+  await assert.rejects(dual.runNow(), /Drive mirror upload or verification failed/);
+  const primaryOnly = dual.getStatus();
+  assert.ok(primaryOnly.offsiteVerified, 'Primary proof survives a required secondary failure.');
+  assert.equal(primaryOnly.offsiteHealthy, true);
+  assert.equal(primaryOnly.driveMirrorVerified, null);
+  assert.equal(primaryOnly.driveMirrorLastError, 'Drive mirror upload or verification failed.');
+  assert.ok(!JSON.stringify(primaryOnly).includes('sensitive-provider-token'));
+  assert.equal(primaryOnly.driveMirrorHealthy, false);
+  assert.equal(primaryOnly.healthy, false);
+  mirrorAvailable = true;
+  await dual.runNow();
+  const both = dual.getStatus();
+  assert.equal(both.driveMirrorVerified.encryptedObjectSha256, both.offsiteVerified.encryptedObjectSha256);
+  assert.equal(both.driveMirrorVerified.artifactSha256, both.offsiteVerified.artifactSha256);
+  assert.equal(both.driveMirrorHealthy, true);
+  assert.equal(both.healthy, true);
+  mirrorAvailable = false;
+  const optional = new BackupScheduler(path.join(root, 'optional-dual-scheduled'), () => ({ apiId: 17 }), 60_000, 3,
+    () => undefined, dualReplicator, true, false);
+  await optional.runNow();
+  const optionalFailure = optional.getStatus();
+  assert.equal(optionalFailure.offsiteHealthy, true);
+  assert.equal(optionalFailure.driveMirrorHealthy, false);
+  assert.equal(optionalFailure.healthy, true, 'An optional Drive failure leaves verified primary health intact.');
   await closeDb();
 }
 

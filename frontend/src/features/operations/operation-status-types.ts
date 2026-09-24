@@ -1,4 +1,4 @@
-import type { BackupOffsiteProof, BackupProof, BackupRestoreDrillProof, RestoreEligibility } from '../../../../src/ui_contracts';
+import type { BackupDriveMirrorProof, BackupOffsiteProof, BackupProof, BackupRestoreDrillProof, RestoreEligibility } from '../../../../src/ui_contracts';
 
 export type ManagedSecretStatuses = Record<string, {
   configured: boolean;
@@ -30,9 +30,16 @@ export interface AccessObservation {
 export interface OperationsObservation {
   backup?: {
     healthy: boolean;
+    offsiteHealthy?: boolean;
+    offsiteRequired?: boolean;
     integrityVerified: BackupProof | null;
     configurationCoherent: BackupProof | null;
     offsiteVerified: BackupOffsiteProof | null;
+    driveMirrorVerified?: BackupDriveMirrorProof | null;
+    driveMirrorLastError?: string | null;
+    driveMirrorHealthy?: boolean;
+    driveMirrorRequired?: boolean;
+    driveMirrorConfigured?: boolean;
     restoreEligibility: (RestoreEligibility & { artifactSha256: string }) | null;
     restoreDrill: BackupRestoreDrillProof | null;
   } | null;

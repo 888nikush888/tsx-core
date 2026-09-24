@@ -28,17 +28,22 @@ import { assertMcpMaintenanceLease, type McpMaintenanceLease } from './mcp_maint
 import {
   assessRestoreEligibility, boundedBackupManifestBytes, requireRestoreEligibility, validateBackupCreationEvidence,
   type BackupCreationEvidence, type BackupVerificationEvidence, type RestoreEligibility,
-  type BackupProof, type BackupOffsiteProof, type BackupRestoreDrillProof,
+  type BackupProof, type BackupOffsiteProof, type BackupDriveMirrorProof, type BackupRestoreDrillProof,
 } from './backup_evidence.js';
 import { runIsolatedBackupRestoreDrill } from './backup_restore_drill.js';
+import type { DriveMirrorReceipt } from './google_drive_backup_mirror.js';
 
 interface BackupReplicator {
+  readonly driveMirrorConfigured?: boolean;
   replicate(artifactPath: string): Promise<{
     objectName: string;
     verifiedAt: number;
     artifactSha256: string;
     artifactCreatedAt: string;
     sha256: string;
+    size?: number;
+    driveMirror?: DriveMirrorReceipt | null;
+    driveMirrorError?: string | null;
   }>;
 }
 
@@ -119,6 +124,8 @@ export interface BackupStatus {
   integrityVerified: BackupProof | null;
   configurationCoherent: BackupProof | null;
   offsiteVerified: BackupOffsiteProof | null;
+  driveMirrorVerified: BackupDriveMirrorProof | null;
+  driveMirrorLastError: string | null;
   restoreEligibility: (RestoreEligibility & { artifactSha256: string }) | null;
   lastRestoreEligible: BackupProof | null;
   restoreDrill: BackupRestoreDrillProof | null;
@@ -886,6 +893,8 @@ export class BackupScheduler {
     integrityVerified: null,
     configurationCoherent: null,
     offsiteVerified: null,
+    driveMirrorVerified: null,
+    driveMirrorLastError: null,
     restoreEligibility: null,
     lastRestoreEligible: null,
     restoreDrill: null,
@@ -898,7 +907,8 @@ export class BackupScheduler {
     private readonly retainCount = 672,
     private readonly logger: (message: string) => void = console.log,
     private readonly replicator: BackupReplicator | null = null,
-    private readonly offsiteRequired = false
+    private readonly offsiteRequired = false,
+    private readonly driveMirrorRequired = false
   ) {
     if (!Number.isSafeInteger(intervalMs) || intervalMs < 60_000 || intervalMs > 15 * 60_000) {
       throw new Error('Backup interval must be between 1 and 15 minutes for the local snapshot target.');
@@ -907,6 +917,8 @@ export class BackupScheduler {
       throw new Error('Backup retention count must be between 1 and 10000.');
     }
     if (offsiteRequired && !replicator) throw new Error('Required off-site backup replication is not configured.');
+    if (driveMirrorRequired && !replicator) throw new Error('Required Drive backup mirror is not configured.');
+    if (driveMirrorRequired && replicator?.driveMirrorConfigured === false) throw new Error('Required Drive backup mirror is not configured.');
   }
 
   public async start(): Promise<void> {
@@ -924,16 +936,29 @@ export class BackupScheduler {
     if (this.activeRun !== null) await this.activeRun;
   }
 
-  public getStatus(): BackupStatus & { healthy: boolean; offsiteHealthy: boolean; offsiteRequired: boolean } {
+  public getStatus(): BackupStatus & { healthy: boolean; offsiteHealthy: boolean; offsiteRequired: boolean; driveMirrorHealthy: boolean; driveMirrorRequired: boolean; driveMirrorConfigured: boolean } {
     const status = structuredClone(this.status);
     const offsiteHealthy = !this.replicator && !this.offsiteRequired
       ? true
-      : Boolean(status.lastOffsiteSuccessAt) && !status.lastError && Date.now() - status.lastOffsiteSuccessAt <= this.intervalMs * 2;
+      : Boolean(status.lastOffsiteSuccessAt) && status.offsiteVerified !== null
+        && status.offsiteVerified.artifactSha256 === status.integrityVerified?.artifactSha256
+        && (!status.lastError || status.lastError === status.driveMirrorLastError)
+        && Date.now() - status.lastOffsiteSuccessAt <= this.intervalMs * 2;
+    const driveMirrorConfigured = this.replicator?.driveMirrorConfigured === true;
+    const driveMirrorHealthy = !driveMirrorConfigured && !this.driveMirrorRequired && !status.driveMirrorVerified && !status.driveMirrorLastError
+      ? true
+      : status.driveMirrorVerified !== null && !status.driveMirrorLastError
+        && status.driveMirrorVerified.artifactSha256 === status.integrityVerified?.artifactSha256
+        && Date.now() - status.driveMirrorVerified.verifiedAt <= this.intervalMs * 2;
     return {
       ...status,
-      healthy: Boolean(status.lastSuccessAt) && !status.lastError && Date.now() - status.lastSuccessAt <= this.intervalMs * 2 && offsiteHealthy,
+      healthy: Boolean(status.lastSuccessAt) && !status.lastError && Date.now() - status.lastSuccessAt <= this.intervalMs * 2 && offsiteHealthy
+        && (!this.driveMirrorRequired || driveMirrorHealthy),
       offsiteHealthy,
-      offsiteRequired: this.offsiteRequired
+      offsiteRequired: this.offsiteRequired,
+      driveMirrorHealthy,
+      driveMirrorRequired: this.driveMirrorRequired,
+      driveMirrorConfigured
     };
   }
 
@@ -967,6 +992,26 @@ export class BackupScheduler {
         artifactCreatedAt: replication.artifactCreatedAt, objectName: replication.objectName, encryptedObjectSha256: replication.sha256 } };
   }
 
+  private recordDriveMirrorEvidence(replication: Awaited<ReturnType<BackupReplicator['replicate']>>): void {
+    if (replication.driveMirrorError || !replication.driveMirror) {
+      this.status.driveMirrorLastError = replication.driveMirrorError
+        ? 'Drive mirror upload or verification failed.'
+        : (this.driveMirrorRequired ? 'Required Drive mirror receipt is missing.' : null);
+      return;
+    }
+    const mirror = replication.driveMirror;
+    if (mirror.objectName !== replication.objectName || mirror.sha256 !== replication.sha256 || mirror.size !== replication.size
+      || !/^[A-Za-z0-9_-]{10,256}$/.test(mirror.driveFileId)
+      || !Number.isSafeInteger(mirror.verifiedAt) || mirror.verifiedAt < replication.verifiedAt || mirror.verifiedAt > Date.now()) {
+      this.status.driveMirrorLastError = 'Drive mirror receipt does not bind the verified primary backup object.';
+      return;
+    }
+    this.status.driveMirrorVerified = { verifiedAt: mirror.verifiedAt, artifactSha256: replication.artifactSha256,
+      artifactCreatedAt: replication.artifactCreatedAt, objectName: mirror.objectName, encryptedObjectSha256: mirror.sha256,
+      encryptedObjectSize: mirror.size, driveFileId: mirror.driveFileId };
+    this.status.driveMirrorLastError = null;
+  }
+
   public runNow(): Promise<string> {
     if (this.activeRun !== null) return Promise.reject(new Error('A backup is already running.'));
     this.status.running = true;
@@ -976,7 +1021,11 @@ export class BackupScheduler {
         const local = await inspectBackupArtifact(artifact);
         this.recordLocalEvidence(artifact, local);
         const replication = this.replicator ? await this.replicator.replicate(artifact) : null;
-        if (replication) this.recordOffsiteEvidence(replication, local.artifactSha256);
+        if (replication) {
+          this.recordOffsiteEvidence(replication, local.artifactSha256);
+          this.recordDriveMirrorEvidence(replication);
+          if (this.driveMirrorRequired && this.status.driveMirrorLastError) throw new Error(this.status.driveMirrorLastError);
+        }
         await pruneBackupArtifacts(this.backupDirectory, this.retainCount);
         this.status = { ...this.status, lastError: null, running: false };
         this.logger(`[INFO] Verified backup created: ${artifact}`);

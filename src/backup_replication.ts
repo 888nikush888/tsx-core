@@ -6,6 +6,7 @@ import { pipeline } from 'node:stream/promises';
 import { createGunzip, createGzip } from 'node:zlib';
 import { inspectBackupArtifact, isSupportedBackupArtifactFileName, listBackupArtifactFiles, verifyBackupArtifact } from './backup.js';
 import { enterpriseMode } from './runtime_profile.js';
+import type { DriveMirrorReceipt, GoogleDriveBackupMirror } from './google_drive_backup_mirror.js';
 
 const ENCRYPTED_MAGIC = Buffer.from('TGFE1\0', 'ascii');
 const ARCHIVE_MAGIC = Buffer.from('TGFA1\0', 'ascii');
@@ -28,6 +29,8 @@ export interface BackupReplicationResult {
   artifactSha256: string;
   artifactCreatedAt: string;
   restoreDrill: null;
+  driveMirror?: DriveMirrorReceipt | null;
+  driveMirrorError?: string | null;
 }
 
 export interface BackupReplicator {
@@ -54,6 +57,7 @@ interface HttpsBackupReplicatorOptions {
   allowInsecureLoopback?: boolean;
   maxRecoveryBytes?: number;
   minRetentionDays?: number;
+  driveMirror?: Pick<GoogleDriveBackupMirror, 'mirror'>;
 }
 
 function validLoopback(hostname: string): boolean {
@@ -355,6 +359,8 @@ export class HttpsBackupReplicator implements BackupReplicator {
   private readonly maxRecoveryBytes: number;
   private readonly minRetentionDays: number | undefined;
 
+  get driveMirrorConfigured(): boolean { return Boolean(this.options.driveMirror); }
+
   constructor(private readonly options: HttpsBackupReplicatorOptions) {
     validateUrlTemplate(options.urlTemplate, Boolean(options.allowInsecureLoopback));
     if (!options.bearerToken || options.bearerToken.length < 32 || /[\r\n]/.test(options.bearerToken)) {
@@ -421,8 +427,22 @@ export class HttpsBackupReplicator implements BackupReplicator {
       await decryptArtifact(downloadedPath, restoredPath, this.options.encryptionKey, expansionLimit);
       const remoteEvidence = await inspectBackupArtifact(restoredPath);
       // Bind the actual downloaded/decrypted manifest, never merely the upload source.
-      return { objectName, sha256, size: encryptedStats.size, verifiedAt: Date.now(), artifactSha256: remoteEvidence.artifactSha256,
+      const primary: BackupReplicationResult = { objectName, sha256, size: encryptedStats.size, verifiedAt: Date.now(), artifactSha256: remoteEvidence.artifactSha256,
         artifactCreatedAt: remoteEvidence.artifactCreatedAt, restoreDrill: null };
+      if (!this.options.driveMirror) return primary;
+      try {
+        // The mirror reads the exact encrypted file whose hash the primary round trip verified.
+        const receipt = await this.options.driveMirror.mirror(encryptedPath, objectName, sha256);
+        if (receipt.objectName !== objectName || receipt.sha256 !== sha256 || receipt.size !== encryptedStats.size
+          || !/^[A-Za-z0-9_-]{10,256}$/.test(receipt.driveFileId)
+          || !Number.isSafeInteger(receipt.verifiedAt) || receipt.verifiedAt < primary.verifiedAt || receipt.verifiedAt > Date.now()) {
+          throw new Error('Invalid Drive mirror receipt.');
+        }
+        return { ...primary, driveMirror: receipt, driveMirrorError: null };
+      } catch {
+        // Provider errors may include request data. Never expose them in status or logs.
+        return { ...primary, driveMirror: null, driveMirrorError: 'Drive mirror upload or verification failed.' };
+      }
     } finally {
       await Promise.all([
         fs.rm(encryptedPath, { force: true }),

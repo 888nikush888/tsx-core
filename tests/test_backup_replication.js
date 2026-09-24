@@ -92,6 +92,33 @@ try {
   const originalArtifactSha = createHash('sha256').update(originalManifest).digest('hex');
   assert.equal(result.artifactSha256, originalArtifactSha);
   assert.equal(result.restoreDrill, null, 'Remote round-trip verification is not an actual restore drill.');
+  let mirrorCalls = 0;
+  const mirror = { mirror: async (filePath, objectName, sha256) => {
+    mirrorCalls++;
+    const bytes = await readFile(filePath);
+    assert.deepEqual(bytes, objects.get(`/objects/${objectName}`), 'Primary and Drive must receive identical encrypted bytes.');
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), sha256);
+    return { objectName, driveFileId: 'drive-file-id-1', sha256, size: bytes.length, verifiedAt: Date.now(), reused: false };
+  } };
+  const mirroredReplicator = new HttpsBackupReplicator({
+    urlTemplate: `http://127.0.0.1:${address.port}/objects/{artifact}`,
+    bearerToken: token, encryptionKey: key, allowInsecureLoopback: true,
+    minRetentionDays: 30, driveMirror: mirror
+  });
+  const mirrored = await mirroredReplicator.replicate(artifact);
+  assert.equal(mirrorCalls, 1);
+  assert.equal(mirrored.driveMirror?.sha256, mirrored.sha256);
+  assert.equal(mirrored.driveMirrorError, null);
+  const badMirrorReplicator = new HttpsBackupReplicator({
+    urlTemplate: `http://127.0.0.1:${address.port}/objects/{artifact}`,
+    bearerToken: token, encryptionKey: key, allowInsecureLoopback: true,
+    minRetentionDays: 30,
+    driveMirror: { mirror: async () => { throw new Error('sensitive-provider-token'); } }
+  });
+  const degraded = await badMirrorReplicator.replicate(artifact);
+  assert.equal(degraded.driveMirror, null);
+  assert.equal(degraded.driveMirrorError, 'Drive mirror upload or verification failed.');
+  assert.ok(!JSON.stringify(degraded).includes('sensitive-provider-token'));
   let currentEncryptedSha = result.sha256;
   try {
     beforeDownload = async () => {
@@ -122,6 +149,20 @@ try {
     /checksum does not match/
   );
   await assert.rejects(replicator.replicate(artifact), /checksum does not match/);
+  await assert.rejects(mirroredReplicator.replicate(artifact), /checksum does not match/);
+  assert.equal(mirrorCalls, 1, 'Drive upload must wait for primary readback and decryption.');
+  tamperDownloads = false;
+  const invalidMirrorReplicator = new HttpsBackupReplicator({
+    urlTemplate: `http://127.0.0.1:${address.port}/objects/{artifact}`,
+    bearerToken: token, encryptionKey: key, allowInsecureLoopback: true,
+    driveMirror: { mirror: async (_file, objectName, sha256) => ({
+      objectName, driveFileId: 'drive-file-id-1', sha256: `${sha256.slice(0, -1)}0`,
+      size: 1, verifiedAt: Date.now(), reused: false
+    }) }
+  });
+  const invalidMirror = await invalidMirrorReplicator.replicate(artifact);
+  assert.equal(invalidMirror.driveMirror, null);
+  assert.equal(invalidMirror.driveMirrorError, 'Drive mirror upload or verification failed.');
 
   const encodedKey = key.toString('base64');
   assert.deepEqual(parseBackupEncryptionKey(encodedKey), key);
@@ -169,6 +210,8 @@ try {
     minRetentionDays: 30
   });
   await assert.rejects(retentionReplicator.replicate(artifact), /did not confirm retention/);
+  await assert.rejects(mirroredReplicator.replicate(artifact), /did not confirm retention/);
+  assert.equal(mirrorCalls, 1, 'A Drive receipt cannot replace missing primary retention proof.');
   includeRetentionReceipt = true;
 
   console.log('ALL ENCRYPTED OFF-SITE BACKUP TESTS PASSED!');

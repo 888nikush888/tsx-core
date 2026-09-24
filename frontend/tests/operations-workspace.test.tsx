@@ -175,7 +175,9 @@ function bodyForExtended(url: string) {
   if (url === "/api/recovery") return { active: false, issues: [] }
   if (url === "/api/operations") return { operations: { audit: { healthy: true }, backup: { healthy: true,
     integrityVerified: { verifiedAt: now, artifactSha256: "a".repeat(64) }, configurationCoherent: { verifiedAt: now, artifactSha256: "a".repeat(64) },
-    offsiteVerified: { verifiedAt: now, artifactSha256: "a".repeat(64) }, restoreEligibility: { status: "eligible", checkedAt: now }, restoreDrill: null }, mcp: { healthy: true } } }
+    offsiteVerified: { verifiedAt: now, artifactSha256: "a".repeat(64) }, offsiteHealthy: true,
+    driveMirrorVerified: { verifiedAt: now, artifactSha256: "a".repeat(64) }, driveMirrorHealthy: true, driveMirrorConfigured: true,
+    restoreEligibility: { status: "eligible", checkedAt: now }, restoreDrill: null }, mcp: { healthy: true } } }
   return { success: true, result: {}, artifact: "backup-v3.1.0", token: "one-time-token" }
 }
 
@@ -443,7 +445,8 @@ describe("operations workspace", () => {
     workspace("system")
     const diagButton = await screen.findByRole("button", { name: "Diagnosestatus öffnen" })
     expect(screen.getByText("Letzte Integritätsprüfung")).toBeInTheDocument()
-    expect(screen.getByText("Offsite zurückgelesen und geprüft")).toBeInTheDocument()
+    expect(screen.getByText("Primär-Backup zurückgelesen und geprüft")).toBeInTheDocument()
+    expect(screen.getByText("Drive-Zweitkopie zurückgelesen und geprüft")).toBeInTheDocument()
     expect(screen.getByText("Letzter tatsächlich durchgeführter Probelauf").parentElement).toHaveTextContent("–")
     fireEvent.click(diagButton)
     await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith('/api/status'))
