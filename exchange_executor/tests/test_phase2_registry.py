@@ -157,7 +157,7 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
             "version": "4.5.75",
             "streaming": "ccxt-pro",
             "orderAuthority": "rest",
-            "reviewedInventoryHash": "5a76c0381e97811ce155f2eaa523570cabdd0bc0d8e81b72c8950f0d8f0dd69f",
+            "reviewedInventoryHash": "7c0ab01cf1e2629cee66528959e0c45ffe01a6111697294e5ca528116f247e54",
         })
         self.assertEqual(StaticExchange.network_calls, 0)
         for exchange in ("hyperliquid", "bybit", "krakenfutures"):

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryHash": "5a76c0381e97811ce155f2eaa523570cabdd0bc0d8e81b72c8950f0d8f0dd69f",
+  "inventoryHash": "7c0ab01cf1e2629cee66528959e0c45ffe01a6111697294e5ca528116f247e54",
   "inventory": {
     "ccxtVersion": "4.5.75",
     "exchanges": [
@@ -1809,7 +1809,7 @@
     "pythonVersion": [3,12],
     "requirements": {"credentialFields":["accountId","apiKey","login","password","privateKey","secret","token","twofa","uid","walletAddress"],"pro":["watchOrders","watchMyTrades","watchPositions"],"rest":["fetchBalance","fetchPositions","fetchOpenOrders","fetchMyTrades","createOrder","cancelOrder","setLeverage"],"strategyDependentRest":["createOrders"]},
     "restIds": ["alpaca","apex","aster","backpack","bequant","bigone","binance","binancecoinm","binanceus","binanceusdm","bingx","bit2c","bitbank","bitbns","bitfinex","bitflyer","bitget","bithumb","bitmex","bitopro","bitrue","bitso","bitstamp","bitteam","bittrade","bitvavo","blockchaincom","blofin","btcbox","btcmarkets","btcturk","btse","bullish","bybit","bybiteu","bydfi","cex","coinbase","coinbaseexchange","coinbaseinternational","coincheck","coinex","coinmate","coinone","coinsph","coinspot","cryptocom","cryptomus","deepcoin","delta","deribit","derive","digifinex","dydx","extended","fmfwio","foxbit","gate","gateeu","gemini","grvt","hashkey","hibachi","hitbtc","hollaex","htx","hyperliquid","independentreserve","indodax","kraken","krakenfutures","kucoin","kucoinfutures","latoken","lbank","lighter","luno","mercado","mexc","modetrade","mudrex","myokx","nado","ndax","okx","okxus","onetrading","p2b","pacifica","paradex","paymium","phemex","poloniex","tokocrypto","toobit","upbit","weex","whitebit","woo","woofipro","xt","zaif","zebpay"],
-    "sourceHash": "8c1255637427de68772fa670d048e4cd3dc6fc2bc9de0585538270eb95efadfd",
+    "sourceHash": "39b3fb28594e088d3ff80909ce21d9811fd9679bf9d5ac3f5bb7c212bfd672a8",
     "sources": {
       "ccxt/__init__.py": {"bytes":16049,"sha256":"0c7bc0d3032625c12b986b52440f79f91b7cf5f92689422b8045703bc5682639"},
       "ccxt/abstract/alpaca.py": {"bytes":12104,"sha256":"607f0425659dce02075d655fad781c40739d4c6a893fa191afff4c40e1b8156a"},
@@ -2100,7 +2100,7 @@
       "ccxt/pro/xt.py": {"bytes":67849,"sha256":"dbe54604c83c37741165acbdebb40734bf9333f2f74fff738a7bc5d845dbeadc"},
       "exchange_executor/ccxt_capabilities.py": {"bytes":878,"sha256":"de0486bd74b9610ce9c868026b5e7c0c1581ffe61b63d710e8b673f0b38e750b"},
       "exchange_executor/ccxt_profiles.py": {"bytes":5585,"sha256":"86747aad0cd01393aaf542a0a4551e6efac25fd95e366fb6cf435e81347a64cd"},
-      "exchange_executor/ccxt_registry.py": {"bytes":10256,"sha256":"bc265415bc30caf600f99a00f1b9ac70883c44722f0960885b69c4e8df5f939c"},
+      "exchange_executor/ccxt_registry.py": {"bytes":10491,"sha256":"84dd101b51d64166dbf5024256b2dd9c96789e7596a98de41a3c35875b22a50d"},
       "exchange_executor/tools/audit_derivatives_candidates.py": {"bytes":24024,"sha256":"34ee65bf13f4820d831e16f815c97151bec2e8f1b4af0e0f838075322d4e03a1"}
     }
   },
