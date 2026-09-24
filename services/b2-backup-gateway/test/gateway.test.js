@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import http from 'node:http';
 import { once } from 'node:events';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
@@ -29,10 +29,10 @@ class FakeB2 {
     this.wrongSize = false;
     this.tamper = false;
     this.extraVersionOnRead = false;
-    this.beforePut = async () => {};
+    this.beforePut = () => Promise.resolve();
   }
 
-  async send(command) {
+  async send(command, options = {}) {
     const { Key, VersionId } = command.input;
     const type = command.constructor.name;
     this.calls.push({ type, input: command.input });
@@ -45,7 +45,7 @@ class FakeB2 {
         .map(entry => ({ Key: entry.key, VersionId: entry.version })), IsTruncated: false };
     }
     if (type === 'PutObjectCommand') {
-      await this.beforePut();
+      await this.beforePut(command, options);
       assert.equal(command.input.IfNoneMatch, '*');
       assert.equal(command.input.ObjectLockMode, 'COMPLIANCE');
       assert.equal(command.input.ContentType, 'application/octet-stream');
@@ -98,10 +98,10 @@ async function fixture(options = {}) {
   await once(server, 'listening');
   servers.push(server);
   const address = server.address();
-  return { client, url: `http://127.0.0.1:${address.port}/objects/${name}` };
+  return { client, tempRoot, url: `http://127.0.0.1:${address.port}/objects/${name}` };
 }
 
-function request(url, method = 'GET', body, extraHeaders = {}) {
+function request(url, method = 'GET', body = undefined, extraHeaders = {}) {
   const headers = { Authorization: `Bearer ${token}` };
   if (body) {
     headers['Content-Type'] = 'application/octet-stream';
@@ -138,7 +138,7 @@ test('rejects missing or incorrect authorization, unsafe names and unsupported m
   assert.equal((await fetch(url)).status, 401);
   assert.equal((await request(url, 'GET', undefined, { Authorization: 'Bearer wrong' })).status, 401);
   assert.equal((await request(url.replace(name, '%2e%2e%2fescape.tgfb'))).status, 404);
-  assert.equal((await request(url + '?versionId=other')).status, 404);
+  assert.equal((await request(`${url}?versionId=other`)).status, 404);
   assert.equal((await request(url, 'DELETE')).status, 405);
   assert.equal(client.calls.length, 0);
 });
@@ -241,10 +241,8 @@ test('replay fails if retention has shortened or a second version exists', async
 
 test('global concurrency limit blocks parallel distinct keys before another provider write', async () => {
   const { client, url } = await fixture({ maxConcurrentOperations: 1 });
-  let release;
-  let entered;
-  const hold = new Promise(resolve => { release = resolve; });
-  const started = new Promise(resolve => { entered = resolve; });
+  const { promise: hold, resolve: release } = Promise.withResolvers();
+  const { promise: started, resolve: entered } = Promise.withResolvers();
   client.beforePut = async () => { entered(); await hold; };
   const first = request(url, 'PUT', encrypted('first'));
   await started;
@@ -258,10 +256,8 @@ test('global concurrency limit blocks parallel distinct keys before another prov
 test('temporary disk budget blocks parallel distinct keys and is released after completion', async () => {
   const bytes = encrypted('first');
   const { client, url } = await fixture({ maxConcurrentOperations: 2, maxTemporaryBytes: bytes.length });
-  let release;
-  let entered;
-  const hold = new Promise(resolve => { release = resolve; });
-  const started = new Promise(resolve => { entered = resolve; });
+  const { promise: hold, resolve: release } = Promise.withResolvers();
+  const { promise: started, resolve: entered } = Promise.withResolvers();
   client.beforePut = async () => { entered(); await hold; };
   const first = request(url, 'PUT', bytes);
   await started;
@@ -269,8 +265,27 @@ test('temporary disk budget blocks parallel distinct keys and is released after 
   assert.equal((await request(secondUrl, 'PUT', encrypted('other'))).status, 507);
   release();
   assert.equal((await first).status, 201);
-  client.beforePut = async () => {};
+  client.beforePut = () => Promise.resolve();
   assert.equal((await request(secondUrl, 'PUT', encrypted('other'))).status, 201);
+});
+
+test('provider timeout aborts a stalled upload, clears staged bytes and permits a safe retry', async () => {
+  const { client, tempRoot, url } = await fixture({ operationTimeoutMs: 1_000 });
+  const bytes = encrypted('timeout-then-retry');
+  let aborted = false;
+  client.beforePut = (_command, options) => new Promise((_resolve, reject) => {
+    options.abortSignal.addEventListener('abort', () => {
+      aborted = true;
+      reject(new Error('provider operation aborted'));
+    }, { once: true });
+  });
+  assert.equal((await request(url, 'PUT', bytes)).status, 502);
+  assert.equal(aborted, true);
+  assert.equal(client.entries.length, 0);
+  client.beforePut = () => Promise.resolve();
+  assert.equal((await request(url, 'PUT', bytes)).status, 201);
+  assert.deepEqual(await readdir(tempRoot), []);
+  assert.equal(client.entries.length, 1);
 });
 
 test('protected temporary storage rejects a regular file and relative path', async () => {

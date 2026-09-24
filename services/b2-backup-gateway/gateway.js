@@ -13,6 +13,7 @@ const MAGIC = Buffer.from('TGFE1\0', 'ascii');
 const MIN_OBJECT_BYTES = MAGIC.length + 12 + 1 + 16;
 // B2 standard single-request uploads are limited to 5 GB; larger objects need multipart.
 const DEFAULT_MAX_BYTES = 5_000_000_000;
+const MAX_OPERATION_MS = 15 * 60_000;
 
 function status(error) {
   return error && typeof error === 'object' && '$metadata' in error ? error.$metadata?.httpStatusCode : undefined;
@@ -41,14 +42,14 @@ function retentionDate(value) {
   return Number.isFinite(date.getTime()) ? date : null;
 }
 
-async function versions(client, bucket, key) {
+async function versions(client, bucket, key, signal) {
   const found = [];
-  let KeyMarker;
-  let VersionIdMarker;
+  let KeyMarker = undefined;
+  let VersionIdMarker = undefined;
   for (let page = 0; page < 10; page++) {
     const result = await client.send(new ListObjectVersionsCommand({
       Bucket: bucket, Prefix: key, MaxKeys: 1000, KeyMarker, VersionIdMarker
-    }));
+    }), { abortSignal: signal });
     for (const entry of [...(result.Versions || []), ...(result.DeleteMarkers || [])]) {
       if (entry.Key === key) found.push(entry.VersionId);
       if (found.length > 1) return found;
@@ -70,8 +71,9 @@ function verifiedHead(head, versionId, size, sha256) {
   }
 }
 
-async function verifiedRetention(client, bucket, key, versionId, minimum) {
-  const result = await client.send(new GetObjectRetentionCommand({ Bucket: bucket, Key: key, VersionId: versionId }));
+async function verifiedRetention(client, bucket, key, versionId, minimum, signal) {
+  const result = await client.send(new GetObjectRetentionCommand({ Bucket: bucket, Key: key, VersionId: versionId }),
+    { abortSignal: signal });
   const retained = retentionDate(result.Retention?.RetainUntilDate);
   if (result.Retention?.Mode !== 'COMPLIANCE' || !retained || retained.getTime() < minimum) {
     throw new Error('Stored object compliance retention failed verification.');
@@ -79,7 +81,7 @@ async function verifiedRetention(client, bucket, key, versionId, minimum) {
   return retained;
 }
 
-async function receiveExact(request, destination, expected, sha256) {
+async function receiveExact(request, destination, expected, sha256, signal) {
   let received = 0;
   let header = Buffer.alloc(0);
   const digest = createHash('sha256');
@@ -89,16 +91,16 @@ async function receiveExact(request, destination, expected, sha256) {
       if (received > expected) return callback(new Error('Upload exceeds declared length.'));
       if (header.length < MAGIC.length) header = Buffer.concat([header, chunk.subarray(0, MAGIC.length - header.length)]);
       digest.update(chunk);
-      callback(null, chunk);
+      return callback(null, chunk);
     }
   });
-  await pipeline(request, limiter, createWriteStream(destination, { flags: 'wx', mode: 0o600 }));
+  await pipeline(request, limiter, createWriteStream(destination, { flags: 'wx', mode: 0o600 }), { signal });
   if (received !== expected || digest.digest('hex') !== sha256 || !header.equals(MAGIC)) {
     throw new Error('Upload length, SHA-256 or encrypted header mismatch.');
   }
 }
 
-async function consumeExact(body, destination, expected, sha256) {
+async function consumeExact(body, destination, expected, sha256, signal) {
   if (!body || typeof body[Symbol.asyncIterator] !== 'function') throw new Error('Object body is missing.');
   let received = 0;
   const digest = createHash('sha256');
@@ -107,11 +109,12 @@ async function consumeExact(body, destination, expected, sha256) {
       received += chunk.length;
       if (received > expected) return callback(new Error('Stored object exceeds declared length.'));
       digest.update(chunk);
-      callback(null, chunk);
+      return callback(null, chunk);
     }
   });
-  if (destination) await pipeline(Readable.from(body), limiter, createWriteStream(destination, { flags: 'wx', mode: 0o600 }));
-  else await pipeline(Readable.from(body), limiter, new Writable({ write(_chunk, _encoding, callback) { callback(); } }));
+  if (destination) await pipeline(Readable.from(body), limiter, createWriteStream(destination, { flags: 'wx', mode: 0o600 }), { signal });
+  else await pipeline(Readable.from(body), limiter,
+    new Writable({ write(_chunk, _encoding, callback) { callback(); } }), { signal });
   if (received !== expected || digest.digest('hex') !== sha256) throw new Error('Stored object bytes failed verification.');
 }
 
@@ -129,16 +132,17 @@ export async function validateTemporaryRoot(tempRoot, requiredBytes = 0) {
   }
 }
 
-async function readRemoteVersion(client, bucket, key, versionId, size, sha256, destination) {
-  const object = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key, VersionId: versionId }));
+async function readRemoteVersion(client, bucket, key, versionId, size, sha256, destination, signal) {
+  const object = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key, VersionId: versionId }),
+    { abortSignal: signal });
   if (object.VersionId !== versionId || object.ContentLength !== size) throw new Error('Downloaded object version or size changed.');
-  await consumeExact(object.Body, destination, size, sha256);
+  await consumeExact(object.Body, destination, size, sha256, signal);
 }
 
 export function createGateway({
   client, bucket, prefix = 'tsx-core/', bearerToken, tempRoot,
   maxObjectBytes = DEFAULT_MAX_BYTES, maxTemporaryBytes = DEFAULT_MAX_BYTES,
-  maxConcurrentOperations = 2, retentionDays = 31, now = Date.now
+  maxConcurrentOperations = 2, retentionDays = 31, operationTimeoutMs = MAX_OPERATION_MS, now = Date.now
 }) {
   if (!client || typeof client.send !== 'function' || !/^[a-z0-9][a-z0-9.-]{2,62}$/.test(bucket || '')
     || !/^[A-Za-z0-9/_-]+\/$/.test(prefix) || !bearerToken || bearerToken.length < 32 || /[\r\n]/.test(bearerToken)
@@ -146,7 +150,8 @@ export function createGateway({
     || !Number.isSafeInteger(maxObjectBytes) || maxObjectBytes < MIN_OBJECT_BYTES || maxObjectBytes > DEFAULT_MAX_BYTES
     || !Number.isSafeInteger(maxTemporaryBytes) || maxTemporaryBytes < MIN_OBJECT_BYTES || maxTemporaryBytes > 10 * DEFAULT_MAX_BYTES
     || !Number.isSafeInteger(maxConcurrentOperations) || maxConcurrentOperations < 1 || maxConcurrentOperations > 32
-    || !Number.isSafeInteger(retentionDays) || retentionDays < 31 || retentionDays > 3000) {
+    || !Number.isSafeInteger(retentionDays) || retentionDays < 31 || retentionDays > 3000
+    || !Number.isSafeInteger(operationTimeoutMs) || operationTimeoutMs < 1_000 || operationTimeoutMs > MAX_OPERATION_MS) {
     throw new Error('Invalid backup gateway configuration.');
   }
   const inflight = new Set();
@@ -162,8 +167,11 @@ export function createGateway({
     if (active >= maxConcurrentOperations) return send(response, 503);
     inflight.add(key);
     active += 1;
-    let directory;
+    const signal = AbortSignal.timeout(operationTimeoutMs);
+    let directory = null;
     let reservation = 0;
+    let failureStatus = 0;
+    let successResponse = null;
     async function reserve(size) {
       if (reserved + size > maxTemporaryBytes) return false;
       // Reserve before async filesystem inspection so concurrent requests cannot overcommit.
@@ -183,19 +191,21 @@ export function createGateway({
         if (!(await reserve(size))) return send(response, 507);
         directory = await mkdtemp(path.join(tempRoot, 'tsx-b2-gateway-'));
         const file = path.join(directory, 'object');
-        await receiveExact(request, file, size, sha256);
-        const before = await versions(client, bucket, key);
+        await receiveExact(request, file, size, sha256, signal);
+        const before = await versions(client, bucket, key, signal);
         if (before.length > 1) return send(response, 409);
         if (before.length === 1) {
           const versionId = before[0];
           if (!versionId) return send(response, 409);
-          const head = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key, VersionId: versionId }));
+          const head = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key, VersionId: versionId }),
+            { abortSignal: signal });
           verifiedHead(head, versionId, size, sha256);
-          const retained = await verifiedRetention(client, bucket, key, versionId, now() + 30 * DAY_MS);
-          await readRemoteVersion(client, bucket, key, versionId, size, sha256);
-          const after = await versions(client, bucket, key);
+          const retained = await verifiedRetention(client, bucket, key, versionId, now() + 30 * DAY_MS, signal);
+          await readRemoteVersion(client, bucket, key, versionId, size, sha256, undefined, signal);
+          const after = await versions(client, bucket, key, signal);
           if (after.length !== 1 || after[0] !== versionId) throw new Error('Stored object version changed during replay verification.');
-          return send(response, 200, { 'X-Backup-Retention-Until': retained.toISOString() });
+          successResponse = { statusCode: 200, headers: { 'X-Backup-Retention-Until': retained.toISOString() } };
+          return undefined;
         }
         const until = new Date(now() + retentionDays * DAY_MS);
         const put = await client.send(new PutObjectCommand({
@@ -203,20 +213,23 @@ export function createGateway({
           ContentType: 'application/octet-stream', Metadata: { sha256 },
           ObjectLockMode: 'COMPLIANCE', ObjectLockRetainUntilDate: until,
           IfNoneMatch: '*'
-        }));
+        }), { abortSignal: signal });
         if (!put.VersionId || put.VersionId === 'null') throw new Error('B2 did not return an object version.');
-        const head = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key, VersionId: put.VersionId }));
+        const head = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key, VersionId: put.VersionId }),
+          { abortSignal: signal });
         verifiedHead(head, put.VersionId, size, sha256);
-        const retained = await verifiedRetention(client, bucket, key, put.VersionId, now() + 30 * DAY_MS);
-        const listed = await versions(client, bucket, key);
+        const retained = await verifiedRetention(client, bucket, key, put.VersionId, now() + 30 * DAY_MS, signal);
+        const listed = await versions(client, bucket, key, signal);
         if (listed.length !== 1 || listed[0] !== put.VersionId) throw new Error('Stored object version is not unique.');
-        return send(response, 201, { 'X-Backup-Retention-Until': retained.toISOString() });
+        successResponse = { statusCode: 201, headers: { 'X-Backup-Retention-Until': retained.toISOString() } };
+        return undefined;
       }
-      const listed = await versions(client, bucket, key);
+      const listed = await versions(client, bucket, key, signal);
       if (listed.length === 0) return send(response, 404);
       if (listed.length !== 1 || !listed[0]) throw new Error('Stored object version is not unique.');
       const versionId = listed[0];
-      const head = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key, VersionId: versionId }));
+      const head = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key, VersionId: versionId }),
+        { abortSignal: signal });
       const size = head.ContentLength;
       const sha256 = head.Metadata?.sha256;
       if (!Number.isSafeInteger(size) || size < MIN_OBJECT_BYTES || size > maxObjectBytes || !HASH.test(sha256 || '')) {
@@ -224,12 +237,12 @@ export function createGateway({
       }
       verifiedHead(head, versionId, size, sha256);
       // Expired retention does not make a still-present immutable version unreadable.
-      await verifiedRetention(client, bucket, key, versionId, 0);
+      await verifiedRetention(client, bucket, key, versionId, 0, signal);
       if (!(await reserve(size))) return send(response, 507);
       directory = await mkdtemp(path.join(tempRoot, 'tsx-b2-gateway-'));
       const file = path.join(directory, 'object');
-      await readRemoteVersion(client, bucket, key, versionId, size, sha256, file);
-      const current = await versions(client, bucket, key);
+      await readRemoteVersion(client, bucket, key, versionId, size, sha256, file, signal);
+      const current = await versions(client, bucket, key, signal);
       if (current.length !== 1 || current[0] !== versionId) throw new Error('Stored object version changed during download.');
       const actual = await stat(file);
       if (actual.size !== size) throw new Error('Downloaded object size changed.');
@@ -237,16 +250,22 @@ export function createGateway({
         'Content-Type': 'application/octet-stream', 'Content-Length': String(size),
         'X-Backup-SHA256': sha256, 'Cache-Control': 'no-store'
       });
-      await pipeline(createReadStream(file), response);
+      await pipeline(createReadStream(file), response, { signal });
     } catch (error) {
       // Only fixed status codes reach clients; provider errors and credentials are never logged.
-      if (!response.headersSent) send(response, status(error) === 404 ? 404 : 502);
+      if (!response.headersSent) failureStatus = status(error) === 404 ? 404 : 502;
       else response.destroy();
     } finally {
-      inflight.delete(key);
-      active -= 1;
-      reserved -= reservation;
-      if (directory) await rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+      try {
+        if (directory) await rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+      } finally {
+        inflight.delete(key);
+        active -= 1;
+        reserved -= reservation;
+      }
+      if (successResponse) send(response, successResponse.statusCode, successResponse.headers);
     }
+    if (failureStatus) send(response, failureStatus);
+    return undefined;
   };
 }
