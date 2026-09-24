@@ -52,7 +52,7 @@ const tlsServices = [
 for (const [service, allowedKeys] of tlsServices) {
   const mountedKeys = [...service.matchAll(/\$\{INTERNAL_TLS_DIR:\?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout\}\/([\w-]+)\.key:[^\s]+/g)]
     .map(match => {
-      assert.ok(match[0].endsWith('/run/tsx-tls/' + match[1] + '.key:ro'));
+      assert.ok(match[0].endsWith(`/run/tsx-tls/${match[1]}.key:ro`));
       return match[1];
     });
   assert.deepEqual(mountedKeys.sort(), [...allowedKeys].sort(), 'Only the service-owned TLS private keys may be mounted');
