@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "sourceRevision": "17abeb0f2655f3c05560d047cc0c8a046b92865f",
+  "decision": "design-only-no-field-promotion",
+  "reason": "The Core container has no authenticated, least-privilege host apply and rollback channel. Compose, TLS, monitoring, and host service changes cannot be proven effective by writing Core configuration.",
+  "groups": [
+    {
+      "id": "compose-image-selectors",
+      "owner": "host deployment supervisor",
+      "controlIds": ["compose.ALERTMANAGER_IMAGE", "compose.EXCHANGE_EXECUTOR_IMAGE", "compose.FORWARDER_IMAGE", "compose.PROMETHEUS_IMAGE"],
+      "boundary": "Pin, verify, deploy, observe, and restore an image digest through the host release process. A selector is not evidence of the running image."
+    },
+    {
+      "id": "compose-resource-limits",
+      "owner": "host deployment supervisor",
+      "controlIds": ["compose.EXCHANGE_EXECUTOR_CPU_LIMIT", "compose.EXCHANGE_EXECUTOR_MEMORY_LIMIT", "compose.FORWARDER_CPU_LIMIT", "compose.FORWARDER_MEMORY_LIMIT", "compose.MCP_CPU_LIMIT", "compose.MCP_MEMORY_LIMIT", "compose.TELEGRAM_VIEWER_CPU_LIMIT", "compose.TELEGRAM_VIEWER_MEMORY_LIMIT"],
+      "boundary": "A typed limit change requires Compose validation, service recreation, cgroup readback, and a bounded rollback."
+    },
+    {
+      "id": "compose-host-ports",
+      "owner": "host deployment supervisor",
+      "controlIds": ["compose.HOST_ALERTMANAGER_PORT", "compose.HOST_MCP_PORT", "compose.HOST_METRICS_PORT", "compose.HOST_PROMETHEUS_PORT", "compose.HOST_WEB_PORT"],
+      "boundary": "Changing a published port requires listener and proxy coordination, loopback-binding verification, and rollback reachability."
+    },
+    {
+      "id": "compose-bootstrap-proof",
+      "owner": "host bootstrap",
+      "controlIds": ["compose.DASHBOARD_BOOTSTRAP_PROOF"],
+      "boundary": "A one-time bootstrap proof must not become a reusable browser setting or be returned by an API."
+    },
+    {
+      "id": "compose-tls-root",
+      "owner": "host certificate lifecycle",
+      "controlIds": ["compose.INTERNAL_TLS_DIR"],
+      "boundary": "The directory names bind-mounted certificates and private keys; changing it requires staged file and trust-chain verification."
+    },
+    {
+      "id": "compose-mcp-ingress",
+      "owner": "host deployment supervisor",
+      "controlIds": ["compose.MCP_ALLOWED_HOSTS", "compose.MCP_ALLOWED_ORIGINS", "compose.MCP_ENDPOINT_URL"],
+      "boundary": "Ingress changes require exact-origin validation, service restart, and authenticated reachability checks."
+    },
+    {
+      "id": "compose-mcp-poll",
+      "owner": "MCP service deployment",
+      "controlIds": ["compose.MCP_RUNTIME_POLL_MS"],
+      "boundary": "The timer is read from the environment at MCP startup; a Core write cannot reload or prove its active value."
+    },
+    {
+      "id": "tls-public-trust",
+      "owner": "host certificate lifecycle",
+      "controlIds": ["tls.ca.pem", "tls.dashboard.crt", "tls.metrics.crt", "tls.alert-relay.crt", "tls.viewer.crt", "tls.executor.crt"],
+      "boundary": "Certificate staging requires validity, SAN, chain, and client-trust checks before coordinated service activation."
+    },
+    {
+      "id": "tls-private-keys",
+      "owner": "host certificate lifecycle",
+      "controlIds": ["tls.dashboard.key", "tls.metrics.key", "tls.alert-relay.key", "tls.viewer.key", "tls.executor.key"],
+      "boundary": "Keys stay outside Core and the browser. A future plane may accept sealed writes but must never offer key readback."
+    },
+    {
+      "id": "prometheus-live-config",
+      "owner": "host monitoring service",
+      "controlIds": ["monitoring.prometheus.scrape_interval", "monitoring.prometheus.evaluation_interval", "monitoring.prometheus.scrape_target", "monitoring.prometheus.alertmanager_target"],
+      "boundary": "Config changes need typed validation, Prometheus config check, atomic write, authenticated reload, observed active-config readback, and rollback. The current service has no enabled lifecycle endpoint."
+    },
+    {
+      "id": "alertmanager-live-config",
+      "owner": "host monitoring service",
+      "controlIds": ["monitoring.alertmanager.group_wait", "monitoring.alertmanager.group_interval", "monitoring.alertmanager.repeat_interval", "monitoring.alertmanager.receiver_url"],
+      "boundary": "Routing changes need typed validation, destination allowlisting, config check, authenticated reload, delivery probe, and rollback."
+    },
+    {
+      "id": "monitoring-retention",
+      "owner": "host deployment supervisor",
+      "controlIds": ["monitoring.prometheus.retention_time", "monitoring.prometheus.retention_size", "monitoring.alertmanager.retention_time"],
+      "boundary": "These command-line retention limits require service recreation and storage-capacity verification."
+    },
+    {
+      "id": "immutable-alert-detections",
+      "owner": "reviewed source policy",
+      "controlIds": ["monitoring.rule.ForwarderMetricsMissing", "monitoring.rule.ForwarderUnknownDelivery", "monitoring.rule.ForwarderDatabaseUnavailable", "monitoring.rule.ForwarderTelegramDisconnected", "monitoring.rule.ForwarderBackupUnhealthy", "monitoring.rule.ForwarderDiskCapacityUnsafe", "monitoring.rule.ForwarderPendingTaskStale", "monitoring.rule.ForwarderAuditTrailUnhealthy", "monitoring.rule.ForwarderClockDriftUnsafe", "monitoring.rule.TradingUnknownOrder", "monitoring.rule.TradingUnprotectedPosition", "monitoring.rule.TradingKillSwitchActive", "monitoring.rule.TradingReconciliationStale"],
+      "boundary": "Critical expressions, duration, and severity remain code-reviewed immutable detection policy; no operator mutation command."
+    },
+    {
+      "id": "noncritical-alert-detections",
+      "owner": "host monitoring service",
+      "controlIds": ["monitoring.rule.ForwarderFailedDelivery", "monitoring.rule.ForwarderRetentionBacklog", "monitoring.rule.ForwarderQueueBacklog", "monitoring.rule.ForwarderDeliverySuccessSloBurn", "monitoring.rule.ForwarderDeliveryLatencySloBurn"],
+      "boundary": "Even noncritical rule edits require syntax validation, reload proof, alert behavior checks, and rollback."
+    },
+    {
+      "id": "host-paths-and-observation",
+      "owner": "host filesystem and monitoring setup",
+      "controlIds": ["host.BACKUP_DIR", "host.AUDIT_LOG_PATH", "host.PROMETHEUS_URL", "tailscale.serveBackend"],
+      "boundary": "Path and proxy changes need confinement, ownership and reachability checks; a Core-only write cannot establish host effect."
+    },
+    {
+      "id": "host-write-only-secrets",
+      "owner": "host secret manager",
+      "controlIds": ["host.BACKUP_OFFSITE_TOKEN", "host.PROMETHEUS_TOKEN_FILE"],
+      "boundary": "A future write must be sealed, audited by fingerprint only, and never return secret bytes."
+    },
+    {
+      "id": "host-write-once-key",
+      "owner": "host secret manager",
+      "controlIds": ["host.BACKUP_ENCRYPTION_KEY"],
+      "boundary": "Historical backup decryptability makes ordinary rotation unsafe; no replace or readback UI."
+    }
+  ],
+  "deploymentGaps": [
+    { "path": "deployment.VITE_BASENAME", "boundary": "Build-time route base; requires a separately built frontend and proxy-route rollback." },
+    { "path": "deployment.VITE_GTM_ID", "boundary": "Build-time analytics identifier; current UI intentionally exposes presence only." },
+    { "path": "deployment.hostPorts", "boundary": "Aggregate of five published ports, not proof of effective host listener bindings." },
+    { "path": "deployment.cpu", "boundary": "Aggregate of container CPU limits, requiring cgroup readback after service recreation." },
+    { "path": "deployment.memory", "boundary": "Aggregate of container memory limits, requiring cgroup readback after service recreation." },
+    { "path": "deployment.imageDigest", "boundary": "Running digest must be observed after a pinned release; Compose image selector alone is insufficient." }
+  ]
+}
