@@ -233,6 +233,20 @@
       "kind": "fixed-container-wiring-not-an-additional-control"
     },
     {
+      "name": "PROVIDER_ACCEPTANCE_GRANTS_FILE",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "PROVIDER_ACCEPTANCE_REVIEWER_KEY_FILE",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
       "name": "RUNTIME_SETTINGS_PATH",
       "source": [
         "docker-compose.monitoring.yml",
