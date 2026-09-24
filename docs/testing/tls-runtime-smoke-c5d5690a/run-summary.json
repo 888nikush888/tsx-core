@@ -1,0 +1,52 @@
+{
+  "status": "PASS",
+  "sourceRevision": "c5d5690a99c4ed51d741c222a4c7f6382b33bfd5",
+  "sourceCheckout": "tmp/tsx-core-tls-smoke-c5d5690a-20260924",
+  "sourceTreeCleanAfterRun": true,
+  "environment": {
+    "platform": "Ubuntu 26.04.1 LTS in WSL2",
+    "dockerEngine": "29.8.1",
+    "dockerCompose": "5.5.1",
+    "project": "tsx-tls-c5d5690a-0924",
+    "runtimeNetworksInternalOnly": true,
+    "runtimeHostPortsPublished": false,
+    "probeUid": 65532,
+    "probeReadOnlyFilesystem": true,
+    "probeCapabilitiesDropped": true,
+    "probeNoNewPrivileges": true
+  },
+  "probe": {
+    "trackedSourceSha256": "d3a8745602e0c2be085e8588826c2ae230576e092d57c898ec9b1555b5b8e703",
+    "executedSha256": "32d0b5e56f7e0812be4a1beb03c4efb105d04762f2bfc184ab8b07c36138a4af",
+    "changeFromTrackedSource": "Only embedded revision and Compose project metadata were updated. Assertion logic is unchanged."
+  },
+  "images": {
+    "forwarder": "sha256:355f81d3e6c30cc6b1eedb7a231179d413a7d3040425c783cf5ca1ae7db2b777",
+    "exchangeExecutor": "sha256:8ba988ccd00eb146c36f72db3dc827f2d11b21ad284323eb02c45dcd253cb51b",
+    "prometheus": "sha256:c13034bb1a0bc223a071b46e2962c424fb1427caef7011dd402fe07788095f2c"
+  },
+  "results": {
+    "tlsPreflight": "PASS",
+    "fiveHttpsPaths": "PASS",
+    "untrustedCaNegatives": "PASS",
+    "wrongHostnameNegatives": "PASS",
+    "cleartextNegatives": "PASS",
+    "viewerAndRelayUnauthenticatedStatus": 401,
+    "prometheusHttpsUp": "1",
+    "ordersSent": 0,
+    "alertDeliveriesSent": 0
+  },
+  "cleanup": {
+    "composeDownExit": 0,
+    "remainingProjectContainers": 0,
+    "remainingProjectVolumes": 0,
+    "remainingProjectNetworks": 0,
+    "syntheticTlsDirectoryRemoved": true,
+    "uniqueImageTagsRemoved": true
+  },
+  "limits": [
+    "Viewer and relay were tested as isolated HTTPS listeners from the built image; complete bot and outbound alert delivery were not started.",
+    "The dashboard API workflow and host-published ports were not exercised.",
+    "This WSL synthetic smoke does not validate the eventual VPS, live credentials, order lifecycle, or full release gate."
+  ]
+}

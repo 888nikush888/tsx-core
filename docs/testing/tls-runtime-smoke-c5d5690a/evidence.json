@@ -1,0 +1,54 @@
+{
+  "status": "PASS",
+  "revision": "c5d5690a99c4ed51d741c222a4c7f6382b33bfd5",
+  "project": "tsx-tls-c5d5690a-0924",
+  "internalNetworksOnly": true,
+  "realCredentials": false,
+  "ordersSent": 0,
+  "deliveriesSent": 0,
+  "unauthorizedViewerStatus": 401,
+  "unauthorizedAlertPost": 401,
+  "prometheusHttpsUp": "1",
+  "results": [
+    {
+      "name": "dashboard",
+      "httpsStatus": 200,
+      "trustedCa": "AUTHORIZED",
+      "invalidCa": "SELF_SIGNED_CERT_IN_CHAIN",
+      "wrongName": "ERR_TLS_CERT_ALTNAME_INVALID",
+      "cleartext": "ECONNRESET"
+    },
+    {
+      "name": "metrics",
+      "httpsStatus": 200,
+      "trustedCa": "AUTHORIZED",
+      "invalidCa": "SELF_SIGNED_CERT_IN_CHAIN",
+      "wrongName": "ERR_TLS_CERT_ALTNAME_INVALID",
+      "cleartext": "ECONNRESET"
+    },
+    {
+      "name": "dashboard-to-executor",
+      "httpsStatus": 200,
+      "trustedCa": "AUTHORIZED",
+      "invalidCa": "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+      "wrongName": "ERR_TLS_CERT_ALTNAME_INVALID",
+      "cleartext": "ECONNRESET"
+    },
+    {
+      "name": "viewer-status",
+      "httpsStatus": 200,
+      "trustedCa": "AUTHORIZED",
+      "invalidCa": "SELF_SIGNED_CERT_IN_CHAIN",
+      "wrongName": "ERR_TLS_CERT_ALTNAME_INVALID",
+      "cleartext": "ECONNRESET"
+    },
+    {
+      "name": "alert-relay",
+      "httpsStatus": 200,
+      "trustedCa": "AUTHORIZED",
+      "invalidCa": "SELF_SIGNED_CERT_IN_CHAIN",
+      "wrongName": "ERR_TLS_CERT_ALTNAME_INVALID",
+      "cleartext": "ECONNRESET"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+# Off-host-Backup, Audit und Alarm: Betreiber-Einrichtung
+
+Stand 24.09.2026. Dieses Dokument ist eine Einrichtungs- und Abnahmevorgabe, **kein** Nachweis eines bereits betriebenen Dienstes. WSL ist Staging; dieselben Prüfungen müssen auf dem noch bereitzustellenden Live-VPS wiederholt werden. Keine Zugangsdaten, Schlüssel, Wallet-Secrets oder Zertifikate in Chat, Git, CI-Logs oder dieses Dokument schreiben.
+
+## Gewählte Speicherrollen
+
+| Ziel | Rolle | Grenze |
+| --- | --- | --- |
+| Backblaze B2, privater Backup-Bucket mit **Compliance Object Lock** | Primäres verschlüsseltes Off-host-Backup; PUT, GET, Retention-Receipt und echter Restore sind Pflicht. | Die ersten 10 GB im B2-Konto sind laut Anbieter dauerhaft kostenlos; der tatsächliche Verbrauch beider Buckets und die Kosten bei 15-Minuten-Snapshots sind erst nach Messung bekannt. Ein Bucket allein ist kein kompatibler TSX-Core-HTTPS-Gateway. |
+| Backblaze B2, separater privater Audit-Bucket mit eigener eingeschränkter Identität | Unveränderliche, vor der HTTP-Quittung gespeicherte Audit-Ereignisse. | Ein Backup-Receipt darf keinen Audit-Nachweis ersetzen. Getrennte Buckets und Schlüssel verringern den Schaden eines kompromittierten Zugangs, sind aber kein unabhängiger Speicheranbieter. |
+| Vorhandenes Google Drive (5 TB), eigener TSX-Core-Ordner | Zweite, verschlüsselte Kopie der `.tgfb`-Objekte mit eigenem Upload-/Readback-Status. | Drive-Dateien können endgültig gelöscht werden; Drive erfüllt daher allein nicht die unveränderliche Backup-/Audit-Anforderung. Die Spiegelung braucht einen geprüften Adapter/OAuth-Zugang. |
+| Cloudflare R2 Standard, optional | Dritte verschlüsselte Kopie bei einem anderen Anbieter. | 10 GB-Monate und bestimmte Operationen sind monatlich frei. Bucket-Lock-Regeln können mit Verwaltungsrechten entfernt werden und ersetzen B2 Compliance Object Lock nicht. |
+
+Quellen: [B2-Preise](https://www.backblaze.com/cloud-storage/pricing), [B2 Object Lock](https://www.backblaze.com/docs/cloud-storage-object-lock), [R2-Preise](https://developers.cloudflare.com/r2/pricing/), [R2 Bucket Locks](https://developers.cloudflare.com/r2/buckets/bucket-locks/), [Drive-Löschung](https://developers.google.com/workspace/drive/api/guides/delete). Preise und Freikontingente vor Aktivierung noch einmal im jeweiligen Konto prüfen. Die vorhandenen 5 TB Drive-Speicher bedeuten nicht, dass der API-Anschluss schon eingerichtet ist.
+
+## Was der Betreiber jetzt vorbereitet
+
+1. Ein Backblaze-B2-Konto anlegen und Zwei-Faktor-Anmeldung aktivieren. **Noch keine** Master-Keys oder Buckets für einen ungeprüften Gateway erstellen. Die konkrete Bucket- und App-Key-Matrix wird nach Adapter-Review festgelegt; Object Lock und eine ausreichende Standard-Retention müssen vor dem ersten produktiven Objekt nachweisbar sein. Nach Messung der Backup-Größe [Kosten-Caps und Warnungen](https://www.backblaze.com/docs/cloud-storage-create-and-manage-caps-and-alerts) passend setzen; ein zu enger Cap stoppt Uploads und ist deshalb selbst ein Betriebsalarm.
+2. Den vorhandenen Google-Drive-Speicher verfügbar halten. Für die spätere Spiegelung einen dedizierten Ordner und einen auf diesen Zweck beschränkten Zugang vorbereiten; keine öffentlichen Freigabelinks und keine Sync-Software als alleinigen Integritätsbeleg verwenden.
+3. Optional ein Cloudflare-Konto für R2 vorbereiten. R2 ist ein zusätzlicher Anbieter, keine Voraussetzung für die erste B2+Drive-Abnahme.
+4. Bis 28.09. den angekündigten VPS samt Zugangsweg bereitstellen. Hostkennung und geplanter Domainname dürfen im Chat stehen; Passwörter, API-Keys, TLS-Private-Keys und Backup-Schlüssel ausschließlich über den lokalen Secret-Store beziehungsweise einen vom Betreiber kontrollierten sicheren Kanal eintragen.
+5. Einen tatsächlich erreichbaren Alarmempfänger und einen benannten On-Call festlegen. Der Empfänger muss einen Testalarm mit identischer `correlation_id` sichtbar bestätigen. Ein nur auf dem VPS laufender Monitor erkennt dessen vollständigen Ausfall nicht zuverlässig; ein externer Host-Check ist zusätzlich nötig.
+
+Für den externen VPS-Ausfallcheck ist [Healthchecks.io](https://healthchecks.io/pricing/) ein kostenloser Kandidat (Hobbyist: 20 überwachte Jobs). Ein regelmäßiger HTTPS-Heartbeat vom VPS erkennt auch dessen Totalausfall; [Telegram-Benachrichtigung](https://healthchecks.io/integrations/telegram/) ist dort möglich. Das ist **nur** der externe Ausfallmelder, nicht der Empfänger für die Alertmanager-JSON-Weiterleitung und kein unveränderlicher Audit-Speicher. Der konkrete Empfänger, die Zustellung an den benannten Menschen und der Ausfalltest bleiben offen.
+
+## Technischer Anschluss, erst nach Implementierung und Review
+
+TSX Core sendet verschlüsselte Backup-Objekte über `backupOffsiteUrlTemplate` an einen **HTTPS-Gateway** mit Bearer-Token. Die URL muss `{artifact}` genau einmal enthalten. Der Gateway muss den übermittelten SHA-256/Byteumfang prüfen, unveränderliche B2-Retention nachweisen und beim GET exakt dieselben Bytes liefern. Der TSX-Core-Replicator lädt das Objekt zurück, prüft Hash und Entschlüsselung; das ist noch kein Restore-Drill. Für Enterprise muss die gemeldete Retention mindestens 30 Tage ab Prüfzeitpunkt betragen. Eine direkte B2-S3- oder Drive-URL ist für diesen Vertrag nicht geeignet. Die Gateway-Implementierung wird separat getestet und unabhängig geprüft, bevor Kontozugänge eingesetzt werden.
+
+Der erste isolierte B2-Gateway-Kandidat kann nur Einzeluploads bis 5 GB annehmen. TSX Core selbst erlaubt größere verschlüsselte Objekte; vor einer produktiven Backupfreigabe muss deshalb entweder die gemessene maximale Artefaktgröße sicher unter der Gateway-Grenze liegen oder ein geprüfter Multipart-Pfad ergänzt werden. B2-Kompatibilität für den konkurrierenden Erst-Upload ist noch nicht mit einem echten Test-Bucket belegt.
+
+Der externe Audit-Empfänger bekommt HTTPS-JSON mit Bearer-Token und muss jeden Datensatz vor dem 2xx dauerhaft und unveränderlich speichern. Identische Wiederholungen sind idempotent; widersprüchliche Wiederholungen scheitern. Sein Ausfall muss mutierende Operationen fail-closed blockieren. Ein separater B2-Audit-Bucket allein stellt diese Semantik ohne Empfängerdienst nicht bereit.
+
+Die betriebliche Einrichtung erfolgt nach dem Erststart im Dashboard unter **System & Backup → Vollständige Runtime- und Enterprise-Konfiguration**; Tokens und AES-256-GCM-Schlüssel liegen getrennt und write-only unter **Enterprise-Secrets**. Feste Sicherheitsgates bleiben codegebunden. Anschließend folgt ein kontrollierter Neustart und dieselbe Prüfung auf dem Live-VPS.
+
+Die Einstellungen der externen Gateway-/OAuth-Dienste selbst sind noch nicht vollständig über die TSX-Core-UI verwaltbar. Sie zählen zu den offenen Host-Controls der UI-Matrix und dürfen vor ihrer authentifizierten Apply-/Readback-/Rollback-Abnahme nicht als erfülltes „alles in der UI“ verbucht werden.
+
+## Abnahme statt bloßer Konfiguration
+
+- Einen echten, verschlüsselten Snapshot zu B2 hochladen; Bucket-/Objekt-Retention und `X-Backup-Retention-Until` unabhängig auslesen. Das Objekt herunterladen, Bytezahl und SHA-256 vergleichen und mit getrennt aufbewahrtem Schlüssel entschlüsseln.
+- Eine zweite verschlüsselte Kopie auf Drive (optional zusätzlich R2) hochladen und unabhängig zurücklesen. Spiegel-Ausfälle separat alarmieren; keinen B2-Erfolg als Drive-Erfolg ausgeben.
+- Den integrierten Restore-Drill an einem isolierten Staging-Ziel durchführen, RPO/RTO messen und den exakten Artefakt-SHA sowie Release-SHA protokollieren. Ein erfolgreiches PUT/GET allein ist kein Restore-Nachweis.
+- Ein Audit-Ereignis über den externen HTTPS-Empfänger auslösen, die unveränderliche Off-host-Quittung und Idempotenz prüfen und den Empfängerausfall als blockierte Mutation nachweisen.
+- Testalarm mit `npm run ops:test-alert -- --confirm-alert-delivery` senden; Zustellung und identische `correlation_id` beim benannten Menschen belegen. Externen VPS-Ausfallmonitor separat prüfen.
+- Zugangsschlüssel, TLS-Zertifikate, Berechtigungen und Konfiguration auf dem tatsächlichen Live-VPS nachziehen und alle Tests dort auf dem **finalen Release-SHA** wiederholen. Bis dahin bleiben H3–H5 aus der Live-Readiness-Akte offen.
