@@ -167,7 +167,7 @@ describe('operator maintenance safety', () => {
     });
     mount(<System catalog={null} onRefresh={() => Promise.resolve()} />);
     const deleteButton = await screen.findByRole('button', { name: 'Drive-Token löschen und Spiegelung deaktivieren' });
-    expect(deleteButton).toBeEnabled();
+    await waitFor(() => expect(deleteButton).toBeEnabled());
     fireEvent.click(deleteButton);
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('Eine externe OAuth-Freigabe wird dadurch nicht widerrufen.');
