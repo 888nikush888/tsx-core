@@ -36,7 +36,9 @@ async function main() {
   });
 }
 
-main().catch(error => {
+try {
+  await main();
+} catch (error) {
   process.stderr.write(`B2 audit receiver startup failed: ${error.message}\n`);
   process.exitCode = 1;
-});
+}

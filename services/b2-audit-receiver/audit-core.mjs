@@ -54,7 +54,7 @@ export function parseAuditRecord(body) {
 
 async function boundedBody(request, timeoutMs) {
   const length = request.headers['content-length'];
-  if (length !== undefined && (!/^(0|[1-9][0-9]*)$/.test(length) || Number(length) > MAX_BODY_BYTES)) {
+  if (length !== undefined && (!/^(0|[1-9]\d*)$/.test(length) || Number(length) > MAX_BODY_BYTES)) {
     throw new RangeError('Audit body exceeds its limit.');
   }
   const timer = setTimeout(() => request.destroy(new Error('Audit request body timed out.')), timeoutMs);
@@ -123,6 +123,62 @@ function serialWorkQueue() {
   };
 }
 
+function boundaryFailure(request, response, bearerToken) {
+  if (request.url !== '/v1/records') {
+    reply(response, 404, 'not_found');
+    return true;
+  }
+  if (request.method !== 'POST') {
+    reply(response, 405, 'method_not_allowed');
+    return true;
+  }
+  if (!fixedTokenMatch(request.headers.authorization, `Bearer ${bearerToken}`)) {
+    reply(response, 401, 'unauthorized');
+    return true;
+  }
+  if (request.headers['content-type'] !== 'application/json' || request.headers['content-encoding']) {
+    reply(response, 415, 'unsupported_media_type');
+    return true;
+  }
+  return false;
+}
+
+async function readAuditRecord(request, response, bodyTimeoutMs, isDisconnected) {
+  try {
+    const body = await boundedBody(request, bodyTimeoutMs);
+    return { body, record: parseAuditRecord(body) };
+  } catch (error) {
+    if (request.aborted || isDisconnected() || response.destroyed) return null;
+    reply(response, error instanceof RangeError ? 413 : 400, 'invalid_record');
+    return null;
+  }
+}
+
+function verifiedPersistenceResult(outcome) {
+  if (outcome.error) throw outcome.error;
+  const result = outcome.result;
+  if (result !== 'stored' && result !== 'replayed') {
+    throw new Error('Audit store returned no verified receipt.');
+  }
+  return result;
+}
+
+function replyPersistenceResult(response, result) {
+  if (result === 'replayed') {
+    reply(response, 200, 'replayed');
+    return;
+  }
+  reply(response, 201, 'stored');
+}
+
+function replyPersistenceFailure(response, error) {
+  if (error instanceof AuditConflictError) {
+    reply(response, 409, 'conflict');
+    return;
+  }
+  reply(response, 503, 'storage_unavailable');
+}
+
 export function createAuditReceiver({ bearerToken, store, bodyTimeoutMs = 8_000 }) {
   if (typeof bearerToken !== 'string' || bearerToken.length < 32) throw new Error('Audit bearer token must contain at least 32 characters.');
   if (!store || typeof store.persist !== 'function') throw new Error('Audit store is required.');
@@ -133,12 +189,7 @@ export function createAuditReceiver({ bearerToken, store, bodyTimeoutMs = 8_000 
   let pendingRecords = 0;
   let reservedBytes = 0;
   return async (request, response) => {
-    if (request.url !== '/v1/records') return reply(response, 404, 'not_found');
-    if (request.method !== 'POST') return reply(response, 405, 'method_not_allowed');
-    if (!fixedTokenMatch(request.headers.authorization, `Bearer ${bearerToken}`)) return reply(response, 401, 'unauthorized');
-    if (request.headers['content-type'] !== 'application/json' || request.headers['content-encoding']) {
-      return reply(response, 415, 'unsupported_media_type');
-    }
+    if (boundaryFailure(request, response, bearerToken)) return;
     if (pendingRecords >= MAX_PENDING_RECORDS || reservedBytes + MAX_BODY_BYTES > MAX_RESERVED_BYTES) {
       response.setHeader('connection', 'close');
       return reply(response, 503, 'busy');
@@ -162,26 +213,16 @@ export function createAuditReceiver({ bearerToken, store, bodyTimeoutMs = 8_000 
     };
     response.once('close', onClose);
     try {
-      let body;
-      let record;
-      try {
-        body = await boundedBody(request, bodyTimeoutMs);
-        record = parseAuditRecord(body);
-      } catch (error) {
-        if (request.aborted || disconnected || response.destroyed) return;
-        return reply(response, error instanceof RangeError ? 413 : 400, 'invalid_record');
-      }
+      const parsed = await readAuditRecord(request, response, bodyTimeoutMs, () => disconnected);
+      if (!parsed) return;
       if (disconnected) return;
-      queued = enqueue(() => store.persist(record, body));
+      queued = enqueue(() => store.persist(parsed.record, parsed.body));
       const outcome = await queued.completion;
       if (disconnected || outcome.cancelled) return;
-      if (outcome.error) throw outcome.error;
-      const result = outcome.result;
-      if (result !== 'stored' && result !== 'replayed') throw new Error('Audit store returned no verified receipt.');
-      reply(response, result === 'replayed' ? 200 : 201, result === 'replayed' ? 'replayed' : 'stored');
+      replyPersistenceResult(response, verifiedPersistenceResult(outcome));
     } catch (error) {
       if (!disconnected && !response.destroyed) {
-        reply(response, error instanceof AuditConflictError ? 409 : 503, error instanceof AuditConflictError ? 'conflict' : 'storage_unavailable');
+        replyPersistenceFailure(response, error);
       }
     } finally {
       response.off('close', onClose);

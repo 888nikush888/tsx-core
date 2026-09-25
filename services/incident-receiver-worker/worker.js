@@ -28,9 +28,9 @@ function validSecret(value) {
 function configured(env) {
   return env && validSecret(env.RELAY_TOKEN) && validSecret(env.DEDUPE_SECRET)
     && typeof env.TELEGRAM_BOT_TOKEN === 'string'
-    && /^[0-9]{6,}:[A-Za-z0-9_-]{20,}$/u.test(env.TELEGRAM_BOT_TOKEN)
+    && /^\d{6,}:[A-Za-z0-9_-]{20,}$/u.test(env.TELEGRAM_BOT_TOKEN)
     && typeof env.TELEGRAM_CHAT_ID === 'string'
-    && /^-?[1-9][0-9]{0,19}$/u.test(env.TELEGRAM_CHAT_ID)
+    && /^-?[1-9]\d{0,19}$/u.test(env.TELEGRAM_CHAT_ID)
     && env.DB && typeof env.DB.prepare === 'function';
 }
 
@@ -82,7 +82,7 @@ async function boundedStream(stream, limit) {
 
 async function boundedBody(request) {
   const declared = request.headers.get('content-length');
-  if (declared !== null && (!/^[0-9]+$/u.test(declared) || Number(declared) > MAX_BODY_BYTES)) {
+  if (declared !== null && (!/^\d+$/u.test(declared) || Number(declared) > MAX_BODY_BYTES)) {
     throw new RejectedPayload(413);
   }
   if (!request.body) throw new RejectedPayload(400);
