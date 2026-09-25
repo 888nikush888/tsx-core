@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "kind": "post-freeze-final-delta-review-v2",
-  "reviewId": "final-delta-db6e0a36-review",
+  "kind": "post-freeze-final-delta-review-v3",
+  "reviewId": "final-delta-a2109a06-review",
   "reviewer": "Codex",
-  "reviewedAt": "2026-09-25T17:16:00.000Z",
+  "reviewedAt": "2026-09-25T17:37:10.000Z",
   "baseRevision": "bba2cf70a0a38e537959f7aa10e76fe1db6ed14c",
-  "headRevision": "db6e0a36b4b159ccea46b9651a73ca86de3ddc7f",
-  "headTree": "d3510aadef5734f294000089db47b6d33a894e02",
-  "deltaPatchSha256": "c217e77a3b43c7f9834f7ba3ef33e887b59abed7d2c44c57864b056bfd1080c9",
-  "scope": "Read-only post-freeze review of the scanner remediation, candidate-evidence rebind, full Node/Python/frontend suites, build, lint, typecheck, complexity budget, executor-image tool layout and the final rule-scoped Codacy filesystem exceptions. No provider, account, deployment or live-order action was performed.",
+  "headRevision": "a2109a063be10605ab402f3951b7ee389a562e51",
+  "headTree": "43408f227da767b61a7d9122f1ffc15a664ca9d7",
+  "deltaPatchSha256": "c82976f20ae14ccb03006639baf47d63c4b5dc03cfa6f65c94ce03342937dc41",
+  "scope": "Read-only post-freeze review of the scanner remediation, candidate-evidence rebind, full Node/Python/frontend suites, build, lint, typecheck, complexity budget, executor-image tool layout, rule-scoped Codacy filesystem exceptions and the matching supply-chain expectations. No provider, account, deployment or live-order action was performed.",
   "deltaInventory": {
     "production": [
       {
@@ -35,7 +35,8 @@
       "tests/test_backup.js",
       "tests/test_provider_acceptance.js",
       "tests/test_secret_store.js",
-      "tests/test_workflow_builder.js"
+      "tests/test_workflow_builder.js",
+      "tests/test_supply_chain.js"
     ],
     "evidenceRebind": [
       "docs/testing/ccxt-expansion-matrix.json",
@@ -61,15 +62,15 @@
     "scannerRulesDisabled": false
   },
   "sourceHashes": {
-    "sourceTreeHash": "f146054bfa81ed7d1fe3b9aba3cc6a140ba2ee612a22e22a28580a33d7564e2a",
+    "sourceTreeHash": "6579b4e0f3189cee49372c0cf9093db49a58034747798ecb40427f3421a58e11",
     "nodeSourcesHash": "4f065396c612ce440e4229fb5302161391f3bf94b1e92e1441d2b51042aa63c5",
-    "testSourcesHash": "08eed5f2eb76d7dc2a05c35171191f11b914ad0d2ccfaf65853c7732594335a6",
+    "testSourcesHash": "43639b742278c4ca28a399421b43fb1d4a636ed1d0c4ca75258ac065ab03d5ef",
     "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee",
     "executorTreeHash": "95c6502e51bb1db0073be5cf40bd5f453599d8cf0518c078766be43432ab835a",
     "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
     "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7",
     "sourceFileCount": 1095,
-    "sourceTotalBytes": 22148770
+    "sourceTotalBytes": 22148870
   },
   "runtime": {
     "node": "24.14.1",
@@ -97,7 +98,7 @@
   },
   "limits": [
     "Implementation evidence only; provider/account acceptance and live trading remain false.",
-    "The full Node, Python and frontend suites ran on source revision ade2354c; the subsequent delta is limited to the Docker tool layout, workflow import paths and rule-scoped Codacy filesystem exceptions and is covered by targeted tests plus the final CI run.",
+    "The full Node, Python and frontend suites ran on source revision ade2354c; the subsequent delta is limited to the Docker tool layout, workflow import paths, rule-scoped Codacy filesystem exceptions and their supply-chain expectations and is covered by targeted tests plus the final CI run.",
     "No scanner provider result is claimed green before a fresh cloud run on the final pushed SHA.",
     "The Linux container verifier still has to validate the renewed receipt in GitHub Actions."
   ],
