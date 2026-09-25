@@ -86,12 +86,12 @@ function asciiJsonBytes(json: string): Buffer {
       const offset = codePoint - 0x10000;
       const high = 0xd800 + (offset >> 10);
       const low = 0xdc00 + (offset & 0x3ff);
-      ascii += `\\u${high.toString(16).padStart(4, '0')}\\u${low.toString(16).padStart(4, '0')}`;
+      ascii += String.raw`\u${high.toString(16).padStart(4, '0')}\u${low.toString(16).padStart(4, '0')}`;
       index += 1;
     } else {
       ascii += codePoint >= 0x20 && codePoint <= 0x7e
         ? String.fromCodePoint(codePoint)
-        : `\\u${codePoint.toString(16).padStart(4, '0')}`;
+        : String.raw`\u${codePoint.toString(16).padStart(4, '0')}`;
     }
   }
   return Buffer.from(ascii, 'ascii');
@@ -100,7 +100,7 @@ function asciiJsonBytes(json: string): Buffer {
 function validGrantSignature(value: unknown): value is string {
   if (typeof value !== 'string' || value.length !== 88 || !value.endsWith('==')) return false;
   for (let index = 0; index < 86; index++) {
-    if (!isBase64Code(value.charCodeAt(index))) return false;
+    if (!isBase64Code(value.codePointAt(index) ?? 0)) return false;
   }
   return true;
 }
@@ -160,7 +160,7 @@ function lstatAcceptancePath(path: string): BigIntStats {
 function openAcceptancePath(path: string): number {
   // O_NOFOLLOW prevents a symlink swap after the lstat validation.
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- validated canonical path is the security boundary.
-  return openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW | 0) | (constants.O_NONBLOCK | 0));
+  return openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
 }
 
 function assertAcceptanceFile(stat: BigIntStats, maximum: number): void {

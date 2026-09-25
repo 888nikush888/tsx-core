@@ -146,7 +146,7 @@ export class GoogleDriveBackupMirror {
     const sourcePath = canonicalSourcePath(filePath);
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- sourcePath is canonical and opened with O_NOFOLLOW.
     const file = await fs.open(sourcePath,
-      constants.O_RDONLY | (constants.O_NOFOLLOW | 0));
+      constants.O_RDONLY | constants.O_NOFOLLOW);
     let size: number;
     try {
       const stats = await file.stat();
