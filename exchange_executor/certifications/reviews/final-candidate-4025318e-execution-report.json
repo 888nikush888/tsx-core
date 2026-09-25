@@ -1,24 +1,24 @@
 {
   "schemaVersion": 1,
-  "reportId": "final-candidate-a2109a06-execution-report",
+  "reportId": "final-candidate-4025318e-execution-report",
   "kind": "final-source-bound-execution-report",
-  "revision": "a2109a063be10605ab402f3951b7ee389a562e51",
+  "revision": "4025318e5e56684050a4f54aeefd9321390fe2f4",
   "executionBaseRevision": "ade2354cbe2b67c938784fe111b316db2affc0a8",
-  "deltaScope": "The complete Node, Python and frontend suites, build, lint, typecheck and complexity checks ran on execution base revision ade2354c. The final source delta moves the two Hyperliquid preflight tools to /app/tools, adds rule-scoped Codacy filesystem exceptions for canonical, no-follow paths and updates the supply-chain expectations; targeted tests, lint, typecheck and the container build/runtime checks validate that delta on the final revision.",
+  "deltaScope": "The complete Node, Python and frontend suites, build, lint, typecheck and complexity checks ran on execution base revision ade2354c. The final source delta moves the two Hyperliquid preflight tools to /app/tools, adds rule-scoped Codacy filesystem exceptions, updates the supply-chain expectations and mounts all reviewed evidence roots read-only for the complete in-image suite; targeted tests, lint, typecheck and the container build/runtime checks validate that delta on the final revision.",
   "independentReview": {
     "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review.json",
     "sha256": "6b7b9ef5a6b1311f69af91032a6abd6ff236e6a09f9dda6dbed72d5fb4c55d04",
     "reviewedRevision": "8e7b7869d49d7ab5bf6222cd97f02ffdfecc7b25"
   },
   "deltaReview": {
-    "path": "exchange_executor/certifications/reviews/final-delta-a2109a06-review.json",
-    "sha256": "2594ce28d205d3847e3c200b752c0eaa78cbc6c7d8981e11a0accd546eb24501"
+    "path": "exchange_executor/certifications/reviews/final-delta-4025318e-review.json",
+    "sha256": "a609da20bfd14e9c0d29aefeffba46da9874a440784108f30aa158a2b648367f"
   },
-  "candidateEvidenceRevision": "a2109a063be10605ab402f3951b7ee389a562e51",
+  "candidateEvidenceRevision": "4025318e5e56684050a4f54aeefd9321390fe2f4",
   "sourceCommitments": {
-    "sourceTreeHash": "6579b4e0f3189cee49372c0cf9093db49a58034747798ecb40427f3421a58e11",
-    "nodeSourcesHash": "4f065396c612ce440e4229fb5302161391f3bf94b1e92e1441d2b51042aa63c5",
-    "testSourcesHash": "43639b742278c4ca28a399421b43fb1d4a636ed1d0c4ca75258ac065ab03d5ef",
+    "sourceTreeHash": "137a61512ebce036673eb72baaead315896ab883b2777bb6cf6356645cbe868f",
+    "nodeSourcesHash": "7d4dd9a4ce3d87c6cb19061cf8f07e5246a33b2745b9affab948011ee3ef021c",
+    "testSourcesHash": "ebca20bea4abbbd2b7ae0c15e7fee18ba55404ffdb10de72887bae03e2449fce",
     "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee"
   },
   "runtimeCommitments": {
@@ -44,8 +44,8 @@
     "complexityBudget": "0 warnings, 0 threshold violations"
   },
   "linuxSourceVerification": {
-    "cleanCloneRevision": "a2109a063be10605ab402f3951b7ee389a562e51",
-    "sourceTreeHash": "6579b4e0f3189cee49372c0cf9093db49a58034747798ecb40427f3421a58e11",
+    "cleanCloneRevision": "4025318e5e56684050a4f54aeefd9321390fe2f4",
+    "sourceTreeHash": "137a61512ebce036673eb72baaead315896ab883b2777bb6cf6356645cbe868f",
     "result": "The clean Linux clone produced the same source commitments as the frozen Windows source revision."
   },
   "rawLogs": [
@@ -100,7 +100,7 @@
   "limitations": [
     "Local implementation and execution evidence only; no provider acceptance, deployment or live order was performed.",
     "The local full Node suite used Node 24.14.1; GitHub Actions remains the authoritative Node 22 execution.",
-    "The full suites ran on ade2354c; the final Docker/workflow, Codacy-exception and supply-chain-expectation delta is validated by targeted tests, lint, typecheck and the container build/runtime checks.",
+    "The full suites ran on ade2354c; the final Docker/workflow, Codacy-exception, supply-chain and evidence-mount delta is validated by targeted tests, lint, typecheck and the container build/runtime checks.",
     "Fresh Sonar, DeepSource and Codacy cloud results are required after pushing this exact revision."
   ]
 }

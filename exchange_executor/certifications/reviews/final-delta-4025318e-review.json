@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "kind": "post-freeze-final-delta-review-v3",
-  "reviewId": "final-delta-a2109a06-review",
+  "kind": "post-freeze-final-delta-review-v4",
+  "reviewId": "final-delta-4025318e-review",
   "reviewer": "Codex",
-  "reviewedAt": "2026-09-25T17:37:10.000Z",
+  "reviewedAt": "2026-09-25T18:18:00.000Z",
   "baseRevision": "bba2cf70a0a38e537959f7aa10e76fe1db6ed14c",
-  "headRevision": "a2109a063be10605ab402f3951b7ee389a562e51",
-  "headTree": "43408f227da767b61a7d9122f1ffc15a664ca9d7",
-  "deltaPatchSha256": "c82976f20ae14ccb03006639baf47d63c4b5dc03cfa6f65c94ce03342937dc41",
-  "scope": "Read-only post-freeze review of the scanner remediation, candidate-evidence rebind, full Node/Python/frontend suites, build, lint, typecheck, complexity budget, executor-image tool layout, rule-scoped Codacy filesystem exceptions and the matching supply-chain expectations. No provider, account, deployment or live-order action was performed.",
+  "headRevision": "4025318e5e56684050a4f54aeefd9321390fe2f4",
+  "headTree": "64001cbbbb1b69216e94b4eddc329f8a4f51718c",
+  "deltaPatchSha256": "963f394dd7ee05218eb1f36df8f4600ebd46d5631878dc14e3233a1dc9c8d652",
+  "scope": "Read-only post-freeze review of the scanner remediation, candidate-evidence rebind, full Node/Python/frontend suites, build, lint, typecheck, complexity budget, executor-image tool layout, rule-scoped Codacy filesystem exceptions, matching supply-chain expectations and explicit read-only evidence mounts for the container suite. No provider, account, deployment or live-order action was performed.",
   "deltaInventory": {
     "production": [
       {
@@ -49,7 +49,7 @@
       },
       {
         "path": ".github/workflows/quality.yml",
-        "change": "Import the preflight tools from /app/tools in the container checks while preserving read-only and no-network execution."
+        "change": "Import the preflight tools from /app/tools and expose the reviewed exchange_executor, scripts, docs/testing, plans and tests roots read-only to the complete in-image suite without replacing baked /app sources."
       }
     ],
     "tooling": [
@@ -62,15 +62,15 @@
     "scannerRulesDisabled": false
   },
   "sourceHashes": {
-    "sourceTreeHash": "6579b4e0f3189cee49372c0cf9093db49a58034747798ecb40427f3421a58e11",
-    "nodeSourcesHash": "4f065396c612ce440e4229fb5302161391f3bf94b1e92e1441d2b51042aa63c5",
-    "testSourcesHash": "43639b742278c4ca28a399421b43fb1d4a636ed1d0c4ca75258ac065ab03d5ef",
+    "sourceTreeHash": "137a61512ebce036673eb72baaead315896ab883b2777bb6cf6356645cbe868f",
+    "nodeSourcesHash": "7d4dd9a4ce3d87c6cb19061cf8f07e5246a33b2745b9affab948011ee3ef021c",
+    "testSourcesHash": "ebca20bea4abbbd2b7ae0c15e7fee18ba55404ffdb10de72887bae03e2449fce",
     "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee",
     "executorTreeHash": "95c6502e51bb1db0073be5cf40bd5f453599d8cf0518c078766be43432ab835a",
     "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
     "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7",
     "sourceFileCount": 1095,
-    "sourceTotalBytes": 22148870
+    "sourceTotalBytes": 22148983
   },
   "runtime": {
     "node": "24.14.1",
@@ -98,7 +98,7 @@
   },
   "limits": [
     "Implementation evidence only; provider/account acceptance and live trading remain false.",
-    "The full Node, Python and frontend suites ran on source revision ade2354c; the subsequent delta is limited to the Docker tool layout, workflow import paths, rule-scoped Codacy filesystem exceptions and their supply-chain expectations and is covered by targeted tests plus the final CI run.",
+    "The full Node, Python and frontend suites ran on source revision ade2354c; the subsequent delta is limited to the Docker tool layout, workflow import/evidence mounts, rule-scoped Codacy filesystem exceptions and their supply-chain expectations and is covered by targeted tests plus the final CI run.",
     "No scanner provider result is claimed green before a fresh cloud run on the final pushed SHA.",
     "The Linux container verifier still has to validate the renewed receipt in GitHub Actions."
   ],
