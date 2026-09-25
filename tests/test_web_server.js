@@ -1034,6 +1034,7 @@ async function testRequestValidation(baseUrl) {
     ['/api/import', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{}' }, 400],
     ['/api/access-tokens', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"role":"owner"}' }, 400],
     ['/api/access-tokens/viewer', { method: 'DELETE', headers: mutationHeaders() }, 412],
+    ['/api/secrets/backup-drive-access-token', { method: 'DELETE', headers: mutationHeaders() }, 412],
     ['/api/operations/audit-replay', { method: 'POST', headers: mutationHeaders() }, 412],
     ['/api/backups/recover-offsite', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"objectName":"backup-2026-test.tgfb"}' }, 412],
     ['/api/backups/restore', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"name":"backup-2026-test"}' }, 412],
@@ -1715,31 +1716,7 @@ async function testRuntimeSettingsControl(baseUrl, controls) {
   response = await fetch(`${baseUrl}/api/runtime-settings`, { headers: headers(ADMIN_TOKEN) });
   assert.strictEqual((await response.json()).settings.clockMaxDriftMs, 1000,
     'Rejected updates must leave the persisted clock threshold unchanged.');
-  const driveSettings = { ...settings, backupOffsiteRequired: true,
-    backupOffsiteUrlTemplate: 'https://backup.example.com/{artifact}',
-    backupDriveFolderId: 'folder_1234567890', backupDriveRequired: true };
-  response = await fetch(`${baseUrl}/api/runtime-settings`, {
-    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify(driveSettings)
-  });
-  assert.strictEqual(response.status, 409, 'Drive mirror UI activation must require its managed secret first.');
-  const driveToken = 'staging-drive-access-token-0123456789abcdef';
-  response = await fetch(`${baseUrl}/api/secrets`, {
-    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ backupDriveAccessToken: driveToken })
-  });
-  assert.strictEqual(response.status, 200);
-  const driveSecretStatus = await response.json();
-  assert.strictEqual(driveSecretStatus.secrets.backupDriveAccessToken.configured, true);
-  assert.ok(!JSON.stringify(driveSecretStatus).includes(driveToken), 'Write-only Drive token must not be returned.');
-  response = await fetch(`${baseUrl}/api/runtime-settings`, {
-    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify(driveSettings)
-  });
-  assert.strictEqual(response.status, 200, 'Authenticated staging Drive settings must be persisted after secret setup.');
-  const savedDriveSettings = await response.json();
-  assert.strictEqual(savedDriveSettings.settings.backupDriveRequired, true);
-  assert.strictEqual(savedDriveSettings.active, null, 'Drive mirror settings remain inactive until restart.');
+  await testDriveMirrorTokenDeletion(baseUrl, settings);
   const incompleteEnterprise = {
     ...settings,
     enterpriseMode: true,
@@ -1778,6 +1755,51 @@ async function testRuntimeSettingsControl(baseUrl, controls) {
   });
   assert.strictEqual(response.status, 202);
   assert.strictEqual(controls.restartCalls, 3, 'Restore, factory reset and explicit restart must schedule container restarts');
+}
+
+async function testDriveMirrorTokenDeletion(baseUrl, settings) {
+  const driveSettings = { ...settings, backupOffsiteRequired: true,
+    backupOffsiteUrlTemplate: 'https://backup.example.com/{artifact}',
+    backupDriveFolderId: 'folder_1234567890', backupDriveRequired: true };
+  let response = await fetch(`${baseUrl}/api/runtime-settings`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(driveSettings)
+  });
+  assert.strictEqual(response.status, 409, 'Drive mirror UI activation must require its managed secret first.');
+  const driveToken = 'staging-drive-access-token-0123456789abcdef';
+  response = await fetch(`${baseUrl}/api/secrets`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ backupDriveAccessToken: driveToken })
+  });
+  assert.strictEqual(response.status, 200);
+  const driveSecretStatus = await response.json();
+  assert.strictEqual(driveSecretStatus.secrets.backupDriveAccessToken.configured, true);
+  assert.ok(!JSON.stringify(driveSecretStatus).includes(driveToken), 'Write-only Drive token must not be returned.');
+  response = await fetch(`${baseUrl}/api/runtime-settings`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(driveSettings)
+  });
+  assert.strictEqual(response.status, 200, 'Authenticated staging Drive settings must be persisted after secret setup.');
+  const savedDriveSettings = await response.json();
+  assert.strictEqual(savedDriveSettings.settings.backupDriveRequired, true);
+  assert.strictEqual(savedDriveSettings.active, null, 'Drive mirror settings remain inactive until restart.');
+  response = await fetch(`${baseUrl}/api/secrets/backup-drive-access-token`, {
+    method: 'DELETE',
+    headers: mutationHeaders({ 'X-Destructive-Confirmation': 'delete-backup-drive-access-token' })
+  });
+  assert.strictEqual(response.status, 200, 'An administrator must be able to delete the local Drive token.');
+  const deletedDrive = await response.json();
+  assert.strictEqual(deletedDrive.settings.backupDriveFolderId, '');
+  assert.strictEqual(deletedDrive.settings.backupDriveRequired, false);
+  assert.strictEqual(deletedDrive.secrets.backupDriveAccessToken.configured, false);
+  assert.strictEqual(deletedDrive.restartRequired, true);
+  assert.ok(!JSON.stringify(deletedDrive).includes(driveToken), 'Deletion responses must never return the former token.');
+  response = await fetch(`${baseUrl}/api/runtime-settings`, { headers: headers(ADMIN_TOKEN) });
+  const persistedDrive = (await response.json()).settings;
+  assert.strictEqual(persistedDrive.backupDriveFolderId, '');
+  assert.strictEqual(persistedDrive.backupDriveRequired, false);
+  response = await fetch(`${baseUrl}/api/secrets`, { headers: headers(ADMIN_TOKEN) });
+  assert.strictEqual((await response.json()).secrets.backupDriveAccessToken.configured, false);
 }
 
 async function testUnavailableControlContracts(baseUrl, appState) {

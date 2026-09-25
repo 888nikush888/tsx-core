@@ -209,6 +209,7 @@ interface WebServerState {
     | 'createDashboardAdminToken'
     | 'rotateDashboardToken'
     | 'removeDashboardViewerToken'
+    | 'removeBackupDriveAccessToken'
     | 'clear'
     | 'recoveryStatus'
   >;
@@ -425,6 +426,7 @@ function semanticMutationAction(method: string, url: string): string {
     '/api/setup-bundle/preview': 'setup-bundle.preview',
     '/api/setup-bundle/apply': 'setup-bundle.apply',
     '/api/secrets': 'secrets.update',
+    '/api/secrets/backup-drive-access-token': 'secrets.backup-drive-access-token.delete',
     '/api/control': 'routing.control',
     '/api/telegram-login': 'telegram.authentication.update',
     '/api/runtime-settings': 'runtime.settings.update',
@@ -745,6 +747,35 @@ async function postSecretsHandler(context: RequestContext): Promise<void> {
     });
   } catch (error) {
     sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error)));
+  }
+}
+
+async function deleteBackupDriveAccessTokenHandler(context: RequestContext): Promise<void> {
+  if (!requireConfirmation(context, 'delete-backup-drive-access-token',
+    'Explicit Drive access-token deletion confirmation required.')) return;
+  const { runtimeSettings, secretStore } = context.appState;
+  if (!runtimeSettings || !secretStore) {
+    sendJson(context.res, 503, { error: 'Drive runtime or secret storage is unavailable.', requestId: context.requestId });
+    return;
+  }
+  try {
+    if (secretStore.status().backupDriveAccessToken.source === 'external') {
+      throw new HttpError(409, 'The Drive access token is externally managed and cannot be deleted in the dashboard.');
+    }
+    // Disable the mirror before removing its credential. If deletion then fails,
+    // the durable state remains closed instead of requiring a missing token.
+    await runtimeSettings.set({ backupDriveFolderId: '', backupDriveRequired: false });
+    await secretStore.removeBackupDriveAccessToken();
+    addLog(`[SECURITY] request_id=${context.requestId} Drive staging access token deleted; mirror disabled.`);
+    sendJson(context.res, 200, {
+      success: true,
+      settings: runtimeSettings.snapshot(),
+      secrets: secretStore.status(),
+      restartRequired: true,
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error)));
   }
 }
 
@@ -2658,6 +2689,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/config', postConfigHandler],
   ['GET /api/secrets', secretsHandler],
   ['POST /api/secrets', postSecretsHandler],
+  ['DELETE /api/secrets/backup-drive-access-token', deleteBackupDriveAccessTokenHandler],
   ['POST /api/access-tokens', accessTokenHandler],
   ['DELETE /api/access-tokens/viewer', disableViewerTokenHandler],
   ['POST /api/import', importHandler],

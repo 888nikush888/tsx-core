@@ -298,6 +298,10 @@ export class ManagedSecretStore {
     await this.remove('dashboardViewerToken');
   }
 
+  async removeBackupDriveAccessToken(): Promise<void> {
+    await this.remove('backupDriveAccessToken');
+  }
+
   async clear(): Promise<void> {
     this.assertClearable();
     for (const name of Object.keys(DEFINITIONS) as ManagedSecretName[]) await this.remove(name);

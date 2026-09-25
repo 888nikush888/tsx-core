@@ -154,6 +154,29 @@ describe('operator maintenance safety', () => {
     expect(writes()).toHaveLength(1);
     expect(refresh).not.toHaveBeenCalled();
   });
+  it('deletes the Drive token only after confirmation and sends the exact audited command', async () => {
+    const read = fixtureValue(api.jsonRequest.getMockImplementation(), 'default API implementation');
+    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/secrets') {
+        return Promise.resolve({ secrets: { backupDriveAccessToken: { configured: true, editable: true, source: 'managed' } } });
+      }
+      if (url === '/api/secrets/backup-drive-access-token' && init?.method === 'DELETE') {
+        return Promise.resolve({ success: true, restartRequired: true });
+      }
+      return read(url, init);
+    });
+    mount(<System catalog={null} onRefresh={() => Promise.resolve()} />);
+    const deleteButton = await screen.findByRole('button', { name: 'Drive-Token löschen und Spiegelung deaktivieren' });
+    expect(deleteButton).toBeEnabled();
+    fireEvent.click(deleteButton);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('Eine externe OAuth-Freigabe wird dadurch nicht widerrufen.');
+    fireEvent.click(fixtureValue(screen.getByRole('button', { name: 'Token löschen' }), 'Drive token confirmation'));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    const [url, init] = writes()[0];
+    expect(url).toBe('/api/secrets/backup-drive-access-token');
+    expect(init.headers['X-Destructive-Confirmation']).toBe('delete-backup-drive-access-token');
+  });
   it('reads a job page cursor without issuing a maintenance command', async () => {
     api.jsonRequest.mockResolvedValue({ jobs: [job], observedAt: now, hasMore: true, nextCursor: 'page-two' });
     mount(<JobsPage />);

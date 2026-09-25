@@ -708,6 +708,30 @@
       ]
     },
     {
+      "route": "DELETE /api/secrets/backup-drive-access-token",
+      "handler": "deleteBackupDriveAccessTokenHandler",
+      "handlerSha256": "4c01a26107724bbd365474ab54d3def3f96cbba1fb859ba919cb6db223f9da6d",
+      "role": "admin",
+      "recoveryAllowed": false,
+      "confirmationHeaders": [
+        "delete-backup-drive-access-token"
+      ],
+      "inputVariants": "Single route contract; object identifiers, validated payload and query filters remain authoritative in the referenced handler.",
+      "label": "Zugang, Laufzeit und kontrolliertes Zurücksetzen",
+      "scope": "Installation; bestehende Sitzungen können widerrufen werden",
+      "href": "/operations/settings",
+      "component": "frontend/src/features/operations/system.tsx",
+      "effect": "Gespeicherte Runtimewerte wirken beim Neustart; Zugangsänderungen können sofort Sitzungen widerrufen. Reset benötigt eigene Bestätigung und Backup-Gates.",
+      "contractTests": [
+        "tests/test_runtime_settings.js",
+        "tests/test_web_server.js"
+      ],
+      "browserTests": [
+        "frontend/e2e/ui-next.spec.ts",
+        "frontend/e2e/dashboard.spec.ts"
+      ]
+    },
+    {
       "route": "POST /api/access-tokens",
       "handler": "accessTokenHandler",
       "handlerSha256": "6dd68527fb577bec95ad51c40bdc5ce6dfcd9982559217b51fa00a6d9024a4de",

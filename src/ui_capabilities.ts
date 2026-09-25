@@ -34,7 +34,7 @@ export const UI_CAPABILITY_GROUPS: Group[] = [
     'Manueller Retry kann eine bereits zugestellte Nachricht duplizieren. Manuelle Bestätigung ist kein Provider-Zustellnachweis.', { contractTests: ['tests/test_ui_next_reads.js', 'tests/test_web_server.js'] }),
   group('/api/telegram-login /api/config', 'Telegram, Queue und KI-Grenzen', 'Installation; geerbte Kanal-/Workflowwerte gesondert', '/signals/telegram', 'frontend/src/features/signals/telegram-settings.tsx',
     'Konfiguration mit Versionsvergleich speichern, Queuewerte normalisieren und Telegram-Anmeldung fortsetzen. Session-/Providerstatus gesondert beobachten.', { contractTests: ['tests/test_web_server.js', 'tests/test_ui_operator_commands.js'] }),
-  group('/api/access /api/secrets /api/access-tokens /api/access-tokens/viewer /api/runtime-settings /api/factory-reset /api/clear-database',
+  group('/api/access /api/secrets /api/secrets/backup-drive-access-token /api/access-tokens /api/access-tokens/viewer /api/runtime-settings /api/factory-reset /api/clear-database',
     'Zugang, Laufzeit und kontrolliertes Zurücksetzen', 'Installation; bestehende Sitzungen können widerrufen werden', '/operations/settings', 'frontend/src/features/operations/system.tsx',
     'Gespeicherte Runtimewerte wirken beim Neustart; Zugangsänderungen können sofort Sitzungen widerrufen. Reset benötigt eigene Bestätigung und Backup-Gates.', { contractTests: ['tests/test_runtime_settings.js', 'tests/test_web_server.js'] }),
   group('/api/recovery /api/restart', 'Recovery und Neustart', 'Dienstinstanz und geprüfte Reparaturwerte', '/recovery', 'frontend/src/features/operations/recovery-page.tsx',

@@ -85,6 +85,10 @@ try {
   assert.equal(reloaded.status().dashboardAdminToken.source, 'managed');
   assert.equal(reloaded.status().auditWebhookToken.source, 'managed');
   assert.equal(reloadedEnv.BACKUP_DRIVE_ACCESS_TOKEN, 'test-drive-access-token-0123456789abcdef');
+  await reloaded.removeBackupDriveAccessToken();
+  assert.equal(reloaded.status().backupDriveAccessToken.source, 'missing');
+  assert.equal(reloadedEnv.BACKUP_DRIVE_ACCESS_TOKEN, undefined);
+  await assert.rejects(readFile(path.join(directory, 'backup_drive_access_token')), /ENOENT/);
 
   const externalDirectory = path.join(directory, 'external');
   const externalEnv = { TELEGRAM_API_HASH: 'b'.repeat(32) };
@@ -100,6 +104,12 @@ try {
   await externalAdmin.initialize();
   await assert.rejects(externalAdmin.createDashboardAdminToken(), /already configured/);
   await assert.rejects(externalAdmin.rotateDashboardToken('admin'), /externally managed/);
+  const externalDrive = new ManagedSecretStore(path.join(directory, 'external-drive'), {
+    BACKUP_DRIVE_ACCESS_TOKEN: 'external-drive-access-token-0123456789abcdef',
+  });
+  await externalDrive.initialize();
+  await assert.rejects(externalDrive.removeBackupDriveAccessToken(), /externally managed/);
+  assert.equal(externalDrive.status().backupDriveAccessToken.configured, true);
 
   await reloaded.clear();
   assert.ok(Object.values(reloaded.status()).every(status => status.source === 'missing'));

@@ -73,9 +73,9 @@ function RuntimeSection({ payload, runtime, setRuntime, runtimeForm, busy, saveR
   );
 }
 
-function SecretsSection({ secrets, secretInput, setSecretInput, busy, saveSecrets }: Readonly<{
+function SecretsSection({ secrets, secretInput, setSecretInput, busy, saveSecrets, deleteDriveToken }: Readonly<{
   secrets: ManagedSecretStatuses | null; secretInput: Record<string, string>; setSecretInput: (value: Record<string, string>) => void;
-  busy: string; saveSecrets: () => void | Promise<void>;
+  busy: string; saveSecrets: () => void | Promise<void>; deleteDriveToken: () => void | Promise<void>;
 }>) {
   return (
       <section className="operations-card system-form">
@@ -109,6 +109,14 @@ function SecretsSection({ secrets, secretInput, setSecretInput, busy, saveSecret
           onClick={() => { saveSecrets(); }}
         >
           Secrets sicher speichern
+        </button>
+        <button
+          type="button"
+          className="danger-button"
+          disabled={Boolean(busy) || !secrets?.backupDriveAccessToken?.configured}
+          onClick={() => { deleteDriveToken(); }}
+        >
+          Drive-Token löschen und Spiegelung deaktivieren
         </button>
       </section>
   );
@@ -390,6 +398,22 @@ export function System({
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(secretUpdates),
     }), "Secrets gespeichert. Leere Felder wurden beibehalten.", () => setSecretInput({}));
   };
+  const deleteDriveToken = async () => {
+    if (!await confirm({
+      title: "Drive-Token löschen",
+      description: "Der lokale Drive-Zugang wird entfernt. Die Drive-Spiegelung wird deaktiviert und erfordert einen kontrollierten Neustart. Eine externe OAuth-Freigabe wird dadurch nicht widerrufen.",
+      confirmLabel: "Token löschen",
+      destructive: true,
+    })) return;
+    await execute(
+      "drive-token-delete",
+      () => jsonRequest("/api/secrets/backup-drive-access-token", {
+        method: "DELETE",
+        headers: { "X-Destructive-Confirmation": "delete-backup-drive-access-token" },
+      }),
+      "Drive-Token gelöscht und Drive-Spiegelung deaktiviert. Kontrollierter Neustart erforderlich.",
+    );
+  };
   const saveRuntime = async () => {
     if (runtimeForm.conflict) return;
     const inputError = runtimeInputError(runtime, runtimePayload?.parameters);
@@ -583,7 +607,7 @@ export function System({
       )}
       <TelegramSettings />
       <RuntimeSection payload={runtimePayload} runtime={runtime} setRuntime={setRuntime} runtimeForm={runtimeForm} busy={busy} saveRuntime={saveRuntime} restart={restart} />
-      <SecretsSection secrets={secrets} secretInput={secretInput} setSecretInput={setSecretInput} busy={busy} saveSecrets={saveSecrets} />
+      <SecretsSection secrets={secrets} secretInput={secretInput} setSecretInput={setSecretInput} busy={busy} saveSecrets={saveSecrets} deleteDriveToken={deleteDriveToken} />
       <AccessSection access={access} busy={busy} rotateToken={rotateToken} revokeViewer={revokeViewer} />
       <SetupBundleSection busy={busy} exportSetup={exportSetup} previewSetup={previewSetup} setupPreview={setupPreview} setupMappings={setupMappings} setSetupMappings={setSetupMappings} setupConfirmation={setupConfirmation} setSetupConfirmation={setSetupConfirmation} applySetup={applySetup} />
       <AuditSection operations={operations} busy={busy} replayAudit={replayAudit} setMessage={setMessage} />

@@ -299,6 +299,17 @@
       "inputVariants": "Single route contract; object identifiers, validated payload and query filters remain authoritative in the referenced handler."
     },
     {
+      "route": "DELETE /api/secrets/backup-drive-access-token",
+      "handler": "deleteBackupDriveAccessTokenHandler",
+      "handlerSha256": "4c01a26107724bbd365474ab54d3def3f96cbba1fb859ba919cb6db223f9da6d",
+      "role": "admin",
+      "recoveryAllowed": false,
+      "confirmationHeaders": [
+        "delete-backup-drive-access-token"
+      ],
+      "inputVariants": "Single route contract; object identifiers, validated payload and query filters remain authoritative in the referenced handler."
+    },
+    {
       "route": "POST /api/access-tokens",
       "handler": "accessTokenHandler",
       "handlerSha256": "6dd68527fb577bec95ad51c40bdc5ce6dfcd9982559217b51fa00a6d9024a4de",
