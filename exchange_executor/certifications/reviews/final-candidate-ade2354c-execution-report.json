@@ -50,48 +50,48 @@
   "rawLogs": [
     {
       "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/node-full-suite.log",
-      "bytes": 74494,
-      "sha256": "68ea41f1c684349805f55433eb5adb3e71b6998349cc18959f18c770924c6d80"
+      "bytes": 73722,
+      "sha256": "6b127024f58d7754e81bdf2878a2ee889e84ea7d50f07e51d165272fefbd3e5c"
     },
     {
       "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/python-full-suite.log",
-      "bytes": 115583,
-      "sha256": "a71143813a69c3ff7b350c6d225366372d64fb3d6a9521e81597e4494fa28a45"
+      "bytes": 114962,
+      "sha256": "6569b7b7b62f49efb3e4e8ab387662c86c30be73a8422d638050cf2bacbe1400"
     },
     {
       "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/frontend-full-suite.log",
-      "bytes": 462,
-      "sha256": "d9dd6ce8dd0dca6b61b610fa1c16d14316f796a9db1379675d7610586434578b"
+      "bytes": 448,
+      "sha256": "2671dc9bb944454a6363d3cc532da19c648233f224a68be4b63e262d1d95969d"
     },
     {
       "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/root-build.log",
-      "bytes": 1592,
-      "sha256": "2b73d3e88c51e2257a2f065f416780e8238abc9790f63a9367ebc730bb9b62c1"
+      "bytes": 1563,
+      "sha256": "f59c595412ba4d34df8d10aed492f6c663e98c0abe6dc8d9944d056542f6cf10"
     },
     {
       "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/lint.log",
-      "bytes": 295,
-      "sha256": "0bf7a840e1d89c824db7125d8756da4c051694b895fb99270705b591aef47a8b"
+      "bytes": 291,
+      "sha256": "69130ef054cf1fab17ee7772a6fe5cbc41553ac59b99a0858dc04579379ee2b2"
     },
     {
       "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/lint-frontend.log",
-      "bytes": 116,
-      "sha256": "cecde757fd7b73ca306d4240db99361b4c0037aa860e8dcf466331e66387f25e"
+      "bytes": 108,
+      "sha256": "05cf4f0842f8f0b030b45c51f245ccdab7b4faa125abd0e04fdefe969232e3b1"
     },
     {
       "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/lint-python.log",
-      "bytes": 20,
-      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
     },
     {
       "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/typecheck.log",
-      "bytes": 48,
-      "sha256": "0f77cf5c5793fa7775c3788752e4340bd346e4611e0e2631773e072255b4ddd4"
+      "bytes": 44,
+      "sha256": "36ad9a8a29908c63402af4b6ad27b81468223fb0da68a311a0d31ceba5790316"
     },
     {
       "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/quality-complexity.log",
-      "bytes": 252,
-      "sha256": "9bd071385a7a18e71d97b10b322aa25543a6200f3e93fd9d173e27ff4e8a69f5"
+      "bytes": 247,
+      "sha256": "a8cc08eee33bb8d06997ef6629b09b3d446cbe5039ae2ffd0ff9bf94cd95470c"
     }
   ],
   "providerAcceptanceVerified": false,
