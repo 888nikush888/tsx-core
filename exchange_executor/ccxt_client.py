@@ -99,6 +99,23 @@ def _assert_agent_testnet_client(client: Any) -> None:
         raise ExchangeContractError("Hyperliquid Testnet agent SDK origin is unproved.")
 
 
+async def _agent_grant_for(
+    account: dict[str, str], exchange: str, secret: dict[str, Any],
+) -> AgentGrant | None:
+    if exchange != "hyperliquid":
+        return None
+    signer = _hyperliquid_signer_address(secret)
+    master = secret["walletAddress"].lower()
+    if hmac.compare_digest(signer, master):
+        return None
+    if account["mode"] != "testnet" or set(secret) != {"privateKey", "walletAddress"}:
+        raise ExchangeContractError("Hyperliquid agent credentials are restricted to Testnet.")
+    try:
+        return await asyncio.to_thread(read_testnet_agent_grant, master, signer)
+    except AgentGrantRefused:
+        raise ExchangeContractError("Hyperliquid Testnet agent grant is unproved.") from None
+
+
 def _client_configuration(account: dict[str, str], secret: dict[str, Any]) -> dict[str, Any]:
     profile = profile_for(account["exchange"])
     if profile is None:
@@ -241,17 +258,7 @@ class CcxtClientRegistry:
         if account["mode"] not in descriptor.get("modes", []):
             raise ExchangeContractError("Account mode is not certified for this exchange.")
         secret = self.credentials.account(account["id"], exchange)["credentials"]
-        agent_grant = None
-        if exchange == "hyperliquid":
-            signer = _hyperliquid_signer_address(secret)
-            master = secret["walletAddress"].lower()
-            if not hmac.compare_digest(signer, master):
-                if account["mode"] != "testnet" or set(secret) != {"privateKey", "walletAddress"}:
-                    raise ExchangeContractError("Hyperliquid agent credentials are restricted to Testnet.")
-                try:
-                    agent_grant = await asyncio.to_thread(read_testnet_agent_grant, master, signer)
-                except AgentGrantRefused:
-                    raise ExchangeContractError("Hyperliquid Testnet agent grant is unproved.") from None
+        agent_grant = await _agent_grant_for(account, exchange, secret)
         fingerprint = _credential_fingerprint(secret, exchange, account["mode"])
         cache_key = account["id"]
         existing = self._clients.get(cache_key)

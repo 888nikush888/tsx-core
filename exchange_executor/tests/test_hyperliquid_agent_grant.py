@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import ssl
 import time
 import unittest
 from types import SimpleNamespace
@@ -111,6 +112,7 @@ class AgentGrantContractTests(unittest.TestCase):
             def __init__(self, host, **kwargs):
                 observed["host"] = host
                 observed["timeout"] = kwargs["timeout"]
+                observed["context"] = kwargs["context"]
 
             def request(self, method, path, *, body, headers):
                 observed.update(method=method, path=path, body=json.loads(body), headers=headers)
@@ -131,6 +133,8 @@ class AgentGrantContractTests(unittest.TestCase):
         self.assertEqual(observed["method"], "POST")
         self.assertEqual(observed["body"], {"type": "userRole", "user": SIGNER})
         self.assertEqual(observed["timeout"], 4)
+        self.assertEqual(observed["context"].verify_mode, ssl.CERT_REQUIRED)
+        self.assertTrue(observed["context"].check_hostname)
         self.assertTrue(observed["closed"])
 
 
@@ -189,6 +193,10 @@ class AgentRegistryTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         await self.registry.close()
 
+    async def _run_forbidden_mutation(self, deadline):
+        async with self.registry.mutation(self.account, deadline):
+            self.fail("Refused mutation reached the mutation body.")
+
     async def test_revalidates_under_mutation_lock_and_refuses_revoked_grant(self):
         calls = []
 
@@ -207,9 +215,9 @@ class AgentRegistryTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(FakeSdk.instances), 2)
             async with self.registry.mutation(self.account, RequestDeadline(int(time.time() * 1000) + 30_000)):
                 pass
+            revoked_deadline = RequestDeadline(int(time.time() * 1000) + 30_000)
             with self.assertRaisesRegex(ExchangeContractError, "agent grant is unproved"):
-                async with self.registry.mutation(self.account, RequestDeadline(int(time.time() * 1000) + 30_000)):
-                    self.fail("Revoked grant reached the mutation body.")
+                await self._run_forbidden_mutation(revoked_deadline)
             self.assertEqual(len(calls), 3)
             self.assertEqual(len(FakeSdk.instances), 2)
 
@@ -225,9 +233,9 @@ class AgentRegistryTests(unittest.IsolatedAsyncioTestCase):
               patch.object(ccxt_client.ccxt_async, "hyperliquid", FakeSdk),
               patch.object(ccxt_client.ccxt_pro, "hyperliquid", FakeSdk)):
             await self.registry.account(self.account)
+            changed_grant_deadline = RequestDeadline(int(time.time() * 1000) + 30_000)
             with self.assertRaisesRegex(ExchangeContractError, "fingerprint or credential generation"):
-                async with self.registry.mutation(self.account, RequestDeadline(int(time.time() * 1000) + 30_000)):
-                    self.fail("Changed grant reached the mutation body.")
+                await self._run_forbidden_mutation(changed_grant_deadline)
             self.assertEqual(len(FakeSdk.instances), 4)
             self.assertTrue(all(client.closed for client in FakeSdk.instances[:2]))
 
@@ -249,9 +257,9 @@ class AgentRegistryTests(unittest.IsolatedAsyncioTestCase):
         with (patch.object(ccxt_client, "read_testnet_agent_grant", return_value=soon),
               patch.object(ccxt_client.ccxt_async, "hyperliquid", FakeSdk),
               patch.object(ccxt_client.ccxt_pro, "hyperliquid", FakeSdk)):
+            expiring_deadline = RequestDeadline(int(time.time() * 1000) + 30_000)
             with self.assertRaisesRegex(ExchangeContractError, "expires within"):
-                async with self.registry.mutation(self.account, RequestDeadline(int(time.time() * 1000) + 30_000)):
-                    self.fail("Expiring grant reached mutation body.")
+                await self._run_forbidden_mutation(expiring_deadline)
 
     async def test_agent_sdk_routes_fail_closed_on_mainnet_proxy_and_late_url_drift(self):
         with (patch.object(ccxt_client, "read_testnet_agent_grant", return_value=self.proof),
@@ -278,15 +286,15 @@ class AgentRegistryTests(unittest.IsolatedAsyncioTestCase):
                 {"type": "order", "orders": [{"a": 1}], "builder": {"f": 1}},
                 {"type": "cancel", "cancels": [{"a": 100_000}]},
             ):
+                body = json.dumps({"action": action, "nonce": 1, "signature": {}})
                 with self.subTest(action=action), self.assertRaises(ExchangeContractError):
-                    await clients.rest.fetch(grant.TESTNET_ORIGIN + "/exchange", "POST", body=json.dumps({
-                        "action": action, "nonce": 1, "signature": {},
-                    }))
+                    await clients.rest.fetch(grant.TESTNET_ORIGIN + "/exchange", "POST", body=body)
+            foreign_vault_body = json.dumps({
+                "action": {"type": "order", "orders": [{"a": 1}]},
+                "nonce": 1, "signature": {}, "vaultAddress": MASTER,
+            })
             with self.assertRaises(ExchangeContractError):
-                await clients.rest.fetch(grant.TESTNET_ORIGIN + "/exchange", "POST", body=json.dumps({
-                    "action": {"type": "order", "orders": [{"a": 1}]},
-                    "nonce": 1, "signature": {}, "vaultAddress": MASTER,
-                }))
+                await clients.rest.fetch(grant.TESTNET_ORIGIN + "/exchange", "POST", body=foreign_vault_body)
             clients.rest.proxy = "http://local-proxy"
             with self.assertRaises(ExchangeContractError):
                 await clients.rest.fetch(grant.TESTNET_ORIGIN + "/info", "POST")

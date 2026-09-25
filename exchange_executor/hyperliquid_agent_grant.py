@@ -23,6 +23,7 @@ MAX_RESPONSE_BYTES = 64 * 1024
 MAX_AGENTS = 16
 MIN_REMAINING_MS = 35_000
 ADDRESS = re.compile(r"0x[0-9a-fA-F]{40}\Z")
+_REFUSAL_MESSAGE = "Hyperliquid Testnet agent grant is unproved."
 
 
 class AgentGrantRefused(ValueError):
@@ -37,7 +38,7 @@ class AgentGrant:
 
 def _refuse(condition: bool) -> None:
     if not condition:
-        raise AgentGrantRefused("Hyperliquid Testnet agent grant is unproved.")
+        raise AgentGrantRefused(_REFUSAL_MESSAGE)
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -49,7 +50,14 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def _invalid_constant(_value: str) -> None:
-    raise AgentGrantRefused("Hyperliquid Testnet agent grant is unproved.")
+    raise AgentGrantRefused(_REFUSAL_MESSAGE)
+
+
+def _verified_tls_context() -> ssl.SSLContext:
+    context = ssl.create_default_context()
+    context.verify_mode = ssl.CERT_REQUIRED
+    context.check_hostname = True
+    return context
 
 
 def _post_info(payload: dict[str, str]) -> Any:
@@ -61,7 +69,7 @@ def _post_info(payload: dict[str, str]) -> Any:
     connection = None
     try:
         connection = http.client.HTTPSConnection(
-            TESTNET_HOST, timeout=4, context=ssl.create_default_context(),
+            TESTNET_HOST, timeout=4, context=_verified_tls_context(),
         )
         body = json.dumps(payload, separators=(",", ":")).encode("ascii")
         connection.request("POST", "/info", body=body, headers={
@@ -74,7 +82,7 @@ def _post_info(payload: dict[str, str]) -> Any:
         _refuse(len(raw) <= MAX_RESPONSE_BYTES)
         return json.loads(raw, object_pairs_hook=_unique_object, parse_constant=_invalid_constant)
     except Exception:
-        raise AgentGrantRefused("Hyperliquid Testnet agent grant is unproved.") from None
+        raise AgentGrantRefused(_REFUSAL_MESSAGE) from None
     finally:
         if connection is not None:
             try:
@@ -122,4 +130,4 @@ def read_testnet_agent_grant(
         encoded = json.dumps(descriptor, sort_keys=True, separators=(",", ":")).encode("ascii")
         return AgentGrant(hashlib.sha256(encoded).hexdigest(), grant["validUntil"])
     except Exception:
-        raise AgentGrantRefused("Hyperliquid Testnet agent grant is unproved.") from None
+        raise AgentGrantRefused(_REFUSAL_MESSAGE) from None
