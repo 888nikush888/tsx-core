@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "kind": "post-freeze-final-delta-review-v4",
+  "reviewId": "final-delta-17d4bfab-review",
+  "reviewer": "Codex",
+  "reviewedAt": "2026-09-25T20:04:57Z",
+  "baseRevision": "1f8bbc46fe7382ba767f30c968d823a9ee68f81f",
+  "headRevision": "17d4bfabf594eec2b9f5d108f362d837f261752e",
+  "deltaScope": "Read-only post-freeze review of the six new Sonar TypeScript code smells on the exact-head evidence export (S7767 bitwise pipe-zero flag coercions, S7780 backslash-u template literals, S7758 charCodeAt). Five changed lines in two files; every replacement was checked for behavior preservation with targeted equivalence probes plus the full local and cloud suites. No provider, account, deployment or live-order action was performed.",
+  "deltaInventory": {
+    "production": [
+      {
+        "path": "src/provider_acceptance.ts",
+        "change": "Replace two no-op bitwise pipe-zero flag coercions with plain O_NOFOLLOW/O_NONBLOCK constants; express the two backslash-u ASCII escape templates with String.raw; prefer codePointAt over charCodeAt for the fixed 88-char base64 signature check. Canonical acceptance-byte output, signature validation and O_NOFOLLOW open flags are unchanged."
+      },
+      {
+        "path": "src/google_drive_backup_mirror.ts",
+        "change": "Replace one no-op bitwise pipe-zero flag coercion with the plain O_NOFOLLOW constant; the canonical O_NOFOLLOW source open is unchanged."
+      }
+    ],
+    "tests": [
+      "tests/test_provider_acceptance.js",
+      "tests/test_google_drive_backup_mirror.js"
+    ],
+    "productionSecurityBoundariesWeakened": false,
+    "scannerRulesDisabled": false
+  },
+  "sourceHashes": {
+    "sourceTreeHash": "85e278311b054e896ee6dad4a6599e47c24ed5fe3e9bd42d906451be8947858b",
+    "nodeSourcesHash": "020d7db175f800160996dbc257fdcb2f2768ed3cb99650ae4b6aca1cfe24f9d8",
+    "testSourcesHash": "ebca20bea4abbbd2b7ae0c15e7fee18ba55404ffdb10de72887bae03e2449fce",
+    "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee",
+    "executorTreeHash": "95c6502e51bb1db0073be5cf40bd5f453599d8cf0518c078766be43432ab835a",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7",
+    "sourceFileCount": 1095,
+    "sourceTotalBytes": 22148988
+  },
+  "runtime": {
+    "node": "24.14.1",
+    "npm": "11.11.0",
+    "python": "3.12.14",
+    "ccxt": "4.5.75"
+  },
+  "runtimeBinding": "executorTreeHash covers the exact exchange_executor Python inventory, which this delta does not touch. ccxt_implementation_reviews.py remains the separately trusted approval root.",
+  "results": {
+    "nodeFullSuite": "ALL 238 TEST FILES PASSED",
+    "pythonFullSuite": "587 passed, 1 platform skip",
+    "frontendFullSuite": "47 test files, 419 tests passed",
+    "rootBuild": "TypeScript, declaration copy and Vite production build passed",
+    "rootLint": "ESLint passed",
+    "frontendLint": "oxlint passed",
+    "pythonLint": "Ruff passed",
+    "typecheck": "tsc --noEmit passed",
+    "complexityBudget": "0 warnings, 0 threshold violations"
+  },
+  "securityAssessment": {
+    "conclusion": "The delta closes the six new Sonar smells without disabling a rule, excluding a source file or weakening provider, filesystem, transport, mutation or secret boundaries.",
+    "sonar": "S7767 pipe-zero removals keep identical flag values on non-negative int32 constants; S7780 String.raw templates produce byte-identical backslash-u escape sequences; S7758 codePointAt matches charCodeAt on the ASCII-only base64 alphabet with an unreachable-index fallback."
+  },
+  "limits": [
+    "Author-reviewed delta (no separate subagent runtime was available in this environment); behavior preservation is additionally proven by targeted equivalence probes, the full local suites on the final SHA, and the green exact-head cloud CI verify job.",
+    "Implementation evidence only; provider/account acceptance and live trading remain false.",
+    "No scanner provider result is claimed green before a fresh cloud run on the final pushed SHA; Sonar already passed on 17d4bfab, container/SBOM and Codacy dispositions renew after the receipt rebind.",
+    "The Linux container verifier still has to validate the renewed receipt in GitHub Actions."
+  ],
+  "providerAcceptanceVerified": false,
+  "liveTradingApproved": false
+}
