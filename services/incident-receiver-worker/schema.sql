@@ -1,3 +1,6 @@
+/* tsqllint-disable set-quoted-identifier */
+-- SQLite does not support SET QUOTED_IDENTIFIER.
+
 CREATE TABLE IF NOT EXISTS incident_deliveries (
   delivery_key TEXT PRIMARY KEY,
   state TEXT NOT NULL CHECK (state IN ('pending', 'retryable', 'unknown', 'delivered')),

@@ -12,7 +12,7 @@ const HASH = /^[a-f0-9]{64}$/;
 const MAGIC = Buffer.from('TGFE1\0', 'ascii');
 const MIN_OBJECT_BYTES = MAGIC.length + 12 + 1 + 16;
 // B2 standard single-request uploads are limited to 5 GB; larger objects need multipart.
-const DEFAULT_MAX_BYTES = 5_000_000_000;
+const DEFAULT_MAX_BYTES = 5000000000;
 const MAX_OPERATION_MS = 15 * 60_000;
 
 function status(error) {

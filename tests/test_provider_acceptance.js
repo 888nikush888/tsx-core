@@ -15,13 +15,13 @@ const account = {
 const canonicalVector = {
   accountId: 'account-1', credentialGeneration: 'b'.repeat(64), exchange: 'hyperliquid',
   externalAccountId: 'a'.repeat(64), mode: 'live', product: 'swap:linear', reviewId: 'review-1',
-  validFrom: 1_700_000_000_000, validUntil: 1_700_000_060_000, version: 1,
+  validFrom: 1700000000000, validUntil: 1700000060000, version: 1,
 };
 assert.equal(createHash('sha256').update(canonicalProviderGrant(canonicalVector)).digest('hex'),
   'ea49c3dc78413a146c70a337c59f6a1f1b0ad8b193aa59a612983a007541e46f');
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/provider_acceptance_signature.json', import.meta.url), 'utf8'));
 assert.equal(signedGrantValid({ grant: fixture.grant, signature: fixture.signature }, account,
-  1_700_000_001_000, createPublicKey(fixture.reviewerPublicKeyPem)), true,
+  1700000001000, createPublicKey(fixture.reviewerPublicKeyPem)), true,
 'The signed vector must verify with the same canonical bytes in Node and Python.');
 
 const { privateKey, publicKey } = generateKeyPairSync('ed25519');

@@ -14,6 +14,7 @@ const tempRoots = [];
 const token = 't'.repeat(64);
 const name = 'backup-2026-fixture.tgfb';
 const fixedNow = Date.parse('2026-09-24T00:00:00.000Z');
+const DAY_MS = 24 * 60 * 60 * 1000;
 const sha = data => createHash('sha256').update(data).digest('hex');
 const encrypted = data => Buffer.concat([
   Buffer.from('TGFE1\0', 'ascii'), Buffer.alloc(12), Buffer.from(data), Buffer.alloc(16)
@@ -121,7 +122,7 @@ test('PUT verifies bytes, applies compliance lock, checks HEAD and returns reten
   const bytes = encrypted('encrypted backup bytes');
   const put = await request(url, 'PUT', bytes);
   assert.equal(put.status, 201);
-  assert.equal(put.headers.get('x-backup-retention-until'), new Date(fixedNow + 31 * 86400000).toISOString());
+  assert.equal(put.headers.get('x-backup-retention-until'), new Date(fixedNow + 31 * DAY_MS).toISOString());
   assert.deepEqual(client.calls.map(call => call.type), [
     'ListObjectVersionsCommand', 'PutObjectCommand', 'HeadObjectCommand',
     'GetObjectRetentionCommand', 'ListObjectVersionsCommand'
@@ -173,7 +174,7 @@ test('never issues a retention receipt if provider omits or changes lock, hash, 
   client.send = async command => {
     const result = await originalSend(command);
     if (command.constructor.name === 'GetObjectRetentionCommand') {
-      result.Retention.RetainUntilDate = new Date(fixedNow + 29 * 86400000);
+      result.Retention.RetainUntilDate = new Date(fixedNow + 29 * DAY_MS);
     }
     return result;
   };
@@ -197,7 +198,7 @@ test('still reads the sole verified version after its retention period expires',
   const { client, url } = await fixture();
   const bytes = encrypted('older locked backup');
   assert.equal((await request(url, 'PUT', bytes)).status, 201);
-  client.entries[0].until = new Date(fixedNow - 86400000);
+  client.entries[0].until = new Date(fixedNow - DAY_MS);
   const get = await request(url);
   assert.equal(get.status, 200);
   assert.deepEqual(Buffer.from(await get.arrayBuffer()), bytes);
@@ -205,7 +206,7 @@ test('still reads the sole verified version after its retention period expires',
 
 test('rejects external versions before upload', async () => {
   const { client, url } = await fixture();
-  client.entries.push({ key: `tsx-core/${name}`, version: 'external', bytes: Buffer.from('x'), metadata: { sha256: sha('x') }, until: new Date(fixedNow + 31 * 86400000) });
+  client.entries.push({ key: `tsx-core/${name}`, version: 'external', bytes: Buffer.from('x'), metadata: { sha256: sha('x') }, until: new Date(fixedNow + 31 * DAY_MS) });
   assert.equal((await request(url, 'PUT', encrypted('new'))).status, 502);
   assert.equal(client.entries.length, 1);
 });
@@ -217,7 +218,7 @@ test('re-adopts only a byte-identical retained version after full version-pinned
   const firstPutCount = client.calls.filter(call => call.type === 'PutObjectCommand').length;
   const replay = await request(url, 'PUT', bytes);
   assert.equal(replay.status, 200);
-  assert.equal(replay.headers.get('x-backup-retention-until'), new Date(fixedNow + 31 * 86400000).toISOString());
+  assert.equal(replay.headers.get('x-backup-retention-until'), new Date(fixedNow + 31 * DAY_MS).toISOString());
   assert.equal(client.calls.filter(call => call.type === 'PutObjectCommand').length, firstPutCount);
   assert.ok(client.calls.some(call => call.type === 'GetObjectCommand' && call.input.VersionId === 'version-1'));
   assert.equal((await request(url, 'PUT', encrypted(Buffer.alloc(65536, 8)))).status, 502);
@@ -232,9 +233,9 @@ test('replay fails if retention has shortened or a second version exists', async
   const { client, url } = await fixture();
   const bytes = encrypted('same');
   assert.equal((await request(url, 'PUT', bytes)).status, 201);
-  client.entries[0].until = new Date(fixedNow + 29 * 86400000);
+  client.entries[0].until = new Date(fixedNow + 29 * DAY_MS);
   assert.equal((await request(url, 'PUT', bytes)).status, 502);
-  client.entries[0].until = new Date(fixedNow + 31 * 86400000);
+  client.entries[0].until = new Date(fixedNow + 31 * DAY_MS);
   client.entries.push({ ...client.entries[0], version: 'external-version' });
   assert.equal((await request(url, 'PUT', bytes)).status, 409);
 });
