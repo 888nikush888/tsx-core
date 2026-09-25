@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "kind": "final-source-bound-execution-report",
+  "revision": "0b367bc0ff5a6755f695d501bd6bdfdd57ba6edb",
+  "executionBaseRevision": "fe233fd2f9cd1dbaed303bbac5e6cdf83640cdb6",
+  "deltaScope": "Only frontend/tests/operator-maintenance-safety.test.tsx and eslint.config.js changed after the full Python, Node and frontend executions.",
+  "independentReview": {
+    "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review.json",
+    "sha256": "6b7b9ef5a6b1311f69af91032a6abd6ff236e6a09f9dda6dbed72d5fb4c55d04",
+    "reviewedRevision": "8e7b7869d49d7ab5bf6222cd97f02ffdfecc7b25"
+  },
+  "deltaReview": {
+    "path": "exchange_executor/certifications/reviews/final-delta-606374b9-review.json",
+    "sha256": "71d5dc4808aa2ab626fa07163ce2e3b8859a95807564a43783e921dbfe0febc9"
+  },
+  "candidateEvidenceRevision": "2def6a1c361d9c66fd3bbee99f3b59da61a539f3",
+  "sourceCommitments": {
+    "sourceTreeHash": "ecd6cda37c7a21b28df5821784808d99203c6b08c27a98ef79b62655acf27816",
+    "nodeSourcesHash": "568317875cbebccace68d4470453f1d1e6248c2056b5bcd2c5b70513150e27d5",
+    "testSourcesHash": "879f3c647ace3317191228df943297102e7167f1cff8fe50e2484f1b889cd2df",
+    "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee"
+  },
+  "runtimeCommitments": {
+    "executorTreeHash": "842fd984dc8e473ec1d0a93064753211123e0fbf05f54787c32c1a503ac978d9",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7"
+  },
+  "environment": {
+    "node": "22.23.2",
+    "npm": "10.9.8",
+    "python": "3.12.14",
+    "ccxt": "4.5.75"
+  },
+  "results": {
+    "pythonFullSuite": "587 passed, 1 platform skip",
+    "nodeFullSuite": "ALL 238 TEST FILES PASSED",
+    "frontendFullSuite": "47 test files, 419 tests passed",
+    "rootBuild": "TypeScript, declaration copy and Vite production build passed",
+    "rootLint": "ESLint passed",
+    "frontendLint": "oxlint passed",
+    "pythonLint": "Ruff passed",
+    "typecheck": "tsc --noEmit passed",
+    "complexityBudget": "0 warnings, 0 threshold violations"
+  },
+  "rawLogs": [
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/eslint.log",
+      "bytes": 291,
+      "sha256": "69130ef054cf1fab17ee7772a6fe5cbc41553ac59b99a0858dc04579379ee2b2"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/frontend-full-suite.log",
+      "bytes": 451,
+      "sha256": "731edc7309358f8aff033e7fe9ed2f845494e600a24e4b0b3bd2d25c99fcc2d7"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/node-full-suite.log",
+      "bytes": 75293,
+      "sha256": "6147cf0b5ea9eed66716b15119df7204447627f7d571729c81fd35c6a4dbba2e"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/python-full-suite.log",
+      "bytes": 8285,
+      "sha256": "4981aa2c8c8965a38d2c04ab83e44117cb8d7800776350159abcbf427ea5ac97"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/root-build.log",
+      "bytes": 1563,
+      "sha256": "aa55d7dd34986bf299f42a4aed207bf54ac28b9b31c53718e40ed92135bc2d78"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/typescript-typecheck.log",
+      "bytes": 44,
+      "sha256": "36ad9a8a29908c63402af4b6ad27b81468223fb0da68a311a0d31ceba5790316"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-0b367bc0-logs/quality-complexity.log",
+      "bytes": 247,
+      "sha256": "a8cc08eee33bb8d06997ef6629b09b3d446cbe5039ae2ffd0ff9bf94cd95470c"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-0b367bc0-logs/lint.log",
+      "bytes": 291,
+      "sha256": "69130ef054cf1fab17ee7772a6fe5cbc41553ac59b99a0858dc04579379ee2b2"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-0b367bc0-logs/lint-frontend.log",
+      "bytes": 108,
+      "sha256": "05cf4f0842f8f0b030b45c51f245ccdab7b4faa125abd0e04fdefe969232e3b1"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-0b367bc0-logs/lint-python.log",
+      "bytes": 91,
+      "sha256": "7aa3b13aab25f4c8eba18f88adf039c1744b7c3add11c32c0782963861973fa6"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-0b367bc0-logs/typecheck.log",
+      "bytes": 44,
+      "sha256": "36ad9a8a29908c63402af4b6ad27b81468223fb0da68a311a0d31ceba5790316"
+    }
+  ],
+  "providerAcceptanceVerified": false,
+  "liveTradingApproved": false,
+  "limitations": [
+    "Local implementation and execution evidence only; no provider acceptance, deployment or live order was performed.",
+    "Full Python, Node and frontend suites were run on the execution base revision; the final delta is limited to one test race fix and ESLint diagnostics and was independently reviewed separately.",
+    "The POSIX FIFO and final-file-symlink branch remains a Linux CI responsibility."
+  ]
+}
