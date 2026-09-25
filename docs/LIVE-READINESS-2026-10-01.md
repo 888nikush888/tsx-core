@@ -1,5 +1,11 @@
 # TSX Core: Live-Readiness bis 01.10.2026
 
+> **Historische Gate- und Nachweisakte.** Der verbindliche Zieltermin ist der
+> [vollständige Live-Plan bis 31.10.2026](FULL-LIVE-PLAN-2026-10-31.md). Am
+> 01.10.2026 ist kein Produktstart und kein begrenzter Live-Canary vorgesehen.
+> Die 25 Vorabgates und ihre Nachweise bleiben Mindestbedingungen; Aussagen zu
+> 01.10., Canary-Rollout und damaligem Scope sind historisch.
+
 Stand: 24.09.2026, 20:53 UTC. Owner und einzige Freigabestelle: Betreiber `888nikush888` in diesem Gespräch; technische Umsetzung: Codex. **Der Betreiber hat die Live-Freigabe für den 01.10.2026 terminiert und bestätigt, dass er sie hier erteilt.** Der an diesem Tag tatsächlich freigebbare Umfang wird SHA-, Host-, Börsen-, Produkt- und Konto-spezifisch anhand der folgenden Nachweise festgestellt. Die verpflichtende 30-Tage-Wartezeit ist aufgehoben. Fehlende Evidenz bleibt ein technisches NO-GO für den betroffenen Handels-Scope; es gibt keine fingierten Testnet- oder Börsennachweise und keine zusätzliche externe Freigabestelle.
 
 ## Fortschritt auf einen Blick
