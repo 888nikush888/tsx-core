@@ -24,8 +24,8 @@ class FakeD1 {
   prepare(sql) {
     return {
       bind: (...values) => ({
-        run: async () => this.write(sql, values),
-        first: async () => this.read(sql, values),
+        run: () => Promise.resolve(this.write(sql, values)),
+        first: () => Promise.resolve(this.read(sql, values)),
       }),
     };
   }
@@ -111,7 +111,10 @@ const db = new FakeD1();
 const settings = env(db);
 const sends = [];
 let nowMs = 1_700_000_000_000;
-const offlineFetch = async (url, options) => { sends.push({ url, options }); return success(sends.length); };
+const offlineFetch = (url, options) => {
+  sends.push({ url, options });
+  return Promise.resolve(success(sends.length));
+};
 const invoke = (req, bindings = settings, fetchImpl = offlineFetch) => handleIncidentRequest(req, bindings,
   { fetchImpl, now: () => nowMs });
 
@@ -125,7 +128,7 @@ assert.ok(outgoing instanceof FormData);
 assert.equal(outgoing.get('chat_id'), chatId);
 assert.match(outgoing.get('caption'), /FIRING/u);
 assert.match(outgoing.get('caption'), /receipt=[a-f0-9]{64}/u);
-assert.match(outgoing.get('caption'), new RegExp(`receipt=${[...db.rows.keys()][0]}`, 'u'));
+assert.ok(outgoing.get('caption').includes(`receipt=${[...db.rows.keys()][0]}`));
 assert.equal(sends[0].options.headers, undefined, 'fetch must set the multipart boundary');
 const sentDocument = JSON.parse(await outgoing.get('document').text());
 assert.equal(sentDocument.alerts[0].correlation_id, 'single_-1001_42');
@@ -137,9 +140,9 @@ assert.match(sends[1].options.body.get('caption'), /RESOLVED/u);
 assert.equal(sends.length, 2);
 
 const boundarySends = [];
-const boundaryFetch = async (url, options) => {
+const boundaryFetch = (url, options) => {
   boundarySends.push({ url, options });
-  return success(100 + boundarySends.length);
+  return Promise.resolve(success(100 + boundarySends.length));
 };
 const boundaryEnv = env(new FakeD1());
 assert.equal((await invoke(request(JSON.stringify({ status: 'firing', alerts: [] })), boundaryEnv, boundaryFetch)).status, 202);
@@ -218,7 +221,10 @@ assert.equal(sends.length, 2, 'ledger failure must precede delivery');
 
 const unknown = new FakeD1();
 let attempted = 0;
-const networkFailure = async () => { attempted += 1; throw new Error(`hidden token ${botToken}`); };
+const networkFailure = () => {
+  attempted += 1;
+  return Promise.reject(new Error(`hidden token ${botToken}`));
+};
 const unknownPayload = body('firing', { groupKey: 'unknown-send' });
 response = await invoke(request(unknownPayload), env(unknown), networkFailure);
 assert.equal(response.status, 503);
@@ -229,7 +235,10 @@ assert.equal([...unknown.rows.values()][0].state, 'unknown');
 
 const malformedReply = new FakeD1();
 let malformedCalls = 0;
-const malformedFetch = async () => { malformedCalls += 1; return new Response('{bad', { status: 200 }); };
+const malformedFetch = () => {
+  malformedCalls += 1;
+  return Promise.resolve(new Response('{bad', { status: 200 }));
+};
 const malformedPayload = body('firing', { groupKey: 'malformed-telegram-reply' });
 assert.equal((await invoke(request(malformedPayload), env(malformedReply), malformedFetch)).status, 503);
 assert.equal((await invoke(request(malformedPayload), env(malformedReply), malformedFetch)).status, 503);
@@ -237,9 +246,9 @@ assert.equal(malformedCalls, 1);
 
 const rejectedByTelegram = new FakeD1();
 let rejectedCalls = 0;
-const rejectedFetch = async () => {
+const rejectedFetch = () => {
   rejectedCalls += 1;
-  return new Response(JSON.stringify({ ok: false, description: 'invalid document' }), { status: 400 });
+  return Promise.resolve(new Response(JSON.stringify({ ok: false, description: 'invalid document' }), { status: 400 }));
 };
 const rejectedPayload = body('firing', { groupKey: 'provider-rejected-document' });
 assert.equal((await invoke(request(rejectedPayload), env(rejectedByTelegram), rejectedFetch)).status, 503);
@@ -252,9 +261,9 @@ for (const [suffix, result] of [
 ]) {
   const ledger = new FakeD1();
   let calls = 0;
-  const provider = async () => {
+  const provider = () => {
     calls += 1;
-    return new Response(JSON.stringify({ ok: true, result }), { status: 200 });
+    return Promise.resolve(new Response(JSON.stringify({ ok: true, result }), { status: 200 }));
   };
   const payload = body('firing', { groupKey: suffix });
   assert.equal((await invoke(request(payload), env(ledger), provider)).status, 503);
@@ -266,7 +275,7 @@ for (const [suffix, result] of [
 const lostCommit = new FakeD1();
 lostCommit.failDelivered = true;
 let committedSends = 0;
-const committedFetch = async () => { committedSends += 1; return success(); };
+const committedFetch = () => { committedSends += 1; return Promise.resolve(success()); };
 const commitPayload = body('firing', { groupKey: 'lost-commit' });
 assert.equal((await invoke(request(commitPayload), env(lostCommit), committedFetch)).status, 503);
 assert.equal((await invoke(request(commitPayload), env(lostCommit), committedFetch)).status, 503);
@@ -275,11 +284,11 @@ assert.equal([...lostCommit.rows.values()][0].state, 'pending');
 
 const retry = new FakeD1();
 let retryCalls = 0;
-const retryFetch = async () => {
+const retryFetch = () => {
   retryCalls += 1;
-  return retryCalls === 1
+  return Promise.resolve(retryCalls === 1
     ? new Response(JSON.stringify({ ok: false, parameters: { retry_after: 3 } }), { status: 429 })
-    : success(77);
+    : success(77));
 };
 const retryPayload = body('firing', { groupKey: 'rate-limited' });
 assert.equal((await invoke(request(retryPayload), env(retry), retryFetch)).status, 503);
@@ -292,11 +301,11 @@ assert.equal(retryCalls, 2);
 const longRetry = new FakeD1();
 let longRetryAt = nowMs;
 let longRetryCalls = 0;
-const longRetryFetch = async () => {
+const longRetryFetch = () => {
   longRetryCalls += 1;
-  return longRetryCalls === 1
+  return Promise.resolve(longRetryCalls === 1
     ? new Response(JSON.stringify({ ok: false, parameters: { retry_after: 1800 } }), { status: 429 })
-    : success(78);
+    : success(78));
 };
 const longPayload = body('firing', { groupKey: 'long-rate-limit' });
 const invokeLong = () => handleIncidentRequest(request(longPayload), env(longRetry),
@@ -308,14 +317,19 @@ assert.equal((await invokeLong()).status, 202);
 assert.equal(longRetryCalls, 2, 'dedupe window must start after a delayed successful send');
 
 const racing = new FakeD1();
-let release;
+const sendStarted = Promise.withResolvers();
+const sendRelease = Promise.withResolvers();
 let racingSends = 0;
-const heldFetch = async () => { racingSends += 1; await new Promise(resolve => { release = resolve; }); return success(); };
+const heldFetch = () => {
+  racingSends += 1;
+  sendStarted.resolve();
+  return sendRelease.promise.then(() => success());
+};
 const racePayload = body('firing', { groupKey: 'concurrent' });
 const first = invoke(request(racePayload), env(racing), heldFetch);
-while (!release) await new Promise(resolve => setTimeout(resolve, 0));
+await sendStarted.promise;
 assert.equal((await invoke(request(racePayload), env(racing), heldFetch)).status, 503);
-release();
+sendRelease.resolve();
 assert.equal((await first).status, 202);
 assert.equal((await invoke(request(racePayload), env(racing), heldFetch)).status, 202);
 assert.equal(racingSends, 1);

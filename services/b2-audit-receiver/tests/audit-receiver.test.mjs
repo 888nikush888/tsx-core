@@ -32,7 +32,8 @@ async function serve(store, bodyTimeoutMs) {
   return `http://127.0.0.1:${server.address().port}/v1/records`;
 }
 
-async function post(url, body, headers = {}, signal) {
+function post(url, body, signal, headers = {}) {
+  // nosemgrep: rules.lgpl.javascript.ssrf.rule-node-ssrf -- fixture URL is a loopback server on an OS-assigned port.
   return fetch(url, {
     method: 'POST',
     headers: { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json', ...headers },
@@ -41,7 +42,7 @@ async function post(url, body, headers = {}, signal) {
   });
 }
 
-async function incompleteRequestStatus(url) {
+function incompleteRequestStatus(url) {
   const endpoint = new URL(url);
   return new Promise((resolve, reject) => {
     const socket = net.connect(Number(endpoint.port), endpoint.hostname);
@@ -64,17 +65,16 @@ test('accepts exactly the sender serialization and its hash', () => {
 
 test('rejects unauthorized, malformed, oversized and non-JSON requests before storage', async () => {
   let stored = 0;
-  const url = await serve({ persist: async () => { stored += 1; return 'stored'; } });
-  assert.equal((await post(url, auditBody(), { authorization: 'Bearer wrong' })).status, 401);
-  assert.equal((await post(url, auditBody(), { 'content-type': 'text/plain' })).status, 415);
+  const url = await serve({ persist: () => { stored += 1; return Promise.resolve('stored'); } });
+  assert.equal((await post(url, auditBody(), undefined, { authorization: 'Bearer wrong' })).status, 401);
+  assert.equal((await post(url, auditBody(), undefined, { 'content-type': 'text/plain' })).status, 415);
   assert.equal((await post(url, Buffer.alloc(256 * 1024 + 1, 120))).status, 413);
   assert.equal((await post(url, Buffer.from('{}'))).status, 400);
   assert.equal(stored, 0);
 });
 
 test('returns success only after store confirms durable persistence; replay is idempotent', async () => {
-  let resolvePersistence;
-  const pending = new Promise(resolve => { resolvePersistence = resolve; });
+  const { promise: pending, resolve: resolvePersistence } = Promise.withResolvers();
   let count = 0;
   const url = await serve({ persist: async () => { count += 1; await pending; return count === 1 ? 'stored' : 'replayed'; } });
   const first = post(url, auditBody());
@@ -88,21 +88,20 @@ test('returns success only after store confirms durable persistence; replay is i
 
 test('conflicting duplicate and storage failure fail closed', async () => {
   let error = new AuditConflictError('different');
-  const url = await serve({ persist: async () => { throw error; } });
+  const url = await serve({ persist: () => Promise.reject(error) });
   assert.equal((await post(url, auditBody())).status, 409);
   error = new Error('B2 unavailable');
   assert.equal((await post(url, auditBody())).status, 503);
 });
 
 test('an unrecognized store result is not a persistence receipt', async () => {
-  const url = await serve({ persist: async () => undefined });
+  const url = await serve({ persist: () => Promise.resolve() });
   assert.equal((await post(url, auditBody())).status, 503);
 });
 
 test('a failed storage operation releases the serialized receiver for a retry', async () => {
   let calls = 0;
-  let markStarted;
-  const firstStarted = new Promise(resolve => { markStarted = resolve; });
+  const { promise: firstStarted, resolve: markStarted } = Promise.withResolvers();
   const url = await serve({ persist: async () => {
     calls += 1;
     if (calls === 1) {
@@ -122,10 +121,9 @@ test('a failed storage operation releases the serialized receiver for a retry', 
 
 test('invalid bodies and failed stores release every reserved slot', async () => {
   let fail = true;
-  const url = await serve({ persist: async () => {
-    if (fail) throw new Error('B2 unavailable');
-    return 'stored';
-  } });
+  const url = await serve({ persist: () => fail
+    ? Promise.reject(new Error('B2 unavailable'))
+    : Promise.resolve('stored') });
   for (let index = 0; index < 5; index += 1) {
     assert.equal((await post(url, Buffer.from('{}'))).status, 400);
     assert.equal((await post(url, auditBody())).status, 503);
@@ -136,7 +134,7 @@ test('invalid bodies and failed stores release every reserved slot', async () =>
 
 test('an incomplete incoming body is closed by its absolute deadline without blocking the next record', async () => {
   let count = 0;
-  const url = await serve({ persist: async () => { count += 1; return 'stored'; } }, 50);
+  const url = await serve({ persist: () => { count += 1; return Promise.resolve('stored'); } }, 50);
   const endpoint = new URL(url);
   let received = '';
   await new Promise((resolve, reject) => {
@@ -153,10 +151,8 @@ test('an incomplete incoming body is closed by its absolute deadline without blo
 });
 
 test('a held store caps authenticated bodies before reading and disconnect frees a queued slot', async () => {
-  let releaseStore;
-  const held = new Promise(resolve => { releaseStore = resolve; });
-  let firstStarted;
-  const began = new Promise(resolve => { firstStarted = resolve; });
+  const { promise: held, resolve: releaseStore } = Promise.withResolvers();
+  const { promise: began, resolve: firstStarted } = Promise.withResolvers();
   let calls = 0;
   const url = await serve({ persist: async () => {
     calls += 1;
@@ -166,12 +162,12 @@ test('a held store caps authenticated bodies before reading and disconnect frees
   const first = post(url, auditBody());
   await began;
   const cancelled = new AbortController();
-  let queuedOne;
-  let queuedTwo;
-  let queuedThree;
-  let replacement;
+  let queuedOne = null;
+  let queuedTwo = null;
+  let queuedThree = null;
+  let replacement = null;
   try {
-    queuedOne = post(url, auditBody(), {}, cancelled.signal);
+    queuedOne = post(url, auditBody(), cancelled.signal);
     await new Promise(resolve => setTimeout(resolve, 15));
     queuedTwo = post(url, auditBody());
     await new Promise(resolve => setTimeout(resolve, 15));

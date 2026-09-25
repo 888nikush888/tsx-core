@@ -92,7 +92,7 @@ async function boundedBody(request) {
 }
 
 function alertDocument(bytes) {
-  let envelope;
+  let envelope = null;
   try { envelope = JSON.parse(new TextDecoder('utf-8').decode(bytes)); }
   catch { throw new RejectedPayload(400); }
   if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)
@@ -118,7 +118,7 @@ function alertDocument(bytes) {
     }
     return selected;
   });
-  let document;
+  let document = null;
   try { document = encoder.encode(JSON.stringify({ status: envelope.status, count: alerts.length, alerts })); }
   catch { throw new RejectedPayload(400); }
   if (document.byteLength > MAX_DOCUMENT_BYTES) throw new RejectedPayload(413);
@@ -159,10 +159,10 @@ async function telegramSend(env, alert, key, fetchImpl) {
     signal: AbortSignal.timeout(TELEGRAM_TIMEOUT_MS),
   });
   if (!response.body) return { state: 'unknown' };
-  let body;
+  let body = null;
   try { body = new TextDecoder('utf-8', { fatal: true }).decode(await boundedStream(response.body, 8192)); }
   catch { return { state: 'unknown' }; }
-  let parsed;
+  let parsed = null;
   try { parsed = JSON.parse(body); } catch { return { state: 'unknown' }; }
   return telegramOutcome(response.status, parsed, env.TELEGRAM_CHAT_ID);
 }
@@ -203,14 +203,14 @@ function gate(request, env) {
 }
 
 async function sendReserved(env, bytes, alert, fetchImpl, now) {
-  let key;
+  let key = null;
   try {
     key = await deliveryKey(env.DEDUPE_SECRET, bytes);
     const reservation = await reserve(env.DB, key, now());
     if (reservation === 'delivered') return reply(202);
     if (reservation !== 'send') return reply(503);
   } catch { return reply(503); }
-  let outcome;
+  let outcome = null;
   try { outcome = await telegramSend(env, alert, key, fetchImpl); }
   catch { outcome = { state: 'unknown' }; }
   try {
@@ -230,8 +230,8 @@ async function sendReserved(env, bytes, alert, fetchImpl, now) {
 export async function handleIncidentRequest(request, env, { fetchImpl = fetch, now = Date.now } = {}) {
   const rejected = gate(request, env);
   if (rejected) return rejected;
-  let bytes;
-  let alert;
+  let bytes = null;
+  let alert = null;
   try {
     bytes = await boundedBody(request);
     alert = alertDocument(bytes);

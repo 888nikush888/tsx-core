@@ -29,17 +29,17 @@ function mockB2() {
   let beforeRead = null;
   let bodyStream = null;
   const client = {
-    async send(command, options) {
+    send(command, options) {
       assert.ok(options.abortSignal instanceof AbortSignal, 'every B2 request must carry an AbortSignal');
       calls.push(command);
       const name = command.constructor.name;
       const input = command.input;
       assert.equal(input.Bucket, BUCKET);
-      if (name === 'ListObjectVersionsCommand') return {
+      if (name === 'ListObjectVersionsCommand') return Promise.resolve({
         Versions: objects.filter(object => object.key === input.Prefix)
           .map(object => ({ Key: object.key, VersionId: object.versionId, LastModified: object.createdAt })),
         IsTruncated: false
-      };
+      });
       if (name === 'PutObjectCommand') {
         beforePut?.(input, objects);
         if (failPut) throw new Error('conditional put unsupported');
@@ -53,17 +53,17 @@ function mockB2() {
         const versionId = `version-${objects.length + 1}`;
         objects.push({ key: input.Key, versionId, body: Buffer.from(input.Body), until: input.ObjectLockRetainUntilDate, createdAt: new Date(NOW) });
         if (lostResponse) throw new Error('response lost after storage');
-        return { VersionId: versionId };
+        return Promise.resolve({ VersionId: versionId });
       }
       const object = objects.find(entry => entry.key === input.Key && entry.versionId === input.VersionId);
       if (!object) throw new Error('version missing');
-      if (name === 'GetObjectRetentionCommand') return {
+      if (name === 'GetObjectRetentionCommand') return Promise.resolve({
         Retention: { Mode: mode, RetainUntilDate: object.until }
-      };
-      if (name === 'GetObjectCommand') return {
+      });
+      if (name === 'GetObjectCommand') return Promise.resolve({
         VersionId: object.versionId,
         Body: bodyStream?.() || Readable.from((async function* () { beforeRead?.(); yield object.body; })())
-      };
+      });
       throw new Error(`Unexpected ${name}`);
     }
   };

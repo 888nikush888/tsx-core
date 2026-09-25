@@ -113,8 +113,7 @@ try {
 
   await reloaded.clear();
   assert.ok(Object.values(reloaded.status()).every(status => status.source === 'missing'));
-  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
-  assert.equal(reloadedEnv.DASHBOARD_ADMIN_TOKEN, undefined);
+  assert.ok(reloadedEnv.DASHBOARD_ADMIN_TOKEN === undefined);
 
   const automatic = new ManagedSecretStore(path.join(directory, 'automatic'), {});
   await automatic.initialize();

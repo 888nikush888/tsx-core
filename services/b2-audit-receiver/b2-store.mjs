@@ -27,7 +27,7 @@ async function withDeadline(timeoutMs, parentSignal, operation) {
   const onParentAbort = () => controller.abort(parentSignal?.reason || new Error('Audit B2 operation cancelled.'));
   if (parentSignal?.aborted) onParentAbort();
   else parentSignal?.addEventListener('abort', onParentAbort, { once: true });
-  let onAbort;
+  let onAbort = null;
   const interrupted = new Promise((_, reject) => {
     onAbort = () => reject(controller.signal.reason || new Error('Audit B2 operation cancelled.'));
     controller.signal.addEventListener('abort', onAbort, { once: true });
@@ -91,9 +91,11 @@ export class B2AuditStore {
     this.now = now;
   }
 
-  send(command, signal, consume = result => result) {
-    return withDeadline(this.operationTimeoutMs, signal,
-      async operationSignal => consume(await this.client.send(command, { abortSignal: operationSignal }), operationSignal));
+  send(command, signal, consume) {
+    return withDeadline(this.operationTimeoutMs, signal, async operationSignal => {
+      const result = await this.client.send(command, { abortSignal: operationSignal });
+      return typeof consume === 'function' ? consume(result, operationSignal) : result;
+    });
   }
 
   async versions(key, signal) {
@@ -164,7 +166,7 @@ export class B2AuditStore {
     await this.assertSoleVersion(predecessorKey, predecessor[0].VersionId, signal);
   }
 
-  async persist(record, body) {
+  persist(record, body) {
     return withDeadline(this.totalTimeoutMs, null, signal => this.persistBounded(record, body, signal));
   }
 
@@ -179,7 +181,7 @@ export class B2AuditStore {
     }
     // B2's published S3 Put Object contract does not guarantee If-None-Match.
     // Treat a rejected condition as fail-closed; a live disposable-bucket test is required.
-    let uploaded;
+    let uploaded = null;
     try {
       uploaded = await this.send(new PutObjectCommand({
         Bucket: this.bucket,

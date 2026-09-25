@@ -327,9 +327,10 @@ export async function runReceiptVerification(rawOptions) {
   trustedGit(gitTool);
   const npmCli = npmCliPath();
   const env = childEnvironment(process.env, python, process.execPath, options.group === 'browser', gitTool.path);
-  return performEvidenceGroup({ directory: root, options, commands: jobsFor(python, npmCli)[options.group], env,
+  const result = await performEvidenceGroup({ directory: root, options, commands: jobsFor(python, npmCli)[options.group], env,
     snapshot: () => sourceSnapshot(root, options.revision, gitTool), runtime: () => runtimeSnapshot(python, npmCli, env),
     gitTool, kind: 'exact-head-supplemental-verification' });
+  return result;
 }
 
 /** Test-only execution harness. Its distinct report kind cannot be accepted as
@@ -342,9 +343,10 @@ export async function runFixtureEvidence({ directory, tag, commands, env, snapsh
   requireEvidence(tagPattern.test(tag) && Array.isArray(commands) && commands.length > 0
     && commands.every(item => item && typeof item.name === 'string' && typeof item.command === 'string'
       && Array.isArray(item.args)), 'fixture plan is invalid');
-  return performEvidenceGroup({ directory: canonical,
+  const result = await performEvidenceGroup({ directory: canonical,
     options: { revision: '0'.repeat(40), group: 'fixture', tag }, commands, env, snapshot, runtime,
     gitTool: { path: 'TEST-ONLY', sha256: '0'.repeat(64) }, kind: 'receipt-runner-self-test' });
+  return result;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

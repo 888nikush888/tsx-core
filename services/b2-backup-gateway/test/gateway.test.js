@@ -109,6 +109,7 @@ function request(url, method = 'GET', body = undefined, extraHeaders = {}) {
     headers['X-Backup-SHA256'] = sha(body);
   }
   Object.assign(headers, extraHeaders);
+  // nosemgrep: rules.lgpl.javascript.ssrf.rule-node-ssrf -- fixture URL is a loopback server on an OS-assigned port.
   return fetch(url, { method, headers, body });
 }
 

@@ -86,9 +86,9 @@ function serialWorkQueue() {
   const waiting = [];
   let active = false;
   function drain() {
-    if (active) return;
+    if (active) return undefined;
     const item = waiting.shift();
-    if (!item) return;
+    if (!item) return undefined;
     active = true;
     item.started = true;
     const finish = outcome => {
@@ -100,9 +100,10 @@ function serialWorkQueue() {
       result => finish({ result }),
       error => finish({ error })
     );
+    return undefined;
   }
   return run => {
-    let item;
+    let item = null;
     const completion = new Promise(resolve => {
       item = { run, resolve, started: false };
       waiting.push(item);
@@ -166,17 +167,19 @@ function verifiedPersistenceResult(outcome) {
 function replyPersistenceResult(response, result) {
   if (result === 'replayed') {
     reply(response, 200, 'replayed');
-    return;
+    return undefined;
   }
   reply(response, 201, 'stored');
+  return undefined;
 }
 
 function replyPersistenceFailure(response, error) {
   if (error instanceof AuditConflictError) {
     reply(response, 409, 'conflict');
-    return;
+    return undefined;
   }
   reply(response, 503, 'storage_unavailable');
+  return undefined;
 }
 
 export function createAuditReceiver({ bearerToken, store, bodyTimeoutMs = 8_000 }) {
@@ -189,7 +192,7 @@ export function createAuditReceiver({ bearerToken, store, bodyTimeoutMs = 8_000 
   let pendingRecords = 0;
   let reservedBytes = 0;
   return async (request, response) => {
-    if (boundaryFailure(request, response, bearerToken)) return;
+    if (boundaryFailure(request, response, bearerToken)) return undefined;
     if (pendingRecords >= MAX_PENDING_RECORDS || reservedBytes + MAX_BODY_BYTES > MAX_RESERVED_BYTES) {
       response.setHeader('connection', 'close');
       return reply(response, 503, 'busy');
@@ -200,25 +203,27 @@ export function createAuditReceiver({ bearerToken, store, bodyTimeoutMs = 8_000 
     let disconnected = false;
     let queued = null;
     const release = () => {
-      if (released) return;
+      if (released) return undefined;
       released = true;
       pendingRecords -= 1;
       reservedBytes -= MAX_BODY_BYTES;
+      return undefined;
     };
     const onClose = () => {
-      if (response.writableEnded) return;
+      if (response.writableEnded) return undefined;
       disconnected = true;
       if (queued?.cancel()) release();
       else if (!queued) request.destroy();
+      return undefined;
     };
     response.once('close', onClose);
     try {
       const parsed = await readAuditRecord(request, response, bodyTimeoutMs, () => disconnected);
-      if (!parsed) return;
-      if (disconnected) return;
+      if (!parsed) return undefined;
+      if (disconnected) return undefined;
       queued = enqueue(() => store.persist(parsed.record, parsed.body));
       const outcome = await queued.completion;
-      if (disconnected || outcome.cancelled) return;
+      if (disconnected || outcome.cancelled) return undefined;
       replyPersistenceResult(response, verifiedPersistenceResult(outcome));
     } catch (error) {
       if (!disconnected && !response.destroyed) {
@@ -228,5 +233,6 @@ export function createAuditReceiver({ bearerToken, store, bodyTimeoutMs = 8_000 
       response.off('close', onClose);
       release();
     }
+    return undefined;
   };
 }

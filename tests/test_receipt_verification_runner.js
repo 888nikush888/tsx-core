@@ -159,8 +159,8 @@ try {
     snapshot: () => snapshots++ === 0 ? fakeInputs : { ...fakeInputs, sourceTreeHash: 'f'.repeat(64) },
   }), /source inventory changed/);
   const sourceDrifted = readReport('source-drift');
-  assert.equal(sourceDrifted.completedAt, undefined);
-  assert.equal(sourceDrifted.commands[0].sourceVerifiedAfter, undefined);
+  assert.ok(sourceDrifted.completedAt === undefined);
+  assert.ok(sourceDrifted.commands[0].sourceVerifiedAfter === undefined);
   console.log('PASS receipt evidence runner: parameters, source fence, environment isolation and actual report outcomes');
 } finally {
   assert.equal(path.dirname(realpathSync.native(root)), temporary);
