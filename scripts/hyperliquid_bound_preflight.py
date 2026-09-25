@@ -15,7 +15,6 @@ import sys
 import time
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any, Awaitable, Callable
 
 import ccxt
@@ -27,11 +26,11 @@ sys.path.insert(0, str(ROOT / "exchange_executor"))
 
 import ccxt_profiles  # noqa: E402
 from ccxt_client import (  # noqa: E402
-    _credential_fingerprint, _hyperliquid_signer_address, credential_generation,
+    _credential_fingerprint, _hyperliquid_signer_address, credential_generation_from_parts,
 )
 from ccxt_profiles import PROFILES  # noqa: E402
 from ccxt_sdk_policy import HyperliquidNoAutomaticSetup  # noqa: E402
-from common import ExchangeContractError, external_account_id  # noqa: E402
+from common import external_account_id  # noqa: E402
 from hyperliquid_agent_grant import read_testnet_agent_grant  # noqa: E402
 from hyperliquid_testnet_preflight import INFO_ENDPOINT, INFO_REQUEST_FIELDS, post_info  # noqa: E402
 
@@ -115,6 +114,13 @@ def _guarded_class(sdk_class: type[Any]) -> type[Any]:
     return type("BoundReadOnlyHyperliquid", (ReadOnlyInfoFetch, HyperliquidNoAutomaticSetup, sdk_class), {})
 
 
+async def _close_quietly(client: Any) -> None:
+    try:
+        await client.close()
+    except Exception:
+        return
+
+
 async def _sdk_client(sdk_class: type[Any], secret: dict[str, str], wallet: str,
                       transport: InfoTransport) -> Any:
     client = _guarded_class(sdk_class)({
@@ -130,10 +136,7 @@ async def _sdk_client(sdk_class: type[Any], secret: dict[str, str], wallet: str,
         _refuse(isinstance(api, dict) and api.get("public") == ORIGIN and api.get("private") == ORIGIN)
         return client
     except Exception:
-        try:
-            await client.close()
-        except Exception:
-            pass
+        await _close_quietly(client)
         raise
 
 
@@ -240,10 +243,7 @@ async def _inspect_bound_testnet_account_for_test(
     finally:
         for client in (rest, pro):
             if client is not None:
-                try:
-                    await client.close()
-                except Exception:
-                    pass
+                await _close_quietly(client)
 
 
 async def _bound_identity(account: dict[str, str], secret: dict[str, str], symbol: str,
@@ -256,12 +256,11 @@ async def _bound_identity(account: dict[str, str], secret: dict[str, str], symbo
         if not hmac.compare_digest(signer, wallet):
             agent_grant = await asyncio.to_thread(read_testnet_agent_grant, wallet, signer)
         fingerprint = _credential_fingerprint(secret, "hyperliquid", "testnet")
-        generation = credential_generation(SimpleNamespace(
-            credential_fingerprint=fingerprint,
-            agent_grant_fingerprint=agent_grant.fingerprint if agent_grant is not None else None,
-        ))
+        generation = credential_generation_from_parts(
+            fingerprint, agent_grant.fingerprint if agent_grant is not None else None,
+        )
         identity = external_account_id("hyperliquid", "testnet", wallet)
-    except (KeyError, TypeError, ValueError, ExchangeContractError):
+    except (KeyError, TypeError, ValueError):
         raise BoundPreflightRefused("Hyperliquid Testnet read-only preflight is unproved.") from None
     _refuse(WALLET.fullmatch(wallet) is not None
             and isinstance(account.get("expectedAccountFingerprint"), str)

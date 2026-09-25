@@ -31,14 +31,21 @@ def _credential_fingerprint(secret: dict[str, Any], exchange: str, mode: str) ->
     return external_account_cache_key(exchange, mode, canonical)
 
 
-def credential_generation(clients: AccountClients) -> str:
-    grant_fingerprint = getattr(clients, "agent_grant_fingerprint", None)
+def credential_generation_from_parts(
+    credential_fingerprint: str, grant_fingerprint: str | None = None,
+) -> str:
     if grant_fingerprint is not None:
         return external_account_cache_key(
             "credential-generation-agent", "v1",
-            f"{clients.credential_fingerprint}:{grant_fingerprint}",
+            f"{credential_fingerprint}:{grant_fingerprint}",
         )
-    return external_account_cache_key("credential-generation", "v1", clients.credential_fingerprint)
+    return external_account_cache_key("credential-generation", "v1", credential_fingerprint)
+
+
+def credential_generation(clients: AccountClients) -> str:
+    return credential_generation_from_parts(
+        clients.credential_fingerprint, getattr(clients, "agent_grant_fingerprint", None),
+    )
 
 
 def _account_identity(secret: dict[str, Any], exchange: str, _mode: str) -> str:
@@ -303,8 +310,8 @@ class CcxtClientRegistry:
         rest = client_class(exchange, rest_class, agent_testnet=agent_grant is not None)(configuration)
         pro = client_class(exchange, pro_class, agent_testnet=agent_grant is not None)(configuration)
         if agent_grant is not None:
-            rest._tsx_agent_order_authority = True
-            pro._tsx_agent_order_authority = False
+            rest.set_agent_order_authority(True)
+            pro.set_agent_order_authority(False)
         if account["mode"] == "testnet":
             await self._enable_sandbox(rest, pro)
         if agent_grant is not None:

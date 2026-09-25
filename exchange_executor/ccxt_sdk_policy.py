@@ -94,6 +94,9 @@ class HyperliquidNoAutomaticSetup:
 class HyperliquidAgentTestnetTransport:
     """Refuse any post-construction REST or WebSocket route drift for agents."""
 
+    def set_agent_order_authority(self, enabled: bool) -> None:
+        self._tsx_agent_order_authority = enabled
+
     @staticmethod
     def _agent_exchange_action(body: Any) -> None:
         try:

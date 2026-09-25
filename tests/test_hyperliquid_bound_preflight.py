@@ -6,7 +6,6 @@ import sys
 import traceback
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import patch
 
 import ccxt.async_support as ccxt_async
@@ -16,7 +15,7 @@ from ccxt.async_support.base.exchange import Exchange as CcxtExchange
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "exchange_executor"))
 
-from ccxt_client import _credential_fingerprint, credential_generation  # noqa: E402
+from ccxt_client import _credential_fingerprint, credential_generation_from_parts  # noqa: E402
 from common import external_account_cache_key, external_account_id  # noqa: E402
 from hyperliquid_agent_grant import AgentGrant, AgentGrantRefused  # noqa: E402
 import hyperliquid_bound_preflight as bound  # noqa: E402
@@ -38,10 +37,9 @@ AGENT_SECRET = {"privateKey": "0x" + "2" * 64, "walletAddress": WALLET}
 AGENT_GRANT = AgentGrant("a" * 64, 4_000_000_000_000)
 AGENT_ACCOUNT = {
     **ACCOUNT,
-    "credentialGeneration": credential_generation(SimpleNamespace(
-        credential_fingerprint=_credential_fingerprint(AGENT_SECRET, "hyperliquid", "testnet"),
-        agent_grant_fingerprint=AGENT_GRANT.fingerprint,
-    )),
+    "credentialGeneration": credential_generation_from_parts(
+        _credential_fingerprint(AGENT_SECRET, "hyperliquid", "testnet"), AGENT_GRANT.fingerprint,
+    ),
 }
 MARKET = {
     "symbol": "BTC/USDC:USDC", "base": "BTC", "settle": "USDC", "info": {"name": "BTC"},
@@ -164,13 +162,17 @@ class BoundHyperliquidPreflightTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(client.was_closed for client in FakeSdk.instances))
 
     async def test_agent_revocation_and_generation_drift_precede_sdk_construction(self):
-        with patch.object(bound, "read_testnet_agent_grant", side_effect=AgentGrantRefused("revoked")):
-            with self.assertRaises(BoundPreflightRefused):
-                await self.inspect(AGENT_ACCOUNT, AGENT_SECRET)
+        with (
+            patch.object(bound, "read_testnet_agent_grant", side_effect=AgentGrantRefused("revoked")),
+            self.assertRaises(BoundPreflightRefused),
+        ):
+            await self.inspect(AGENT_ACCOUNT, AGENT_SECRET)
         self.assertEqual(FakeSdk.constructed, 0)
-        with patch.object(bound, "read_testnet_agent_grant", return_value=AGENT_GRANT):
-            with self.assertRaises(BoundPreflightRefused):
-                await self.inspect({**AGENT_ACCOUNT, "credentialGeneration": "b" * 64}, AGENT_SECRET)
+        with (
+            patch.object(bound, "read_testnet_agent_grant", return_value=AGENT_GRANT),
+            self.assertRaises(BoundPreflightRefused),
+        ):
+            await self.inspect({**AGENT_ACCOUNT, "credentialGeneration": "b" * 64}, AGENT_SECRET)
         self.assertEqual(FakeSdk.constructed, 0)
 
     async def test_unproved_agent_or_account_generation_never_constructs_sdk(self):

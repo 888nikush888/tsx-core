@@ -1,10 +1,85 @@
 """Reject coverage reports whose source paths do not match tracked repository files."""
 
 import argparse
+from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
+import re
 import shutil
-import subprocess
-from xml.parsers import expat
+# The only subprocess use in this module is the fixed local Git command below.
+import subprocess  # nosec B404
+
+MAX_COVERAGE_BYTES = 10_000_000
+START_TAG = re.compile(
+    r"<[A-Za-z_][A-Za-z0-9_.:-]*"
+    r"(?:\s+[A-Za-z_][A-Za-z0-9_.:-]*\s*=\s*(?:\"[^\"]*\"|'[^']*'))*\s*/?>"
+)
+
+
+class CoberturaPathParser(HTMLParser):
+    """Bounded linear XML scanner that never resolves declarations or entities."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=False)
+        self.root: str | None = None
+        self.paths: set[str] = set()
+        self._open_tags: list[str] = []
+
+    @staticmethod
+    def _reject_xml_declaration(*_args: object) -> None:
+        raise ValueError("DTD and entity declarations are forbidden in coverage XML")
+
+    def handle_decl(self, decl: str) -> None:
+        self._reject_xml_declaration(decl)
+
+    def unknown_decl(self, data: str) -> None:
+        self._reject_xml_declaration(data)
+
+    def handle_entityref(self, name: str) -> None:
+        self._reject_xml_declaration(name)
+
+    def handle_charref(self, name: str) -> None:
+        self._reject_xml_declaration(name)
+
+    def handle_pi(self, data: str) -> None:
+        instruction = data.strip().lower().split(maxsplit=1)
+        if self.root is not None or self._open_tags or instruction[:1] != ["xml"]:
+            raise ValueError("Processing instructions are forbidden in coverage XML")
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self._start_element(tag, attrs, self_closing=False)
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self._start_element(tag, attrs, self_closing=True)
+
+    def _start_element(
+        self, tag: str, attrs: list[tuple[str, str | None]], *, self_closing: bool,
+    ) -> None:
+        raw = self.get_starttag_text()
+        if raw is None or "&" in raw or START_TAG.fullmatch(raw) is None:
+            raise ValueError("Coverage XML contains an unsupported start tag")
+        if self.root is None:
+            if tag != "coverage":
+                raise ValueError("Python coverage report is not Cobertura XML")
+            self.root = tag
+        elif not self._open_tags:
+            raise ValueError("Coverage XML contains multiple root elements")
+        if tag == "class":
+            values = dict(attrs)
+            if len(values) != len(attrs) or not values.get("filename"):
+                raise ValueError("Coverage class is missing a unique filename attribute")
+            self.paths.add(str(values["filename"]))
+        if not self_closing:
+            self._open_tags.append(tag)
+
+    def handle_endtag(self, tag: str) -> None:
+        if not self._open_tags or self._open_tags.pop() != tag:
+            raise ValueError("Coverage XML contains mismatched end tags")
+
+    def finish(self) -> set[str]:
+        self.close()
+        if self.root != "coverage" or self._open_tags:
+            raise ValueError("Python coverage report is not complete Cobertura XML")
+        return self.paths
 
 
 def verified_path(name: str, tracked: set[str]) -> str:
@@ -16,38 +91,20 @@ def verified_path(name: str, tracked: set[str]) -> str:
 
 def cobertura_class_paths(report: Path) -> set[str]:
     """Read only class paths; reject DTDs and entity definitions before reporter upload."""
-    if report.stat().st_size > 10_000_000:
+    if report.stat().st_size > MAX_COVERAGE_BYTES:
         raise ValueError("Python coverage report exceeds the path-verifier size limit")
-    parser = expat.ParserCreate()
-    paths: set[str] = set()
-    root = None
-
-    def start_element(name: str, attributes: dict[str, str]) -> None:
-        nonlocal root
-        if root is None:
-            root = name
-        if name == "class":
-            paths.add(attributes["filename"])
-
-    def reject_xml_declaration(*_args: object) -> None:
-        raise ValueError("DTD and entity declarations are forbidden in coverage XML")
-
-    def reject_external_entity(_context: str, _base: str | None,
-                               _system_id: str | None, _public_id: str | None) -> int:
-        raise ValueError("External entities are forbidden in coverage XML")
-
-    parser.StartElementHandler = start_element
-    parser.StartDoctypeDeclHandler = reject_xml_declaration
-    parser.EntityDeclHandler = reject_xml_declaration
-    parser.ExternalEntityRefHandler = reject_external_entity
-    parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+    parser = CoberturaPathParser()
+    total = 0
     with report.open("rb") as source:
         while chunk := source.read(64 * 1024):
-            parser.Parse(chunk, False)
-    parser.Parse(b"", True)
-    if root != "coverage":
-        raise ValueError("Python coverage report is not Cobertura XML")
-    return paths
+            total += len(chunk)
+            if total > MAX_COVERAGE_BYTES:
+                raise ValueError("Python coverage report exceeds the path-verifier size limit")
+            try:
+                parser.feed(chunk.decode("utf-8"))
+            except UnicodeDecodeError:
+                raise ValueError("Python coverage report must be UTF-8") from None
+    return parser.finish()
 
 
 def main() -> None:
@@ -58,8 +115,12 @@ def main() -> None:
     git = shutil.which("git")
     if git is None:
         raise RuntimeError("Git is required for source path verification")
-    tracked = set(subprocess.check_output([str(Path(git).resolve()), "ls-files", "-z"],
-                                          cwd=repository).decode().strip("\0").split("\0"))
+    result = subprocess.run(  # nosec B603, B607
+        ["git", "ls-files", "-z"],
+        cwd=repository, check=True, capture_output=True, shell=False,
+        executable=str(Path(git).resolve()),
+    )
+    tracked = {path for path in result.stdout.decode("utf-8").split("\0") if path}
     totals = {}
     for report in ("coverage/lcov.info", "coverage/b2-backup-gateway/lcov.info",
                    "coverage/b2-audit-receiver/lcov.info", "coverage/incident-receiver-worker/lcov.info",

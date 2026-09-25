@@ -114,7 +114,8 @@ class AgentGrantContractTests(unittest.TestCase):
                 observed["timeout"] = kwargs["timeout"]
                 observed["context"] = kwargs["context"]
 
-            def request(self, method, path, *, body, headers):
+            @staticmethod
+            def request(method, path, *, body, headers):
                 observed.update(method=method, path=path, body=json.loads(body), headers=headers)
 
             @staticmethod
@@ -125,9 +126,11 @@ class AgentGrantContractTests(unittest.TestCase):
             def close():
                 observed["closed"] = True
 
-        with patch.object(grant.http.client, "HTTPSConnection", Connection):
-            with self.assertRaises(grant.AgentGrantRefused):
-                grant._post_info({"type": "userRole", "user": SIGNER})
+        with (
+            patch.object(grant.http.client, "HTTPSConnection", Connection),
+            self.assertRaises(grant.AgentGrantRefused),
+        ):
+            grant._post_info({"type": "userRole", "user": SIGNER})
         self.assertEqual(observed["host"], grant.TESTNET_HOST)
         self.assertEqual(observed["path"], "/info")
         self.assertEqual(observed["method"], "POST")
@@ -159,13 +162,16 @@ class FakeSdk:
                 "ws": {"public": "wss://api.hyperliquid-testnet.xyz/ws"},
             }
 
-    async def load_markets(self):
+    @staticmethod
+    async def load_markets():
         return None
 
-    async def fetch(self, url, *_args, **_kwargs):
+    @staticmethod
+    async def fetch(url, *_args, **_kwargs):
         return {"acceptedUrl": url}
 
-    async def watch(self, url, *_args, **_kwargs):
+    @staticmethod
+    async def watch(url, *_args, **_kwargs):
         return {"acceptedUrl": url}
 
     async def close(self):
@@ -186,9 +192,9 @@ class AgentRegistryTests(unittest.IsolatedAsyncioTestCase):
         self.account = {"id": "test-agent", "exchange": "hyperliquid", "mode": "testnet",
                         "expectedAccountFingerprint": external_account_id("hyperliquid", "testnet", MASTER)}
         fingerprint = ccxt_client._credential_fingerprint(self.secret, "hyperliquid", "testnet")
-        self.account["credentialGeneration"] = ccxt_client.credential_generation(SimpleNamespace(
-            credential_fingerprint=fingerprint, agent_grant_fingerprint=self.proof.fingerprint,
-        ))
+        self.account["credentialGeneration"] = ccxt_client.credential_generation_from_parts(
+            fingerprint, self.proof.fingerprint,
+        )
 
     async def asyncTearDown(self):
         await self.registry.close()
@@ -240,26 +246,35 @@ class AgentRegistryTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(all(client.closed for client in FakeSdk.instances[:2]))
 
     async def test_live_agent_and_sdk_origin_drift_fail_before_mutation(self):
-        with (patch.object(ccxt_client, "read_testnet_agent_grant", return_value=self.proof) as verify,
-              patch.object(ccxt_client.ccxt_async, "hyperliquid", FakeSdk),
-              patch.object(ccxt_client.ccxt_pro, "hyperliquid", FakeSdk)):
-            with self.assertRaisesRegex(ExchangeContractError, "restricted to Testnet"):
-                await self.registry.account({**self.account, "mode": "live"})
-            verify.assert_not_called()
-            self.assertEqual(FakeSdk.instances, [])
-            FakeSdk.drift = True
-            with self.assertRaisesRegex(ExchangeContractError, "SDK origin is unproved"):
-                await self.registry.account(self.account)
-            self.assertTrue(all(client.closed for client in FakeSdk.instances))
+        with (
+            patch.object(ccxt_client, "read_testnet_agent_grant", return_value=self.proof) as verify,
+            patch.object(ccxt_client.ccxt_async, "hyperliquid", FakeSdk),
+            patch.object(ccxt_client.ccxt_pro, "hyperliquid", FakeSdk),
+            self.assertRaisesRegex(ExchangeContractError, "restricted to Testnet"),
+        ):
+            await self.registry.account({**self.account, "mode": "live"})
+        verify.assert_not_called()
+        self.assertEqual(FakeSdk.instances, [])
+        FakeSdk.drift = True
+        with (
+            patch.object(ccxt_client, "read_testnet_agent_grant", return_value=self.proof),
+            patch.object(ccxt_client.ccxt_async, "hyperliquid", FakeSdk),
+            patch.object(ccxt_client.ccxt_pro, "hyperliquid", FakeSdk),
+            self.assertRaisesRegex(ExchangeContractError, "SDK origin is unproved"),
+        ):
+            await self.registry.account(self.account)
+        self.assertTrue(all(client.closed for client in FakeSdk.instances))
 
     async def test_grant_must_outlive_mutation_deadline(self):
         soon = grant.AgentGrant("a" * 64, int(time.time() * 1000) + 20_000)
-        with (patch.object(ccxt_client, "read_testnet_agent_grant", return_value=soon),
-              patch.object(ccxt_client.ccxt_async, "hyperliquid", FakeSdk),
-              patch.object(ccxt_client.ccxt_pro, "hyperliquid", FakeSdk)):
+        with (
+            patch.object(ccxt_client, "read_testnet_agent_grant", return_value=soon),
+            patch.object(ccxt_client.ccxt_async, "hyperliquid", FakeSdk),
+            patch.object(ccxt_client.ccxt_pro, "hyperliquid", FakeSdk),
+            self.assertRaisesRegex(ExchangeContractError, "expires within"),
+        ):
             expiring_deadline = RequestDeadline(int(time.time() * 1000) + 30_000)
-            with self.assertRaisesRegex(ExchangeContractError, "expires within"):
-                await self._run_forbidden_mutation(expiring_deadline)
+            await self._run_forbidden_mutation(expiring_deadline)
 
     async def test_agent_sdk_routes_fail_closed_on_mainnet_proxy_and_late_url_drift(self):
         with (patch.object(ccxt_client, "read_testnet_agent_grant", return_value=self.proof),

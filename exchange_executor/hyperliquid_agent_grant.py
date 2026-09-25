@@ -60,6 +60,15 @@ def _verified_tls_context() -> ssl.SSLContext:
     return context
 
 
+def _close_quietly(connection: http.client.HTTPSConnection | None) -> None:
+    if connection is None:
+        return
+    try:
+        connection.close()
+    except OSError:
+        return
+
+
 def _post_info(payload: dict[str, str]) -> Any:
     """Fixed direct TLS route, no redirects, proxies, URL input or secrets."""
     _refuse(isinstance(payload, dict) and set(payload) == {"type", "user"}
@@ -84,11 +93,46 @@ def _post_info(payload: dict[str, str]) -> Any:
     except Exception:
         raise AgentGrantRefused(_REFUSAL_MESSAGE) from None
     finally:
-        if connection is not None:
-            try:
-                connection.close()
-            except OSError:
-                pass
+        _close_quietly(connection)
+
+
+def _addresses_are_distinct(master: Any, signer: Any) -> bool:
+    return (isinstance(master, str) and ADDRESS.fullmatch(master) is not None
+            and isinstance(signer, str) and ADDRESS.fullmatch(signer) is not None
+            and master.lower() != signer.lower())
+
+
+def _role_binds_master(role: Any, master: str) -> bool:
+    return (isinstance(role, dict) and set(role) == {"role", "data"}
+            and role["role"] == "agent"
+            and isinstance(role["data"], dict) and set(role["data"]) == {"user"}
+            and isinstance(role["data"]["user"], str)
+            and role["data"]["user"].lower() == master)
+
+
+def _valid_agent_row(row: Any) -> bool:
+    return (isinstance(row, dict) and set(row) == {"name", "address", "validUntil"}
+            and isinstance(row["name"], str) and len(row["name"]) <= 128
+            and not any(ord(char) < 32 for char in row["name"])
+            and isinstance(row["address"], str) and ADDRESS.fullmatch(row["address"]) is not None
+            and type(row["validUntil"]) is int and 0 < row["validUntil"] <= 2**53 - 1)
+
+
+def _select_agent_row(rows: Any, signer: str) -> dict[str, Any]:
+    _refuse(isinstance(rows, list) and len(rows) <= MAX_AGENTS)
+    matching = []
+    for row in rows:
+        _refuse(_valid_agent_row(row))
+        if row["address"].lower() == signer:
+            matching.append(row)
+    _refuse(len(matching) == 1)
+    return matching[0]
+
+
+def _grant_outlives_minimum(grant: dict[str, Any], now_ms: int | None) -> bool:
+    now = int(time.time() * 1000) if now_ms is None else now_ms
+    return (type(now) is int and 0 <= now <= 2**53 - 1
+            and grant["validUntil"] > now + MIN_REMAINING_MS)
 
 
 def read_testnet_agent_grant(
@@ -96,33 +140,13 @@ def read_testnet_agent_grant(
     now_ms: int | None = None,
 ) -> AgentGrant:
     """Bind a current agent signer to one master and one unexpired grant."""
-    _refuse(isinstance(master, str) and ADDRESS.fullmatch(master) is not None
-            and isinstance(signer, str) and ADDRESS.fullmatch(signer) is not None
-            and master.lower() != signer.lower())
+    _refuse(_addresses_are_distinct(master, signer))
     master, signer = master.lower(), signer.lower()
     try:
         role = requester({"type": "userRole", "user": signer})
-        _refuse(isinstance(role, dict) and set(role) == {"role", "data"}
-                and role["role"] == "agent"
-                and isinstance(role["data"], dict) and set(role["data"]) == {"user"}
-                and isinstance(role["data"]["user"], str)
-                and role["data"]["user"].lower() == master)
-        rows = requester({"type": "extraAgents", "user": master})
-        _refuse(isinstance(rows, list) and len(rows) <= MAX_AGENTS)
-        matching = []
-        for row in rows:
-            _refuse(isinstance(row, dict) and set(row) == {"name", "address", "validUntil"}
-                    and isinstance(row["name"], str) and len(row["name"]) <= 128
-                    and not any(ord(char) < 32 for char in row["name"])
-                    and isinstance(row["address"], str) and ADDRESS.fullmatch(row["address"]) is not None
-                    and type(row["validUntil"]) is int and 0 < row["validUntil"] <= 2**53 - 1)
-            if row["address"].lower() == signer:
-                matching.append(row)
-        _refuse(len(matching) == 1)
-        grant = matching[0]
-        now = int(time.time() * 1000) if now_ms is None else now_ms
-        _refuse(type(now) is int and 0 <= now <= 2**53 - 1
-                and grant["validUntil"] > now + MIN_REMAINING_MS)
+        _refuse(_role_binds_master(role, master))
+        grant = _select_agent_row(requester({"type": "extraAgents", "user": master}), signer)
+        _refuse(_grant_outlives_minimum(grant, now_ms))
         descriptor = {
             "version": 1, "origin": TESTNET_ORIGIN, "master": master,
             "signer": signer, "name": grant["name"], "validUntil": grant["validUntil"],
