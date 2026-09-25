@@ -400,15 +400,17 @@ assert.doesNotMatch(runtimeVerificationBlock, /continue-on-error|\|\|\s*true|\n\
   'The runtime receipt gate is mandatory and must propagate NO-GO.');
 assert.match(
   workflow,
-  /-e PYTHONPATH=\/app:\/[\s\S]*?-v "\$RUNNER_TEMP\/tsx-reviewed-source\/exchange_executor\/tests:\/exchange_executor\/tests:ro"[\s\S]*?-m unittest discover -s \/exchange_executor\/tests -v/,
+  /-e PYTHONPATH=\/app:\/app\/tools:\/scripts:\/[\s\S]*?-v "\$RUNNER_TEMP\/tsx-reviewed-source\/exchange_executor:\/exchange_executor:ro"[\s\S]*?-m unittest discover -s \/exchange_executor\/tests -v/,
   'Container verification must expose the reviewed test package without replacing baked /app sources.',
 );
 const executorSuiteCommand = workflow.split('\n').find(line => line.includes('-m unittest discover -s /exchange_executor/tests -v'));
 for (const mount of [
+  '-v "$RUNNER_TEMP/tsx-reviewed-source/exchange_executor:/exchange_executor:ro"',
   '-v "$RUNNER_TEMP/tsx-reviewed-source/exchange_executor/tools:/app/tools:ro"',
+  '-v "$RUNNER_TEMP/tsx-reviewed-source/scripts:/scripts:ro"',
+  '-v "$RUNNER_TEMP/tsx-reviewed-source/docs/testing:/docs/testing:ro"',
   '-v "$RUNNER_TEMP/tsx-reviewed-source/plans:/plans:ro"',
   '-v "$RUNNER_TEMP/tsx-reviewed-source/tests:/tests:ro"',
-  '-v "$RUNNER_TEMP/tsx-reviewed-source/docs/testing/ccxt-expansion-matrix.json:/docs/testing/ccxt-expansion-matrix.json:ro"',
 ]) {
   assert.ok(executorSuiteCommand.includes(mount),
     `The complete baked-executor suite needs its reviewed read-only support input: ${mount}`);
