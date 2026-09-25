@@ -25,7 +25,7 @@ RUN apk add --no-cache "libcrypto3=3.5.8-r0" "libssl3=3.5.8-r0" \
     && adduser --system --uid 65532 --ingroup executor --no-create-home --home /nonexistent executor
 COPY --from=dependencies /install /usr/local
 COPY --chown=0:0 --chmod=0444 exchange_executor/*.py ./
-COPY --chown=0:0 --chmod=0444 scripts/hyperliquid_bound_preflight.py scripts/hyperliquid_testnet_preflight.py ./
+COPY --chown=0:0 --chmod=0444 scripts/hyperliquid_bound_preflight.py scripts/hyperliquid_testnet_preflight.py ./tools/
 COPY --chown=0:0 --chmod=0555 exchange_executor/certifications ./certifications
 
 USER 65532:65532
