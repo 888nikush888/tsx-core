@@ -267,13 +267,13 @@ class AgentRegistryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_grant_must_outlive_mutation_deadline(self):
         soon = grant.AgentGrant("a" * 64, int(time.time() * 1000) + 20_000)
+        expiring_deadline = RequestDeadline(int(time.time() * 1000) + 30_000)
         with (
             patch.object(ccxt_client, "read_testnet_agent_grant", return_value=soon),
             patch.object(ccxt_client.ccxt_async, "hyperliquid", FakeSdk),
             patch.object(ccxt_client.ccxt_pro, "hyperliquid", FakeSdk),
             self.assertRaisesRegex(ExchangeContractError, "expires within"),
         ):
-            expiring_deadline = RequestDeadline(int(time.time() * 1000) + 30_000)
             await self._run_forbidden_mutation(expiring_deadline)
 
     async def test_agent_sdk_routes_fail_closed_on_mainnet_proxy_and_late_url_drift(self):

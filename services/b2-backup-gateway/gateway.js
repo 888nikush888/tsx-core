@@ -12,7 +12,7 @@ const HASH = /^[a-f0-9]{64}$/;
 const MAGIC = Buffer.from('TGFE1\0', 'ascii');
 const MIN_OBJECT_BYTES = MAGIC.length + 12 + 1 + 16;
 // B2 standard single-request uploads are limited to 5 GB; larger objects need multipart.
-const DEFAULT_MAX_BYTES = 5000000000;
+const DEFAULT_MAX_BYTES = 5 * 10 ** 9;
 const MAX_OPERATION_MS = 15 * 60_000;
 
 function status(error) {
@@ -44,8 +44,8 @@ function retentionDate(value) {
 
 async function versions(client, bucket, key, signal) {
   const found = [];
-  let KeyMarker;
-  let VersionIdMarker;
+  let KeyMarker = null;
+  let VersionIdMarker = null;
   for (let page = 0; page < 10; page++) {
     const result = await client.send(new ListObjectVersionsCommand({
       Bucket: bucket, Prefix: key, MaxKeys: 1000, KeyMarker, VersionIdMarker
@@ -278,10 +278,33 @@ async function processGet(response, config, operation) {
   return null;
 }
 
-async function processRequest(request, response, config, operation) {
+function processRequest(request, response, config, operation) {
   return request.method === 'PUT'
     ? processPut(request, config, operation)
     : processGet(response, config, operation);
+}
+
+async function runGatewayRequest(request, response, config, operation) {
+  try {
+    return { success: await processRequest(request, response, config, operation), failure: 0 };
+  } catch (error) {
+    // Only fixed status codes reach clients; provider errors and credentials are never logged.
+    if (!response.headersSent) return { success: null, failure: status(error) === 404 ? 404 : 502 };
+    response.destroy();
+    return { success: null, failure: 0 };
+  }
+}
+
+async function releaseGatewayOperation(operation) {
+  try {
+    if (operation.directory) {
+      await rm(operation.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+    }
+  } finally {
+    operation.inflight.delete(operation.key);
+    operation.state.active -= 1;
+    operation.state.reserved -= operation.reservation;
+  }
 }
 
 export function createGateway(options) {
@@ -305,29 +328,12 @@ export function createGateway(options) {
     state.active += 1;
     const operation = {
       key, request, response, signal: AbortSignal.timeout(config.operationTimeoutMs),
-      directory: null, reservation: 0, state,
+      directory: null, reservation: 0, state, inflight,
     };
-    let failureStatus = 0;
-    let successResponse = null;
-    try {
-      successResponse = await processRequest(request, response, { ...config, key }, operation);
-    } catch (error) {
-      // Only fixed status codes reach clients; provider errors and credentials are never logged.
-      if (!response.headersSent) failureStatus = status(error) === 404 ? 404 : 502;
-      else response.destroy();
-    } finally {
-      try {
-        if (operation.directory) {
-          await rm(operation.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
-        }
-      } finally {
-        inflight.delete(key);
-        state.active -= 1;
-        state.reserved -= operation.reservation;
-      }
-      if (successResponse) send(response, successResponse.statusCode, successResponse.headers);
-    }
-    if (failureStatus) send(response, failureStatus);
+    const result = await runGatewayRequest(request, response, { ...config, key }, operation);
+    await releaseGatewayOperation(operation);
+    if (result.success) send(response, result.success.statusCode, result.success.headers);
+    if (result.failure) send(response, result.failure);
     return undefined;
   };
 }

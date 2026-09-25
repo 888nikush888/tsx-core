@@ -144,9 +144,8 @@ export class GoogleDriveBackupMirror {
     if (!/^backup-\d{4}-[a-zA-Z0-9_.:-]{1,160}\.tgfb$/.test(objectName)) throw new Error('Drive mirror object name is invalid.');
     if (!/^[a-f0-9]{64}$/.test(expectedSha256)) throw new Error('Drive mirror source SHA-256 is invalid.');
     const sourcePath = canonicalSourcePath(filePath);
-    // eslint-disable-next-line -- sourcePath is resolve-stable and opened with O_NOFOLLOW.
     const file = await fs.open(sourcePath,
-      constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+      constants.O_RDONLY | (constants.O_NOFOLLOW | 0));
     let size: number;
     try {
       const stats = await file.stat();

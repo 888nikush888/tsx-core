@@ -81,10 +81,18 @@ export function canonicalProviderGrant(grant: Record<string, unknown>): Buffer {
 function asciiJsonBytes(json: string): Buffer {
   let ascii = '';
   for (let index = 0; index < json.length; index++) {
-    const codeUnit = json.charCodeAt(index);
-    ascii += codeUnit >= 0x20 && codeUnit <= 0x7e
-      ? String.fromCharCode(codeUnit)
-      : String.raw`\u${codeUnit.toString(16).padStart(4, '0')}`;
+    const codePoint = json.codePointAt(index) ?? 0;
+    if (codePoint > 0xffff) {
+      const offset = codePoint - 0x10000;
+      const high = 0xd800 + (offset >> 10);
+      const low = 0xdc00 + (offset & 0x3ff);
+      ascii += `\\u${high.toString(16).padStart(4, '0')}\\u${low.toString(16).padStart(4, '0')}`;
+      index += 1;
+    } else {
+      ascii += codePoint >= 0x20 && codePoint <= 0x7e
+        ? String.fromCodePoint(codePoint)
+        : `\\u${codePoint.toString(16).padStart(4, '0')}`;
+    }
   }
   return Buffer.from(ascii, 'ascii');
 }
@@ -145,14 +153,12 @@ function assertUnlinkedParents(path: string): void {
 
 function lstatAcceptancePath(path: string): BigIntStats {
   // Callers require canonical absolute paths and validate every ancestor as a real directory.
-  // eslint-disable-next-line -- the validated canonical path is the security boundary, not request data.
   return lstatSync(path, { bigint: true });
 }
 
 function openAcceptancePath(path: string): number {
   // O_NOFOLLOW prevents a symlink swap after the lstat validation.
-  // eslint-disable-next-line -- the validated canonical path is the security boundary, not request data.
-  return openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
+  return openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW | 0) | (constants.O_NONBLOCK | 0));
 }
 
 function assertAcceptanceFile(stat: BigIntStats, maximum: number): void {

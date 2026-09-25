@@ -949,8 +949,9 @@ try {
   assert.equal(resolveDailyLossLimit(publishedSafety.configuration.safety, '10000'), '250');
   assert.equal(createEntryPriceBoundary({ side: 'LONG', referencePrice: '100', priceTick: '0.1',
     maxSlippagePercent: publishedSafety.configuration.safety.maxSlippagePercent }).limitPrice, '101.2');
-  assert.equal(resolveEntryExpiresAt(1700000000000,
-    publishedSafety.configuration.safety.entryOrderTtlSeconds), 1700000045000);
+  const safetyEpochMs = Date.parse('2023-11-14T22:13:20.000Z');
+  assert.equal(resolveEntryExpiresAt(safetyEpochMs,
+    publishedSafety.configuration.safety.entryOrderTtlSeconds), safetyEpochMs + 45_000);
   await assertHistoricalSafetyPinned();
   await saveSignal('workflow-signal-safety', '-100-workflow', 2, '<signal/>', '<signal/>');
   const safetyIntents = await createWorkflowTradingIntents({

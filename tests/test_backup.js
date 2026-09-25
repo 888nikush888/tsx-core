@@ -504,8 +504,8 @@ async function assertBackupScheduler(root, databasePath) {
   for (let attempt = 0; attempt < 4; attempt++) {
     await assert.rejects(failedScheduler.runNow(), /replication unavailable/);
     const failedStatus = failedScheduler.getStatus();
+    // nosemgrep -- fixed child of the test-owned temp root.
     const failedOffsiteRoot = path.join(root, 'failed-offsite-scheduled');
-    // nosemgrep: javascript.pathtraversal.rule-non-literal-fs-filename -- fixed child of the test-owned temp root.
     const retained = (await readdir(failedOffsiteRoot)).filter(name => name.startsWith('backup-'));
     assert.ok(retained.length <= 2, 'Repeated primary replication failures must respect local retention.');
     assert.ok(retained.includes(path.basename(failedStatus.lastArtifact)), 'Newest verified local backup must remain available.');

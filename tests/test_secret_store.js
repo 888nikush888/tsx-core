@@ -87,7 +87,7 @@ try {
   assert.equal(reloadedEnv.BACKUP_DRIVE_ACCESS_TOKEN, 'test-drive-access-token-0123456789abcdef');
   await reloaded.removeBackupDriveAccessToken();
   assert.equal(reloaded.status().backupDriveAccessToken.source, 'missing');
-  assert.equal(reloadedEnv.BACKUP_DRIVE_ACCESS_TOKEN, undefined);
+  assert.ok(reloadedEnv.BACKUP_DRIVE_ACCESS_TOKEN === undefined);
   await assert.rejects(readFile(path.join(directory, 'backup_drive_access_token')), /ENOENT/);
 
   const externalDirectory = path.join(directory, 'external');

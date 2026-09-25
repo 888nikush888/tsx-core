@@ -11,17 +11,19 @@ const account = {
   id: 'account-1', exchange: 'hyperliquid', mode: 'live',
   externalAccountId: 'a'.repeat(64), credentialGeneration: 'b'.repeat(64),
 };
+const GRANT_VALID_FROM = Date.parse('2023-11-14T22:13:20.000Z');
+const GRANT_VALID_UNTIL = GRANT_VALID_FROM + 60_000;
 
 const canonicalVector = {
   accountId: 'account-1', credentialGeneration: 'b'.repeat(64), exchange: 'hyperliquid',
   externalAccountId: 'a'.repeat(64), mode: 'live', product: 'swap:linear', reviewId: 'review-1',
-  validFrom: 1700000000000, validUntil: 1700000060000, version: 1,
+  validFrom: GRANT_VALID_FROM, validUntil: GRANT_VALID_UNTIL, version: 1,
 };
 assert.equal(createHash('sha256').update(canonicalProviderGrant(canonicalVector)).digest('hex'),
   'ea49c3dc78413a146c70a337c59f6a1f1b0ad8b193aa59a612983a007541e46f');
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/provider_acceptance_signature.json', import.meta.url), 'utf8'));
 assert.equal(signedGrantValid({ grant: fixture.grant, signature: fixture.signature }, account,
-  1700000001000, createPublicKey(fixture.reviewerPublicKeyPem)), true,
+  GRANT_VALID_FROM + 1_000, createPublicKey(fixture.reviewerPublicKeyPem)), true,
 'The signed vector must verify with the same canonical bytes in Node and Python.');
 
 const { privateKey, publicKey } = generateKeyPairSync('ed25519');
@@ -169,7 +171,7 @@ try {
       replaced = true;
       const replacement = path.join(evidenceDirectory, 'replacement-after-read');
       writeFileSync(replacement, 'valid');
-      // nosemgrep: javascript_pathtraversal_rule-non-literal-fs-filename -- private mkdtemp root with fixed child names.
+      // nosemgrep -- private mkdtemp root with fixed child names.
       fs.renameSync(replacement, evidenceFile);
     }
     return count;
@@ -185,6 +187,7 @@ try {
       // Replace the directory entry after the pre-open snapshot; the open sees a different inode.
       const replacement = path.join(evidenceDirectory, 'replacement');
       writeFileSync(replacement, 'valid');
+      // nosemgrep -- private mkdtemp root with fixed child names.
       fs.renameSync(replacement, evidenceFile);
     }
     return stat;

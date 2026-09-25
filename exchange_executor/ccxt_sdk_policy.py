@@ -94,6 +94,10 @@ class HyperliquidNoAutomaticSetup:
 class HyperliquidAgentTestnetTransport:
     """Refuse any post-construction REST or WebSocket route drift for agents."""
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._tsx_agent_order_authority = False
+        super().__init__(*args, **kwargs)
+
     def set_agent_order_authority(self, enabled: bool) -> None:
         self._tsx_agent_order_authority = enabled
 
@@ -105,24 +109,34 @@ class HyperliquidAgentTestnetTransport:
         except (TypeError, ValueError):
             raise ExchangeContractError("Hyperliquid agent SDK action is outside reviewed trading scope.") from None
 
+    @staticmethod
+    def _agent_route_origin_valid(parsed: Any, api: dict[str, Any], websocket: bool) -> bool:
+        origin = "https://api.hyperliquid-testnet.xyz"
+        paths = ("/ws",) if websocket else ("/info", "/exchange")
+        return (parsed.scheme == ("wss" if websocket else "https")
+                and parsed.netloc == "api.hyperliquid-testnet.xyz"
+                and parsed.path in paths and not parsed.query and not parsed.fragment
+                and api.get("public") == origin and api.get("private") == origin)
+
+    def _agent_proxy_boundary_valid(self) -> bool:
+        proxies = (
+            "httpProxy", "httpsProxy", "socksProxy", "aiohttp_proxy", "proxy", "proxyUrl",
+        )
+        return (getattr(self, "aiohttp_trust_env", None) is False
+                and not any(getattr(self, name, None) for name in proxies))
+
     def _agent_route_is_valid(self, url: Any, websocket: bool, method: Any) -> bool:
-        parsed = urlsplit(url) if isinstance(url, str) else None
-        api = self.urls.get("api") if isinstance(self.urls, dict) else None
-        if parsed is None or not isinstance(api, dict):
+        if not isinstance(url, str) or not isinstance(self.urls, dict):
             return False
-        valid = (parsed.scheme == ("wss" if websocket else "https")
-                 and parsed.netloc == "api.hyperliquid-testnet.xyz"
-                 and parsed.path in (("/ws",) if websocket else ("/info", "/exchange"))
-                 and not parsed.query and not parsed.fragment
-                 and api.get("public") == "https://api.hyperliquid-testnet.xyz"
-                 and api.get("private") == "https://api.hyperliquid-testnet.xyz"
-                 and getattr(self, "aiohttp_trust_env", None) is False
-                 and not any(getattr(self, name, None) for name in (
-                     "httpProxy", "httpsProxy", "socksProxy", "aiohttp_proxy", "proxy", "proxyUrl",
-                 )))
+        parsed = urlsplit(url)
+        api = self.urls.get("api")
+        if not isinstance(api, dict) or not self._agent_route_origin_valid(parsed, api, websocket):
+            return False
+        if not self._agent_proxy_boundary_valid():
+            return False
         if websocket:
-            return valid and api.get("ws") == {"public": "wss://api.hyperliquid-testnet.xyz/ws"}
-        return valid and method == "POST"
+            return api.get("ws") == {"public": "wss://api.hyperliquid-testnet.xyz/ws"}
+        return method == "POST"
 
     @staticmethod
     def _agent_exchange_path(url: Any) -> bool:

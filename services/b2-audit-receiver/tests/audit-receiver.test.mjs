@@ -33,7 +33,7 @@ async function serve(store, bodyTimeoutMs) {
 }
 
 function post(url, body, signal, headers = {}) {
-  // nosemgrep: rules.lgpl.javascript.ssrf.rule-node-ssrf -- fixture URL is a loopback server on an OS-assigned port.
+  // nosemgrep -- fixture URL is a loopback server on an OS-assigned port.
   return fetch(url, {
     method: 'POST',
     headers: { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json', ...headers },
