@@ -15,6 +15,7 @@ import sys
 import time
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Awaitable, Callable
 
 import ccxt
@@ -25,10 +26,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "exchange_executor"))
 
 import ccxt_profiles  # noqa: E402
-from ccxt_client import _assert_hyperliquid_master_key_binding, _credential_fingerprint  # noqa: E402
+from ccxt_client import (  # noqa: E402
+    _credential_fingerprint, _hyperliquid_signer_address, credential_generation,
+)
 from ccxt_profiles import PROFILES  # noqa: E402
 from ccxt_sdk_policy import HyperliquidNoAutomaticSetup  # noqa: E402
-from common import external_account_cache_key, external_account_id  # noqa: E402
+from common import ExchangeContractError, external_account_id  # noqa: E402
+from hyperliquid_agent_grant import read_testnet_agent_grant  # noqa: E402
 from hyperliquid_testnet_preflight import INFO_ENDPOINT, INFO_REQUEST_FIELDS, post_info  # noqa: E402
 
 ORIGIN = "https://api.hyperliquid-testnet.xyz"
@@ -204,7 +208,7 @@ async def _inspect_bound_testnet_account_for_test(
     transport: InfoTransport, rest_class: type[Any], pro_class: type[Any],
 ) -> dict[str, Any]:
     """Private fake seam for offline tests; callers must use the pinned public entrypoint."""
-    wallet, identity, generation = _bound_identity(account, secret, symbol, transport)
+    wallet, identity, generation = await _bound_identity(account, secret, symbol, transport)
     rest = pro = None
     started = int(time.time() * 1000)
     try:
@@ -242,16 +246,22 @@ async def _inspect_bound_testnet_account_for_test(
                     pass
 
 
-def _bound_identity(account: dict[str, str], secret: dict[str, str], symbol: str,
-                    transport: InfoTransport) -> tuple[str, str, str]:
+async def _bound_identity(account: dict[str, str], secret: dict[str, str], symbol: str,
+                          transport: InfoTransport) -> tuple[str, str, str]:
     _validate_bound_inputs(account, secret, symbol, transport)
     try:
-        _assert_hyperliquid_master_key_binding(secret, "hyperliquid")
         wallet = secret["walletAddress"].lower()
+        signer = _hyperliquid_signer_address(secret)
+        agent_grant = None
+        if not hmac.compare_digest(signer, wallet):
+            agent_grant = await asyncio.to_thread(read_testnet_agent_grant, wallet, signer)
         fingerprint = _credential_fingerprint(secret, "hyperliquid", "testnet")
-        generation = external_account_cache_key("credential-generation", "v1", fingerprint)
+        generation = credential_generation(SimpleNamespace(
+            credential_fingerprint=fingerprint,
+            agent_grant_fingerprint=agent_grant.fingerprint if agent_grant is not None else None,
+        ))
         identity = external_account_id("hyperliquid", "testnet", wallet)
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError, ExchangeContractError):
         raise BoundPreflightRefused("Hyperliquid Testnet read-only preflight is unproved.") from None
     _refuse(WALLET.fullmatch(wallet) is not None
             and isinstance(account.get("expectedAccountFingerprint"), str)

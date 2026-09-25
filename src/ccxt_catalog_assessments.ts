@@ -3,7 +3,7 @@
 export const CCXT_CATALOG_ASSESSMENTS = {
   "ccxtVersion": "4.5.75",
   "inventoryHash": "7c0ab01cf1e2629cee66528959e0c45ffe01a6111697294e5ca528116f247e54",
-  "assessmentsHash": "48920351be5a4cae85508e469aab0d9c91b8b805c29d639218fd49014bcc2bff",
+  "assessmentsHash": "770f96e1790f86b066dd99c4794e3b645b8eb3a0049ab986224e96b788e3dae5",
   "entries": [
     {"id":"alpaca","products":[],"decision":"not_derivative","reasonCodes":["pinned_sdk_explicitly_declares_no_derivatives"]},
     {"id":"apex","products":["swap:linear"],"decision":"not_easy","reasonCodes":["external_zklink_signing_sdk_required"]},
@@ -71,7 +71,7 @@ export const CCXT_CATALOG_ASSESSMENTS = {
     {"id":"hitbtc","products":["swap:inverse","swap:linear"],"decision":"not_easy","reasonCodes":["pinned_required_native_capability_missing"]},
     {"id":"hollaex","products":[],"decision":"not_derivative","reasonCodes":["pinned_sdk_explicitly_declares_no_derivatives"]},
     {"id":"htx","products":["future:inverse","future:linear","swap:inverse","swap:linear"],"decision":"not_easy","reasonCodes":["pinned_required_native_capability_missing"]},
-    {"id":"hyperliquid","products":["swap:inverse","swap:linear"],"decision":"existing","reasonCodes":["master_key_only_scope_locally_reviewed","bound_parity_and_execution_receipt_required"]},
+    {"id":"hyperliquid","products":["swap:inverse","swap:linear"],"decision":"existing","reasonCodes":["agent_testnet_scope_locally_reviewed","bound_parity_and_execution_receipt_required"]},
     {"id":"independentreserve","products":[],"decision":"not_derivative","reasonCodes":["pinned_sdk_explicitly_declares_no_derivatives"]},
     {"id":"indodax","products":[],"decision":"not_derivative","reasonCodes":["pinned_sdk_explicitly_declares_no_derivatives"]},
     {"id":"kraken","products":[],"decision":"not_derivative","reasonCodes":["pinned_sdk_explicitly_declares_no_derivatives"]},
