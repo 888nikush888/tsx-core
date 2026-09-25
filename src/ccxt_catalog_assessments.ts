@@ -3,7 +3,7 @@
 export const CCXT_CATALOG_ASSESSMENTS = {
   "ccxtVersion": "4.5.75",
   "inventoryHash": "7c0ab01cf1e2629cee66528959e0c45ffe01a6111697294e5ca528116f247e54",
-  "assessmentsHash": "770f96e1790f86b066dd99c4794e3b645b8eb3a0049ab986224e96b788e3dae5",
+  "assessmentsHash": "c2a9fa207a8758ab7be1877b5ab40572092ff7ad477da5f432b4d3f17ce8921b",
   "entries": [
     {"id":"alpaca","products":[],"decision":"not_derivative","reasonCodes":["pinned_sdk_explicitly_declares_no_derivatives"]},
     {"id":"apex","products":["swap:linear"],"decision":"not_easy","reasonCodes":["external_zklink_signing_sdk_required"]},

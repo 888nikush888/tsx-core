@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "docs/testing/ccxt-expansion-matrix.json"
 TARGET = ROOT / "src/ccxt_catalog_assessments.ts"
 APPROVED_INVENTORY_HASH = "7c0ab01cf1e2629cee66528959e0c45ffe01a6111697294e5ca528116f247e54"
-APPROVED_ASSESSMENTS_HASH = "770f96e1790f86b066dd99c4794e3b645b8eb3a0049ab986224e96b788e3dae5"
+APPROVED_ASSESSMENTS_HASH = "c2a9fa207a8758ab7be1877b5ab40572092ff7ad477da5f432b4d3f17ce8921b"
 
 
 def digest(value: object) -> str:

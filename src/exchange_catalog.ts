@@ -4,7 +4,7 @@ import { tradingExchangeId } from './trading_types.js';
 import { CCXT_CATALOG_ASSESSMENTS } from './ccxt_catalog_assessments.js';
 
 const REVIEWED_INVENTORY_HASH = '7c0ab01cf1e2629cee66528959e0c45ffe01a6111697294e5ca528116f247e54';
-const REVIEWED_ASSESSMENTS_HASH = '770f96e1790f86b066dd99c4794e3b645b8eb3a0049ab986224e96b788e3dae5';
+const REVIEWED_ASSESSMENTS_HASH = 'c2a9fa207a8758ab7be1877b5ab40572092ff7ad477da5f432b4d3f17ce8921b';
 
 export interface ExchangeAssessment {
   decision: 'existing' | 'not_easy' | 'not_derivative';
