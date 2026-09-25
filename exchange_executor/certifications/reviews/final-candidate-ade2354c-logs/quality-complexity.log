@@ -1,0 +1,5 @@
+
+> tsx-core@3.3.0 quality:complexity
+> node scripts/check_complexity_budget.js
+
+Complexity budget passed (0 warnings, 0 threshold violations; cyclomatic avg/worst 3.46/15; function LOC avg/worst 9.08/95; >30/>50/>100 LOC 227/57/0; max nesting 4).

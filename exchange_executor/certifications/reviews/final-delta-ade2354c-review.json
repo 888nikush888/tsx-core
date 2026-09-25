@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "kind": "post-freeze-delta-review",
+  "reviewId": "final-delta-ade2354c-review",
+  "reviewer": "Codex",
+  "reviewedAt": "2026-09-25T16:00:30.000Z",
+  "baseRevision": "bba2cf70a0a38e537959f7aa10e76fe1db6ed14c",
+  "headRevision": "ade2354cbe2b67c938784fe111b316db2affc0a8",
+  "headTree": "efacc366e2429911cb958b9fab76a1279914373c",
+  "deltaPatchSha256": "dee7b0d149cc47205d5607345440039f50f6de4e55915384e64296553843a600",
+  "scope": "Read-only post-freeze review of the scanner remediation, candidate-evidence rebind, full Node/Python/frontend suites, build, lint, typecheck and complexity budget. No provider, account, deployment or live-order action was performed.",
+  "deltaInventory": {
+    "production": [
+      {
+        "path": "exchange_executor/ccxt_sdk_policy.py",
+        "change": "Initialize the agent authority in __init__ and split route/proxy validation into bounded helpers without changing the accepted Hyperliquid Testnet route set."
+      },
+      {
+        "path": "services/b2-backup-gateway/gateway.js",
+        "change": "Initialize pagination markers explicitly, make request dispatch synchronous, and extract request execution and cleanup while preserving fail-closed statuses, locking, cleanup and response ordering."
+      },
+      {
+        "path": "src/google_drive_backup_mirror.ts",
+        "change": "Use the existing numeric fallback through a bitwise zero while retaining O_NOFOLLOW on supported platforms."
+      },
+      {
+        "path": "src/provider_acceptance.ts",
+        "change": "Preserve Python-compatible ASCII JSON escaping for BMP, surrogate and non-BMP code points while removing unnecessary nullable-flag conditions."
+      }
+    ],
+    "tests": [
+      "exchange_executor/tests/test_hyperliquid_agent_grant.py",
+      "services/b2-audit-receiver/tests/audit-receiver.test.mjs",
+      "services/b2-backup-gateway/test/gateway.test.js",
+      "tests/test_backup.js",
+      "tests/test_provider_acceptance.js",
+      "tests/test_secret_store.js",
+      "tests/test_workflow_builder.js"
+    ],
+    "evidenceRebind": [
+      "docs/testing/ccxt-expansion-matrix.json",
+      "exchange_executor/ccxt_candidate_reviews.py"
+    ],
+    "productionSecurityBoundariesWeakened": false,
+    "scannerRulesDisabled": false
+  },
+  "sourceHashes": {
+    "sourceTreeHash": "06db844a8b23d6e176173fe0f607d3c7ed93f67ab44754b931f576cef4ced470",
+    "nodeSourcesHash": "db924eea896b5809a03c9f6f968072fae1ff254f1ed6c71e8fa0d1bbb5376b03",
+    "testSourcesHash": "08eed5f2eb76d7dc2a05c35171191f11b914ad0d2ccfaf65853c7732594335a6",
+    "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee",
+    "executorTreeHash": "95c6502e51bb1db0073be5cf40bd5f453599d8cf0518c078766be43432ab835a",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7",
+    "sourceFileCount": 1095,
+    "sourceTotalBytes": 22147945
+  },
+  "runtime": {
+    "node": "24.14.1",
+    "npm": "11.11.0",
+    "python": "3.12.13",
+    "ccxt": "4.5.75"
+  },
+  "results": {
+    "nodeFullSuite": "ALL 238 TEST FILES PASSED",
+    "pythonFullSuite": "587 passed, 1 platform skip",
+    "frontendFullSuite": "47 test files, 419 tests passed",
+    "rootBuild": "TypeScript, declaration copy and Vite production build passed",
+    "rootLint": "ESLint passed",
+    "frontendLint": "oxlint passed",
+    "pythonLint": "Ruff passed",
+    "typecheck": "tsc --noEmit passed",
+    "complexityBudget": "0 warnings, 0 threshold violations"
+  },
+  "securityAssessment": {
+    "conclusion": "The delta closes the current Sonar, DeepSource and Codacy source findings without disabling a rule, excluding a source file or weakening provider, filesystem, transport, mutation or secret boundaries.",
+    "codacy": "The four test-only SSRF/path findings retain explicit local-fixture justifications; large epoch constants use parsed dates or arithmetic and the nullable open-flag expression is removed.",
+    "deepsource": "Agent authority is initialized in __init__, route validation is split below the complexity threshold, the gateway marker/async findings are removed, and the redundant test argument is gone.",
+    "sonar": "Exception-test setup is outside the asserted call, ESLint directives are removed, Unicode escaping preserves the Python contract, and the gateway handler complexity is below budget."
+  },
+  "limits": [
+    "Implementation evidence only; provider/account acceptance and live trading remain false.",
+    "No scanner provider result is claimed green before a fresh cloud run on the final pushed SHA.",
+    "The Linux container verifier still has to validate the renewed receipt in GitHub Actions."
+  ],
+  "providerAcceptanceVerified": false,
+  "liveTradingApproved": false
+}

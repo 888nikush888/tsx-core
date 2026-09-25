@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "kind": "final-source-bound-execution-report",
+  "revision": "ade2354cbe2b67c938784fe111b316db2affc0a8",
+  "executionBaseRevision": "ade2354cbe2b67c938784fe111b316db2affc0a8",
+  "deltaScope": "The complete Node, Python and frontend suites, build, lint, typecheck and complexity checks ran on this exact source revision. Only receipt, pin, review and generated execution evidence follow after the frozen source revision.",
+  "independentReview": {
+    "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review.json",
+    "sha256": "6b7b9ef5a6b1311f69af91032a6abd6ff236e6a09f9dda6dbed72d5fb4c55d04",
+    "reviewedRevision": "8e7b7869d49d7ab5bf6222cd97f02ffdfecc7b25"
+  },
+  "deltaReview": {
+    "path": "exchange_executor/certifications/reviews/final-delta-ade2354c-review.json",
+    "sha256": "e585c44be372501735fb69dda197651b289d8548bef619ca63113ee3c713dae5"
+  },
+  "candidateEvidenceRevision": "ade2354cbe2b67c938784fe111b316db2affc0a8",
+  "sourceCommitments": {
+    "sourceTreeHash": "06db844a8b23d6e176173fe0f607d3c7ed93f67ab44754b931f576cef4ced470",
+    "nodeSourcesHash": "db924eea896b5809a03c9f6f968072fae1ff254f1ed6c71e8fa0d1bbb5376b03",
+    "testSourcesHash": "08eed5f2eb76d7dc2a05c35171191f11b914ad0d2ccfaf65853c7732594335a6",
+    "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee"
+  },
+  "runtimeCommitments": {
+    "executorTreeHash": "95c6502e51bb1db0073be5cf40bd5f453599d8cf0518c078766be43432ab835a",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7"
+  },
+  "environment": {
+    "node": "24.14.1",
+    "npm": "11.11.0",
+    "python": "3.12.13",
+    "ccxt": "4.5.75"
+  },
+  "results": {
+    "pythonFullSuite": "587 passed, 1 platform skip",
+    "nodeFullSuite": "ALL 238 TEST FILES PASSED",
+    "frontendFullSuite": "47 test files, 419 tests passed",
+    "rootBuild": "TypeScript, declaration copy and Vite production build passed",
+    "rootLint": "ESLint passed",
+    "frontendLint": "oxlint passed",
+    "pythonLint": "Ruff passed",
+    "typecheck": "tsc --noEmit passed",
+    "complexityBudget": "0 warnings, 0 threshold violations"
+  },
+  "linuxSourceVerification": {
+    "cleanCloneRevision": "ade2354cbe2b67c938784fe111b316db2affc0a8",
+    "sourceTreeHash": "06db844a8b23d6e176173fe0f607d3c7ed93f67ab44754b931f576cef4ced470",
+    "result": "The clean Linux clone produced the same source commitments as the frozen Windows source revision."
+  },
+  "rawLogs": [
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/node-full-suite.log",
+      "bytes": 74494,
+      "sha256": "68ea41f1c684349805f55433eb5adb3e71b6998349cc18959f18c770924c6d80"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/python-full-suite.log",
+      "bytes": 115583,
+      "sha256": "a71143813a69c3ff7b350c6d225366372d64fb3d6a9521e81597e4494fa28a45"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/frontend-full-suite.log",
+      "bytes": 462,
+      "sha256": "d9dd6ce8dd0dca6b61b610fa1c16d14316f796a9db1379675d7610586434578b"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/root-build.log",
+      "bytes": 1592,
+      "sha256": "2b73d3e88c51e2257a2f065f416780e8238abc9790f63a9367ebc730bb9b62c1"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/lint.log",
+      "bytes": 295,
+      "sha256": "0bf7a840e1d89c824db7125d8756da4c051694b895fb99270705b591aef47a8b"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/lint-frontend.log",
+      "bytes": 116,
+      "sha256": "cecde757fd7b73ca306d4240db99361b4c0037aa860e8dcf466331e66387f25e"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/lint-python.log",
+      "bytes": 20,
+      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/typecheck.log",
+      "bytes": 48,
+      "sha256": "0f77cf5c5793fa7775c3788752e4340bd346e4611e0e2631773e072255b4ddd4"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/quality-complexity.log",
+      "bytes": 252,
+      "sha256": "9bd071385a7a18e71d97b10b322aa25543a6200f3e93fd9d173e27ff4e8a69f5"
+    }
+  ],
+  "providerAcceptanceVerified": false,
+  "liveTradingApproved": false,
+  "limitations": [
+    "Local implementation and execution evidence only; no provider acceptance, deployment or live order was performed.",
+    "The local full Node suite used Node 24.14.1; GitHub Actions remains the authoritative Node 22 execution.",
+    "Fresh Sonar, DeepSource and Codacy cloud results are required after pushing this exact revision."
+  ]
+}

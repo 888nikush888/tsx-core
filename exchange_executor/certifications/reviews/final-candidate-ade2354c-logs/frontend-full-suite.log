@@ -1,0 +1,14 @@
+
+> tsx-core-frontend@3.3.0 test
+> vitest run --configLoader runner --environment jsdom tests
+
+
+ RUN  v4.1.11 C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-integration-next-20260924/frontend
+
+Not implemented: navigation to another Document
+
+ Test Files  47 passed (47)
+      Tests  419 passed (419)
+   Start at  17:59:13
+   Duration  9.91s (transform 12.65s, setup 0ms, import 61.87s, tests 40.30s, environment 67.42s)
+
