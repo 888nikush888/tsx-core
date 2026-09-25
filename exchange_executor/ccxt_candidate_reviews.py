@@ -17,7 +17,7 @@ from ccxt_certification_evidence import file_bytes
 from ccxt_profiles import PROFILES
 
 APPROVED_INVENTORY_HASH = "7c0ab01cf1e2629cee66528959e0c45ffe01a6111697294e5ca528116f247e54"
-APPROVED_ASSESSMENTS_HASH = "c2a9fa207a8758ab7be1877b5ab40572092ff7ad477da5f432b4d3f17ce8921b"
+APPROVED_ASSESSMENTS_HASH = "abffd04f090420ee1c092cb8bfab64ce850b63f1a604c4b6f5e7294d73656904"
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 
 
