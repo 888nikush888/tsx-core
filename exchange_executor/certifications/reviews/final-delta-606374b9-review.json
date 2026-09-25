@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "kind": "final-independent-delta-review",
+  "reviewId": "final-delta-606374b9-review",
+  "reviewer": "Codex",
+  "reviewedAt": "2026-09-25T14:34:58Z",
+  "requestedHeadRevision": "606374b91b254e7d84b492f75d2147b2331a0021",
+  "requestedHeadRevisionExists": false,
+  "baseRevision": "fe233fd2f9cd1dbaed303bbac5e6cdf83640cdb6",
+  "headRevision": "606374b909d7e4d74121c59ba90eaecccd8d0f1f",
+  "headTree": "157a617bd4b15d2a4193ea0e2ebcf95cb826f219",
+  "deltaPatchSha256": "2b7582464c9009dc763398967fd06c1ed30238a3f90a898bdad9389a2d3299cd",
+  "scope": "Independent read-only review of the test race stabilization and the post-base ESLint diagnostic-option change, with the requested complexity, lint, typecheck and full frontend test gates. No production file, receipt, pin, provider state or account state was changed.",
+  "revisionFinding": "The exact requested long SHA does not exist in this worktree. The current HEAD 606374b909d7e4d74121c59ba90eaecccd8d0f1f was reviewed instead.",
+  "deltaInventory": {
+    "frontendRaceFix": {
+      "introducedInRevision": "fe233fd2f9cd1dbaed303bbac5e6cdf83640cdb6",
+      "introducedBeforeReviewedBase": true,
+      "path": "frontend/tests/operator-maintenance-safety.test.tsx",
+      "beforeGitBlobSha1": "f3e49108",
+      "afterGitBlobSha1": "bc4e3e0bc9db1d7b05a9d0670b0d1f9156264a82",
+      "afterSha256": "07c9b01dc5631a78a67a04e8aa46c614db07f1a150e88c7c10beb4c660b52a42",
+      "change": "The synchronous enabled-state assertion is replaced by waitFor around the same assertion.",
+      "classification": "test_only",
+      "productionSemanticsChanged": false
+    },
+    "postBaseChanges": [
+      {
+        "path": "eslint.config.js",
+        "status": "M",
+        "beforeGitBlobSha1": "ca28ab139072ececd728bc4844d1d93ac9144f4d",
+        "afterGitBlobSha1": "a9bfca4762c21db6ee238dc50bb0883636b96c18",
+        "afterSha256": "71bcae64228be153ebf4d0d68ee10f1aa7388d31801ee16cdef6f2121b96cbe1",
+        "classification": "lint_diagnostics_only",
+        "change": "linterOptions.reportUnusedDisableDirectives is set to off. No rule definition or severity was changed."
+      },
+      {
+        "path": "exchange_executor/ccxt_implementation_reviews.py",
+        "status": "M",
+        "classification": "receipt_pin_evidence"
+      },
+      {
+        "path": "exchange_executor/certifications/hyperliquid.json",
+        "status": "M",
+        "classification": "receipt_evidence",
+        "sha256": "a44890d925c45c65bcc4011d93b544f81073173fa5fc0b48d2eee1a7a1b8112c"
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-execution-report.json",
+        "status": "A",
+        "classification": "execution_evidence"
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/",
+        "status": "A",
+        "classification": "execution_evidence_logs"
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/final-fe233fd2-receipt-adoption-approval.json",
+        "status": "A",
+        "classification": "adoption_evidence"
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/final-fe233fd2-receipt-adoption-approval-v2.json",
+        "status": "A",
+        "classification": "adoption_evidence"
+      }
+    ],
+    "productionSourceFilesChanged": false,
+    "securityRuleDefinitionsChanged": false
+  },
+  "sourceHashes": {
+    "receiptBoundSourceTreeHash": "e90c9c880561c4862a0fbd4cfb532123e36efde17df58170883e6c771171c01f",
+    "currentSourceTreeHash": "ecd6cda37c7a21b28df5821784808d99203c6b08c27a98ef79b62655acf27816",
+    "receiptBoundNodeSourcesHash": "028f280ab1ffb267d8900916e92f7f9d6f91d83844e29db9c6ae6652a985f7e8",
+    "currentNodeSourcesHash": "568317875cbebccace68d4470453f1d1e6248c2056b5bcd2c5b70513150e27d5",
+    "testSourcesHash": "879f3c647ace3317191228df943297102e7167f1cff8fe50e2484f1b889cd2df",
+    "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee",
+    "executorTreeHash": "842fd984dc8e473ec1d0a93064753211123e0fbf05f54787c32c1a503ac978d9",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7",
+    "sourceFileCount": 1095,
+    "sourceTotalBytes": 22147232,
+    "generatedBy": "Node 22.23.2 using the repository collectBuildInputs contract"
+  },
+  "receiptDrift": {
+    "detected": true,
+    "reason": "eslint.config.js is a Node build input. Its post-base change alters sourceTreeHash and nodeSourcesHash, so the existing receipt is no longer bound to the current HEAD.",
+    "nodeCompareBuildReceipt": "FAIL: current source commitment drifted",
+    "pythonRuntimeReceiptComparison": "PASS for profile, executor and SDK bytes; it does not prove the changed Node build inputs",
+    "receiptOrPinChanged": false,
+    "requiredFollowUp": "A receipt renewal bound to this HEAD is required before implementation adoption for the new revision."
+  },
+  "securityAssessment": {
+    "productionSemanticsWeakened": false,
+    "securityRulesWeakened": false,
+    "reason": "The reviewed delta contains only a test-only waitFor change and an ESLint warning option. No ESLint rule, severity, parser, security plugin, runtime path or production source was changed.",
+    "noInlineConfigAudit": "ESLint passed with --no-inline-config --quiet, proving current code has no error-producing reliance on inline suppressions.",
+    "unusedDirectiveAudit": "Forcing unused-disable reporting found only three stale ESLint suppressions and three pre-existing complexity warnings; all were warnings and no security-rule violation was hidden.",
+    "frontendConfigImpact": "frontend/** is ignored by this root ESLint configuration and frontend linting uses oxlint."
+  },
+  "commands": [
+    {
+      "command": "npm run quality:complexity",
+      "environment": "Node 22.23.2 / npm 10.9.8",
+      "exitCode": 0,
+      "result": "Complexity budget passed; 0 warnings, 0 threshold violations; cyclomatic avg/worst 3.46/15; function LOC avg/worst 9.08/95; max nesting 4."
+    },
+    {
+      "command": "npm run lint",
+      "environment": "Node 22.23.2 / npm 10.9.8",
+      "exitCode": 0,
+      "result": "ESLint passed."
+    },
+    {
+      "command": "npm run lint:frontend",
+      "environment": "Node 22.23.2 / npm 10.9.8",
+      "exitCode": 0,
+      "result": "oxlint passed."
+    },
+    {
+      "command": "npm run lint:python",
+      "environment": "Node 22.23.2 / npm 10.9.8 / Python 3.14.3",
+      "exitCode": 0,
+      "result": "Ruff passed: All checks passed."
+    },
+    {
+      "command": "npm run typecheck",
+      "environment": "Node 22.23.2 / npm 10.9.8",
+      "exitCode": 0,
+      "result": "tsc --noEmit passed."
+    },
+    {
+      "command": "npm test --prefix frontend",
+      "environment": "Node 22.23.2 / npm 10.9.8 / Vitest 4.1.11",
+      "exitCode": 0,
+      "result": "47 test files passed; 419 tests passed."
+    },
+    {
+      "command": "npx vitest run --configLoader runner --environment jsdom tests/operator-maintenance-safety.test.tsx",
+      "environment": "Node 22.23.2; repeated three times",
+      "exitCode": 0,
+      "result": "1 test file and 10 tests passed on each of three consecutive runs."
+    },
+    {
+      "command": "npx eslint <configured targets> --report-unused-disable-directives-severity warn --no-warn-ignored",
+      "environment": "Node 22.23.2",
+      "exitCode": 0,
+      "result": "6 warnings total: 3 unused disable directives and 3 pre-existing complexity warnings; 0 errors."
+    },
+    {
+      "command": "npx eslint <configured targets> --no-inline-config --quiet",
+      "environment": "Node 22.23.2",
+      "exitCode": 0,
+      "result": "No errors without any inline suppression."
+    }
+  ],
+  "limits": [
+    "This review does not renew or approve a receipt for HEAD 606374b909d7e4d74121c59ba90eaecccd8d0f1f.",
+    "No provider, network, live-order, deployment or account action was performed.",
+    "Only the full frontend suite was rerun; the previously recorded backend suites were not rerun for this delta.",
+    "The requested long revision 606374b91b254e7d84b492f75d2147b2331a0021 is absent; the actual current HEAD was reviewed.",
+    "The receipt drift caused by the ESLint build-input change remains unresolved by design and must be handled by a separate receipt renewal."
+  ],
+  "providerAcceptanceVerified": false,
+  "liveTradingApproved": false
+}
