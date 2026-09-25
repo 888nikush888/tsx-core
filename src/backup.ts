@@ -1020,9 +1020,13 @@ export class BackupScheduler {
 
   private recordDriveMirrorEvidence(replication: Awaited<ReturnType<BackupReplicator['replicate']>>): void {
     if (replication.driveMirrorError || !replication.driveMirror) {
-      this.status.driveMirrorLastError = replication.driveMirrorError
-        ? 'Drive mirror upload or verification failed.'
-        : (this.driveMirrorRequired ? 'Required Drive mirror receipt is missing.' : null);
+      if (replication.driveMirrorError) {
+        this.status.driveMirrorLastError = 'Drive mirror upload or verification failed.';
+      } else if (this.driveMirrorRequired) {
+        this.status.driveMirrorLastError = 'Required Drive mirror receipt is missing.';
+      } else {
+        this.status.driveMirrorLastError = null;
+      }
       return;
     }
     const mirror = replication.driveMirror;

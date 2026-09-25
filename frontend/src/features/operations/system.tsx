@@ -230,6 +230,26 @@ function AuditSection({ operations, busy, replayAudit, setMessage }: Readonly<{
     }
     return "unbekannt";
   };
+  const primaryBackupStatus = () => {
+    const backup = operations?.backup;
+    if (!backup?.offsiteConfigured) {
+      return "nicht eingerichtet";
+    }
+    if (backup.offsiteHealthy && backup.offsiteVerified) {
+      return "bereit";
+    }
+    return "nicht bereit";
+  };
+  const driveMirrorStatus = () => {
+    const backup = operations?.backup;
+    if (!backup?.driveMirrorConfigured && !backup?.driveMirrorRequired && !backup?.driveMirrorVerified) {
+      return "nicht eingerichtet";
+    }
+    if (backup.driveMirrorHealthy) {
+      return "bereit";
+    }
+    return "nicht bereit";
+  };
   return (
       <section className="operations-card">
         <h3>Audit und Diagnose</h3>
@@ -238,9 +258,9 @@ function AuditSection({ operations, busy, replayAudit, setMessage }: Readonly<{
         <div className="system-line"><span>Geprüfter Datenstand erstellt</span><strong>{time(Date.parse(operations?.backup?.integrityVerified?.artifactCreatedAt ?? ""))}</strong></div>
         <div className="system-line"><span>Gemeinsame Konfiguration geprüft</span><strong>{time(operations?.backup?.configurationCoherent?.verifiedAt)}</strong></div>
         <div className="system-line"><span>Primär-Backup zurückgelesen und geprüft</span><strong>{time(operations?.backup?.offsiteVerified?.verifiedAt)}</strong></div>
-        <div className="system-line"><span>Primär-Backup Zustand</span><strong>{operations?.backup?.offsiteConfigured ? (operations.backup.offsiteHealthy && operations.backup.offsiteVerified ? 'bereit' : 'nicht bereit') : 'nicht eingerichtet'}</strong></div>
+        <div className="system-line"><span>Primär-Backup Zustand</span><strong>{primaryBackupStatus()}</strong></div>
         <div className="system-line"><span>Drive-Zweitkopie zurückgelesen und geprüft</span><strong>{time(operations?.backup?.driveMirrorVerified?.verifiedAt)}</strong></div>
-        <div className="system-line"><span>Drive-Zweitkopie Zustand</span><strong>{operations?.backup?.driveMirrorConfigured || operations?.backup?.driveMirrorRequired || operations?.backup?.driveMirrorVerified ? (operations?.backup?.driveMirrorHealthy ? 'bereit' : 'nicht bereit') : 'nicht eingerichtet'}</strong></div>
+        <div className="system-line"><span>Drive-Zweitkopie Zustand</span><strong>{driveMirrorStatus()}</strong></div>
         {operations?.backup?.driveMirrorLastError && <div className="system-line"><span>Drive-Zweitkopie</span><strong>{operations.backup.driveMirrorLastError}</strong></div>}
         <div className="system-line"><span>Letzte artefaktlokale Restore-Prüfung</span><strong>{operations?.backup?.restoreEligibility?.status || "unknown"} · {time(operations?.backup?.restoreEligibility?.checkedAt)}</strong></div>
         <div className="system-line"><span>Letzter tatsächlich durchgeführter Probelauf</span><strong>{time(operations?.backup?.restoreDrill?.performedAt)}</strong></div>
