@@ -368,10 +368,10 @@ assert.match(containerJob, /docker build --tag tsx-core:\$\{\{ github\.sha \}\} 
 assert.match(containerJob, /docker build --file "\$RUNNER_TEMP\/tsx-reviewed-source\/exchange_executor\/Dockerfile" --tag tsx-core-exchange-executor:\$\{\{ github\.sha \}\} "\$RUNNER_TEMP\/tsx-reviewed-source"/);
 assert.match(executorDockerfile, /^COPY exchange_executor\/requirements\.lock \.\/requirements\.lock$/m);
 assert.match(executorDockerfile, /^COPY --chown=0:0 --chmod=0444 exchange_executor\/\*\.py \.\/$/m);
-assert.match(executorDockerfile, /^COPY --chown=0:0 --chmod=0444 scripts\/hyperliquid_bound_preflight\.py scripts\/hyperliquid_testnet_preflight\.py \.\/$/m);
+assert.match(executorDockerfile, /^COPY --chown=0:0 --chmod=0444 scripts\/hyperliquid_bound_preflight\.py scripts\/hyperliquid_testnet_preflight\.py \.\/tools\/$/m);
 assert.match(dockerCompose, /exchange-executor:\s*\n\s*build:\s*\n\s*context: \.\s*\n\s*dockerfile: exchange_executor\/Dockerfile/);
-assert.match(containerJob, /docker run --rm --network none --read-only --entrypoint python tsx-core-exchange-executor:\$\{\{ github\.sha \}\} -E -B -c "import hyperliquid_bound_preflight, hyperliquid_testnet_preflight;/);
-assert.match(containerJob, /docker run --rm --network none --read-only -v "\$RUNNER_TEMP\/tsx-reviewed-source\/tests:\/tests:ro" --entrypoint python tsx-core-exchange-executor:\$\{\{ github\.sha \}\} -B -m unittest discover -s \/tests -p test_hyperliquid_bound_preflight\.py -v/);
+assert.match(containerJob, /docker run --rm --network none --read-only --entrypoint python tsx-core-exchange-executor:\$\{\{ github\.sha \}\} -E -B -c "import sys; sys\.path\.insert\(0, '\/app\/tools'\); import hyperliquid_bound_preflight, hyperliquid_testnet_preflight;/);
+assert.match(containerJob, /docker run --rm --network none --read-only -e PYTHONPATH=\/app:\/app\/tools:\/tests -v "\$RUNNER_TEMP\/tsx-reviewed-source\/tests:\/tests:ro" --entrypoint python tsx-core-exchange-executor:\$\{\{ github\.sha \}\} -B -m unittest discover -s \/tests -p test_hyperliquid_bound_preflight\.py -v/);
 assert.match(containerJob, /--file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/prometheus\.Dockerfile"/);
 assert.match(containerJob, /--file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/alertmanager\.Dockerfile"/);
 assert.doesNotMatch(containerJob, /(?:docker build|docker buildx build)[^\n]*(?:\s\.\s*$|\sexchange_executor\s*$)/m,
