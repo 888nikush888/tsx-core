@@ -153,11 +153,13 @@ function assertUnlinkedParents(path: string): void {
 
 function lstatAcceptancePath(path: string): BigIntStats {
   // Callers require canonical absolute paths and validate every ancestor as a real directory.
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- validated canonical path is the security boundary.
   return lstatSync(path, { bigint: true });
 }
 
 function openAcceptancePath(path: string): number {
   // O_NOFOLLOW prevents a symlink swap after the lstat validation.
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- validated canonical path is the security boundary.
   return openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW | 0) | (constants.O_NONBLOCK | 0));
 }
 

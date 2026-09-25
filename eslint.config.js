@@ -2,6 +2,14 @@ import js from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+// Codacy runs this rule in its analyzer. Declaring the namespace keeps reviewed
+// inline exceptions parseable locally without enabling a second implementation.
+const codacySecurityNamespace = {
+  rules: {
+    'detect-non-literal-fs-filename': { meta: { schema: [] }, create: () => ({}) },
+  },
+};
+
 export default [
   {
     ignores: [
@@ -19,6 +27,9 @@ export default [
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    plugins: { security: codacySecurityNamespace },
+  },
   {
     languageOptions: {
       ecmaVersion: 2024,
