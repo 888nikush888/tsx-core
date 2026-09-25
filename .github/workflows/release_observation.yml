@@ -1,0 +1,42 @@
+name: Release Observation Evidence
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-observation-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  observation:
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, production-observer]
+    environment: production-observer
+    timeout-minutes: 10
+    env:
+      PROMETHEUS_URL: ${{ vars.PROMETHEUS_URL }}
+      PROMETHEUS_TOKEN: ${{ secrets.PROMETHEUS_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm rebuild sqlite3 --build-from-source
+      - run: npm run ops:release-observation
+      - name: Upload release observation evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-observation-${{ github.sha }}-${{ github.run_id }}
+          path: reports/soak/
+          if-no-files-found: error
+          retention-days: 90

@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "scope": "Audited source-scoped slices of parameters.json: managed runtime, account identity/state, seven versioned strategy signal-access and entry controls, four versioned strategy safety limits, six effective sizing-resource controls, four adaptive-risk policy controls, Telegram Viewer settings, deployment evidence, and the mandatory protective-stop gate. Other parameter families remain unaudited here.",
+  "classes": ["runtime-editable", "create-only", "versioned-draft", "read-only-evidence", "host-bootstrap", "immutable-gate"],
+  "groups": [
+    {
+      "id": "managed-runtime",
+      "class": "runtime-editable",
+      "paths": [
+        "runtime.enterpriseMode", "runtime.dashboardAuthMode", "runtime.dashboardLocalTrust", "runtime.dashboardAllowedOrigin",
+        "runtime.tailscaleServeTrustedProxy", "runtime.tailscaleAdminUsers", "runtime.tailscaleViewerUsers",
+        "runtime.oidcIssuer", "runtime.oidcAudience", "runtime.oidcJwksUrl", "runtime.oidcAdminRole",
+        "runtime.oidcViewerRole", "runtime.oidcRoleClaim", "runtime.oidcMaxTokenAgeSeconds",
+        "runtime.auditWebhookUrl", "runtime.alertWebhookUrl", "runtime.auditRemoteRequired",
+        "runtime.auditWebhookTimeoutMs", "runtime.alertWebhookTimeoutMs", "runtime.auditLocalMaxBytes",
+        "runtime.backupOffsiteRequired", "runtime.backupOffsiteUrlTemplate", "runtime.backupOffsiteTimeoutMs",
+        "runtime.backupOffsiteMaxRecoveryBytes", "runtime.backupOffsiteRetentionDays",
+        "runtime.backupDriveFolderId", "runtime.backupDriveRequired", "runtime.backupDriveTimeoutMs", "runtime.backupIntervalMs",
+        "runtime.backupRetentionCount", "runtime.dataRetentionDays", "runtime.dataRetentionIntervalMs",
+        "runtime.dataRetentionBatchSize", "runtime.dataMinFreeBytes", "runtime.deliveryConfirmTimeoutMs",
+        "runtime.shutdownGraceMs", "runtime.clockMaxDriftMs", "runtime.jsonLogging", "runtime.isolateUnavailableMarketFailures"
+      ],
+      "uiRoute": "/operations/settings",
+      "uiControl": "frontend/src/features/operations/runtime-parameters.tsx",
+      "mutationRoute": "POST /api/runtime-settings",
+      "backendValidator": "src/runtime_settings.ts",
+      "auditAction": "runtime.settings.update",
+      "contractTest": "tests/test_runtime_settings.js",
+      "effect": "Saved while running; effective at restart, except immediate session revocation for access changes."
+    },
+    {
+      "id": "account-creation",
+      "class": "create-only",
+      "paths": ["account.name", "account.exchange", "account.mode"],
+      "uiRoute": "/trading/accounts",
+      "uiControl": "frontend/src/features/accounts/accounts.tsx",
+      "mutationRoute": "POST /api/trading/accounts",
+      "backendValidator": "src/trading_web_control.ts",
+      "auditAction": "trading.accounts.post",
+      "contractTest": "tests/test_trading_web_control.js",
+      "effect": "Account identity is bound at creation; a different exchange or mode requires a separately verified account."
+    },
+    {
+      "id": "account-enable",
+      "class": "runtime-editable",
+      "paths": ["account.enabled"],
+      "uiRoute": "/trading/accounts",
+      "uiControl": "frontend/src/features/accounts/accounts.tsx",
+      "mutationRoute": "POST /api/trading/accounts/state",
+      "backendValidator": "src/trading_web_control.ts",
+      "auditAction": "trading.accounts.state.post",
+      "contractTest": "tests/test_trading_web_control.js",
+      "effect": "Protected account state command; enabling is still subject to server-side admission gates."
+    },
+    {
+      "id": "account-position-limit",
+      "class": "runtime-editable",
+      "paths": ["account.maxConcurrentPositions"],
+      "uiRoute": "/trading/accounts",
+      "uiControl": "frontend/src/features/accounts/account-position-limit.tsx",
+      "mutationRoute": "POST /api/trading/accounts/configuration",
+      "backendValidator": "src/trading_web_control.ts",
+      "auditAction": "trading.accounts.configuration.post",
+      "contractTest": "tests/test_trading_web_control.js",
+      "effect": "Version-bound account limit, effective for new capacity reservations."
+    },
+    {
+      "id": "account-observation",
+      "class": "read-only-evidence",
+      "paths": ["account.stateVersion", "account.status", "account.killSwitchActive", "account.credentialGeneration", "account.lastVerifiedAt"],
+      "uiRoute": "/trading/accounts",
+      "uiControl": "frontend/src/features/accounts/account-detail.tsx",
+      "effect": "Observed state; kill-switch release and credential rotation are separate guarded commands, not direct field edits."
+    },
+    {
+      "id": "strategy-access-entry",
+      "class": "versioned-draft",
+      "paths": ["strategy.allowedSignalSchemas", "strategy.allowedSymbols", "strategy.allowedSides", "strategy.entry.orderType", "strategy.entry.rangePrice", "strategy.entry.postOnly", "strategy.entry.timeoutSeconds"],
+      "uiRoute": "/workflows/builder",
+      "uiControl": "frontend/src/app/workflow/resource-editor.tsx",
+      "mutationRoutes": ["POST /api/trading/strategies", "POST /api/trading/strategies/publish", "POST /api/workflow/mutate"],
+      "backendValidator": "src/trading_strategy.ts:validateStrategyConfiguration",
+      "auditActions": ["trading.strategies.post", "trading.strategies.publish.post", "dashboard.workflow.mutate.post"],
+      "contractTests": ["frontend/tests/workflow-resource-editor.test.tsx", "tests/test_web_server.js", "tests/test_workflow_builder.js"],
+      "effect": "The three access lists and four entry controls are pinned in an immutable published strategy. A new graph revision binds them to later intents. Synthetic range-signal trade plans prove field-specific access rejection, entry price, bounded market IOC, post-only and timeout behavior. Market signal type may override strategy orderType, and rangePrice/postOnly apply only to limit entries; no live-host or order-submission claim."
+    },
+    {
+      "id": "strategy-safety",
+      "class": "versioned-draft",
+      "paths": ["strategy.safety.maxDailyLossMode", "strategy.safety.maxDailyLoss", "strategy.safety.maxSlippagePercent", "strategy.safety.entryOrderTtlSeconds"],
+      "uiRoute": "/workflows/builder",
+      "uiControl": "frontend/src/app/workflow/resource-editor.tsx",
+      "mutationRoutes": ["POST /api/trading/strategies", "POST /api/trading/strategies/publish", "POST /api/workflow/mutate"],
+      "backendValidator": "src/trading_strategy.ts:validateStrategyConfiguration",
+      "auditActions": ["trading.strategies.post", "trading.strategies.publish.post", "dashboard.workflow.mutate.post"],
+      "contractTests": ["frontend/tests/workflow-resource-editor.test.tsx", "tests/test_web_server.js", "tests/test_workflow_builder.js"],
+      "effect": "All four fields are bound to an immutable published strategy and take effect for new intents only after the graph pins and activates that resource version. Existing intents and prior workflow revisions retain their former values. This synthetic proof is not a live-host sign-off."
+    },
+    {
+      "id": "resource-sizing",
+      "class": "versioned-draft",
+      "paths": ["resource.sizing.positionSizingMode", "resource.sizing.riskPerTradePercent", "resource.sizing.maxAdaptiveRiskPercent", "resource.sizing.maxPositionNotional", "resource.sizing.defaultLeverage", "resource.sizing.maxLeverage"],
+      "uiRoute": "/workflows/builder",
+      "uiControl": "frontend/src/app/workflow/resource-editor.tsx",
+      "mutationRoutes": ["POST /api/workflow/resources", "POST /api/workflow/resources/update", "POST /api/workflow/resources/publish", "POST /api/workflow/mutate"],
+      "backendValidator": "src/workflow_repository.ts:validateSizingConfiguration",
+      "auditActions": ["dashboard.workflow.resources.post", "dashboard.workflow.resources.update.post", "dashboard.workflow.resources.publish.post", "dashboard.workflow.mutate.post"],
+      "contractTests": ["frontend/tests/workflow-resource-editor.test.tsx", "tests/test_web_server.js", "tests/test_workflow_builder.js"],
+      "effect": "The mandatory sizing resource overrides strategy sizing defaults. All six values are effective for newly created intents on a path only after a published sizing version is pinned by an activated graph revision; existing intents and prior revisions retain their values. Field-specific synthetic trade-plan probes show each value can affect risk sizing under a suitable input. No real order or live-host sign-off is claimed."
+    },
+    {
+      "id": "adaptive-risk-policy",
+      "class": "versioned-draft",
+      "paths": ["resource.adaptive_risk.enabled", "resource.adaptive_risk.mode", "resource.adaptive_risk.startingTier", "resource.adaptive_risk.lockedTier"],
+      "uiRoute": "/workflows/builder",
+      "uiControl": "frontend/src/app/workflow/resource-editor.tsx",
+      "mutationRoutes": ["POST /api/workflow/resources", "POST /api/workflow/resources/update", "POST /api/workflow/resources/publish", "POST /api/workflow/mutate"],
+      "backendValidator": "src/workflow_repository.ts:validateAdaptiveRiskConfiguration",
+      "auditActions": ["dashboard.workflow.resources.post", "dashboard.workflow.resources.update.post", "dashboard.workflow.resources.publish.post", "dashboard.workflow.mutate.post"],
+      "contractTests": ["frontend/tests/workflow-resource-editor.test.tsx", "tests/test_web_server.js", "tests/test_workflow_builder.js"],
+      "effect": "The graph pins a published adaptive-risk resource for new intents. Automatic mode applies a tier while shadow uses baseline risk; lockedTier overrides the selected tier. startingTier initializes only a fresh channel/account/resource-family state and does not reset an existing tier after version changes. With enabled=false, an isolated no-order TradingEngine preparation uses baseline risk and bypasses adaptive state mutation; the plan differs from the same path with an automatic tier. Synthetic trade plans and historical pins are tested without provider order submission."
+    },
+    {
+      "id": "telegram-viewer-settings",
+      "class": "runtime-editable",
+      "paths": [
+        "viewer.enabled", "viewer.allowedUserIds", "viewer.timezone", "viewer.locale", "viewer.eventPollingIntervalMs",
+        "viewer.notifications.positionOpened", "viewer.notifications.takeProfitFilled", "viewer.notifications.stopLossFilled",
+        "viewer.notifications.positionClosed", "viewer.notifications.executionFailed", "viewer.notifications.accountIncidentOpened",
+        "viewer.notifications.accountIncidentResolved", "viewer.notifications.exchangeStreamDegraded",
+        "viewer.notifications.exchangeStreamRecovered", "viewer.notifications.killSwitchActivated",
+        "viewer.notifications.signalReceived", "viewer.notifications.signalValidated", "viewer.notifications.intentCreated",
+        "viewer.notifications.exchangeAcknowledged", "viewer.display.detailLevel", "viewer.display.pnlMode"
+      ],
+      "uiRoute": "/integrations/telegram-viewer",
+      "uiControl": "frontend/src/features/telegram-viewer/telegram-viewer.tsx",
+      "mutationRoute": "POST /api/telegram-viewer/settings",
+      "backendValidator": "src/telegram_viewer_settings.ts",
+      "auditAction": "telegram-viewer.settings.update",
+      "contractTest": "tests/test_telegram_viewer_api.js",
+      "effect": "A revision-bound admin update replaces the complete validated viewer settings document; the separate viewer service observes the persisted settings. Bot and service tokens use separate write-only commands."
+    },
+    {
+      "id": "telegram-viewer-fixed-time-format",
+      "class": "read-only-evidence",
+      "paths": ["viewer.display.timeFormat"],
+      "uiRoute": "/integrations/telegram-viewer",
+      "uiControl": "frontend/src/features/telegram-viewer/telegram-viewer.tsx",
+      "backendValidator": "src/telegram_viewer_settings.ts",
+      "effect": "The fixed 24h value is visible but has no editor; the validator rejects any other value."
+    },
+    {
+      "id": "deployment-bootstrap",
+      "class": "host-bootstrap",
+      "paths": ["deployment.VITE_BASENAME", "deployment.VITE_GTM_ID", "deployment.hostPorts", "deployment.cpu", "deployment.memory", "deployment.imageDigest"],
+      "uiRoute": "/operations/deployment",
+      "uiControl": "frontend/src/features/operations/deployment.tsx",
+      "gap": "host-maintenance-ui",
+      "evidence": {
+        "deployment.VITE_BASENAME": { "visibility": "build-value", "detail": "Browser displays effective basename, with / for an unset value." },
+        "deployment.VITE_GTM_ID": { "visibility": "presence-only", "detail": "Browser displays only whether a GTM ID was configured; the value is not returned." },
+        "deployment.hostPorts": { "visibility": "partial", "detail": "Internal listener and optional process declarations do not prove published host/Compose port bindings." },
+        "deployment.cpu": { "visibility": "partial", "detail": "OS parallelism, visible cgroup-v2 root limit and optional process declaration do not prove effective host/container limits." },
+        "deployment.memory": { "visibility": "partial", "detail": "OS total memory, visible cgroup-v2 root limit and optional process declaration do not prove effective host/container limits." },
+        "deployment.imageDigest": { "visibility": "absent", "detail": "The current deployment UI does not show the running image digest." }
+      },
+      "effect": "Build/host-owned values are not editable in the Core UI. Visibility is partial or absent as detailed per field; a separately authorized maintenance and recovery plane is required for UI-managed changes."
+    },
+    {
+      "id": "mandatory-protective-stop",
+      "class": "immutable-gate",
+      "paths": ["strategy.safety.requireProtectiveStop"],
+      "backendValidator": "src/trading_strategy.ts",
+      "effect": "Server rejects false; no UI override is allowed."
+    }
+  ]
+}

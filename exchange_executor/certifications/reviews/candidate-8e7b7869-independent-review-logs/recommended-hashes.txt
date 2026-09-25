@@ -1,0 +1,29 @@
+{
+  "changed": [
+    {
+      "path": "exchange_executor/hyperliquid_agent_grant.py",
+      "sha256": "89aaac36a31f00d9f1824e9375507e2f494d2c066a09a5dc28e3390963da5c28"
+    },
+    {
+      "path": "exchange_executor/ccxt_client.py",
+      "sha256": "d80707faef6b0c21f103a81059e1b829a456d1f5d51d701f2a700ae2ed29ccc1"
+    },
+    {
+      "path": "exchange_executor/ccxt_sdk_policy.py",
+      "sha256": "7e7986f1af1a37c2b7323ac4224997a6f0eb0751230a627ee4544a948e441de9"
+    },
+    {
+      "path": "exchange_executor/tests/test_hyperliquid_agent_grant.py",
+      "sha256": "fe552599ba9755e361ba34f717ae9351b0991ff78330209ade438cbfcd2823c9"
+    },
+    {
+      "path": "scripts/hyperliquid_bound_preflight.py",
+      "sha256": "7079c9a4873e6cfccab0f5ce0b36085115b994c0f43026e5cc2778a2b937a0fa"
+    },
+    {
+      "path": "tests/test_hyperliquid_bound_preflight.py",
+      "sha256": "d930d90f66b7293c403f038d9874297ab4ae9269e234133d5ef5144af06422d2"
+    }
+  ],
+  "assessmentsSha256": "c2a9fa207a8758ab7be1877b5ab40572092ff7ad477da5f432b4d3f17ce8921b"
+}

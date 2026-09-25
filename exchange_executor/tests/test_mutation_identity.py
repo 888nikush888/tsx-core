@@ -132,7 +132,7 @@ class MutationIdentityTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(state["closes"], 2)
             await registry.close()
 
-    async def test_hyperliquid_master_key_binding_precedes_client_construction(self):
+    async def test_unverified_hyperliquid_agent_precedes_client_construction(self):
         constructed = 0
 
         class ForbiddenClient:
@@ -152,7 +152,9 @@ class MutationIdentityTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch.object(ccxt_client.ccxt_async, 'hyperliquid', ForbiddenClient),
             patch.object(ccxt_client.ccxt_pro, 'hyperliquid', ForbiddenClient),
-            self.assertRaisesRegex(ExchangeContractError, 'master wallet'),
+            patch.object(ccxt_client, 'read_testnet_agent_grant',
+                         side_effect=ccxt_client.AgentGrantRefused('synthetic refusal')),
+            self.assertRaisesRegex(ExchangeContractError, 'agent grant is unproved'),
         ):
             await registry.account({"id": "foreign", "exchange": "hyperliquid", "mode": "testnet"})
         self.assertEqual(constructed, 0)

@@ -31,6 +31,7 @@ import {
   TradingRiskError,
 } from './trading_risk.js';
 import { ClockGuard, type ClockHealthMonitor } from './clock_guard.js';
+import { liveProviderAcceptancePinned } from './provider_acceptance.js';
 import { assertBoundedEntryProfile, assertEntryModeEvidence, readEntryModeEvidence } from './trading_execution_constraints.js';
 import { LeverageTierError } from './trading_leverage_tiers.js';
 import { FxEvidenceError } from './trading_fx_contract.js';
@@ -451,6 +452,9 @@ function assertExecutionPreconditions(
   }
   if (account.exchange !== 'paper' && (!account.externalAccountId || !account.credentialGeneration)) {
     throw new TradingRiskError('ACCOUNT_IDENTITY_UNVERIFIED', 'Verify the account credential generation before creating new orders.');
+  }
+  if (!liveProviderAcceptancePinned(account)) {
+    throw new TradingRiskError('PROVIDER_ACCEPTANCE_ABSENT', 'Independent provider acceptance is required for live entries.');
   }
   if (account.mode === 'live' && !runtime.liveTradingEnabled) {
     throw new TradingRiskError('LIVE_TRADING_DISABLED', 'Live trading is disabled.');
@@ -1621,7 +1625,7 @@ export class TradingEngine {
     }
     try { await this.drainRequestedEntriesOwned(account.id); } catch { /* Own reduction is independent of incomplete entry drain. */ }
     const remote = await this.observeSafetyState(account, adapter);
-    await this.assertRemoteAccountIdentity(account, remote);
+    await TradingEngine.assertRemoteAccountIdentity(account, remote);
     await this.ingestOwnedState(account, remote, { protectKnownPositions: true, riskReductionIntentId: intent.id });
     const position = remote.positions.find(candidate => candidate.symbol === intent.symbol);
     if (!position || compareDecimal(position.quantity, '0') <= 0) return;
@@ -1691,7 +1695,7 @@ export class TradingEngine {
     for (let pass = 0; pass < 3; pass += 1) {
       const remote = await this.observeSafetyState(account, adapter);
       try {
-        await this.assertRemoteAccountIdentity(account, remote);
+        await TradingEngine.assertRemoteAccountIdentity(account, remote);
         if (!await this.applyRemoteState(account, adapter, remote)) return remote;
       } catch (error) {
         if (remote.acquisition?.recoverySchedule) {
@@ -1841,7 +1845,7 @@ export class TradingEngine {
     );
   }
 
-  private async assertRemoteAccountIdentity(
+  private static async assertRemoteAccountIdentity(
     account: TradingAccount,
     remote: RemoteStateWithIdentity,
   ): Promise<void> {
@@ -2025,6 +2029,7 @@ export class TradingEngine {
     }
   }
 
+  // skipcq: JS-0105 - keep this instance seam for per-engine failure isolation in emergency and money-value regressions.
   private async ingestOwnedState(
     account: TradingAccount,
     remote: ExchangeOpenState,
@@ -2039,7 +2044,7 @@ export class TradingEngine {
        JOIN trading_trade_intents AS intent ON intent.id = orders.intent_id WHERE orders.account_id = ?`, [account.id]);
     remote.orders = correlateRemoteOrders(localOrders, remote.orders);
     remote.fills = correlateRemoteFills(localOrders, remote.fills);
-    await this.persistRemoteExecutions(account, remote);
+    await TradingEngine.persistRemoteExecutions(account, remote);
     await resolveObservedOperations(account, remote.orders);
     await resolveActiveCancelAttempts(account, remote);
     const allLocalPositions = await getDatabase().all<ReconciliationPositionRow[]>(
@@ -2070,7 +2075,7 @@ export class TradingEngine {
     return { localPositions, unrelatedUnmanagedExposure };
   }
 
-  private async persistRemoteExecutions(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
+  private static async persistRemoteExecutions(account: TradingAccount, remote: ExchangeOpenState): Promise<void> {
     let incompleteManagedExecution = false;
     for (const event of remote.unresolvedEvents || []) await recordRemoteEvidence(account, event);
     for (const order of remote.orders) {
@@ -2092,7 +2097,7 @@ export class TradingEngine {
       incompleteManagedExecution ||= order.filledQuantity === null;
     }
     for (const fill of remote.fills) {
-      await this.persistRemoteFill(account, fill, remote.acquisition);
+      await TradingEngine.persistRemoteFill(account, fill, remote.acquisition);
     }
     await projectAccountFillAccounting(account.id);
     await resolveManagedHistoricalEvidence(account.id);
@@ -2103,7 +2108,7 @@ export class TradingEngine {
     }
   }
 
-  private async persistRemoteFill(account: TradingAccount, fill: ExchangeOpenState['fills'][number], read?: ExchangeOpenState['acquisition']): Promise<void> {
+  private static async persistRemoteFill(account: TradingAccount, fill: ExchangeOpenState['fills'][number], read?: ExchangeOpenState['acquisition']): Promise<void> {
     const { order: localOrder, inserted, fillId } = await persistCorrelatedFill(account, fill, read);
     if (!localOrder || !inserted) return;
     const intent = await getTradingIntent(localOrder.intent_id);

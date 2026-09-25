@@ -477,6 +477,15 @@ async function testAiRetryAndInjection() {
 }
 
 function testAiErrorClassification() {
+  for (const value of [{ code: {} }, { name: {} }]) {
+    assert.deepStrictEqual(classifyAiError(value), { code: 'unexpected_error', retryable: false });
+  }
+  assert.equal(classifyAiError({ code: { toString() { return ' ECONNRESET '; } } }).code, 'network_error');
+  assert.equal(classifyAiError({ name: { toString() { return 'ProviderTimeoutError'; } } }).code, 'provider_timeout');
+  assert.equal(classifyAiError({ cause: { code: 503 } }).providerCode, '503');
+  assert.equal(classifyAiError({ code: { toString() { return 'invalid code with spaces'; } } }).providerCode, undefined, 'Object coercion must not manufacture a provider error code.');
+  const coercionError = new Error('classification coercion fixture');
+  assert.throws(() => classifyAiError({ code: { toString() { throw coercionError; } } }), error => error === coercionError);
   assert.deepStrictEqual(classifyAiError(Object.assign(new Error('secret body'), {
     status: 429,
     code: 'rate_limit_exceeded'
@@ -580,7 +589,7 @@ async function runTests() {
   console.log('ALL STRICT SIGNAL PARSER TESTS PASSED!');
 }
 
-await (async () => runTests())().catch(error => {
+await runTests().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

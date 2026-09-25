@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "baseRevision": "efbcb568f247d05218f7b003e6fa58adac43953b",
+  "mode": "read-only-source-audit",
+  "audited": {
+    "externalControls": 70,
+    "composeSubstitutions": 23,
+    "tlsArtifacts": 11,
+    "monitoringConfigurationGroups": 11,
+    "alertRules": 18,
+    "hostAndObservationControls": 7,
+    "deploymentKnownGaps": 6,
+    "promotedFields": 0
+  },
+  "sourceSha256": {
+    "docs/ui-next/inventory/external-operational-controls.json": "1012792e46c0949d74408ddc09741b1b7f5c35f647e9172a8b946110b51e95bf",
+    "docs/ui-next/inventory/operational-fields.json": "11cb7c3d97970282062b70fb6c12ef432c236bbab903ebc1f02629b04d337b3a",
+    "docs/ui-next/inventory/operational-coverage-slice.json": "ddce0db70b135850b18ead06af0b40a2cd497c62e4383233d6fdf4b12cd09f30",
+    "docker-compose.monitoring.yml": "9f954af1eb2e1a6772624c749f7696ffc895461198215bb0157c8de4edf0d17b",
+    "monitoring/prometheus.yml": "5703bbb67e8f4002a7f0e9cda67cddb95b38421340f7bb389b22402a99f2f3ab"
+  },
+  "observations": [
+    "Every external control belongs to exactly one host-boundary group; all 70 remain unverified.",
+    "All six deployment paths remain host-maintenance known gaps.",
+    "The 13 critical alert rules are grouped as immutable detection policy.",
+    "The current Prometheus config is a read-only single-file bind mount and lifecycle reload is not enabled."
+  ],
+  "verification": {
+    "test_host_maintenance_boundary": "passed",
+    "test_operational_field_inventory": "passed",
+    "test_test_registry": "passed",
+    "lint": "passed",
+    "typecheck": "passed",
+    "quality_complexity": "passed",
+    "existing_test_ui_operational_coverage": "failed at strategy.safety.maxDailyLossMode: must not be a direct editable field; neither this test nor its source inventory was modified by this audit"
+  },
+  "limits": "No independent host maintenance service or effective apply/reload/rollback test exists. This evidence does not establish an operable UI setting, live-host state, or release readiness."
+}

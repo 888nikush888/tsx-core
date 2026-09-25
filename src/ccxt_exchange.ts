@@ -147,6 +147,11 @@ function retryableExecutorStatus(status: number): boolean {
 }
 
 function retryableTransportFailure(error: unknown): boolean {
+  const cause = error instanceof Error ? error.cause : null;
+  const code = cause && typeof cause === 'object' && 'code' in cause ? cause.code : null;
+  if (typeof code === 'string' && /^(?:ERR_TLS_|ERR_SSL_|CERT_|UNABLE_TO_(?:VERIFY|GET)_|DEPTH_ZERO_SELF_SIGNED_CERT|SELF_SIGNED_CERT_IN_CHAIN)/.test(code)) {
+    return false;
+  }
   let message = 'unknown transport failure';
   if (error instanceof Error) message = error.message;
   else if (typeof error === 'string') message = error;
@@ -442,6 +447,7 @@ export class CcxtExchangeAdapter implements TradingExchangeAdapter {
   ): Promise<unknown> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
+      redirect: 'error',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',

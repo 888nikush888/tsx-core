@@ -122,7 +122,7 @@
     {
       "route": "GET /api/ui/deployment",
       "handler": "uiDeploymentHandler",
-      "handlerSha256": "ca73452c8f10f8379810d04599475a9186a813c50661af1efadb4a07ba91e7aa",
+      "handlerSha256": "042b367d8d6d8083c610ea0c8e03d7e62e5776a994183678b8b274f5a4cfd9db",
       "role": "viewer",
       "recoveryAllowed": false,
       "confirmationHeaders": [],
@@ -292,10 +292,21 @@
     {
       "route": "POST /api/secrets",
       "handler": "postSecretsHandler",
-      "handlerSha256": "f3a998c04d2ca9025aa9e3a4d1ca843b55fd909fd5dd7fff26ebd3a13ab5fcc7",
+      "handlerSha256": "727fd7e555ec3a4c6d1f04d73931f3fd460be09476c70b299722d5229514ff20",
       "role": "admin",
       "recoveryAllowed": true,
       "confirmationHeaders": [],
+      "inputVariants": "Single route contract; object identifiers, validated payload and query filters remain authoritative in the referenced handler."
+    },
+    {
+      "route": "DELETE /api/secrets/backup-drive-access-token",
+      "handler": "deleteBackupDriveAccessTokenHandler",
+      "handlerSha256": "4c01a26107724bbd365474ab54d3def3f96cbba1fb859ba919cb6db223f9da6d",
+      "role": "admin",
+      "recoveryAllowed": false,
+      "confirmationHeaders": [
+        "delete-backup-drive-access-token"
+      ],
       "inputVariants": "Single route contract; object identifiers, validated payload and query filters remain authoritative in the referenced handler."
     },
     {
@@ -417,7 +428,7 @@
     {
       "route": "POST /api/runtime-settings",
       "handler": "postRuntimeSettingsHandler",
-      "handlerSha256": "59f7b47f89dc4d6178591e9ad5960de1706b2108538430425e1626c72ba6f3cc",
+      "handlerSha256": "6a6e03009899f76ccb97738fd4bea845d5f683530233fd669caddc296f7b11f7",
       "role": "admin",
       "recoveryAllowed": true,
       "confirmationHeaders": [],

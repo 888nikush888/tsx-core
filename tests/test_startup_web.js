@@ -5,7 +5,9 @@ import path from 'node:path';
 import { initDb, closeDb } from '../src/db.js';
 import { StartupAuthority, STARTUP_GATES, waitForStartupListener } from '../src/startup_authority.js';
 import { startWebServer, stopWebServer } from '../src/web_server.js';
+import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
 
+const tlsFixture = await setupInternalTlsTest();
 let changes = 0;
 let revokeDuringAudit = false;
 const authority = new StartupAuthority();
@@ -26,7 +28,7 @@ const state = {
 const listener = startWebServer(0, state, '127.0.0.1');
 try {
   await waitForStartupListener(listener);
-  const base = `http://127.0.0.1:${listener.address().port}`;
+  const base = `https://127.0.0.1:${listener.address().port}`;
   const mutate = () => fetch(`${base}/api/runtime-settings`, {
     method: 'POST', headers: { 'X-Requested-With': 'forwarder-dashboard', 'Content-Type': 'application/json' }, body: '{}',
   });
@@ -59,4 +61,5 @@ try {
   await stopWebServer();
   await closeDb();
   await rm(directory, { recursive: true, force: true });
+  await tlsFixture.cleanup();
 }

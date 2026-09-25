@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "baseRevision": "b3a15c843a0da858ceb81484b3cc7b4fa745d196",
+  "scannerRun": {
+    "runUid": "2509273e-8c28-4174-97d6-483972f8eafd",
+    "commitOid": "b3a15c843a0da858ceb81484b3cc7b4fa745d196",
+    "status": "FAILURE",
+    "finishedAt": "2026-09-24T19:22:35.725874+00:00"
+  },
+  "scannerExportSha256": "201eca45a2369c8d76677fbcabd4a279d90276ea64404b46f61313153c2b8111",
+  "scope": "16 introduced occurrences only; no platform decisions, receipt updates, live acceptance or network exercise. Source hashes refer to staged Git bytes.",
+  "validation": [
+    "Node22: node tests/run_all.js test_provider_acceptance.js: 1 test file passed, including signed Unicode vectors and bounded-file rejection.",
+    "Python: unittest test_hyperliquid_bound_preflight.py: 11 passed; fake transport only, includes actual pinned SDK construction.",
+    "Python: unittest test_provider_acceptance_gate.py: 11 run, OK with 1 platform skip.",
+    "npm run typecheck: passed.",
+    "ESLint src/provider_acceptance.ts and tests/test_provider_acceptance.js: passed.",
+    "Ruff on both changed Python files: passed.",
+    "Ruff C901 max-complexity=15 on preflight script: passed."
+  ],
+  "entries": [
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpveXh2bGprYXg=",
+      "issueId": "SXNzdWU6Ym1ueHF6",
+      "ruleId": "JS-0119",
+      "path": "tests/test_provider_acceptance.js",
+      "baselineLine": 152,
+      "baselineSourceSha256": "23d7260b1c81ec6b8b8257f19c606246f4ae8bbfc79af4e1ac051061d9aa5d00",
+      "reviewedSourceSha256": "3ef7a7fd476533399f1550316a28c09772aa50d88b290a0976836acff7edf4fa",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Initialize the captured descriptor to null and assert that openSync supplied a numeric descriptor before proving the failed read closed it; failure assertions are retained."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTp4cmxqa2V5Z2c=",
+      "issueId": "SXNzdWU6emxtYWdi",
+      "ruleId": "JS-0117",
+      "path": "src/provider_acceptance.ts",
+      "baselineLine": 67,
+      "baselineSourceSha256": "6907e675f114016818e7042c778efc7281f612d9a97cf95ae279534930488916",
+      "reviewedSourceSha256": "9ac59a8583c6289d9ce61039d3265e8714ffa633f802d5d623bc8753f03b32c2",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Use Unicode code-point matching over the complement of ASCII, then explicitly escape every UTF-16 code unit of each matched character. This preserves Python ensure_ascii canonical bytes for BMP and astral characters. Existing cross-runtime signed Unicode fixtures remain valid, old edited-account collision stays rejected, and a new explicit astral boundary assertion covers U+1F600 and U+10FFFF. Reviewer pin and live provenance deny-all remain unchanged."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpwcW9qZHBxeW0=",
+      "issueId": "SXNzdWU6YmRscXhy",
+      "ruleId": "PTC-W0062",
+      "path": "tests/test_hyperliquid_bound_preflight.py",
+      "baselineLine": 250,
+      "baselineSourceSha256": "51e1414cfd68a90abdbcba1a2789ff74ea0dfd9655ff7dcddb0b17f672cff4e4",
+      "reviewedSourceSha256": "dcd9b0553b1463dbf8c3b35c0111f07ed643e443dd999b041f8aa5664fb02ef7",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Combine patch and assertRaises context managers in the same original enter/exit order. The sole awaited call and sanitized traceback/cause assertions remain unchanged."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTp3bWRwZ25tb2c=",
+      "issueId": "SXNzdWU6bXp2bWRi",
+      "ruleId": "PYL-W0404",
+      "path": "tests/test_hyperliquid_bound_preflight.py",
+      "baselineLine": 190,
+      "baselineSourceSha256": "51e1414cfd68a90abdbcba1a2789ff74ea0dfd9655ff7dcddb0b17f672cff4e4",
+      "reviewedSourceSha256": "dcd9b0553b1463dbf8c3b35c0111f07ed643e443dd999b041f8aa5664fb02ef7",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Remove the redundant local ccxt.async_support import; the same global module remains used by the real pinned-SDK construction and transport-refusal test."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpqd2FteW93cng=",
+      "issueId": "SXNzdWU6YnJncGd6",
+      "ruleId": "PYL-R0201",
+      "path": "tests/test_hyperliquid_bound_preflight.py",
+      "baselineLine": 72,
+      "baselineSourceSha256": "51e1414cfd68a90abdbcba1a2789ff74ea0dfd9655ff7dcddb0b17f672cff4e4",
+      "reviewedSourceSha256": "dcd9b0553b1463dbf8c3b35c0111f07ed643e443dd999b041f8aa5664fb02ef7",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Retain the async instance close protocol and track was_closed on each constructed fake client as well as the original aggregate counter. Success and failure cleanup assertions now check individual instances, detecting one client closed twice while another leaks; no production SDK contract changed."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpuZ2tqcmxneWo=",
+      "issueId": "SXNzdWU6enZkd2x6",
+      "ruleId": "PYL-W0212",
+      "path": "scripts/hyperliquid_bound_preflight.py",
+      "baselineLine": 249,
+      "baselineSourceSha256": "6429fe7c5152887b641587a5b3bb61ea54745e92f323b1102e228456c8519ff1",
+      "reviewedSourceSha256": "9c34ab60aa5c0372bd7dbb7be83c92c233d68e08a9c8847c97f153d4c9ba8e0b",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Read request count through preflight_request_count(); a method avoids CCXT constructor descriptor enumeration accessing not-yet-configured state."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTphbm9scGtuZHI=",
+      "issueId": "SXNzdWU6enZkd2x6",
+      "ruleId": "PYL-W0212",
+      "path": "scripts/hyperliquid_bound_preflight.py",
+      "baselineLine": 219,
+      "baselineSourceSha256": "6429fe7c5152887b641587a5b3bb61ea54745e92f323b1102e228456c8519ff1",
+      "reviewedSourceSha256": "9c34ab60aa5c0372bd7dbb7be83c92c233d68e08a9c8847c97f153d4c9ba8e0b",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Bind the validated coin through bind_preflight_coin() at the same point after load_markets and market-scope validation."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpsbXBscmdtbmc=",
+      "issueId": "SXNzdWU6em94bHZi",
+      "ruleId": "PYL-W0714",
+      "path": "scripts/hyperliquid_bound_preflight.py",
+      "baselineLine": 205,
+      "baselineSourceSha256": "6429fe7c5152887b641587a5b3bb61ea54745e92f323b1102e228456c8519ff1",
+      "reviewedSourceSha256": "9c34ab60aa5c0372bd7dbb7be83c92c233d68e08a9c8847c97f153d4c9ba8e0b",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Remove ExchangeContractError from the tuple because it subclasses ValueError; identical exceptions are caught and sanitized without exposing their cause."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpkYXJscGdhdnI=",
+      "issueId": "SXNzdWU6enJnbG9u",
+      "ruleId": "PY-R1000",
+      "path": "scripts/hyperliquid_bound_preflight.py",
+      "baselineLine": 188,
+      "baselineSourceSha256": "6429fe7c5152887b641587a5b3bb61ea54745e92f323b1102e228456c8519ff1",
+      "reviewedSourceSha256": "9c34ab60aa5c0372bd7dbb7be83c92c233d68e08a9c8847c97f153d4c9ba8e0b",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Extract bound-input validation, credential identity binding, and the ordered read-only account observations into named helpers. Preserve the original preconstruction validation, try/finally lifetime, sequential requests, two flat-state checks, timing limit, report and cleanup. Exact request-order and rejection tests pass."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpxcHZkcWtwb2U=",
+      "issueId": "SXNzdWU6YnB5cHB6",
+      "ruleId": "TYP-005",
+      "path": "scripts/hyperliquid_bound_preflight.py",
+      "baselineLine": 160,
+      "baselineSourceSha256": "6429fe7c5152887b641587a5b3bb61ea54745e92f323b1102e228456c8519ff1",
+      "reviewedSourceSha256": "9c34ab60aa5c0372bd7dbb7be83c92c233d68e08a9c8847c97f153d4c9ba8e0b",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Extract market coin validation with an explicit isinstance(str) rejection branch so the returned value is statically narrowed; retain ASCII symbol, base identity and colon rejection."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTp5Z2FsZGtncW8=",
+      "issueId": "SXNzdWU6enJnbG9u",
+      "ruleId": "PY-R1000",
+      "path": "scripts/hyperliquid_bound_preflight.py",
+      "baselineLine": 149,
+      "baselineSourceSha256": "6429fe7c5152887b641587a5b3bb61ea54745e92f323b1102e228456c8519ff1",
+      "reviewedSourceSha256": "9c34ab60aa5c0372bd7dbb7be83c92c233d68e08a9c8847c97f153d4c9ba8e0b",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Express the eight market boolean requirements as identity comparisons over an explicit map, then validate coin in a helper. New tests reject missing flags, integer bool lookalikes and inverted flags, plus malformed coin metadata; settlement, expiry and base checks remain."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpnZXF4cG5lYWo=",
+      "issueId": "SXNzdWU6enZkd2x6",
+      "ruleId": "PYL-W0212",
+      "path": "scripts/hyperliquid_bound_preflight.py",
+      "baselineLine": 113,
+      "baselineSourceSha256": "6429fe7c5152887b641587a5b3bb61ea54745e92f323b1102e228456c8519ff1",
+      "reviewedSourceSha256": "9c34ab60aa5c0372bd7dbb7be83c92c233d68e08a9c8847c97f153d4c9ba8e0b",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Initialize request counter inside configure_preflight(), called immediately after construction and before sandbox setup or requests."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpyZW1nYW9ldmU=",
+      "issueId": "SXNzdWU6enZkd2x6",
+      "ruleId": "PYL-W0212",
+      "path": "scripts/hyperliquid_bound_preflight.py",
+      "baselineLine": 112,
+      "baselineSourceSha256": "6429fe7c5152887b641587a5b3bb61ea54745e92f323b1102e228456c8519ff1",
+      "reviewedSourceSha256": "9c34ab60aa5c0372bd7dbb7be83c92c233d68e08a9c8847c97f153d4c9ba8e0b",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Initialize the unset coin inside configure_preflight() at the original configuration point."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTptcmVsd3FycG4=",
+      "issueId": "SXNzdWU6enZkd2x6",
+      "ruleId": "PYL-W0212",
+      "path": "scripts/hyperliquid_bound_preflight.py",
+      "baselineLine": 111,
+      "baselineSourceSha256": "6429fe7c5152887b641587a5b3bb61ea54745e92f323b1102e228456c8519ff1",
+      "reviewedSourceSha256": "9c34ab60aa5c0372bd7dbb7be83c92c233d68e08a9c8847c97f153d4c9ba8e0b",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Initialize wallet inside configure_preflight() at the original configuration point."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTp2dnFkb2x2eWs=",
+      "issueId": "SXNzdWU6enZkd2x6",
+      "ruleId": "PYL-W0212",
+      "path": "scripts/hyperliquid_bound_preflight.py",
+      "baselineLine": 110,
+      "baselineSourceSha256": "6429fe7c5152887b641587a5b3bb61ea54745e92f323b1102e228456c8519ff1",
+      "reviewedSourceSha256": "9c34ab60aa5c0372bd7dbb7be83c92c233d68e08a9c8847c97f153d4c9ba8e0b",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Initialize the injected read-only transport inside configure_preflight() at the original configuration point; public production entrypoint still pins direct_testnet_info and actual CCXT classes."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpveXh2d255a3E=",
+      "issueId": "SXNzdWU6em94bHZi",
+      "ruleId": "PYL-W0714",
+      "path": "scripts/hyperliquid_bound_preflight.py",
+      "baselineLine": 65,
+      "baselineSourceSha256": "6429fe7c5152887b641587a5b3bb61ea54745e92f323b1102e228456c8519ff1",
+      "reviewedSourceSha256": "9c34ab60aa5c0372bd7dbb7be83c92c233d68e08a9c8847c97f153d4c9ba8e0b",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Remove UnicodeError from the tuple because it subclasses ValueError; identical malformed JSON/Unicode exceptions remain caught."
+    }
+  ]
+}

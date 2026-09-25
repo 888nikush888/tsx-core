@@ -1,0 +1,67 @@
+TAP version 13
+# ALL ENCRYPTED OFF-SITE BACKUP TESTS PASSED!
+# Subtest: tests\\test_backup_replication.js
+ok 1 - tests\\test_backup_replication.js
+  ---
+  duration_ms: 1753.1204
+  type: 'test'
+  ...
+# Subtest: tests\\test_google_drive_backup_mirror.js
+ok 2 - tests\\test_google_drive_backup_mirror.js
+  ---
+  duration_ms: 433.6571
+  type: 'test'
+  ...
+# External incident receiver offline contract tests passed.
+# Subtest: tests\\test_incident_receiver_worker.js
+ok 3 - tests\\test_incident_receiver_worker.js
+  ---
+  duration_ms: 381.7315
+  type: 'test'
+  ...
+# Coverage scope and LCOV path tests passed.
+# Subtest: tests\\test_lcov_paths.js
+ok 4 - tests\\test_lcov_paths.js
+  ---
+  duration_ms: 2341.8831
+  type: 'test'
+  ...
+# Provider acceptance control-plane gate tests passed.
+# Provider grant Unicode signatures and bounded descriptor file boundaries passed.
+# Subtest: tests\\test_provider_acceptance.js
+ok 5 - tests\\test_provider_acceptance.js
+  ---
+  duration_ms: 449.6161
+  type: 'test'
+  ...
+# {"group":"fixture","command":"env-check","state":"started","revision":"0000000000000000000000000000000000000000"}
+# {"group":"fixture","command":"env-check","state":"completed","exitCode":0,"failureReason":null,"logSha256":"2e22da2ab13713309ac75219e525b8e06ed02f3f1963b8feef203fa25827f93d"}
+# {"group":"fixture","command":"fail","state":"started","revision":"0000000000000000000000000000000000000000"}
+# {"group":"fixture","command":"fail","state":"completed","exitCode":7,"failureReason":null,"logSha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+# {"group":"fixture","command":"pass","state":"started","revision":"0000000000000000000000000000000000000000"}
+# {"group":"fixture","command":"pass","state":"completed","exitCode":0,"failureReason":null,"logSha256":"9f56e761d79bfdb34304a012586cb04d16b435ef6130091a97702e559260a2f2"}
+# {"group":"fixture","command":"pass","state":"started","revision":"0000000000000000000000000000000000000000"}
+# {"group":"fixture","command":"pass","state":"completed","exitCode":0,"failureReason":null,"logSha256":"9f56e761d79bfdb34304a012586cb04d16b435ef6130091a97702e559260a2f2"}
+# PASS receipt evidence runner: parameters, source fence, environment isolation and actual report outcomes
+# Subtest: tests\\test_receipt_verification_runner.js
+ok 6 - tests\\test_receipt_verification_runner.js
+  ---
+  duration_ms: 2150.1519
+  type: 'test'
+  ...
+# Managed web secret store tests passed.
+# Subtest: tests\\test_secret_store.js
+ok 7 - tests\\test_secret_store.js
+  ---
+  duration_ms: 417.6358
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2442.5577

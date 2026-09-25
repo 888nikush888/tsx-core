@@ -1,0 +1,13 @@
+test_cancel_requires_exact_symbol_and_consistent_both_identifiers (test_mutation_identity.CancelIdentityTests.test_cancel_requires_exact_symbol_and_consistent_both_identifiers) ... ok
+test_all_profiles_reject_wrong_or_unbound_write_before_side_effects (test_mutation_identity.MutationIdentityTests.test_all_profiles_reject_wrong_or_unbound_write_before_side_effects) ... ok
+test_hyperliquid_master_key_binding_accepts_exact_address_case_insensitively (test_mutation_identity.MutationIdentityTests.test_hyperliquid_master_key_binding_accepts_exact_address_case_insensitively) ... ok
+test_incomplete_batch_preserves_known_leg_without_cleanup_or_retry (test_mutation_identity.MutationIdentityTests.test_incomplete_batch_preserves_known_leg_without_cleanup_or_retry) ... ok
+test_mutation_lease_defers_client_replacement_but_not_other_accounts (test_mutation_identity.MutationIdentityTests.test_mutation_lease_defers_client_replacement_but_not_other_accounts) ... ok
+test_rotation_after_leverage_prevents_create (test_mutation_identity.MutationIdentityTests.test_rotation_after_leverage_prevents_create) ... ok
+test_rotation_during_prepare_prevents_set_leverage_and_create (test_mutation_identity.MutationIdentityTests.test_rotation_during_prepare_prevents_set_leverage_and_create) ... ok
+test_unverified_hyperliquid_agent_precedes_client_construction (test_mutation_identity.MutationIdentityTests.test_unverified_hyperliquid_agent_precedes_client_construction) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.112s
+
+OK

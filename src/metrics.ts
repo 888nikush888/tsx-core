@@ -1,6 +1,8 @@
 import http from 'node:http';
+import https from 'node:https';
 import type { OutboxStatus } from './db.js';
 import type { DeliverySloSnapshot } from './slo_tracker.js';
+import { internalTlsServerOptions } from './internal_tls.js';
 
 export interface OperationalMetrics {
   databaseHealthy: boolean;
@@ -59,7 +61,7 @@ interface MetricsState {
   getOperationalMetricsCallback: () => Promise<OperationalMetrics>;
 }
 
-let server: http.Server | null = null;
+let server: https.Server | null = null;
 const startedAt = Date.now();
 
 function sendJson(res: http.ServerResponse, statusCode: number, payload: unknown): void {
@@ -217,7 +219,7 @@ function prometheusMetrics(operational: OperationalMetrics, state: MetricsState)
 }
 
 function requestPath(req: http.IncomingMessage): string {
-  return new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`).pathname;
+  return new URL(req.url || '/', `https://${req.headers.host || 'localhost'}`).pathname;
 }
 
 function respondHealth(res: http.ServerResponse): void {
@@ -290,11 +292,12 @@ export function startMetricsServer(
   port: number,
   state: MetricsState,
   host = process.env.METRICS_HOST?.trim() || '127.0.0.1'
-): http.Server {
+): https.Server {
   if (server) throw new Error('Metrics server is already running.');
   if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) throw new Error('Metrics port must be between 0 and 65535.');
 
-  server = http.createServer((req, res) => {
+  const tlsOptions = internalTlsServerOptions('METRICS_TLS_CERT_FILE', 'METRICS_TLS_KEY_FILE');
+  server = https.createServer(tlsOptions, (req, res) => {
     handleMetricsRequest(req, res, state).catch(() => {
       res.destroy();
     });
@@ -306,7 +309,7 @@ export function startMetricsServer(
   server.listen(port, host, () => {
     const address = server?.address();
     const listeningPort = typeof address === 'object' && address ? address.port : port;
-    console.log(`[INFO] Metrics server listening on http://${host}:${listeningPort}`);
+    console.log(`[INFO] Metrics server listening on https://${host}:${listeningPort}`);
   });
   return server;
 }

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "revision": "9740c2973e1cd71e16bbf597cc22a88a12860118",
+  "candidate": {
+    "path": "reports/final-findings/govuln9740-hyperliquid-receipt-candidate.json",
+    "sha256": "eefcdd4d9af1c81482569577508b5e330ade162496073d7adb9ea7bc7e30cfc9"
+  },
+  "candidateState": {
+    "path": "reports/final-findings/govuln9740-receipt-candidate-state.json",
+    "sha256": "88ded3e0e3f3703fe02ceb84c177cf431d2c52195817a0f6c3dd25e2be6891d8"
+  },
+  "completeSourceReview": {
+    "path": "reports/final-findings/govuln9740-receipt-source-review-root-v2.json",
+    "sha256": "24dc444297a07483777ef8900de20bfa5a3ca91888c3c67078ff8f24595cbd7b"
+  },
+  "reviewValidator": {
+    "path": "reports/final-findings/validate-govuln9740-candidate-v2.py",
+    "sha256": "802c56550df9295780395cd97f942d084123055fbcc6a10dd00da9c2ab001c2e"
+  },
+  "reviewedAt": "2026-09-23T18:43:04Z",
+  "reviewer": "govuln_independent_review",
+  "checks": {
+    "sourceDeltas": 5,
+    "buildInputs": 1002,
+    "sealedRequirements": 62,
+    "sealedWitnessReferences": 97,
+    "eightTerminalGreenGroups": true,
+    "foundationCommands": 14,
+    "mutationArtifacts": 4,
+    "observedCounts": {
+      "pythonTests": 550,
+      "frontendTests": 403,
+      "frontendFiles": 45,
+      "backendModuleTestFiles": 229
+    },
+    "productionPythonValidation": "PASS",
+    "productionNodeBuildInputsMatch": true,
+    "beforeContextPresent": false,
+    "nativeModuleAbsoluteReferences": 3,
+    "nativeModuleDistinctTargets": 1,
+    "nativeModulePathCanonicalWithinRoot": true,
+    "nativeModuleDigestVerified": true,
+    "normalizedReferenceAliasCollisions": 0,
+    "containerAcceptanceVerified": false,
+    "runtimeReceiptVerified": false,
+    "implementationVerified": false,
+    "performedGateExecution": false
+  },
+  "referenceClosure": {
+    "currentReports": 55,
+    "currentReferences": 1058,
+    "historicalMembers": 3,
+    "unresolvedReferences": 0
+  },
+  "reviewNotes": [
+    "The V2 validator was run independently with the pinned Python 3.12 environment and returned eight green groups, 97 sealed witness bindings, four mutation artifacts, Python receipt validation PASS, Node build-input match, and zero unresolved current references.",
+    "The sole absolute native SQLite module target is canonical, single-linked and within this repository. Its three repeated references bind the same SHA-256; normalizing them to a repository-relative manifest path produces no alias collision. The reviewed archive helper is designed to retain the original absolute binding path; no archive has been created yet.",
+    "The execution proof has no pre-test raw-Git context. Group-level pre/post inputs and intermediate/final raw-Git observations are present; no stronger before-context claim is made.",
+    "Monitoring was checked as native configuration only. The candidate is unadopted; post-adoption implementation gate, target container CI and provider scanner acceptance remain open."
+  ],
+  "providerAcceptanceVerified": false,
+  "operativeReceiptApproved": false,
+  "operativeReceiptOrPinsChanged": false
+}

@@ -8,7 +8,6 @@ function runTests() {
 
   console.log("1. isForeignKeyConstraint branches...");
   assert.strictEqual(isForeignKeyConstraint(null), false);
-  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
   assert.strictEqual(isForeignKeyConstraint(), false);
   assert.strictEqual(isForeignKeyConstraint("string"), false);
   assert.strictEqual(isForeignKeyConstraint(123), false);

@@ -4,7 +4,7 @@ FROM ${PYTHON_IMAGE} AS dependencies
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 WORKDIR /build
-COPY requirements.lock ./requirements.lock
+COPY exchange_executor/requirements.lock ./requirements.lock
 RUN python -m pip install --require-hashes --prefix=/install -r requirements.lock
 
 FROM ${PYTHON_IMAGE} AS runner
@@ -19,17 +19,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     EXECUTOR_HOST=0.0.0.0 \
     EXECUTOR_PORT=8090
 WORKDIR /app
-RUN apk add --no-cache "sqlite-libs=3.53.4-r0" "libcrypto3=3.5.8-r0" "libssl3=3.5.8-r0" \
-    "libuuid=2.41.6-r1" \
+RUN apk add --no-cache "libcrypto3=3.5.8-r0" "libssl3=3.5.8-r0" \
+    "libuuid=2.41.6-r1" "sqlite-libs=3.53.4-r0" \
     && addgroup --system --gid 65532 executor \
     && adduser --system --uid 65532 --ingroup executor --no-create-home --home /nonexistent executor
 COPY --from=dependencies /install /usr/local
-COPY --chown=0:0 --chmod=0444 *.py ./
-COPY --chown=0:0 --chmod=0555 certifications ./certifications
+COPY --chown=0:0 --chmod=0444 exchange_executor/*.py ./
+COPY --chown=0:0 --chmod=0444 scripts/hyperliquid_bound_preflight.py scripts/hyperliquid_testnet_preflight.py ./tools/
+COPY --chown=0:0 --chmod=0555 exchange_executor/certifications ./certifications
 
 USER 65532:65532
 EXPOSE 8090
 STOPSIGNAL SIGTERM
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
-  CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz', timeout=4).read()"]
+  CMD ["python", "-c", "import os,ssl,urllib.request; context=ssl.create_default_context(cafile=os.environ['TSX_INTERNAL_CA_FILE']); urllib.request.urlopen('https://127.0.0.1:8090/healthz', context=context, timeout=4).read()"]
 CMD ["python", "server.py"]

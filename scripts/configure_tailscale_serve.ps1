@@ -25,7 +25,15 @@ if ($LASTEXITCODE -ne 0) {
   throw "Ein möglicherweise öffentlicher Funnel-Endpunkt konnte nicht sicher deaktiviert werden."
 }
 
-$target = "http://127.0.0.1:$DashboardPort"
+$target = "https://127.0.0.1:$DashboardPort"
+try {
+  $probe = Invoke-WebRequest -Uri "$target/api/bootstrap/status" -Method Get -TimeoutSec 5
+  if ($probe.StatusCode -ne 200) {
+    throw "Dashboard-HTTPS-Probe lieferte Status $($probe.StatusCode)."
+  }
+} catch {
+  throw "Dashboard-HTTPS-Backend oder Zertifikatsvertrauen ist nicht bereit; Tailscale Serve wird nicht umgestellt: $($_.Exception.Message)"
+}
 & $tailscaleCommand.Source serve --bg "--https=$HttpsPort" $target
 if ($LASTEXITCODE -ne 0) {
   throw "Tailscale Serve konnte nicht für $target konfiguriert werden."

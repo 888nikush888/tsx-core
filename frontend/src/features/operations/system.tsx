@@ -73,9 +73,9 @@ function RuntimeSection({ payload, runtime, setRuntime, runtimeForm, busy, saveR
   );
 }
 
-function SecretsSection({ secrets, secretInput, setSecretInput, busy, saveSecrets }: Readonly<{
+function SecretsSection({ secrets, secretInput, setSecretInput, busy, saveSecrets, deleteDriveToken }: Readonly<{
   secrets: ManagedSecretStatuses | null; secretInput: Record<string, string>; setSecretInput: (value: Record<string, string>) => void;
-  busy: string; saveSecrets: () => void | Promise<void>;
+  busy: string; saveSecrets: () => void | Promise<void>; deleteDriveToken: () => void | Promise<void>;
 }>) {
   return (
       <section className="operations-card system-form">
@@ -87,9 +87,10 @@ function SecretsSection({ secrets, secretInput, setSecretInput, busy, saveSecret
             "alertWebhookToken",
             "backupOffsiteToken",
             "backupEncryptionKey",
+            "backupDriveAccessToken",
           ].map((name) => (
             <label key={name}>
-              {name} · {secrets?.[name]?.configured ? "gespeichert" : "fehlt"}
+              {name}{name === "backupDriveAccessToken" ? " (nur Staging; OAuth-Refresh fehlt)" : ""} · {secrets?.[name]?.configured ? "gespeichert" : "fehlt"}
               <input
                 type="password"
                 autoComplete="off"
@@ -108,6 +109,14 @@ function SecretsSection({ secrets, secretInput, setSecretInput, busy, saveSecret
           onClick={() => { saveSecrets(); }}
         >
           Secrets sicher speichern
+        </button>
+        <button
+          type="button"
+          className="danger-button"
+          disabled={Boolean(busy) || !secrets?.backupDriveAccessToken?.configured}
+          onClick={() => { deleteDriveToken(); }}
+        >
+          Drive-Token löschen und Spiegelung deaktivieren
         </button>
       </section>
   );
@@ -221,6 +230,26 @@ function AuditSection({ operations, busy, replayAudit, setMessage }: Readonly<{
     }
     return "unbekannt";
   };
+  const primaryBackupStatus = () => {
+    const backup = operations?.backup;
+    if (!backup?.offsiteConfigured) {
+      return "nicht eingerichtet";
+    }
+    if (backup.offsiteHealthy && backup.offsiteVerified) {
+      return "bereit";
+    }
+    return "nicht bereit";
+  };
+  const driveMirrorStatus = () => {
+    const backup = operations?.backup;
+    if (!backup?.driveMirrorConfigured && !backup?.driveMirrorRequired && !backup?.driveMirrorVerified) {
+      return "nicht eingerichtet";
+    }
+    if (backup.driveMirrorHealthy) {
+      return "bereit";
+    }
+    return "nicht bereit";
+  };
   return (
       <section className="operations-card">
         <h3>Audit und Diagnose</h3>
@@ -228,7 +257,11 @@ function AuditSection({ operations, busy, replayAudit, setMessage }: Readonly<{
         <div className="system-line"><span>Letzte Integritätsprüfung</span><strong>{time(operations?.backup?.integrityVerified?.verifiedAt)}</strong></div>
         <div className="system-line"><span>Geprüfter Datenstand erstellt</span><strong>{time(Date.parse(operations?.backup?.integrityVerified?.artifactCreatedAt ?? ""))}</strong></div>
         <div className="system-line"><span>Gemeinsame Konfiguration geprüft</span><strong>{time(operations?.backup?.configurationCoherent?.verifiedAt)}</strong></div>
-        <div className="system-line"><span>Offsite zurückgelesen und geprüft</span><strong>{time(operations?.backup?.offsiteVerified?.verifiedAt)}</strong></div>
+        <div className="system-line"><span>Primär-Backup zurückgelesen und geprüft</span><strong>{time(operations?.backup?.offsiteVerified?.verifiedAt)}</strong></div>
+        <div className="system-line"><span>Primär-Backup Zustand</span><strong>{primaryBackupStatus()}</strong></div>
+        <div className="system-line"><span>Drive-Zweitkopie zurückgelesen und geprüft</span><strong>{time(operations?.backup?.driveMirrorVerified?.verifiedAt)}</strong></div>
+        <div className="system-line"><span>Drive-Zweitkopie Zustand</span><strong>{driveMirrorStatus()}</strong></div>
+        {operations?.backup?.driveMirrorLastError && <div className="system-line"><span>Drive-Zweitkopie</span><strong>{operations.backup.driveMirrorLastError}</strong></div>}
         <div className="system-line"><span>Letzte artefaktlokale Restore-Prüfung</span><strong>{operations?.backup?.restoreEligibility?.status || "unknown"} · {time(operations?.backup?.restoreEligibility?.checkedAt)}</strong></div>
         <div className="system-line"><span>Letzter tatsächlich durchgeführter Probelauf</span><strong>{time(operations?.backup?.restoreDrill?.performedAt)}</strong></div>
         <p>Die Restore-Prüfung betrifft nur das Artefakt. Sie belegt weder heutige Börsenflatheit noch eine spätere Handelsfreigabe.</p>
@@ -358,7 +391,7 @@ export function System({
     key: string,
     operation: () => Promise<T>,
     success: string,
-    accepted: (result: T) => void = () => undefined,
+    accepted: (result: T) => void = (_result: T) => undefined,
   ) => {
     setBusy(key);
     setMessage("");
@@ -384,6 +417,22 @@ export function System({
     await execute("secrets", () => jsonRequest("/api/secrets", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(secretUpdates),
     }), "Secrets gespeichert. Leere Felder wurden beibehalten.", () => setSecretInput({}));
+  };
+  const deleteDriveToken = async () => {
+    if (!await confirm({
+      title: "Drive-Token löschen",
+      description: "Der lokale Drive-Zugang wird entfernt. Die Drive-Spiegelung wird deaktiviert und erfordert einen kontrollierten Neustart. Eine externe OAuth-Freigabe wird dadurch nicht widerrufen.",
+      confirmLabel: "Token löschen",
+      destructive: true,
+    })) return;
+    await execute(
+      "drive-token-delete",
+      () => jsonRequest("/api/secrets/backup-drive-access-token", {
+        method: "DELETE",
+        headers: { "X-Destructive-Confirmation": "delete-backup-drive-access-token" },
+      }),
+      "Drive-Token gelöscht und Drive-Spiegelung deaktiviert. Kontrollierter Neustart erforderlich.",
+    );
   };
   const saveRuntime = async () => {
     if (runtimeForm.conflict) return;
@@ -578,7 +627,7 @@ export function System({
       )}
       <TelegramSettings />
       <RuntimeSection payload={runtimePayload} runtime={runtime} setRuntime={setRuntime} runtimeForm={runtimeForm} busy={busy} saveRuntime={saveRuntime} restart={restart} />
-      <SecretsSection secrets={secrets} secretInput={secretInput} setSecretInput={setSecretInput} busy={busy} saveSecrets={saveSecrets} />
+      <SecretsSection secrets={secrets} secretInput={secretInput} setSecretInput={setSecretInput} busy={busy} saveSecrets={saveSecrets} deleteDriveToken={deleteDriveToken} />
       <AccessSection access={access} busy={busy} rotateToken={rotateToken} revokeViewer={revokeViewer} />
       <SetupBundleSection busy={busy} exportSetup={exportSetup} previewSetup={previewSetup} setupPreview={setupPreview} setupMappings={setupMappings} setSetupMappings={setSetupMappings} setupConfirmation={setupConfirmation} setSetupConfirmation={setSetupConfirmation} applySetup={applySetup} />
       <AuditSection operations={operations} busy={busy} replayAudit={replayAudit} setMessage={setMessage} />

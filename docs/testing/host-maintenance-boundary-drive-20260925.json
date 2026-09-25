@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "baseRevision": "b15b96116f3886640904cd6f5db40dff77213faa",
+  "mode": "read-only-source-audit",
+  "archivalEvidence": "docs/testing/host-maintenance-boundary-17abeb0f.json",
+  "audited": {
+    "externalControls": 70,
+    "composeSubstitutions": 23,
+    "tlsArtifacts": 11,
+    "monitoringConfigurationGroups": 11,
+    "alertRules": 18,
+    "hostAndObservationControls": 7,
+    "deploymentKnownGaps": 6,
+    "catalogFirstSliceStatic": 93,
+    "catalogKnownGap": 6,
+    "catalogUnverified": 216,
+    "slicePaths": 99,
+    "promotedFields": 0
+  },
+  "sourceSha256": {
+    "docs/ui-next/inventory/external-operational-controls.json": "1012792e46c0949d74408ddc09741b1b7f5c35f647e9172a8b946110b51e95bf",
+    "docs/ui-next/inventory/operational-fields.json": "d6bb4e535382b6d4077ba5fd5f31a64b7a7a223664786067b55c410cfac6db4b",
+    "docs/ui-next/inventory/operational-coverage-slice.json": "ea7ca8a562442ad48a4fa59a180c3fca92d7c59455b09e79f31c97d22e151b24",
+    "docker-compose.monitoring.yml": "9f954af1eb2e1a6772624c749f7696ffc895461198215bb0157c8de4edf0d17b",
+    "monitoring/prometheus.yml": "5703bbb67e8f4002a7f0e9cda67cddb95b38421340f7bb389b22402a99f2f3ab"
+  },
+  "observations": [
+    "Three opt-in Drive runtime fields add source-scoped static UI inventory only; no external host control or deployment gap was promoted.",
+    "All 70 external controls and six deployment host-maintenance gaps remain unverified.",
+    "Static access-token mode is staging-only and does not close live H3/H4.",
+    "The 13 critical alert detections remain immutable.",
+    "Prometheus reload remains disabled."
+  ],
+  "limits": "No authenticated host apply/reload/rollback, OAuth refresh, real Drive upload/readback, or live-host validation exists. This source audit does not grant trading or backup release acceptance."
+}

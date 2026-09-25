@@ -15,7 +15,12 @@ function mount(element: ReactNode, readOnly = false) {
   return render(<NavigationProvider><OperatorReadOnlyContext.Provider value={readOnly}>{element}</OperatorReadOnlyContext.Provider></NavigationProvider>);
 }
 function writes() { return api.jsonRequest.mock.calls.filter(([, init]) => init?.method && init.method !== 'GET'); }
-async function refresh() { await act(async () => { document.dispatchEvent(new Event('visibilitychange')); }); }
+async function refresh() {
+  await act(() => new Promise<void>((resolve) => {
+    document.dispatchEvent(new Event('visibilitychange'));
+    resolve();
+  }));
+}
 beforeEach(() => { vi.clearAllMocks(); window.history.replaceState(null, '', '/workflows/resources'); Object.defineProperty(document, 'hidden', { configurable: true, value: false }); });
 afterEach(cleanup);
 
@@ -110,6 +115,39 @@ describe('resource lifecycle intent and confirmation', () => {
 });
 
 describe('historical workflow evidence', () => {
+  it('shows all six strategy sizing defaults beside the effective sizing resource and version', async () => {
+    const fields = [
+      ['positionSizingMode', 'equity_percent_margin', 'risk_percent'],
+      ['riskPerTradePercent', '9', '1.25'],
+      ['maxAdaptiveRiskPercent', '10', '3.5'],
+      ['maxPositionNotional', '1000000000', '2500'],
+      ['defaultLeverage', 50, 4],
+      ['maxLeverage', 50, 8],
+    ] as const;
+    api.jsonRequest.mockResolvedValue({
+      revision, path: { id: 'path', accountId: 'account/1', channelId: 'channel/1', fallbackRank: 0,
+        effectiveConfiguration: {} }, observedAt, integrityVerified: true, sources: [],
+      parameterEffects: fields.map(([name, effective, authored]) => ({
+        field: `sizing.${name}`, value: effective, strategyValue: authored, strategyValuePresent: true,
+        source: 'Positionsgrößen-Baustein', sourceVersionId: resource.id, resourceId: resource.resourceId,
+        overridesStrategy: true, unit: null,
+      })),
+    });
+    mount(<WorkflowObject kind="paths" id="path" />);
+    const table = await screen.findByRole('table', { name: 'Wirksame Strategieparameter und Ursprung' });
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows).toHaveLength(6);
+    fields.forEach(([name, effective, authored], index) => {
+      const cells = within(rows[index]).getAllByRole('cell');
+      expect(cells[0]).toHaveTextContent(`sizing.${name}`);
+      expect(cells[1]).toHaveTextContent(String(effective));
+      expect(cells[4]).toHaveTextContent(String(authored));
+      expect(within(cells[3]).getByRole('link')).toHaveAttribute('href',
+        '/workflows/resources/family%2F1/versions/version%2F1');
+      expect(cells[5]).toHaveTextContent('ja');
+    });
+  });
+
   it('preserves absent, null, structured and false strategy values and links each source version', async () => {
     const values = [undefined, null, { limit: 0 }, false];
     api.jsonRequest.mockResolvedValue({ revision, path: { id: 'path', accountId: 'account/1', channelId: 'channel/1', fallbackRank: 0, effectiveConfiguration: {} }, observedAt, integrityVerified: true,

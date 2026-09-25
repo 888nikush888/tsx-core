@@ -40,3 +40,60 @@ condition = "AND"
 regexTarget = "line"
 regexes = ['''^\n?[ \t]*"issueKey"[ \t]*:[ \t]*"(?:AaB7xfFObUpR4dwLDz4p)"[ \t]*,?[ \t]*\r?$''']
 paths = ['''^docs/testing/sonar-reviewed-pr29-decision\.json$''']
+
+
+[[allowlists]]
+description = "Reviewed Sonar issue identifiers in final-deepsource-suppressions-2026-09-17.json"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\n?[ \t]*"issueKey"[ \t]*:[ \t]*"(?:AZ\-LiblYZEZGjPMttp18|AaB4X__XTr5_pJYwVjzU|AaB_wdM2wdr\-e20sMyd1|AaBg00CLmkhvfbyxhJSs|AaBg00GbmkhvfbyxhJSt|AaBvNiazMwQY_bvuMM7P|AaBvNiazMwQY_bvuMM7Q)"[ \t]*,?[ \t]*\r?$''']
+paths = ['''^docs/testing/final\-deepsource\-suppressions\-2026\-09\-17\.json$''']
+
+[[allowlists]]
+description = "Reviewed Sonar issue identifiers in final-sonar-backend-2026-09-17.json"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\n?[ \t]*"issueKey"[ \t]*:[ \t]*"(?:AaCm5kTsIdGJGds\-ubLG|AaCm5kY9IdGJGds\-ubLY|AaCvLE\-1FuOCeZdBf0d0|AaCvLE1CFuOCeZdBf0di|AaCvLE1CFuOCeZdBf0dj|AaCvLE1CFuOCeZdBf0dk|AaCvLE1CFuOCeZdBf0dl|AaCvLE4KFuOCeZdBf0dp|AaCvLE4KFuOCeZdBf0dq|AaCvLE4KFuOCeZdBf0dr|AaCvLE5sFuOCeZdBf0ds|AaCvLE5sFuOCeZdBf0dt|AaCvLE6jFuOCeZdBf0du|AaCvLE7QFuOCeZdBf0dv|AaCvLE7oFuOCeZdBf0dw|AaCvLE7oFuOCeZdBf0dx|AaCvLE9UFuOCeZdBf0dy|AaCvLE9UFuOCeZdBf0dz|AaCvLE_4FuOCeZdBf0d2|AaCvLE_4FuOCeZdBf0d3|AaCvLE_bFuOCeZdBf0d1|AaCvLFDlFuOCeZdBf0d\-|AaCvLFDlFuOCeZdBf0d4|AaCvLFDlFuOCeZdBf0d5|AaCvLFDlFuOCeZdBf0d6|AaCvLFDlFuOCeZdBf0d7|AaCvLFDlFuOCeZdBf0d8|AaCvLFDlFuOCeZdBf0d9|AaCvLFDlFuOCeZdBf0d_|AaCvLFDlFuOCeZdBf0eA|AaCvLFDlFuOCeZdBf0eB|AaCvLFDlFuOCeZdBf0eC|AaCvLFDlFuOCeZdBf0eD|AaCvLFDlFuOCeZdBf0eE|AaCvLFDlFuOCeZdBf0eF|AaCvLFDlFuOCeZdBf0eG|AaCvLFDlFuOCeZdBf0eH|AaCvLFDlFuOCeZdBf0eI|AaCvLFDlFuOCeZdBf0eJ|AaCvLFDlFuOCeZdBf0eK|AaCvLFDlFuOCeZdBf0eL|AaCvLFDlFuOCeZdBf0eM|AaCvLFDlFuOCeZdBf0eN|AaCvLFDlFuOCeZdBf0eO|AaCvLFDlFuOCeZdBf0eP|AaCvLFDlFuOCeZdBf0eQ)"[ \t]*,?[ \t]*\r?$''']
+paths = ['''^docs/testing/final\-sonar\-backend\-2026\-09\-17\.json$''']
+
+[[allowlists]]
+description = "Reviewed Sonar analysis identifiers in final-sonar-backend-2026-09-17.json"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\n?[ \t]*"key"[ \t]*:[ \t]*"(?:dc4e3d23\-4cad\-4d91\-abaf\-b8c1e239815e)"[ \t]*,?[ \t]*\r?$''']
+paths = ['''^docs/testing/final\-sonar\-backend\-2026\-09\-17\.json$''']
+
+[[allowlists]]
+description = "Reviewed Sonar issue identifiers in final-sonar-fill-python-2026-09-17.json"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\n?[ \t]*"issueKey"[ \t]*:[ \t]*"(?:AaCvLE3aFuOCeZdBf0dm|AaCvLE3bFuOCeZdBf0dn|AaCvLE3bFuOCeZdBf0do|AaCvLFU3FuOCeZdBf0ej|AaCvLFVUFuOCeZdBf0ek|AaCvLFVUFuOCeZdBf0el|AaCvLFVUFuOCeZdBf0em|AaCvLFVUFuOCeZdBf0en|AaCvLFVuFuOCeZdBf0eo|AaCvLFW4FuOCeZdBf0eq|AaCvLFWUFuOCeZdBf0ep|AaCvLFX_FuOCeZdBf0es|AaCvLFX_FuOCeZdBf0et|AaCvLFXqFuOCeZdBf0er|AaCvLFYmFuOCeZdBf0eu)"[ \t]*,?[ \t]*\r?$''']
+paths = ['''^docs/testing/final\-sonar\-fill\-python\-2026\-09\-17\.json$''']
+
+[[allowlists]]
+description = "Reviewed public Sonar PR73 issue IDs in the exact new findings ledger"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\n?[ \t]*"issueKey"[ \t]*:[ \t]*"(?:AaC_FaSkgUv0fnrT0UHw|AaC_FaXZgUv0fnrT0UHx|AaC_FaYzgUv0fnrT0UHy)"[ \t]*,?[ \t]*\r?$''']
+paths = ['''^docs/testing/final-sonar-pr73-2026-09-20\.json$''']
+
+[[allowlists]]
+description = "Reviewed Sonar parser and frontend review issue IDs"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\n?[ \t]*"sonarIssueKey"[ \t]*:[ \t]*"(?:AaCaApiiQzi\-Va3r5ZAS|AaCaAphgQzi\-Va3r5ZAQ)"[ \t]*,?[ \t]*\r?$''']
+paths = ['''^exchange_executor/certifications/reviews/fixer\-sonar\-parser\-engine\-complexity\-fixes\-2026\-09\-13\.json$''']
+
+[[allowlists]]
+description = "Reviewed Sonar parser and frontend review issue IDs"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\n?[ \t]*"key"[ \t]*:[ \t]*"(?:AaCaAplkQzi\-Va3r5ZAx|AaCaApndQzi\-Va3r5ZA3|AaCaApnvQzi\-Va3r5ZA4|AaCaApmqQzi\-Va3r5ZA2|AaCaApl3Qzi\-Va3r5ZAy|AaCaApl3Qzi\-Va3r5ZAz|AaCaApl3Qzi\-Va3r5ZA0|AaCaApl3Qzi\-Va3r5ZA1)"[ \t]*,?[ \t]*\r?$''']
+paths = ['''^exchange_executor/certifications/reviews/fixer\-sonar\-frontend\-review\-2026\-09\-13\.json$''']

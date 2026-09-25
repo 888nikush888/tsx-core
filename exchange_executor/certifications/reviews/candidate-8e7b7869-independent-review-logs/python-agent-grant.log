@@ -1,0 +1,15 @@
+test_exact_fresh_role_and_grant_bind_one_signer_without_secrets (exchange_executor.tests.test_hyperliquid_agent_grant.AgentGrantContractTests.test_exact_fresh_role_and_grant_bind_one_signer_without_secrets) ... ok
+test_request_transport_is_exactly_testnet_info_and_rejects_redirect (exchange_executor.tests.test_hyperliquid_agent_grant.AgentGrantContractTests.test_request_transport_is_exactly_testnet_info_and_rejects_redirect) ... ok
+test_revoked_expired_ambiguous_and_malformed_grants_fail_closed (exchange_executor.tests.test_hyperliquid_agent_grant.AgentGrantContractTests.test_revoked_expired_ambiguous_and_malformed_grants_fail_closed) ... ok
+test_role_must_name_the_exact_master (exchange_executor.tests.test_hyperliquid_agent_grant.AgentGrantContractTests.test_role_must_name_the_exact_master) ... ok
+test_timeout_and_rotation (exchange_executor.tests.test_hyperliquid_agent_grant.AgentGrantContractTests.test_timeout_and_rotation) ... ok
+test_agent_sdk_routes_fail_closed_on_mainnet_proxy_and_late_url_drift (exchange_executor.tests.test_hyperliquid_agent_grant.AgentRegistryTests.test_agent_sdk_routes_fail_closed_on_mainnet_proxy_and_late_url_drift) ... ok
+test_grant_must_outlive_mutation_deadline (exchange_executor.tests.test_hyperliquid_agent_grant.AgentRegistryTests.test_grant_must_outlive_mutation_deadline) ... ok
+test_live_agent_and_sdk_origin_drift_fail_before_mutation (exchange_executor.tests.test_hyperliquid_agent_grant.AgentRegistryTests.test_live_agent_and_sdk_origin_drift_fail_before_mutation) ... ok
+test_reapproval_changes_generation_and_requires_account_rebind (exchange_executor.tests.test_hyperliquid_agent_grant.AgentRegistryTests.test_reapproval_changes_generation_and_requires_account_rebind) ... ok
+test_revalidates_under_mutation_lock_and_refuses_revoked_grant (exchange_executor.tests.test_hyperliquid_agent_grant.AgentRegistryTests.test_revalidates_under_mutation_lock_and_refuses_revoked_grant) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.084s
+
+OK

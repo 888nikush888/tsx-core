@@ -1,0 +1,35 @@
+{
+  "revision": "d74f2ae68722a1a86f71af6c1a872dd4cfbf3f0d",
+  "candidate": {
+    "path": "reports/final-findings/final-snyk-deps-d74f2ae6-hyperliquid-receipt-candidate.json",
+    "sha256": "04c443cb8318783f2544aa0b3e2d172a2be9383f6c0b4176e2172de1603fbd7d"
+  },
+  "approved": true,
+  "reviewedAt": "2026-09-23T13:39:09Z",
+  "reviewer": "root",
+  "scope": "Adopt only the exact reviewed offline Hyperliquid profile 1 implementation receipt after deterministic archive verification. This grants no provider acceptance, live trading, deployment, new exchange/profile authority, or scanner disposition.",
+  "independentReview": {
+    "path": "reports/final-findings/final-snyk-deps-d74f2ae6-independent-receipt-review.json",
+    "sha256": "8bbcc79c34dccf7056858a1afcaee2ed96643dc7d4fadecb62a4c2591d019d4d"
+  },
+  "completeSourceReview": {
+    "path": "reports/final-findings/final-snyk-deps-d74f2ae6-receipt-source-review-root.json",
+    "sha256": "1f34ab086c95de5e4f3751c77829c52a35b5746600f5fca09fa72bd8c38add35"
+  },
+  "rootChecks": [
+    "All eight exact d74f2ae6 verification groups passed with unchanged 1002 Git build inputs and the same runtime context.",
+    "Eight source deltas were individually hash reviewed; 62 historical requirement identities and 97 ordered witness bindings on 30 paths remain unchanged.",
+    "The independent validator recomputed the deltas and checked 1051 current references with zero unresolved references and no rebound historical context.",
+    "Production Python validation and Node build comparison passed with comparison-only authority; operative receipt and pin were unchanged before this approval.",
+    "Browser gate passed with one documented WebKit retry and five isolated no-retry successes; the transient focus timing remains visible, not declared fixed.",
+    "The first backend attempt failed governance on generated Playwright output, was archived intact, and the fresh backend and module coverage passed after moving that output to ignored evidence.",
+    "Receipt scope and Hyperliquid profile identity remain unchanged; providerAcceptanceVerified remains false."
+  ],
+  "providerAcceptanceVerified": false,
+  "operativeReceiptOrPinsChanged": false,
+  "remaining": [
+    "Verify and seal the deterministic evidence archive; install only the exact reviewed receipt and existing Hyperliquid profile 1 digest.",
+    "Run actual post-adoption production implementation and bridge gates, then independently review their archived logs.",
+    "Renew the three affected Snyk Code authority context bindings, publish PR73 head, and obtain fresh CI/provider scans before protected merge."
+  ]
+}

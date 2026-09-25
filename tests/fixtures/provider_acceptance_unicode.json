@@ -1,0 +1,69 @@
+{
+  "reviewerPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAy+rG2vA/9Krbt6lJAJw/lTfID0BiHBI/kpZCHt3s0Ws=\n-----END PUBLIC KEY-----\n",
+  "vectors": [
+    {
+      "grant": {
+        "accountId": "\u0161ccount-1",
+        "credentialGeneration": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "exchange": "hyperliquid",
+        "externalAccountId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "mode": "live",
+        "product": "swap:linear",
+        "reviewId": "review-1",
+        "validFrom": 1700000000000,
+        "validUntil": 1700000060000,
+        "version": 1
+      },
+      "canonical": "{\"accountId\":\"\\u0161ccount-1\",\"credentialGeneration\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"exchange\":\"hyperliquid\",\"externalAccountId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mode\":\"live\",\"product\":\"swap:linear\",\"reviewId\":\"review-1\",\"validFrom\":1700000000000,\"validUntil\":1700000060000,\"version\":1}",
+      "signature": "rKr8BT8lcebYD3aNqVXyfHEVWtDVbxMMmKwFDcAhMbOqlAtWKYQiiNJ3oUw3Iqqqio83U1bhc7NZ+GWnO1kKCw=="
+    },
+    {
+      "grant": {
+        "accountId": "\u8d26\u6237-\ud83d\ude00",
+        "credentialGeneration": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "exchange": "hyperliquid",
+        "externalAccountId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "mode": "live",
+        "product": "swap:linear",
+        "reviewId": "review-1",
+        "validFrom": 1700000000000,
+        "validUntil": 1700000060000,
+        "version": 1
+      },
+      "canonical": "{\"accountId\":\"\\u8d26\\u6237-\\ud83d\\ude00\",\"credentialGeneration\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"exchange\":\"hyperliquid\",\"externalAccountId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mode\":\"live\",\"product\":\"swap:linear\",\"reviewId\":\"review-1\",\"validFrom\":1700000000000,\"validUntil\":1700000060000,\"version\":1}",
+      "signature": "tjtZBYkj4qR3zmMIRaZhXJRYBdPCul8/uBqI7duVB2pUQeRoR0DGeaCHUPdyjLLJZP7hl5du/Du205Oe4XwWAw=="
+    },
+    {
+      "grant": {
+        "accountId": "e\u0301",
+        "credentialGeneration": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "exchange": "hyperliquid",
+        "externalAccountId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "mode": "live",
+        "product": "swap:linear",
+        "reviewId": "review-1",
+        "validFrom": 1700000000000,
+        "validUntil": 1700000060000,
+        "version": 1
+      },
+      "canonical": "{\"accountId\":\"e\\u0301\",\"credentialGeneration\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"exchange\":\"hyperliquid\",\"externalAccountId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mode\":\"live\",\"product\":\"swap:linear\",\"reviewId\":\"review-1\",\"validFrom\":1700000000000,\"validUntil\":1700000060000,\"version\":1}",
+      "signature": "9lCNuOUBU0bg8ugqr5w+A5wohPLUFnubZu2wtxJ5qehbcOfQBNrTyLpA6jSW5JOb3XjtJIg05uGyC1avfLyDBg=="
+    },
+    {
+      "grant": {
+        "accountId": "control-\u007f",
+        "credentialGeneration": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "exchange": "hyperliquid",
+        "externalAccountId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "mode": "live",
+        "product": "swap:linear",
+        "reviewId": "review-1",
+        "validFrom": 1700000000000,
+        "validUntil": 1700000060000,
+        "version": 1
+      },
+      "canonical": "{\"accountId\":\"control-\\u007f\",\"credentialGeneration\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"exchange\":\"hyperliquid\",\"externalAccountId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mode\":\"live\",\"product\":\"swap:linear\",\"reviewId\":\"review-1\",\"validFrom\":1700000000000,\"validUntil\":1700000060000,\"version\":1}",
+      "signature": "WEST2S8qeYV4aB85Vxxo+eq5FpGr9caaXGa3xvIRFsvZvQd5P2TURs1jmBAFh7bBE8rMhotwoVv6LH4lxsW/AQ=="
+    }
+  ]
+}

@@ -3,9 +3,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadEnv } from '../src/env.js';
 
-const WINDOW = '30d';
+const WINDOWS = Object.freeze({
+  release: Object.freeze({ window: '24h', minimumScrapes: 5_732, label: 'RELEASE OBSERVATION' }),
+  longTerm: Object.freeze({ window: '30d', minimumScrapes: 171_936, label: '30-DAY SOAK' })
+});
 const THRESHOLDS = Object.freeze({
-  minimumScrapes: 171_936,
   minimumDeliveries: 100,
   minimumAvailability: 0.995,
   minimumDeliverySuccess: 0.995,
@@ -25,9 +27,15 @@ const THRESHOLDS = Object.freeze({
   maximumOldestPendingAgeSeconds: 300
 });
 
-export function soakQueries(window = WINDOW) {
+export function soakQueries(window = WINDOWS.longTerm.window) {
+  const scrapeCount = window === WINDOWS.release.window
+    ? `min(count_over_time(up{job="tsx-core"}[${window}]))`
+    : `sum(count_over_time(up{job="tsx-core"}[${window}]))`;
   return {
-    scrapeCount: `sum(count_over_time(up{job="tsx-core"}[${window}]))`,
+    scrapeCount,
+    ...(window === WINDOWS.release.window
+      ? { scrapeAvailability: `min(avg_over_time(up{job="tsx-core"}[${window}]))` }
+      : {}),
     availability: `avg(avg_over_time(tg_forwarder_readiness[${window}]))`,
     attempts: `sum(increase(tg_forwarder_delivery_attempts_total[${window}]))`,
     deliverySuccess: `sum(increase(tg_forwarder_delivery_confirmed_total[${window}])) / clamp_min(sum(increase(tg_forwarder_delivery_attempts_total[${window}])), 1)`,
@@ -48,9 +56,12 @@ export function soakQueries(window = WINDOW) {
   };
 }
 
-export function evaluateSoakWindow(values, thresholds = THRESHOLDS) {
+export function evaluateSoakWindow(values, thresholds = { ...THRESHOLDS, minimumScrapes: WINDOWS.longTerm.minimumScrapes }) {
   const checks = [
-    { name: '30-day scrape sample completeness', actual: values.scrapeCount, target: `>= ${thresholds.minimumScrapes}`, passed: values.scrapeCount >= thresholds.minimumScrapes },
+    { name: 'scrape sample completeness', actual: values.scrapeCount, target: `>= ${thresholds.minimumScrapes}`, passed: values.scrapeCount >= thresholds.minimumScrapes },
+    ...(thresholds.requireScrapeAvailability
+      ? [{ name: 'scrape availability', actual: values.scrapeAvailability, target: `>= ${thresholds.minimumAvailability}`, passed: values.scrapeAvailability >= thresholds.minimumAvailability }]
+      : []),
     { name: 'delivery sample size', actual: values.attempts, target: `>= ${thresholds.minimumDeliveries}`, passed: values.attempts >= thresholds.minimumDeliveries },
     { name: 'readiness availability', actual: values.availability, target: `>= ${thresholds.minimumAvailability}`, passed: values.availability >= thresholds.minimumAvailability },
     { name: 'confirmed delivery success', actual: values.deliverySuccess, target: `>= ${thresholds.minimumDeliverySuccess}`, passed: values.deliverySuccess >= thresholds.minimumDeliverySuccess },
@@ -127,8 +138,8 @@ function readConfiguration() {
   return { baseUrl, token };
 }
 
-async function readSoakValues(baseUrl, token) {
-  const queries = soakQueries();
+async function readSoakValues(baseUrl, token, window) {
+  const queries = soakQueries(window);
   const values = {};
   let queryError = null;
   try {
@@ -141,11 +152,13 @@ async function readSoakValues(baseUrl, token) {
   return { values, queryError };
 }
 
-async function writeEvidence(evaluation, values, queryError) {
+async function writeEvidence(evaluation, values, queryError, mode) {
   const evidence = {
     schemaVersion: 1,
     evaluatedAt: new Date().toISOString(),
-    window: WINDOW,
+    mode: mode === WINDOWS.release ? 'release-observation' : 'long-term-slo',
+    window: mode.window,
+    liveAuthorization: false,
     passed: evaluation.passed,
     queryError,
     values,
@@ -158,17 +171,26 @@ async function writeEvidence(evaluation, values, queryError) {
   return evidencePath;
 }
 
+function selectedMode(arguments_) {
+  if (arguments_.length === 0) return WINDOWS.longTerm;
+  if (arguments_.length === 1 && arguments_[0] === '--release') return WINDOWS.release;
+  throw new Error('Use --release for the 24-hour release observation; omit it for the 30-day SLO report.');
+}
+
 async function run() {
+  const mode = selectedMode(process.argv.slice(2));
   loadEnv();
   const { baseUrl, token } = readConfiguration();
-  const { values, queryError } = await readSoakValues(baseUrl, token);
-  const evaluation = queryError ? { passed: false, checks: [] } : evaluateSoakWindow(values);
-  const evidencePath = await writeEvidence(evaluation, values, queryError);
+  const { values, queryError } = await readSoakValues(baseUrl, token, mode.window);
+  const evaluation = queryError ? { passed: false, checks: [] } : evaluateSoakWindow(values, {
+    ...THRESHOLDS, minimumScrapes: mode.minimumScrapes, requireScrapeAvailability: mode === WINDOWS.release
+  });
+  const evidencePath = await writeEvidence(evaluation, values, queryError, mode);
   if (!evaluation.passed) {
     const failures = queryError || evaluation.checks.filter(check => !check.passed).map(check => check.name).join(', ');
-    throw new Error(`30-day soak gate failed: ${failures}. Evidence: ${evidencePath}`);
+    throw new Error(`${mode.label} gate failed: ${failures}. Evidence: ${evidencePath}`);
   }
-  console.log(`30-DAY SOAK GATE PASSED evidence=${evidencePath}`);
+  console.log(`${mode.label} GATE PASSED (monitoring only; no live authorization) evidence=${evidencePath}`);
 }
 
 if (path.resolve(process.argv[1] || '') === path.resolve(fileURLToPath(import.meta.url))) {

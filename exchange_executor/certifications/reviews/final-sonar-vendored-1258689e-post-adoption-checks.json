@@ -1,0 +1,104 @@
+{
+  "completedAt": "2026-09-23T16:22:01.734047+00:00",
+  "revision": "1258689ef1ed92dcbc9a5a2f0a79dcf6a46af18a",
+  "receiptSha256": "e80181c487e9e48d0dd26092558735c60d2c914125c0d85cb7e7aaa0a9519c91",
+  "sourceTreeHash": "5c7d438588394a131d0c4970668cc46b7fd66427fdd04b3b922182fcda3a009f",
+  "commands": [
+    {
+      "name": "production-gate",
+      "command": [
+        "C:/Users/nikla/AppData/Local/Programs/node22/node-v22.23.2-win-x64/node.exe",
+        "scripts/verify_exchange_implementation.js",
+        "--python",
+        "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {},
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/final-sonar-vendored-1258689e-post-adoption-logs.tar.gz",
+          "sha256": "1f8d94fd23230c6076ad2f46e5a3c7cf710ae4a9b64ced410a4fcee9c63af552"
+        },
+        "member": "final-sonar-vendored-1258689e-post-adoption-production-gate.log",
+        "sha256": "6325a9e6ceec321c8afa5ad4d8af2ad2aee88af8c60492c8e66e356ad9b2424d"
+      }
+    },
+    {
+      "name": "bridge",
+      "command": [
+        "C:/Users/nikla/AppData/Local/Programs/node22/node-v22.23.2-win-x64/node.exe",
+        "tests/run_all.js",
+        "test_exchange_implementation_bridge.js"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {
+        "TSX_TEST_PYTHON": "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe"
+      },
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/final-sonar-vendored-1258689e-post-adoption-logs.tar.gz",
+          "sha256": "1f8d94fd23230c6076ad2f46e5a3c7cf710ae4a9b64ced410a4fcee9c63af552"
+        },
+        "member": "final-sonar-vendored-1258689e-post-adoption-bridge.log",
+        "sha256": "bbfe788050a15a2284dfc469df42c44617d21a164f61348996138fe218ce4f86"
+      }
+    },
+    {
+      "name": "certification-evidence",
+      "command": [
+        "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "exchange_executor/tests",
+        "-p",
+        "test_certification_evidence.py",
+        "-v"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {},
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/final-sonar-vendored-1258689e-post-adoption-logs.tar.gz",
+          "sha256": "1f8d94fd23230c6076ad2f46e5a3c7cf710ae4a9b64ced410a4fcee9c63af552"
+        },
+        "member": "final-sonar-vendored-1258689e-post-adoption-certification-evidence.log",
+        "sha256": "842032f5d07284d15818db0f4cceb020a1d56411b9c953646317ca76a10c1c38"
+      }
+    },
+    {
+      "name": "implementation-runtime",
+      "command": [
+        "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "exchange_executor/tests",
+        "-p",
+        "test_implementation_runtime.py",
+        "-v"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {},
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/final-sonar-vendored-1258689e-post-adoption-logs.tar.gz",
+          "sha256": "1f8d94fd23230c6076ad2f46e5a3c7cf710ae4a9b64ced410a4fcee9c63af552"
+        },
+        "member": "final-sonar-vendored-1258689e-post-adoption-implementation-runtime.log",
+        "sha256": "d6e59ad4276514a18b18b88dd296e848752b4a2444d6d7e0dfeb03effaac09de"
+      }
+    }
+  ],
+  "allCommandsPassed": true,
+  "providerAcceptanceVerified": false,
+  "quarantinedProfiles": [
+    "bybit",
+    "krakenfutures"
+  ],
+  "previousAttempts": []
+}

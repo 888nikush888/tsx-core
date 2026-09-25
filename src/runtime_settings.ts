@@ -4,6 +4,7 @@ import { configurationPathFromEnvironment } from './config.js';
 import { withManagedConfigurationWrite } from './backup_generation.js';
 import { configurationRevision } from './ui_configuration.js';
 import { RUNTIME_INTEGER_RANGES, runtimeFieldGroup, runtimeFieldUnit } from './ui_runtime_contract.js';
+import { DEFAULT_MAX_CLOCK_DRIFT_MS, clockDriftLimitFromEnvironment } from './clock_guard.js';
 
 export interface RuntimeSettings {
   enterpriseMode: boolean;
@@ -31,6 +32,9 @@ export interface RuntimeSettings {
   backupOffsiteTimeoutMs: number;
   backupOffsiteMaxRecoveryBytes: number;
   backupOffsiteRetentionDays: number;
+  backupDriveFolderId: string;
+  backupDriveRequired: boolean;
+  backupDriveTimeoutMs: number;
   backupIntervalMs: number;
   backupRetentionCount: number;
   dataRetentionDays: number;
@@ -39,6 +43,7 @@ export interface RuntimeSettings {
   dataMinFreeBytes: number;
   deliveryConfirmTimeoutMs: number;
   shutdownGraceMs: number;
+  clockMaxDriftMs: number;
   jsonLogging: boolean;
   isolateUnavailableMarketFailures: boolean;
 }
@@ -78,6 +83,9 @@ export const DEFAULT_RUNTIME_SETTINGS: RuntimeSettings = {
   backupOffsiteTimeoutMs: 60_000,
   backupOffsiteMaxRecoveryBytes: 2 * 1024 * 1024 * 1024,
   backupOffsiteRetentionDays: 0,
+  backupDriveFolderId: '',
+  backupDriveRequired: false,
+  backupDriveTimeoutMs: 60_000,
   backupIntervalMs: 15 * 60_000,
   backupRetentionCount: 672,
   dataRetentionDays: 90,
@@ -86,6 +94,7 @@ export const DEFAULT_RUNTIME_SETTINGS: RuntimeSettings = {
   dataMinFreeBytes: 1024 * 1024 * 1024,
   deliveryConfirmTimeoutMs: 30_000,
   shutdownGraceMs: 30_000,
+  clockMaxDriftMs: DEFAULT_MAX_CLOCK_DRIFT_MS,
   jsonLogging: true,
   isolateUnavailableMarketFailures: false,
 };
@@ -98,6 +107,27 @@ const SAFE_RECOVERY_RUNTIME_SETTINGS: RuntimeSettings = {
   dashboardLocalTrust: false,
 };
 
+function safeRecoveryClockLimit(env: NodeJS.ProcessEnv): number {
+  try {
+    return clockDriftLimitFromEnvironment(env);
+  } catch {
+    // The recovery gate blocks new entries; keep the bounded default if the
+    // legacy host value itself is invalid.
+    return DEFAULT_MAX_CLOCK_DRIFT_MS;
+  }
+}
+
+function validatedStoredRuntimeSettings(input: unknown, env: NodeJS.ProcessEnv): { settings: RuntimeSettings; migrated: boolean } {
+  // Persist a legacy host limit through the managed atomic writer before
+  // startup. A failed migration enters recovery instead of resetting it.
+  const migrated = input !== null && typeof input === 'object' && !Array.isArray(input)
+    && !Object.hasOwn(input, 'clockMaxDriftMs');
+  const candidate = migrated
+    ? { ...(input as RuntimeSettingsRecord), clockMaxDriftMs: clockDriftLimitFromEnvironment(env) }
+    : input;
+  return { settings: validateRuntimeSettings(candidate), migrated };
+}
+
 const KEYS = new Set(Object.keys(DEFAULT_RUNTIME_SETTINGS));
 const BOOLEAN_SETTING_NAMES = [
   'enterpriseMode',
@@ -105,6 +135,7 @@ const BOOLEAN_SETTING_NAMES = [
   'tailscaleServeTrustedProxy',
   'auditRemoteRequired',
   'backupOffsiteRequired',
+  'backupDriveRequired',
   'jsonLogging',
   'isolateUnavailableMarketFailures',
 ] as const;
@@ -156,6 +187,7 @@ function webOrigin(value: unknown): string {
   if (parsed.pathname !== '/' || parsed.search) {
     throw new Error('dashboardAllowedOrigin must contain only scheme, host and optional port.');
   }
+  if (parsed.protocol === 'http:') parsed.protocol = 'https:';
   return parsed.origin;
 }
 
@@ -238,6 +270,16 @@ function validatedBackupUrl(settings: RuntimeSettingsRecord, enterprise: boolean
   return backupUrl;
 }
 
+function validatedDriveFolderId(settings: RuntimeSettingsRecord, enterprise: boolean): string {
+  const folderId = text(settings.backupDriveFolderId, 'backupDriveFolderId', 256);
+  if (folderId && !/^[A-Za-z0-9_-]{10,256}$/.test(folderId)) throw new Error('backupDriveFolderId is invalid.');
+  if (settings.backupDriveRequired === true && !folderId) throw new Error('Required Drive mirror needs backupDriveFolderId.');
+  if (settings.backupDriveRequired === true && !(enterprise || settings.backupOffsiteRequired === true)) {
+    throw new Error('Required Drive mirror also requires primary off-site backup.');
+  }
+  return folderId;
+}
+
 interface ValidatedOidcSettings {
   issuer: string;
   audience: string;
@@ -276,6 +318,7 @@ export function validateRuntimeSettings(input: unknown): RuntimeSettings {
   const dashboardAuthMode = validatedDashboardAuthMode(merged.dashboardAuthMode);
   validateEnterpriseProfile(merged, enterprise, dashboardAuthMode);
   const backupUrl = validatedBackupUrl(merged, enterprise);
+  const driveFolderId = validatedDriveFolderId(merged, enterprise);
   const oidc = validatedOidcSettings(merged, enterprise, dashboardAuthMode);
   const dashboardAllowedOrigin = webOrigin(merged.dashboardAllowedOrigin);
   const tailscale = validateTailscaleProfile(merged, dashboardAuthMode, dashboardAllowedOrigin);
@@ -306,9 +349,12 @@ export function validateRuntimeSettings(input: unknown): RuntimeSettings {
     auditLocalMaxBytes: integer(merged.auditLocalMaxBytes, 'auditLocalMaxBytes', 1024 * 1024, 1024 * 1024 * 1024),
     backupOffsiteRequired: merged.backupOffsiteRequired as boolean,
     backupOffsiteUrlTemplate: backupUrl,
-    backupOffsiteTimeoutMs: integer(merged.backupOffsiteTimeoutMs, 'backupOffsiteTimeoutMs', 1_000, 5 * 60_000),
+    backupOffsiteTimeoutMs: integer(merged.backupOffsiteTimeoutMs, 'backupOffsiteTimeoutMs', 1_000, 15 * 60_000),
     backupOffsiteMaxRecoveryBytes: integer(merged.backupOffsiteMaxRecoveryBytes, 'backupOffsiteMaxRecoveryBytes', 1024 * 1024, 8 * 1024 * 1024 * 1024),
     backupOffsiteRetentionDays: integer(merged.backupOffsiteRetentionDays, 'backupOffsiteRetentionDays', 0, 3_650),
+    backupDriveFolderId: driveFolderId,
+    backupDriveRequired: merged.backupDriveRequired as boolean,
+    backupDriveTimeoutMs: integer(merged.backupDriveTimeoutMs, 'backupDriveTimeoutMs', 1_000, 15 * 60_000),
     backupIntervalMs: integer(merged.backupIntervalMs, 'backupIntervalMs', 60_000, 15 * 60_000),
     backupRetentionCount: integer(merged.backupRetentionCount, 'backupRetentionCount', 1, 10_000),
     dataRetentionDays: integer(merged.dataRetentionDays, 'dataRetentionDays', 1, 3_650),
@@ -317,6 +363,7 @@ export function validateRuntimeSettings(input: unknown): RuntimeSettings {
     dataMinFreeBytes: integer(merged.dataMinFreeBytes, 'dataMinFreeBytes', 64 * 1024 * 1024, 1024 * 1024 * 1024 * 1024),
     deliveryConfirmTimeoutMs: integer(merged.deliveryConfirmTimeoutMs, 'deliveryConfirmTimeoutMs', 1_000, 300_000),
     shutdownGraceMs: integer(merged.shutdownGraceMs, 'shutdownGraceMs', 1_000, 120_000),
+    clockMaxDriftMs: integer(merged.clockMaxDriftMs, 'clockMaxDriftMs', 100, 5_000),
     jsonLogging: merged.jsonLogging as boolean,
     isolateUnavailableMarketFailures: merged.isolateUnavailableMarketFailures as boolean,
   };
@@ -348,6 +395,9 @@ const ENVIRONMENT_MAPPING: Record<keyof RuntimeSettings, string> = {
   backupOffsiteTimeoutMs: 'BACKUP_OFFSITE_TIMEOUT_MS',
   backupOffsiteMaxRecoveryBytes: 'BACKUP_OFFSITE_MAX_RECOVERY_BYTES',
   backupOffsiteRetentionDays: 'BACKUP_OFFSITE_RETENTION_DAYS',
+  backupDriveFolderId: 'BACKUP_DRIVE_FOLDER_ID',
+  backupDriveRequired: 'BACKUP_DRIVE_REQUIRED',
+  backupDriveTimeoutMs: 'BACKUP_DRIVE_TIMEOUT_MS',
   backupIntervalMs: 'BACKUP_INTERVAL_MS',
   backupRetentionCount: 'BACKUP_RETENTION_COUNT',
   dataRetentionDays: 'DATA_RETENTION_DAYS',
@@ -356,6 +406,7 @@ const ENVIRONMENT_MAPPING: Record<keyof RuntimeSettings, string> = {
   dataMinFreeBytes: 'DATA_MIN_FREE_BYTES',
   deliveryConfirmTimeoutMs: 'DELIVERY_CONFIRM_TIMEOUT_MS',
   shutdownGraceMs: 'SHUTDOWN_GRACE_MS',
+  clockMaxDriftMs: 'CLOCK_MAX_DRIFT_MS',
   jsonLogging: 'JSON_LOGGING',
   isolateUnavailableMarketFailures: 'TRADING_ISOLATE_UNAVAILABLE_MARKET_FAILURES',
 };
@@ -385,19 +436,24 @@ export class ManagedRuntimeSettingsStore {
   async initialize(options: RuntimeSettingsStoreOptions = {}): Promise<void> {
     const resolved = path.resolve(this.filePath);
     await fs.mkdir(path.dirname(resolved), { recursive: true, mode: 0o700 });
+    let existingFileObserved = false;
     try {
       const stats = await fs.lstat(resolved);
+      existingFileObserved = true;
       if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 128 * 1024) {
         throw new Error('Runtime settings must be a small regular file.');
       }
-      this.settings = validateRuntimeSettings(JSON.parse(await fs.readFile(resolved, 'utf8')));
+      const loaded: unknown = JSON.parse(await fs.readFile(resolved, 'utf8'));
+      const stored = validatedStoredRuntimeSettings(loaded, this.env);
+      if (stored.migrated) await this.write(stored.settings);
+      else this.settings = stored.settings;
     } catch (error: unknown) {
-      if ((error as { code?: unknown } | null | undefined)?.code === 'ENOENT') {
-        await this.write(DEFAULT_RUNTIME_SETTINGS);
+      if (!existingFileObserved && (error as { code?: unknown } | null | undefined)?.code === 'ENOENT') {
+        await this.write({ ...DEFAULT_RUNTIME_SETTINGS, clockMaxDriftMs: clockDriftLimitFromEnvironment(this.env) });
         return;
       }
       if (!options.recoverInvalidFile) throw error;
-      this.settings = structuredClone(SAFE_RECOVERY_RUNTIME_SETTINGS);
+      this.settings = { ...SAFE_RECOVERY_RUNTIME_SETTINGS, clockMaxDriftMs: safeRecoveryClockLimit(this.env) };
       this.recoveryReason = error instanceof Error ? (error as { message?: string }).message : 'Managed runtime settings could not be read.';
     }
   }
@@ -502,6 +558,7 @@ export function managedRuntimeSettingsPathFromEnvironment(env: NodeJS.ProcessEnv
 }
 
 function runtimeFieldMaxLength(key: string): number {
+  if (key === 'backupDriveFolderId') return 256;
   if (/tailscale(Admin|Viewer)Users/.test(key)) return 4096;
   return /oidc(AdminRole|ViewerRole|Audience|RoleClaim)/.test(key) ? 256 : 2048;
 }

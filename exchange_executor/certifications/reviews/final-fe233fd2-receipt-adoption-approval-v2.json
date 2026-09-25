@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "approvalVersion": 2,
+  "kind": "offline-implementation-receipt-adoption-approval",
+  "revision": "de2c1c9424e7b7ef8e8ad2c553fb098e9aef878e",
+  "approvedReceiptSha256": "a44890d925c45c65bcc4011d93b544f81073173fa5fc0b48d2eee1a7a1b8112c",
+  "candidateReceipt": {
+    "path": "exchange_executor/certifications/hyperliquid.json",
+    "sha256": "a44890d925c45c65bcc4011d93b544f81073173fa5fc0b48d2eee1a7a1b8112c",
+    "sourceRevision": "fe233fd2f9cd1dbaed303bbac5e6cdf83640cdb6",
+    "exchange": "hyperliquid",
+    "profileVersion": 1
+  },
+  "supersedes": {
+    "path": "exchange_executor/certifications/reviews/final-fe233fd2-receipt-adoption-approval.json",
+    "sha256": "bcd1267b870b455e6e7d7c88159a7c9cdd6b4627ba1b73e692c64f11099c0399"
+  },
+  "approved": true,
+  "reviewer": "Codex",
+  "reviewedAt": "2026-09-25T14:13:44Z",
+  "scope": "Approve only the exact offline Hyperliquid profile 1 implementation receipt revision a44890d925c45c65bcc4011d93b544f81073173fa5fc0b48d2eee1a7a1b8112c for adoption after LF-log, report, source, runtime and evidence verification. This grants no provider acceptance, live trading, deployment, publication, account activation, order authority or new exchange/profile scope.",
+  "executionReport": {
+    "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-execution-report.json",
+    "sha256": "b2b4975d5b71b5432d8a2ce23233f9e521c16253e1fcf20115ae9ac5bf0b28f8",
+    "revision": "fe233fd2f9cd1dbaed303bbac5e6cdf83640cdb6",
+    "receiptExecutionReportHashMatches": true,
+    "sourceCommitmentsMatch": true,
+    "rawLogCount": 6,
+    "allRawLogBytesAndHashesMatch": true
+  },
+  "lfLogNormalization": {
+    "allLogsContainOnlyLf": true,
+    "allCrLfCountsAreZero": true,
+    "byteReductionEqualsLineCount": true,
+    "logs": [
+      {
+        "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/eslint.log",
+        "bytes": 291,
+        "sha256": "69130ef054cf1fab17ee7772a6fe5cbc41553ac59b99a0858dc04579379ee2b2",
+        "lfCount": 4
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/frontend-full-suite.log",
+        "bytes": 451,
+        "sha256": "731edc7309358f8aff033e7fe9ed2f845494e600a24e4b0b3bd2d25c99fcc2d7",
+        "lfCount": 14
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/node-full-suite.log",
+        "bytes": 75293,
+        "sha256": "6147cf0b5ea9eed66716b15119df7204447627f7d571729c81fd35c6a4dbba2e",
+        "lfCount": 852
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/python-full-suite.log",
+        "bytes": 8285,
+        "sha256": "4981aa2c8c8965a38d2c04ab83e44117cb8d7800776350159abcbf427ea5ac97",
+        "lfCount": 37
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/root-build.log",
+        "bytes": 1563,
+        "sha256": "aa55d7dd34986bf299f42a4aed207bf54ac28b9b31c53718e40ed92135bc2d78",
+        "lfCount": 29
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/typescript-typecheck.log",
+        "bytes": 44,
+        "sha256": "36ad9a8a29908c63402af4b6ad27b81468223fb0da68a311a0d31ceba5790316",
+        "lfCount": 4
+      }
+    ]
+  },
+  "recomputedCommitments": {
+    "sourceTreeHash": "e90c9c880561c4862a0fbd4cfb532123e36efde17df58170883e6c771171c01f",
+    "nodeSourcesHash": "028f280ab1ffb267d8900916e92f7f9d6f91d83844e29db9c6ae6652a985f7e8",
+    "testSourcesHash": "879f3c647ace3317191228df943297102e7167f1cff8fe50e2484f1b889cd2df",
+    "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee",
+    "executorTreeHash": "842fd984dc8e473ec1d0a93064753211123e0fbf05f54787c32c1a503ac978d9",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7"
+  },
+  "validation": {
+    "candidateReceiptHashMatches": true,
+    "parityEvidenceHashMatchesIndependentReview": true,
+    "executionReportHashMatchesReceipt": true,
+    "executionReportRevisionMatchesReceipt": true,
+    "executionReportSourceCommitmentsMatchReceipt": true,
+    "nodeCompareBuildReceipt": {
+      "status": "PASS",
+      "node": "22.23.2",
+      "buildInputsMatch": true
+    },
+    "pythonValidateReceipt": {
+      "status": "PASS",
+      "python": "3.12.14",
+      "ccxt": "4.5.75",
+      "profileHashMatches": true,
+      "executorTreeHashMatches": true,
+      "sdkTreeHashMatches": true
+    },
+    "assessmentHash": "c2a9fa207a8758ab7be1877b5ab40572092ff7ad477da5f432b4d3f17ce8921b",
+    "matrixEvidenceBindingsMatched": "9/9",
+    "executionLogsPass": true
+  },
+  "deltaSinceFirstApproval": {
+    "implementationSourceBytesChanged": false,
+    "onlyExpectedAdoptionAndLfCorrectionFilesChanged": true,
+    "firstApprovedReceiptSha256": "a41bbd1229aa2c6390dca3e832d2a1e85378d01b758a445fe595a48249a6cf7e",
+    "receiptDifference": "Only executionReportHash changed from cbcc60e2527f1ee683140e598a9745b0bfd50f7c0b6f2229dad955898ee14581 to b2b4975d5b71b5432d8a2ce23233f9e521c16253e1fcf20115ae9ac5bf0b28f8.",
+    "reportDifference": "Only the six raw log byte counts and SHA-256 values changed to their LF-normalized values.",
+    "trustedPinAtReview": "a41bbd1229aa2c6390dca3e832d2a1e85378d01b758a445fe595a48249a6cf7e",
+    "trustedPinChangedByThisReview": false
+  },
+  "pinDecision": {
+    "maySetTrustedPinExactly": true,
+    "approvedReceiptSha256": "a44890d925c45c65bcc4011d93b544f81073173fa5fc0b48d2eee1a7a1b8112c",
+    "targetKey": [
+      "hyperliquid",
+      1
+    ]
+  },
+  "providerAcceptanceVerified": false,
+  "liveTradingApproved": false,
+  "remaining": [
+    "Set the trusted Hyperliquid profile 1 pin exactly to a44890d925c45c65bcc4011d93b544f81073173fa5fc0b48d2eee1a7a1b8112c, then run the production implementation gate and receipt/bridge regressions.",
+    "Provider acceptance, authenticated Testnet lifecycle, live orders, deployment and release approval remain separate and unapproved.",
+    "The POSIX FIFO and final-file-symlink branch remains a Linux CI responsibility."
+  ]
+}

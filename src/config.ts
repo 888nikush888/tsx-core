@@ -282,7 +282,7 @@ function normalizeApiId(cfg: Record<string, unknown>): void {
   if (cfg.apiId === undefined) return;
   const parsed = Number(cfg.apiId);
   if (!Number.isSafeInteger(parsed) || parsed < 0) {
-    console.warn(`[WARN] Invalid apiId "${String(cfg.apiId)}" in config.json. Resetting to 0.`);
+    console.warn(`[WARN] Invalid apiId of type ${typeof cfg.apiId} in config.json. Resetting to 0.`);
     cfg.apiId = 0;
     return;
   }

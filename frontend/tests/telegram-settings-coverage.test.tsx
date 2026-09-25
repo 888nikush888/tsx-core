@@ -139,7 +139,8 @@ describe('Telegram configuration persistence', () => {
   });
 
   it('keeps the draft when a write is acknowledged without the normalized response contract', async () => {
-    setup(); const respond = api.jsonRequest.getMockImplementation()!;
+    setup(); const respond = api.jsonRequest.getMockImplementation();
+    if (!respond) throw new Error('Expected the configured request fixture.');
     api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => init?.method === 'POST' ? { requestId: 'incomplete' } : respond(url, init));
     mount(); await screen.findByLabelText('Telegram API ID'); change('Telegram-Ziel (globale Vorgabe)', '@unsaved');
     fireEvent.click(screen.getByRole('button', { name: 'Grundkonfiguration speichern' }));
@@ -196,8 +197,9 @@ describe('Telegram access, secrets and routing', () => {
   });
 
   it('preserves a failed credential submission and releases the busy lock without retrying', async () => {
-    setup(); const respond = api.jsonRequest.getMockImplementation()!;
-    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => init?.method === 'POST' ? Promise.reject('credential write unavailable') : respond(url, init));
+    setup(); const respond = api.jsonRequest.getMockImplementation();
+    if (!respond) throw new Error('Expected the configured request fixture.');
+    api.jsonRequest.mockImplementation((url: string, init?: RequestInit) => init?.method === 'POST' ? Promise.reject(new Error('credential write unavailable')) : respond(url, init));
     mount(); await screen.findByLabelText('Telegram API Hash · gespeichert');
     change('Telegram API Hash · gespeichert', 'retain-for-retry');
     fireEvent.click(screen.getByRole('button', { name: 'Telegram-/KI-Zugangsdaten speichern' }));

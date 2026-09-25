@@ -22,22 +22,36 @@ services:
       METRICS_HOST: "0.0.0.0"
       PORT: "8080"
       METRICS_PORT: "9100"
+      DASHBOARD_TLS_CERT_FILE: "/run/tsx-tls/dashboard.crt"
+      DASHBOARD_TLS_KEY_FILE: "/run/tsx-tls/dashboard.key"
+      METRICS_TLS_CERT_FILE: "/run/tsx-tls/metrics.crt"
+      METRICS_TLS_KEY_FILE: "/run/tsx-tls/metrics.key"
+      NODE_EXTRA_CA_CERTS: "/run/tsx-tls/ca.pem"
       BACKUP_DIR: "/app/backups"
       LOG_DIR: "/app/logs"
       CONFIG_PATH: "/app/config/config.json"
       RUNTIME_SETTINGS_PATH: "/app/config/runtime-settings.json"
       MANAGED_SECRET_DIR: "/app/secrets"
+      PROVIDER_ACCEPTANCE_REVIEWER_KEY_FILE: "/run/provider-acceptance/reviewer.pem"
+      PROVIDER_ACCEPTANCE_GRANTS_FILE: "/run/provider-acceptance/grants.json"
       TELEGRAM_VIEWER_SETTINGS_PATH: "/app/config/telegram-viewer-settings.json"
       TELEGRAM_VIEWER_SECRET_DIR: "/app/telegram_viewer_secrets"
-      TELEGRAM_VIEWER_STATUS_URL: "http://telegram-viewer:8081/status"
+      TELEGRAM_VIEWER_STATUS_URL: "https://telegram-viewer:8081/status"
       TEMPLATES_DIR: "/app/templates"
-      EXCHANGE_EXECUTOR_URL: "http://exchange-executor:8090"
+      EXCHANGE_EXECUTOR_URL: "https://exchange-executor:8090"
       # Browser-visible address of the independently gated MCP service.
       MCP_ENDPOINT_URL: "${MCP_ENDPOINT_URL:-http://127.0.0.1:8091/mcp}"
     volumes:
       - forwarder_config:/app/config
       - forwarder_secrets:/app/secrets
+      - provider_acceptance:/run/provider-acceptance:ro
       - telegram_viewer_secrets:/app/telegram_viewer_secrets
+      # Bind files individually: no service can read another service's private key.
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/ca.pem:/run/tsx-tls/ca.pem:ro
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/dashboard.crt:/run/tsx-tls/dashboard.crt:ro
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/dashboard.key:/run/tsx-tls/dashboard.key:ro
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/metrics.crt:/run/tsx-tls/metrics.crt:ro
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/metrics.key:/run/tsx-tls/metrics.key:ro
       - forwarder_templates:/app/templates
       - forwarder_session_data:/app/session_data
       - forwarder_session_files:/app/session_files
@@ -64,7 +78,7 @@ services:
         - CMD
         - /nodejs/bin/node
         - -e
-        - "fetch('http://127.0.0.1:9100/healthz',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+        - "fetch('https://127.0.0.1:9100/healthz',{redirect:'error',signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
       interval: 30s
       timeout: 5s
       start_period: 30s
@@ -80,8 +94,8 @@ services:
 
   exchange-executor:
     build:
-      context: ./exchange_executor
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: exchange_executor/Dockerfile
     image: ${EXCHANGE_EXECUTOR_IMAGE:-tsx-core-exchange-executor:local}
     init: true
     restart: unless-stopped
@@ -90,8 +104,17 @@ services:
       EXECUTOR_HOST: "0.0.0.0"
       EXECUTOR_PORT: "8090"
       MANAGED_SECRET_DIR: "/app/secrets"
+      PROVIDER_ACCEPTANCE_REVIEWER_KEY_FILE: "/run/provider-acceptance/reviewer.pem"
+      PROVIDER_ACCEPTANCE_GRANTS_FILE: "/run/provider-acceptance/grants.json"
+      EXECUTOR_TLS_CERT_FILE: "/run/tsx-tls/executor.crt"
+      EXECUTOR_TLS_KEY_FILE: "/run/tsx-tls/executor.key"
+      TSX_INTERNAL_CA_FILE: "/run/tsx-tls/ca.pem"
     volumes:
       - forwarder_secrets:/app/secrets:ro
+      - provider_acceptance:/run/provider-acceptance:ro
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/ca.pem:/run/tsx-tls/ca.pem:ro
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/executor.crt:/run/tsx-tls/executor.crt:ro
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/executor.key:/run/tsx-tls/executor.key:ro
     expose:
       - "8090"
     read_only: true
@@ -109,7 +132,7 @@ services:
         - CMD
         - python
         - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz', timeout=4).read()"
+        - "import http.client, os, ssl; c=http.client.HTTPSConnection('127.0.0.1',8090,context=ssl.create_default_context(cafile=os.environ['TSX_INTERNAL_CA_FILE']),timeout=4); c.request('GET','/healthz'); r=c.getresponse(); assert r.status==200; r.read(); c.close()"
       interval: 30s
       timeout: 5s
       start_period: 45s
@@ -188,14 +211,20 @@ services:
       forwarder:
         condition: service_healthy
     environment:
-      TELEGRAM_VIEWER_CORE_URL: "http://forwarder:8080"
+      TELEGRAM_VIEWER_CORE_URL: "https://forwarder:8080"
       TELEGRAM_VIEWER_SECRET_DIR: "/app/secrets"
       TELEGRAM_VIEWER_STATE_DB: "/app/state/viewer_state.db"
       TELEGRAM_VIEWER_HEALTH_PORT: "8081"
       TELEGRAM_VIEWER_HEALTH_HOST: "0.0.0.0"
+      TELEGRAM_VIEWER_TLS_CERT_FILE: "/run/tsx-tls/viewer.crt"
+      TELEGRAM_VIEWER_TLS_KEY_FILE: "/run/tsx-tls/viewer.key"
+      NODE_EXTRA_CA_CERTS: "/run/tsx-tls/ca.pem"
     volumes:
       - telegram_viewer_secrets:/app/secrets:ro
       - telegram_viewer_state:/app/state
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/ca.pem:/run/tsx-tls/ca.pem:ro
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/viewer.crt:/run/tsx-tls/viewer.crt:ro
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/viewer.key:/run/tsx-tls/viewer.key:ro
     expose:
       - "8081"
     read_only: true
@@ -213,7 +242,7 @@ services:
         - CMD
         - /nodejs/bin/node
         - -e
-        - "fetch('http://127.0.0.1:8081/healthz',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+        - "fetch('https://127.0.0.1:8081/healthz',{redirect:'error',signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
       interval: 30s
       timeout: 5s
       start_period: 20s
@@ -229,6 +258,7 @@ services:
 volumes:
   forwarder_config:
   forwarder_secrets:
+  provider_acceptance:
   forwarder_templates:
   forwarder_session_data:
   forwarder_session_files:

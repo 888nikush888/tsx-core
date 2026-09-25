@@ -16,6 +16,7 @@ import {
   type ExchangeCatalogEntry,
 } from './exchange_catalog.js';
 import { PaperExchangeAdapter } from './paper_exchange.js';
+import { liveProviderAcceptancePinned } from './provider_acceptance.js';
 import { assertPaperConfigurationRevision, readPaperConfiguration } from './ui_paper_configuration.js';
 import { uiTradingPage } from './ui_trading_reads.js';
 import type { TradingCredentialStore, TradingCredentials } from './trading_credentials.js';
@@ -212,7 +213,7 @@ export class TradingWebControl {
   }
 
   exchangeCatalog(): Promise<ExchangeCatalog> {
-    return this.catalog.browserCatalog();
+    return this.catalog.browserCatalog(false, true);
   }
 
   probeExchange(exchange: unknown): Promise<ExchangeCatalogEntry> {
@@ -653,11 +654,14 @@ export class TradingWebControl {
       if (account.externalAccountId && account.externalAccountId !== externalAccountId) {
         throw new Error('Credentials resolve to a different external exchange account.');
       }
+      const credentialGeneration = verifiedCredentialGeneration(result.credentialGeneration);
       const verified = await updateTradingAccountState(account.id, {
         externalAccountId,
-        credentialGeneration: verifiedCredentialGeneration(result.credentialGeneration),
+        credentialGeneration,
         status: 'ready',
-        enabled: enableOnSuccess || account.enabled,
+        enabled: (enableOnSuccess || account.enabled) && liveProviderAcceptancePinned({
+          ...account, externalAccountId, credentialGeneration,
+        }),
         error: null,
         verifiedAt: Date.now(),
       });
@@ -683,6 +687,9 @@ export class TradingWebControl {
   private async setAccountEnabledOwned(id: string, enabledValue: boolean, context: TradingMutationContext): Promise<TradingAccount> {
     const account = await TradingWebControl.requiredAccount(id);
     const enabled = boolean(enabledValue, 'Account enabled state');
+    if (enabled && !liveProviderAcceptancePinned(account)) {
+      throw new Error('Independent live provider acceptance is not pinned; this account cannot be enabled.');
+    }
     if (enabled && account.status === 'disabled') return this.verifyAccount(account.id, true, context);
     if (enabled && account.status !== 'ready') throw new Error('Only a successfully verified account can be enabled.');
     if (!enabled) {
@@ -860,6 +867,9 @@ export class TradingWebControl {
       if (payload.confirmation !== LIVE_CONFIRMATION) throw new Error(`Live trading requires the exact confirmation '${LIVE_CONFIRMATION}'.`);
       const live = (await listTradingAccounts()).filter(account => account.mode === 'live' && account.enabled && account.status === 'ready');
       if (live.length < 1) throw new Error('Live trading requires at least one enabled, verified live account.');
+      if (live.some(account => !liveProviderAcceptancePinned(account))) {
+        throw new Error('Independent live provider acceptance is not pinned; live trading cannot be enabled.');
+      }
       for (const account of live) await this.engine.reconcileAccount(account.id);
       assertAuthority();
     }

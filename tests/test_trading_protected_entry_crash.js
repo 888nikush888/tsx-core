@@ -380,5 +380,5 @@ try {
 } finally {
   Date.now = originalNow;
   await closeDb();
-  await rm(directory, { recursive: true, force: true });
+  await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }

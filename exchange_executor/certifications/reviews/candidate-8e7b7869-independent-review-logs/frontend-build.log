@@ -1,0 +1,25 @@
+
+> tsx-core-frontend@3.3.0 build
+> tsc -b && vite build --configLoader runner
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 2729 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/assets/log-search.worker-CPTfVOEM.js                    0.47 kB
+dist/index.html                                              0.68 kB │ gzip:   0.36 kB
+dist/assets/geist-cyrillic-ext-wght-normal-DjL33-gN.woff2    7.42 kB
+dist/assets/geist-vietnamese-wght-normal-6IgcOCM7.woff2      8.00 kB
+dist/assets/geist-cyrillic-wght-normal-BEAKL7Jp.woff2       15.08 kB
+dist/assets/geist-latin-ext-wght-normal-DC-KSUi6.woff2      16.51 kB
+dist/assets/geist-latin-wght-normal-BgDaEnEv.woff2          29.40 kB
+dist/assets/index-dD19fzuu.css                             140.71 kB │ gzip:  23.24 kB
+dist/assets/recovery-page-oKVKBDHD.js                        7.34 kB │ gzip:   2.91 kB
+dist/assets/draft-state-DAD9KQ0a.js                         10.36 kB │ gzip:   4.31 kB
+dist/assets/icons-CeKcF7VI.js                               19.37 kB │ gzip:   7.59 kB
+dist/assets/workflow-builder-CqGDQmVB.js                   210.30 kB │ gzip:  66.90 kB
+dist/assets/operator-app-C5o5eN3X.js                       355.24 kB │ gzip: 104.31 kB
+dist/assets/index-Curf4ZUJ.js                              355.42 kB │ gzip: 115.89 kB
+dist/assets/charts-Cf-HyfUt.js                             423.03 kB │ gzip: 123.67 kB
+✓ built in 4.11s

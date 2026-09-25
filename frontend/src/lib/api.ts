@@ -1,3 +1,5 @@
+// This is the browser sessionStorage entry name, not a credential.
+// skipcq: SCT-A000
 const TOKEN_KEY = "forwarder-dashboard-token";
 const AUTH_REQUIRED_EVENT = "forwarder-dashboard-auth-required";
 
@@ -65,7 +67,7 @@ export class ApiError extends Error {
 export async function mutateAndObserve<T>(
   operation: () => Promise<T>,
   accepted: (result: T) => void,
-  observe: () => Promise<unknown> | void,
+  observe: () => unknown,
 ): Promise<{ result: T; refreshError: string | null }> {
   const result = await operation();
   accepted(result);

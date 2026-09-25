@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import http from 'node:http';
+import { readFileSync } from 'node:fs';
+import https from 'node:https';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -12,8 +13,10 @@ import { exchangeRecoveryQuery } from '../src/trading_recovery.js';
 import { recordAcquisitionEvidence } from '../src/trading_evidence_repository.js';
 import { accountModeDigest } from '../src/trading_account_mode_contract.js';
 import { fxReceipt, sealFxReceipt } from './fixtures/fx_receipts.js';
+import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-schedule-transport-'));
+const tlsFiles = await setupInternalTlsTest();
 const filename = path.join(directory, 'transport.db');
 const profileHash = 'd'.repeat(64), generation = 'c'.repeat(64);
 const cases = new Map(), requests = [], serverErrors = [];
@@ -78,7 +81,7 @@ function reply(payload, control) {
     accountFingerprint: control.fingerprint,
     acquisition: payload.recovery.recoverySchedule ? scheduledReply(payload, control, now) : legacyReply(payload, now) };
 }
-const server = http.createServer((request, response) => {
+const server = https.createServer({ cert: readFileSync(tlsFiles.cert), key: readFileSync(tlsFiles.key) }, (request, response) => {
   let body = '';
   request.setEncoding('utf8'); request.on('data', chunk => { body += chunk; });
   request.on('end', () => {
@@ -292,7 +295,7 @@ const token = await credentials.getOrCreateExecutorToken();
 await initDb(filename);
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 try {
-  process.env.EXCHANGE_EXECUTOR_URL = `http://127.0.0.1:${server.address().port}`;
+  process.env.EXCHANGE_EXECUTOR_URL = `https://127.0.0.1:${server.address().port}`;
   await testReservedUntilAtomicCommit(token);
   await testMalformedResponses();
   await testSingleAttemptHttpAndTimeout();
@@ -300,13 +303,14 @@ try {
   await testLegacyAndDatabaseAuthority();
   assert.deepEqual(serverErrors, []);
   assert.deepEqual(await getDatabase().all('PRAGMA foreign_key_check'), []);
-  console.log('Scheduled recovery transport: bound loopback requests, reserved/atomic originals, phase fragments, malformed replies, one-attempt HTTP/timeout and legacy isolation passed.');
+  console.log('Scheduled recovery transport: bound loopback requests, reserved/atomic originals, phase fragments, malformed replies, one-attempt HTTPS/timeout and legacy isolation passed.');
 } finally {
   if (originalUrl === undefined) delete process.env.EXCHANGE_EXECUTOR_URL;
   else process.env.EXCHANGE_EXECUTOR_URL = originalUrl;
   server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));
   await closeDb();
+  await tlsFiles.cleanup();
   assert.equal(path.dirname(directory), path.resolve(os.tmpdir()));
   assert.match(path.basename(directory), /^tsx-schedule-transport-/);
   await rm(directory, { recursive: true, force: true });

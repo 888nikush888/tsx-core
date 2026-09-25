@@ -19,6 +19,7 @@ from ccxt_capabilities import (
     missing_capabilities,
 )
 from ccxt_certification import certification_result
+from ccxt_candidate_reviews import APPROVED_INVENTORY_HASH
 from ccxt_profiles import PROFILES, CredentialField, ExchangeProfile, profile_for
 from symbol_resolver import linear_swap_markets
 
@@ -182,6 +183,9 @@ class CcxtExchangeRegistry:
             "implementation": {
                 "library": "ccxt", "version": self.ccxt_version,
                 "streaming": "ccxt-pro", "orderAuthority": "rest",
+                "reviewedInventoryHash": (
+                    APPROVED_INVENTORY_HASH if self.ccxt_version == package_version("ccxt") == "4.5.75" else None
+                ),
             },
             "exchanges": copy.deepcopy(list(self._descriptors.values())),
         }

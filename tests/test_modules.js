@@ -118,7 +118,7 @@ async function runTests() {
   console.log("\nALL MODULE UNIT TESTS PASSED!");
 }
 
-await (async () => runTests())().catch(err => {
+await runTests().catch(err => {
   console.error("Test execution failed:", err);
   process.exit(1);
 });

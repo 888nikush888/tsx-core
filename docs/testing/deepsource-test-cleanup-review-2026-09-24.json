@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "baseRevision": "0e6346b7ebded36897cbb6e8624db5dd0d712124",
+  "sourceTriageRevision": "b3a15c843a0da858ceb81484b3cc7b4fa745d196",
+  "sourceExportSha256": "5935561391e834dd7decf21f88ceb5eb66e1c7becf21833dd969ccf5a5ab3f5d",
+  "scope": "18 test-only wrapper cleanups. No production async interfaces, Paper methods, fairness probes, scanner decisions or receipt changes. Hashes bind staged Git bytes.",
+  "validation": {
+    "nodeVersion": "22.23.2",
+    "focusedRegisteredTests": "17 of 17 passed via node tests/run_all.js <changed registered files>",
+    "eslint": "All 18 changed JavaScript files passed.",
+    "failureProbes": "For each of 18 entry statements, execute its original and changed form with the same deliberately failing synchronous/async callee. Logs, exit status, callback events and rejection short-circuit agree. AST extraction retains only the reviewed statement.",
+    "goldenEvaluator": "Actual CLI invocation with API key and file reference absent refused with exit 1 and expected missing-key message. No live golden-set evaluation or provider traffic performed.",
+    "ignoredEvidenceSha256": {
+      "test-cleanup-node.log": "79f7b25f961757df551f2730397246854f126ab32a334a5bcdbf8eec7b0a00ef",
+      "test-cleanup-eslint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "test-cleanup-failure-probes.json": "2ea17f36eb94f7ec03c4f20d21c4c8fd8dc4f65ddb49bb33c5f2c32339707f1a",
+      "check-failure-probes.mjs": "edf53435b75c276225cb7864dce925d155212931f9a6c545c29d4cd59d9d9bf5"
+    }
+  },
+  "entries": [
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpnZXZqZHhqd2U=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_workflow_migration.js",
+      "baselineLine": 83,
+      "baseSourceSha256": "b40587546f9e2921b3360a7883c9fa99dd8c9e994a2a546f4a92fa5aab03b6c0",
+      "reviewedSourceSha256": "b85d8e372c40dbd7aa58b8f7679195d0636e206c617499e9f28c16bb05915fa4",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Directly await the existing async closeDb promise with the original catch callback; database-close completion still precedes directory removal or process-owner release. Async closeDb converts synchronous-body failures into rejections itself."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpyZWt5bmd5cm4=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_workflow_history_barriers.js",
+      "baselineLine": 133,
+      "baseSourceSha256": "60476c3863b367f36bcbbf7dc1220e89121adb77afe8dc13c9203022cc2a872a",
+      "reviewedSourceSha256": "b2b290cdd59b6167947d8b0eef9a5c4cfe41c7c589c2ff0de19a460bbf94d306",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Directly await the existing async closeDb promise with the original catch callback; database-close completion still precedes directory removal or process-owner release. Async closeDb converts synchronous-body failures into rejections itself."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTptcmRvbmxva2s=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_workflow_history.js",
+      "baselineLine": 328,
+      "baseSourceSha256": "df971701378cc0953f85c94b5c6555f0c7166436e98ff2869eaeec0f339ba0a5",
+      "reviewedSourceSha256": "180c9e928853e924f122de84a338f3588cbb1163857c9ff7d0f1b0bd01a57692",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Directly await the existing async closeDb promise with the original catch callback; database-close completion still precedes directory removal or process-owner release. Async closeDb converts synchronous-body failures into rejections itself."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTp2dm1hbmRha3g=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_workflow_fallback.js",
+      "baselineLine": 843,
+      "baseSourceSha256": "b1e1305a4b4d02c1075e1d91b1dc271622857c481f27c60f9cfe5987c149f67b",
+      "reviewedSourceSha256": "9e8497665cd529fe6a2b4c850058576a6011b8a73448bcfacd4396f5053376f7",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Directly await the existing async closeDb promise with the original catch callback; database-close completion still precedes directory removal or process-owner release. Async closeDb converts synchronous-body failures into rejections itself."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTprdnlrZGdrcGU=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_telegram_viewer_service.js",
+      "baselineLine": 429,
+      "baseSourceSha256": "49c860dc264790b3a4a3a36d829c09900a5583ec3cbb430b2a69baf1e9f11987",
+      "reviewedSourceSha256": "58053b91a8d4306f1d72c389db42a497d4476516d6a59fccf87a853dd76a6d4d",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Call the existing async entrypoint directly, preserving its original catch handler, exit behavior, then-chain and whether the caller awaits it. The removed wrapper merely adopted its already-existing Promise."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpwcXdybmpydmQ=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_telegram_viewer_core.js",
+      "baselineLine": 394,
+      "baseSourceSha256": "909c6dd7cec41a9bd7fabe79a5a39a2c18920474858dfc65178779386bf81c2f",
+      "reviewedSourceSha256": "fb1f0ebae3e523a79d6275f11b3a151225260d429f50a3b12d9b6d38e3b183f8",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Directly await the existing async closeDb promise with the original catch callback; database-close completion still precedes directory removal or process-owner release. Async closeDb converts synchronous-body failures into rejections itself."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTplYXhqeXZqa2Q=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_signal_schema_migration.js",
+      "baselineLine": 95,
+      "baseSourceSha256": "e60931068bebd973c29b72368e114d7cc969ddc7c3f34286c43b785450c7df58",
+      "reviewedSourceSha256": "11d921a8738d1b20727e16b915c4410a19e5c6a7e7d8191a563995c32ee0c40c",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Directly await the existing async closeDb promise with the original catch callback; database-close completion still precedes directory removal or process-owner release. Async closeDb converts synchronous-body failures into rejections itself."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpqd2dlZG1lcnk=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_retention.js",
+      "baselineLine": 332,
+      "baseSourceSha256": "f43a3a6b87b1ec42a5b3ac3228630f68c186c10167e1eb955dc9da38d84fb609",
+      "reviewedSourceSha256": "08812e176f8c3148be643bbf566a2e3e15b6f3183fc7d77c86995d6e8de047b4",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Call the existing async entrypoint directly, preserving its original catch handler, exit behavior, then-chain and whether the caller awaits it. The removed wrapper merely adopted its already-existing Promise."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpuZ3d2ZGp2eW4=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_queue.js",
+      "baselineLine": 288,
+      "baseSourceSha256": "f0b984e52b9f9b123c8fe2fe64ffb3417cddff67e04adf87cc45d166024fc3ac",
+      "reviewedSourceSha256": "8d4164eb5ab9f54868c60c9ed82d6d911f9dd0dc89c12f3d1938292ef654d1f0",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Call the existing async entrypoint directly, preserving its original catch handler, exit behavior, then-chain and whether the caller awaits it. The removed wrapper merely adopted its already-existing Promise."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTphbmFqdmxqZGw=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_outbox.js",
+      "baselineLine": 544,
+      "baseSourceSha256": "a4b64dd1e77a7636895b444f1c3113bd3ffdb6ce72188167ad37e6657981c0be",
+      "reviewedSourceSha256": "59d3b8f9dea428b2062167592003d6a235568c0c5ca8b18ced1322233eca0d11",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Call the existing async entrypoint directly, preserving its original catch handler, exit behavior, then-chain and whether the caller awaits it. The removed wrapper merely adopted its already-existing Promise."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpyZWt5bmd5dnk=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_modules.js",
+      "baselineLine": 121,
+      "baseSourceSha256": "e065a465af03e11774c03f05ced6f80480ce4a8d411cf6c48fae8f218586cf8b",
+      "reviewedSourceSha256": "ed072045c0d8bd049565c8cb7239821eb9aaf30db653e9d6142aec80fbce92b8",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Call the existing async entrypoint directly, preserving its original catch handler, exit behavior, then-chain and whether the caller awaits it. The removed wrapper merely adopted its already-existing Promise."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpveWFtZHZta28=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_mcp_server.js",
+      "baselineLine": 350,
+      "baseSourceSha256": "90768e044169892ad274fdf4ad1dfedea72159421bc482c6784525cf1028c6a4",
+      "reviewedSourceSha256": "9e582f592a98bb8d1b63091fe22e61ba54bd8ca337db6179cc32252eee8110a5",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Directly await the existing async closeDb promise with the original catch callback; database-close completion still precedes directory removal or process-owner release. Async closeDb converts synchronous-body failures into rejections itself."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTp4cmdhbmpheXY=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_integration.js",
+      "baselineLine": 129,
+      "baseSourceSha256": "4c39ee34e606ce02b3fcffe4f7ca16e8802e9a3b526ad0d8aef905f284903584",
+      "reviewedSourceSha256": "49690820167065e79d4ee9456b4730befaae4e3ad0da6999e3b99c705f84bb90",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Call the existing async entrypoint directly, preserving its original catch handler, exit behavior, then-chain and whether the caller awaits it. The removed wrapper merely adopted its already-existing Promise."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTprdnlrZGdrcXE=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_filters.js",
+      "baselineLine": 195,
+      "baseSourceSha256": "afd76211cd82692786e2e2dde8c79de631a0af600161acb3f0e2198804ac7281",
+      "reviewedSourceSha256": "ee0ba65054f6bfe4ca573ccb51a6d393f29d754031c048a6ef2e2e4afb97705d",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Corrected initial triage: runTests is synchronous. Replace the Promise wrapper with ordinary try/catch, preserving error log and exit(1). Direct runTests().catch would be incorrect. This standalone synchronous test has no dependent timing probe; original and changed failure handling were explicitly compared."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTp3bXJhd3BheWU=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_delivery_tracker.js",
+      "baselineLine": 154,
+      "baseSourceSha256": "c0a8f2274ca6c7b12b9e521133c5915ab4b2b172c354e66b2df3c7c754228c88",
+      "reviewedSourceSha256": "33fb974aee8ce2a40edb82780e61407082dd21fc498e16e9fd519c4d4a0a9923",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Call the existing async entrypoint directly, preserving its original catch handler, exit behavior, then-chain and whether the caller awaits it. The removed wrapper merely adopted its already-existing Promise."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpqd2dlZG1lcXk=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_crash_guard.js",
+      "baselineLine": 168,
+      "baseSourceSha256": "db9d18a7aa39fa5131c148da53fe0130de4921c56091605782360959c2e25ba9",
+      "reviewedSourceSha256": "710960ce990bb9137f12dcb312fa23bff288afa6d2d7b2fdcca22729a4f93a06",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Call the existing async entrypoint directly, preserving its original catch handler, exit behavior, then-chain and whether the caller awaits it. The removed wrapper merely adopted its already-existing Promise."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTphbmFqdmxqd2w=",
+      "ruleId": "JS-0116",
+      "path": "tests/test_configurable_fallback_migration.js",
+      "baselineLine": 96,
+      "baseSourceSha256": "391c3bd2dd8692af1000ca6b64638a9d8821236df4d93160c1eedb0788268faf",
+      "reviewedSourceSha256": "20a505ebd9ce9e4b948721606e5ee35b972eecd662b39fe588c9a50d3b77dd26",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Directly await the existing async closeDb promise with the original catch callback; database-close completion still precedes directory removal or process-owner release. Async closeDb converts synchronous-body failures into rejections itself."
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpyZWt5bmd5d3k=",
+      "ruleId": "JS-0116",
+      "path": "tests/evaluate_signal_golden_set.js",
+      "baselineLine": 101,
+      "baseSourceSha256": "69f890d251923b109eb8f637d07f831e5ef2266d149e82c5e6953b9e7bc58ae0",
+      "reviewedSourceSha256": "1241bfd23fcb51b694c7aa83d9659737edd1957364f90319f5d7c5c718ed2ef2",
+      "disposition": "fixed-pending-rescan",
+      "rationale": "Call the existing async entrypoint directly, preserving its original catch handler, exit behavior, then-chain and whether the caller awaits it. The removed wrapper merely adopted its already-existing Promise."
+    }
+  ],
+  "excludedOriginalFindings": [
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpyZWt5bmd5eHk=",
+      "path": "src/paper_exchange.ts",
+      "decision": "retain-interface-contract"
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTptcmRvbmxveHI=",
+      "path": "src/paper_exchange.ts",
+      "decision": "retain-interface-contract"
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTp2dm1hbmRham4=",
+      "path": "src/paper_exchange.ts",
+      "decision": "retain-interface-contract"
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpyZWt5bmdyb3I=",
+      "path": "src/db.ts",
+      "decision": "retain-promise-contract"
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTptcmRvbmxrcXk=",
+      "path": "src/db.ts",
+      "decision": "retain-promise-contract"
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTp2dm1hbmRrbHk=",
+      "path": "src/db.ts",
+      "decision": "retain-promise-contract"
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpveWFtZHZvbmU=",
+      "path": "src/paper_exchange.ts",
+      "decision": "retain-promise-contract"
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpveWFtZHZvam0=",
+      "path": "src/trading_repository.ts",
+      "decision": "retain-promise-contract"
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTprdnlrZGdwbGQ=",
+      "path": "src/trading_repository.ts",
+      "decision": "retain-promise-contract"
+    },
+    {
+      "occurrenceId": "T2NjdXJyZW5jZTpnZXZlZGpvZ20=",
+      "path": "plans/002-pending-worker-fairness-probe.mjs",
+      "decision": "retain-probe-timing"
+    }
+  ]
+}

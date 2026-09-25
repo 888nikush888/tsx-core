@@ -285,7 +285,7 @@ async function runTests() {
   await testHostileSettingsInput();
 }
 
-await (async () => runTests())().catch(err => {
+await runTests().catch(err => {
   console.error("ConcurrencyQueue test execution failed:", err);
   process.exit(1);
 });

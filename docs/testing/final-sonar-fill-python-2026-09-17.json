@@ -1,0 +1,928 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-09-17T12:43:10.738299+00:00",
+  "baselineRevision": "58c01bc74f83cc212849ddcd7e487412ff06b2b7",
+  "baselineAnalysisId": "dc4e3d23-4cad-4d91-abaf-b8c1e239815e",
+  "scope": "All 15 open Sonar occurrences not owned by the backend or UI/Python package; exact inventory subtraction checked.",
+  "counts": {
+    "pythonTestAssertions": 12,
+    "fillProofBoundaries": 3,
+    "total": 15
+  },
+  "entries": [
+    {
+      "issueKey": "AaCvLFYmFuOCeZdBf0eu",
+      "rule": "python:S8714",
+      "path": "exchange_executor/tests/test_execution_constraints.py",
+      "baselineLine": 204,
+      "baselineSourceSha256": "79a55c493695536d23b16df83c30d583b68f994300b4868cb1d796e1fae66dae",
+      "reviewedSourceSha256": "189d675f8aac3ee75daf50b1feeda58a756227b72dd0dd5f880ad92dcb3c7645",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "position_read",
+      "currentSymbolLine": 201,
+      "rationale": "position_read now uses next(iterator, a fresh object sentinel) followed by assertIsNot and the original missing-result failure message. The selection predicate, selected value and subsequent assertions remain unchanged; a yielded None cannot be mistaken for exhaustion. The old try/except StopIteration block is removed without a successful fallback on missing data.",
+      "implementationCommit": "61376e0a",
+      "evidence": [
+        {
+          "path": "exchange_executor/tests/test_execution_constraints.py",
+          "sha256": "189d675f8aac3ee75daf50b1feeda58a756227b72dd0dd5f880ad92dcb3c7645"
+        }
+      ]
+    },
+    {
+      "issueKey": "AaCvLFU3FuOCeZdBf0ej",
+      "rule": "python:S8714",
+      "path": "exchange_executor/tests/test_fx_evidence.py",
+      "baselineLine": 56,
+      "baselineSourceSha256": "66ea428cbd8a3889af46d8cf61b4511e70fd50b67bab8b8a93d44b929b12adbe",
+      "reviewedSourceSha256": "b14a4d3a9e640deb74d9ec1fab8092c120aafe6ead9db646557a069a16532433",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "fetch",
+      "currentSymbolLine": 49,
+      "rationale": "fetch now uses next(iterator, a fresh object sentinel) followed by assertIsNot and the original missing-result failure message. The selection predicate, selected value and subsequent assertions remain unchanged; a yielded None cannot be mistaken for exhaustion. The old try/except StopIteration block is removed without a successful fallback on missing data.",
+      "implementationCommit": "61376e0a",
+      "evidence": [
+        {
+          "path": "exchange_executor/tests/test_fx_evidence.py",
+          "sha256": "b14a4d3a9e640deb74d9ec1fab8092c120aafe6ead9db646557a069a16532433"
+        }
+      ]
+    },
+    {
+      "issueKey": "AaCvLFW4FuOCeZdBf0eq",
+      "rule": "python:S8714",
+      "path": "exchange_executor/tests/test_history_coverage.py",
+      "baselineLine": 217,
+      "baselineSourceSha256": "b39f989f3a7ac7adfe2bed326388d519326c06d3d84ddbcfe28bd7aacc183fec",
+      "reviewedSourceSha256": "b5b7271ee1799c2e03596668a6c192d67882f31c03401c31df3261946c2626f9",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "test_real_open_state_path_projects_only_new_proven_history",
+      "currentSymbolLine": 171,
+      "rationale": "test_real_open_state_path_projects_only_new_proven_history now uses next(iterator, a fresh object sentinel) followed by assertIsNot and the original missing-result failure message. The selection predicate, selected value and subsequent assertions remain unchanged; a yielded None cannot be mistaken for exhaustion. The old try/except StopIteration block is removed without a successful fallback on missing data.",
+      "implementationCommit": "61376e0a",
+      "evidence": [
+        {
+          "path": "exchange_executor/tests/test_history_coverage.py",
+          "sha256": "b5b7271ee1799c2e03596668a6c192d67882f31c03401c31df3261946c2626f9"
+        }
+      ]
+    },
+    {
+      "issueKey": "AaCvLFWUFuOCeZdBf0ep",
+      "rule": "python:S8714",
+      "path": "exchange_executor/tests/test_history_pagination.py",
+      "baselineLine": 124,
+      "baselineSourceSha256": "f9ff27a54c7c3527d29d182bebdb8a23ee45d72fed2ddbcd29ce6d0f140f8c70",
+      "reviewedSourceSha256": "12ff5575dfef4f19cec5bcf67bc634d35536c9339d000e53ee25b97675ba9c65",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "test_more_than_500_orders_and_1000_fills_with_empty_and_overlapping_pages",
+      "currentSymbolLine": 107,
+      "rationale": "test_more_than_500_orders_and_1000_fills_with_empty_and_overlapping_pages now uses next(iterator, a fresh object sentinel) followed by assertIsNot and the original missing-result failure message. The selection predicate, selected value and subsequent assertions remain unchanged; a yielded None cannot be mistaken for exhaustion. The old try/except StopIteration block is removed without a successful fallback on missing data.",
+      "implementationCommit": "61376e0a",
+      "evidence": [
+        {
+          "path": "exchange_executor/tests/test_history_pagination.py",
+          "sha256": "12ff5575dfef4f19cec5bcf67bc634d35536c9339d000e53ee25b97675ba9c65"
+        }
+      ]
+    },
+    {
+      "issueKey": "AaCvLFVUFuOCeZdBf0ek",
+      "rule": "python:S8714",
+      "path": "exchange_executor/tests/test_history_reader.py",
+      "baselineLine": 159,
+      "baselineSourceSha256": "e5e1441953355b513178644578c279568c23435db46b01e17c7e223fd4bd7d60",
+      "reviewedSourceSha256": "d8bd8b4d38614e51056216096c3733fbb89e963104125e92408eae2fff5a1dbe",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "test_open_state_includes_old_local_order_and_kraken_symbol_despite_empty_remote_lists",
+      "currentSymbolLine": 144,
+      "rationale": "test_open_state_includes_old_local_order_and_kraken_symbol_despite_empty_remote_lists now uses next(iterator, a fresh object sentinel) followed by assertIsNot and the original missing-result failure message. The selection predicate, selected value and subsequent assertions remain unchanged; a yielded None cannot be mistaken for exhaustion. The old try/except StopIteration block is removed without a successful fallback on missing data.",
+      "implementationCommit": "61376e0a",
+      "evidence": [
+        {
+          "path": "exchange_executor/tests/test_history_reader.py",
+          "sha256": "d8bd8b4d38614e51056216096c3733fbb89e963104125e92408eae2fff5a1dbe"
+        }
+      ]
+    },
+    {
+      "issueKey": "AaCvLFVUFuOCeZdBf0el",
+      "rule": "python:S8714",
+      "path": "exchange_executor/tests/test_history_reader.py",
+      "baselineLine": 204,
+      "baselineSourceSha256": "e5e1441953355b513178644578c279568c23435db46b01e17c7e223fd4bd7d60",
+      "reviewedSourceSha256": "d8bd8b4d38614e51056216096c3733fbb89e963104125e92408eae2fff5a1dbe",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "test_recent_listing_respects_bybit_limits_and_does_not_truncate_other_profiles",
+      "currentSymbolLine": 190,
+      "rationale": "test_recent_listing_respects_bybit_limits_and_does_not_truncate_other_profiles now uses next(iterator, a fresh object sentinel) followed by assertIsNot and the original missing-result failure message. The selection predicate, selected value and subsequent assertions remain unchanged; a yielded None cannot be mistaken for exhaustion. The old try/except StopIteration block is removed without a successful fallback on missing data.",
+      "implementationCommit": "61376e0a",
+      "evidence": [
+        {
+          "path": "exchange_executor/tests/test_history_reader.py",
+          "sha256": "d8bd8b4d38614e51056216096c3733fbb89e963104125e92408eae2fff5a1dbe"
+        }
+      ]
+    },
+    {
+      "issueKey": "AaCvLFVUFuOCeZdBf0em",
+      "rule": "python:S8714",
+      "path": "exchange_executor/tests/test_history_reader.py",
+      "baselineLine": 210,
+      "baselineSourceSha256": "e5e1441953355b513178644578c279568c23435db46b01e17c7e223fd4bd7d60",
+      "reviewedSourceSha256": "d8bd8b4d38614e51056216096c3733fbb89e963104125e92408eae2fff5a1dbe",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "test_recent_listing_respects_bybit_limits_and_does_not_truncate_other_profiles",
+      "currentSymbolLine": 190,
+      "rationale": "test_recent_listing_respects_bybit_limits_and_does_not_truncate_other_profiles now uses next(iterator, a fresh object sentinel) followed by assertIsNot and the original missing-result failure message. The selection predicate, selected value and subsequent assertions remain unchanged; a yielded None cannot be mistaken for exhaustion. The old try/except StopIteration block is removed without a successful fallback on missing data.",
+      "implementationCommit": "61376e0a",
+      "evidence": [
+        {
+          "path": "exchange_executor/tests/test_history_reader.py",
+          "sha256": "d8bd8b4d38614e51056216096c3733fbb89e963104125e92408eae2fff5a1dbe"
+        }
+      ]
+    },
+    {
+      "issueKey": "AaCvLFVUFuOCeZdBf0en",
+      "rule": "python:S8714",
+      "path": "exchange_executor/tests/test_history_reader.py",
+      "baselineLine": 222,
+      "baselineSourceSha256": "e5e1441953355b513178644578c279568c23435db46b01e17c7e223fd4bd7d60",
+      "reviewedSourceSha256": "d8bd8b4d38614e51056216096c3733fbb89e963104125e92408eae2fff5a1dbe",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "test_recent_listing_respects_bybit_limits_and_does_not_truncate_other_profiles",
+      "currentSymbolLine": 190,
+      "rationale": "test_recent_listing_respects_bybit_limits_and_does_not_truncate_other_profiles now uses next(iterator, a fresh object sentinel) followed by assertIsNot and the original missing-result failure message. The selection predicate, selected value and subsequent assertions remain unchanged; a yielded None cannot be mistaken for exhaustion. The old try/except StopIteration block is removed without a successful fallback on missing data.",
+      "implementationCommit": "61376e0a",
+      "evidence": [
+        {
+          "path": "exchange_executor/tests/test_history_reader.py",
+          "sha256": "d8bd8b4d38614e51056216096c3733fbb89e963104125e92408eae2fff5a1dbe"
+        }
+      ]
+    },
+    {
+      "issueKey": "AaCvLFVuFuOCeZdBf0eo",
+      "rule": "python:S8714",
+      "path": "exchange_executor/tests/test_hyperliquid_retention.py",
+      "baselineLine": 229,
+      "baselineSourceSha256": "a427cc93f16d0fbceef7699da424aa67b54c47bd5fe6fb5d98d57e3c7e91af24",
+      "reviewedSourceSha256": "589695c510131637d54032003f83ecccfdda02f1fc8da71db6ec4681127d2f83",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "test_new_adapter_per_request_recovers_first_fill_from_serialized_empty_baseline",
+      "currentSymbolLine": 192,
+      "rationale": "test_new_adapter_per_request_recovers_first_fill_from_serialized_empty_baseline now uses next(iterator, a fresh object sentinel) followed by assertIsNot and the original missing-result failure message. The selection predicate, selected value and subsequent assertions remain unchanged; a yielded None cannot be mistaken for exhaustion. The old try/except StopIteration block is removed without a successful fallback on missing data.",
+      "implementationCommit": "61376e0a",
+      "evidence": [
+        {
+          "path": "exchange_executor/tests/test_hyperliquid_retention.py",
+          "sha256": "589695c510131637d54032003f83ecccfdda02f1fc8da71db6ec4681127d2f83"
+        }
+      ]
+    },
+    {
+      "issueKey": "AaCvLFXqFuOCeZdBf0er",
+      "rule": "python:S8714",
+      "path": "exchange_executor/tests/test_phase2_registry.py",
+      "baselineLine": 202,
+      "baselineSourceSha256": "8d5157726afac099e09d7ca15f68747a8ea61d373d6a82411adc80b7a2576b79",
+      "reviewedSourceSha256": "155cba94322017e70292efb87599ade19322299ef45ac2e1bedb813a183c51e9",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "test_profile_missing_from_installed_ccxt_is_reported_as_deprecated",
+      "currentSymbolLine": 190,
+      "rationale": "test_profile_missing_from_installed_ccxt_is_reported_as_deprecated now uses next(iterator, a fresh object sentinel) followed by assertIsNot and the original missing-result failure message. The selection predicate, selected value and subsequent assertions remain unchanged; a yielded None cannot be mistaken for exhaustion. The old try/except StopIteration block is removed without a successful fallback on missing data.",
+      "implementationCommit": "61376e0a",
+      "evidence": [
+        {
+          "path": "exchange_executor/tests/test_phase2_registry.py",
+          "sha256": "155cba94322017e70292efb87599ade19322299ef45ac2e1bedb813a183c51e9"
+        }
+      ]
+    },
+    {
+      "issueKey": "AaCvLFX_FuOCeZdBf0es",
+      "rule": "python:S8714",
+      "path": "exchange_executor/tests/test_recovery_schedule.py",
+      "baselineLine": 133,
+      "baselineSourceSha256": "201315471a17d262276995a993e149791aa6d8199ba231de1d3c0d1bd5805014",
+      "reviewedSourceSha256": "4c5bab4c7ac495449a948ec252bdf8cf81984a39c4300119a68d0b5dfd591fd7",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "test_four_call_history_has_its_full_grant_and_defers_targeted_and_mode",
+      "currentSymbolLine": 121,
+      "rationale": "test_four_call_history_has_its_full_grant_and_defers_targeted_and_mode now uses next(iterator, a fresh object sentinel) followed by assertIsNot and the original missing-result failure message. The selection predicate, selected value and subsequent assertions remain unchanged; a yielded None cannot be mistaken for exhaustion. The old try/except StopIteration block is removed without a successful fallback on missing data.",
+      "implementationCommit": "61376e0a",
+      "evidence": [
+        {
+          "path": "exchange_executor/tests/test_recovery_schedule.py",
+          "sha256": "4c5bab4c7ac495449a948ec252bdf8cf81984a39c4300119a68d0b5dfd591fd7"
+        }
+      ]
+    },
+    {
+      "issueKey": "AaCvLFX_FuOCeZdBf0et",
+      "rule": "python:S8714",
+      "path": "exchange_executor/tests/test_recovery_schedule.py",
+      "baselineLine": 368,
+      "baselineSourceSha256": "201315471a17d262276995a993e149791aa6d8199ba231de1d3c0d1bd5805014",
+      "reviewedSourceSha256": "4c5bab4c7ac495449a948ec252bdf8cf81984a39c4300119a68d0b5dfd591fd7",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "test_deadline_deferred_positive_log_grant_does_not_rotate_unread_log_revision",
+      "currentSymbolLine": 355,
+      "rationale": "test_deadline_deferred_positive_log_grant_does_not_rotate_unread_log_revision now uses next(iterator, a fresh object sentinel) followed by assertIsNot and the original missing-result failure message. The selection predicate, selected value and subsequent assertions remain unchanged; a yielded None cannot be mistaken for exhaustion. The old try/except StopIteration block is removed without a successful fallback on missing data.",
+      "implementationCommit": "61376e0a",
+      "evidence": [
+        {
+          "path": "exchange_executor/tests/test_recovery_schedule.py",
+          "sha256": "4c5bab4c7ac495449a948ec252bdf8cf81984a39c4300119a68d0b5dfd591fd7"
+        }
+      ]
+    },
+    {
+      "issueKey": "AaCvLE3aFuOCeZdBf0dm",
+      "rule": "typescript:S6551",
+      "path": "src/trading_fill_identity.ts",
+      "baselineLine": 44,
+      "baselineSourceSha256": "8e47d09ecfa538ab80d6fac48cfc19ae58af61459801e0cd61912f3c334d2ba1",
+      "reviewedSourceSha256": "622e46c54b1c39b0074a7645c0b55dfa325f2f05a5821ffa41d25c6a4d3b5262",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "provenFillIdentity",
+      "rationale": "info.execTime is now validated as a native decimal string or nonnegative safe integer before identity proof comparison. Arrays, boxed objects, custom conversion hooks, unsafe numbers and null cannot manufacture a proven fill identity. Hyperliquid requires both parsed identifiers to be non-null before equality; exact large strings and leading zeros retain existing spelling. Invalid proof remains unproven and existing persistence/backfill handles it without inventing raw evidence.",
+      "implementationCommits": [
+        "e6aa498c",
+        "4d187c1b"
+      ],
+      "evidence": [
+        {
+          "path": "tests/test_exchange_fill_identity.js",
+          "sha256": "6146f00d3b6ad95415bf29884b120b1fc573a6ec9cf27efbb53e4657757e9159"
+        },
+        {
+          "path": "tests/test_trading_fill_identity_backfill.js",
+          "sha256": "5c0bcec0bb2367dc0a27efaa2f87561fcc2f441e96eaa8cf915c1a7a7a71a4b0"
+        },
+        {
+          "path": "docs/testing/final-fill-identity-independent-review-2026-09-17.json",
+          "sha256": "b6e9ba1bbfb5a973368eae92160d2d30bbe12569af5c8919dcb506431c9806ff"
+        }
+      ]
+    },
+    {
+      "issueKey": "AaCvLE3bFuOCeZdBf0dn",
+      "rule": "typescript:S6551",
+      "path": "src/trading_fill_identity.ts",
+      "baselineLine": 48,
+      "baselineSourceSha256": "8e47d09ecfa538ab80d6fac48cfc19ae58af61459801e0cd61912f3c334d2ba1",
+      "reviewedSourceSha256": "622e46c54b1c39b0074a7645c0b55dfa325f2f05a5821ffa41d25c6a4d3b5262",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "provenFillIdentity",
+      "rationale": "info.tid is now validated as a native decimal string or nonnegative safe integer before identity proof comparison. Arrays, boxed objects, custom conversion hooks, unsafe numbers and null cannot manufacture a proven fill identity. Hyperliquid requires both parsed identifiers to be non-null before equality; exact large strings and leading zeros retain existing spelling. Invalid proof remains unproven and existing persistence/backfill handles it without inventing raw evidence.",
+      "implementationCommits": [
+        "e6aa498c",
+        "4d187c1b"
+      ],
+      "evidence": [
+        {
+          "path": "tests/test_exchange_fill_identity.js",
+          "sha256": "6146f00d3b6ad95415bf29884b120b1fc573a6ec9cf27efbb53e4657757e9159"
+        },
+        {
+          "path": "tests/test_trading_fill_identity_backfill.js",
+          "sha256": "5c0bcec0bb2367dc0a27efaa2f87561fcc2f441e96eaa8cf915c1a7a7a71a4b0"
+        },
+        {
+          "path": "docs/testing/final-fill-identity-independent-review-2026-09-17.json",
+          "sha256": "b6e9ba1bbfb5a973368eae92160d2d30bbe12569af5c8919dcb506431c9806ff"
+        }
+      ]
+    },
+    {
+      "issueKey": "AaCvLE3bFuOCeZdBf0do",
+      "rule": "typescript:S6551",
+      "path": "src/trading_fill_identity.ts",
+      "baselineLine": 48,
+      "baselineSourceSha256": "8e47d09ecfa538ab80d6fac48cfc19ae58af61459801e0cd61912f3c334d2ba1",
+      "reviewedSourceSha256": "622e46c54b1c39b0074a7645c0b55dfa325f2f05a5821ffa41d25c6a4d3b5262",
+      "baselineStatus": "OPEN",
+      "disposition": "source_change_pending_rescan",
+      "symbol": "provenFillIdentity",
+      "rationale": "info.oid is now validated as a native decimal string or nonnegative safe integer before identity proof comparison. Arrays, boxed objects, custom conversion hooks, unsafe numbers and null cannot manufacture a proven fill identity. Hyperliquid requires both parsed identifiers to be non-null before equality; exact large strings and leading zeros retain existing spelling. Invalid proof remains unproven and existing persistence/backfill handles it without inventing raw evidence.",
+      "implementationCommits": [
+        "e6aa498c",
+        "4d187c1b"
+      ],
+      "evidence": [
+        {
+          "path": "tests/test_exchange_fill_identity.js",
+          "sha256": "6146f00d3b6ad95415bf29884b120b1fc573a6ec9cf27efbb53e4657757e9159"
+        },
+        {
+          "path": "tests/test_trading_fill_identity_backfill.js",
+          "sha256": "5c0bcec0bb2367dc0a27efaa2f87561fcc2f441e96eaa8cf915c1a7a7a71a4b0"
+        },
+        {
+          "path": "docs/testing/final-fill-identity-independent-review-2026-09-17.json",
+          "sha256": "b6e9ba1bbfb5a973368eae92160d2d30bbe12569af5c8919dcb506431c9806ff"
+        }
+      ]
+    }
+  ],
+  "observedVerification": [
+    {
+      "scope": "Eight affected Python modules",
+      "result": "118 tests passed with Python 3.12.14; Ruff passed."
+    },
+    {
+      "scope": "Seven fill identity/persistence/accounting Node suites",
+      "result": "All seven passed after the null-sentinel correction; negative regression failed on the defective baseline."
+    }
+  ],
+  "remoteDecisionsApplied": false,
+  "completionLimit": "These are source corrections awaiting the final scanner run. Full integrated tests and renewed implementation evidence remain separate.",
+  "sourceContextRenewals": [
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "8dad2b1def39b47ca0a0e9907b6d6eba7f574236",
+      "dirtyTree": true,
+      "previousLedgerSha256": "708f832e09c067575bfa61cc4b646bd549a81efee5fe0f74c1632c8fde4f59e9",
+      "reviews": [
+        {
+          "ledger": "docs/testing/final-sonar-fill-python-2026-09-17.json",
+          "id": "AaCvLFYmFuOCeZdBf0eu",
+          "rule": "python:S8714",
+          "issuePath": "exchange_executor/tests/test_execution_constraints.py",
+          "symbol": "position_read",
+          "changedSupportingPaths": [
+            "exchange_executor/history_reader.py"
+          ],
+          "sourceJudgement": "reviewed_unchanged_test_contract_with_changed_imported_dependency",
+          "importRoute": [
+            "exchange_executor/tests/test_execution_constraints.py",
+            "exchange_executor/ccxt_adapter.py",
+            "exchange_executor/history_reader.py"
+          ],
+          "rationale": [
+            "Existing per-ID S8714 test review reused only because exact reviewed test bytes match; fresh object sentinel, assertIsNot exhaustion rejection and selected-value assertions remain unchanged.",
+            "Read actual history_reader diff: _recover_reference now evaluates _listed_order_is_observed on every listed row before returning observed, retaining original eager traversal/error behavior; lookup happens only if no observed match. This intentionally rejects later malformed evidence even after an early match.",
+            "This module import route establishes changed dependency context, not proof every named test invokes _recover_reference. Tests directly importing RecoveryReadBudget/source_evidence retain unchanged imported symbol implementations; real open-state paths can exercise recovery and require new integrated test runs.",
+            "No earlier test execution is retagged to the changed reader. Focused new iteration fixture checks malformed-later-row error/no lookup and valid matched/absent/empty list outcomes; this renewal does not claim executing it."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "dependencyBindings": [
+            {
+              "path": "exchange_executor/ccxt_adapter.py",
+              "sha256": "db5bcb0a5a96b61e4b1647d9b081a26821c1398b3c029c6a14442ed9b29a1c1a"
+            },
+            {
+              "path": "exchange_executor/history_reader.py",
+              "sha256": "953fb7815d672161bde1966aad2aafe2f487cee5d870ae206ee146425ea5098c"
+            },
+            {
+              "path": "exchange_executor/tests/test_execution_constraints.py",
+              "sha256": "189d675f8aac3ee75daf50b1feeda58a756227b72dd0dd5f880ad92dcb3c7645"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader_iteration.py",
+              "sha256": "09bf9ecce17100168237290f74154fd7da17db6637bff8de7e916b2143fd8e02"
+            }
+          ],
+          "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution."
+        },
+        {
+          "ledger": "docs/testing/final-sonar-fill-python-2026-09-17.json",
+          "id": "AaCvLFU3FuOCeZdBf0ej",
+          "rule": "python:S8714",
+          "issuePath": "exchange_executor/tests/test_fx_evidence.py",
+          "symbol": "fetch",
+          "changedSupportingPaths": [
+            "exchange_executor/history_reader.py"
+          ],
+          "sourceJudgement": "reviewed_unchanged_test_contract_with_changed_imported_dependency",
+          "importRoute": [
+            "exchange_executor/tests/test_fx_evidence.py",
+            "exchange_executor/history_reader.py"
+          ],
+          "rationale": [
+            "Existing per-ID S8714 test review reused only because exact reviewed test bytes match; fresh object sentinel, assertIsNot exhaustion rejection and selected-value assertions remain unchanged.",
+            "Read actual history_reader diff: _recover_reference now evaluates _listed_order_is_observed on every listed row before returning observed, retaining original eager traversal/error behavior; lookup happens only if no observed match. This intentionally rejects later malformed evidence even after an early match.",
+            "This module import route establishes changed dependency context, not proof every named test invokes _recover_reference. Tests directly importing RecoveryReadBudget/source_evidence retain unchanged imported symbol implementations; real open-state paths can exercise recovery and require new integrated test runs.",
+            "No earlier test execution is retagged to the changed reader. Focused new iteration fixture checks malformed-later-row error/no lookup and valid matched/absent/empty list outcomes; this renewal does not claim executing it."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "dependencyBindings": [
+            {
+              "path": "exchange_executor/history_reader.py",
+              "sha256": "953fb7815d672161bde1966aad2aafe2f487cee5d870ae206ee146425ea5098c"
+            },
+            {
+              "path": "exchange_executor/tests/test_fx_evidence.py",
+              "sha256": "b14a4d3a9e640deb74d9ec1fab8092c120aafe6ead9db646557a069a16532433"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader_iteration.py",
+              "sha256": "09bf9ecce17100168237290f74154fd7da17db6637bff8de7e916b2143fd8e02"
+            }
+          ],
+          "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution."
+        },
+        {
+          "ledger": "docs/testing/final-sonar-fill-python-2026-09-17.json",
+          "id": "AaCvLFW4FuOCeZdBf0eq",
+          "rule": "python:S8714",
+          "issuePath": "exchange_executor/tests/test_history_coverage.py",
+          "symbol": "test_real_open_state_path_projects_only_new_proven_history",
+          "changedSupportingPaths": [
+            "exchange_executor/history_reader.py"
+          ],
+          "sourceJudgement": "reviewed_unchanged_test_contract_with_changed_imported_dependency",
+          "importRoute": [
+            "exchange_executor/tests/test_history_coverage.py",
+            "exchange_executor/tests/test_history_pagination.py",
+            "exchange_executor/history_reader.py"
+          ],
+          "rationale": [
+            "Existing per-ID S8714 test review reused only because exact reviewed test bytes match; fresh object sentinel, assertIsNot exhaustion rejection and selected-value assertions remain unchanged.",
+            "Read actual history_reader diff: _recover_reference now evaluates _listed_order_is_observed on every listed row before returning observed, retaining original eager traversal/error behavior; lookup happens only if no observed match. This intentionally rejects later malformed evidence even after an early match.",
+            "This module import route establishes changed dependency context, not proof every named test invokes _recover_reference. Tests directly importing RecoveryReadBudget/source_evidence retain unchanged imported symbol implementations; real open-state paths can exercise recovery and require new integrated test runs.",
+            "No earlier test execution is retagged to the changed reader. Focused new iteration fixture checks malformed-later-row error/no lookup and valid matched/absent/empty list outcomes; this renewal does not claim executing it."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "dependencyBindings": [
+            {
+              "path": "exchange_executor/history_reader.py",
+              "sha256": "953fb7815d672161bde1966aad2aafe2f487cee5d870ae206ee146425ea5098c"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_coverage.py",
+              "sha256": "b5b7271ee1799c2e03596668a6c192d67882f31c03401c31df3261946c2626f9"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_pagination.py",
+              "sha256": "12ff5575dfef4f19cec5bcf67bc634d35536c9339d000e53ee25b97675ba9c65"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader_iteration.py",
+              "sha256": "09bf9ecce17100168237290f74154fd7da17db6637bff8de7e916b2143fd8e02"
+            }
+          ],
+          "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution."
+        },
+        {
+          "ledger": "docs/testing/final-sonar-fill-python-2026-09-17.json",
+          "id": "AaCvLFWUFuOCeZdBf0ep",
+          "rule": "python:S8714",
+          "issuePath": "exchange_executor/tests/test_history_pagination.py",
+          "symbol": "test_more_than_500_orders_and_1000_fills_with_empty_and_overlapping_pages",
+          "changedSupportingPaths": [
+            "exchange_executor/history_reader.py"
+          ],
+          "sourceJudgement": "reviewed_unchanged_test_contract_with_changed_imported_dependency",
+          "importRoute": [
+            "exchange_executor/tests/test_history_pagination.py",
+            "exchange_executor/history_reader.py"
+          ],
+          "rationale": [
+            "Existing per-ID S8714 test review reused only because exact reviewed test bytes match; fresh object sentinel, assertIsNot exhaustion rejection and selected-value assertions remain unchanged.",
+            "Read actual history_reader diff: _recover_reference now evaluates _listed_order_is_observed on every listed row before returning observed, retaining original eager traversal/error behavior; lookup happens only if no observed match. This intentionally rejects later malformed evidence even after an early match.",
+            "This module import route establishes changed dependency context, not proof every named test invokes _recover_reference. Tests directly importing RecoveryReadBudget/source_evidence retain unchanged imported symbol implementations; real open-state paths can exercise recovery and require new integrated test runs.",
+            "No earlier test execution is retagged to the changed reader. Focused new iteration fixture checks malformed-later-row error/no lookup and valid matched/absent/empty list outcomes; this renewal does not claim executing it."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "dependencyBindings": [
+            {
+              "path": "exchange_executor/history_reader.py",
+              "sha256": "953fb7815d672161bde1966aad2aafe2f487cee5d870ae206ee146425ea5098c"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_pagination.py",
+              "sha256": "12ff5575dfef4f19cec5bcf67bc634d35536c9339d000e53ee25b97675ba9c65"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader_iteration.py",
+              "sha256": "09bf9ecce17100168237290f74154fd7da17db6637bff8de7e916b2143fd8e02"
+            }
+          ],
+          "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution."
+        },
+        {
+          "ledger": "docs/testing/final-sonar-fill-python-2026-09-17.json",
+          "id": "AaCvLFVUFuOCeZdBf0ek",
+          "rule": "python:S8714",
+          "issuePath": "exchange_executor/tests/test_history_reader.py",
+          "symbol": "test_open_state_includes_old_local_order_and_kraken_symbol_despite_empty_remote_lists",
+          "changedSupportingPaths": [
+            "exchange_executor/history_reader.py"
+          ],
+          "sourceJudgement": "reviewed_unchanged_test_contract_with_changed_imported_dependency",
+          "importRoute": [
+            "exchange_executor/tests/test_history_reader.py",
+            "exchange_executor/history_reader.py"
+          ],
+          "rationale": [
+            "Existing per-ID S8714 test review reused only because exact reviewed test bytes match; fresh object sentinel, assertIsNot exhaustion rejection and selected-value assertions remain unchanged.",
+            "Read actual history_reader diff: _recover_reference now evaluates _listed_order_is_observed on every listed row before returning observed, retaining original eager traversal/error behavior; lookup happens only if no observed match. This intentionally rejects later malformed evidence even after an early match.",
+            "This module import route establishes changed dependency context, not proof every named test invokes _recover_reference. Tests directly importing RecoveryReadBudget/source_evidence retain unchanged imported symbol implementations; real open-state paths can exercise recovery and require new integrated test runs.",
+            "No earlier test execution is retagged to the changed reader. Focused new iteration fixture checks malformed-later-row error/no lookup and valid matched/absent/empty list outcomes; this renewal does not claim executing it."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "dependencyBindings": [
+            {
+              "path": "exchange_executor/history_reader.py",
+              "sha256": "953fb7815d672161bde1966aad2aafe2f487cee5d870ae206ee146425ea5098c"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader.py",
+              "sha256": "d8bd8b4d38614e51056216096c3733fbb89e963104125e92408eae2fff5a1dbe"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader_iteration.py",
+              "sha256": "09bf9ecce17100168237290f74154fd7da17db6637bff8de7e916b2143fd8e02"
+            }
+          ],
+          "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution."
+        },
+        {
+          "ledger": "docs/testing/final-sonar-fill-python-2026-09-17.json",
+          "id": "AaCvLFVUFuOCeZdBf0el",
+          "rule": "python:S8714",
+          "issuePath": "exchange_executor/tests/test_history_reader.py",
+          "symbol": "test_recent_listing_respects_bybit_limits_and_does_not_truncate_other_profiles",
+          "changedSupportingPaths": [
+            "exchange_executor/history_reader.py"
+          ],
+          "sourceJudgement": "reviewed_unchanged_test_contract_with_changed_imported_dependency",
+          "importRoute": [
+            "exchange_executor/tests/test_history_reader.py",
+            "exchange_executor/history_reader.py"
+          ],
+          "rationale": [
+            "Existing per-ID S8714 test review reused only because exact reviewed test bytes match; fresh object sentinel, assertIsNot exhaustion rejection and selected-value assertions remain unchanged.",
+            "Read actual history_reader diff: _recover_reference now evaluates _listed_order_is_observed on every listed row before returning observed, retaining original eager traversal/error behavior; lookup happens only if no observed match. This intentionally rejects later malformed evidence even after an early match.",
+            "This module import route establishes changed dependency context, not proof every named test invokes _recover_reference. Tests directly importing RecoveryReadBudget/source_evidence retain unchanged imported symbol implementations; real open-state paths can exercise recovery and require new integrated test runs.",
+            "No earlier test execution is retagged to the changed reader. Focused new iteration fixture checks malformed-later-row error/no lookup and valid matched/absent/empty list outcomes; this renewal does not claim executing it."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "dependencyBindings": [
+            {
+              "path": "exchange_executor/history_reader.py",
+              "sha256": "953fb7815d672161bde1966aad2aafe2f487cee5d870ae206ee146425ea5098c"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader.py",
+              "sha256": "d8bd8b4d38614e51056216096c3733fbb89e963104125e92408eae2fff5a1dbe"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader_iteration.py",
+              "sha256": "09bf9ecce17100168237290f74154fd7da17db6637bff8de7e916b2143fd8e02"
+            }
+          ],
+          "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution."
+        },
+        {
+          "ledger": "docs/testing/final-sonar-fill-python-2026-09-17.json",
+          "id": "AaCvLFVUFuOCeZdBf0em",
+          "rule": "python:S8714",
+          "issuePath": "exchange_executor/tests/test_history_reader.py",
+          "symbol": "test_recent_listing_respects_bybit_limits_and_does_not_truncate_other_profiles",
+          "changedSupportingPaths": [
+            "exchange_executor/history_reader.py"
+          ],
+          "sourceJudgement": "reviewed_unchanged_test_contract_with_changed_imported_dependency",
+          "importRoute": [
+            "exchange_executor/tests/test_history_reader.py",
+            "exchange_executor/history_reader.py"
+          ],
+          "rationale": [
+            "Existing per-ID S8714 test review reused only because exact reviewed test bytes match; fresh object sentinel, assertIsNot exhaustion rejection and selected-value assertions remain unchanged.",
+            "Read actual history_reader diff: _recover_reference now evaluates _listed_order_is_observed on every listed row before returning observed, retaining original eager traversal/error behavior; lookup happens only if no observed match. This intentionally rejects later malformed evidence even after an early match.",
+            "This module import route establishes changed dependency context, not proof every named test invokes _recover_reference. Tests directly importing RecoveryReadBudget/source_evidence retain unchanged imported symbol implementations; real open-state paths can exercise recovery and require new integrated test runs.",
+            "No earlier test execution is retagged to the changed reader. Focused new iteration fixture checks malformed-later-row error/no lookup and valid matched/absent/empty list outcomes; this renewal does not claim executing it."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "dependencyBindings": [
+            {
+              "path": "exchange_executor/history_reader.py",
+              "sha256": "953fb7815d672161bde1966aad2aafe2f487cee5d870ae206ee146425ea5098c"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader.py",
+              "sha256": "d8bd8b4d38614e51056216096c3733fbb89e963104125e92408eae2fff5a1dbe"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader_iteration.py",
+              "sha256": "09bf9ecce17100168237290f74154fd7da17db6637bff8de7e916b2143fd8e02"
+            }
+          ],
+          "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution."
+        },
+        {
+          "ledger": "docs/testing/final-sonar-fill-python-2026-09-17.json",
+          "id": "AaCvLFVUFuOCeZdBf0en",
+          "rule": "python:S8714",
+          "issuePath": "exchange_executor/tests/test_history_reader.py",
+          "symbol": "test_recent_listing_respects_bybit_limits_and_does_not_truncate_other_profiles",
+          "changedSupportingPaths": [
+            "exchange_executor/history_reader.py"
+          ],
+          "sourceJudgement": "reviewed_unchanged_test_contract_with_changed_imported_dependency",
+          "importRoute": [
+            "exchange_executor/tests/test_history_reader.py",
+            "exchange_executor/history_reader.py"
+          ],
+          "rationale": [
+            "Existing per-ID S8714 test review reused only because exact reviewed test bytes match; fresh object sentinel, assertIsNot exhaustion rejection and selected-value assertions remain unchanged.",
+            "Read actual history_reader diff: _recover_reference now evaluates _listed_order_is_observed on every listed row before returning observed, retaining original eager traversal/error behavior; lookup happens only if no observed match. This intentionally rejects later malformed evidence even after an early match.",
+            "This module import route establishes changed dependency context, not proof every named test invokes _recover_reference. Tests directly importing RecoveryReadBudget/source_evidence retain unchanged imported symbol implementations; real open-state paths can exercise recovery and require new integrated test runs.",
+            "No earlier test execution is retagged to the changed reader. Focused new iteration fixture checks malformed-later-row error/no lookup and valid matched/absent/empty list outcomes; this renewal does not claim executing it."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "dependencyBindings": [
+            {
+              "path": "exchange_executor/history_reader.py",
+              "sha256": "953fb7815d672161bde1966aad2aafe2f487cee5d870ae206ee146425ea5098c"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader.py",
+              "sha256": "d8bd8b4d38614e51056216096c3733fbb89e963104125e92408eae2fff5a1dbe"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader_iteration.py",
+              "sha256": "09bf9ecce17100168237290f74154fd7da17db6637bff8de7e916b2143fd8e02"
+            }
+          ],
+          "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution."
+        },
+        {
+          "ledger": "docs/testing/final-sonar-fill-python-2026-09-17.json",
+          "id": "AaCvLFVuFuOCeZdBf0eo",
+          "rule": "python:S8714",
+          "issuePath": "exchange_executor/tests/test_hyperliquid_retention.py",
+          "symbol": "test_new_adapter_per_request_recovers_first_fill_from_serialized_empty_baseline",
+          "changedSupportingPaths": [
+            "exchange_executor/history_reader.py"
+          ],
+          "sourceJudgement": "reviewed_unchanged_test_contract_with_changed_imported_dependency",
+          "importRoute": [
+            "exchange_executor/tests/test_hyperliquid_retention.py",
+            "exchange_executor/tests/test_history_pagination.py",
+            "exchange_executor/history_reader.py"
+          ],
+          "rationale": [
+            "Existing per-ID S8714 test review reused only because exact reviewed test bytes match; fresh object sentinel, assertIsNot exhaustion rejection and selected-value assertions remain unchanged.",
+            "Read actual history_reader diff: _recover_reference now evaluates _listed_order_is_observed on every listed row before returning observed, retaining original eager traversal/error behavior; lookup happens only if no observed match. This intentionally rejects later malformed evidence even after an early match.",
+            "This module import route establishes changed dependency context, not proof every named test invokes _recover_reference. Tests directly importing RecoveryReadBudget/source_evidence retain unchanged imported symbol implementations; real open-state paths can exercise recovery and require new integrated test runs.",
+            "No earlier test execution is retagged to the changed reader. Focused new iteration fixture checks malformed-later-row error/no lookup and valid matched/absent/empty list outcomes; this renewal does not claim executing it."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "dependencyBindings": [
+            {
+              "path": "exchange_executor/history_reader.py",
+              "sha256": "953fb7815d672161bde1966aad2aafe2f487cee5d870ae206ee146425ea5098c"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_pagination.py",
+              "sha256": "12ff5575dfef4f19cec5bcf67bc634d35536c9339d000e53ee25b97675ba9c65"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader_iteration.py",
+              "sha256": "09bf9ecce17100168237290f74154fd7da17db6637bff8de7e916b2143fd8e02"
+            },
+            {
+              "path": "exchange_executor/tests/test_hyperliquid_retention.py",
+              "sha256": "589695c510131637d54032003f83ecccfdda02f1fc8da71db6ec4681127d2f83"
+            }
+          ],
+          "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution."
+        },
+        {
+          "ledger": "docs/testing/final-sonar-fill-python-2026-09-17.json",
+          "id": "AaCvLFXqFuOCeZdBf0er",
+          "rule": "python:S8714",
+          "issuePath": "exchange_executor/tests/test_phase2_registry.py",
+          "symbol": "test_profile_missing_from_installed_ccxt_is_reported_as_deprecated",
+          "changedSupportingPaths": [
+            "exchange_executor/history_reader.py"
+          ],
+          "sourceJudgement": "reviewed_unchanged_test_contract_with_changed_imported_dependency",
+          "importRoute": [
+            "exchange_executor/tests/test_phase2_registry.py",
+            "exchange_executor/server.py",
+            "exchange_executor/ccxt_adapter.py",
+            "exchange_executor/history_reader.py"
+          ],
+          "rationale": [
+            "Existing per-ID S8714 test review reused only because exact reviewed test bytes match; fresh object sentinel, assertIsNot exhaustion rejection and selected-value assertions remain unchanged.",
+            "Read actual history_reader diff: _recover_reference now evaluates _listed_order_is_observed on every listed row before returning observed, retaining original eager traversal/error behavior; lookup happens only if no observed match. This intentionally rejects later malformed evidence even after an early match.",
+            "This module import route establishes changed dependency context, not proof every named test invokes _recover_reference. Tests directly importing RecoveryReadBudget/source_evidence retain unchanged imported symbol implementations; real open-state paths can exercise recovery and require new integrated test runs.",
+            "No earlier test execution is retagged to the changed reader. Focused new iteration fixture checks malformed-later-row error/no lookup and valid matched/absent/empty list outcomes; this renewal does not claim executing it."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "dependencyBindings": [
+            {
+              "path": "exchange_executor/ccxt_adapter.py",
+              "sha256": "db5bcb0a5a96b61e4b1647d9b081a26821c1398b3c029c6a14442ed9b29a1c1a"
+            },
+            {
+              "path": "exchange_executor/history_reader.py",
+              "sha256": "953fb7815d672161bde1966aad2aafe2f487cee5d870ae206ee146425ea5098c"
+            },
+            {
+              "path": "exchange_executor/server.py",
+              "sha256": "90442c0b962745834e34b6d2fb1a833561040c5b756acd2f1557e5e05a17f5a7"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader_iteration.py",
+              "sha256": "09bf9ecce17100168237290f74154fd7da17db6637bff8de7e916b2143fd8e02"
+            },
+            {
+              "path": "exchange_executor/tests/test_phase2_registry.py",
+              "sha256": "155cba94322017e70292efb87599ade19322299ef45ac2e1bedb813a183c51e9"
+            }
+          ],
+          "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution."
+        },
+        {
+          "ledger": "docs/testing/final-sonar-fill-python-2026-09-17.json",
+          "id": "AaCvLFX_FuOCeZdBf0es",
+          "rule": "python:S8714",
+          "issuePath": "exchange_executor/tests/test_recovery_schedule.py",
+          "symbol": "test_four_call_history_has_its_full_grant_and_defers_targeted_and_mode",
+          "changedSupportingPaths": [
+            "exchange_executor/history_reader.py"
+          ],
+          "sourceJudgement": "reviewed_unchanged_test_contract_with_changed_imported_dependency",
+          "importRoute": [
+            "exchange_executor/tests/test_recovery_schedule.py",
+            "exchange_executor/history_reader.py"
+          ],
+          "rationale": [
+            "Existing per-ID S8714 test review reused only because exact reviewed test bytes match; fresh object sentinel, assertIsNot exhaustion rejection and selected-value assertions remain unchanged.",
+            "Read actual history_reader diff: _recover_reference now evaluates _listed_order_is_observed on every listed row before returning observed, retaining original eager traversal/error behavior; lookup happens only if no observed match. This intentionally rejects later malformed evidence even after an early match.",
+            "This module import route establishes changed dependency context, not proof every named test invokes _recover_reference. Tests directly importing RecoveryReadBudget/source_evidence retain unchanged imported symbol implementations; real open-state paths can exercise recovery and require new integrated test runs.",
+            "No earlier test execution is retagged to the changed reader. Focused new iteration fixture checks malformed-later-row error/no lookup and valid matched/absent/empty list outcomes; this renewal does not claim executing it."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "dependencyBindings": [
+            {
+              "path": "exchange_executor/history_reader.py",
+              "sha256": "953fb7815d672161bde1966aad2aafe2f487cee5d870ae206ee146425ea5098c"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader_iteration.py",
+              "sha256": "09bf9ecce17100168237290f74154fd7da17db6637bff8de7e916b2143fd8e02"
+            },
+            {
+              "path": "exchange_executor/tests/test_recovery_schedule.py",
+              "sha256": "4c5bab4c7ac495449a948ec252bdf8cf81984a39c4300119a68d0b5dfd591fd7"
+            }
+          ],
+          "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution."
+        },
+        {
+          "ledger": "docs/testing/final-sonar-fill-python-2026-09-17.json",
+          "id": "AaCvLFX_FuOCeZdBf0et",
+          "rule": "python:S8714",
+          "issuePath": "exchange_executor/tests/test_recovery_schedule.py",
+          "symbol": "test_deadline_deferred_positive_log_grant_does_not_rotate_unread_log_revision",
+          "changedSupportingPaths": [
+            "exchange_executor/history_reader.py"
+          ],
+          "sourceJudgement": "reviewed_unchanged_test_contract_with_changed_imported_dependency",
+          "importRoute": [
+            "exchange_executor/tests/test_recovery_schedule.py",
+            "exchange_executor/history_reader.py"
+          ],
+          "rationale": [
+            "Existing per-ID S8714 test review reused only because exact reviewed test bytes match; fresh object sentinel, assertIsNot exhaustion rejection and selected-value assertions remain unchanged.",
+            "Read actual history_reader diff: _recover_reference now evaluates _listed_order_is_observed on every listed row before returning observed, retaining original eager traversal/error behavior; lookup happens only if no observed match. This intentionally rejects later malformed evidence even after an early match.",
+            "This module import route establishes changed dependency context, not proof every named test invokes _recover_reference. Tests directly importing RecoveryReadBudget/source_evidence retain unchanged imported symbol implementations; real open-state paths can exercise recovery and require new integrated test runs.",
+            "No earlier test execution is retagged to the changed reader. Focused new iteration fixture checks malformed-later-row error/no lookup and valid matched/absent/empty list outcomes; this renewal does not claim executing it."
+          ],
+          "originalDisposition": "source_change_pending_rescan",
+          "dependencyBindings": [
+            {
+              "path": "exchange_executor/history_reader.py",
+              "sha256": "953fb7815d672161bde1966aad2aafe2f487cee5d870ae206ee146425ea5098c"
+            },
+            {
+              "path": "exchange_executor/tests/test_history_reader_iteration.py",
+              "sha256": "09bf9ecce17100168237290f74154fd7da17db6637bff8de7e916b2143fd8e02"
+            },
+            {
+              "path": "exchange_executor/tests/test_recovery_schedule.py",
+              "sha256": "4c5bab4c7ac495449a948ec252bdf8cf81984a39c4300119a68d0b5dfd591fd7"
+            }
+          ],
+          "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution."
+        }
+      ],
+      "executionScope": "Append sourceContextRenewals only; leave old entries/probes/source/afterSha256/observedBindings/verification/validation and existing sourceContextRenewals untouched. Never relabel old executions as run against changed bytes. Root must verify full manifest matches before adoption; no automatic old-revision script execution.",
+      "rootAdoption": {
+        "reviewer": "root integration review",
+        "manifestSha256": "92321ceb0e2a00453516797c34c9391ef7194a1c135e2c3d9c536db9bcf0a561",
+        "scope": "Reviewed concrete source deltas, exact input bindings and per-ID caller/target rationale. Historical executions and earlier fields retained verbatim. Final integrated and provider acceptance remain pending."
+      }
+    },
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+      "dirtyTree": true,
+      "previousLedgerSha256": "9afb93213d9ab75cc5b64f9d26ecb354ecc47b96a191800eb75095ded6892e92",
+      "reviews": [
+        {
+          "id": "AaCvLE3aFuOCeZdBf0dm",
+          "rule": "typescript:S6551",
+          "path": "src/trading_fill_identity.ts",
+          "rationale": "Native integer spelling guard changes ASCII digit syntax only: anchored1..256/u and trim equality remain, as do safe-number and non-null proof checks. Exhaustive isolated Unicode comparison supports equivalent language. Public evidence tests additionally reject fullwidth digits,257-character values and trailing newline; existing256-digit acceptance and Arabic-digit rejection retained.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_fill_identity.ts",
+              "sha256": "e937e237fabd3f4d275971a72a2c4c67987e51f918cd39f95061d5dba6f1a2e2"
+            },
+            {
+              "path": "tests/test_exchange_fill_identity.js",
+              "sha256": "617a11ff1170cac03265ff2e7981c8575b5fffe0b614989de0f2ef75162ed404"
+            },
+            {
+              "path": "tests/test_trading_fill_identity_backfill.js",
+              "sha256": "5c0bcec0bb2367dc0a27efaa2f87561fcc2f441e96eaa8cf915c1a7a7a71a4b0"
+            }
+          ],
+          "historicalEvidencePreserved": true
+        },
+        {
+          "id": "AaCvLE3bFuOCeZdBf0dn",
+          "rule": "typescript:S6551",
+          "path": "src/trading_fill_identity.ts",
+          "rationale": "Native integer spelling guard changes ASCII digit syntax only: anchored1..256/u and trim equality remain, as do safe-number and non-null proof checks. Exhaustive isolated Unicode comparison supports equivalent language. Public evidence tests additionally reject fullwidth digits,257-character values and trailing newline; existing256-digit acceptance and Arabic-digit rejection retained.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_fill_identity.ts",
+              "sha256": "e937e237fabd3f4d275971a72a2c4c67987e51f918cd39f95061d5dba6f1a2e2"
+            },
+            {
+              "path": "tests/test_exchange_fill_identity.js",
+              "sha256": "617a11ff1170cac03265ff2e7981c8575b5fffe0b614989de0f2ef75162ed404"
+            },
+            {
+              "path": "tests/test_trading_fill_identity_backfill.js",
+              "sha256": "5c0bcec0bb2367dc0a27efaa2f87561fcc2f441e96eaa8cf915c1a7a7a71a4b0"
+            }
+          ],
+          "historicalEvidencePreserved": true
+        },
+        {
+          "id": "AaCvLE3bFuOCeZdBf0do",
+          "rule": "typescript:S6551",
+          "path": "src/trading_fill_identity.ts",
+          "rationale": "Native integer spelling guard changes ASCII digit syntax only: anchored1..256/u and trim equality remain, as do safe-number and non-null proof checks. Exhaustive isolated Unicode comparison supports equivalent language. Public evidence tests additionally reject fullwidth digits,257-character values and trailing newline; existing256-digit acceptance and Arabic-digit rejection retained.",
+          "dependencyBindings": [
+            {
+              "path": "src/trading_fill_identity.ts",
+              "sha256": "e937e237fabd3f4d275971a72a2c4c67987e51f918cd39f95061d5dba6f1a2e2"
+            },
+            {
+              "path": "tests/test_exchange_fill_identity.js",
+              "sha256": "617a11ff1170cac03265ff2e7981c8575b5fffe0b614989de0f2ef75162ed404"
+            },
+            {
+              "path": "tests/test_trading_fill_identity_backfill.js",
+              "sha256": "5c0bcec0bb2367dc0a27efaa2f87561fcc2f441e96eaa8cf915c1a7a7a71a4b0"
+            }
+          ],
+          "historicalEvidencePreserved": true
+        }
+      ],
+      "validation": {
+        "kind": "actual-focused-three-suite-run",
+        "evidence": {
+          "path": "reports/final-findings/pr73-sonar-three-actual-retry1.log",
+          "sha256": "377e72f7e8bf23b1a5cddf2255b30f5ee78c9c195249238f6e243e747ff17299"
+        },
+        "exitCode": 0,
+        "testFiles": [
+          "tests/test_forwarder_error_types.js",
+          "tests/test_signal_contract_validation.js",
+          "tests/test_exchange_fill_identity.js"
+        ],
+        "scope": "Actual adopted dirty source bytes, three targeted suites only; final frozen integrated run and fresh Sonar scan still required. Earlier failed test and historical isolated/integrated executions retained."
+      },
+      "executionScope": "Append-only current source context with separately named actual focused evidence. Does not relabel any prior execution, observed hash, baseline disposition or scanner result.",
+      "rootAdoptionPending": true
+    }
+  ]
+}

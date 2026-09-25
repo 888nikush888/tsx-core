@@ -52,9 +52,12 @@ try {
   });
   const [strategy] = (await listTradingStrategies()).filter(item => item.status === 'published');
   const [schema] = (await listTradingSignalSchemas()).filter(item => item.enabled);
+  assert.ok(account, 'Setup bundle fixture must contain a trading account.');
+  assert.ok(strategy, 'Setup bundle fixture must contain a published strategy.');
+  assert.ok(schema, 'Setup bundle fixture must contain an enabled signal schema.');
   const contract = (await listSignalContracts()).flatMap(item => item.versions)
     .find(item => item.id === schema.contractVersionId);
-  assert.ok(account && strategy && schema && contract);
+  assert.ok(contract, 'Setup bundle fixture must contain the schema contract version.');
 
   const resource = async (kind, name, configuration) => {
     const draft = await createWorkflowResourceDraft({ kind, name, configuration });
@@ -111,6 +114,23 @@ try {
   assert.equal(bundle.workflow.resources.find(item => item.kind === 'sizing').configuration.defaultLeverage, 50);
   assert.doesNotMatch(JSON.stringify(bundle), /credentialRef|apiSecret|privateKey|bearerToken/i);
   assert.deepEqual(validatePortableSetupBundle(bundle), bundle);
+
+  // Resource references are untrusted JSON; arrays must not alias scalar identifiers.
+  const scalarMappings = Object.fromEntries(bundle.accountReferences.map(reference => [reference.sourceAccountId, reference.sourceAccountId]));
+  for (const [kind, field] of [['account', 'accountId'], ['parser', 'templateName']]) {
+    const original = bundle.workflow.resources.find(resource => resource.kind === kind).configuration[field];
+    for (const value of [[original], [], {}, 17, true]) {
+      const invalid = structuredClone(bundle);
+      invalid.workflow.resources.find(resource => resource.kind === kind).configuration[field] = value;
+      invalid.checksum = checksumBundle(invalid);
+      assert.throws(() => validatePortableSetupBundle(invalid), /must be a string/);
+      let importStarted = false;
+      await assert.rejects(applyPortableSetupBundle({ bundle: invalid, accountMappings: scalarMappings,
+        actorId: 'test:malformed-resource-reference', beforeImport: () => { importStarted = true; } }), /must be a string/);
+      assert.equal(importStarted, false, 'Malformed references must fail before import writes or callbacks.');
+      assert.equal((await getActiveWorkflow()).id, initial.id);
+    }
+  }
 
   for (const [collection, key, label] of [
     ['contracts', 'sourceVersionId', 'contract'], ['schemas', 'sourceId', 'schema'],

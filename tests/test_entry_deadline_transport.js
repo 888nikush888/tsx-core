@@ -57,6 +57,14 @@ try {
   for (const entryExpiresAt of [undefined, null, true, '123', 1.5, 0, Number.MAX_SAFE_INTEGER + 1]) {
     await assert.rejects(adapter.submitOrder(account, { ...request(), entryExpiresAt }), /ENTRY_DEADLINE_UNPROVEN/);
   }
+  for (const malformed of ['invalid-entry', 7, true, 1n, Symbol('invalid-entry')]) {
+    const beforeMalformedTokens = tokens;
+    const beforeMalformedSent = sent.length;
+    await assert.rejects(adapter.submitOrder(account, malformed), /ENTRY_DEADLINE_UNPROVEN/);
+    await assert.rejects(adapter.submitProtectedEntry(account, malformed, stop), /ENTRY_DEADLINE_UNPROVEN/);
+    assert.equal(tokens, beforeMalformedTokens, 'Malformed truthy entries must be rejected before credentials.');
+    assert.equal(sent.length, beforeMalformedSent, 'Malformed truthy entries must be rejected before transport.');
+  }
   now = plan.entryExpiresAt + 1;
   await adapter.submitOrder(account, stop);
   assert.equal(sent.length, 2, 'Independent protection is allowed after the entry deadline.');

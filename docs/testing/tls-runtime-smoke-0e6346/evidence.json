@@ -1,0 +1,100 @@
+{
+  "status": "PASS",
+  "revision": "0e6346b7ebded36897cbb6e8624db5dd0d712124",
+  "project": "tsx-tls-smoke-0e6346",
+  "internalNetworksOnly": true,
+  "realCredentials": false,
+  "ordersSent": 0,
+  "deliveriesSent": 0,
+  "unauthorizedViewerStatus": 401,
+  "unauthorizedAlertPost": 401,
+  "prometheusHttpsUp": "1",
+  "results": [
+    {
+      "name": "dashboard",
+      "httpsStatus": 200,
+      "trustedCa": "AUTHORIZED",
+      "invalidCa": "SELF_SIGNED_CERT_IN_CHAIN",
+      "wrongName": "ERR_TLS_CERT_ALTNAME_INVALID",
+      "cleartext": "ECONNRESET"
+    },
+    {
+      "name": "metrics",
+      "httpsStatus": 200,
+      "trustedCa": "AUTHORIZED",
+      "invalidCa": "SELF_SIGNED_CERT_IN_CHAIN",
+      "wrongName": "ERR_TLS_CERT_ALTNAME_INVALID",
+      "cleartext": "ECONNRESET"
+    },
+    {
+      "name": "dashboard-to-executor",
+      "httpsStatus": 200,
+      "trustedCa": "AUTHORIZED",
+      "invalidCa": "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+      "wrongName": "ERR_TLS_CERT_ALTNAME_INVALID",
+      "cleartext": "ECONNRESET"
+    },
+    {
+      "name": "viewer-status",
+      "httpsStatus": 200,
+      "trustedCa": "AUTHORIZED",
+      "invalidCa": "SELF_SIGNED_CERT_IN_CHAIN",
+      "wrongName": "ERR_TLS_CERT_ALTNAME_INVALID",
+      "cleartext": "ECONNRESET"
+    },
+    {
+      "name": "alert-relay",
+      "httpsStatus": 200,
+      "trustedCa": "AUTHORIZED",
+      "invalidCa": "SELF_SIGNED_CERT_IN_CHAIN",
+      "wrongName": "ERR_TLS_CERT_ALTNAME_INVALID",
+      "cleartext": "ECONNRESET"
+    }
+  ],
+  "observedAt": "2026-09-24T20:21:46.592Z",
+  "source": {
+    "gitHead": "0e6346b7ebded36897cbb6e8624db5dd0d712124",
+    "detachedCheckout": "tmp/tsx-core-tls-runtime-0e6346",
+    "trackedTreeClean": true,
+    "envFileAbsent": true
+  },
+  "tls": {
+    "preflight": "PASS",
+    "externalDirectory": "/srv/tsx-core/internal-tls",
+    "keyBytesRecorded": false
+  },
+  "isolation": {
+    "composeProject": "tsx-tls-smoke-0e6346",
+    "internalOnlyNetworks": [
+      "core-network",
+      "default",
+      "viewer-network"
+    ],
+    "dedicatedPorts": {
+      "forwarderHttp": 28080,
+      "metrics": 29100,
+      "prometheus": 29090,
+      "alertmanager": 29093,
+      "mcp": 28091
+    },
+    "runtimeProbeUid": 65532,
+    "readOnlyFilesystem": true,
+    "capabilitiesDropped": true,
+    "noNewPrivileges": true
+  },
+  "images": {
+    "forwarder": "sha256:2a341f294f5e5efdfdc07eaf013c234b3a58a840162c8cac6338ec167eae3df3",
+    "exchangeExecutor": "sha256:7fd7c16220bfa8774d3811d7dfa90fcb4efcc1f3cac75f6bbb98465347a0f231",
+    "prometheus": "sha256:0a87b23a2371bdb7ac81fb695a73ac29347e189f9951a723dec2e93ab4cdde7a"
+  },
+  "scope": {
+    "actualContainers": [
+      "forwarder",
+      "exchange-executor",
+      "prometheus"
+    ],
+    "viewerAndRelay": "Isolated HTTPS listeners from built image with synthetic tokens; full bot and relay delivery not started",
+    "externalNetworkAccess": false,
+    "hostPublishedPorts": "Not reachable from WSL host on internal-only Docker networks; container-to-container transport verified"
+  }
+}

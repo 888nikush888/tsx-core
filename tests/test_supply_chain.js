@@ -13,6 +13,7 @@ const workflow = await readFile(path.join(root, '.github', 'workflows', 'quality
 const stagingWorkflow = await readFile(path.join(root, '.github', 'workflows', 'staging.yml'), 'utf8');
 const syntheticWorkflow = await readFile(path.join(root, '.github', 'workflows', 'synthetic.yml'), 'utf8');
 const productionEvidenceWorkflow = await readFile(path.join(root, '.github', 'workflows', 'production_evidence.yml'), 'utf8');
+const releaseObservationWorkflow = await readFile(path.join(root, '.github', 'workflows', 'release_observation.yml'), 'utf8');
 const dockerfile = await readFile(path.join(root, 'Dockerfile'), 'utf8');
 const executorDockerfile = await readFile(path.join(root, 'exchange_executor', 'Dockerfile'), 'utf8');
 const alertmanagerDockerfile = await readFile(path.join(root, 'monitoring', 'alertmanager.Dockerfile'), 'utf8');
@@ -36,7 +37,7 @@ const dockerCompose = await readFile(path.join(root, 'docker-compose.yml'), 'utf
 const gitleaksConfig = await readFile(path.join(root, '.gitleaks.toml'), 'utf8');
 const gitAttributes = await readFile(path.join(root, '.gitattributes'), 'utf8');
 
-const allWorkflows = `${workflow}\n${stagingWorkflow}\n${syntheticWorkflow}\n${productionEvidenceWorkflow}`;
+const allWorkflows = `${workflow}\n${stagingWorkflow}\n${syntheticWorkflow}\n${productionEvidenceWorkflow}\n${releaseObservationWorkflow}`;
 const actionReferences = [...allWorkflows.matchAll(/^\s*(?:-\s*)?uses:\s*([^\s#]+).*$/gm)].map(
   (match) => match[1]
 );
@@ -90,6 +91,9 @@ const publicSonarAllowlists = [
     '6d528132bbddbac361798d0e86d2107e056781996520ed963126a89234132c11'),
   reviewedSonarAllowlist('Reviewed public Sonar PR29 issue ID', 'issueKey', 'sonar-reviewed-pr29-decision.json', 1,
     'adb877876b555ad8fae05e35d1afdc26b4ba930d0a7bbabcf243d9a55c2b8934'),
+  reviewedSonarAllowlist('Reviewed public Sonar PR73 issue IDs in the exact new findings ledger', 'issueKey',
+    'final-sonar-pr73-2026-09-20.json', 3,
+    'a4da88206d0d73af2dfd3252899f9da9b63499b025881a272d8ce5e94c4a209e'),
 ];
 assert.ok(publicSonarAllowlists[1].ids.every(id => publicSonarAllowlists[0].ids.includes(id)));
 const fixtureCredential = createHash('sha256').update('synthetic scanner regression, never a provider credential').digest('base64url').slice(0, 32);
@@ -169,6 +173,7 @@ assert.ok(Number(scannerVersion[1]) > 8 || (Number(scannerVersion[1]) === 8 && N
 const approvedActionReferences = new Set([
   'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9',
   'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+  'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093',
   'actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294',
   'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
   'actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548',
@@ -209,6 +214,12 @@ assert.doesNotMatch(
 assert.match(stagingWorkflow, /timeout-minutes:\s*30/);
 assert.match(stagingWorkflow, /AI_GOLDEN_CASE_DELAY_MS:\s*'5000'/);
 assert.match(stagingWorkflow, /run:\s*npm run test:ai-eval/);
+assert.match(releaseObservationWorkflow, /runs-on:\s*\[self-hosted, production-observer\]/);
+assert.match(releaseObservationWorkflow, /if:\s*github\.ref == 'refs\/heads\/main'/);
+assert.match(releaseObservationWorkflow, /environment:\s*production-observer/);
+assert.match(releaseObservationWorkflow, /ref:\s*\$\{\{ github\.sha \}\}/);
+assert.match(releaseObservationWorkflow, /persist-credentials:\s*false/);
+assert.match(releaseObservationWorkflow, /run:\s*npm run ops:release-observation/);
 
 assert.match(workflow, /shard:\s*\[queue, retry, schema, trading-risk\]/);
 assert.match(workflow, /npm run test:mutation -- \$\{\{ matrix\.shard \}\}/);
@@ -251,8 +262,8 @@ assert.match(workflow, /name:\s*codeql-evidence-\$\{\{ github\.sha \}\}/);
 assert.doesNotMatch(workflow, /ignore-unfixed:\s*true/);
 assert.match(workflow, /retention-days:\s*90/);
 assert.match(workflow, /project:\s*\[chromium, firefox, webkit, mobile-chromium\]/);
-assert.match(workflow, /playwright install --with-deps/);
-assert.match(workflow, /playwright test --project=\$\{\{ matrix\.project \}\}/);
+assert.match(workflow, /node node_modules\/playwright\/cli\.js install --with-deps/);
+assert.match(workflow, /node node_modules\/playwright\/cli\.js test --project=\$\{\{ matrix\.project \}\}/);
 assert.match(workflow, /github\.event\.repository\.private == false[\s\S]*?actions\/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294/);
 assert.match(workflow, /github\.event\.repository\.private[\s\S]*?npm audit --audit-level=moderate[\s\S]*?npm audit --prefix frontend --audit-level=moderate[\s\S]*?npm run quality:dependencies/);
 assert.doesNotMatch(workflow, /^\s{2}release:\s*$/m);
@@ -270,16 +281,19 @@ assert.doesNotMatch(nodeImage, /:latest(?:@|$)/, 'NODE_IMAGE must not use latest
 assert.doesNotMatch(runtimeImage, /:latest(?:@|$)/, 'RUNTIME_IMAGE must not use latest');
 assert.match(runtimeImage, /^gcr\.io\/distroless\/nodejs22-debian13@sha256:/);
 assert.equal(runtimeImage, 'gcr.io/distroless/nodejs22-debian13@sha256:bde4c459719d1101d0ed962bb1eec9cbf58bbbaca3560ac143c8ca02ab02e099');
-assert.equal(baseImages[0], `\${NODE_IMAGE}`, 'base stage must use the pinned NODE_IMAGE argument');
+// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text
+assert.equal(baseImages[0], "${NODE_IMAGE}", 'base stage must use the pinned NODE_IMAGE argument');
 assert.ok(
   baseImages.slice(1, -1).every((image) => image === 'base'),
   'all build stages must inherit the pinned build base'
 );
-assert.equal(baseImages.at(-1), `\${RUNTIME_IMAGE}`, 'runner must use the pinned distroless image');
+// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text
+assert.equal(baseImages.at(-1), "${RUNTIME_IMAGE}", 'runner must use the pinned distroless image');
 assert.match(dockerfile, /^ARG DEBIAN_SNAPSHOT=\d{8}T\d{6}Z$/m);
 assert.match(dockerfile, /snapshot\.debian\.org\/archive\/debian\/\$\{DEBIAN_SNAPSHOT\}/);
 assert.match(dockerfile, /snapshot\.debian\.org\/archive\/debian-security\/\$\{DEBIAN_SNAPSHOT\}/);
-const runtimeStage = dockerfile.slice(dockerfile.indexOf(`FROM \${RUNTIME_IMAGE} AS runner`));
+// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text
+const runtimeStage = dockerfile.slice(dockerfile.indexOf("FROM ${RUNTIME_IMAGE} AS runner"));
 assert.doesNotMatch(runtimeStage, /^RUN\s/m, 'distroless runtime must not install packages');
 assert.match(runtimeStage, /^USER 65532:65532$/m);
 assert.match(runtimeStage, /^CMD \["dist\/forwarder\.js"\]$/m);
@@ -295,7 +309,11 @@ assert.match(
 assert.match(executorDockerfile, /"libcrypto3=3\.5\.8-r0"/);
 assert.match(executorDockerfile, /"libssl3=3\.5\.8-r0"/);
 assert.match(executorDockerfile, /"libuuid=2\.41\.6-r1"/, 'executor libuuid must include the reviewed util-linux security fixes');
-assert.match(executorDockerfile, /apk add --no-cache "sqlite-libs=3\.53\.4-r0"/);
+const executorApkCommand = executorDockerfile.replaceAll(/\\\r?\n/g, ' ').match(/^RUN apk add --no-cache (.*?)&&/m)?.[1];
+assert.ok(executorApkCommand, 'Executor runtime packages must be installed in the apk command.');
+assert.deepEqual([...executorApkCommand.matchAll(/"([^"]+)"/g)].map(match => match[1]), [
+  'libcrypto3=3.5.8-r0', 'libssl3=3.5.8-r0', 'libuuid=2.41.6-r1', 'sqlite-libs=3.53.4-r0',
+]);
 assert.match(executorDockerfile, /^USER 65532:65532$/m);
 assert.match(executorDockerfile, /pip install --require-hashes/);
 assert.match(executorLock, /^#\s+uv pip compile requirements\.in --universal --python-version 3\.12 --generate-hashes --output-file requirements\.lock$/m);
@@ -347,7 +365,13 @@ assert.match(containerJob, /find "\$RUNNER_TEMP\/tsx-reviewed-source" .* -type f
 const implementationBlock = containerJob.slice(implementationStep, containerJob.indexOf('\n      - name:', implementationStep + 1));
 assert.match(implementationBlock, /node "\$RUNNER_TEMP\/tsx-reviewed-source\/scripts\/verify_exchange_implementation\.js" --python "\$RUNNER_TEMP\/tsx-verifier\/bin\/python3\.12"/);
 assert.match(containerJob, /docker build --tag tsx-core:\$\{\{ github\.sha \}\} "\$RUNNER_TEMP\/tsx-reviewed-source"/);
-assert.match(containerJob, /docker build --tag tsx-core-exchange-executor:\$\{\{ github\.sha \}\} "\$RUNNER_TEMP\/tsx-reviewed-source\/exchange_executor"/);
+assert.match(containerJob, /docker build --file "\$RUNNER_TEMP\/tsx-reviewed-source\/exchange_executor\/Dockerfile" --tag tsx-core-exchange-executor:\$\{\{ github\.sha \}\} "\$RUNNER_TEMP\/tsx-reviewed-source"/);
+assert.match(executorDockerfile, /^COPY exchange_executor\/requirements\.lock \.\/requirements\.lock$/m);
+assert.match(executorDockerfile, /^COPY --chown=0:0 --chmod=0444 exchange_executor\/\*\.py \.\/$/m);
+assert.match(executorDockerfile, /^COPY --chown=0:0 --chmod=0444 scripts\/hyperliquid_bound_preflight\.py scripts\/hyperliquid_testnet_preflight\.py \.\/tools\/$/m);
+assert.match(dockerCompose, /exchange-executor:\s*\n\s*build:\s*\n\s*context: \.\s*\n\s*dockerfile: exchange_executor\/Dockerfile/);
+assert.match(containerJob, /docker run --rm --network none --read-only --entrypoint python tsx-core-exchange-executor:\$\{\{ github\.sha \}\} -E -B -c "import sys; sys\.path\.insert\(0, '\/app\/tools'\); import hyperliquid_bound_preflight, hyperliquid_testnet_preflight;/);
+assert.match(containerJob, /docker run --rm --network none --read-only -e PYTHONPATH=\/app:\/app\/tools:\/tests -v "\$RUNNER_TEMP\/tsx-reviewed-source\/tests:\/tests:ro" --entrypoint python tsx-core-exchange-executor:\$\{\{ github\.sha \}\} -B -m unittest discover -s \/tests -p test_hyperliquid_bound_preflight\.py -v/);
 assert.match(containerJob, /--file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/prometheus\.Dockerfile"/);
 assert.match(containerJob, /--file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/alertmanager\.Dockerfile"/);
 assert.doesNotMatch(containerJob, /(?:docker build|docker buildx build)[^\n]*(?:\s\.\s*$|\sexchange_executor\s*$)/m,
@@ -358,7 +382,8 @@ assert.doesNotMatch(implementationBlock, /continue-on-error|\|\|\s*true|--exchan
   'The packaging gate cannot skip profiles, inject approvals, or disregard a NO-GO.');
 const runtimeGateCommand = containerJob.split('\n').find(line => line.includes('/app/verify_implementation_runtime.py'));
 assert.equal(runtimeGateCommand?.trim(),
-  `docker run --rm --network none --read-only --entrypoint python tsx-core-exchange-executor:\${{ github.sha }} -E -B /app/verify_implementation_runtime.py`,
+  // skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text
+  "docker run --rm --network none --read-only --entrypoint python tsx-core-exchange-executor:${{ github.sha }} -E -B /app/verify_implementation_runtime.py",
   'The final baked image must verify every real implementation receipt offline without mounts, env approvals, or user overrides.');
 const runtimeGatePosition = containerJob.indexOf(runtimeGateCommand);
 const executorUserCheck = containerJob.indexOf('test "$(docker image inspect tsx-core-exchange-executor:');
@@ -375,15 +400,17 @@ assert.doesNotMatch(runtimeVerificationBlock, /continue-on-error|\|\|\s*true|\n\
   'The runtime receipt gate is mandatory and must propagate NO-GO.');
 assert.match(
   workflow,
-  /-e PYTHONPATH=\/app:\/[\s\S]*?-v "\$RUNNER_TEMP\/tsx-reviewed-source\/exchange_executor\/tests:\/exchange_executor\/tests:ro"[\s\S]*?-m unittest discover -s \/exchange_executor\/tests -v/,
+  /-e PYTHONPATH=\/app:\/app\/tools:\/scripts:\/[\s\S]*?-v "\$RUNNER_TEMP\/tsx-reviewed-source\/exchange_executor:\/exchange_executor:ro"[\s\S]*?-m unittest discover -s \/exchange_executor\/tests -v/,
   'Container verification must expose the reviewed test package without replacing baked /app sources.',
 );
 const executorSuiteCommand = workflow.split('\n').find(line => line.includes('-m unittest discover -s /exchange_executor/tests -v'));
 for (const mount of [
+  '-v "$RUNNER_TEMP/tsx-reviewed-source/exchange_executor:/exchange_executor:ro"',
   '-v "$RUNNER_TEMP/tsx-reviewed-source/exchange_executor/tools:/app/tools:ro"',
+  '-v "$RUNNER_TEMP/tsx-reviewed-source/scripts:/scripts:ro"',
+  '-v "$RUNNER_TEMP/tsx-reviewed-source/docs/testing:/docs/testing:ro"',
   '-v "$RUNNER_TEMP/tsx-reviewed-source/plans:/plans:ro"',
   '-v "$RUNNER_TEMP/tsx-reviewed-source/tests:/tests:ro"',
-  '-v "$RUNNER_TEMP/tsx-reviewed-source/docs/testing/ccxt-expansion-matrix.json:/docs/testing/ccxt-expansion-matrix.json:ro"',
 ]) {
   assert.ok(executorSuiteCommand.includes(mount),
     `The complete baked-executor suite needs its reviewed read-only support input: ${mount}`);
@@ -442,8 +469,9 @@ assert.match(alertmanagerDockerfile, /github\.com\/prometheus\/common\/version\.
 assert.match(alertmanagerModuleLock, /github\.com\/klauspost\/compress v1\.18\.7/);
 assert.match(alertmanagerModuleLock, /go\.opentelemetry\.io\/otel v1\.44\.0/);
 assert.match(alertmanagerSumLock, /github\.com\/klauspost\/compress v1\.18\.7 h1:/);
-assert.match(vulncheckModuleLock, /require golang\.org\/x\/vuln v1\.6\.0/);
-assert.match(vulncheckSumLock, /golang\.org\/x\/vuln v1\.6\.0 h1:/);
+assert.match(vulncheckModuleLock, /require golang\.org\/x\/vuln v1\.8\.0/);
+assert.match(vulncheckSumLock, /golang\.org\/x\/vuln v1\.8\.0 h1:/);
+assert.match(vulncheckSumLock, /golang\.org\/x\/mod v0\.41\.0 h1:/);
 assert.match(alertmanagerDockerfile, /GOFLAGS=-mod=readonly/);
 assert.doesNotMatch(alertmanagerDockerfile, /\bgo (?:get|install)\b/);
 assert.match(alertmanagerDockerfile, /^ARG SOURCE_DATE_EPOCH=1783191941$/m);

@@ -59,11 +59,11 @@ function TestLabNav({ mode, onSelect }: Readonly<{ mode: string; onSelect: (key:
 }
 
 function TestFilterField({ channelId, setChannelId, invalidate }: Readonly<{ channelId: string; setChannelId: (value: string) => void; invalidate: () => void }>) {
-  return (<><label>Kanal-ID<input value={channelId} onChange={event => { setChannelId(event.target.value); invalidate(); }} maxLength={128} /></label></>);
+  return (<label>Kanal-ID<input value={channelId} onChange={event => { setChannelId(event.target.value); invalidate(); }} maxLength={128} /></label>);
 }
 
 function TestAiField({ metadata, pathId, setParams, invalidate }: Readonly<{ metadata: ParserMetadata | null; pathId: string; setParams: (update: (previous: URLSearchParams) => URLSearchParams) => void; invalidate: () => void }>) {
-  return (<><label>Parserkontext<select value={pathId} onChange={event => { invalidate(); setParams(previous => { if (event.target.value) { previous.set('pathId', event.target.value); } else { previous.delete('pathId'); } return previous; }); }}><option value="">Globale Konfiguration / Standardvorlage</option>{metadata?.paths?.map(path => <option key={path.id} value={path.id}>{path.channelId} → {path.accountId} · {path.id}</option>)}</select></label></>);
+  return (<label>Parserkontext<select value={pathId} onChange={event => { invalidate(); setParams(previous => { if (event.target.value) { previous.set('pathId', event.target.value); } else { previous.delete('pathId'); } return previous; }); }}><option value="">Globale Konfiguration / Standardvorlage</option>{metadata?.paths?.map(path => <option key={path.id} value={path.id}>{path.channelId} → {path.accountId} · {path.id}</option>)}</select></label>);
 }
 
 function TestXmlFields({ contractId, setContractId, contracts, xml, setXml, invalidate }: Readonly<{ contractId: string; setContractId: (value: string) => void; contracts: ParserContract[]; xml: string; setXml: (value: string) => void; invalidate: () => void }>) {

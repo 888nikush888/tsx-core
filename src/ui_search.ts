@@ -18,7 +18,15 @@ const SETTING_TARGETS = [
   ...WORKFLOW_RESOURCE_KINDS.map(kind => ({ id: `workflow.${kind}`, title: `Workflow-Baustein ${kind}`, url: `/workflows/resources?resourceKind=${kind}` })),
 ];
 
-function searchUrl(kind: string, row: Record<string, unknown>): string {
+// Each SOURCES projection selects a subset; fields absent from that SELECT stay undefined.
+type SearchRow = {
+  id: string; createdAt: number; name?: string; exchange?: string; mode?: string; status?: string;
+  channelId?: string | null; messageId?: number | null; templateName?: string | null;
+  symbol?: string; side?: string; resourceId?: string; kind?: string; version?: number;
+  accountId?: string; category?: string; severity?: string;
+};
+
+function searchUrl(kind: string, row: SearchRow): string {
   const id = encodeURIComponent(row.id as string);
   switch (kind) {
     case 'accounts': return `/trading/accounts/${id}`;
@@ -30,7 +38,7 @@ function searchUrl(kind: string, row: Record<string, unknown>): string {
   }
 }
 
-function searchTitle(kind: string, row: Record<string, unknown>): string {
+function searchTitle(kind: string, row: SearchRow): string {
   if (kind === 'accounts' || kind === 'resources') return row.name as string;
   if (kind === 'intents') return `${row.symbol} · ${row.side}`;
   if (kind === 'incidents') return row.category as string;
@@ -54,7 +62,7 @@ export async function uiSearch(text: string, kind = 'all', cursorValue: string |
     const searchConditions = definition.search.map(column => String.raw`${column} LIKE ? ESCAPE '\'`).join(' OR ');
     const where = [`${definition.clock} <= ?`, `(${searchConditions})`];
     if (cursor) { where.push(`(${definition.clock} < ? OR (${definition.clock} = ? AND id < ?))`); values.push(cursor.createdAt, cursor.createdAt, cursor.id); }
-    const rows = await getDatabase().all(`SELECT ${definition.fields}, ${definition.clock} AS createdAt FROM ${definition.table} WHERE ${where.join(' AND ')} ORDER BY ${definition.clock} DESC, id DESC LIMIT 21`, values);
+    const rows = await getDatabase().all<SearchRow[]>(`SELECT ${definition.fields}, ${definition.clock} AS createdAt FROM ${definition.table} WHERE ${where.join(' AND ')} ORDER BY ${definition.clock} DESC, id DESC LIMIT 21`, values);
     const entries = rows.slice(0, 20).map(row => {
       return { id: row.id, title: maskPII(searchTitle(current, row)),
         subtitle: [row.status, row.mode, row.kind, row.version ? `v${row.version}` : null].filter(Boolean).join(' · '),

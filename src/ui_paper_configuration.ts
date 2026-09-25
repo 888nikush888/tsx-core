@@ -15,7 +15,9 @@ export async function readPaperConfiguration(accountId: string, symbol = '') {
     market: market ? { ...market, revision: paperConfigurationRevision('market', market) } : null };
 }
 export async function assertPaperConfigurationRevision(accountId: string, payload: Record<string, unknown>): Promise<void> {
-  const current = await readPaperConfiguration(accountId, String((payload.market as { symbol?: unknown } | null | undefined)?.symbol ?? ''));
+  const symbol = (payload.market as { symbol?: unknown } | null | undefined)?.symbol ?? '';
+  if (typeof symbol !== 'string') throw new Error('Paper market symbol must be a string.');
+  const current = await readPaperConfiguration(accountId, symbol);
   for (const [kind, field] of [['market', 'baseMarketRevision'], ['balance', 'baseBalanceRevision']] as const) {
     const expected = payload[field];
     if (expected === undefined) continue; // Existing service/CLI callers retain their contract; UI always binds the observed state.

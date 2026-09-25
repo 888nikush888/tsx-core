@@ -1,0 +1,40 @@
+{
+  "kind": "root-adoption-of-independently-reviewed-snyk-pr73-evidence",
+  "sourceRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+  "scanMergeRevision": "6f0ffb0de6d980b3092ab9b7334ae23b674de850",
+  "verifiedIdenticalGitTree": "ad50676209a673804d67e341f98999b0e139c9d9",
+  "reviewedAt": "2026-09-20T13:25:03.141338+00:00",
+  "archive": {
+    "path": "exchange_executor/certifications/reviews/pr73-snyk-source-review-evidence.tar.gz",
+    "sha256": "e568e590f63c37deb230c77d1f13e4040582bf5f66be28b3a666081f1447b940"
+  },
+  "members": [
+    {
+      "member": "pr73-snyk-code-17-independent-review.json",
+      "sha256": "d727946d2403a33c0dae3d0dd39395aff8b94e195a0147e50d45922cbe5eba7f"
+    },
+    {
+      "member": "pr73-snyk-code-renewed-review-candidate.json",
+      "sha256": "29d4ce170229f7e4881b8e4ef12a486ee237426cb9175d831042b3fc69a525f8"
+    },
+    {
+      "member": "pr73-snyk-code/code.sarif.json",
+      "sha256": "3beed3f6d99959111b2d5dfa01fd66233fac7cc7b9621e8043be2abf70dd3993"
+    },
+    {
+      "member": "pr73-snyk-code/code.status.json",
+      "sha256": "0e3052456ccb8ed9bd66d63fd08bd5e04c92a088839af7dbc6bb681b30b69c90"
+    },
+    {
+      "member": "pr73-snyk-code/code.review.json",
+      "sha256": "f6db9df9e45b69aca009787af3da48e14b264b5fcdad271f851de0861547275b"
+    }
+  ],
+  "decision": "Adopt17 independent source/flow renewals; preserve all86 IDs,82 scoped false positives and4 separately owner-accepted OPEN HTTP risks. Root reviewed the additional Symbol() explanation comment for two unchanged synthetic redaction locations. This is source/flow review, not a new cloud scan or provider acceptance.",
+  "additionalCommentOnlySource": {
+    "path": "tests/test_exchange_contract_validation.js",
+    "sha256": "934b78e1f5689a6f8ca817834c157492774435f379066225e58ea03a8660412c"
+  },
+  "pending": "Revalidate after any subsequent source or receipt authority change; final candidate requires fresh scans.",
+  "providerAcceptanceVerified": false
+}

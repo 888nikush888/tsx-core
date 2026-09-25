@@ -1,4 +1,5 @@
 import http from 'node:http';
+import https from 'node:https';
 import { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -80,6 +81,7 @@ import {
 import type { ManagedTelegramViewerSettingsStore } from './telegram_viewer_settings.js';
 import type { TelegramViewerSecretStore } from './telegram_viewer_secrets.js';
 import { constantTimeStringEqual } from './secure_compare.js';
+import { internalTlsServerOptions } from './internal_tls.js';
 import { uiIngressDetail, uiSignalPage, type UiSignalList } from './ui_signal_reads.js';
 import { uiSignalOriginal } from './ui_signal_original.js';
 import { uiDeployment } from './ui_deployment.js';
@@ -147,12 +149,14 @@ const SECRET_CONFIG_KEYS = new Set([
   'alertWebhookToken',
   'backupOffsiteToken',
   'backupEncryptionKey',
+  'backupDriveAccessToken',
   'OPENROUTER_API_KEY',
   'TELEGRAM_API_HASH',
   'DASHBOARD_ADMIN_TOKEN',
   'DASHBOARD_VIEWER_TOKEN',
   'BACKUP_OFFSITE_TOKEN',
   'BACKUP_ENCRYPTION_KEY',
+  'BACKUP_DRIVE_ACCESS_TOKEN',
   'ALERT_RELAY_TOKEN',
   'ALERT_WEBHOOK_TOKEN',
   'PROMETHEUS_TOKEN',
@@ -205,6 +209,7 @@ interface WebServerState {
     | 'createDashboardAdminToken'
     | 'rotateDashboardToken'
     | 'removeDashboardViewerToken'
+    | 'removeBackupDriveAccessToken'
     | 'clear'
     | 'recoveryStatus'
   >;
@@ -254,7 +259,7 @@ interface MutationAuditContext {
 
 type ApiHandler = (context: RequestContext) => Promise<void> | void;
 
-let server: http.Server | null = null;
+let server: https.Server | null = null;
 let mutationInProgress = false;
 const serverInstanceId = UI_PROCESS_INSTANCE_ID;
 const serverVersion = fsPromises.readFile(new URL('../package.json', import.meta.url), 'utf8')
@@ -296,11 +301,11 @@ function sendError(context: RequestContext, error: unknown): void {
 function isAllowedOrigin(origin: string | undefined): boolean {
   if (!origin) return true;
   const configuredOrigin = process.env.DASHBOARD_ALLOWED_ORIGIN?.trim();
-  if (configuredOrigin && origin === configuredOrigin) return true;
   try {
     const parsed = new URL(origin);
+    if (parsed.protocol !== 'https:') return false;
+    if (configuredOrigin && origin === configuredOrigin) return true;
     return (
-      parsed.protocol === 'http:' &&
       ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(parsed.hostname)
     );
   } catch {
@@ -311,7 +316,7 @@ function isAllowedOrigin(origin: string | undefined): boolean {
 function isLoopbackBrowserOrigin(origin: string): boolean {
   try {
     const parsed = new URL(origin);
-    return parsed.protocol === 'http:' && ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(parsed.hostname);
+    return parsed.protocol === 'https:' && ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(parsed.hostname);
   } catch {
     return false;
   }
@@ -421,6 +426,7 @@ function semanticMutationAction(method: string, url: string): string {
     '/api/setup-bundle/preview': 'setup-bundle.preview',
     '/api/setup-bundle/apply': 'setup-bundle.apply',
     '/api/secrets': 'secrets.update',
+    '/api/secrets/backup-drive-access-token': 'secrets.backup-drive-access-token.delete',
     '/api/control': 'routing.control',
     '/api/telegram-login': 'telegram.authentication.update',
     '/api/runtime-settings': 'runtime.settings.update',
@@ -726,6 +732,7 @@ async function postSecretsHandler(context: RequestContext): Promise<void> {
       'alertWebhookToken',
       'backupOffsiteToken',
       'backupEncryptionKey',
+      'backupDriveAccessToken',
     ]);
     const entries = Object.entries(payload);
     if (entries.length === 0 || entries.some(([name]) => !allowed.has(name))) {
@@ -740,6 +747,35 @@ async function postSecretsHandler(context: RequestContext): Promise<void> {
     });
   } catch (error) {
     sendError(context, error instanceof HttpError ? error : new HttpError(400, errorMessage(error)));
+  }
+}
+
+async function deleteBackupDriveAccessTokenHandler(context: RequestContext): Promise<void> {
+  if (!requireConfirmation(context, 'delete-backup-drive-access-token',
+    'Explicit Drive access-token deletion confirmation required.')) return;
+  const { runtimeSettings, secretStore } = context.appState;
+  if (!runtimeSettings || !secretStore) {
+    sendJson(context.res, 503, { error: 'Drive runtime or secret storage is unavailable.', requestId: context.requestId });
+    return;
+  }
+  try {
+    if (secretStore.status().backupDriveAccessToken.source === 'external') {
+      throw new HttpError(409, 'The Drive access token is externally managed and cannot be deleted in the dashboard.');
+    }
+    // Disable the mirror before removing its credential. If deletion then fails,
+    // the durable state remains closed instead of requiring a missing token.
+    await runtimeSettings.set({ backupDriveFolderId: '', backupDriveRequired: false });
+    await secretStore.removeBackupDriveAccessToken();
+    addLog(`[SECURITY] request_id=${context.requestId} Drive staging access token deleted; mirror disabled.`);
+    sendJson(context.res, 200, {
+      success: true,
+      settings: runtimeSettings.snapshot(),
+      secrets: secretStore.status(),
+      restartRequired: true,
+      requestId: context.requestId,
+    });
+  } catch (error) {
+    sendError(context, error instanceof HttpError ? error : new HttpError(409, errorMessage(error)));
   }
 }
 
@@ -836,7 +872,14 @@ async function signalOriginalHandler(context: RequestContext): Promise<void> {
 }
 
 async function uiDeploymentHandler(context: RequestContext): Promise<void> {
-  try { sendJson(context.res, 200, await uiDeployment({ address: context.req.socket.localAddress, port: context.req.socket.localPort })); }
+  try {
+    const localCertificate = (context.req.socket as import('node:tls').TLSSocket).getCertificate();
+    const activeDashboardCertificate = localCertificate && 'raw' in localCertificate && Buffer.isBuffer(localCertificate.raw)
+      ? localCertificate.raw : undefined;
+    sendJson(context.res, 200, await uiDeployment(
+      { address: context.req.socket.localAddress, port: context.req.socket.localPort }, activeDashboardCertificate,
+    ));
+  }
   catch (error) { sendError(context, error); }
 }
 
@@ -1467,6 +1510,20 @@ async function recoveryStatusHandler({ res, appState, actor }: RequestContext): 
   });
 }
 
+function assertRuntimeIntegrationSecrets(payload: Record<string, unknown>, secretStore: Pick<ManagedSecretStore, 'status'>): void {
+  const secrets = secretStore.status();
+  if (payload.enterpriseMode === true) {
+    const missing = ['auditWebhookToken', 'alertRelayToken', 'alertWebhookToken', 'backupOffsiteToken', 'backupEncryptionKey']
+      .filter((name) => !secrets[name as keyof typeof secrets]?.configured);
+    if (missing.length > 0) {
+      throw new HttpError(409, `Enterprise mode requires configured managed secrets: ${missing.join(', ')}.`);
+    }
+  }
+  if (payload.backupDriveFolderId && !secrets.backupDriveAccessToken.configured) {
+    throw new HttpError(409, 'Drive mirror requires a configured staging access token.');
+  }
+}
+
 async function postRuntimeSettingsHandler(context: RequestContext): Promise<void> {
   if (!context.appState.runtimeSettings || !context.appState.secretStore) {
     sendJson(context.res, 503, { error: 'Managed runtime settings are unavailable.', requestId: context.requestId });
@@ -1474,14 +1531,7 @@ async function postRuntimeSettingsHandler(context: RequestContext): Promise<void
   }
   try {
     const payload = await readJsonBody(context.req, 128 * 1024);
-    if (payload?.enterpriseMode === true) {
-      const secrets = context.appState.secretStore.status();
-      const missing = ['auditWebhookToken', 'alertRelayToken', 'alertWebhookToken', 'backupOffsiteToken', 'backupEncryptionKey']
-        .filter((name) => !secrets[name as keyof typeof secrets]?.configured);
-      if (missing.length > 0) {
-        throw new HttpError(409, `Enterprise mode requires configured managed secrets: ${missing.join(', ')}.`);
-      }
-    }
+    assertRuntimeIntegrationSecrets(payload, context.appState.secretStore);
     const expected = context.req.headers['if-match'];
     const settings = await context.appState.runtimeSettings.set(payload, typeof expected === 'string' ? expected : undefined);
     if (!settings.dashboardLocalTrust || settings.enterpriseMode || settings.dashboardAuthMode !== 'token') {
@@ -2639,6 +2689,7 @@ const API_ROUTES = new Map<string, ApiHandler>([
   ['POST /api/config', postConfigHandler],
   ['GET /api/secrets', secretsHandler],
   ['POST /api/secrets', postSecretsHandler],
+  ['DELETE /api/secrets/backup-drive-access-token', deleteBackupDriveAccessTokenHandler],
   ['POST /api/access-tokens', accessTokenHandler],
   ['DELETE /api/access-tokens/viewer', disableViewerTokenHandler],
   ['POST /api/import', importHandler],
@@ -3231,7 +3282,7 @@ async function handleRequest(
 ): Promise<void> {
   const requestId = randomUUID();
   res.setHeader('X-Request-Id', requestId);
-  const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+  const parsedUrl = new URL(req.url || '/', `https://${req.headers.host || 'localhost'}`);
   const url = parsedUrl.pathname;
   const method = req.method || 'GET';
   const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
@@ -3261,9 +3312,10 @@ export function startWebServer(
   port: number,
   appState: WebServerState,
   host = process.env.WEB_HOST?.trim() || '127.0.0.1'
-): http.Server {
+): https.Server {
   const authenticator = appState.authenticator ?? dashboardAuthenticatorFromEnvironment();
-  server = http.createServer((req, res) => {
+  const tlsOptions = internalTlsServerOptions('DASHBOARD_TLS_CERT_FILE', 'DASHBOARD_TLS_KEY_FILE');
+  server = https.createServer(tlsOptions, (req, res) => {
     handleRequest(req, res, appState, authenticator).catch((error) => {
       addLog(`[ERROR] Unhandled dashboard request error: ${errorMessage(error)}`);
       if (!res.headersSent) sendJson(res, 500, { error: 'Unexpected server error.' });
@@ -3276,7 +3328,7 @@ export function startWebServer(
   server.listen(port, host, () => {
     const address = server?.address();
     const listeningPort = typeof address === 'object' && address ? address.port : port;
-    console.log(`[INFO] Web Control Dashboard listening on http://${host}:${listeningPort}`);
+    console.log(`[INFO] Web Control Dashboard listening on https://${host}:${listeningPort}`);
     if (appState.uiOperations && appState.requestRestart) {
       restartCoordinator(appState).reconcile().catch(error => {
         addLog(`[CRITICAL] Durable restart reconciliation failed: ${errorMessage(error)}`);

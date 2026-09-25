@@ -1,16 +1,34 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import https from 'node:https';
 import { once } from 'node:events';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { applyManagedRuntimeSettings, createAlertRelay, startAlertRelay } from '../src/alert_relay.js';
 import { DEFAULT_RUNTIME_SETTINGS } from '../src/runtime_settings.js';
+import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
 
 const incomingToken = 'i'.repeat(64);
 const outgoingToken = 'o'.repeat(64);
+const fixture = await setupInternalTlsTest();
+const certPath = fixture.cert;
+const keyPath = fixture.key;
+const ca = await readFile(fixture.ca);
+
+function secureFetch(url, { method = 'GET', headers = {}, body = '' } = {}) {
+  return new Promise((resolve, reject) => {
+    const request = https.request(url, { method, headers, ca, rejectUnauthorized: true }, response => {
+      response.resume();
+      response.on('end', () => resolve({ status: response.statusCode }));
+    });
+    request.on('error', reject);
+    request.end(body);
+  });
+}
 let outgoingStatus = 204;
 let deliveredBody = null;
+let deliveredCount = 0;
 for (const host of [undefined, '0.0.0.0']) {
   const scopedRelay = startAlertRelay({ incomingToken, webhookToken: outgoingToken, webhookUrl: 'https://incident.example/alerts' }, 0, host);
   try {
@@ -26,6 +44,7 @@ const receiver = http.createServer(async (request, response) => {
   const chunks = [];
   for await (const chunk of request) chunks.push(Buffer.from(chunk));
   deliveredBody = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  deliveredCount++;
   response.writeHead(outgoingStatus).end();
 });
 let activeRelay = null;
@@ -45,38 +64,66 @@ try {
   await once(activeRelay, 'listening');
   const relayAddress = activeRelay.address();
   assert.ok(relayAddress && typeof relayAddress === 'object');
-  const baseUrl = `http://127.0.0.1:${relayAddress.port}`;
+  const baseUrl = `https://127.0.0.1:${relayAddress.port}`;
   const payload = {
     status: 'firing',
     alerts: [{ labels: { alertname: 'Synthetic', severity: 'critical' }, annotations: { summary: 'test' } }]
   };
 
-  let response = await fetch(`${baseUrl}/healthz`);
+  let response = await secureFetch(`${baseUrl}/healthz`);
   assert.equal(response.status, 200);
-  response = await fetch(`${baseUrl}/alerts`, { method: 'POST', body: JSON.stringify(payload) });
+  response = await secureFetch(`${baseUrl}/alerts`, { method: 'POST', body: JSON.stringify(payload) });
   assert.equal(response.status, 401);
-  response = await fetch(`${baseUrl}/alerts`, {
+  response = await secureFetch(`${baseUrl}/alerts`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${incomingToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
   assert.equal(response.status, 202);
   assert.equal(deliveredBody.alerts[0].labels.alertname, 'Synthetic');
+  const deliveriesBeforeInvalidLabels = deliveredCount;
+  for (const invalidBody of [
+    '{"status":"firing","alerts":[{"labels":{"alertname":"Synthetic","severity":"critical","correlation_id":9007199254740993}}]}',
+    JSON.stringify({ status: 'firing', alerts: [{ labels: { alertname: 'Synthetic', severity: 'critical', service: 42 } }] })
+  ]) {
+    response = await secureFetch(`${baseUrl}/alerts`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${incomingToken}`, 'Content-Type': 'application/json' },
+      body: invalidBody
+    });
+    assert.equal(response.status, 400, 'Non-string optional labels cannot be delivered with exact identity.');
+  }
+  assert.equal(deliveredCount, deliveriesBeforeInvalidLabels, 'Rejected labels must not reach the incident receiver.');
 
-  response = await fetch(`${baseUrl}/alerts`, {
+  response = await secureFetch(`${baseUrl}/alerts`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${incomingToken}` },
     body: '{bad json'
   });
   assert.equal(response.status, 400);
   outgoingStatus = 503;
-  response = await fetch(`${baseUrl}/alerts`, {
+  response = await secureFetch(`${baseUrl}/alerts`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${incomingToken}` },
     body: JSON.stringify(payload)
   });
   assert.equal(response.status, 502, 'Alertmanager must retry when the incident endpoint fails');
   await new Promise(resolve => activeRelay.close(resolve));
+
+  delete process.env.ALERT_RELAY_TLS_CERT_FILE;
+  assert.throws(() => createAlertRelay({ incomingToken, webhookUrl: 'https://incident.example/alerts', webhookToken: outgoingToken }), /ALERT_RELAY_TLS_CERT_FILE/u);
+  process.env.ALERT_RELAY_TLS_CERT_FILE = certPath;
+  const invalidCertPath = path.join(path.dirname(certPath), 'invalid.pem');
+  await writeFile(invalidCertPath, 'invalid');
+  process.env.ALERT_RELAY_TLS_CERT_FILE = invalidCertPath;
+  assert.throws(() => createAlertRelay({ incomingToken, webhookUrl: 'https://incident.example/alerts', webhookToken: outgoingToken }), /certificate|PEM|encoding/u);
+  process.env.ALERT_RELAY_TLS_CERT_FILE = certPath;
+  process.env.ALERT_RELAY_TLS_KEY_FILE = fixture.otherKey;
+  assert.throws(() => createAlertRelay({ incomingToken, webhookUrl: 'https://incident.example/alerts', webhookToken: outgoingToken }), /do not match/u);
+  process.env.ALERT_RELAY_TLS_KEY_FILE = keyPath;
+  process.env.ALERT_RELAY_TLS_CERT_FILE = fixture.expiredCert;
+  assert.throws(() => createAlertRelay({ incomingToken, webhookUrl: 'https://incident.example/alerts', webhookToken: outgoingToken }), /not currently valid/u);
+  process.env.ALERT_RELAY_TLS_CERT_FILE = certPath;
 
   assert.throws(
     () => createAlertRelay({ incomingToken, webhookUrl: 'http://example.com', webhookToken: outgoingToken }),
@@ -112,4 +159,5 @@ try {
   receiver.close();
   activeRelay?.closeAllConnections();
   activeRelay?.close();
+  await fixture.cleanup();
 }

@@ -195,6 +195,83 @@ async function assertPaginationSafety(environment) {
   }), /invalid issue severity schema/);
 }
 
+function partitionFixture({ overlapUntil, changeAnalysis = false }) {
+  let pass = 0;
+  let issueReads = 0;
+  let analysisReads = 0;
+  return {
+    getPass: () => pass,
+    getIssueReads: () => issueReads,
+    fetchImpl: (url, options) => {
+      const parsed = new URL(url);
+      if (parsed.pathname === '/api/project_analyses/search' && changeAnalysis) {
+        analysisReads += 1;
+        return jsonResponse({ analyses: [{
+          key: analysisReads === 1 ? 'analysis-1' : 'analysis-2',
+          date: '2026-07-23T10:00:00+0000', revision
+        }] });
+      }
+      if (parsed.pathname !== '/api/issues/search') return sonarFetch(url, options);
+      issueReads += 1;
+      const resolved = parsed.searchParams.get('resolved') === 'true';
+      if (!resolved && parsed.searchParams.get('p') === '1') pass += 1;
+      const moving = { key: 'moving', severity: 'MAJOR', status: resolved ? 'CLOSED' : 'OPEN' };
+      const stable = { key: 'stable', severity: 'MINOR', status: 'OPEN' };
+      const records = resolved ? [moving] : pass <= overlapUntil ? [moving, stable] : [stable];
+      const page = Number(parsed.searchParams.get('p'));
+      return jsonResponse({ issues: records.slice(page - 1, page), paging: { total: records.length } });
+    }
+  };
+}
+
+async function assertStatusPartitionRetry(environment) {
+  const transient = partitionFixture({ overlapUntil: 1 });
+  const clock = retryClock();
+  const summary = await exportFindings({ environment, ...clock, fetchImpl: transient.fetchImpl });
+  assert.equal(summary.complete, true);
+  assert.equal(summary.issueCount, 2);
+  assert.equal(summary.openIssueCount, 1);
+  assert.equal(transient.getPass(), 2, 'both partitions must be reread after an overlap');
+  assert.equal(transient.getIssueReads(), 5, 'each page in both attempts must be read');
+  assert.deepEqual(clock.delays, [500]);
+  const issues = JSON.parse(await readFile(path.join(environment.SONAR_EXPORT_DIR, 'issues.json'), 'utf8'));
+  assert.deepEqual(issues.map(issue => issue.key), ['stable', 'moving']);
+
+  const persistent = partitionFixture({ overlapUntil: 3 });
+  const persistentClock = retryClock();
+  await assert.rejects(exportFindings({
+    environment, ...persistentClock, fetchImpl: persistent.fetchImpl
+  }), /duplicate identities across status partitions/);
+  assert.equal(persistent.getPass(), 3);
+  assert.equal(persistent.getIssueReads(), 9);
+  assert.deepEqual(persistentClock.delays, [500, 1000]);
+  await assert.rejects(readFile(path.join(environment.SONAR_EXPORT_DIR, 'summary.json')), /ENOENT/);
+
+  const exhausted = partitionFixture({ overlapUntil: 3 });
+  const exhaustedClock = retryClock();
+  await assert.rejects(exportFindings({
+    environment, ...exhaustedClock,
+    fetchImpl: (url, options) => {
+      const response = exhausted.fetchImpl(url, options);
+      const parsed = new URL(url);
+      if (parsed.pathname === '/api/issues/search' && parsed.searchParams.get('resolved') === 'true') {
+        exhaustedClock.advance(59_800);
+      }
+      return response;
+    }
+  }), /duplicate identities across status partitions/);
+  assert.equal(exhausted.getPass(), 1);
+  assert.deepEqual(exhaustedClock.delays, []);
+  await assert.rejects(readFile(path.join(environment.SONAR_EXPORT_DIR, 'summary.json')), /ENOENT/);
+
+  const changed = partitionFixture({ overlapUntil: 1, changeAnalysis: true });
+  await assert.rejects(exportFindings({
+    environment, ...retryClock(), fetchImpl: changed.fetchImpl
+  }), /analysis changed during export/);
+  assert.equal(changed.getPass(), 2);
+  await assert.rejects(readFile(path.join(environment.SONAR_EXPORT_DIR, 'summary.json')), /ENOENT/);
+}
+
 function assertErrorRedaction(environment, inherited = process.env) {
   const result = spawnSync(process.execPath, [
     '--import', './tests/fixtures/sonar_export_failure.js', 'scripts/export_sonarcloud_findings.js'
@@ -250,6 +327,7 @@ try {
   await assertRetryBudgets(environment);
   await assertHardFailures(environment);
   await assertPaginationSafety(environment);
+  await assertStatusPartitionRetry(environment);
   assertErrorRedaction(environment);
   assertErrorRedaction(environment, { ...process.env, ...parentPullRequestEnvironment });
 

@@ -676,12 +676,20 @@ async function parseSignalNative(
   }
 }
 
+function resolvedTdlibChatId(chat: unknown): string {
+  const id = (chat as { id?: unknown } | null | undefined)?.id;
+  if (typeof id !== 'string' && (typeof id !== 'number' || !Number.isSafeInteger(id))) {
+    throw new TypeError('TDLib chat ID must be a string or safe integer.');
+  }
+  return String(id);
+}
+
 async function supergroupFallback(idStr: string): Promise<string | null> {
   if (!idStr.startsWith('-100')) return null;
   try {
     const supergroupId = Number(idStr.slice(4));
     const chat = await invokeWithRetry(client, { _: 'createSupergroupChat', supergroup_id: supergroupId, force: false });
-    return String((chat as { id?: unknown }).id);
+    return resolvedTdlibChatId(chat);
   } catch (error_) {
     addLog(`[DEBUG] Supergroup-Fallback für ${idStr} fehlgeschlagen: ${error_.message}`);
     return null;
@@ -694,12 +702,12 @@ async function resolveChatId(identifier) {
     const username = idStr.startsWith('@') ? idStr.slice(1) : idStr;
     try {
       const chat = await client.invoke({ _: 'searchPublicChat', username });
-      return String((chat as { id?: unknown }).id);
+      return resolvedTdlibChatId(chat);
     } catch (e) { throw new Error(`Kanal @${username} nicht gefunden (${e.message})`, { cause: e }); }
   }
   try {
     const chat = await invokeWithRetry(client, { _: 'getChat', chat_id: Number(idStr) });
-    return String((chat as { id?: unknown }).id);
+    return resolvedTdlibChatId(chat);
   } catch (e) {
     addLog(`[DEBUG] getChat für ${idStr} fehlgeschlagen: ${e.message}`);
     const fallback = await supergroupFallback(idStr);
@@ -1686,7 +1694,8 @@ async function startBackupRuntime(runtime: RuntimeConfiguration): Promise<void> 
     backupRetention,
     addLog,
     offsiteBackup.replicator,
-    offsiteBackup.required
+    offsiteBackup.required,
+    offsiteBackup.driveRequired
   );
   await backupScheduler.start();
 }
@@ -2073,6 +2082,7 @@ async function getTelegramViewerServiceStatus(secrets: TelegramViewerSecretStore
   const response = await fetch(endpoint, {
     method: 'GET',
     headers: { Authorization: `Bearer ${await secrets.serviceToken()}`, Accept: 'application/json' },
+    redirect: 'error',
     signal: AbortSignal.timeout(3_000),
   });
   const text = await response.text();

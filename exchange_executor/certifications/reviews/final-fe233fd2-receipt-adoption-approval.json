@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "kind": "offline-implementation-receipt-adoption-approval",
+  "revision": "fe233fd2f9cd1dbaed303bbac5e6cdf83640cdb6",
+  "candidate": {
+    "path": "exchange_executor/certifications/hyperliquid.json",
+    "sha256": "a41bbd1229aa2c6390dca3e832d2a1e85378d01b758a445fe595a48249a6cf7e",
+    "sourceRevision": "fe233fd2f9cd1dbaed303bbac5e6cdf83640cdb6",
+    "exchange": "hyperliquid",
+    "profileVersion": 1
+  },
+  "candidateEvidenceRevision": "2def6a1c361d9c66fd3bbee99f3b59da61a539f3",
+  "approved": true,
+  "reviewer": "Codex",
+  "reviewedAt": "2026-09-25T14:07:09Z",
+  "scope": "Approve only the exact offline Hyperliquid profile 1 implementation receipt for adoption after independent source, runtime, evidence and matrix-binding verification. This approval grants no provider acceptance, live trading, deployment, publication, account activation, order authority or new exchange/profile scope.",
+  "independentReview": {
+    "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review.json",
+    "sha256": "6b7b9ef5a6b1311f69af91032a6abd6ff236e6a09f9dda6dbed72d5fb4c55d04",
+    "reviewedRevision": "8e7b7869d49d7ab5bf6222cd97f02ffdfecc7b25",
+    "result": "no_blocking_defect_found_within_reviewed_scope"
+  },
+  "executionReport": {
+    "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-execution-report.json",
+    "sha256": "cbcc60e2527f1ee683140e598a9745b0bfd50f7c0b6f2229dad955898ee14581",
+    "revision": "fe233fd2f9cd1dbaed303bbac5e6cdf83640cdb6",
+    "rawLogCount": 6,
+    "allRawLogBytesAndHashesMatch": true
+  },
+  "recomputedCommitments": {
+    "sourceTreeHash": "e90c9c880561c4862a0fbd4cfb532123e36efde17df58170883e6c771171c01f",
+    "nodeSourcesHash": "028f280ab1ffb267d8900916e92f7f9d6f91d83844e29db9c6ae6652a985f7e8",
+    "testSourcesHash": "879f3c647ace3317191228df943297102e7167f1cff8fe50e2484f1b889cd2df",
+    "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee",
+    "executorTreeHash": "842fd984dc8e473ec1d0a93064753211123e0fbf05f54787c32c1a503ac978d9",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7"
+  },
+  "validation": {
+    "candidateReceiptHashMatches": true,
+    "receiptRevisionMatchesExecutionReport": true,
+    "parityEvidenceHashMatchesIndependentReview": true,
+    "executionReportHashMatchesExecutionReport": true,
+    "executionReportSourceCommitmentsMatchReceipt": true,
+    "candidateEvidenceRevisionIsAncestor": true,
+    "reviewedRevisionIsAncestor": true,
+    "nodeCompareBuildReceipt": {
+      "status": "PASS",
+      "node": "22.23.2",
+      "buildInputsMatch": true
+    },
+    "pythonValidateReceipt": {
+      "status": "PASS",
+      "python": "3.12.14",
+      "ccxt": "4.5.75",
+      "profileHashMatches": true,
+      "executorTreeHashMatches": true,
+      "sdkTreeHashMatches": true
+    },
+    "rawLogHashVerification": "6/6 exact byte lengths and SHA-256 values match",
+    "focusedRegressionTests": {
+      "exchangeImplementationBridge": "1/1 PASS",
+      "certificationEvidence": "12/12 PASS",
+      "candidateReviewPolicy": "3/3 PASS",
+      "catalogAssessmentPinCheck": "PASS"
+    }
+  },
+  "matrixEvidence": {
+    "assessmentHash": "c2a9fa207a8758ab7be1877b5ab40572092ff7ad477da5f432b4d3f17ce8921b",
+    "inventoryHash": "7c0ab01cf1e2629cee66528959e0c45ffe01a6111697294e5ca528116f247e54",
+    "changedEvidenceCount": 6,
+    "allNineHyperliquidEvidenceBindingsMatch": true,
+    "renewedBindings": [
+      {
+        "path": "exchange_executor/hyperliquid_agent_grant.py",
+        "sha256": "89aaac36a31f00d9f1824e9375507e2f494d2c066a09a5dc28e3390963da5c28"
+      },
+      {
+        "path": "exchange_executor/ccxt_client.py",
+        "sha256": "d80707faef6b0c21f103a81059e1b829a456d1f5d51d701f2a700ae2ed29ccc1"
+      },
+      {
+        "path": "exchange_executor/ccxt_sdk_policy.py",
+        "sha256": "7e7986f1af1a37c2b7323ac4224997a6f0eb0751230a627ee4544a948e441de9"
+      },
+      {
+        "path": "exchange_executor/tests/test_hyperliquid_agent_grant.py",
+        "sha256": "fe552599ba9755e361ba34f717ae9351b0991ff78330209ade438cbfcd2823c9"
+      },
+      {
+        "path": "scripts/hyperliquid_bound_preflight.py",
+        "sha256": "7079c9a4873e6cfccab0f5ce0b36085115b994c0f43026e5cc2778a2b937a0fa"
+      },
+      {
+        "path": "tests/test_hyperliquid_bound_preflight.py",
+        "sha256": "d930d90f66b7293c403f038d9874297ab4ae9269e234133d5ef5144af06422d2"
+      }
+    ]
+  },
+  "pinDecision": {
+    "approvedReceiptHash": "a41bbd1229aa2c6390dca3e832d2a1e85378d01b758a445fe595a48249a6cf7e",
+    "maySetTrustedPinExactly": true,
+    "targetKey": [
+      "hyperliquid",
+      1
+    ]
+  },
+  "providerAcceptanceVerified": false,
+  "liveTradingApproved": false,
+  "operativeReceiptOrPinsChangedByThisReview": false,
+  "remaining": [
+    "Set the trusted Hyperliquid profile 1 pin exactly to the approved candidate receipt hash, then run the production implementation gate and receipt/bridge regressions.",
+    "Provider acceptance, authenticated Testnet lifecycle, live orders, deployment and release approval remain separate and unapproved.",
+    "The POSIX FIFO and final-file-symlink branch remains a Linux CI responsibility."
+  ]
+}

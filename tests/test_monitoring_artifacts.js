@@ -29,6 +29,46 @@ const alertmanagerImage = 'tsx-core-alertmanager:0.33.1-hardened';
 
 assert.match(prometheus, /alertmanager:9093/);
 assert.match(prometheus, /forwarder:9100/);
+assert.match(prometheus, /job_name: tsx-core\s+scheme: https\s+metrics_path: \/metrics\s+tls_config:\s+ca_file: \/run\/tsx-tls\/ca\.pem/);
+assert.match(alertmanager, /url: https:\/\/alert-relay:9095\/alerts[\s\S]*?tls_config:\s+ca_file: \/run\/tsx-tls\/ca\.pem/);
+assert.doesNotMatch(alertmanager, /url: http:\/\/alert-relay:/);
+
+function composeService(source, name) {
+  const normalized = source.replaceAll('\r\n', '\n');
+  const marker = `\n  ${name}:\n`;
+  const start = normalized.indexOf(marker);
+  assert.ok(start >= 0, `${name} must exist in Compose`);
+  const tail = normalized.slice(start + marker.length);
+  const nextService = tail.search(/\n {2}[a-z][\w-]*:\n/);
+  return nextService < 0 ? tail : tail.slice(0, nextService);
+}
+
+const tlsServices = [
+  [composeService(applicationCompose, 'forwarder'), ['dashboard', 'metrics']],
+  [composeService(applicationCompose, 'exchange-executor'), ['executor']],
+  [composeService(applicationCompose, 'telegram-viewer'), ['viewer']],
+  [composeService(compose, 'alert-relay'), ['alert-relay']],
+];
+for (const [service, allowedKeys] of tlsServices) {
+  const mountedKeys = [...service.matchAll(/\$\{INTERNAL_TLS_DIR:\?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout\}\/([\w-]+)\.key:[^\s]+/g)]
+    .map(match => {
+      assert.ok(match[0].endsWith(`/run/tsx-tls/${match[1]}.key:ro`));
+      return match[1];
+    });
+  assert.deepEqual(mountedKeys.sort(), [...allowedKeys].sort(), 'Only the service-owned TLS private keys may be mounted');
+  assert.doesNotMatch(service, /NODE_TLS_REJECT_UNAUTHORIZED|--insecure|https?:\/\/[^\s]*--insecure/);
+}
+assert.match(applicationCompose, /NODE_EXTRA_CA_CERTS: "\/run\/tsx-tls\/ca\.pem"/);
+assert.match(applicationCompose, /TSX_INTERNAL_CA_FILE: "\/run\/tsx-tls\/ca\.pem"/);
+assert.match(composeService(compose, 'prometheus'), /core-network/);
+assert.match(composeService(compose, 'prometheus'), /\/ca\.pem:\/run\/tsx-tls\/ca\.pem:ro/);
+assert.match(composeService(compose, 'alertmanager'), /\/ca\.pem:\/run\/tsx-tls\/ca\.pem:ro/);
+assert.match(composeService(applicationCompose, 'forwarder'), /https:\/\/127\.0\.0\.1:9100\/healthz/);
+assert.match(composeService(applicationCompose, 'exchange-executor'), /HTTPSConnection\('127\.0\.0\.1',8090/);
+assert.match(composeService(applicationCompose, 'telegram-viewer'), /https:\/\/127\.0\.0\.1:8081\/healthz/);
+assert.match(composeService(compose, 'alert-relay'), /https:\/\/127\.0\.0\.1:9095\/healthz/);
+assert.match(composeService(compose, 'alert-relay'), /NODE_EXTRA_CA_CERTS: \/run\/tsx-tls\/ca\.pem/);
+assert.doesNotMatch(composeService(compose, 'alert-relay'), /http:\/\/127\.0\.0\.1:9100/);
 for (const requiredAlert of [
   'ForwarderMetricsMissing',
   'ForwarderUnknownDelivery',
@@ -50,15 +90,18 @@ assert.ok(compose.includes(prometheusImage));
 assert.ok(checker.includes(prometheusImage));
 assert.match(compose, /prometheus:[\s\S]*?build:[\s\S]*?dockerfile:\s*monitoring\/prometheus\.Dockerfile/);
 assert.match(checker, /build\(prometheusImage, prometheusDockerfile, 'Prometheus'\)/);
-assert.equal(workflow.split(`image-ref: tsx-core-prometheus:\${{ github.sha }}`).length - 1, 2, 'SBOM and blocking scan must use the hardened image');
+// skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text
+assert.equal(workflow.split("image-ref: tsx-core-prometheus:${{ github.sha }}").length - 1, 2, 'SBOM and blocking scan must use the hardened image');
 assert.match(workflow, /docker buildx build --provenance=false --platform linux\/amd64 --load --file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/prometheus\.Dockerfile" --tag tsx-core-prometheus:\$\{\{ github\.sha \}\} "\$RUNNER_TEMP\/tsx-reviewed-source"/);
 assert.ok(compose.includes(alertmanagerImage));
 assert.match(compose, /alertmanager:[\s\S]*?build:[\s\S]*?dockerfile:\s*monitoring\/alertmanager\.Dockerfile/);
 assert.ok(checker.includes(alertmanagerImage));
 assert.match(checker, /build\(alertmanagerImage, alertmanagerDockerfile, 'Alertmanager'\)/);
 assert.match(checker, /'build', '--provenance=false', '--file', dockerfile, '--tag', image, root/);
-assert.equal(workflow.split(`image-ref: tsx-core-alertmanager:\${{ github.sha }}-amd64`).length - 1, 2);
-assert.equal(workflow.split(`image-ref: tsx-core-alertmanager:\${{ github.sha }}-arm64`).length - 1, 2);
+// skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text
+assert.equal(workflow.split("image-ref: tsx-core-alertmanager:${{ github.sha }}-amd64").length - 1, 2);
+// skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text
+assert.equal(workflow.split("image-ref: tsx-core-alertmanager:${{ github.sha }}-arm64").length - 1, 2);
 assert.match(workflow, /docker buildx build --provenance=false --platform linux\/amd64 --load --metadata-file alertmanager-amd64-build\.json --file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/alertmanager\.Dockerfile" --tag tsx-core-alertmanager:\$\{\{ github\.sha \}\}-amd64 "\$RUNNER_TEMP\/tsx-reviewed-source"/);
 assert.match(workflow, /docker buildx build --provenance=false --platform linux\/arm64 --load --metadata-file alertmanager-arm64-build\.json --file "\$RUNNER_TEMP\/tsx-reviewed-source\/monitoring\/alertmanager\.Dockerfile" --tag tsx-core-alertmanager:\$\{\{ github\.sha \}\}-arm64 "\$RUNNER_TEMP\/tsx-reviewed-source"/);
 assert.match(workflow, /docker buildx build --no-cache --provenance=false --platform linux\/amd64 --load --metadata-file alertmanager-amd64-rebuild\.json/);
@@ -102,7 +145,8 @@ assert.doesNotMatch(prometheusDockerfile, /\bgo install\b/);
 assert.match(prometheusDockerfile, /^FROM builder AS security-audit$/m);
 assert.equal((prometheusDockerfile.match(/govulncheck -mode=binary -scan=symbol/g) ?? []).length, 2);
 assert.match(prometheusDockerfile, /^USER 65534:65534$/m);
-const prometheusRuntime = prometheusDockerfile.slice(prometheusDockerfile.indexOf(`FROM \${RUNTIME_IMAGE} AS runner`));
+// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text
+const prometheusRuntime = prometheusDockerfile.slice(prometheusDockerfile.indexOf("FROM ${RUNTIME_IMAGE} AS runner"));
 assert.doesNotMatch(prometheusRuntime, /^RUN\s/m, 'Hardened Prometheus runtime must not install packages.');
 
 assert.match(alertmanagerDockerfile, /^ARG GO_IMAGE=golang:1\.26\.6-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422bacf9930927e23fb719189c6f36$/m);
@@ -123,8 +167,9 @@ assert.match(alertmanagerDockerfile, /COPY --chmod=0444 monitoring\/alertmanager
 assert.match(alertmanagerDockerfile, /GOFLAGS=-mod=readonly/);
 assert.doesNotMatch(alertmanagerDockerfile, /\bgo (?:get|install)\b/);
 assert.match(alertmanagerSumLock, /golang\.org\/x\/text v0\.41\.0 h1:/);
-assert.match(vulncheckModuleLock, /require golang\.org\/x\/vuln v1\.6\.0/);
-assert.match(vulncheckSumLock, /golang\.org\/x\/vuln v1\.6\.0 h1:/);
+assert.match(vulncheckModuleLock, /require golang\.org\/x\/vuln v1\.8\.0/);
+assert.match(vulncheckSumLock, /golang\.org\/x\/vuln v1\.8\.0 h1:/);
+assert.match(vulncheckSumLock, /golang\.org\/x\/mod v0\.41\.0 h1:/);
 assert.match(alertmanagerDockerfile, /CGO_ENABLED=0/);
 assert.match(alertmanagerDockerfile, /^ARG SOURCE_DATE_EPOCH=1783191941$/m);
 assert.match(alertmanagerDockerfile, /^FROM --platform=\$\{BUILDPLATFORM\} \$\{GO_IMAGE\} AS builder$/m);
@@ -137,7 +182,8 @@ assert.doesNotMatch(alertmanagerDockerfile, /-ldflags="[^"]*-s(?:\s|$)/);
 assert.match(alertmanagerDockerfile, /^FROM builder AS security-audit$/m);
 assert.equal((alertmanagerDockerfile.match(/govulncheck -mode=binary -scan=symbol/g) ?? []).length, 2);
 assert.match(alertmanagerDockerfile, /^USER 65534:65534$/m);
-const alertmanagerRuntime = alertmanagerDockerfile.slice(alertmanagerDockerfile.indexOf(`FROM \${RUNTIME_IMAGE} AS runner`));
+// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text
+const alertmanagerRuntime = alertmanagerDockerfile.slice(alertmanagerDockerfile.indexOf("FROM ${RUNTIME_IMAGE} AS runner"));
 assert.doesNotMatch(alertmanagerRuntime, /^RUN\s/m, 'Hardened Alertmanager runtime must not install packages.');
 
 console.log('Monitoring artifact policy tests passed.');

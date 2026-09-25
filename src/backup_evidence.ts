@@ -4,7 +4,7 @@ import { promises as fs } from 'node:fs';
 import { RESTORE_ELIGIBILITY_SCOPE } from './ui_contracts.js';
 import type { RestoreEligibility, BackupCreationEvidence, BackupProof } from './ui_contracts.js';
 export { RESTORE_ELIGIBILITY_SCOPE } from './ui_contracts.js';
-export type { RestoreEligibility, BackupProof, BackupOffsiteProof, BackupRestoreDrillProof, BackupCreationEvidence, BackupVerificationEvidence } from './ui_contracts.js';
+export type { RestoreEligibility, BackupProof, BackupOffsiteProof, BackupDriveMirrorProof, BackupRestoreDrillProof, BackupCreationEvidence, BackupVerificationEvidence } from './ui_contracts.js';
 
 /** Read at most the manifest limit plus one byte, including a concurrent growth case. */
 export async function boundedBackupManifestBytes(destination: string): Promise<Buffer> {
@@ -99,15 +99,14 @@ function hasMatchingRestoreEligibility(
 /** Backup prerequisite only: roles, confirmation, current target safety and lease remain mandatory. */
 export function hasCurrentRestorableBackup(backup: unknown, now = Date.now()): boolean {
   const candidate = backup as RestorableBackupCandidate | null | undefined;
-  if (!candidate || candidate.healthy !== true) return false;
+  if (candidate?.healthy !== true) return false;
   const sha = candidate.integrityVerified?.artifactSha256;
   if (typeof sha !== 'string' || !/^[a-f0-9]{64}$/.test(sha)) return false;
   const fresh = (at: unknown) => typeof at === 'number' && timestamp(at) && at <= now && now - at <= 30 * 60_000;
   if (!fresh(Date.parse(candidate.integrityVerified?.artifactCreatedAt ?? ''))) return false;
   const proofs = [candidate.integrityVerified, candidate.configurationCoherent];
   const eligibility = candidate.restoreEligibility;
-  return proofs.every(proof => proof !== null && proof !== undefined
-      && proof.artifactSha256 === sha && fresh(proof.verifiedAt)
+  return proofs.every(proof => proof?.artifactSha256 === sha && fresh(proof.verifiedAt)
       && proof.artifactCreatedAt === candidate.integrityVerified?.artifactCreatedAt)
     && hasMatchingRestoreEligibility(eligibility, sha, fresh);
 }

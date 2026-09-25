@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "baseRevision": "17abeb0f2655f3c05560d047cc0c8a046b92865f",
+  "mode": "read-only-source-audit",
+  "archivalEvidence": "docs/testing/host-maintenance-boundary-efbcb568.json",
+  "audited": {
+    "externalControls": 70,
+    "composeSubstitutions": 23,
+    "tlsArtifacts": 11,
+    "monitoringConfigurationGroups": 11,
+    "alertRules": 18,
+    "hostAndObservationControls": 7,
+    "deploymentKnownGaps": 6,
+    "catalogFirstSliceStatic": 90,
+    "catalogKnownGap": 6,
+    "catalogUnverified": 216,
+    "slicePaths": 96,
+    "promotedFields": 0
+  },
+  "sourceSha256": {
+    "docs/ui-next/inventory/external-operational-controls.json": "1012792e46c0949d74408ddc09741b1b7f5c35f647e9172a8b946110b51e95bf",
+    "docs/ui-next/inventory/operational-fields.json": "d9a0b3fa0ffe41b92afe21a4140bf57699de8567f2c5f13dd5c2448b945cc470",
+    "docs/ui-next/inventory/operational-coverage-slice.json": "f638cd9ef7694f94ef71a9c44f5269d41c22d6ac72d57dbdd2c66969a721ce5b",
+    "docker-compose.monitoring.yml": "9f954af1eb2e1a6772624c749f7696ffc895461198215bb0157c8de4edf0d17b",
+    "monitoring/prometheus.yml": "5703bbb67e8f4002a7f0e9cda67cddb95b38421340f7bb389b22402a99f2f3ab"
+  },
+  "observations": [
+    "Every external control belongs to exactly one host-boundary group; all 70 remain unverified.",
+    "The integration inventory retains 90 first-slice-static, six known-gap, and 216 unverified paths across a 96-path slice.",
+    "All six deployment paths remain host-maintenance known gaps.",
+    "The 13 critical alert rules remain grouped as immutable detection policy.",
+    "The current Prometheus config is a read-only single-file bind mount and lifecycle reload is not enabled."
+  ],
+  "limits": "No independent host maintenance service or effective apply/reload/rollback test exists. This evidence does not establish an operable UI setting, live-host state, or release readiness."
+}

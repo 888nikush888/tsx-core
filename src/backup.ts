@@ -28,17 +28,22 @@ import { assertMcpMaintenanceLease, type McpMaintenanceLease } from './mcp_maint
 import {
   assessRestoreEligibility, boundedBackupManifestBytes, requireRestoreEligibility, validateBackupCreationEvidence,
   type BackupCreationEvidence, type BackupVerificationEvidence, type RestoreEligibility,
-  type BackupProof, type BackupOffsiteProof, type BackupRestoreDrillProof,
+  type BackupProof, type BackupOffsiteProof, type BackupDriveMirrorProof, type BackupRestoreDrillProof,
 } from './backup_evidence.js';
 import { runIsolatedBackupRestoreDrill } from './backup_restore_drill.js';
+import type { DriveMirrorReceipt } from './google_drive_backup_mirror.js';
 
 interface BackupReplicator {
+  readonly driveMirrorConfigured?: boolean;
   replicate(artifactPath: string): Promise<{
     objectName: string;
     verifiedAt: number;
     artifactSha256: string;
     artifactCreatedAt: string;
     sha256: string;
+    size?: number;
+    driveMirror?: DriveMirrorReceipt | null;
+    driveMirrorError?: string | null;
   }>;
 }
 
@@ -65,6 +70,7 @@ const FORBIDDEN_CONFIG_KEYS = new Set([
   'DASHBOARDBOOTSTRAPPROOF',
   'BACKUPOFFSITETOKEN',
   'BACKUPENCRYPTIONKEY',
+  'BACKUPDRIVEACCESSTOKEN',
   'ALERTRELAYTOKEN',
   'ALERTWEBHOOKTOKEN',
   'PROMETHEUSTOKEN',
@@ -119,9 +125,40 @@ export interface BackupStatus {
   integrityVerified: BackupProof | null;
   configurationCoherent: BackupProof | null;
   offsiteVerified: BackupOffsiteProof | null;
+  driveMirrorVerified: BackupDriveMirrorProof | null;
+  driveMirrorLastError: string | null;
   restoreEligibility: (RestoreEligibility & { artifactSha256: string }) | null;
   lastRestoreEligible: BackupProof | null;
   restoreDrill: BackupRestoreDrillProof | null;
+}
+
+function assertBackupSchedulerOptions(
+  intervalMs: number, retainCount: number, replicator: BackupReplicator | null,
+  offsiteRequired: boolean, driveMirrorRequired: boolean,
+): void {
+  if (!Number.isSafeInteger(intervalMs) || intervalMs < 60_000 || intervalMs > 15 * 60_000) {
+    throw new Error('Backup interval must be between 1 and 15 minutes for the local snapshot target.');
+  }
+  if (!Number.isSafeInteger(retainCount) || retainCount < 1 || retainCount > 10_000) {
+    throw new Error('Backup retention count must be between 1 and 10000.');
+  }
+  if (offsiteRequired && !replicator) throw new Error('Required off-site backup replication is not configured.');
+  if (driveMirrorRequired && replicator?.driveMirrorConfigured !== true) {
+    throw new Error('Required Drive backup mirror is not configured.');
+  }
+}
+
+function hasFreshOffsiteProof(status: BackupStatus, intervalMs: number): boolean {
+  return Boolean(status.lastOffsiteSuccessAt) && status.offsiteVerified !== null
+    && status.offsiteVerified.artifactSha256 === status.integrityVerified?.artifactSha256
+    && (!status.lastError || status.lastError === status.driveMirrorLastError)
+    && Date.now() - status.lastOffsiteSuccessAt <= intervalMs * 2;
+}
+
+function hasFreshDriveMirrorProof(status: BackupStatus, intervalMs: number): boolean {
+  return status.driveMirrorVerified !== null && !status.driveMirrorLastError
+    && status.driveMirrorVerified.artifactSha256 === status.integrityVerified?.artifactSha256
+    && Date.now() - status.driveMirrorVerified.verifiedAt <= intervalMs * 2;
 }
 
 function normalizedConfigKey(key: string): string {
@@ -550,7 +587,7 @@ export async function createBackupArtifact(
   }
 }
 
-export async function pruneBackupArtifacts(backupDirectory: string, retainCount: number): Promise<number> {
+export async function pruneBackupArtifacts(backupDirectory: string, retainCount: number, protectedArtifactPath?: string): Promise<number> {
   if (!Number.isSafeInteger(retainCount) || retainCount < 1 || retainCount > 10_000) {
     throw new Error('Backup retention count must be between 1 and 10000.');
   }
@@ -559,10 +596,20 @@ export async function pruneBackupArtifacts(backupDirectory: string, retainCount:
   const artifacts = entries
     .filter(entry => entry.isDirectory() && /^backup-\d{4}-/.test(entry.name))
     .map(entry => entry.name)
-    .sort((left, right) => left.localeCompare(right))
+    .sort((left, right) => left < right ? -1 : Number(left > right))
     .reverse();
+  const protectedPath = protectedArtifactPath ? path.resolve(protectedArtifactPath) : null;
+  if (protectedPath && (path.dirname(protectedPath) !== root || !artifacts.includes(path.basename(protectedPath)))) {
+    throw new Error('Latest verified backup artifact is not a directory in the backup root.');
+  }
+  const kept = new Set<string>();
+  if (protectedPath) kept.add(path.basename(protectedPath));
+  for (const artifact of artifacts) {
+    if (kept.size >= retainCount) break;
+    kept.add(artifact);
+  }
   let removed = 0;
-  for (const artifact of artifacts.slice(retainCount)) {
+  for (const artifact of artifacts.filter(name => !kept.has(name))) {
     const target = path.resolve(root, artifact);
     if (path.dirname(target) !== root) throw new Error(`Refusing to prune path outside backup root: ${target}`);
     await fs.rm(target, { recursive: true, force: true });
@@ -886,6 +933,8 @@ export class BackupScheduler {
     integrityVerified: null,
     configurationCoherent: null,
     offsiteVerified: null,
+    driveMirrorVerified: null,
+    driveMirrorLastError: null,
     restoreEligibility: null,
     lastRestoreEligible: null,
     restoreDrill: null,
@@ -898,15 +947,10 @@ export class BackupScheduler {
     private readonly retainCount = 672,
     private readonly logger: (message: string) => void = console.log,
     private readonly replicator: BackupReplicator | null = null,
-    private readonly offsiteRequired = false
+    private readonly offsiteRequired = false,
+    private readonly driveMirrorRequired = false
   ) {
-    if (!Number.isSafeInteger(intervalMs) || intervalMs < 60_000 || intervalMs > 15 * 60_000) {
-      throw new Error('Backup interval must be between 1 and 15 minutes for the local snapshot target.');
-    }
-    if (!Number.isSafeInteger(retainCount) || retainCount < 1 || retainCount > 10_000) {
-      throw new Error('Backup retention count must be between 1 and 10000.');
-    }
-    if (offsiteRequired && !replicator) throw new Error('Required off-site backup replication is not configured.');
+    assertBackupSchedulerOptions(intervalMs, retainCount, replicator, offsiteRequired, driveMirrorRequired);
   }
 
   public async start(): Promise<void> {
@@ -924,16 +968,23 @@ export class BackupScheduler {
     if (this.activeRun !== null) await this.activeRun;
   }
 
-  public getStatus(): BackupStatus & { healthy: boolean; offsiteHealthy: boolean; offsiteRequired: boolean } {
+  public getStatus(): BackupStatus & { healthy: boolean; offsiteHealthy: boolean; offsiteRequired: boolean; offsiteConfigured: boolean; driveMirrorHealthy: boolean; driveMirrorRequired: boolean; driveMirrorConfigured: boolean } {
     const status = structuredClone(this.status);
-    const offsiteHealthy = !this.replicator && !this.offsiteRequired
-      ? true
-      : Boolean(status.lastOffsiteSuccessAt) && !status.lastError && Date.now() - status.lastOffsiteSuccessAt <= this.intervalMs * 2;
+    const offsiteConfigured = this.replicator !== null;
+    const offsiteHealthy = (!this.replicator && !this.offsiteRequired)
+      || hasFreshOffsiteProof(status, this.intervalMs);
+    const driveMirrorConfigured = this.replicator?.driveMirrorConfigured === true;
+    const driveMirrorHealthy = driveMirrorConfigured && hasFreshDriveMirrorProof(status, this.intervalMs);
     return {
       ...status,
-      healthy: Boolean(status.lastSuccessAt) && !status.lastError && Date.now() - status.lastSuccessAt <= this.intervalMs * 2 && offsiteHealthy,
+      healthy: Boolean(status.lastSuccessAt) && !status.lastError && Date.now() - status.lastSuccessAt <= this.intervalMs * 2 && offsiteHealthy
+        && (!this.driveMirrorRequired || driveMirrorHealthy),
       offsiteHealthy,
-      offsiteRequired: this.offsiteRequired
+      offsiteRequired: this.offsiteRequired,
+      offsiteConfigured,
+      driveMirrorHealthy,
+      driveMirrorRequired: this.driveMirrorRequired,
+      driveMirrorConfigured
     };
   }
 
@@ -967,24 +1018,66 @@ export class BackupScheduler {
         artifactCreatedAt: replication.artifactCreatedAt, objectName: replication.objectName, encryptedObjectSha256: replication.sha256 } };
   }
 
+  private recordDriveMirrorEvidence(replication: Awaited<ReturnType<BackupReplicator['replicate']>>): void {
+    if (replication.driveMirrorError || !replication.driveMirror) {
+      if (replication.driveMirrorError) {
+        this.status.driveMirrorLastError = 'Drive mirror upload or verification failed.';
+      } else if (this.driveMirrorRequired) {
+        this.status.driveMirrorLastError = 'Required Drive mirror receipt is missing.';
+      } else {
+        this.status.driveMirrorLastError = null;
+      }
+      return;
+    }
+    const mirror = replication.driveMirror;
+    if (mirror.objectName !== replication.objectName || mirror.sha256 !== replication.sha256 || mirror.size !== replication.size
+      || !/^[A-Za-z0-9_-]{10,256}$/.test(mirror.driveFileId)
+      || !Number.isSafeInteger(mirror.verifiedAt) || mirror.verifiedAt < replication.verifiedAt || mirror.verifiedAt > Date.now()) {
+      this.status.driveMirrorLastError = 'Drive mirror receipt does not bind the verified primary backup object.';
+      return;
+    }
+    this.status.driveMirrorVerified = { verifiedAt: mirror.verifiedAt, artifactSha256: replication.artifactSha256,
+      artifactCreatedAt: replication.artifactCreatedAt, objectName: mirror.objectName, encryptedObjectSha256: mirror.sha256,
+      encryptedObjectSize: mirror.size, driveFileId: mirror.driveFileId };
+    this.status.driveMirrorLastError = null;
+  }
+
   public runNow(): Promise<string> {
     if (this.activeRun !== null) return Promise.reject(new Error('A backup is already running.'));
     this.status.running = true;
     const operation = (async () => {
+      let verifiedArtifact: string | null = null;
+      let pruningAttempted = false;
       try {
         const artifact = await createBackupArtifact(this.backupDirectory, this.configProvider());
         const local = await inspectBackupArtifact(artifact);
         this.recordLocalEvidence(artifact, local);
+        verifiedArtifact = artifact;
         const replication = this.replicator ? await this.replicator.replicate(artifact) : null;
-        if (replication) this.recordOffsiteEvidence(replication, local.artifactSha256);
-        await pruneBackupArtifacts(this.backupDirectory, this.retainCount);
+        if (replication) {
+          this.recordOffsiteEvidence(replication, local.artifactSha256);
+          this.recordDriveMirrorEvidence(replication);
+        }
+        // Local retention still runs when a required secondary mirror fails.
+        pruningAttempted = true;
+        await pruneBackupArtifacts(this.backupDirectory, this.retainCount, artifact);
+        if (this.driveMirrorRequired && this.status.driveMirrorLastError) throw new Error(this.status.driveMirrorLastError);
         this.status = { ...this.status, lastError: null, running: false };
         this.logger(`[INFO] Verified backup created: ${artifact}`);
         if (replication) this.logger(`[INFO] Encrypted off-site backup verified: ${replication.objectName}`);
         return artifact;
       } catch (error: unknown) {
-        this.status = { ...this.status, lastError: (error as { message?: string }).message, running: false };
-        throw error;
+        let failure = error;
+        if (verifiedArtifact && !pruningAttempted) {
+          try {
+            // Also bound growth during repeated primary replication failures.
+            await pruneBackupArtifacts(this.backupDirectory, this.retainCount, verifiedArtifact);
+          } catch (pruneError) {
+            failure = new AggregateError([error, pruneError], 'Backup failed and local retention pruning also failed.');
+          }
+        }
+        this.status = { ...this.status, lastError: (failure as { message?: string }).message, running: false };
+        throw failure;
       }
     })();
     this.activeRun = operation;

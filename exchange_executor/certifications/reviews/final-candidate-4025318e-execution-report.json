@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "reportId": "final-candidate-4025318e-execution-report",
+  "kind": "final-source-bound-execution-report",
+  "revision": "4025318e5e56684050a4f54aeefd9321390fe2f4",
+  "executionBaseRevision": "ade2354cbe2b67c938784fe111b316db2affc0a8",
+  "deltaScope": "The complete Node, Python and frontend suites, build, lint, typecheck and complexity checks ran on execution base revision ade2354c. The final source delta moves the two Hyperliquid preflight tools to /app/tools, adds rule-scoped Codacy filesystem exceptions, updates the supply-chain expectations and mounts all reviewed evidence roots read-only for the complete in-image suite; targeted tests, lint, typecheck and the container build/runtime checks validate that delta on the final revision.",
+  "independentReview": {
+    "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review.json",
+    "sha256": "6b7b9ef5a6b1311f69af91032a6abd6ff236e6a09f9dda6dbed72d5fb4c55d04",
+    "reviewedRevision": "8e7b7869d49d7ab5bf6222cd97f02ffdfecc7b25"
+  },
+  "deltaReview": {
+    "path": "exchange_executor/certifications/reviews/final-delta-4025318e-review.json",
+    "sha256": "a609da20bfd14e9c0d29aefeffba46da9874a440784108f30aa158a2b648367f"
+  },
+  "candidateEvidenceRevision": "4025318e5e56684050a4f54aeefd9321390fe2f4",
+  "sourceCommitments": {
+    "sourceTreeHash": "137a61512ebce036673eb72baaead315896ab883b2777bb6cf6356645cbe868f",
+    "nodeSourcesHash": "7d4dd9a4ce3d87c6cb19061cf8f07e5246a33b2745b9affab948011ee3ef021c",
+    "testSourcesHash": "ebca20bea4abbbd2b7ae0c15e7fee18ba55404ffdb10de72887bae03e2449fce",
+    "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee"
+  },
+  "runtimeCommitments": {
+    "executorTreeHash": "95c6502e51bb1db0073be5cf40bd5f453599d8cf0518c078766be43432ab835a",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7"
+  },
+  "environment": {
+    "node": "24.14.1",
+    "npm": "11.11.0",
+    "python": "3.12.13",
+    "ccxt": "4.5.75"
+  },
+  "results": {
+    "pythonFullSuite": "587 passed, 1 platform skip",
+    "nodeFullSuite": "ALL 238 TEST FILES PASSED",
+    "frontendFullSuite": "47 test files, 419 tests passed",
+    "rootBuild": "TypeScript, declaration copy and Vite production build passed",
+    "rootLint": "ESLint passed",
+    "frontendLint": "oxlint passed",
+    "pythonLint": "Ruff passed",
+    "typecheck": "tsc --noEmit passed",
+    "complexityBudget": "0 warnings, 0 threshold violations"
+  },
+  "linuxSourceVerification": {
+    "cleanCloneRevision": "4025318e5e56684050a4f54aeefd9321390fe2f4",
+    "sourceTreeHash": "137a61512ebce036673eb72baaead315896ab883b2777bb6cf6356645cbe868f",
+    "result": "The clean Linux clone produced the same source commitments as the frozen Windows source revision."
+  },
+  "rawLogs": [
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/node-full-suite.log",
+      "bytes": 73722,
+      "sha256": "6b127024f58d7754e81bdf2878a2ee889e84ea7d50f07e51d165272fefbd3e5c"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/python-full-suite.log",
+      "bytes": 114962,
+      "sha256": "6569b7b7b62f49efb3e4e8ab387662c86c30be73a8422d638050cf2bacbe1400"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/frontend-full-suite.log",
+      "bytes": 448,
+      "sha256": "2671dc9bb944454a6363d3cc532da19c648233f224a68be4b63e262d1d95969d"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/root-build.log",
+      "bytes": 1563,
+      "sha256": "f59c595412ba4d34df8d10aed492f6c663e98c0abe6dc8d9944d056542f6cf10"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/lint.log",
+      "bytes": 291,
+      "sha256": "69130ef054cf1fab17ee7772a6fe5cbc41553ac59b99a0858dc04579379ee2b2"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/lint-frontend.log",
+      "bytes": 108,
+      "sha256": "05cf4f0842f8f0b030b45c51f245ccdab7b4faa125abd0e04fdefe969232e3b1"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/lint-python.log",
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/typecheck.log",
+      "bytes": 44,
+      "sha256": "36ad9a8a29908c63402af4b6ad27b81468223fb0da68a311a0d31ceba5790316"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-ade2354c-logs/quality-complexity.log",
+      "bytes": 247,
+      "sha256": "a8cc08eee33bb8d06997ef6629b09b3d446cbe5039ae2ffd0ff9bf94cd95470c"
+    }
+  ],
+  "providerAcceptanceVerified": false,
+  "liveTradingApproved": false,
+  "limitations": [
+    "Local implementation and execution evidence only; no provider acceptance, deployment or live order was performed.",
+    "The local full Node suite used Node 24.14.1; GitHub Actions remains the authoritative Node 22 execution.",
+    "The full suites ran on ade2354c; the final Docker/workflow, Codacy-exception, supply-chain and evidence-mount delta is validated by targeted tests, lint, typecheck and the container build/runtime checks.",
+    "Fresh Sonar, DeepSource and Codacy cloud results are required after pushing this exact revision."
+  ]
+}

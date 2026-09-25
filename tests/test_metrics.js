@@ -2,6 +2,9 @@ import assert from 'assert';
 import { once } from 'events';
 import { startMetricsServer, stopMetricsServer } from '../src/metrics.js';
 import { MetricsTracker } from '../src/metrics_tracker.js';
+import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
+
+const tlsFixture = await setupInternalTlsTest();
 
 const EMPTY_OUTBOX = { pending: 0, preparing: 0, sending: 0, completed: 4, failed: 1, unknown: 2 };
 const HEALTHY_OPERATIONAL_METRICS = {
@@ -117,7 +120,7 @@ async function runTests() {
   const address = server.address();
   assert.ok(address && typeof address === 'object');
   assert.strictEqual(address.address, '127.0.0.1', 'Metrics must bind to loopback by default');
-  const baseUrl = `http://127.0.0.1:${address.port}`;
+  const baseUrl = `https://127.0.0.1:${address.port}`;
 
   let response = await fetch(`${baseUrl}/healthz`);
   assert.strictEqual(response.status, 200);
@@ -211,8 +214,9 @@ async function runTests() {
   console.log('ALL HONEST OBSERVABILITY TESTS PASSED!');
 }
 
-await (async () => runTests())().catch(async error => {
+await runTests().catch(async error => {
   await (async () => stopMetricsServer())().catch(() => undefined);
   console.error(error);
   process.exitCode = 1;
 });
+await tlsFixture.cleanup();

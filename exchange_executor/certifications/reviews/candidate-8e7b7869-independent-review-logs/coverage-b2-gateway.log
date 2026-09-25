@@ -1,0 +1,98 @@
+
+> tsx-core@3.3.0 test:coverage:b2-gateway
+> c8 --all --include="services/b2-backup-gateway/gateway.js" --reporter=lcov --reporter=text --reports-dir=coverage/b2-backup-gateway --check-coverage --lines=90 --branches=80 --functions=100 node --test services/b2-backup-gateway/test/*.test.js
+
+TAP version 13
+# Subtest: PUT verifies bytes, applies compliance lock, checks HEAD and returns retention only then; GET returns exact bytes
+ok 1 - PUT verifies bytes, applies compliance lock, checks HEAD and returns retention only then; GET returns exact bytes
+  ---
+  duration_ms: 57.4549
+  type: 'test'
+  ...
+# Subtest: rejects missing or incorrect authorization, unsafe names and unsupported methods before provider calls
+ok 2 - rejects missing or incorrect authorization, unsafe names and unsupported methods before provider calls
+  ---
+  duration_ms: 44.7948
+  type: 'test'
+  ...
+# Subtest: rejects over-limit, missing length, invalid hash and invalid encrypted header
+ok 3 - rejects over-limit, missing length, invalid hash and invalid encrypted header
+  ---
+  duration_ms: 52.6256
+  type: 'test'
+  ...
+# Subtest: never issues a retention receipt if provider omits or changes lock, hash, or date
+ok 4 - never issues a retention receipt if provider omits or changes lock, hash, or date
+  ---
+  duration_ms: 31.9166
+  type: 'test'
+  ...
+# Subtest: fails closed on extra version or altered provider download
+ok 5 - fails closed on extra version or altered provider download
+  ---
+  duration_ms: 43.5156
+  type: 'test'
+  ...
+# Subtest: still reads the sole verified version after its retention period expires
+ok 6 - still reads the sole verified version after its retention period expires
+  ---
+  duration_ms: 12.7341
+  type: 'test'
+  ...
+# Subtest: rejects external versions before upload
+ok 7 - rejects external versions before upload
+  ---
+  duration_ms: 7.1356
+  type: 'test'
+  ...
+# Subtest: re-adopts only a byte-identical retained version after full version-pinned readback
+ok 8 - re-adopts only a byte-identical retained version after full version-pinned readback
+  ---
+  duration_ms: 44.9891
+  type: 'test'
+  ...
+# Subtest: replay fails if retention has shortened or a second version exists
+ok 9 - replay fails if retention has shortened or a second version exists
+  ---
+  duration_ms: 14.1265
+  type: 'test'
+  ...
+# Subtest: global concurrency limit blocks parallel distinct keys before another provider write
+ok 10 - global concurrency limit blocks parallel distinct keys before another provider write
+  ---
+  duration_ms: 7.7581
+  type: 'test'
+  ...
+# Subtest: temporary disk budget blocks parallel distinct keys and is released after completion
+ok 11 - temporary disk budget blocks parallel distinct keys and is released after completion
+  ---
+  duration_ms: 25.8628
+  type: 'test'
+  ...
+# Subtest: provider timeout aborts a stalled upload, clears staged bytes and permits a safe retry
+ok 12 - provider timeout aborts a stalled upload, clears staged bytes and permits a safe retry
+  ---
+  duration_ms: 1022.9713
+  type: 'test'
+  ...
+# Subtest: protected temporary storage rejects a regular file and relative path
+ok 13 - protected temporary storage rejects a regular file and relative path
+  ---
+  duration_ms: 2.4472
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1633.6875
+------------|---------|----------|---------|---------|----------------------------------------------
+File        | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                            
+------------|---------|----------|---------|---------|----------------------------------------------
+All files   |   94.59 |     83.1 |     100 |   94.59 |                                              
+ gateway.js |   94.59 |     83.1 |     100 |   94.59 | ...1-132,191-193,210-211,259-260,269-270,317 
+------------|---------|----------|---------|---------|----------------------------------------------

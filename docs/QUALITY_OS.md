@@ -87,10 +87,11 @@ Für Scores ab zehn ist eine unabhängige fachliche und sicherheitstechnische Pr
 | MCP-/Event-Contract-Kompatibilität                | Fail bei inkompatibler Änderung | Fail   | Fail                      |
 | Live KI-Golden-Set mit Staging-Provider           | Bei KI-Änderung Evidence      | Evidence | Fail                      |
 | Synthetischer E2E-Flow                            | Optional                      | Evidence | Fail                      |
-| Performance-/30-Tage-Soak                         | Bei Ressourcenänderung        | Evidence | Fail                      |
+| Performance-/Releasebeobachtung                   | Bei Ressourcenänderung        | Evidence | Fail                      |
+| Fortlaufender 30-Tage-SLO-Bericht                 | N/A vor dem Start             | N/A      | Nachlaufend, kein GO-Gate  |
 | Rollback- und Offline-Restore-Übung               | Bei betroffener Änderung      | Evidence | Fail                      |
 
-Der Workflow `.github/workflows/quality.yml` implementiert die Produkt- und Supply-Chain-Gates einschließlich getesteter Alarmregeln. Er baut und scannt Kandidaten, besitzt aber keine Release-Credentials und veröffentlicht weder GitHub Releases noch Registry-Images. `.github/workflows/staging.yml`, `.github/workflows/synthetic.yml` und `.github/workflows/production_evidence.yml` erzeugen die externen Staging-/SLO-Nachweise. Branch Protection, Runner-/Environment-Schutz, Eigentum am Off-host-Ziel, der konkrete Incident-Empfänger und die tatsächlichen Messwerte bleiben externe Betreiberkontrollen.
+Der Workflow `.github/workflows/quality.yml` implementiert die Produkt- und Supply-Chain-Gates einschließlich getesteter Alarmregeln. Er baut und scannt Kandidaten, besitzt aber keine Release-Credentials und veröffentlicht weder GitHub Releases noch Registry-Images. `.github/workflows/staging.yml`, `.github/workflows/synthetic.yml` und `.github/workflows/release_observation.yml` erzeugen die externen Vorabnachweise; `.github/workflows/production_evidence.yml` erzeugt das nachlaufende 30-Tage-SLO-Artefakt. Branch Protection, Runner-/Environment-Schutz, Eigentum am Off-host-Ziel, der konkrete Incident-Empfänger und die tatsächlichen Messwerte bleiben externe Betreiberkontrollen.
 
 `scripts/verify_github_governance.js` kann auf einer Plattform mit Branch Protection den strengeren Zielzustand aus dreizehn normalen GitHub-Actions-Checks, Review-/CODEOWNERS-Regeln, Security-Features und dem auf `main` begrenzten `production-observer`-Environment prüfen. Im aktuellen privaten Free-Repository ist diese API-Kontrolle nicht verfügbar und deshalb kein Bestandteil des direkten Main-Pushs; Details stehen in `docs/GITHUB_GOVERNANCE.md`.
 
@@ -104,10 +105,9 @@ Das in `quality-baseline.json` geratchete Budget steht bei null ESLint-Warnungen
 
 SonarQube-Cloud-Funde können revisionsgebunden und read-only exportiert werden:
 
+Vor dem Aufruf müssen `SONAR_TOKEN` aus dem Secret Store, `SONAR_PROJECT_KEY` und `SONAR_EXPECTED_REVISION` (vollständiger 40-stelliger Commit-SHA) in der Prozessumgebung bereitstehen.
+
 ```bash
-SONAR_TOKEN='from-secret-store' \
-SONAR_PROJECT_KEY='owner_project' \
-SONAR_EXPECTED_REVISION='40-character-commit' \
 npm run quality:sonar-export
 ```
 
@@ -144,7 +144,7 @@ Automatisches **NO-GO** gilt bei jedem fehlenden Pflichtartefakt sowie bei kriti
 
 ## SLOs und Error Budget
 
-Die Werte sind die initialen verbindlichen Ziele; sie werden nach dem ersten belastbaren 30-Tage-Fenster nur per ADR geändert.
+Die Werte sind die initialen verbindlichen Ziele; sie werden nach dem ersten belastbaren 30-Tage-Fenster nur per ADR geändert. Vor dem ersten Live-GO gilt die gesonderte Releasebeobachtung: Prometheus fragt 24 Stunden zurück und fordert pro aktiver Serie mindestens 5732 von nominell 5760 Scrapes (99,5 % bei 15-Sekunden-Takt), mindestens 100 kontrollierte Paper-/Testnet-Intents sowie die weiteren Verfügbarkeits- und Sicherheitsgrenzen. Das ist keine lückenlose Sekunde-für-Sekunde-Messung; echte Paper-/Testnet-Lifecycle- und Incidentakten bleiben zusätzlich nötig. Das retrospektive 30-Tage-SLO wird erst im laufenden Betrieb berichtet und ist kein vorgezogener GO-Blocker.
 
 | SLI                                         |                SLO (30 Tage) |        Error Budget | Aktion bei Verletzung                                   |
 | ------------------------------------------- | ---------------------------: | ------------------: | ------------------------------------------------------- |
@@ -162,7 +162,6 @@ Die Werte sind die initialen verbindlichen Ziele; sie werden nach dem ersten bel
 | Managed Position ohne bestätigten Stop      |                            0 |                   0 | Sofort alarmieren und reduce-only Notfall-Flatten        |
 | Reconciliation-Alter bei aktiver Execution  |                        ≤30 s |                   0 | Execution sperren; Executor/Exchange untersuchen         |
 | Trading Kill-Switch im Steady State         |                            0 |                   0 | Release-/Feature-Freeze bis Ursachenbeleg                |
-| Paper/Testnet Trade Intents im Soak         |                     ≥100/30d |                  100 | 30-Tage-Gate bleibt NO-GO                                |
 
 Im echten Produktionsbetrieb muss ein extern überwachter Scheduler synthetische E2E-Prüfungen im Staging mindestens alle 15 Minuten auslösen; bis Runner und Scheduler eingerichtet sind, bleibt der Workflow manuell und diese SLO-Evidenz ausdrücklich offen. Monatlich werden Restore und kontrollierter Provider-/Netzwerkausfall geübt. Postmortems sind blameless, aber ein Regressionstest für jede technisch reproduzierbare Incident-Ursache ist verpflichtend.
 

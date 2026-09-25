@@ -53,12 +53,18 @@ export function OperatorApp() {
   usePoll(readPage, (results) => {
     for (const result of results) {
       setErrors((previous) => ({ ...previous, [result.name]: result.error }));
+      if (result.name === "catalog") {
+        setCatalog(result.error ? null : result.value);
+        continue;
+      }
       if (result.error) continue;
       if (result.name === "trading") setTrading(result.value);
       if (result.name === "status") setStatus(result.value);
-      if (result.name === "catalog") setCatalog(result.value);
     }
-  }, (error) => setErrors((previous) => ({ ...previous, page: error.message })), 5000, refresh);
+  }, (error) => {
+    if (needsCatalog) setCatalog(null);
+    setErrors((previous) => ({ ...previous, page: error.message }));
+  }, 5000, refresh);
   const onRefresh = useCallback(() => { setRefresh((value) => value + 1); }, []);
   const readOnly = session?.session?.role !== "admin";
   const Content = pathname === "/workflows/builder" ? "div" : "main";

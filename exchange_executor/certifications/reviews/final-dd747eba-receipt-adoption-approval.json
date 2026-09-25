@@ -1,0 +1,33 @@
+{
+  "revision": "dd747ebab66f3290863007b501973c9e483212f3",
+  "candidate": {
+    "path": "reports/final-findings/final-dd747eba-hyperliquid-receipt-candidate.json",
+    "sha256": "90dd3f4ec6ad9774c11f8d47631a5d4cb07ef9ce7729555daf1cec8793be4ae9"
+  },
+  "approved": true,
+  "reviewedAt": "2026-09-23T11:28:25Z",
+  "reviewer": "root",
+  "scope": "Adopt the exact offline implementation receipt for existing Hyperliquid profile 1 after deterministic archive verification. This approval grants no provider acceptance, live trading, deployment, new exchange/profile authority or scanner decision.",
+  "independentReview": {
+    "path": "reports/final-findings/final-dd747eba-independent-receipt-review.json",
+    "sha256": "1d8542979dff3aa49472a313757b1201d703b54544d52fc52f4a7888d941e4c8"
+  },
+  "completeSourceReview": {
+    "path": "reports/final-findings/final-dd747eba-receipt-source-review-root.json",
+    "sha256": "b011aaec11c875335a1ad7e983a10c7ad67ab20b0de69fb82342c6635adef3ff"
+  },
+  "rootChecks": [
+    "All eight actual final-dd747eba verification groups passed with unchanged exact 1000 Git inputs and the same runtime context.",
+    "All five changed build inputs were individually reviewed; 62 original requirement identities and 97 ordered witness path/SHA pairs remain unchanged.",
+    "The independent validator recomputed the source deltas, verified 1048 current references with zero unresolved references, and validated sealed historical provenance.",
+    "The production Python validator and Node comparator passed using a temporary comparison-only pin; the operative receipt and authority remained unchanged before approval.",
+    "Receipt scope and profile identity remain unchanged; providerAcceptanceVerified remains false."
+  ],
+  "providerAcceptanceVerified": false,
+  "operativeReceiptOrPinsChanged": false,
+  "remaining": [
+    "Verify and seal the deterministic evidence archive, then install only the exact reviewed receipt and existing Hyperliquid profile 1 digest.",
+    "Run the actual post-adoption production implementation gate and bridge/certification regressions and independently review their archived logs.",
+    "Renew the three affected Snyk false-positive authority context bindings, publish the reviewed PR head, and obtain fresh CI/provider scans before protected merge."
+  ]
+}

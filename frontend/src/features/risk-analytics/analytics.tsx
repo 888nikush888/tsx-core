@@ -69,8 +69,7 @@ function AnalyticsFilterBar({ filtersOpen, range, setRange, customFrom, setCusto
   mode: string; setMode: (value: string) => void; status: string; setStatus: (value: string) => void;
 }>) {
   return (
-    <>
-      {filtersOpen && (
+    filtersOpen && (
         <section className="operations-card analytics-filterbar" aria-label="Analysefilter">
         <label>
           <span>Zeitraum</span>
@@ -95,8 +94,7 @@ function AnalyticsFilterBar({ filtersOpen, range, setRange, customFrom, setCusto
         <label><span>Modus</span><select value={mode} onChange={(event) => setMode(event.target.value)}><option value="">Alle Modi</option><option value="paper">Paper</option><option value="testnet">Testnet</option><option value="live">Live</option></select></label>
         <label><span>Intentstatus</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Alle Intentstatus</option>{JOURNAL_INTENT_STATUSES.map(value => <option key={value}>{value}</option>)}</select></label>
       </section>
-      )}
-    </>
+      )
   );
 }
 

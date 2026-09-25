@@ -27,7 +27,11 @@ export class TelegramViewerCoreApiClient implements TelegramViewerCoreClient {
 
   constructor(baseUrl: string, private readonly serviceToken: TokenProvider) {
     const parsed = new URL(baseUrl);
-    if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Viewer core API URL is invalid.');
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.search || parsed.hash
+      || parsed.pathname !== '/' || !new Set(['forwarder', 'localhost', '127.0.0.1', '[::1]'])
+        .has(parsed.hostname.toLowerCase())) {
+      throw new Error('Viewer core API URL must be an HTTPS origin.');
+    }
     this.baseUrl = parsed.toString().replace(/\/$/, '');
   }
 
@@ -37,6 +41,7 @@ export class TelegramViewerCoreApiClient implements TelegramViewerCoreClient {
     const response = await fetch(endpoint, {
       method: 'GET',
       headers: { Authorization: `Bearer ${await tokenValue(this.serviceToken)}`, Accept: 'application/json' },
+      redirect: 'error',
       signal: AbortSignal.timeout(10_000),
     });
     return viewerRecord(await responseJson(response, 'TSX Core viewer API'));

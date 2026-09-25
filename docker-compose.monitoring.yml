@@ -20,11 +20,15 @@ services:
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/rules.yml:/etc/prometheus/rules.yml:ro
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/ca.pem:/run/tsx-tls/ca.pem:ro
       - prometheus_data:/prometheus
     ports:
       - 127.0.0.1:${HOST_PROMETHEUS_PORT:-9090}:9090
     depends_on:
       - alertmanager
+    networks:
+      - core-network
+      - default
 
   alertmanager:
     image: ${ALERTMANAGER_IMAGE:-tsx-core-alertmanager:0.33.1-hardened}
@@ -46,6 +50,7 @@ services:
       - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager_data:/alertmanager
       - forwarder_secrets:/app/secrets:ro
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/ca.pem:/run/tsx-tls/ca.pem:ro
     ports:
       - 127.0.0.1:${HOST_ALERTMANAGER_PORT:-9093}:9093
     depends_on:
@@ -66,9 +71,25 @@ services:
       ALERT_RELAY_HOST: "0.0.0.0"
       ALERT_WEBHOOK_TOKEN_FILE: /app/secrets/alert_webhook_token
       RUNTIME_SETTINGS_PATH: /app/config/runtime-settings.json
+      ALERT_RELAY_TLS_CERT_FILE: /run/tsx-tls/alert-relay.crt
+      ALERT_RELAY_TLS_KEY_FILE: /run/tsx-tls/alert-relay.key
+      NODE_EXTRA_CA_CERTS: /run/tsx-tls/ca.pem
     volumes:
       - forwarder_secrets:/app/secrets:ro
       - forwarder_config:/app/config:ro
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/ca.pem:/run/tsx-tls/ca.pem:ro
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/alert-relay.crt:/run/tsx-tls/alert-relay.crt:ro
+      - ${INTERNAL_TLS_DIR:?Set INTERNAL_TLS_DIR to an absolute directory outside the checkout}/alert-relay.key:/run/tsx-tls/alert-relay.key:ro
+    healthcheck:
+      test:
+        - CMD
+        - /nodejs/bin/node
+        - -e
+        - "fetch('https://127.0.0.1:9095/healthz',{redirect:'error',signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
 
 volumes:
   prometheus_data:

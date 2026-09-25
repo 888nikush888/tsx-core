@@ -21,9 +21,12 @@ def _expected(value: Any) -> tuple[list[dict[str, str]], dict[str, dict[str, str
     for row in value:
         require(type(row) is dict and row.get("role") in {"entry", "stop_loss"},
                 "KuCoin batch leg role is invalid.")
+        client_order_id = token(row.get("clientOrderId"), "expected client order id")
+        if client_order_id is None:
+            raise ExchangeContractError("KuCoin expected client order id is missing or malformed.")
         result.append({
             "role": row["role"],
-            "clientOrderId": token(row.get("clientOrderId"), "expected client order id"),
+            "clientOrderId": client_order_id,
             "providerSymbol": native_symbol(row.get("providerSymbol")),
         })
     require({row["role"] for row in result} == {"entry", "stop_loss"},
@@ -93,6 +96,8 @@ def classify_kucoin_batch_ack(response: Any, expected_legs: Any) -> list[dict[st
         for raw in raw_rows:
             require(type(raw) is dict, "KuCoin batch outcome row is malformed.")
             client_id = token(raw.get("clientOid"), "acknowledgement client order id")
+            if client_id is None:
+                raise ExchangeContractError("KuCoin acknowledgement client order id is missing or malformed.")
             require(client_id in by_client and client_id not in seen_clients,
                     "KuCoin batch outcome contains an unexpected or duplicate leg.")
             result = _classify_row(raw, by_client[client_id])

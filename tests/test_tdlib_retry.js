@@ -72,3 +72,21 @@ await assert.rejects(
 );
 
 console.log('ALL BOUNDED TDLIB RETRY TESTS PASSED!');
+
+for (const error of [{}, { message: {} }, { message: 'ordinary failure' }, 42]) {
+  let calls = 0;
+  await assert.rejects(invokeWithFloodWaitRetry({ invoke() { calls += 1; return Promise.reject(error); } }, {}),
+    thrown => thrown === error);
+  assert.equal(calls, 1, 'Unrecognized/default object text retains the original rejection without retrying.');
+}
+for (const error of ['FLOOD_WAIT_0', { message: { toString() { return 'FLOOD_WAIT_0'; } } },
+  { toString() { return 'FLOOD_WAIT_0'; } }]) {
+  let calls = 0;
+  const result = await invokeWithFloodWaitRetry({ invoke() {
+    calls += 1;
+    return calls === 1 ? Promise.reject(error) : Promise.resolve('retried');
+  } }, {});
+  assert.equal(result, 'retried');
+  assert.equal(calls, 2, 'Existing Error-like coercion remains eligible for bounded retry.');
+}
+console.log('TDLib retry preserves Error-like coercion and rejects default object text unchanged.');

@@ -50,17 +50,17 @@ type TelegramForwardOptions = {
   removeCaption?: boolean | null;
 };
 type TelegramFilters = {
-  allowedKeywords?: string[] | undefined;
-  blockedKeywords?: string[] | undefined;
-  allowedTypes?: string[] | undefined;
-  regexPatterns?: string[] | undefined;
+  allowedKeywords?: string[];
+  blockedKeywords?: string[];
+  allowedTypes?: string[];
+  regexPatterns?: string[];
 };
 type TelegramDupeBlocker = { enabled?: boolean | null; cooldownHours?: number | null };
-type TelegramSourceFilter = { regexPatterns?: string[] | undefined } | null;
+type TelegramSourceFilter = { regexPatterns?: string[] } | null;
 type TelegramConfig = {
   apiId?: number | null;
   targetChannel?: string | null;
-  sourceChannels?: string[] | undefined;
+  sourceChannels?: string[];
   sourceFilters?: Record<string, TelegramSourceFilter> | null;
   sourceAliases?: Record<string, string | null> | null;
   filters?: TelegramFilters | null;

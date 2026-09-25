@@ -1,0 +1,38 @@
+
+> tsx-core-frontend@3.3.0 test
+> vitest run --configLoader runner --environment jsdom tests --run tests/exchange-catalog.test.ts tests/operations-workspace.test.tsx tests/deployment-tls-status.test.tsx tests/workflow-resource-editor.test.tsx
+
+
+ RUN  v4.1.11 C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-integration-next-20260924/frontend
+
+ ❯ tests/operator-maintenance-safety.test.tsx (10 tests | 1 failed) 944ms
+     × deletes the Drive token only after confirmation and sends the exact audited command 43ms
+Not implemented: navigation to another Document
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/operator-maintenance-safety.test.tsx > operator maintenance safety > deletes the Drive token only after confirmation and sends the exact audited command
+Error: expect(element).toBeEnabled()
+
+Received element is not enabled:
+  <button
+  class="danger-button"
+  disabled=""
+  type="button"
+/>
+ ❯ tests/operator-maintenance-safety.test.tsx:170:26
+    168|     mount(<System catalog={null} onRefresh={() => Promise.resolve()} /…
+    169|     const deleteButton = await screen.findByRole('button', { name: 'Dr…
+    170|     expect(deleteButton).toBeEnabled();
+       |                          ^
+    171|     fireEvent.click(deleteButton);
+    172|     const dialog = await screen.findByRole('dialog');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 46 passed (47)
+      Tests  1 failed | 418 passed (419)
+   Start at  15:15:32
+   Duration  11.23s (transform 7.93s, setup 0ms, import 57.67s, tests 33.05s, environment 117.22s)
+

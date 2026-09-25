@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-09-17T12:21:35.003Z",
+  "reviewKind": "independent focused correctness review",
+  "baseRevision": "58c01bc74f83cc212849ddcd7e487412ff06b2b7",
+  "initialImplementationCommit": "e6aa498c",
+  "files": [
+    {
+      "path": "src/trading_fill_identity.ts",
+      "sha256": "622e46c54b1c39b0074a7645c0b55dfa325f2f05a5821ffa41d25c6a4d3b5262"
+    },
+    {
+      "path": "tests/test_exchange_fill_identity.js",
+      "sha256": "6146f00d3b6ad95415bf29884b120b1fc573a6ec9cf27efbb53e4657757e9159"
+    },
+    {
+      "path": "tests/test_trading_fill_identity_backfill.js",
+      "sha256": "5c0bcec0bb2367dc0a27efaa2f87561fcc2f441e96eaa8cf915c1a7a7a71a4b0"
+    }
+  ],
+  "scope": "Native fill scalar conversion and focused direct/live/historical regression coverage.",
+  "finding": {
+    "id": "FILL-REVIEW-01",
+    "status": "fixed and independently rechecked",
+    "path": "src/trading_fill_identity.ts",
+    "symbol": "matchesHyperliquid",
+    "description": "The first implementation compared the invalid null parsing sentinel with a malformed normalized null order identity, allowing a direct proof that the previous string comparison rejected. The independent side-effect-free reproduction returned a non-null proof.",
+    "fix": "Both parsed trade and order IDs must be non-null before equality checks. The direct regression pairs a null native order ID with a null normalized order ID."
+  },
+  "review": [
+    "String digit spelling is preserved, including leading zeros and large decimal identifier strings. Numeric originals must be nonnegative safe integers; zero and negative zero remain supported.",
+    "Structured, coercible and unsafe numeric originals cannot prove identity. No coercion hook is called on an original object.",
+    "The normalized-null regression now remains unproved rather than matching the invalid parsing sentinel.",
+    "Malformed live observations keep sanitized economic evidence without changing fills or money events. Historical binding does not rewrite raw originals or invent an identity.",
+    "No real credential values or live provider calls are involved."
+  ],
+  "independentlyExecuted": [
+    {
+      "command": "node --import tsx tests/test_exchange_fill_identity.js",
+      "result": "passed"
+    },
+    {
+      "command": "node --import tsx tests/test_trading_fill_identity_backfill.js",
+      "result": "passed"
+    }
+  ],
+  "limitations": [
+    "Other integration suites were reported by the implementation author and are not claimed as independently rerun here.",
+    "This review covers the listed file hashes, including the guard correction after the initial implementation commit.",
+    "No remaining actionable issue found in this focused review; final integrated CI and scanner analysis remain required."
+  ]
+}

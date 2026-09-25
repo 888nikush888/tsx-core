@@ -1,9 +1,11 @@
 import { timingSafeEqual } from 'node:crypto';
 import http from 'node:http';
+import https from 'node:https';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFile } from 'node:fs/promises';
 import { loadEnv } from './env.js';
+import { internalTlsServerOptions } from './internal_tls.js';
 import { validateRuntimeSettings } from './runtime_settings.js';
 
 const MAX_ALERT_BODY_BYTES = 1024 * 1024;
@@ -98,9 +100,11 @@ function validAlertLabels(alert: unknown): boolean {
   if (!alert || typeof alert !== 'object') return false;
   const labels = (alert as { labels?: unknown }).labels;
   if (!labels || typeof labels !== 'object') return false;
-  const names = labels as { alertname?: unknown; severity?: unknown };
+  const names = labels as { alertname?: unknown; severity?: unknown; service?: unknown; correlation_id?: unknown };
   return typeof names.alertname === 'string'
-    && typeof names.severity === 'string';
+    && typeof names.severity === 'string'
+    && (names.service === undefined || typeof names.service === 'string')
+    && (names.correlation_id === undefined || typeof names.correlation_id === 'string');
 }
 
 function validateAlertPayload(body: Buffer): AlertSummary {
@@ -167,11 +171,11 @@ async function handleAlertRequest(
   }
 }
 
-export function createAlertRelay(options: AlertRelayOptions): http.Server {
+export function createAlertRelay(options: AlertRelayOptions): https.Server {
   validateOptions(options);
   const timeoutMs = options.timeoutMs ?? 10_000;
   validateTimeout(timeoutMs);
-  const server = http.createServer((request, response) => {
+  const server = https.createServer(internalTlsServerOptions('ALERT_RELAY_TLS_CERT_FILE', 'ALERT_RELAY_TLS_KEY_FILE'), (request, response) => {
     handleAlertRequest(request, response, options, timeoutMs).catch(() => {
       response.destroy();
     });
@@ -182,7 +186,7 @@ export function createAlertRelay(options: AlertRelayOptions): http.Server {
   return server;
 }
 
-export function startAlertRelay(options: AlertRelayOptions, port: number, host = '127.0.0.1'): http.Server {
+export function startAlertRelay(options: AlertRelayOptions, port: number, host = '127.0.0.1'): https.Server {
   const server = createAlertRelay(options);
   server.listen(port, host, () => console.log(`[INFO] Alert relay listening on port ${port}.`));
   return server;

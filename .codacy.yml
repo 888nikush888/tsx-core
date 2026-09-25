@@ -1,0 +1,5 @@
+exclude_paths:
+  # These probes intentionally exercise cleartext HTTP inside an isolated Docker network.
+  # The executed bytes are immutable evidence and must not be rewritten for scanner annotations.
+  - "docs/testing/tls-runtime-smoke-0e6346/probe.mjs"
+  - "docs/testing/tls-runtime-smoke-c5d5690a/probe-executed.mjs"

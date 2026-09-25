@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "reviewKind": "read-only proposed Codacy PR73 occurrence reconciliation",
+  "preparedAtUtc": "2026-09-23T15:50:59Z",
+  "reviewStatus": "local-proposal-only",
+  "providerDispositionApplied": false,
+  "providerClosureClaimed": false,
+  "exactCurrentHeadProviderScanClaimed": false,
+  "sourceScan": {
+    "pr": 73,
+    "observedAtUtc": "2026-09-23T14:09:54.3802320Z",
+    "headSha": "3bc858cfa3374dcf9e49a8e563eca0d30ced8180",
+    "snapshotPathInPriorWorktree": "reports/final-findings/codacy-pr73-3bc858cf-exact-head-readonly.json",
+    "snapshotSha256": "0f9449b62bdcc519ccd1aa3877ef7cad53d3fc5e00d7ff7074f2bb89f203c491",
+    "prActiveCount": 6,
+    "branchActiveCount": 65,
+    "branchIgnoredCount": 347
+  },
+  "localCandidate": {
+    "headSha": "1258689ef1ed92dcbc9a5a2f0a79dcf6a46af18a",
+    "changeFromScannedHead": "Only sonar-project.properties differs; all three finding source files are byte-identical to scanned head.",
+    "published": false
+  },
+  "trackedSupplement": {
+    "path": "docs/testing/final-codacy-pr73-2026-09-20.json",
+    "sha256": "ca1c62117adccace1b0e3355000a081fd5eb9cab32c67b0ef3799432abaf555d",
+    "trackedIdCount": 5,
+    "overlapIds": [
+      "21d93201f83138422de211186806b0b4",
+      "329a4ebf6ed7872f91258fa5f4bb8381",
+      "4046b22647767dce271723314d38be36",
+      "96c70e58dbd13a7871ea404b36bbf023"
+    ],
+    "newProviderIdsNotInSupplement": [
+      "40bf2ed8c7911e781f0f47df1a603836",
+      "d6b6b1914d433b2edb16b74a2484c50b"
+    ],
+    "priorSupplementIdAbsentFromPrScan": "26cffb07d9d0225b95b7e2fc3daad52e",
+    "interpretation": "An absent PR occurrence is not proof of full default-branch resolution; preserve its historical decision and reconcile exact identities before changing the tracked validator."
+  },
+  "sourceFileSha256": {
+    "src/backup_generation.ts": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f",
+    "scripts/check_final_codacy_review.js": "c930f9dbe10f6db520b10dd98aaa3b893d7556ce700772d0d6d85fbaa3673205",
+    "tests/test_forwarder_error_types.js": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89",
+    "src/configuration_paths.ts": "edc9774d6037e48fd2af1c5ca71939e4fc90ebad4529d551e81af45e12b18c2a",
+    "src/backup.ts": "0dcd692ef7051bd9ed24c41bdf621f7ae15af6f84c10b78bb795683cddb5288b",
+    "src/backup_cli.ts": "d0fd89cea0779ef15598a6d07d1ce7930ee2c9df815c71a2036ed0ef17c8fd7d",
+    "docker-compose.yml": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642",
+    "Dockerfile": "aaa51b62bae9252d6f361d19a553f4099c64caf988772a3b89b8dccdbf068844"
+  },
+  "issues": [
+    {
+      "id": "329a4ebf6ed7872f91258fa5f4bb8381",
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "path": "src/backup_generation.ts",
+      "line": 202,
+      "priorSupplement": true,
+      "proposedDisposition": "contextual-false-positive-for-request-path-traversal-with-conditional-local-race-caveat",
+      "rationale": "The template root is operator configuration from TEMPLATES_DIR, not a request parameter (src/configuration_paths.ts:5-6; src/backup.ts:456-463). A root link is rejected at backup_generation.ts:197-198; readdir names come from the filesystem; entry links are rejected, member segments reject traversal and separators, and depth, entry count and byte limits apply at lines 160-175 and 200-209. The actual Compose configuration assigns /app/templates to a named volume used only by the forwarder (docker-compose.yml:33,37-46). No separate lower-trust writer to that volume was identified in the supported Compose topology.",
+      "limitation": "This is not a filesystem sandbox. A separate hostile actor with write/symlink access to templates could swap a nested directory between Dirent inspection and recursive read, or a file between lstatSync and readFileSync. Coherent backup inclusion would require winning or sustaining the race across the later source-coherence pass (backup_generation.ts:269-288,394-413); no exploit has been demonstrated. A custom shared/bind mount or distinct local writer requires fresh review."
+    },
+    {
+      "id": "4046b22647767dce271723314d38be36",
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "path": "scripts/check_final_codacy_review.js",
+      "line": 132,
+      "priorSupplement": true,
+      "proposedDisposition": "contextual-false-positive",
+      "rationale": "The path joins module-derived ROOT with the fixed LEDGER constant at lines 6-7 and 132. No CLI, network, environment, or ledger value selects the filename."
+    },
+    {
+      "id": "d6b6b1914d433b2edb16b74a2484c50b",
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "path": "scripts/check_final_codacy_review.js",
+      "line": 134,
+      "priorSupplement": false,
+      "proposedDisposition": "contextual-false-positive-proposed-new-id",
+      "rationale": "The dynamic reader at line 134 is supplied only source paths registered by bindSource or checkLine. bindSource applies safePath, which rejects absolute paths and dot segments, before reading at lines 12-13,57-78; the source list is a repository review ledger, not a request or network value. This is the same sink reviewed under now-absent PR identity 26cffb07d9d0225b95b7e2fc3daad52e.",
+      "limitation": "safePath is lexical only and does not establish canonical containment against a malicious local checkout symlink. Preserve the older identity as historical evidence and add this new exact ID; do not silently replace it."
+    },
+    {
+      "id": "21d93201f83138422de211186806b0b4",
+      "rule": "ESLint8_security_detect-object-injection",
+      "path": "scripts/check_final_codacy_review.js",
+      "line": 51,
+      "priorSupplement": true,
+      "proposedDisposition": "contextual-false-positive",
+      "rationale": "The rule key comes from entries already collected in the review ledger; line 51 reads an expected count from JSON-parsed ruleCounts and line 52 compares active/ignored values. It performs no property write or code execution. Missing or inherited values cause count mismatch rather than accepted evidence (lines 46-55)."
+    },
+    {
+      "id": "40bf2ed8c7911e781f0f47df1a603836",
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "path": "scripts/check_final_codacy_review.js",
+      "line": 133,
+      "priorSupplement": false,
+      "proposedDisposition": "contextual-false-positive-proposed-new-id",
+      "rationale": "The path joins module-derived ROOT with fixed SUPPLEMENT at lines 6,8,133. No untrusted value selects the file. This is a separate new scanner identity and requires its own tracked disposition."
+    },
+    {
+      "id": "96c70e58dbd13a7871ea404b36bbf023",
+      "rule": "Semgrep_javascript_eval_rule-eval-with-expression",
+      "path": "tests/test_forwarder_error_types.js",
+      "line": 169,
+      "priorSupplement": true,
+      "proposedDisposition": "contextual-false-positive",
+      "rationale": "The sole caller reads literal module-relative repository source ../src/forwarder.ts at line 193. The test AST-selects exactly three named function declarations at lines 158-165, transpiles them, and executes those same project declarations with controlled client/invoke/log fixtures at lines 166-171. Chat identifiers enter later as data at lines 172-190, never as executable text. This Function constructor is test-only and does not accept attacker-supplied code."
+    }
+  ],
+  "providerLimitations": [
+    "These six dispositions are local proposals; the Codacy PR check remains ACTION_REQUIRED and no provider status has been changed.",
+    "Codacy ESLint and Trivy analyzer failures still prevent a complete final scan; 33 prior Trivy records remain unverified. An Opengrep timeout has also been observed and requires current-head resolution or explicit provider evidence.",
+    "The 3bc snapshot is a PR delta, not a complete default-branch inventory. The 125 source change is unpublished and has no exact-head Codacy result; requery after a certified push and again on the actual merged main SHA."
+  ]
+}

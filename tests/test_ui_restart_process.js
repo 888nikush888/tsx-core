@@ -2,24 +2,37 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { mkdtemp, mkdir, readFile, rm } from 'node:fs/promises';
-import http from 'node:http';
+import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { ADMIN, VIEWER, COMMANDS, commandRequest } from './fixtures/ui_restart_fixture.js';
+import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
 
+const tlsFixture = await setupInternalTlsTest();
 const root = await mkdtemp(path.join(os.tmpdir(), 'tsx-restart-process-'));
 if (path.dirname(root) !== path.resolve(os.tmpdir()) || !path.basename(root).startsWith('tsx-restart-process-')) throw new Error('Unsafe process fixture cleanup.');
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const children = new Set();
 const bounded = promise => Promise.race([promise, delay(10_000, null, { ref: false }).then(() => { throw new Error('Isolated process timed out.'); })]);
+const TEST_ROUTES = new Set(['/api/recovery', '/api/restart', '/api/backups/restore', '/api/factory-reset']);
+
+function localHttpsUrl(port, route) {
+  if (!Number.isSafeInteger(port) || port < 1 || port > 65_535 || !TEST_ROUTES.has(route)) {
+    throw new Error('Invalid isolated restart fixture endpoint.');
+  }
+  return new URL(route, `https://127.0.0.1:${port}`);
+}
 
 function launch(directory, mode) {
   const child = spawn(process.execPath, ['--import', 'tsx', path.join(repository, 'tests/fixtures/ui_restart_child.js'), directory, mode], {
     cwd: repository, stdio: ['ignore', 'pipe', 'pipe', 'ipc'], env: {
       PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, TEMP: process.env.TEMP, TMP: process.env.TMP,
       DASHBOARD_AUTH_MODE: 'token', DASHBOARD_ADMIN_TOKEN: ADMIN, DASHBOARD_VIEWER_TOKEN: VIEWER,
+      DASHBOARD_TLS_CERT_FILE: process.env.DASHBOARD_TLS_CERT_FILE,
+      DASHBOARD_TLS_KEY_FILE: process.env.DASHBOARD_TLS_KEY_FILE,
+      NODE_EXTRA_CA_CERTS: process.env.NODE_EXTRA_CA_CERTS,
       CONFIG_PATH: path.join(repository, 'config.json.example'), LOG_DIR: path.join(directory, 'logs'), NODE_ENV: 'test',
       ...(process.env.NODE_V8_COVERAGE ? { NODE_V8_COVERAGE: process.env.NODE_V8_COVERAGE } : {}),
     },
@@ -43,7 +56,7 @@ function launch(directory, mode) {
 
 async function readiness(process, previousInstance) {
   const ready = await process.wait('ready');
-  const response = await fetch(`http://127.0.0.1:${ready.port}/api/recovery`, { headers: { Authorization: `Bearer ${ADMIN}` } });
+  const response = await fetch(localHttpsUrl(ready.port, '/api/recovery'), { headers: { Authorization: `Bearer ${ADMIN}` } });
   assert.equal(response.status, 200);
   const observed = await response.json();
   assert.equal(observed.startup.phase, 'ready', 'Replacement operator control plane has passed its isolated startup checks.');
@@ -58,7 +71,7 @@ async function readiness(process, previousInstance) {
 async function verifyReplacement(directory, command, id, instance, expectedState, effects) {
   const replacement = launch(directory, 'replacement');
   const ready = await readiness(replacement, instance);
-  const response = await fetch(`http://127.0.0.1:${ready.port}${command.route}`, commandRequest(command, id));
+  const response = await fetch(localHttpsUrl(ready.port, command.route), commandRequest(command, id));
   assert.equal(response.status, 202);
   const replay = await response.json();
   assert.equal(replay.job.state, expectedState);
@@ -77,13 +90,13 @@ async function testRealRestart(command, mode, index) {
   const id = `process-restart-job-${index}`;
   const options = commandRequest(command, id);
   if (mode === 'disconnect') {
-    const client = http.request(`http://127.0.0.1:${ready.port}${command.route}`, options);
+    const client = https.request(localHttpsUrl(ready.port, command.route), options);
     client.on('error', () => undefined); client.end(options.body);
     await initial.wait('entered');
     client.destroy();
     initial.child.send({ type: 'release' });
   } else {
-    const response = await fetch(`http://127.0.0.1:${ready.port}${command.route}`, options);
+    const response = await fetch(localHttpsUrl(ready.port, command.route), options);
     assert.equal(response.status, command.status); await response.json();
   }
   assert.equal((await bounded(initial.exited)).code, 0, initial.output());
@@ -99,7 +112,7 @@ async function testCrashBoundary(mode, expectedState) {
   const directory = path.join(root, mode); await mkdir(directory);
   const initial = launch(directory, mode); const ready = await readiness(initial);
   const command = COMMANDS[1]; const id = `process-${mode}`;
-  const pending = fetch(`http://127.0.0.1:${ready.port}${command.route}`, commandRequest(command, id)).catch(() => null);
+  const pending = fetch(localHttpsUrl(ready.port, command.route), commandRequest(command, id)).catch(() => null);
   await initial.wait('boundary');
   initial.child.kill('SIGKILL');
   await bounded(initial.exited); await pending;
@@ -120,7 +133,7 @@ async function testShutdownDeadline(mode, expectedCode = 1) {
   const directory = path.join(root, mode); await mkdir(directory);
   const initial = launch(directory, mode); const ready = await readiness(initial);
   const command = COMMANDS[1]; const id = `process-${mode}`;
-  const pending = fetch(`http://127.0.0.1:${ready.port}${command.route}`, commandRequest(command, id)).catch(() => null);
+  const pending = fetch(localHttpsUrl(ready.port, command.route), commandRequest(command, id)).catch(() => null);
   await initial.wait('shutdown-started');
   const receipt = JSON.parse(await readFile(path.join(directory, 'jobs', `${id}.json`), 'utf8'));
   assert.equal(receipt.state, 'awaiting-restart', 'Work is durably confirmed before the bounded shutdown starts.');
@@ -148,4 +161,5 @@ try {
   for (const child of children) child.kill('SIGKILL');
   await Promise.all([...children].map(child => once(child, 'exit')));
   await rm(root, { recursive: true, force: true });
+  await tlsFixture.cleanup();
 }

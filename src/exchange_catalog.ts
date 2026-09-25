@@ -1,6 +1,16 @@
 import type { TradingCredentialStore } from './trading_credentials.js';
 import { internalExecutorOrigin } from './executor_origin.js';
 import { tradingExchangeId } from './trading_types.js';
+import { CCXT_CATALOG_ASSESSMENTS } from './ccxt_catalog_assessments.js';
+
+const REVIEWED_INVENTORY_HASH = '7c0ab01cf1e2629cee66528959e0c45ffe01a6111697294e5ca528116f247e54';
+const REVIEWED_ASSESSMENTS_HASH = 'c2a9fa207a8758ab7be1877b5ab40572092ff7ad477da5f432b4d3f17ce8921b';
+
+export interface ExchangeAssessment {
+  decision: 'existing' | 'not_easy' | 'not_derivative';
+  products: string[];
+  reasonCodes: string[];
+}
 
 export type ExchangeCertificationStatus =
   | 'discovered'
@@ -28,12 +38,14 @@ export interface ExchangeCatalogEntry {
   credentialFields: ExchangeCredentialField[];
   modes: Array<'paper' | 'testnet' | 'live'>;
   capabilities: Record<string, unknown>;
+  assessment: ExchangeAssessment | null;
 }
 
 export interface ExchangeCatalog {
   implementation: {
     library: 'ccxt';
     version: string;
+    reviewedInventoryHash: string | null;
     streaming: 'ccxt-pro';
     orderAuthority: 'rest';
   };
@@ -140,15 +152,20 @@ function catalogEntry(value: unknown): ExchangeCatalogEntry {
     credentialFields: credentialFields as ExchangeCredentialField[],
     modes,
     capabilities: safeCapabilities(input.capabilities),
+    assessment: null,
   };
 }
 
 function executorCatalog(value: unknown): ExchangeCatalog {
   const input = object(value, 'Exchange executor catalog');
   const implementation = object(input.implementation, 'Exchange executor implementation');
+  const reviewedInventoryHash = implementation.reviewedInventoryHash ?? null;
   if (implementation.library !== 'ccxt' || implementation.streaming !== 'ccxt-pro'
     || implementation.orderAuthority !== 'rest'
-    || typeof implementation.version !== 'string' || !/^\d+\.\d+\.\d+$/.test(implementation.version)) {
+    || typeof implementation.version !== 'string' || !/^\d+\.\d+\.\d+$/.test(implementation.version)
+    || reviewedInventoryHash !== null
+      && (typeof reviewedInventoryHash !== 'string'
+        || !/^[0-9a-f]{64}$/.test(reviewedInventoryHash))) {
     throw new Error('Exchange executor returned invalid implementation metadata.');
   }
   if (!Array.isArray(input.exchanges)) throw new Error('Exchange executor returned an invalid exchange list.');
@@ -160,6 +177,7 @@ function executorCatalog(value: unknown): ExchangeCatalog {
     implementation: {
       library: 'ccxt',
       version: implementation.version,
+      reviewedInventoryHash: reviewedInventoryHash as string | null,
       streaming: 'ccxt-pro',
       orderAuthority: 'rest',
     },
@@ -178,7 +196,37 @@ const PAPER_ENTRY: ExchangeCatalogEntry = {
   credentialFields: [],
   modes: ['paper'],
   capabilities: {},
+  assessment: null,
 };
+
+function assessedBrowserCatalog(catalog: ExchangeCatalog): ExchangeCatalog {
+  const projection = CCXT_CATALOG_ASSESSMENTS;
+  if (catalog.implementation.version !== projection.ccxtVersion
+    || catalog.implementation.reviewedInventoryHash !== REVIEWED_INVENTORY_HASH
+    || (projection.inventoryHash as string) !== REVIEWED_INVENTORY_HASH
+    || (projection.assessmentsHash as string) !== REVIEWED_ASSESSMENTS_HASH) {
+    throw new Error('Exchange assessment differs from the reviewed CCXT version or inventory.');
+  }
+  const assessments = new Map<string, (typeof projection.entries)[number]>(
+    projection.entries.map(row => [row.id, row]),
+  );
+  if (assessments.size !== projection.entries.length || catalog.exchanges.length !== assessments.size) {
+    throw new Error('Exchange assessment does not cover the complete CCXT catalog.');
+  }
+  const exchanges = catalog.exchanges.map(entry => {
+    const row = assessments.get(entry.id);
+    if (!row) throw new Error(`Exchange assessment is missing for ${entry.id}.`);
+    return {
+      ...entry,
+      assessment: {
+        decision: row.decision,
+        products: [...row.products],
+        reasonCodes: [...row.reasonCodes],
+      },
+    };
+  });
+  return { ...catalog, exchanges: [PAPER_ENTRY, ...exchanges] };
+}
 
 export class ExchangeCatalogClient {
   private readonly baseUrl: string;
@@ -210,9 +258,11 @@ export class ExchangeCatalogClient {
     }
   }
 
-  async browserCatalog(force = false): Promise<ExchangeCatalog> {
+  async browserCatalog(force = false, includeAssessment = false): Promise<ExchangeCatalog> {
     const catalog = await this.executorCatalog(force);
-    return { ...catalog, exchanges: [PAPER_ENTRY, ...catalog.exchanges] };
+    return includeAssessment
+      ? assessedBrowserCatalog(catalog)
+      : { ...catalog, exchanges: [PAPER_ENTRY, ...catalog.exchanges] };
   }
 
   async probe(exchange: unknown): Promise<ExchangeCatalogEntry> {
@@ -221,6 +271,7 @@ export class ExchangeCatalogClient {
     const token = await this.credentials.getOrCreateExecutorToken();
     const response = await this.fetchImpl(`${this.baseUrl}/v1/exchange-probe`, {
       method: 'POST',
+      redirect: 'error',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ exchange: id }),
       signal: AbortSignal.timeout(35_000),
@@ -236,6 +287,7 @@ export class ExchangeCatalogClient {
     const token = await this.credentials.getOrCreateExecutorToken();
     const response = await this.fetchImpl(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
+      redirect: 'error',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(10_000),

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "revision": "9740c2973e1cd71e16bbf597cc22a88a12860118",
+  "candidate": {
+    "path": "reports/final-findings/govuln9740-hyperliquid-receipt-candidate.json",
+    "sha256": "eefcdd4d9af1c81482569577508b5e330ade162496073d7adb9ea7bc7e30cfc9"
+  },
+  "candidateState": {
+    "path": "reports/final-findings/govuln9740-receipt-candidate-state.json",
+    "sha256": "88ded3e0e3f3703fe02ceb84c177cf431d2c52195817a0f6c3dd25e2be6891d8"
+  },
+  "completeSourceReview": {
+    "path": "reports/final-findings/govuln9740-receipt-source-review-root-v2.json",
+    "sha256": "24dc444297a07483777ef8900de20bfa5a3ca91888c3c67078ff8f24595cbd7b"
+  },
+  "independentReview": {
+    "path": "reports/final-findings/govuln9740-independent-receipt-review-v2.json",
+    "sha256": "da2ea816ff7643cd870683cfe96ce291085d1f962274cb7b9d328632bd67e456"
+  },
+  "reviewValidator": {
+    "path": "reports/final-findings/validate-govuln9740-candidate-v2.py",
+    "sha256": "802c56550df9295780395cd97f942d084123055fbcc6a10dd00da9c2ab001c2e"
+  },
+  "approved": true,
+  "reviewer": "root",
+  "approvedAt": "2026-09-23T18:44:12Z",
+  "scope": "Approve only offline Hyperliquid implementation-receipt adoption for exact frozen source 9740c297 and candidate SHA eefcdd4d, after independent review and deterministic evidence archive. This does not approve deployment, trading, provider acceptance, container results, or a protected GitHub merge.",
+  "rootChecks": [
+    "Inspected exact five-file source diff: govulncheck audit-tool module/sums, VEX README accuracy, and two security policy tests; no application runtime path changed.",
+    "Checked all eight terminal passing verification reports share revision 9740c297 and sourceTreeHash 9f2c35de4044, with pre/post input stability and four passing mutation shards.",
+    "Verified the sealed 1258689e predecessor receipt/archive, 62 requirement identities, 97 unchanged witnesses and independent review V2 SHA da2ea816ff7643cd870683cfe96ce291085d1f962274cb7b9d328632bd67e456.",
+    "Ran V2 validator independently: 5 deltas, 8 green groups, 4 mutation artifacts, 1058 current references, zero unresolved, Python PASS and Node build-input match.",
+    "Acknowledged absent pre-test raw-Git context; group-level pre/post inputs plus intermediate and final raw-Git contexts support this bounded offline renewal.",
+    "Monitoring container builds, external Codacy/Snyk/DeepSource/Sonar rescans, provider acceptance and live trading remain outside this approval."
+  ],
+  "providerAcceptanceVerified": false,
+  "operativeReceiptOrPinsChanged": false,
+  "containerAcceptanceVerified": false,
+  "liveTradingApproved": false
+}

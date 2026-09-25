@@ -11,6 +11,9 @@ import { evaluateGithubGovernance } from '../scripts/verify_github_governance.js
 const EXCLUDED_ENCODING_DIRECTORIES = new Set([
   '.git', 'coverage', 'coverage-modules', 'dist', 'node_modules', 'reports',
 ]);
+const EXCLUDED_ENCODING_PATHS = new Set([
+  'frontend/playwright-report', 'frontend/test-results',
+]);
 const ANALYZED_TEXT_EXTENSIONS = new Set([
   '.css', '.html', '.in', '.js', '.json', '.lock', '.md', '.mjs', '.properties',
   '.py', '.sh', '.ts', '.tsx', '.txt', '.xml', '.yaml', '.yml',
@@ -27,8 +30,11 @@ function isAnalyzedTextFile(fileName) {
 
 async function assertUtf8Tree(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (entry.isDirectory() && EXCLUDED_ENCODING_DIRECTORIES.has(entry.name)) continue;
     const filePath = path.join(directory, entry.name);
+    const relativePath = path.relative('.', filePath).split(path.sep).join('/');
+    if (entry.isDirectory() && (
+      EXCLUDED_ENCODING_DIRECTORIES.has(entry.name) || EXCLUDED_ENCODING_PATHS.has(relativePath)
+    )) continue;
     if (entry.isDirectory()) await assertUtf8Tree(filePath);
     if (!entry.isFile() || !isAnalyzedTextFile(entry.name)) continue;
     const bytes = await readFile(filePath);
@@ -114,6 +120,7 @@ for (const governancePath of [
   '.github/workflows/quality.yml',
   '.github/workflows/staging.yml',
   '.github/workflows/production_evidence.yml',
+  '.github/workflows/release_observation.yml',
   '.github/workflows/synthetic.yml',
   '.github/CODEOWNERS',
   '.github/dependabot.yml',
@@ -282,7 +289,7 @@ assert.match(codeowners, /^\*\s+@888nikush888\s*$/m);
 assert.doesNotMatch(workflow, /^\s{2}release:\s*$/m);
 assert.doesNotMatch(workflow, /create-github-app-token|PR risk approval gate|release-governance|pr-risk-publisher/);
 assert.match(sonarCloud, /^sonar\.python\.version=3\.12$/m);
-assert.match(sonarCloud, /^sonar\.javascript\.lcov\.reportPaths=coverage\/lcov\.info,frontend\/coverage\/lcov\.info$/m);
+assert.match(sonarCloud, /^sonar\.javascript\.lcov\.reportPaths=coverage\/lcov\.info,coverage\/b2-backup-gateway\/lcov\.info,coverage\/b2-audit-receiver\/lcov\.info,coverage\/incident-receiver-worker\/lcov\.info,frontend\/coverage\/lcov\.info$/m);
 assert.match(sonarCloud, /^sonar\.python\.coverage\.reportPaths=exchange_executor\/coverage\.xml$/m);
 assert.match(sonarCloud, /^sonar\.qualitygate\.wait=true$/m);
 assert.match(workflow, /name: SonarQube Cloud quality gate/);

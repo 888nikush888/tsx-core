@@ -12,6 +12,9 @@ alerting:
 
 scrape_configs:
   - job_name: tsx-core
+    scheme: https
     metrics_path: /metrics
+    tls_config:
+      ca_file: /run/tsx-tls/ca.pem
     static_configs:
       - targets: [forwarder:9100]

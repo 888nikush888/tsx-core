@@ -81,6 +81,6 @@ assert.ok(
 // Repository evidence is time-limited; validate it at the actual gate time.
 const repositoryRecords = await checkRiskAcceptances();
 assert.deepEqual(repositoryRecords.violations, []);
-assert.deepEqual(repositoryRecords.files, ['RA-2026-09-08-internal-http.md']);
+assert.deepEqual(repositoryRecords.files, ['RA-2026-09-08-internal-http.md', 'RA-2026-09-20-executor-http.md']);
 
 console.log('Risk-acceptance governance tests passed.');

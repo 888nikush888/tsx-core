@@ -1,0 +1,40 @@
+test_assessment_or_inventory_drift_cannot_reuse_review_capability (test_candidate_review_policy.CandidateReviewPolicyTests.test_assessment_or_inventory_drift_cannot_reuse_review_capability) ... ok
+test_evidence_drift_and_invalid_existing_receipt_remain_no_go (test_candidate_review_policy.CandidateReviewPolicyTests.test_evidence_drift_and_invalid_existing_receipt_remain_no_go) ... ERROR
+test_fixed_review_accepts_exact_decisions_only_with_valid_existing_receipt (test_candidate_review_policy.CandidateReviewPolicyTests.test_fixed_review_accepts_exact_decisions_only_with_valid_existing_receipt) ... ERROR
+
+======================================================================
+ERROR: test_evidence_drift_and_invalid_existing_receipt_remain_no_go (test_candidate_review_policy.CandidateReviewPolicyTests.test_evidence_drift_and_invalid_existing_receipt_remain_no_go)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\nikla\Documents\ChatGPT\TSX CORE SERVER INSTALLATION\tmp\tsx-core-integration-next-20260924\exchange_executor\tests\test_candidate_review_policy.py", line 53, in test_evidence_drift_and_invalid_existing_receipt_remain_no_go
+    verifier = reviews.trusted_completion_verifier(self.document, CompletionVerdict)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nikla\Documents\ChatGPT\TSX CORE SERVER INSTALLATION\tmp\tsx-core-integration-next-20260924\exchange_executor\ccxt_candidate_reviews.py", line 62, in trusted_completion_verifier
+    approved = _approved_assessments(document)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nikla\Documents\ChatGPT\TSX CORE SERVER INSTALLATION\tmp\tsx-core-integration-next-20260924\exchange_executor\ccxt_candidate_reviews.py", line 82, in _approved_assessments
+    _evidence_bytes(reference)
+  File "C:\Users\nikla\Documents\ChatGPT\TSX CORE SERVER INSTALLATION\tmp\tsx-core-integration-next-20260924\exchange_executor\ccxt_candidate_reviews.py", line 53, in _evidence_bytes
+    raise CandidateReviewError("Candidate evidence changed after review.")
+ccxt_candidate_reviews.CandidateReviewError: Candidate evidence changed after review.
+
+======================================================================
+ERROR: test_fixed_review_accepts_exact_decisions_only_with_valid_existing_receipt (test_candidate_review_policy.CandidateReviewPolicyTests.test_fixed_review_accepts_exact_decisions_only_with_valid_existing_receipt)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\nikla\Documents\ChatGPT\TSX CORE SERVER INSTALLATION\tmp\tsx-core-integration-next-20260924\exchange_executor\tests\test_candidate_review_policy.py", line 32, in test_fixed_review_accepts_exact_decisions_only_with_valid_existing_receipt
+    verifier = reviews.trusted_completion_verifier(self.document, CompletionVerdict)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nikla\Documents\ChatGPT\TSX CORE SERVER INSTALLATION\tmp\tsx-core-integration-next-20260924\exchange_executor\ccxt_candidate_reviews.py", line 62, in trusted_completion_verifier
+    approved = _approved_assessments(document)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nikla\Documents\ChatGPT\TSX CORE SERVER INSTALLATION\tmp\tsx-core-integration-next-20260924\exchange_executor\ccxt_candidate_reviews.py", line 82, in _approved_assessments
+    _evidence_bytes(reference)
+  File "C:\Users\nikla\Documents\ChatGPT\TSX CORE SERVER INSTALLATION\tmp\tsx-core-integration-next-20260924\exchange_executor\ccxt_candidate_reviews.py", line 53, in _evidence_bytes
+    raise CandidateReviewError("Candidate evidence changed after review.")
+ccxt_candidate_reviews.CandidateReviewError: Candidate evidence changed after review.
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.171s
+
+FAILED (errors=2)

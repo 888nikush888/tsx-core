@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "reviewer": "govuln_independent_review",
+  "reviewedAt": "2026-09-23T18:55:30.954872+00:00",
+  "sourceRevision": "9740c2973e1cd71e16bbf597cc22a88a12860118",
+  "sourceTreeHash": "9f2c35de40444d51a00d6dfbb9d1581f3ca0152e18af09ec4e63d8dadcd14b76",
+  "runner": {
+    "path": "reports/final-findings/run-govuln9740-post-adoption.py",
+    "sha256": "df7e320d78af18ef4b80d9e319ac93de6f5226c5e15b76b43f3b1d4c5cf73c6d"
+  },
+  "operativeReceipt": {
+    "path": "exchange_executor/certifications/hyperliquid.json",
+    "sha256": "eefcdd4d9af1c81482569577508b5e330ade162496073d7adb9ea7bc7e30cfc9",
+    "authorityPin": {
+      "exchange": "hyperliquid",
+      "profileVersion": 1,
+      "approvedReceiptHashes": [
+        "eefcdd4d9af1c81482569577508b5e330ade162496073d7adb9ea7bc7e30cfc9"
+      ]
+    }
+  },
+  "preAdoptionTrackedEvidence": {
+    "directory": "exchange_executor/certifications/reviews",
+    "sha256ByFile": {
+      "govuln9740-independent-receipt-review-v2.json": "da2ea816ff7643cd870683cfe96ce291085d1f962274cb7b9d328632bd67e456",
+      "govuln9740-receipt-adoption-approval.json": "a2896c13ec79f2ef2b61224b5b352fefd461b4ce72bff5545152af94ed622720",
+      "govuln9740-receipt-evidence-manifest.json": "70bdeedb4d0bc19032404b39cfd9b6a164f456115ba57ef86ecd1fe90506735b",
+      "govuln9740-receipt-evidence.tar.gz": "e726e4d83952063ed965fa83a9b946b2a3855eee213b08532d1ee0fb3e65a517"
+    },
+    "trackedAndIgnoredBytesIdentical": true
+  },
+  "postAdoptionEvidence": {
+    "checks": {
+      "path": "reports/final-findings/govuln9740-post-adoption-checks.json",
+      "sha256": "60ecb7c27c02dcea45710193229deb55b1e52ff7b1c39824a9ac303d1bf4cc1d"
+    },
+    "logsArchive": {
+      "path": "reports/final-findings/govuln9740-post-adoption-logs.tar.gz",
+      "sha256": "7b642e48a0031a12251eecd434a2f4f27a927c3e87d21d73abb571ab1a1d28a2",
+      "memberCount": 4
+    },
+    "rawLogSha256ByCommand": {
+      "production-gate": "a1edfc2f28ec8763e3729da985cb26a8776a8e5ae9fbdcb32c088afbdaa2cdce",
+      "bridge": "cb0e786bb2f29a89090dbb2e37f839dbe5703519ac3978eb01d3c2e60d7b7cef",
+      "certification-evidence": "76fb6e4098472021249c64254ff050caa61180241a88969ffa284eb50d187471",
+      "implementation-runtime": "7939e507cd7f778212e00b4882bac691b0edd453f227a672b40c6bd1d82ac071"
+    }
+  },
+  "checks": {
+    "headAnd1002FrozenBuildInputsMatch": true,
+    "allFourCommandsExitZero": true,
+    "allFourArchivedMembersMatchStandaloneLogsAndDeclaredHashes": true,
+    "productionGateBuildInputsMatch": true,
+    "productionGateRuntimeReceiptsVerified": true,
+    "productionGateOnlyReviewedHyperliquidReceipt": true,
+    "quarantinedProfiles": [
+      "bybit",
+      "krakenfutures"
+    ],
+    "bridgeTestFilesPassed": 1,
+    "certificationEvidenceTestsPassed": 12,
+    "implementationRuntimeTestsPassed": 12,
+    "providerAcceptanceVerified": false,
+    "performedGateExecution": false
+  },
+  "scope": "Independent review of the observed offline post-adoption production build gate and three targeted test commands. This does not claim provider acceptance, live trading, container CI, external scanner clearance, deployment, or protected GitHub merge."
+}

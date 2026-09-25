@@ -9,7 +9,9 @@ import { UiOperationStore } from '../src/ui_operation_store.js';
 import { prepareUiParserTest, runUiParserTest } from '../src/ui_parser_lab.js';
 import { DEFAULT_AI_LIMITS, parseSignalToXml } from '../src/signal_parser.js';
 import { seedTradingFixtures } from './trading_fixtures.js';
+import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
 
+const tlsFixture = await setupInternalTlsTest();
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tsx-ui-commands-'));
 if (!path.resolve(directory).startsWith(path.resolve(os.tmpdir()) + path.sep) || !path.basename(directory).startsWith('tsx-ui-commands-')) throw new Error('Unsafe fixture cleanup.');
 const admin = 'ui-command-admin-'.repeat(3); const viewer = 'ui-command-viewer-'.repeat(3);
@@ -55,7 +57,7 @@ try {
     restoreBackup: () => { calls.restore++; return Promise.resolve({ previousDatabase: 'fixture-rollback', previousConfig: null }); }, requestRestart: () => { calls.restart++; },
   };
   server = startWebServer(0, app); await once(server, 'listening');
-  const base = `http://127.0.0.1:${server.address().port}`;
+  const base = `https://127.0.0.1:${server.address().port}`;
   const post = (route, body, confirmation, token = admin, extra = {}) => fetch(`${base}${route}`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard', ...(confirmation ? { 'X-Destructive-Confirmation': confirmation } : {}), ...extra }, body: JSON.stringify(body) });
   const waitJob = async id => {
     for (let attempt = 0; attempt < 200; attempt++) {
@@ -158,4 +160,5 @@ try {
   await rm(directory, { recursive: true, force: true });
   for (const name of Object.keys(process.env)) if (!(name in oldEnvironment)) delete process.env[name];
   Object.assign(process.env, oldEnvironment);
+  await tlsFixture.cleanup();
 }

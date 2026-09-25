@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest"
-import { cleanup, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const api = vi.hoisted(() => ({
@@ -42,7 +42,7 @@ describe("dashboard authentication gate", () => {
 
     render(<DashboardAuthGate><div>Authenticated dashboard</div></DashboardAuthGate>)
 
-    await waitFor(() => expect(screen.getByText("Authenticated dashboard")).toBeInTheDocument())
+    expect(await screen.findByText("Authenticated dashboard")).toBeInTheDocument()
     expect(screen.queryByLabelText("Bearer token")).not.toBeInTheDocument()
     expect(api.apiFetch).toHaveBeenCalledWith("/api/recovery")
   })

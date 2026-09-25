@@ -9,6 +9,7 @@ import { ManagedTelegramViewerSettingsStore } from '../src/telegram_viewer_setti
 import { TelegramViewerSecretStore } from '../src/telegram_viewer_secrets.js';
 import { createTelegramViewerTestEvent, recordTradingNotificationEvent } from '../src/viewer_repository.js';
 import { startWebServer, stopWebServer } from '../src/web_server.js';
+import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
 
 const ADMIN = 'dashboard-admin';
 const DASHBOARD_VIEWER = 'dashboard-viewer';
@@ -221,6 +222,7 @@ async function verifyDashboardViewerControl(baseUrl, serviceToken, settings, sec
 
 async function run() {
   const testDir = await mkdtemp(path.join(os.tmpdir(), 'tsx-viewer-api-'));
+  const tlsFixture = await setupInternalTlsTest();
   let started = false;
   try {
     await initDb(path.join(testDir, 'tsx.db'));
@@ -261,7 +263,10 @@ async function run() {
     await once(server, 'listening');
     const address = server.address();
     assert.ok(address && typeof address === 'object');
-    const baseUrl = `http://127.0.0.1:${address.port}`;
+    const baseUrl = `https://127.0.0.1:${address.port}`;
+    await assert.rejects(fetch(`${baseUrl.replace('https:', 'http:')}/internal/viewer/v1/summary`, {
+      headers: authorization(serviceToken), signal: AbortSignal.timeout(2_000),
+    }), /fetch failed/i, 'The service token must never be accepted over cleartext HTTP.');
 
     await verifyInternalViewerApi(baseUrl, serviceToken);
     await verifyDashboardViewerControl(baseUrl, serviceToken, settings, secrets, auditEvents);
@@ -270,6 +275,7 @@ async function run() {
     if (started) await stopWebServer();
     await closeDb();
     await rm(testDir, { recursive: true, force: true });
+    await tlsFixture.cleanup();
   }
 }
 

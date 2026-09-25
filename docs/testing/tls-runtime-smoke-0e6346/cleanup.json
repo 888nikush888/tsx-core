@@ -1,0 +1,12 @@
+{
+  "revision": "0e6346b7ebded36897cbb6e8624db5dd0d712124",
+  "composeProject": "tsx-tls-smoke-0e6346",
+  "command": "docker compose -p tsx-tls-smoke-0e6346 down -v --remove-orphans",
+  "exitCode": 0,
+  "remainingProjectContainers": 0,
+  "remainingProjectVolumes": 0,
+  "remainingProjectNetworks": 0,
+  "sourceHeadUnchanged": true,
+  "trackedTreeClean": true,
+  "keepaliveStopped": true
+}

@@ -643,8 +643,10 @@ test('History cancellation preserves a distinct graph draft and accepted restora
   await page.getByRole('button', { name: /rückgängig/ }).click(); await page.getByRole('button', { name: 'History-Wechsel durchführen' }).click();
   await expect(page.getByText(/Basis history-active-2 · ungespeicherte Änderungen/)).toBeVisible();
   expect(requests.filter(request => request.path === '/api/workflow/drafts' && request.method === 'POST')).toHaveLength(0);
-  await page.getByRole('button', { name: 'Graphentwurf speichern', exact: true }).click(); await page.reload();
-  await expect(page.getByText(/Graphentwurf 2 · Basis history-active-2/)).toBeVisible();
+  await page.getByRole('button', { name: 'Graphentwurf speichern', exact: true }).click();
+  await expect(page.getByText(/Graphentwurf 2 gespeichert/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByText(/Graphentwurf 2 · Basis history-active-2/)).toBeVisible({ timeout: 15_000 });
   expect(requests.filter(request => request.path === '/api/workflow/history/apply')).toHaveLength(1);
   expect(requests.filter(request => request.path === '/api/workflow/mutate')).toHaveLength(0);
 });

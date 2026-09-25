@@ -8,10 +8,12 @@ route:
 receivers:
   - name: enterprise-incident-webhook
     webhook_configs:
-      - url: http://alert-relay:9095/alerts
+      - url: https://alert-relay:9095/alerts
         send_resolved: true
         max_alerts: 100
         http_config:
+          tls_config:
+            ca_file: /run/tsx-tls/ca.pem
           authorization:
             type: Bearer
             credentials_file: /app/secrets/alert_relay_token

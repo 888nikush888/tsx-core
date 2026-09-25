@@ -1,0 +1,5 @@
+
+> tsx-core@3.3.0 lint:python
+> python -m ruff check exchange_executor
+
+All checks passed!

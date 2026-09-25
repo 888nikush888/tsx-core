@@ -6,6 +6,8 @@ import { usePoll } from "@/shared/api/use-poll";
 import { useConfirmationDialog } from "@/components/confirmation-dialog";
 import { EvidenceFields } from "@/shared/components/evidence";
 
+type SignalPageKind = "ingress" | "processed" | "outbox" | "messages";
+
 type SignalEntry = Record<string, unknown> & {
   id: string;
   channelId?: string | null;
@@ -45,7 +47,7 @@ function SignalsNotices({ error, message }: Readonly<{ error: string; message: s
 }
 
 function SignalsFilterSection({ kind, status, channelId, objectId, messageId, current, changeFilter, setParams }: Readonly<{
-  kind: "ingress" | "processed" | "outbox" | "messages"; status: string; channelId: string; objectId: string; messageId: string;
+  kind: SignalPageKind; status: string; channelId: string; objectId: string; messageId: string;
   current: SignalsPayload | null; changeFilter: (key: string, value: string) => void; setParams: (next: URLSearchParams) => void;
 }>) {
   return (
@@ -58,7 +60,7 @@ function SignalsFilterSection({ kind, status, channelId, objectId, messageId, cu
 }
 
 function SignalsResultSection({ current, kind, readOnly, busy, cursor, command, changeFilter, setParams }: Readonly<{
-  current: SignalsPayload | null; kind: "ingress" | "processed" | "outbox" | "messages"; readOnly: boolean; busy: string; cursor: string;
+  current: SignalsPayload | null; kind: SignalPageKind; readOnly: boolean; busy: string; cursor: string;
   command: (task: OutboxTask, action: "retry" | "acknowledge") => Promise<void>; changeFilter: (key: string, value: string) => void;
   setParams: (next: URLSearchParams | ((previous: URLSearchParams) => URLSearchParams)) => void;
 }>) {
@@ -88,7 +90,7 @@ function SignalsResultSection({ current, kind, readOnly, busy, cursor, command, 
   );
 }
 
-export function SignalsPage({ kind, readOnly = true }: Readonly<{ kind: "ingress" | "processed" | "outbox" | "messages"; readOnly?: boolean }>) {
+export function SignalsPage({ kind, readOnly = true }: Readonly<{ kind: SignalPageKind; readOnly?: boolean }>) {
   const [params, setParams] = useSearchParams();
   const status = params.get("status") ?? "";
   const channelId = params.get("channelId") ?? "";

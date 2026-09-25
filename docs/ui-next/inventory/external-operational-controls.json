@@ -1,0 +1,1227 @@
+{
+  "schemaVersion": 1,
+  "scope": "Source-scoped operational control records outside or below aggregate catalog fields; all UI evidence remains unverified.",
+  "denominatorPolicy": "Catalog contracts and source-scoped external controls are reported separately. Three aggregate catalog paths (deployment.hostPorts, deployment.cpu, deployment.memory) are replaced by their individual Compose controls in the combined source-scoped count. Related paths document overlap without claiming an equivalent UI editor.",
+  "composeSources": [
+    "docker-compose.yml",
+    "docker-compose.monitoring.yml"
+  ],
+  "composeEnvironmentBindings": [
+    {
+      "name": "ALERT_RELAY_HOST",
+      "source": [
+        "docker-compose.monitoring.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "ALERT_RELAY_TLS_CERT_FILE",
+      "source": [
+        "docker-compose.monitoring.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "ALERT_RELAY_TLS_KEY_FILE",
+      "source": [
+        "docker-compose.monitoring.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "ALERT_RELAY_TOKEN_FILE",
+      "source": [
+        "docker-compose.monitoring.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "ALERT_WEBHOOK_TOKEN_FILE",
+      "source": [
+        "docker-compose.monitoring.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "BACKUP_DIR",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "CONFIG_PATH",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "DASHBOARD_BOOTSTRAP_PROOF",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "DASHBOARD_LOCAL_TRUST",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "DASHBOARD_RECOVERY_LOCAL_TRUST",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "DASHBOARD_TLS_CERT_FILE",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "DASHBOARD_TLS_KEY_FILE",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "EXCHANGE_EXECUTOR_URL",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "EXECUTOR_HOST",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "EXECUTOR_PORT",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "EXECUTOR_TLS_CERT_FILE",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "EXECUTOR_TLS_KEY_FILE",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "FORWARDER_DB_PATH",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "LOG_DIR",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "MANAGED_SECRET_DIR",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "MCP_ALLOWED_HOSTS",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "MCP_ALLOWED_ORIGINS",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "MCP_ENDPOINT_URL",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "MCP_HOST",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "MCP_PORT",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "MCP_RUNTIME_POLL_MS",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "METRICS_HOST",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "METRICS_PORT",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "METRICS_TLS_CERT_FILE",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "METRICS_TLS_KEY_FILE",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "NODE_EXTRA_CA_CERTS",
+      "source": [
+        "docker-compose.monitoring.yml",
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "PORT",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "PROVIDER_ACCEPTANCE_GRANTS_FILE",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "PROVIDER_ACCEPTANCE_REVIEWER_KEY_FILE",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "RUNTIME_SETTINGS_PATH",
+      "source": [
+        "docker-compose.monitoring.yml",
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "TELEGRAM_VIEWER_CORE_URL",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "TELEGRAM_VIEWER_HEALTH_HOST",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "TELEGRAM_VIEWER_HEALTH_PORT",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "TELEGRAM_VIEWER_SECRET_DIR",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "TELEGRAM_VIEWER_SETTINGS_PATH",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "TELEGRAM_VIEWER_STATE_DB",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "TELEGRAM_VIEWER_STATUS_URL",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "TELEGRAM_VIEWER_TLS_CERT_FILE",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "TELEGRAM_VIEWER_TLS_KEY_FILE",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "TEMPLATES_DIR",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "TSX_INTERNAL_CA_FILE",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    },
+    {
+      "name": "WEB_HOST",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "kind": "fixed-container-wiring-not-an-additional-control"
+    }
+  ],
+  "tlsEnvironmentBindings": [
+    {
+      "name": "DASHBOARD_TLS_CERT_FILE",
+      "artifact": "dashboard.crt"
+    },
+    {
+      "name": "DASHBOARD_TLS_KEY_FILE",
+      "artifact": "dashboard.key"
+    },
+    {
+      "name": "METRICS_TLS_CERT_FILE",
+      "artifact": "metrics.crt"
+    },
+    {
+      "name": "METRICS_TLS_KEY_FILE",
+      "artifact": "metrics.key"
+    },
+    {
+      "name": "EXECUTOR_TLS_CERT_FILE",
+      "artifact": "executor.crt"
+    },
+    {
+      "name": "EXECUTOR_TLS_KEY_FILE",
+      "artifact": "executor.key"
+    },
+    {
+      "name": "TELEGRAM_VIEWER_TLS_CERT_FILE",
+      "artifact": "viewer.crt"
+    },
+    {
+      "name": "TELEGRAM_VIEWER_TLS_KEY_FILE",
+      "artifact": "viewer.key"
+    },
+    {
+      "name": "ALERT_RELAY_TLS_CERT_FILE",
+      "artifact": "alert-relay.crt"
+    },
+    {
+      "name": "ALERT_RELAY_TLS_KEY_FILE",
+      "artifact": "alert-relay.key"
+    },
+    {
+      "name": "TSX_INTERNAL_CA_FILE",
+      "artifact": "ca.pem"
+    },
+    {
+      "name": "NODE_EXTRA_CA_CERTS",
+      "artifact": "ca.pem"
+    }
+  ],
+  "controls": [
+    {
+      "id": "compose.ALERTMANAGER_IMAGE",
+      "family": "compose",
+      "source": [
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": "deployment.imageDigest",
+      "relation": "selector-not-running-digest",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.DASHBOARD_BOOTSTRAP_PROOF",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.EXCHANGE_EXECUTOR_CPU_LIMIT",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": "deployment.cpu",
+      "relation": "expands-aggregate",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.EXCHANGE_EXECUTOR_IMAGE",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": "deployment.imageDigest",
+      "relation": "selector-not-running-digest",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.EXCHANGE_EXECUTOR_MEMORY_LIMIT",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": "deployment.memory",
+      "relation": "expands-aggregate",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.FORWARDER_CPU_LIMIT",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": "deployment.cpu",
+      "relation": "expands-aggregate",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.FORWARDER_IMAGE",
+      "family": "compose",
+      "source": [
+        "docker-compose.monitoring.yml",
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": "deployment.imageDigest",
+      "relation": "selector-not-running-digest",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.FORWARDER_MEMORY_LIMIT",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": "deployment.memory",
+      "relation": "expands-aggregate",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.HOST_ALERTMANAGER_PORT",
+      "family": "compose",
+      "source": [
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": "deployment.hostPorts",
+      "relation": "expands-aggregate",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.HOST_MCP_PORT",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": "deployment.hostPorts",
+      "relation": "expands-aggregate",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.HOST_METRICS_PORT",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": "deployment.hostPorts",
+      "relation": "expands-aggregate",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.HOST_PROMETHEUS_PORT",
+      "family": "compose",
+      "source": [
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": "deployment.hostPorts",
+      "relation": "expands-aggregate",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.HOST_WEB_PORT",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": "deployment.hostPorts",
+      "relation": "expands-aggregate",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.INTERNAL_TLS_DIR",
+      "family": "compose",
+      "source": [
+        "docker-compose.monitoring.yml",
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.MCP_ALLOWED_HOSTS",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.MCP_ALLOWED_ORIGINS",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.MCP_CPU_LIMIT",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": "deployment.cpu",
+      "relation": "expands-aggregate",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.MCP_ENDPOINT_URL",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.MCP_MEMORY_LIMIT",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": "deployment.memory",
+      "relation": "expands-aggregate",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.MCP_RUNTIME_POLL_MS",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.PROMETHEUS_IMAGE",
+      "family": "compose",
+      "source": [
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": "deployment.imageDigest",
+      "relation": "selector-not-running-digest",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.TELEGRAM_VIEWER_CPU_LIMIT",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": "deployment.cpu",
+      "relation": "expands-aggregate",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "compose.TELEGRAM_VIEWER_MEMORY_LIMIT",
+      "family": "compose",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": "deployment.memory",
+      "relation": "expands-aggregate",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "tls.ca.pem",
+      "family": "internal-tls",
+      "source": [
+        "docs/runbooks/internal-tls.md",
+        "docker-compose.yml",
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "tls.dashboard.crt",
+      "family": "internal-tls",
+      "source": [
+        "docs/runbooks/internal-tls.md",
+        "docker-compose.yml",
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "tls.dashboard.key",
+      "family": "internal-tls",
+      "source": [
+        "docs/runbooks/internal-tls.md",
+        "docker-compose.yml",
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "tls.metrics.crt",
+      "family": "internal-tls",
+      "source": [
+        "docs/runbooks/internal-tls.md",
+        "docker-compose.yml",
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "tls.metrics.key",
+      "family": "internal-tls",
+      "source": [
+        "docs/runbooks/internal-tls.md",
+        "docker-compose.yml",
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "tls.alert-relay.crt",
+      "family": "internal-tls",
+      "source": [
+        "docs/runbooks/internal-tls.md",
+        "docker-compose.yml",
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "tls.alert-relay.key",
+      "family": "internal-tls",
+      "source": [
+        "docs/runbooks/internal-tls.md",
+        "docker-compose.yml",
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "tls.viewer.crt",
+      "family": "internal-tls",
+      "source": [
+        "docs/runbooks/internal-tls.md",
+        "docker-compose.yml",
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "tls.viewer.key",
+      "family": "internal-tls",
+      "source": [
+        "docs/runbooks/internal-tls.md",
+        "docker-compose.yml",
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "tls.executor.crt",
+      "family": "internal-tls",
+      "source": [
+        "docs/runbooks/internal-tls.md",
+        "docker-compose.yml",
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "tls.executor.key",
+      "family": "internal-tls",
+      "source": [
+        "docs/runbooks/internal-tls.md",
+        "docker-compose.yml",
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.prometheus.scrape_interval",
+      "family": "monitoring",
+      "source": [
+        "monitoring/prometheus.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.prometheus.evaluation_interval",
+      "family": "monitoring",
+      "source": [
+        "monitoring/prometheus.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.prometheus.scrape_target",
+      "family": "monitoring",
+      "source": [
+        "monitoring/prometheus.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.prometheus.alertmanager_target",
+      "family": "monitoring",
+      "source": [
+        "monitoring/prometheus.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.alertmanager.group_wait",
+      "family": "monitoring",
+      "source": [
+        "monitoring/alertmanager.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.alertmanager.group_interval",
+      "family": "monitoring",
+      "source": [
+        "monitoring/alertmanager.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.alertmanager.repeat_interval",
+      "family": "monitoring",
+      "source": [
+        "monitoring/alertmanager.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.alertmanager.receiver_url",
+      "family": "monitoring",
+      "source": [
+        "monitoring/alertmanager.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.prometheus.retention_time",
+      "family": "monitoring",
+      "source": [
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.prometheus.retention_size",
+      "family": "monitoring",
+      "source": [
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.alertmanager.retention_time",
+      "family": "monitoring",
+      "source": [
+        "docker-compose.monitoring.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.rule.ForwarderMetricsMissing",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "333f3f75363843a1fb9ec9c80fbadb85b7c2d4fd9757afa7369dedb1e7202820"
+    },
+    {
+      "id": "monitoring.rule.ForwarderUnknownDelivery",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "be46c38cc9e9f1282ee72a428a49280876036ef123546b548a9bdd44b6527b8e"
+    },
+    {
+      "id": "monitoring.rule.ForwarderFailedDelivery",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.rule.ForwarderDatabaseUnavailable",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "67c517744a0ae0bc9b5173d4a727cb95b7bf93b8fd4eb614d2ade4b43313294b"
+    },
+    {
+      "id": "monitoring.rule.ForwarderTelegramDisconnected",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "637a3968f432d948c5b41237f596e76bd5e0919021ed482184f168df31a61a3d"
+    },
+    {
+      "id": "monitoring.rule.ForwarderBackupUnhealthy",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "c1fdd3edb821b2417f5a699011e746e44478046d626360edf7807855141ee7e4"
+    },
+    {
+      "id": "monitoring.rule.ForwarderRetentionBacklog",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.rule.ForwarderDiskCapacityUnsafe",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "749f18fd57b64c4caba48627c0b0ce95cf00dd4d67ee00093772e2df8d91777c"
+    },
+    {
+      "id": "monitoring.rule.ForwarderQueueBacklog",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.rule.ForwarderDeliverySuccessSloBurn",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.rule.ForwarderDeliveryLatencySloBurn",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "monitoring.rule.ForwarderPendingTaskStale",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "3c663278fb07b53c7a372d00371c9695f5a9d11007eeef75773c543886e42750"
+    },
+    {
+      "id": "monitoring.rule.ForwarderAuditTrailUnhealthy",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "58a70a7b457150f4afee3b98995aac4030886c235b1d67c41207295f22ce7477"
+    },
+    {
+      "id": "monitoring.rule.ForwarderClockDriftUnsafe",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "5cf7e9b13b13c80f9f0b9e6d6a8a72effbe6979264ca50a4e5bae43155d2bb5e"
+    },
+    {
+      "id": "monitoring.rule.TradingUnknownOrder",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "07e64f0cd9f29dd3a9c53400ed5dbae48fe038da17e447ee421eafd850054b8d"
+    },
+    {
+      "id": "monitoring.rule.TradingUnprotectedPosition",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "effd19c7c2a5475fdd28f1d108e8104ed7e2399349091de59a860ebfa67872de"
+    },
+    {
+      "id": "monitoring.rule.TradingKillSwitchActive",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "205c650f4107859dbc39242306d8a6edf619e73e5d437abeda7d9818aa852f26"
+    },
+    {
+      "id": "monitoring.rule.TradingReconciliationStale",
+      "family": "monitoring-rule",
+      "source": [
+        "monitoring/rules.yml"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "safety-rule",
+      "evidenceStatus": "unverified",
+      "detectionPolicy": "immutable-expression-duration-severity",
+      "deliveryControl": "monitoring.alertmanager.receiver_url",
+      "detectionSourceSha256": "796691270f31eb1d90c4dd9216350ec0fa8f8570f0a080719a7b485f6679da49"
+    },
+    {
+      "id": "host.BACKUP_DIR",
+      "family": "backup-host",
+      "source": [
+        "docker-compose.yml"
+      ],
+      "relatedCatalogPath": "runtime.backupIntervalMs",
+      "relation": "same-feature-distinct-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "host.BACKUP_OFFSITE_TOKEN",
+      "family": "backup-host",
+      "source": [
+        "src/secret_store.ts"
+      ],
+      "relatedCatalogPath": "runtime.backupOffsiteUrlTemplate",
+      "relation": "same-feature-distinct-secret",
+      "class": "write-only-secret",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "host.BACKUP_ENCRYPTION_KEY",
+      "family": "backup-host",
+      "source": [
+        "src/secret_store.ts"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "write-once-secret",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "host.AUDIT_LOG_PATH",
+      "family": "backup-host",
+      "source": [
+        "src/audit_trail.ts"
+      ],
+      "relatedCatalogPath": "runtime.auditLocalMaxBytes",
+      "relation": "same-feature-distinct-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "host.PROMETHEUS_URL",
+      "family": "host",
+      "source": [
+        ".env.example"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "host.PROMETHEUS_TOKEN_FILE",
+      "family": "host",
+      "source": [
+        ".env.example"
+      ],
+      "relatedCatalogPath": null,
+      "relation": "new-control",
+      "class": "write-only-secret",
+      "evidenceStatus": "unverified"
+    },
+    {
+      "id": "tailscale.serveBackend",
+      "family": "host",
+      "source": [
+        "docs/runbooks/internal-tls.md"
+      ],
+      "relatedCatalogPath": "deployment.hostPorts",
+      "relation": "same-feature-distinct-control",
+      "class": "host-maintenance",
+      "evidenceStatus": "unverified"
+    }
+  ]
+}

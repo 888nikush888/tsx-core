@@ -1,8 +1,8 @@
 import { DEFAULT_TELEGRAM_VIEWER_SETTINGS } from '../src/telegram_viewer_settings.js';
 import assert from 'node:assert';
-import http from 'node:http';
+import https from 'node:https';
 import { once } from 'node:events';
-import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -10,6 +10,7 @@ import { TelegramBotApiClient, TelegramViewerCoreApiClient } from '../src/telegr
 import { startTelegramViewerHealthServer } from '../src/telegram_viewer/health_server.js';
 import { requireTrustedServiceUrl } from '../src/telegram_viewer/internal_transport.js';
 import { delay, readRuntimeSecret, resilientLoop } from '../src/telegram_viewer/runtime.js';
+import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
 
 const SERVICE_TOKEN = 's'.repeat(43);
 
@@ -17,8 +18,8 @@ async function close(server) {
   await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }
 
-function createUpstream(requests, responseState) {
-  return http.createServer((request, response) => {
+function createUpstream(requests, responseState, serverOptions) {
+  return https.createServer(serverOptions, (request, response) => {
     requests.push({ method: request.method, url: request.url, authorization: request.headers.authorization });
     response.setHeader('Content-Type', 'application/json');
     if (responseState.mode === 'malformed') {
@@ -30,6 +31,13 @@ function createUpstream(requests, responseState) {
       responseState.mode = 'ok';
       response.statusCode = 503;
       response.end(JSON.stringify({ error: 'temporarily unavailable' }));
+      return;
+    }
+    if (responseState.mode === 'redirect') {
+      responseState.mode = 'ok';
+      response.statusCode = 302;
+      response.setHeader('Location', 'https://public.example.test/collect');
+      response.end();
       return;
     }
     if (responseState.mode === 'telegram-rejected') {
@@ -94,14 +102,14 @@ async function verifyResilientLoop() {
 
 function verifyTrustedInternalTransport() {
   assert.strictEqual(
-    requireTrustedServiceUrl('http://forwarder:8080', 'TELEGRAM_VIEWER_CORE_URL', ['forwarder']),
-    'http://forwarder:8080/',
-    'Cleartext transport is allowed only for an explicitly trusted container peer.',
+    requireTrustedServiceUrl('https://forwarder:8080', 'TELEGRAM_VIEWER_CORE_URL', ['forwarder']),
+    'https://forwarder:8080/',
+    'The core API requires TLS and the configured container peer.',
   );
   assert.strictEqual(
-    requireTrustedServiceUrl('https://viewer.example.test/status', 'TELEGRAM_VIEWER_STATUS_URL', ['telegram-viewer']),
-    'https://viewer.example.test/status',
-    'TLS endpoints may be configured outside the isolated container network.',
+    requireTrustedServiceUrl('https://telegram-viewer:8081/status', 'TELEGRAM_VIEWER_STATUS_URL', ['telegram-viewer']),
+    'https://telegram-viewer:8081/status',
+    'The status endpoint requires TLS and the approved viewer service.',
   );
   assert.throws(
     () => requireTrustedServiceUrl(undefined, 'TELEGRAM_VIEWER_CORE_URL', ['forwarder']),
@@ -117,12 +125,20 @@ function verifyTrustedInternalTransport() {
   );
   assert.throws(
     () => requireTrustedServiceUrl('http://public.example.test/status', 'TELEGRAM_VIEWER_STATUS_URL', ['telegram-viewer']),
-    /cleartext transport.*trusted internal host/i,
-    'Bearer credentials must never be sent over cleartext to an arbitrary host.',
+    /must use HTTPS/i,
+    'Bearer credentials must never be sent over cleartext.',
+  );
+  assert.throws(
+    () => requireTrustedServiceUrl('http://forwarder:8080', 'TELEGRAM_VIEWER_CORE_URL', ['forwarder']),
+    /must use HTTPS/i,
+  );
+  assert.throws(
+    () => requireTrustedServiceUrl('https://viewer.example.test/status', 'TELEGRAM_VIEWER_STATUS_URL', ['telegram-viewer']),
+    /approved internal host/i,
   );
   assert.throws(
     () => requireTrustedServiceUrl('file:///tmp/viewer', 'TELEGRAM_VIEWER_CORE_URL', ['forwarder']),
-    /protocol/i,
+    /must use HTTPS/i,
   );
   assert.throws(
     () => requireTrustedServiceUrl('https://user:password@example.test', 'TELEGRAM_VIEWER_CORE_URL', ['forwarder']),
@@ -138,13 +154,17 @@ async function verifyApiClients(upstreamUrl, requests, responseState) {
   const core = new TelegramViewerCoreApiClient(upstreamUrl, SERVICE_TOKEN);
   await core.config();
   await core.get('events', { afterSeq: 0, limit: 10 });
-  assert.throws(() => new TelegramViewerCoreApiClient('file:///tmp/viewer', SERVICE_TOKEN), /url is invalid/i);
+  assert.throws(() => new TelegramViewerCoreApiClient('file:///tmp/viewer', SERVICE_TOKEN), /HTTPS origin/i);
+  assert.throws(() => new TelegramViewerCoreApiClient(upstreamUrl.replace('https:', 'http:'), SERVICE_TOKEN), /HTTPS origin/i);
+  assert.throws(() => new TelegramViewerCoreApiClient('https://public.example.test', SERVICE_TOKEN), /HTTPS origin/i);
   await assert.rejects(core.get('delete-everything'), /resource is not allowed/i);
   await assert.rejects(new TelegramViewerCoreApiClient(upstreamUrl, '').config(), /credential is unavailable/i);
   responseState.mode = 'malformed';
   await assert.rejects(core.config(), /malformed json/i);
   responseState.mode = 'unavailable';
   await assert.rejects(core.config(), /status 503/i);
+  responseState.mode = 'redirect';
+  await assert.rejects(core.config(), /fetch failed/i, 'Core API redirects must not forward the service token.');
   let activeBotToken = '123456789:abcdefghijklmnopqrstuvwxyzABCDE';
   const bot = new TelegramBotApiClient(() => activeBotToken, `${upstreamUrl}/bot`);
   assert.throws(() => new TelegramBotApiClient('invalid'), /bot token is invalid/i);
@@ -170,9 +190,45 @@ async function verifyApiClients(upstreamUrl, requests, responseState) {
   return activeBotToken;
 }
 
-async function verifyHealthServer(requests, activeBotToken) {
+async function verifyHealthServer(requests, activeBotToken, fixture) {
+  const certPath = fixture.cert;
+  const keyPath = fixture.key;
+  const ca = await readFile(fixture.ca);
+  function secureFetch(url, { method = 'GET', headers = {} } = {}) {
+    return new Promise((resolve, reject) => {
+      const request = https.request(url, { method, headers, ca, rejectUnauthorized: true }, response => {
+        const chunks = [];
+        response.on('data', chunk => chunks.push(Buffer.from(chunk)));
+        response.on('end', () => resolve({
+          status: response.statusCode,
+          headers: { get: name => response.headers[name.toLowerCase()] ?? null },
+          json: () => Promise.resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))),
+        }));
+      });
+      request.on('error', reject);
+      request.end();
+    });
+  }
   let currentStatus = { healthy: true, ready: true, enabled: false, lastError: null };
   let tokenUnavailable = false;
+  delete process.env.TELEGRAM_VIEWER_TLS_CERT_FILE;
+  assert.throws(() => startTelegramViewerHealthServer({ port: 0, serviceToken: SERVICE_TOKEN,
+    status: () => currentStatus }), /TELEGRAM_VIEWER_TLS_CERT_FILE/u);
+  process.env.TELEGRAM_VIEWER_TLS_CERT_FILE = certPath;
+  const invalidCertPath = path.join(path.dirname(certPath), 'invalid.pem');
+  await writeFile(invalidCertPath, 'invalid');
+  process.env.TELEGRAM_VIEWER_TLS_CERT_FILE = invalidCertPath;
+  assert.throws(() => startTelegramViewerHealthServer({ port: 0, serviceToken: SERVICE_TOKEN,
+    status: () => currentStatus }), /certificate|PEM|encoding/u);
+  process.env.TELEGRAM_VIEWER_TLS_CERT_FILE = certPath;
+  process.env.TELEGRAM_VIEWER_TLS_KEY_FILE = fixture.otherKey;
+  assert.throws(() => startTelegramViewerHealthServer({ port: 0, serviceToken: SERVICE_TOKEN,
+    status: () => currentStatus }), /do not match/u);
+  process.env.TELEGRAM_VIEWER_TLS_KEY_FILE = keyPath;
+  process.env.TELEGRAM_VIEWER_TLS_CERT_FILE = fixture.expiredCert;
+  assert.throws(() => startTelegramViewerHealthServer({ port: 0, serviceToken: SERVICE_TOKEN,
+    status: () => currentStatus }), /not currently valid/u);
+  process.env.TELEGRAM_VIEWER_TLS_CERT_FILE = certPath;
   const health = startTelegramViewerHealthServer({
     port: 0, serviceToken: () => {
       if (tokenUnavailable) return Promise.reject(new Error('Synthetic token provider failure'));
@@ -184,37 +240,37 @@ async function verifyHealthServer(requests, activeBotToken) {
   const address = health.address();
   assert.ok(address && typeof address === 'object');
   assert.equal(address.address, '127.0.0.1', 'Health server defaults to a local-only listener.');
-  const base = `http://127.0.0.1:${address.port}`;
-  let response = await fetch(`${base}/healthz`);
+  const base = `https://127.0.0.1:${address.port}`;
+  let response = await secureFetch(`${base}/healthz`);
   assert.strictEqual(response.status, 200);
   assert.deepStrictEqual(await response.json(), { healthy: true });
-  response = await fetch(`${base}/readyz`);
+  response = await secureFetch(`${base}/readyz`);
   assert.strictEqual(response.status, 200);
-  response = await fetch(`${base}/status`);
+  response = await secureFetch(`${base}/status`);
   assert.strictEqual(response.status, 401);
   for (const authorization of ['', 'Basic invalid', `Bearer ${'wrong-token-'.repeat(3)}`]) {
-    response = await fetch(`${base}/status`, { headers: { Authorization: authorization } });
+    response = await secureFetch(`${base}/status`, { headers: { Authorization: authorization } });
     assert.strictEqual(response.status, 401);
     assert.strictEqual(response.headers.get('www-authenticate'), 'Bearer realm="tsx-telegram-viewer"');
   }
-  response = await fetch(`${base}/status`, { headers: { Authorization: `Bearer ${SERVICE_TOKEN}` } });
+  response = await secureFetch(`${base}/status`, { headers: { Authorization: `Bearer ${SERVICE_TOKEN}` } });
   assert.strictEqual(response.status, 200);
   assert.strictEqual(JSON.stringify(await response.json()).includes(SERVICE_TOKEN), false);
   currentStatus = { ...currentStatus, healthy: false, ready: false };
   for (const [route, field] of [['health', 'healthy'], ['ready', 'ready']]) {
-    response = await fetch(`${base}/${route}`);
+    response = await secureFetch(`${base}/${route}`);
     assert.strictEqual(response.status, 503);
     assert.deepStrictEqual(await response.json(), { [field]: false });
   }
-  response = await fetch(`${base}/missing`);
+  response = await secureFetch(`${base}/missing`);
   assert.strictEqual(response.status, 404);
   tokenUnavailable = true;
-  response = await fetch(`${base}/status`, { headers: { Authorization: `Bearer ${SERVICE_TOKEN}` } });
+  response = await secureFetch(`${base}/status`, { headers: { Authorization: `Bearer ${SERVICE_TOKEN}` } });
   assert.strictEqual(response.status, 500);
   assert.deepStrictEqual(await response.json(), { error: 'Viewer health request failed.' });
-  response = await fetch(`${base}/healthz`);
+  response = await secureFetch(`${base}/healthz`);
   assert.strictEqual(response.status, 503, 'Token provider failure must not disable the public health probe.');
-  response = await fetch(`${base}/healthz`, { method: 'POST' });
+  response = await secureFetch(`${base}/healthz`, { method: 'POST' });
   assert.strictEqual(response.status, 405);
   assert.ok(requests.some(request => request.url.includes(activeBotToken)), 'The Bot API client must re-read a rotated bot token without restarting the viewer.');
   await close(health);
@@ -222,23 +278,27 @@ async function verifyHealthServer(requests, activeBotToken) {
 
 async function run() {
   const secretRoot = await mkdtemp(path.join(os.tmpdir(), 'tsx-viewer-runtime-secrets-'));
+  const fixture = await setupInternalTlsTest();
   const requests = [];
   const responseState = { mode: 'ok' };
-  const upstream = createUpstream(requests, responseState);
+  const upstream = createUpstream(requests, responseState, {
+    cert: await readFile(fixture.cert), key: await readFile(fixture.key), minVersion: 'TLSv1.2',
+  });
   upstream.listen(0, '127.0.0.1');
   await once(upstream, 'listening');
   const upstreamAddress = upstream.address();
   assert.ok(upstreamAddress && typeof upstreamAddress === 'object');
-  const upstreamUrl = `http://127.0.0.1:${upstreamAddress.port}`;
+  const upstreamUrl = `https://127.0.0.1:${upstreamAddress.port}`;
   try {
     await verifyRuntimeSecrets(secretRoot);
     await verifyResilientLoop();
     verifyTrustedInternalTransport();
     const activeBotToken = await verifyApiClients(upstreamUrl, requests, responseState);
-    await verifyHealthServer(requests, activeBotToken);
+    await verifyHealthServer(requests, activeBotToken, fixture);
     console.log('TELEGRAM VIEWER RUNTIME TESTS PASSED');
   } finally {
     await close(upstream);
+    await fixture.cleanup();
     await rm(secretRoot, { recursive: true, force: true });
   }
 }

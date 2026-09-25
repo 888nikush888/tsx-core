@@ -1,0 +1,127 @@
+{
+  "completedAt": "2026-09-23T11:37:24.817252+00:00",
+  "revision": "dd747ebab66f3290863007b501973c9e483212f3",
+  "receiptSha256": "90dd3f4ec6ad9774c11f8d47631a5d4cb07ef9ce7729555daf1cec8793be4ae9",
+  "sourceTreeHash": "3e087213c9b49de244d8736a69ec330a053304919ef6ab0d7a0716034ec94871",
+  "commands": [
+    {
+      "name": "production-gate",
+      "command": [
+        "C:/Users/nikla/AppData/Local/Programs/node22/node-v22.23.2-win-x64/node.exe",
+        "scripts/verify_exchange_implementation.js",
+        "--python",
+        "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {},
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/final-dd747eba-post-adoption-logs.tar.gz",
+          "sha256": "f26f335ee505ca2ccc147f390e79b3c711de5f3002bb00c4807da7c739ecb681"
+        },
+        "member": "final-dd747eba-post-adoption-production-gate.log",
+        "sha256": "f49d7ffbc72a136f45070619fc5cb78c6d59a26632e1633d4de91851d1620abb"
+      }
+    },
+    {
+      "name": "bridge",
+      "command": [
+        "C:/Users/nikla/AppData/Local/Programs/node22/node-v22.23.2-win-x64/node.exe",
+        "tests/run_all.js",
+        "test_exchange_implementation_bridge.js"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {
+        "TSX_TEST_PYTHON": "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe"
+      },
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/final-dd747eba-post-adoption-logs.tar.gz",
+          "sha256": "f26f335ee505ca2ccc147f390e79b3c711de5f3002bb00c4807da7c739ecb681"
+        },
+        "member": "final-dd747eba-post-adoption-bridge.log",
+        "sha256": "cb0e786bb2f29a89090dbb2e37f839dbe5703519ac3978eb01d3c2e60d7b7cef"
+      }
+    },
+    {
+      "name": "certification-evidence",
+      "command": [
+        "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "exchange_executor/tests",
+        "-p",
+        "test_certification_evidence.py",
+        "-v"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {},
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/final-dd747eba-post-adoption-logs.tar.gz",
+          "sha256": "f26f335ee505ca2ccc147f390e79b3c711de5f3002bb00c4807da7c739ecb681"
+        },
+        "member": "final-dd747eba-post-adoption-certification-evidence.log",
+        "sha256": "f553f07b2459d13e494c6863bc70ae704e205cb1953daf91531ec7f0a75b32f3"
+      }
+    },
+    {
+      "name": "implementation-runtime",
+      "command": [
+        "C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-security-python-env/Scripts/python.exe",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "exchange_executor/tests",
+        "-p",
+        "test_implementation_runtime.py",
+        "-v"
+      ],
+      "exitCode": 0,
+      "testEnvironment": {},
+      "evidence": {
+        "archive": {
+          "path": "exchange_executor/certifications/reviews/final-dd747eba-post-adoption-logs.tar.gz",
+          "sha256": "f26f335ee505ca2ccc147f390e79b3c711de5f3002bb00c4807da7c739ecb681"
+        },
+        "member": "final-dd747eba-post-adoption-implementation-runtime.log",
+        "sha256": "3bb7bd187a7377738311c5b0bccce1908a7867e9eba88c17fde4708b4b321e8b"
+      }
+    }
+  ],
+  "allCommandsPassed": true,
+  "providerAcceptanceVerified": false,
+  "quarantinedProfiles": [
+    "bybit",
+    "krakenfutures"
+  ],
+  "previousAttempts": [
+    {
+      "status": "FAIL",
+      "reason": "Bridge test lacked the explicit TSX_TEST_PYTHON environment variable; no application source or receipt was changed for the retry.",
+      "archive": {
+        "path": "exchange_executor/certifications/reviews/final-dd747eba-post-adoption-attempt1-evidence.tar.gz",
+        "sha256": "d4068782aab89b11f3b5479579b8675e4ae2920a9baf7bbb67544dd2cbb03c63"
+      },
+      "members": [
+        {
+          "name": "final-dd747eba-post-adoption-attempt1-production-gate.log",
+          "sha256": "f49d7ffbc72a136f45070619fc5cb78c6d59a26632e1633d4de91851d1620abb"
+        },
+        {
+          "name": "final-dd747eba-post-adoption-attempt1-bridge.log",
+          "sha256": "8d4efd020defbdf8a98964d8f58d99c4f232b4ca7e6e068a88d918f2c8c1a069"
+        },
+        {
+          "name": "final-dd747eba-post-adoption-failed-20260923T113506089434Z.json",
+          "sha256": "3d120f3146a536c91c07711e198ca29de5abeb0cb08b1cf624efb4d71c9cf2ef"
+        }
+      ]
+    }
+  ]
+}

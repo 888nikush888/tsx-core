@@ -487,7 +487,7 @@ try {
     accountId: paperAccount.id,
     equity: '15000',
     availableBalance: '14000',
-    market: { symbol: 'BTC', markPrice: '60000', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20 },
+    market: { symbol: ' btc ', markPrice: '60000', priceTick: '0.1', quantityStep: '0.001', minimumQuantity: '0.001', minimumNotional: '10', maxLeverage: 20 },
   });
   await control.configurePaper({
     accountId: paperAccount.id,
@@ -502,6 +502,14 @@ try {
   assert.equal(paperResult.simulated, true); assert.equal(paperResult.balance.reportingCurrency, 'USDT');
   await assert.rejects(control.configurePaper({ accountId: paperAccount.id, baseMarketRevision: btcBefore.revision, market: { ...btcBefore, markPrice: '5' } }), /PAPER_CONFIGURATION_CONFLICT/);
   await assert.rejects(control.configurePaper({ accountId: paperAccount.id, baseBalanceRevision: balanceBefore.revision, equity: '999', availableBalance: '999', market: { ...btcBefore, markPrice: '-1' } }), /decimal/i);
+  let paperSymbolCoercions = 0;
+  for (const symbol of [['BTC'], {}, 42, Object('BTC'), { toString() { paperSymbolCoercions += 1; return 'BTC'; } }]) {
+    await assert.rejects(control.configurePaper({
+      accountId: paperAccount.id, baseBalanceRevision: balanceBefore.revision,
+      equity: '999', availableBalance: '999', market: { ...btcBefore, symbol },
+    }), /Paper market symbol must be a string/);
+  }
+  assert.equal(paperSymbolCoercions, 0, 'Revision lookup must not invoke a structured symbol coercion.');
   const paperAfter = (await control.snapshot()).activity;
   assert.equal(paperAfter.paperAccounts.find(item => item.accountId === paperAccount.id).equity, balanceBefore.equity, 'A failing market update must roll back a combined balance change.');
   assert.equal(paperAfter.paperMarkets.find(item => item.symbol === 'BTC').markPrice, '60001.12345678');
@@ -553,7 +561,7 @@ try {
   }), /different external exchange account/);
   hyperliquid.candidateExternalAccountId = null;
   assert.equal((await control.setAccountEnabled(live.id, false)).status, 'disabled');
-  assert.equal((await control.setAccountEnabled(live.id, true)).status, 'ready');
+  await assert.rejects(control.setAccountEnabled(live.id, true), /provider acceptance is not pinned/);
   const removable = await control.createAccount({
     name: 'Removable Bybit', exchange: 'bybit', mode: 'testnet',
     credentials: { apiKey: 'removable-api-key', secret: 'removable-api-secret' },
@@ -573,10 +581,15 @@ try {
   await assert.rejects(control.verifyAccount('missing-account'), /does not exist/);
   const redacted = JSON.stringify(await control.snapshot());
   assert.doesNotMatch(redacted, /official-api-(key|secret)/, 'Exchange credentials must never be returned.');
-  await control.setRoute({ channelId: '-100003', strategyVersionId: published[0].id, accountId: live.id, enabled: true });
+  await control.setRoute({ channelId: '-100003', strategyVersionId: published[0].id, accountId: paperAccount.id, enabled: true });
   await assert.rejects(control.setRuntime({ action: 'live', enabled: true, confirmation: 'yes' }), /exact confirmation/);
-  await control.setRuntime({ action: 'live', enabled: true, confirmation: 'ENABLE LIVE TRADING' });
-  assert.equal((await control.snapshot()).overview.runtime.liveTradingEnabled, true);
+  await assert.rejects(control.setRuntime({ action: 'live', enabled: true, confirmation: 'ENABLE LIVE TRADING' }),
+    /at least one enabled, verified live account/);
+  assert.equal((await control.snapshot()).overview.runtime.liveTradingEnabled, false);
+  await getDatabase().run("UPDATE trading_accounts SET enabled = 1, status = 'ready' WHERE id = ?", [live.id]);
+  await assert.rejects(control.setRuntime({ action: 'live', enabled: true, confirmation: 'ENABLE LIVE TRADING' }),
+    /provider acceptance is not pinned/, 'A persisted ready live row cannot bypass independent acceptance.');
+  await getDatabase().run("UPDATE trading_accounts SET enabled = 0, status = 'disabled' WHERE id = ?", [live.id]);
 
   await control.setRuntime({ action: 'kill-switch', active: true, reason: 'Contract test' });
   assert.equal(entryRuntime.enabled, false, 'The kill switch must close the in-memory entry latch immediately.');

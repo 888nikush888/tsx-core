@@ -6,6 +6,7 @@ import { projectAllFillAccounting } from './trading_fill_accounting.js';
 import { addSignedDecimal, signedDecimal } from './trading_decimal.js';
 import { moneyEventsForIntent } from './trading_money_ledger.js';
 import type { MoneyEvent } from './trading_money_contract.js';
+import type { IntentRow, ActivityOrderRow, ActivityFillRow } from './trading_repository_rows.js';
 import { summarizeMoneyRows, type ClosedMoneyRow, type MoneySummary } from './trading_money_reporting.js';
 import { moneyValueFromDecimal, validateMoneyValue } from './trading_money_value.js';
 import { JOURNAL_INTENT_STATUSES } from './ui_contracts.js';
@@ -198,13 +199,29 @@ function groupBy<T>(
   return grouped;
 }
 
-type JournalRow = Record<string, unknown>;
+// Exact loadJournalRows projection: joined optional relations retain SQL NULL.
+type JournalRow = IntentRow & {
+  account_name: string; strategy_id: string; strategy_version: number; strategy_name: string;
+  configuration_sha256: string; chat_id: string | null; message_id: number | null;
+  template_name: string | null; schema_name: string | null; prompt_sha256: string | null;
+  model: string | null; provider_request_id: string | null; parser_version: string | null;
+  original_contract_version_id: string | null; original_contract_hash: string | null; source_text: string | null;
+  position_id: string | null; position_status: string | null; position_quantity: string | null;
+  average_entry_price: string | null; stop_price: string | null; realized_pnl: string | null;
+  value_json: string | null; accounting_status: string | null; reporting_currency: string | null;
+  opened_at: number | null; closed_at: number | null; notes: string | null; tags_json: string | null;
+  rating: number | null; reviewed: number | null; journal_updated_at: number | null;
+};
+type JournalOrderRow = Omit<ActivityOrderRow, 'accountId'>;
+type JournalFillRow = Omit<ActivityFillRow, 'accountId' | 'feeAsset'> & { intentId: string; feeAsset: string | null };
+type JournalTimelineRow = { intentId: string; eventType: string; occurredAt: number };
+type JournalSchemaRow = { id: string; name: string; contractVersionId: string; definitionSha256: string };
 
 type JournalRelations = {
-  ordersByIntent: Map<string, JournalRow[]>;
-  fillsByIntent: Map<string, JournalRow[]>;
-  timelineByIntent: Map<string, JournalRow[]>;
-  schemaById: Map<string, JournalRow>;
+  ordersByIntent: Map<string, JournalOrderRow[]>;
+  fillsByIntent: Map<string, JournalFillRow[]>;
+  timelineByIntent: Map<string, JournalTimelineRow[]>;
+  schemaById: Map<string, JournalSchemaRow>;
   moneyByIntent: Map<string, JournalMoneyDetails>;
 };
 
@@ -334,8 +351,8 @@ async function loadJournalRows(
 }
 
 // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
-async function loadJournalOrders(database: Database, intentIds: string[]): Promise<JournalRow[]> {
-  return database.all<JournalRow[]>(
+async function loadJournalOrders(database: Database, intentIds: string[]): Promise<JournalOrderRow[]> {
+  return database.all<JournalOrderRow[]>(
     `SELECT id, intent_id AS intentId, client_order_id AS clientOrderId,
             exchange_order_id AS exchangeOrderId, role, side,
             order_type AS orderType, status, price, trigger_price AS triggerPrice,
@@ -348,10 +365,10 @@ async function loadJournalOrders(database: Database, intentIds: string[]): Promi
 }
 
 // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
-async function loadJournalFills(database: Database, orders: JournalRow[]): Promise<JournalRow[]> {
+async function loadJournalFills(database: Database, orders: JournalOrderRow[]): Promise<JournalFillRow[]> {
   const orderIds = orders.map(order => String(order.id));
   if (orderIds.length === 0) return [];
-  return database.all<JournalRow[]>(
+  return database.all<JournalFillRow[]>(
     `SELECT fill.id, orders.intent_id AS intentId, fill.order_id AS orderId,
             fill.exchange_fill_id AS exchangeFillId, fill.price, fill.quantity,
             fill.provider_symbol AS providerSymbol, fill.remote_fill_key AS remoteFillKey, fill.identity_status AS identityStatus,
@@ -365,8 +382,8 @@ async function loadJournalFills(database: Database, orders: JournalRow[]): Promi
 }
 
 // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
-async function loadJournalTimelines(database: Database, intentIds: string[]): Promise<JournalRow[]> {
-  return database.all<JournalRow[]>(
+async function loadJournalTimelines(database: Database, intentIds: string[]): Promise<JournalTimelineRow[]> {
+  return database.all<JournalTimelineRow[]>(
     `SELECT intent_id AS intentId, event_type AS eventType, MIN(occurred_at) AS occurredAt
      FROM trading_execution_events
      WHERE intent_id IN (${placeholders(intentIds)})
@@ -381,12 +398,12 @@ function executableSchemaId(value: unknown): string | null {
 }
 
 // skipcq: JS-0116 - retain native Promise return, rejection, and adoption timing for existing callers.
-async function loadJournalSchemas(database: Database, rows: JournalRow[]): Promise<JournalRow[]> {
+async function loadJournalSchemas(database: Database, rows: JournalRow[]): Promise<JournalSchemaRow[]> {
   const schemaIds = [...new Set(rows.map(row => {
     return executableSchemaId(row.signal_json);
   }).filter((value): value is string => Boolean(value)))];
   if (schemaIds.length === 0) return [];
-  return database.all<JournalRow[]>(
+  return database.all<JournalSchemaRow[]>(
     `SELECT schema.id, schema.name, schema.contract_version_id AS contractVersionId,
             version.definition_sha256 AS definitionSha256
      FROM trading_signal_schemas AS schema
@@ -445,7 +462,7 @@ function journalPosition(row: JournalRow): Record<string, unknown> | null {
   };
 }
 
-function journalSignal(row: JournalRow, schema: JournalRow | undefined, executable: unknown) {
+function journalSignal(row: JournalRow, schema: JournalSchemaRow | undefined, executable: unknown) {
   return {
     id: String(row.source_signal_id),
     schemaProfileId: executableSchemaId(row.signal_json),
@@ -465,7 +482,7 @@ function journalSignal(row: JournalRow, schema: JournalRow | undefined, executab
   };
 }
 
-function journalTimeline(events: JournalRow[]): Record<string, number> {
+function journalTimeline(events: JournalTimelineRow[]): Record<string, number> {
   return Object.fromEntries(events.map(event => [event.eventType, Number(event.occurredAt)]));
 }
 

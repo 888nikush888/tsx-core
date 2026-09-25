@@ -1,5 +1,6 @@
 import assert from 'assert';
 import { once } from 'events';
+import https from 'node:https';
 import { mkdir, mkdtemp, rm, writeFile } from 'fs/promises';
 import os from 'os';
 import path from 'path';
@@ -12,6 +13,10 @@ import { DEFAULT_CONFIG } from '../src/config.js';
 import { UiOperationStore } from '../src/ui_operation_store.js';
 import { exportPortableSetupBundle } from '../src/setup_bundle.js';
 import { getActiveWorkflow } from '../src/workflow_repository.js';
+import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
+import { DEFAULT_STRATEGY_CONFIGURATION } from '../src/trading_strategy.js';
+import { createTradingStrategyDraft, getTradingStrategyVersion, publishTradingStrategyVersion } from '../src/trading_repository.js';
+import { seedTradingFixtures } from './trading_fixtures.js';
 
 const ADMIN_TOKEN = 'admin-token-0123456789abcdef0123456789abcdef';
 const VIEWER_TOKEN = 'viewer-token-0123456789abcdef0123456789abcdef';
@@ -25,6 +30,32 @@ function headers(token, extra = {}) {
 
 function mutationHeaders(extra = {}) {
   return headers(ADMIN_TOKEN, { 'X-Requested-With': 'forwarder-dashboard', ...extra });
+}
+
+async function assertCleartextOriginRejected(baseUrl) {
+  const response = await fetch(`${baseUrl}/api/local-session`, {
+    method: 'POST',
+    headers: {
+      Origin: baseUrl.replace('https:', 'http:'),
+      Authorization: `Bearer ${ADMIN_TOKEN}`,
+      'X-Requested-With': 'forwarder-dashboard',
+    },
+  });
+  assert.strictEqual(response.status, 403, 'Cleartext browser origins must not mint a local session.');
+}
+
+async function assertConfiguredCleartextOriginRejected(baseUrl) {
+  const previous = process.env.DASHBOARD_ALLOWED_ORIGIN;
+  try {
+    const origin = 'http://127.0.0.1:8080';
+    process.env.DASHBOARD_ALLOWED_ORIGIN = origin;
+    const response = await fetch(`${baseUrl}/api/status`, { headers: { ...headers(ADMIN_TOKEN), Origin: origin } });
+    assert.strictEqual(response.status, 403, 'Configured cleartext origins must not access the HTTPS dashboard.');
+    assert.strictEqual(response.headers.get('access-control-allow-origin'), null);
+  } finally {
+    if (previous === undefined) delete process.env.DASHBOARD_ALLOWED_ORIGIN;
+    else process.env.DASHBOARD_ALLOWED_ORIGIN = previous;
+  }
 }
 
 async function testAuthenticationAndReads(baseUrl) {
@@ -58,6 +89,8 @@ async function testAuthenticationAndReads(baseUrl) {
     headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
   });
   assert.strictEqual(response.status, 401, 'Spoofable browser headers must never mint an administrator session.');
+  await assertCleartextOriginRejected(baseUrl);
+  await assertConfiguredCleartextOriginRejected(baseUrl);
   response = await fetch(`${baseUrl}/api/local-session`, {
     method: 'POST',
     headers: {
@@ -138,6 +171,11 @@ async function testUiRegisterHttpContracts(baseUrl) {
   const deployment = await deploymentResponse.json();
   assert.equal(deployment.listener.port, Number(new URL(baseUrl).port));
   assert.equal(deployment.process.nodeVersion, process.version); assert.equal(deployment.readOnly, true);
+  assert.equal(deployment.tls.endpoints.length, 5);
+  assert.equal(deployment.tls.endpoints[0].id, 'dashboard');
+  assert.equal(deployment.tls.endpoints[0].active.state, 'observed');
+  assert.equal(deployment.tls.endpoints[0].activeMatchesFile, true);
+  assert.ok(!JSON.stringify(deployment).includes('BEGIN PRIVATE KEY'));
   assert.deepEqual(deployment.declarations.map(entry => entry.name), ['HOST_WEB_PORT', 'HOST_METRICS_PORT', 'HOST_MCP_PORT', 'FORWARDER_MEMORY_LIMIT', 'FORWARDER_CPU_LIMIT', 'MCP_MEMORY_LIMIT', 'MCP_CPU_LIMIT']);
   for (const route of ['/api/signals/messages', '/api/ui/deployment', '/api/ui/attention', '/api/trading/objects?kind=risk-events', '/api/signals/original?id=absent']) {
     assert.equal((await fetch(`${baseUrl}${route}`)).status, 401);
@@ -446,6 +484,136 @@ async function testWorkflowResourceApi(baseUrl) {
 
 }
 
+async function testWorkflowSizingResourceApi(baseUrl, controls) {
+  const originalSizing = {
+    positionSizingMode: 'equity_percent_margin', riskPerTradePercent: '5', maxAdaptiveRiskPercent: '10',
+    maxPositionNotional: '1000000000', defaultLeverage: 10, maxLeverage: 10,
+  };
+  const configuration = {
+    positionSizingMode: 'risk_percent', riskPerTradePercent: '2', maxAdaptiveRiskPercent: '4',
+    maxPositionNotional: '5000', defaultLeverage: 3, maxLeverage: 8,
+  };
+  const request = configurationValue => JSON.stringify({
+    kind: 'sizing', name: 'Audited sizing v2', configuration: configurationValue,
+  });
+  let response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'POST', headers: headers(VIEWER_TOKEN, {
+      'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard',
+    }), body: request(configuration),
+  });
+  assert.equal(response.status, 403, 'Viewer must not change effective sizing limits.');
+  for (const invalid of [
+    { ...configuration, positionSizingMode: 'cash' },
+    { ...configuration, riskPerTradePercent: '0' },
+    { ...configuration, maxAdaptiveRiskPercent: '1' },
+    { ...configuration, maxPositionNotional: '0' },
+    { ...configuration, defaultLeverage: 9 },
+    { ...configuration, maxLeverage: 0 },
+  ]) {
+    response = await fetch(`${baseUrl}/api/workflow/resources`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: request(invalid),
+    });
+    assert.equal(response.status, 409, 'Invalid sizing settings must be rejected before persistence.');
+  }
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: request(originalSizing),
+  });
+  assert.equal(response.status, 201);
+  const draft = (await response.json()).resource;
+  assert.equal(draft.status, 'draft');
+  assert.deepEqual(draft.configuration, originalSizing);
+  const acceptedAudit = controls.auditEvents.findLast(event => event.phase === 'completed'
+    && event.path === '/api/workflow/resources' && event.statusCode === 201);
+  assert.equal(acceptedAudit.action, 'dashboard.workflow.resources.post');
+  assert.deepEqual(acceptedAudit.target.request.configuration, originalSizing);
+  assert.deepEqual(acceptedAudit.after.response.resource.configuration, originalSizing);
+  response = await fetch(`${baseUrl}/api/workflow/resources/update`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: draft.id, name: 'Audited sizing v2', configuration }),
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual((await response.json()).resource.configuration, configuration);
+  const updateAudit = controls.auditEvents.findLast(event => event.phase === 'completed'
+    && event.action === 'dashboard.workflow.resources.update.post' && event.statusCode === 200);
+  assert.deepEqual(updateAudit.target.request.configuration, configuration);
+  assert.deepEqual(updateAudit.after.response.resource.configuration, configuration);
+  response = await fetch(`${baseUrl}/api/workflow/resources/publish`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: draft.id }),
+  });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).resource.status, 'published');
+  assert.ok(controls.auditEvents.some(event => event.phase === 'completed'
+    && event.action === 'dashboard.workflow.resources.publish.post' && event.statusCode === 200));
+  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=${encodeURIComponent(draft.id)}`,
+    { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 200);
+  assert.deepEqual((await response.json()).resource.configuration, configuration);
+}
+
+async function testWorkflowAdaptiveControlsApi(baseUrl, controls) {
+  const configuration = {
+    enabled: false, mode: 'shadow',
+    tiers: [{ riskPercent: '1' }, { riskPercent: '2' }, { riskPercent: '3' }],
+    startingTier: 1, lockedTier: 2,
+  };
+  const request = candidate => JSON.stringify({
+    kind: 'adaptive_risk', name: 'Audited adaptive policy', configuration: candidate,
+  });
+  let response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'POST', headers: headers(VIEWER_TOKEN, {
+      'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard',
+    }), body: request(configuration),
+  });
+  assert.equal(response.status, 403, 'Viewers must not alter adaptive policy controls.');
+  for (const invalid of [
+    { ...configuration, enabled: 'no' },
+    { ...configuration, mode: 'dynamic' },
+    { ...configuration, startingTier: 3 },
+    { ...configuration, lockedTier: 3 },
+  ]) {
+    response = await fetch(`${baseUrl}/api/workflow/resources`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: request(invalid),
+    });
+    assert.equal(response.status, 409, 'Invalid adaptive controls must fail before persistence.');
+  }
+  response = await fetch(`${baseUrl}/api/workflow/resources`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: request({ enabled: true, mode: 'automatic', tiers: configuration.tiers, startingTier: 0, lockedTier: null }),
+  });
+  assert.equal(response.status, 201);
+  const draft = (await response.json()).resource;
+  assert.equal(draft.status, 'draft');
+  assert.equal(controls.auditEvents.findLast(event => event.phase === 'completed'
+    && event.path === '/api/workflow/resources' && event.statusCode === 201).action,
+  'dashboard.workflow.resources.post');
+  response = await fetch(`${baseUrl}/api/workflow/resources/update`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: draft.id, name: 'Audited adaptive policy', configuration }),
+  });
+  assert.equal(response.status, 200);
+  const updated = (await response.json()).resource;
+  assert.deepEqual({ enabled: updated.configuration.enabled, mode: updated.configuration.mode,
+    startingTier: updated.configuration.startingTier, lockedTier: updated.configuration.lockedTier },
+  { enabled: false, mode: 'shadow', startingTier: 1, lockedTier: 2 });
+  const updateAudit = controls.auditEvents.findLast(event => event.phase === 'completed'
+    && event.action === 'dashboard.workflow.resources.update.post' && event.statusCode === 200);
+  assert.deepEqual(updateAudit.target.request.configuration, configuration);
+  assert.equal(updateAudit.after.response.resource.configuration.lockedTier, 2);
+  response = await fetch(`${baseUrl}/api/workflow/resources/publish`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ id: draft.id }),
+  });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).resource.status, 'published');
+  assert.ok(controls.auditEvents.some(event => event.phase === 'completed'
+    && event.action === 'dashboard.workflow.resources.publish.post' && event.statusCode === 200));
+  response = await fetch(`${baseUrl}/api/workflow/objects?kind=resources&id=${encodeURIComponent(draft.id)}`,
+    { headers: headers(VIEWER_TOKEN) });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).resource.configuration.lockedTier, 2);
+}
+
 async function testWorkflowResourceFamilyArchiveApi(baseUrl) {
   let response = await fetch(`${baseUrl}/api/workflow/resources`, {
     method: 'POST',
@@ -518,7 +686,7 @@ function assertWorkflowHistoryApplyAudit(controls, secondMutation, workflow, und
   assert.equal(typeof applyAudit.target.impact.destructive, 'boolean');
 }
 
-async function assertWorkflowHistoryViewerReadOnly(baseUrl) {
+async function assertWorkflowHistoryViewerReadOnly(baseUrl, graph) {
   let response = await fetch(`${baseUrl}/api/workflow/history`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 403, 'Workflow history metadata must remain administrator-only.');
   for (const route of ['/api/workflow/history/impact', '/api/workflow/history/apply']) {
@@ -542,6 +710,18 @@ async function assertWorkflowHistoryViewerReadOnly(baseUrl) {
     body: JSON.stringify({ confirmation: 'WORKFLOW-HISTORIE ZURÜCKSETZEN' }),
   });
   assert.strictEqual(response.status, 403, 'Viewers must never reset workflow history.');
+  response = await fetch(`${baseUrl}/api/workflow/mutate`, {
+    method: 'POST', headers: headers(VIEWER_TOKEN, {
+      'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard',
+    }), body: JSON.stringify({ baseRevisionId: null, graph }),
+  });
+  assert.equal(response.status, 403, 'A viewer must not activate a graph revision.');
+}
+
+function assertWorkflowMutationAudit(controls) {
+  assert.ok(controls.auditEvents.some(event => event.phase === 'completed'
+    && event.action === 'dashboard.workflow.mutate.post' && event.statusCode === 201),
+  'Graph activation must retain its mutation audit event.');
 }
 
 async function testWorkflowHistoryRecoveryApi(baseUrl, controls, activeWorkflowId) {
@@ -582,7 +762,7 @@ async function testWorkflowHistoryRecoveryApi(baseUrl, controls, activeWorkflowI
 
 async function testWorkflowRevisionApi(baseUrl, controls) {
   const graph = { schemaVersion: 1, nodes: [], edges: [] };
-  await assertWorkflowHistoryViewerReadOnly(baseUrl);
+  await assertWorkflowHistoryViewerReadOnly(baseUrl, graph);
   let response = await fetch(`${baseUrl}/api/workflow/history`, { headers: headers(ADMIN_TOKEN) });
   assert.strictEqual(response.status, 200);
   assert.deepEqual(await response.json(), {
@@ -606,6 +786,7 @@ async function testWorkflowRevisionApi(baseUrl, controls) {
   assert.strictEqual(workflow.revision, 1);
   assert.equal(firstMutation.history.undoCount, 1);
   assert.equal(firstMutation.history.undoLabel, 'Leeren Workflow angelegt');
+  assertWorkflowMutationAudit(controls);
   response = await fetch(`${baseUrl}/api/workflow/mutate`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
@@ -687,6 +868,8 @@ async function testWorkflowRevisionApi(baseUrl, controls) {
 async function testWorkflowControlPlane(baseUrl, appState) {
   await testExchangeCatalogApi(baseUrl, appState);
   await testWorkflowResourceApi(baseUrl);
+  await testWorkflowSizingResourceApi(baseUrl, appState.controls);
+  await testWorkflowAdaptiveControlsApi(baseUrl, appState.controls);
   await testWorkflowResourceFamilyArchiveApi(baseUrl);
   await testWorkflowRevisionApi(baseUrl, appState.controls);
 }
@@ -851,6 +1034,7 @@ async function testRequestValidation(baseUrl) {
     ['/api/import', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{}' }, 400],
     ['/api/access-tokens', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"role":"owner"}' }, 400],
     ['/api/access-tokens/viewer', { method: 'DELETE', headers: mutationHeaders() }, 412],
+    ['/api/secrets/backup-drive-access-token', { method: 'DELETE', headers: mutationHeaders() }, 412],
     ['/api/operations/audit-replay', { method: 'POST', headers: mutationHeaders() }, 412],
     ['/api/backups/recover-offsite', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"objectName":"backup-2026-test.tgfb"}' }, 412],
     ['/api/backups/restore', { method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body: '{"name":"backup-2026-test"}' }, 412],
@@ -919,6 +1103,93 @@ async function testTradingStrategyDeletion(baseUrl, appState) {
     assert.strictEqual(response.status, 200, 'Confirmed strategy deletion must reach the trading control plane');
     assert.strictEqual((await response.json()).result, true);
     assert.deepStrictEqual(removed, ['strategy-delete']);
+  } finally {
+    appState.tradingControl = original;
+  }
+}
+
+async function testStrategyAuthoringMutationAudit(baseUrl, appState, controls) {
+  await seedTradingFixtures();
+  const original = appState.tradingControl;
+  const activeBefore = (await getActiveWorkflow())?.id ?? null;
+  appState.tradingControl = {
+    createStrategy: payload => createTradingStrategyDraft(payload),
+    publishStrategy: id => publishTradingStrategyVersion(id),
+  };
+  const configuration = structuredClone(DEFAULT_STRATEGY_CONFIGURATION);
+  Object.assign(configuration.safety, {
+    maxDailyLossMode: 'equity_percent', maxDailyLoss: '2.5',
+    maxSlippagePercent: '1.25', entryOrderTtlSeconds: 45,
+  });
+  Object.assign(configuration.sizing, {
+    positionSizingMode: 'risk_percent', riskPerTradePercent: '1.25', maxAdaptiveRiskPercent: '3.5',
+    maxPositionNotional: '2500', defaultLeverage: 4, maxLeverage: 8,
+  });
+  Object.assign(configuration, {
+    allowedSignalSchemas: ['standard'], allowedSymbols: ['BTCUSDT'], allowedSides: ['LONG'],
+  });
+  Object.assign(configuration.entry, { orderType: 'limit', rangePrice: 'far', postOnly: true, timeoutSeconds: 12 });
+  try {
+    const body = JSON.stringify({ name: 'Audited safety limits', configuration });
+    let response = await fetch(`${baseUrl}/api/trading/strategies`, {
+      method: 'POST', headers: headers(VIEWER_TOKEN, {
+        'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard',
+      }), body,
+    });
+    assert.equal(response.status, 403, 'Viewer must not change strategy safety limits.');
+    response = await fetch(`${baseUrl}/api/trading/strategies`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ name: 'Unsafe strategy', configuration: {
+        ...configuration, safety: { ...configuration.safety, requireProtectiveStop: false },
+      } }),
+    });
+    assert.equal(response.status, 409, 'The immutable protective stop must fail closed.');
+    response = await fetch(`${baseUrl}/api/trading/strategies`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ name: 'Invalid sizing defaults', configuration: {
+        ...configuration, sizing: { ...configuration.sizing, defaultLeverage: 9 },
+      } }),
+    });
+    assert.equal(response.status, 409, 'Default leverage above the strategy maximum must be rejected.');
+    response = await fetch(`${baseUrl}/api/trading/strategies`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ name: 'Unsafe market entry', configuration: {
+        ...configuration, entry: { ...configuration.entry, orderType: 'market' },
+      } }),
+    });
+    assert.equal(response.status, 409, 'Market entries must reject post-only even through the API.');
+    response = await fetch(`${baseUrl}/api/trading/strategies`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }), body,
+    });
+    assert.equal(response.status, 201);
+    const draft = (await response.json()).result;
+    assert.equal(draft.status, 'draft');
+    assert.deepEqual(draft.configuration.safety, configuration.safety);
+    assert.deepEqual(draft.configuration.sizing, configuration.sizing);
+    assert.deepEqual(draft.configuration.allowedSignalSchemas, ['standard']);
+    assert.deepEqual(draft.configuration.allowedSymbols, ['BTCUSDT']);
+    assert.deepEqual(draft.configuration.allowedSides, ['LONG']);
+    assert.deepEqual(draft.configuration.entry, configuration.entry);
+    assert.equal((await getActiveWorkflow())?.id ?? null, activeBefore);
+    const acceptedAudit = controls.auditEvents.findLast(event =>
+      event.phase === 'completed' && event.path === '/api/trading/strategies' && event.statusCode === 201);
+    assert.equal(acceptedAudit.action, 'trading.strategies.post');
+    assert.equal(acceptedAudit.target.request.configuration.safety.entryOrderTtlSeconds, 45);
+    assert.equal(acceptedAudit.after.response.result.configuration.safety.maxSlippagePercent, '1.25');
+    assert.equal(acceptedAudit.target.request.configuration.sizing.maxPositionNotional, '2500');
+    assert.equal(acceptedAudit.after.response.result.configuration.sizing.maxLeverage, 8);
+    assert.deepEqual(acceptedAudit.target.request.configuration.entry, configuration.entry);
+    assert.deepEqual(acceptedAudit.after.response.result.configuration.allowedSymbols, ['BTCUSDT']);
+    response = await fetch(`${baseUrl}/api/trading/strategies/publish`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ id: draft.id }),
+    });
+    assert.equal(response.status, 200);
+    assert.equal((await getTradingStrategyVersion(draft.id)).status, 'published');
+    assert.equal((await getActiveWorkflow())?.id ?? null, activeBefore,
+      'Publishing an audited strategy must not activate a graph.');
+    assert.ok(controls.auditEvents.some(event => event.phase === 'completed'
+      && event.path === '/api/trading/strategies/publish' && event.statusCode === 200));
   } finally {
     appState.tradingControl = original;
   }
@@ -1429,6 +1700,23 @@ async function testRuntimeSettingsControl(baseUrl, controls) {
   let response = await fetch(`${baseUrl}/api/runtime-settings`, { headers: headers(VIEWER_TOKEN) });
   assert.strictEqual(response.status, 200);
   const settings = (await response.json()).settings;
+  assert.strictEqual(settings.clockMaxDriftMs, 1000);
+  response = await fetch(`${baseUrl}/api/runtime-settings`, {
+    method: 'POST', headers: { ...headers(VIEWER_TOKEN), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clockMaxDriftMs: 500 })
+  });
+  assert.strictEqual(response.status, 403, 'A viewer cannot change the clock guard threshold.');
+  for (const invalidClockLimit of [99, 5001, 500.5, '500']) {
+    response = await fetch(`${baseUrl}/api/runtime-settings`, {
+      method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ clockMaxDriftMs: invalidClockLimit })
+    });
+    assert.strictEqual(response.status, 400, 'The API must reject an invalid clock threshold.');
+  }
+  response = await fetch(`${baseUrl}/api/runtime-settings`, { headers: headers(ADMIN_TOKEN) });
+  assert.strictEqual((await response.json()).settings.clockMaxDriftMs, 1000,
+    'Rejected updates must leave the persisted clock threshold unchanged.');
+  await testDriveMirrorTokenDeletion(baseUrl, settings);
   const incompleteEnterprise = {
     ...settings,
     enterpriseMode: true,
@@ -1449,19 +1737,69 @@ async function testRuntimeSettingsControl(baseUrl, controls) {
   });
   assert.strictEqual(response.status, 409, 'Enterprise activation must reject missing write-only integration secrets');
   settings.shutdownGraceMs = 45_000;
+  settings.clockMaxDriftMs = 500;
   response = await fetch(`${baseUrl}/api/runtime-settings`, {
     method: 'POST',
     headers: mutationHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(settings)
   });
   assert.strictEqual(response.status, 200);
-  assert.strictEqual((await response.json()).restartRequired, true);
+  const updatedRuntime = await response.json();
+  assert.strictEqual(updatedRuntime.restartRequired, true);
+  assert.strictEqual(updatedRuntime.settings.clockMaxDriftMs, 500);
+  assert.strictEqual(updatedRuntime.active, null,
+    'UI save must not claim a new active guard before service restart.');
   response = await fetch(`${baseUrl}/api/restart`, {
     method: 'POST',
     headers: mutationHeaders({ 'X-Destructive-Confirmation': 'restart-service' })
   });
   assert.strictEqual(response.status, 202);
   assert.strictEqual(controls.restartCalls, 3, 'Restore, factory reset and explicit restart must schedule container restarts');
+}
+
+async function testDriveMirrorTokenDeletion(baseUrl, settings) {
+  const driveSettings = { ...settings, backupOffsiteRequired: true,
+    backupOffsiteUrlTemplate: 'https://backup.example.com/{artifact}',
+    backupDriveFolderId: 'folder_1234567890', backupDriveRequired: true };
+  let response = await fetch(`${baseUrl}/api/runtime-settings`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(driveSettings)
+  });
+  assert.strictEqual(response.status, 409, 'Drive mirror UI activation must require its managed secret first.');
+  const driveToken = 'staging-drive-access-token-0123456789abcdef';
+  response = await fetch(`${baseUrl}/api/secrets`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ backupDriveAccessToken: driveToken })
+  });
+  assert.strictEqual(response.status, 200);
+  const driveSecretStatus = await response.json();
+  assert.strictEqual(driveSecretStatus.secrets.backupDriveAccessToken.configured, true);
+  assert.ok(!JSON.stringify(driveSecretStatus).includes(driveToken), 'Write-only Drive token must not be returned.');
+  response = await fetch(`${baseUrl}/api/runtime-settings`, {
+    method: 'POST', headers: mutationHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(driveSettings)
+  });
+  assert.strictEqual(response.status, 200, 'Authenticated staging Drive settings must be persisted after secret setup.');
+  const savedDriveSettings = await response.json();
+  assert.strictEqual(savedDriveSettings.settings.backupDriveRequired, true);
+  assert.strictEqual(savedDriveSettings.active, null, 'Drive mirror settings remain inactive until restart.');
+  response = await fetch(`${baseUrl}/api/secrets/backup-drive-access-token`, {
+    method: 'DELETE',
+    headers: mutationHeaders({ 'X-Destructive-Confirmation': 'delete-backup-drive-access-token' })
+  });
+  assert.strictEqual(response.status, 200, 'An administrator must be able to delete the local Drive token.');
+  const deletedDrive = await response.json();
+  assert.strictEqual(deletedDrive.settings.backupDriveFolderId, '');
+  assert.strictEqual(deletedDrive.settings.backupDriveRequired, false);
+  assert.strictEqual(deletedDrive.secrets.backupDriveAccessToken.configured, false);
+  assert.strictEqual(deletedDrive.restartRequired, true);
+  assert.ok(!JSON.stringify(deletedDrive).includes(driveToken), 'Deletion responses must never return the former token.');
+  response = await fetch(`${baseUrl}/api/runtime-settings`, { headers: headers(ADMIN_TOKEN) });
+  const persistedDrive = (await response.json()).settings;
+  assert.strictEqual(persistedDrive.backupDriveFolderId, '');
+  assert.strictEqual(persistedDrive.backupDriveRequired, false);
+  response = await fetch(`${baseUrl}/api/secrets`, { headers: headers(ADMIN_TOKEN) });
+  assert.strictEqual((await response.json()).secrets.backupDriveAccessToken.configured, false);
 }
 
 async function testUnavailableControlContracts(baseUrl, appState) {
@@ -1723,7 +2061,7 @@ async function testLocalStartupFirstRun(testDir, appState) {
     await once(firstRunServer, 'listening');
     const address = firstRunServer.address();
     assert.ok(address && typeof address === 'object');
-    const baseUrl = `http://127.0.0.1:${address.port}`;
+    const baseUrl = `https://127.0.0.1:${address.port}`;
     const bootstrapStatus = await fetch(`${baseUrl}/api/bootstrap/status`);
     assert.strictEqual(bootstrapStatus.status, 200);
     assert.deepStrictEqual(await bootstrapStatus.json(), {
@@ -1851,7 +2189,7 @@ async function testRecoveryLocalStartup(testDir, appState) {
     await once(recoveryServer, 'listening');
     const address = recoveryServer.address();
     assert.ok(address && typeof address === 'object');
-    const baseUrl = `http://127.0.0.1:${address.port}`;
+    const baseUrl = `https://127.0.0.1:${address.port}`;
     const response = await fetch(`${baseUrl}/api/local-session`, {
       method: 'POST',
       headers: { Origin: baseUrl, 'X-Requested-With': 'forwarder-dashboard' }
@@ -1890,10 +2228,34 @@ async function testRecoveryLocalStartup(testDir, appState) {
   }
 }
 
+function fetchFromNonLoopback(url, peerAddress, { method = 'GET', headers = {}, body } = {}) {
+  return new Promise((resolve, reject) => {
+    const endpoint = new URL(url);
+    const request = https.request(endpoint, {
+      method,
+      headers,
+      // Connect through the real interface while verifying the fixture's localhost certificate.
+      lookup: (_hostname, options, callback) => {
+        if (options.all) callback(null, [{ address: peerAddress, family: 4 }]);
+        else callback(null, peerAddress, 4);
+      },
+    }, response => {
+      const chunks = [];
+      response.on('data', chunk => chunks.push(Buffer.from(chunk)));
+      response.on('end', () => resolve({
+        status: response.statusCode,
+        json: () => Promise.resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))),
+      }));
+    });
+    request.on('error', reject);
+    request.end(body);
+  });
+}
+
 async function testNonLoopbackCannotSpoofLocalTrust(testDir, appState) {
   const address = Object.values(os.networkInterfaces()).flat().find(candidate =>
     candidate && candidate.family === 'IPv4' && !candidate.internal);
-  assert.ok(address, 'The HTTP trust-boundary regression requires a non-loopback interface.');
+  assert.ok(address, 'The TLS trust-boundary regression requires a non-loopback interface.');
   process.env.DASHBOARD_ADMIN_TOKEN = ADMIN_TOKEN;
   process.env.DASHBOARD_VIEWER_TOKEN = VIEWER_TOKEN;
   process.env.DASHBOARD_LOCAL_TRUST = 'true';
@@ -1902,13 +2264,13 @@ async function testNonLoopbackCannotSpoofLocalTrust(testDir, appState) {
     await once(remoteServer, 'listening');
     const bound = remoteServer.address();
     assert.ok(bound && typeof bound === 'object');
-    const remoteBase = `http://${address.address}:${bound.port}`;
-    const status = await fetch(`${remoteBase}/api/bootstrap/status`);
+    const remoteBase = `https://localhost:${bound.port}`;
+    const status = await fetchFromNonLoopback(`${remoteBase}/api/bootstrap/status`, address.address);
     assert.equal((await status.json()).localSessionAvailable, false);
-    const response = await fetch(`${remoteBase}/api/local-session`, {
+    const response = await fetchFromNonLoopback(`${remoteBase}/api/local-session`, address.address, {
       method: 'POST',
       headers: {
-        Origin: `http://127.0.0.1:${bound.port}`,
+        Origin: `https://127.0.0.1:${bound.port}`,
         Authorization: `Bearer ${ADMIN_TOKEN}`,
         'X-Requested-With': 'forwarder-dashboard',
       },
@@ -1929,19 +2291,19 @@ async function testNonLoopbackCannotSpoofLocalTrust(testDir, appState) {
     await once(bootstrapServer, 'listening');
     const bound = bootstrapServer.address();
     assert.ok(bound && typeof bound === 'object');
-    const remoteBase = `http://${address.address}:${bound.port}`;
-    const origin = `http://127.0.0.1:${bound.port}`;
-    const status = await fetch(`${remoteBase}/api/bootstrap/status`);
+    const remoteBase = `https://localhost:${bound.port}`;
+    const origin = `https://127.0.0.1:${bound.port}`;
+    const status = await fetchFromNonLoopback(`${remoteBase}/api/bootstrap/status`, address.address);
     assert.deepEqual(await status.json(), {
       mode: 'token', required: true, available: true, localSessionAvailable: false, bootstrapProofRequired: true,
     });
-    let response = await fetch(`${remoteBase}/api/bootstrap`, {
+    let response = await fetchFromNonLoopback(`${remoteBase}/api/bootstrap`, address.address, {
       method: 'POST',
       headers: { Origin: origin, 'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard' },
       body: JSON.stringify({ bootstrapProof: 'forged-container-proof-0123456789abcdef' }),
     });
     assert.equal(response.status, 403, 'A viewer-network caller without the one-time proof must not seize first-run administration.');
-    response = await fetch(`${remoteBase}/api/bootstrap`, {
+    response = await fetchFromNonLoopback(`${remoteBase}/api/bootstrap`, address.address, {
       method: 'POST',
       headers: { Origin: origin, 'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard' },
       body: JSON.stringify({ bootstrapProof }),
@@ -1952,7 +2314,7 @@ async function testNonLoopbackCannotSpoofLocalTrust(testDir, appState) {
     assert.ok(bootstrapAudit, 'The proved bootstrap must retain a non-secret audit event.');
     assert.equal(JSON.stringify(bootstrapAudit).includes(bootstrapProof), false, 'Audit evidence must never retain the bootstrap proof.');
     assert.equal(process.env.DASHBOARD_BOOTSTRAP_PROOF, undefined, 'The process must consume the bootstrap proof immediately.');
-    response = await fetch(`${remoteBase}/api/bootstrap`, {
+    response = await fetchFromNonLoopback(`${remoteBase}/api/bootstrap`, address.address, {
       method: 'POST',
       headers: { Origin: origin, 'Content-Type': 'application/json', 'X-Requested-With': 'forwarder-dashboard' },
       body: JSON.stringify({ bootstrapProof }),
@@ -1971,6 +2333,7 @@ async function runTests() {
   const previousLocalTrust = process.env.DASHBOARD_LOCAL_TRUST;
   const previousBootstrapProof = process.env.DASHBOARD_BOOTSTRAP_PROOF;
   const testDir = await mkdtemp(path.join(os.tmpdir(), 'forwarder-web-test-'));
+  const tlsFixture = await setupInternalTlsTest();
   const staticDirectory = path.resolve('frontend/dist/.directory-response-test');
   const staticAsset = path.resolve('frontend/dist/assets/.static-response-test.js');
   let stopped = false;
@@ -2007,7 +2370,10 @@ async function runTests() {
     const address = server.address();
     assert.ok(address && typeof address === 'object');
     assert.strictEqual(address.address, '127.0.0.1', 'Control plane must bind to loopback by default');
-    const baseUrl = `http://127.0.0.1:${address.port}`;
+    const baseUrl = `https://127.0.0.1:${address.port}`;
+    await assert.rejects(fetch(`${baseUrl.replace('https:', 'http:')}/api/bootstrap/status`, {
+      signal: AbortSignal.timeout(2_000),
+    }), /fetch failed/i, 'The dashboard listener must reject cleartext HTTP.');
 
     await testBootstrap(baseUrl);
     await testAuthenticationAndReads(baseUrl);
@@ -2034,6 +2400,7 @@ async function runTests() {
     await testBrowserAndDestructiveContracts(baseUrl, appState);
     await testRuntimeSettingsControl(baseUrl, controls);
     await testRecoveryMode(baseUrl, appState, controls);
+    await testStrategyAuthoringMutationAudit(baseUrl, appState, controls);
     await testAccessTokenManagement(baseUrl);
 
     await stopWebServer();
@@ -2059,10 +2426,11 @@ async function runTests() {
     else process.env.DASHBOARD_LOCAL_TRUST = previousLocalTrust;
     if (previousBootstrapProof === undefined) delete process.env.DASHBOARD_BOOTSTRAP_PROOF;
     else process.env.DASHBOARD_BOOTSTRAP_PROOF = previousBootstrapProof;
+    await tlsFixture.cleanup();
   }
 }
 
-await (async () => runTests())().catch(error => {
+await runTests().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

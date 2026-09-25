@@ -22,10 +22,10 @@ try {
   const preservedKeys = validateConfig(specialKeys);
   assert.equal(Object.getPrototypeOf(preservedKeys.sourceFilters), Object.prototype);
   assert.equal(Object.hasOwn(preservedKeys.sourceFilters, '__proto__'), true);
-  assert.deepEqual(preservedKeys.sourceFilters['__proto__'], { regexPatterns: ['LONG'] });
+  assert.deepEqual(Object.getOwnPropertyDescriptor(preservedKeys.sourceFilters, '__proto__').value, { regexPatterns: ['LONG'] });
   assert.equal(Object.getPrototypeOf(preservedKeys.sourceAliases), Object.prototype);
   assert.equal(Object.hasOwn(preservedKeys.sourceAliases, '__proto__'), true);
-  assert.equal(preservedKeys.sourceAliases['__proto__'], 'custom');
+  assert.equal(Object.getOwnPropertyDescriptor(preservedKeys.sourceAliases, '__proto__').value, 'custom');
   for (const model of [false, 0, null, undefined, '']) {
     const candidate = structuredClone(DEFAULT_CONFIG);
     candidate.xmlParsing.primaryModel = model;
@@ -33,6 +33,24 @@ try {
     const normalized = validateConfig(candidate);
     assert.equal(normalized.xmlParsing.primaryModel, DEFAULT_CONFIG.xmlParsing.primaryModel);
     assert.equal(normalized.xmlParsing.fallbackModel, DEFAULT_CONFIG.xmlParsing.fallbackModel);
+  }
+  let modelCoercions = 0;
+  for (const model of [{}, [], ['provider/model'], Object('provider/model'),
+    { toString() { modelCoercions += 1; return 'provider/model'; } }]) {
+    const candidate = structuredClone(DEFAULT_CONFIG);
+    candidate.xmlParsing.primaryModel = model;
+    assert.equal(validateConfig(candidate).xmlParsing.primaryModel, DEFAULT_CONFIG.xmlParsing.primaryModel);
+  }
+  assert.equal(modelCoercions, 0, 'Object model names are excluded before String conversion.');
+  const legacyModelFunction = () => undefined;
+  legacyModelFunction.toString = () => 'provider/legacy';
+  for (const [model, expected] of [[' provider/model ', 'provider/model'], [123, '123'], [true, 'true'], [3n, '3'], [legacyModelFunction, 'provider/legacy']]) {
+    const candidate = structuredClone(DEFAULT_CONFIG);
+    candidate.xmlParsing.primaryModel = model;
+    assert.equal(validateConfig(candidate).xmlParsing.primaryModel, expected);
+  }
+  for (const [apiId, expected] of [['001234', 1234], [0, 0], [null, 0], [false, 0], [{ valueOf: () => 1234 }, 1234]]) {
+    assert.equal(validateConfig({ ...structuredClone(DEFAULT_CONFIG), apiId }).apiId, expected);
   }
   const distributionConfig = validateConfig(JSON.parse(await readFile(path.resolve('config.json.example'), 'utf8')));
   assert.deepEqual(distributionConfig.sourceChannels, []);
@@ -133,6 +151,18 @@ try {
   await writeFile(malformedPath, '{not-json', 'utf8');
   assert.throws(() => readConfigSync(malformedPath), /Failed to read configuration/);
   assert.equal(await readFile(malformedPath, 'utf8'), '{not-json');
+
+  const invalidReadPath = path.join(root, 'invalid-read.json');
+  await writeFile(invalidReadPath, JSON.stringify({ sourceChannels: 42 }), 'utf8');
+  for (const destination of [malformedPath, invalidReadPath, root]) {
+    const preservesNativeCause = error => {
+      assert.ok(error.cause instanceof Error, 'Native file, parse and validation failures retain their cause.');
+      assert.equal(error.message, `Failed to read configuration from ${destination}: ${error.cause.message}`);
+      return true;
+    };
+    assert.throws(() => readConfigSync(destination), preservesNativeCause);
+    await assert.rejects(readConfig(destination), preservesNativeCause);
+  }
 
   const unwritablePath = path.join(root, 'missing-directory', 'config.json');
   assert.throws(() => writeConfigSync(DEFAULT_CONFIG, unwritablePath));

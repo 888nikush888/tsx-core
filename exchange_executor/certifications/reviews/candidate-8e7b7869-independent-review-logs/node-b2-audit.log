@@ -1,0 +1,148 @@
+TAP version 13
+# Subtest: accepts exactly the sender serialization and its hash
+ok 1 - accepts exactly the sender serialization and its hash
+  ---
+  duration_ms: 9.1683
+  type: 'test'
+  ...
+# Subtest: rejects unauthorized, malformed, oversized and non-JSON requests before storage
+ok 2 - rejects unauthorized, malformed, oversized and non-JSON requests before storage
+  ---
+  duration_ms: 64.0035
+  type: 'test'
+  ...
+# Subtest: returns success only after store confirms durable persistence; replay is idempotent
+ok 3 - returns success only after store confirms durable persistence; replay is idempotent
+  ---
+  duration_ms: 70.7159
+  type: 'test'
+  ...
+# Subtest: conflicting duplicate and storage failure fail closed
+ok 4 - conflicting duplicate and storage failure fail closed
+  ---
+  duration_ms: 8.3414
+  type: 'test'
+  ...
+# Subtest: an unrecognized store result is not a persistence receipt
+ok 5 - an unrecognized store result is not a persistence receipt
+  ---
+  duration_ms: 4.8657
+  type: 'test'
+  ...
+# Subtest: a failed storage operation releases the serialized receiver for a retry
+ok 6 - a failed storage operation releases the serialized receiver for a retry
+  ---
+  duration_ms: 38.6528
+  type: 'test'
+  ...
+# Subtest: invalid bodies and failed stores release every reserved slot
+ok 7 - invalid bodies and failed stores release every reserved slot
+  ---
+  duration_ms: 150.5103
+  type: 'test'
+  ...
+# Subtest: an incomplete incoming body is closed by its absolute deadline without blocking the next record
+ok 8 - an incomplete incoming body is closed by its absolute deadline without blocking the next record
+  ---
+  duration_ms: 65.1857
+  type: 'test'
+  ...
+# Subtest: a held store caps authenticated bodies before reading and disconnect frees a queued slot
+ok 9 - a held store caps authenticated bodies before reading and disconnect frees a queued slot
+  ---
+  duration_ms: 145.1349
+  type: 'test'
+  ...
+# Subtest: writes once, verifies exact B2 version bytes and COMPLIANCE retention, replays without a new version
+ok 10 - writes once, verifies exact B2 version bytes and COMPLIANCE retention, replays without a new version
+  ---
+  duration_ms: 4.9325
+  type: 'test'
+  ...
+# Subtest: same sequence with different bytes fails; existing version is not overwritten
+ok 11 - same sequence with different bytes fails; existing version is not overwritten
+  ---
+  duration_ms: 2.0002
+  type: 'test'
+  ...
+# Subtest: weak retention, extra versions and unsupported conditional upload fail closed
+ok 12 - weak retention, extra versions and unsupported conditional upload fail closed
+  ---
+  duration_ms: 2.9656
+  type: 'test'
+  ...
+# Subtest: rejects sequence gaps and a predecessor hash mismatch before writing
+ok 13 - rejects sequence gaps and a predecessor hash mismatch before writing
+  ---
+  duration_ms: 2.9075
+  type: 'test'
+  ...
+# Subtest: replays a 61-day-old still-locked record and rejects weak original retention
+ok 14 - replays a 61-day-old still-locked record and rejects weak original retention
+  ---
+  duration_ms: 1.2659
+  type: 'test'
+  ...
+# Subtest: new records require at least 30 days of protection after verification
+ok 15 - new records require at least 30 days of protection after verification
+  ---
+  duration_ms: 0.7875
+  type: 'test'
+  ...
+# Subtest: slow read-back cannot turn a stale lock into a fresh 30-day receipt
+ok 16 - slow read-back cannot turn a stale lock into a fresh 30-day receipt
+  ---
+  duration_ms: 0.6988
+  type: 'test'
+  ...
+# Subtest: lost upload response and atomic conditional race reconcile only a verified single version
+ok 17 - lost upload response and atomic conditional race reconcile only a verified single version
+  ---
+  duration_ms: 1.3742
+  type: 'test'
+  ...
+# Subtest: a competing version during read-back blocks fresh, replay, and uncertain receipts
+ok 18 - a competing version during read-back blocks fresh, replay, and uncertain receipts
+  ---
+  duration_ms: 1.7283
+  type: 'test'
+  ...
+# Subtest: a competing predecessor version blocks the next sequence before its upload
+ok 19 - a competing predecessor version blocks the next sequence before its upload
+  ---
+  duration_ms: 1.3613
+  type: 'test'
+  ...
+# Subtest: stalled B2 request aborts, frees the queue, and permits a verified retry
+ok 20 - stalled B2 request aborts, frees the queue, and permits a verified retry
+  ---
+  duration_ms: 34.9737
+  type: 'test'
+  ...
+# Subtest: stalled B2 object body is destroyed and a replay verifies the existing version
+ok 21 - stalled B2 object body is destroyed and a replay verifies the existing version
+  ---
+  duration_ms: 32.2342
+  type: 'test'
+  ...
+# Subtest: whole-record deadline aborts a sequence of individually bounded requests
+ok 22 - whole-record deadline aborts a sequence of individually bounded requests
+  ---
+  duration_ms: 138.6337
+  type: 'test'
+  ...
+# Subtest: requires a fixed HTTPS Backblaze endpoint and dedicated credentials
+ok 23 - requires a fixed HTTPS Backblaze endpoint and dedicated credentials
+  ---
+  duration_ms: 2.5782
+  type: 'test'
+  ...
+1..23
+# tests 23
+# suites 0
+# pass 23
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1001.7818

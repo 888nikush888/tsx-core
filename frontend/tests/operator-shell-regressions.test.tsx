@@ -8,14 +8,54 @@ import { NavigationProvider } from '@/lib/navigation';
 const api = vi.hoisted(() => ({ jsonRequest: vi.fn() }));
 vi.mock('@/lib/api', async original => ({ ...await original<typeof import('@/lib/api')>(), ...api }));
 // Route views have separate suites. This seam exposes the shell's permission contract and refresh callback.
-vi.mock('@/app/operator-page', () => ({ OperatorPage: ({ readOnly, onRefresh }: Readonly<{ readOnly: boolean; onRefresh: () => Promise<void> }>) =>
-  <button disabled={readOnly} onClick={() => { onRefresh(); }}>Edit routed view</button> }));
+vi.mock('@/app/operator-page', () => ({ OperatorPage: ({ readOnly, onRefresh, catalog }: Readonly<{
+  readOnly: boolean; onRefresh: () => Promise<void>; catalog: { exchanges: unknown[] } | null;
+}>) => <><button disabled={readOnly} onClick={() => { onRefresh(); }}>Edit routed view</button>
+  <output data-testid="catalog-state">{catalog ? `ready:${catalog.exchanges.length}` : 'unavailable'}</output></> }));
 
 beforeEach(() => { vi.clearAllMocks(); window.history.replaceState(null, '', '/operations/jobs'); Object.defineProperty(document, 'hidden', { configurable: true, value: false }); });
 afterEach(cleanup);
-async function refresh() { await act(async () => { document.dispatchEvent(new Event('visibilitychange')); }); }
+async function refresh() {
+  await act(() => new Promise<void>((resolve) => {
+    document.dispatchEvent(new Event('visibilitychange'));
+    resolve();
+  }));
+}
 
 describe('operator shell permission and connection evidence', () => {
+  it('dispatches refresh immediately and preserves rejected dispatch errors', async () => {
+    const observed = vi.fn();
+    document.addEventListener('visibilitychange', observed, { once: true });
+    const pending = refresh();
+    expect(observed).toHaveBeenCalledOnce();
+    await pending;
+
+    const error = new Error('visibility dispatch failed');
+    const dispatch = vi.spyOn(document, 'dispatchEvent').mockImplementation(() => { throw error; });
+    await expect(refresh()).rejects.toBe(error);
+    dispatch.mockRestore();
+  });
+
+  it('clears a previously loaded exchange catalog when its next read fails', async () => {
+    window.history.replaceState(null, '', '/trading/accounts');
+    let catalogReads = 0;
+    api.jsonRequest.mockImplementation((url: string) => {
+      if (url === '/api/exchanges/catalog') {
+        catalogReads += 1;
+        return catalogReads === 1
+          ? { implementation: { library: 'ccxt', version: '4.5.75' }, exchanges: [{ id: 'paper', status: 'certified', modes: ['paper'] }] }
+          : Promise.reject(new Error('catalog unavailable'));
+      }
+      if (url === '/api/recovery') return { session: { role: 'admin' } };
+      return {};
+    });
+    render(<NavigationProvider><OperatorApp /></NavigationProvider>);
+    await waitFor(() => expect(screen.getByTestId('catalog-state')).toHaveTextContent('ready:1'));
+    await refresh();
+    await waitFor(() => expect(screen.getByTestId('catalog-state')).toHaveTextContent('unavailable'));
+    expect(screen.getByRole('alert')).toHaveTextContent('catalog: catalog unavailable');
+  });
+
   it('starts with unknown global gates and read-only views until admin evidence arrives', async () => {
     let resolveSession!: (value: unknown) => void;
     api.jsonRequest.mockImplementation((url: string) => url === '/api/recovery' ? new Promise(resolve => { resolveSession = resolve; }) : Promise.resolve({}));

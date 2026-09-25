@@ -10,6 +10,7 @@ coverage-modules/
 .coverage
 reports/
 .stryker-incremental.json
+.stryker-tmp-schema/
 dist/
 frontend/playwright-report/
 frontend/test-results/

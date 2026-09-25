@@ -66,8 +66,11 @@ try {
     alertWebhookToken: 'alert-token-0123456789abcdef0123456789abcdef',
     backupOffsiteToken: 'backup-token-0123456789abcdef0123456789abcdef',
     backupEncryptionKey: Buffer.alloc(32, 7).toString('base64'),
+    backupDriveAccessToken: 'test-drive-access-token-0123456789abcdef',
   });
   assert.equal(store.status().backupEncryptionKey.source, 'managed');
+  assert.deepEqual(store.status().backupDriveAccessToken, { configured: true, editable: true, source: 'managed' });
+  assert.ok(!JSON.stringify(store.status()).includes('test-drive-access-token'));
   assert.equal(store.status().backupEncryptionKey.editable, false);
   await store.set({ backupEncryptionKey: Buffer.alloc(32, 7).toString('base64') });
   await assert.rejects(
@@ -81,6 +84,11 @@ try {
   assert.equal(reloadedEnv.OPENROUTER_API_KEY, 'updated-realistic-test-key-1234567890');
   assert.equal(reloaded.status().dashboardAdminToken.source, 'managed');
   assert.equal(reloaded.status().auditWebhookToken.source, 'managed');
+  assert.equal(reloadedEnv.BACKUP_DRIVE_ACCESS_TOKEN, 'test-drive-access-token-0123456789abcdef');
+  await reloaded.removeBackupDriveAccessToken();
+  assert.equal(reloaded.status().backupDriveAccessToken.source, 'missing');
+  assert.ok(reloadedEnv.BACKUP_DRIVE_ACCESS_TOKEN === undefined);
+  await assert.rejects(readFile(path.join(directory, 'backup_drive_access_token')), /ENOENT/);
 
   const externalDirectory = path.join(directory, 'external');
   const externalEnv = { TELEGRAM_API_HASH: 'b'.repeat(32) };
@@ -96,11 +104,16 @@ try {
   await externalAdmin.initialize();
   await assert.rejects(externalAdmin.createDashboardAdminToken(), /already configured/);
   await assert.rejects(externalAdmin.rotateDashboardToken('admin'), /externally managed/);
+  const externalDrive = new ManagedSecretStore(path.join(directory, 'external-drive'), {
+    BACKUP_DRIVE_ACCESS_TOKEN: 'external-drive-access-token-0123456789abcdef',
+  });
+  await externalDrive.initialize();
+  await assert.rejects(externalDrive.removeBackupDriveAccessToken(), /externally managed/);
+  assert.equal(externalDrive.status().backupDriveAccessToken.configured, true);
 
   await reloaded.clear();
   assert.ok(Object.values(reloaded.status()).every(status => status.source === 'missing'));
-  // skipcq: JS-W1042 - Node's assertion API validates the argument count; the explicit expected argument is required.
-  assert.equal(reloadedEnv.DASHBOARD_ADMIN_TOKEN, undefined);
+  assert.ok(reloadedEnv.DASHBOARD_ADMIN_TOKEN === undefined);
 
   const automatic = new ManagedSecretStore(path.join(directory, 'automatic'), {});
   await automatic.initialize();

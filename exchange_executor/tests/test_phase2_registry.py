@@ -157,6 +157,7 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
             "version": "4.5.75",
             "streaming": "ccxt-pro",
             "orderAuthority": "rest",
+            "reviewedInventoryHash": "7c0ab01cf1e2629cee66528959e0c45ffe01a6111697294e5ca528116f247e54",
         })
         self.assertEqual(StaticExchange.network_calls, 0)
         for exchange in ("hyperliquid", "bybit", "krakenfutures"):
@@ -199,10 +200,9 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
             ccxt_version="4.5.75",
             certifications_directory=ROOT / "certifications",
         ).catalog()
-        try:
-            kraken = next(entry for entry in catalog["exchanges"] if entry["id"] == "krakenfutures")
-        except StopIteration:
-            self.fail("krakenfutures must be present in the exchange catalog.")
+        missing = object()
+        kraken = next((entry for entry in catalog["exchanges"] if entry["id"] == "krakenfutures"), missing)
+        self.assertIsNot(kraken, missing, "krakenfutures must be present in the exchange catalog.")
         self.assertEqual(kraken["status"], "deprecated")
         self.assertFalse(kraken["ccxt"]["rest"])
         self.assertFalse(kraken["ccxt"]["pro"])
@@ -217,6 +217,7 @@ class RegistryTests(unittest.IsolatedAsyncioTestCase):
             certifications_directory=ROOT / "certifications",
         ).catalog()
         entries = {entry["id"]: entry for entry in catalog["exchanges"]}
+        self.assertIsNone(catalog["implementation"]["reviewedInventoryHash"])
         self.assertEqual(entries["hyperliquid"]["status"], "quarantined")
         self.assertIn("version", entries["hyperliquid"]["reason"].lower())
 

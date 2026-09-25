@@ -6,6 +6,7 @@ import { pipeline } from 'node:stream/promises';
 import { createGunzip, createGzip } from 'node:zlib';
 import { inspectBackupArtifact, isSupportedBackupArtifactFileName, listBackupArtifactFiles, verifyBackupArtifact } from './backup.js';
 import { enterpriseMode } from './runtime_profile.js';
+import { GoogleDriveBackupMirror, type DriveMirrorReceipt } from './google_drive_backup_mirror.js';
 
 const ENCRYPTED_MAGIC = Buffer.from('TGFE1\0', 'ascii');
 const ARCHIVE_MAGIC = Buffer.from('TGFA1\0', 'ascii');
@@ -28,6 +29,8 @@ export interface BackupReplicationResult {
   artifactSha256: string;
   artifactCreatedAt: string;
   restoreDrill: null;
+  driveMirror?: DriveMirrorReceipt | null;
+  driveMirrorError?: string | null;
 }
 
 export interface BackupReplicator {
@@ -54,6 +57,7 @@ interface HttpsBackupReplicatorOptions {
   allowInsecureLoopback?: boolean;
   maxRecoveryBytes?: number;
   minRetentionDays?: number;
+  driveMirror?: Pick<GoogleDriveBackupMirror, 'mirror'>;
 }
 
 function validLoopback(hostname: string): boolean {
@@ -355,6 +359,8 @@ export class HttpsBackupReplicator implements BackupReplicator {
   private readonly maxRecoveryBytes: number;
   private readonly minRetentionDays: number | undefined;
 
+  get driveMirrorConfigured(): boolean { return Boolean(this.options.driveMirror); }
+
   constructor(private readonly options: HttpsBackupReplicatorOptions) {
     validateUrlTemplate(options.urlTemplate, Boolean(options.allowInsecureLoopback));
     if (!options.bearerToken || options.bearerToken.length < 32 || /[\r\n]/.test(options.bearerToken)) {
@@ -421,8 +427,22 @@ export class HttpsBackupReplicator implements BackupReplicator {
       await decryptArtifact(downloadedPath, restoredPath, this.options.encryptionKey, expansionLimit);
       const remoteEvidence = await inspectBackupArtifact(restoredPath);
       // Bind the actual downloaded/decrypted manifest, never merely the upload source.
-      return { objectName, sha256, size: encryptedStats.size, verifiedAt: Date.now(), artifactSha256: remoteEvidence.artifactSha256,
+      const primary: BackupReplicationResult = { objectName, sha256, size: encryptedStats.size, verifiedAt: Date.now(), artifactSha256: remoteEvidence.artifactSha256,
         artifactCreatedAt: remoteEvidence.artifactCreatedAt, restoreDrill: null };
+      if (!this.options.driveMirror) return primary;
+      try {
+        // The mirror reads the exact encrypted file whose hash the primary round trip verified.
+        const receipt = await this.options.driveMirror.mirror(encryptedPath, objectName, sha256);
+        if (receipt.objectName !== objectName || receipt.sha256 !== sha256 || receipt.size !== encryptedStats.size
+          || !/^[A-Za-z0-9_-]{10,256}$/.test(receipt.driveFileId)
+          || !Number.isSafeInteger(receipt.verifiedAt) || receipt.verifiedAt < primary.verifiedAt || receipt.verifiedAt > Date.now()) {
+          throw new Error('Invalid Drive mirror receipt.');
+        }
+        return { ...primary, driveMirror: receipt, driveMirrorError: null };
+      } catch {
+        // Provider errors may include request data. Never expose them in status or logs.
+        return { ...primary, driveMirror: null, driveMirrorError: 'Drive mirror upload or verification failed.' };
+      }
     } finally {
       await Promise.all([
         fs.rm(encryptedPath, { force: true }),
@@ -511,8 +531,41 @@ function offsiteCredentials(env: NodeJS.ProcessEnv): { urlTemplate: string; bear
   return { urlTemplate, bearerToken, encryptionKeyValue };
 }
 
-export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.env): {
+interface OffsiteBackupTestOptions {
+  allowInsecureLoopback?: boolean;
+  driveFetchImpl?: typeof fetch;
+}
+
+function driveMirrorFromEnvironment(env: NodeJS.ProcessEnv, primaryRequired: boolean, fetchImpl?: typeof fetch): {
+  required: boolean; mirror: GoogleDriveBackupMirror | undefined;
+} {
+  const required = strictBoolean(env.BACKUP_DRIVE_REQUIRED, false);
+  const folderId = env.BACKUP_DRIVE_FOLDER_ID?.trim() || '';
+  if (required && !primaryRequired) throw new Error('Required Drive mirror also requires primary off-site backup.');
+  if (required && !folderId) throw new Error('Required Drive mirror needs BACKUP_DRIVE_FOLDER_ID.');
+  if (!folderId) return { required, mirror: undefined };
+  if (!env.BACKUP_DRIVE_ACCESS_TOKEN?.trim()) {
+    throw new Error('Configured Drive mirror needs a managed BACKUP_DRIVE_ACCESS_TOKEN.');
+  }
+  return { required, mirror: new GoogleDriveBackupMirror({
+    folderId,
+    // Resolve on every attempt so managed token rotation does not require a process restart.
+    accessToken: () => Promise.resolve().then(() => {
+      const token = env.BACKUP_DRIVE_ACCESS_TOKEN?.trim();
+      if (!token) throw new Error('Drive mirror access token is unavailable.');
+      return token;
+    }),
+    timeoutMs: Number(env.BACKUP_DRIVE_TIMEOUT_MS || 60_000),
+    fetchImpl
+  }) };
+}
+
+export function offsiteBackupFromEnvironment(
+  env: NodeJS.ProcessEnv = process.env,
+  testOptions: OffsiteBackupTestOptions = {}
+): {
   required: boolean;
+  driveRequired: boolean;
   replicator: BackupReplicator | null;
 } {
   const enterprise = enterpriseMode(env);
@@ -520,9 +573,10 @@ export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.en
     throw new Error('Off-site backup cannot be disabled in enterprise mode.');
   }
   const required = strictBoolean(env.BACKUP_OFFSITE_REQUIRED, enterprise);
+  const drive = driveMirrorFromEnvironment(env, required, testOptions.driveFetchImpl);
   const values = [env.BACKUP_OFFSITE_URL_TEMPLATE, env.BACKUP_OFFSITE_TOKEN, env.BACKUP_ENCRYPTION_KEY];
   const configured = values.some(value => Boolean(value?.trim()));
-  if (!configured && !required) return { required, replicator: null };
+  if (!configured && !required && !drive.mirror) return { required, driveRequired: drive.required, replicator: null };
   if (values.some(value => !value?.trim())) {
     throw new Error('Off-site backup requires BACKUP_OFFSITE_URL_TEMPLATE, BACKUP_OFFSITE_TOKEN and BACKUP_ENCRYPTION_KEY.');
   }
@@ -542,13 +596,16 @@ export function offsiteBackupFromEnvironment(env: NodeJS.ProcessEnv = process.en
   const { urlTemplate, bearerToken, encryptionKeyValue } = offsiteCredentials(env);
   return {
     required,
+    driveRequired: drive.required,
     replicator: new HttpsBackupReplicator({
       urlTemplate,
       bearerToken,
       encryptionKey: parseBackupEncryptionKey(encryptionKeyValue),
       timeoutMs: timeout,
+      allowInsecureLoopback: testOptions.allowInsecureLoopback,
       maxRecoveryBytes: configuredRecoveryLimit,
-      minRetentionDays: configuredRetentionDays || (enterprise ? 30 : undefined)
+      minRetentionDays: configuredRetentionDays || (enterprise ? 30 : undefined),
+      driveMirror: drive.mirror
     })
   };
 }

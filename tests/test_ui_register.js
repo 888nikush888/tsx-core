@@ -63,6 +63,14 @@ async function testParameters() {
   for (const [key, range] of Object.entries(AI_LIMIT_RANGES)) assert.ok(catalog.find(entry => entry.path === `config.xmlParsing.aiLimits.${key}`).constraints.startsWith(range.join('..')));
   assert.equal(catalog.find(entry => entry.path === 'resource.adaptive_risk.lockedTier').nullable, true);
   assert.equal(catalog.find(entry => entry.path === 'strategy.safety.requireProtectiveStop').editable, false);
+  const credentialGeneration = catalog.find(entry => entry.path === 'account.credentialGeneration');
+  assert.equal(credentialGeneration.type, 'string|null');
+  assert.equal(credentialGeneration.nullable, true);
+  assert.equal(credentialGeneration.editable, false);
+  assert.match(credentialGeneration.constraints, /64-stelliger.*Hex-Fingerprint/);
+  const accountCapacity = catalog.find(entry => entry.path === 'account.maxConcurrentPositions');
+  assert.match(accountCapacity.constraints, /baseUpdatedAt/);
+  assert.doesNotMatch(accountCapacity.constraints, /baseStateVersion/);
   assert.equal(catalog.find(entry => entry.path === 'config.xmlParsing.aiLimits.fallbackAttempts').type, 'integer');
   for (const entry of catalog.filter(item => item.secret)) assert.equal(entry.defaultPresent, false);
   const types = await readFile(path.join(root, 'src/trading_types.ts'), 'utf8');

@@ -1,0 +1,170 @@
+{
+  "kind": "codacy-exact-head-read-only-review",
+  "schemaVersion": 1,
+  "revision": "15eb0a16c4fc232851ff9abb33431d216ca34621",
+  "pullRequest": {
+    "number": 73,
+    "url": "https://github.com/888nikush888/tsx-core/pull/73",
+    "branch": "codex/final-findings-2026-09-17",
+    "baseBranch": "main",
+    "baseAnalyzedRevision": "58c01bc74f83cc212849ddcd7e487412ff06b2b7",
+    "codacyStatus": "Open",
+    "analyzed": true,
+    "newIssues": 6,
+    "fixedIssues": 0,
+    "meetsCodacyStandards": false
+  },
+  "providerEvidence": {
+    "branchEndpoint": "https://app.codacy.com/api/v3/organizations/gh/888nikush888/repositories/tsx-core/branches",
+    "pullRequestEndpoint": "https://app.codacy.com/api/v3/analysis/organizations/gh/888nikush888/repositories/tsx-core/pull-requests/73",
+    "issuesEndpoint": "https://app.codacy.com/api/v3/analysis/organizations/gh/888nikush888/repositories/tsx-core/pull-requests/73/issues?status=new&limit=100",
+    "commitLogsEndpoint": "https://app.codacy.com/api/v3/analysis/organizations/gh/888nikush888/repositories/tsx-core/commits/15eb0a16c4fc232851ff9abb33431d216ca34621/logs",
+    "commitAnalysisStartedUtc": "2026-09-23T19:09:30.597Z",
+    "commitAnalysisEndedUtc": "2026-09-23T19:10:03.652Z",
+    "analyzers": {
+      "Opengrep": "success",
+      "Trivy": "success",
+      "ESLint": "error"
+    },
+    "eslintError": "codacy/codacy-eslint:9.18.10 security-node/detect-unhandled-async-errors dereferences a null handler at src/trading_recovery.ts:47 (Cannot read properties of null (reading 'type')). This is an analyzer execution error, not an issue finding or evidence of complete ESLint coverage.",
+    "branchActiveIssues": 65,
+    "branchTrivyIssues": 0,
+    "mainActiveIssues": 92,
+    "mainHistoricalTrivyIssues": 33,
+    "historicalTrivyIdComparison": "All 33 historical Trivy IDs from the original 439-ID ledger still occur on analyzed main; none occurs on this analyzed PR branch. Successful exact-head Trivy analysis does not close main's older records."
+  },
+  "history": {
+    "originalLedgerPath": "docs/testing/final-codacy-2026-09-17.json",
+    "originalIssueIds": 439,
+    "originalIdsPreserved": true,
+    "originalBaselineSha256ValuesPreserved": true,
+    "reviewedOriginalLineBindingsStillMatching": 41,
+    "priorFiveIdSupplementPath": "docs/testing/final-codacy-pr73-2026-09-20.json",
+    "priorFiveIdSupplementSha256": "ca1c62117adccace1b0e3355000a081fd5eb9cab32c67b0ef3799432abaf555d",
+    "priorFiveIdInventorySha256": "3066400b264e988d4d8757761717dbf1deb5bea20b41bf20ff4f1d2e9ee32ed2",
+    "priorFiveIdSupplementUnchanged": true,
+    "currentSixIdInventorySha256": "4ba1af18f7b806971d4bbb5efe85f64d0d82d98de14ee8fad98a86313787fac5",
+    "idTransition": {
+      "priorIssueId": "26cffb07d9d0225b95b7e2fc3daad52e",
+      "currentIssueId": "d6b6b1914d433b2edb16b74a2484c50b",
+      "samePath": "scripts/check_final_codacy_review.js",
+      "sameCurrentLine": 134,
+      "sameRule": "ESLint8_security_detect-non-literal-fs-filename",
+      "observation": "The prior ID is absent from current PR and branch active results, while the same readSource occurrence is reported under the current ID. Codacy reports zero fixed PR issues; this record does not claim a provider closure."
+    },
+    "historicalLedgerSha256": "8408f4ce7bdf31cf31abf0384321f490bfb1a2b3cca44155f86a6d3f67574215",
+    "reviewedSourceBindingsPendingRenewal": 3,
+    "reviewedOriginalOccurrencesUsingChangedSources": 37,
+    "legacyCheckerStatus": "fails-closed-on-three-current-source-hashes",
+    "receiptCommitmentPreserved": true
+  },
+  "findings": [
+    {
+      "issueId": "21d93201f83138422de211186806b0b4",
+      "tool": "ESLint",
+      "rule": "ESLint8_security_detect-object-injection",
+      "path": "scripts/check_final_codacy_review.js",
+      "line": 51,
+      "normalizedSourceSha256": "c930f9dbe10f6db520b10dd98aaa3b893d7556ce700772d0d6d85fbaa3673205",
+      "normalizedLineSha256": "2a8c2f955f094bb530ab91fa1b10036ba1c64023927daa9755323871da69cd1c",
+      "priorSupplementId": true,
+      "localReview": "The JSON rule key is read only to compare numeric active and ignored counts. It never becomes a property write or executable code; count disagreement fails the integrity check.",
+      "localDisposition": "contextual-false-positive-proposed"
+    },
+    {
+      "issueId": "329a4ebf6ed7872f91258fa5f4bb8381",
+      "tool": "Opengrep",
+      "rule": "Semgrep_javascript_pathtraversal_rule-non-literal-fs-filename",
+      "path": "src/backup_generation.ts",
+      "line": 202,
+      "normalizedSourceSha256": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f",
+      "normalizedLineSha256": "b92f1a39c67ca5e1ac38f8218dd17c4c0c9556ba84bbe404603d62e1e56d4130",
+      "priorSupplementId": true,
+      "localReview": "The recursive template walk uses application-selected configuration, rejects symlink entries and traversal components, and bounds depth, count and regular-file size. The prior review records the remaining hostile concurrent filesystem-swap limit.",
+      "localDisposition": "contextual-false-positive-proposed"
+    },
+    {
+      "issueId": "4046b22647767dce271723314d38be36",
+      "tool": "ESLint",
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "path": "scripts/check_final_codacy_review.js",
+      "line": 132,
+      "normalizedSourceSha256": "c930f9dbe10f6db520b10dd98aaa3b893d7556ce700772d0d6d85fbaa3673205",
+      "normalizedLineSha256": "676f2fc322f32a9080901e91ea92d32d4421c12ef12ae4aee0cc8158f2cdd370",
+      "priorSupplementId": true,
+      "localReview": "The ledger path is a module constant joined to ROOT derived from import.meta.url; no request, argument, environment or ledger field selects this file.",
+      "localDisposition": "contextual-false-positive-proposed"
+    },
+    {
+      "issueId": "40bf2ed8c7911e781f0f47df1a603836",
+      "tool": "ESLint",
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "path": "scripts/check_final_codacy_review.js",
+      "line": 133,
+      "normalizedSourceSha256": "c930f9dbe10f6db520b10dd98aaa3b893d7556ce700772d0d6d85fbaa3673205",
+      "normalizedLineSha256": "80ebc92e6117b2f2cadaa00debb0c065682dd366bfbd9b1c1785ad48504d0524",
+      "priorSupplementId": false,
+      "localReview": "The new occurrence reads the fixed SUPPLEMENT module constant from docs/testing/final-codacy-pr73-2026-09-20.json under ROOT derived from import.meta.url. The path has no untrusted selector and the JSON is parsed as review data, not executed.",
+      "localDisposition": "contextual-false-positive-proposed"
+    },
+    {
+      "issueId": "96c70e58dbd13a7871ea404b36bbf023",
+      "tool": "Opengrep",
+      "rule": "Semgrep_javascript_eval_rule-eval-with-expression",
+      "path": "tests/test_forwarder_error_types.js",
+      "line": 169,
+      "normalizedSourceSha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89",
+      "normalizedLineSha256": "e27cab6d09ec16f9aed1d1fafdd44cedccc1a07c2c4f4d9d4d43b82e02df1b44",
+      "priorSupplementId": true,
+      "localReview": "The test reads literal module-relative repository source, AST-selects three named declarations with count assertions, and executes the transpiled declarations with injected fixtures. Test IDs are later input data, never interpolated into executable source.",
+      "localDisposition": "contextual-false-positive-proposed"
+    },
+    {
+      "issueId": "d6b6b1914d433b2edb16b74a2484c50b",
+      "tool": "ESLint",
+      "rule": "ESLint8_security_detect-non-literal-fs-filename",
+      "path": "scripts/check_final_codacy_review.js",
+      "line": 134,
+      "normalizedSourceSha256": "c930f9dbe10f6db520b10dd98aaa3b893d7556ce700772d0d6d85fbaa3673205",
+      "normalizedLineSha256": "0fc50d2629b4b0af2d9682de8d28d9a33b165f8ce517c83c78af03526fa5145b",
+      "priorSupplementId": false,
+      "replacesPriorIssueIdAtSameOccurrence": "26cffb07d9d0225b95b7e2fc3daad52e",
+      "localReview": "The readSource callback only reads paths supplied by bindSource after safePath rejects absolute paths, dot/dot-dot segments and backslashes, or by checkLine after membership in the validated source map. The ledger is repository-owned review data; the source is hashed, not executed or transmitted. A hostile local checkout with symlink parents remains outside this lexical guard, as the prior supplement records.",
+      "localDisposition": "contextual-false-positive-proposed"
+    }
+  ],
+  "limitations": [
+    "No Codacy provider issue disposition was changed by this review.",
+    "The original five-ID supplement remains an immutable historical observation; its prior issue ID is not silently removed.",
+    "An ESLint execution error persists on this exact head, so current visible ESLint findings do not prove complete analyzer coverage.",
+    "No main-branch Trivy record is declared fixed until successful main analysis and issue reconciliation.",
+    "The historical Codacy ledger remains byte-for-byte unchanged. Its legacy integrity checker fails closed on three whole-file source hashes; applying those renewals requires a new complete implementation-receipt verification, so none is claimed here."
+  ],
+  "pendingSourceRenewals": [
+    {
+      "path": "monitoring/govulncheck/go.mod",
+      "priorNormalizedSha256": "b1dcf59b7f2d2ca4756580e56e10241bee96fb52e48665dd41d9dad41c6e15c6",
+      "currentNormalizedSha256": "d91fbc98d20f6a67067919abc1e69fc23c5c3f99a07db5e1829630281ca7b967",
+      "affectedOriginalIssues": 33,
+      "unchangedLineBindings": 33,
+      "review": "The sole source change is golang.org/x/vuln v1.6.0 to v1.8.0; the go 1.26.6 directive and the 33 historic Trivy occurrence lines stay unchanged."
+    },
+    {
+      "path": "tests/test_monitoring_artifacts.js",
+      "priorNormalizedSha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d",
+      "currentNormalizedSha256": "d41a06aef9e7f10161ed097a5623f6b93871202695fb5bb47e498d1fe532ece2",
+      "affectedOriginalIssues": 1,
+      "unchangedLineBindings": 1,
+      "review": "Only govulncheck dependency-version and checksum assertions changed; the reviewed non-literal-regexp occurrence at line 46 stays unchanged."
+    },
+    {
+      "path": "tests/test_supply_chain.js",
+      "priorNormalizedSha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b",
+      "currentNormalizedSha256": "d38952eaa1bb2bfcd780d4b78da5bcee0a84cccf74e2f1a6fdc9a30fe0dc6136",
+      "affectedOriginalIssues": 3,
+      "unchangedLineBindings": 7,
+      "review": "The test adds a finite reviewed public Sonar PR73 ID allowlist and updates exact govulncheck dependency assertions. Its prior secret-test and non-literal-regexp occurrence lines 80, 81 and 184 stay unchanged."
+    }
+  ],
+  "scope": "Exact-head Codacy observation and six individual local proposals only. Historical ledger source renewal is pending; provider ESLint coverage, main-branch Trivy closure, deployment and trading are not authorized."
+}

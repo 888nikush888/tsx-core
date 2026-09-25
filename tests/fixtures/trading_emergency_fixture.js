@@ -13,7 +13,7 @@ function emergencySubmitter(state, providerSymbol, fill) {
     if (compareDecimal(request.quantity, state.owned()) > 0) throw new Error('Emergency attempted to reduce more than owned.');
     if (state.orders.has(request.clientOrderId)) throw new Error('Duplicate economic submission.');
     state.flattenCalls.push({ ...request });
-    const order = { ...request, exchangeOrderId: `remote-${request.clientOrderId}`, providerSymbol, symbol: 'BTCUSDT',
+    const order = { ...request, exchangeOrderId: state.exchange === 'hyperliquid' ? String(state.orders.size + 1) : `remote-${request.clientOrderId}`, providerSymbol, symbol: 'BTCUSDT',
       status: 'filled', filledQuantity: request.quantity, averagePrice: '100', error: null, raw: {} };
     state.orders.set(request.clientOrderId, order);
     state.fills.push(fill(order, request.quantity));
@@ -51,7 +51,7 @@ export async function emergencyFixture(id, { partial = true, exchange = 'paper',
     cancelEntry: false, hideFlattens: false, loseNextFlattenAck: false };
   for (const order of [entry, stop]) {
     const isEntry = order.role === 'entry';
-    const remote = { ...order, exchangeOrderId: `remote-${order.clientOrderId}`, providerSymbol, symbol: 'BTCUSDT',
+    const remote = { ...order, exchangeOrderId: exchange === 'hyperliquid' ? String(state.orders.size + 1) : `remote-${order.clientOrderId}`, providerSymbol, symbol: 'BTCUSDT',
       status: isEntry ? partial ? 'partially_filled' : 'filled' : 'open', filledQuantity: isEntry ? '1' : '0',
       averagePrice: isEntry ? '100' : null, error: null, raw: {} };
     state.orders.set(order.clientOrderId, remote);
@@ -66,7 +66,7 @@ export async function emergencyFixture(id, { partial = true, exchange = 'paper',
   await getDatabase().run('UPDATE trading_accounts SET created_at = ? WHERE id = ?', [fixtureSince, id]);
   await getDatabase().run('UPDATE trading_orders SET created_at = ? WHERE account_id = ?', [fixtureSince, id]);
   const fill = (order, quantity) => nativeFillFixture(exchange, { clientOrderId: order.clientOrderId, exchangeOrderId: order.exchangeOrderId,
-    exchangeFillId: `${id}-fill-${state.fills.length}`, symbol: 'BTCUSDT', providerSymbol, price: '100', quantity, fee: '0',
+    exchangeFillId: exchange === 'hyperliquid' ? String(state.fills.length + 1) : `${id}-fill-${state.fills.length}`, symbol: 'BTCUSDT', providerSymbol, price: '100', quantity, fee: '0',
     feeAsset: 'USDT', filledAt: Date.now(), raw: {} }, `${id}-provider-account`);
   state.fills.push(fill(state.orders.get(entry.clientOrderId), '1'));
   state.addEntryFill = quantity => {

@@ -1706,9 +1706,13 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
       return true;
     };
       try {
-      if (embedded && !activate) return await persistEmbeddedDraft();
-        if (embedded) await requireCurrentGraphDraft(draftMetaRef.current?.version, draftUnsaved);
-      const baseRevisionId = activationBaseRevision(embedded, draftMetaRef.current?.baseRevisionId, snapshot.workflow?.id);
+        if (embedded && !activate) {
+          return await persistEmbeddedDraft();
+        }
+        if (embedded) {
+          await requireCurrentGraphDraft(draftMetaRef.current?.version, draftUnsaved);
+        }
+        const baseRevisionId = activationBaseRevision(embedded, draftMetaRef.current?.baseRevisionId, snapshot.workflow?.id);
         const impactPayload = await jsonRequest("/api/workflow/impact", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1737,11 +1741,13 @@ export function WorkflowBuilder({ embedded = false }: { embedded?: boolean } = {
         }));
         setGraph(structuredClone(payload.workflow.graph));
         setHistory(builderHistoryStatus(payload.history));
-      const applyEmbeddedDraft = () => {
-        const next = payload.draft ?? { ...draftMetaRef.current, baseRevisionId: payload.workflow.id };
-        draftMetaRef.current = next; setDraftMeta(next);
-      };
-      if (embedded) applyEmbeddedDraft();
+        const applyEmbeddedDraft = () => {
+          const next = payload.draft ?? { ...draftMetaRef.current, baseRevisionId: payload.workflow.id };
+          draftMetaRef.current = next; setDraftMeta(next);
+        };
+        if (embedded) {
+          applyEmbeddedDraft();
+        }
         setNotice({
           tone: impact.destructive ? "warning" : "ok",
           text: `${successMessage} · Revision ${payload.workflow.revision} ist aktiv.`,

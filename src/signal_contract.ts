@@ -101,14 +101,22 @@ function safePattern(value: unknown, label: string): string | undefined {
   return pattern;
 }
 
+function additionalFieldBound(value: unknown, label: string): string | undefined {
+  if (value === undefined || value === '') return undefined;
+  if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'bigint') {
+    throw new TypeError(`${label} must be a scalar decimal.`);
+  }
+  return decimal(String(value));
+}
+
 function additionalField(value: unknown, index: number): SignalContractAdditionalField {
   const field = record(value, `additionalFields[${index}]`);
   exactKeys(field, `additionalFields[${index}]`, [
     'path', 'type', 'required', 'allowedValues', 'minimum', 'maximum', 'maximumLength', 'pattern',
   ]);
   if (!FIELD_TYPES.has(field.type as SignalContractFieldType)) throw new Error(`additionalFields[${index}].type is invalid.`);
-  const minimum = field.minimum === undefined || field.minimum === '' ? undefined : decimal(String(field.minimum));
-  const maximum = field.maximum === undefined || field.maximum === '' ? undefined : decimal(String(field.maximum));
+  const minimum = additionalFieldBound(field.minimum, `additionalFields[${index}].minimum`);
+  const maximum = additionalFieldBound(field.maximum, `additionalFields[${index}].maximum`);
   if (minimum !== undefined && maximum !== undefined && compareDecimal(minimum, maximum) > 0) {
     throw new Error(`additionalFields[${index}] minimum must not exceed maximum.`);
   }

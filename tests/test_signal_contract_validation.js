@@ -22,6 +22,26 @@ function rejects(mutator, pattern) {
 
 assert.match(signalContractDefinitionSha256(standard()), /^[a-f0-9]{64}$/);
 
+for (const [bound, expected] of [['1.2300', '1.23'], [' 1.25 ', '1.25'], [1.25, '1.25'], [3n, '3'], [0, '0']]) {
+  const definition = standard();
+  definition.additionalFields = [{ path: 'memo', type: 'decimal', required: false, minimum: bound, maximum: bound }];
+  const [field] = validateSignalContractDefinition(definition).additionalFields;
+  assert.equal(field.minimum, expected);
+  assert.equal(field.maximum, expected);
+}
+let boundCoercions = 0;
+for (const bound of [['1.25'], Object(1.25), { toString() { boundCoercions += 1; return '1.25'; } }]) {
+  for (const key of ['minimum', 'maximum']) {
+    rejects(definition => { definition.additionalFields = [{ path: 'memo', type: 'decimal', required: false, [key]: bound }]; },
+      error => {
+        assert.ok(error instanceof TypeError, 'Structured contract bounds fail with their explicit type category.');
+        assert.equal(error.message, `additionalFields[0].${key} must be a scalar decimal.`);
+        return true;
+      });
+  }
+}
+assert.equal(boundCoercions, 0, 'Structured bounds cannot supply decimal limits through coercion.');
+
 const builderSchema = standard();
 builderSchema.actionPath = 'direction';
 builderSchema.pairPath = 'market';

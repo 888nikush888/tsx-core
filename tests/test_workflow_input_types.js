@@ -58,7 +58,7 @@ try {
   // Database immutability/integrity guards remain intact; this is defensive-boundary coverage.
   const source = await readFile(new URL('../src/workflow_repository.ts', import.meta.url), 'utf8');
   const parsed = ts.createSourceFile('workflow_repository.ts', source, ts.ScriptTarget.Latest, true);
-  const names = ['signalPlanForPath', 'object', 'normalizedJson', 'sha256'];
+  const names = ['signalPlanForPath', 'object', 'normalizedJson', 'sha256', 'workflowBytesHash'];
   const functions = parsed.statements.filter(node => ts.isFunctionDeclaration(node) && names.includes(node.name?.text));
   assert.equal(functions.length, names.length);
   const executable = ts.transpileModule(functions.map(node => node.getText(parsed)).join('\n'), {

@@ -1,0 +1,18 @@
+test_actual_pinned_sdk_bootstrap_uses_only_guarded_info_requests (__main__.BoundHyperliquidPreflightTests.test_actual_pinned_sdk_bootstrap_uses_only_guarded_info_requests) ... ok
+test_agent_revocation_and_generation_drift_precede_sdk_construction (__main__.BoundHyperliquidPreflightTests.test_agent_revocation_and_generation_drift_precede_sdk_construction) ... ok
+test_agent_snapshot_requires_separate_current_grant_and_stays_diagnostic (__main__.BoundHyperliquidPreflightTests.test_agent_snapshot_requires_separate_current_grant_and_stays_diagnostic) ... ok
+test_bound_snapshot_is_redacted_and_never_grants_acceptance (__main__.BoundHyperliquidPreflightTests.test_bound_snapshot_is_redacted_and_never_grants_acceptance) ... ok
+test_error_traceback_suppresses_sensitive_cause (__main__.BoundHyperliquidPreflightTests.test_error_traceback_suppresses_sensitive_cause) ... ok
+test_guard_installed_on_actual_pinned_sdk_before_any_request (__main__.BoundHyperliquidPreflightTests.test_guard_installed_on_actual_pinned_sdk_before_any_request) ... ok
+test_market_product_and_account_state_fail_closed (__main__.BoundHyperliquidPreflightTests.test_market_product_and_account_state_fail_closed) ... ok
+test_market_scope_requires_exact_flags_and_text_coin (__main__.BoundHyperliquidPreflightTests.test_market_scope_requires_exact_flags_and_text_coin) ... ok
+test_operational_entrypoint_pins_direct_transport_and_sdk_classes (__main__.BoundHyperliquidPreflightTests.test_operational_entrypoint_pins_direct_transport_and_sdk_classes) ... ok
+test_post_bootstrap_sdk_url_or_proxy_drift_is_refused (__main__.BoundHyperliquidPreflightTests.test_post_bootstrap_sdk_url_or_proxy_drift_is_refused) ... ok
+test_provider_numeric_leverage_and_bad_values (__main__.BoundHyperliquidPreflightTests.test_provider_numeric_leverage_and_bad_values) ... ok
+test_sdk_url_drift_and_mutating_or_ambiguous_requests_never_reach_transport (__main__.BoundHyperliquidPreflightTests.test_sdk_url_drift_and_mutating_or_ambiguous_requests_never_reach_transport) ... ok
+test_unproved_agent_or_account_generation_never_constructs_sdk (__main__.BoundHyperliquidPreflightTests.test_unproved_agent_or_account_generation_never_constructs_sdk) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 8.107s
+
+OK

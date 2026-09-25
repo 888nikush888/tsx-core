@@ -1,0 +1,225 @@
+"""Read-only Hyperliquid Testnet account snapshot. Never loads signing credentials.
+
+This diagnostic is not provider acceptance or a release gate. It only sends the
+documented userRole, clearinghouseState and openOrders requests to /info.
+"""
+from __future__ import annotations
+
+import argparse
+import http.client
+import json
+import re
+import ssl
+import sys
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+from urllib.parse import urlsplit
+
+
+INFO_ENDPOINT = "https://api.hyperliquid-testnet.xyz/info"
+ADDRESS_PATTERN = re.compile(r"0x[0-9a-fA-F]{40}\Z")
+MAX_ADDRESS_FILE_BYTES = 100
+MAX_RESPONSE_BYTES = 64 * 1024
+REQUEST_TIMEOUT_SECONDS = 5
+ALLOWED_ROLES = frozenset({"user", "agent", "vault", "subAccount", "missing"})
+INFO_REQUEST_FIELDS = {
+    "userRole": frozenset({"type", "user"}),
+    "userAbstraction": frozenset({"type", "user"}),
+    "clearinghouseState": frozenset({"type", "user"}),
+    "openOrders": frozenset({"type", "user"}),
+    "activeAssetData": frozenset({"type", "user", "coin"}),
+    "metaAndAssetCtxs": frozenset({"type"}),
+    "spotMeta": frozenset({"type"}),
+}
+
+
+class PreflightError(Exception):
+    """A deliberately non-sensitive, operator-facing diagnostic error."""
+
+
+def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise PreflightError("Duplicate field in Testnet Info response")
+        result[key] = value
+    return result
+
+
+def _invalid_constant(_value: str) -> None:
+    raise PreflightError("Non-finite value in Testnet Info response")
+
+
+def public_address(value: str) -> str:
+    if not isinstance(value, str) or not ADDRESS_PATTERN.fullmatch(value):
+        raise PreflightError("Public wallet address must be 0x followed by 40 hex digits")
+    return value
+
+
+def read_public_address_file(path: Path) -> str:
+    try:
+        with path.open("rb") as stream:
+            raw = stream.read(MAX_ADDRESS_FILE_BYTES + 1)
+    except OSError as exc:
+        raise PreflightError("Could not read public address file") from exc
+    if len(raw) > MAX_ADDRESS_FILE_BYTES:
+        raise PreflightError("Public address file is too large")
+    try:
+        value = raw.decode("ascii").strip("\r\n")
+    except UnicodeDecodeError as exc:
+        raise PreflightError("Public address file must contain ASCII text") from exc
+    return public_address(value)
+
+
+def validate_endpoint(endpoint: str) -> str:
+    parsed = urlsplit(endpoint)
+    if (
+        parsed.scheme != "https"
+        or parsed.netloc != "api.hyperliquid-testnet.xyz"
+        or parsed.path != "/info"
+        or parsed.query
+        or parsed.fragment
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.port is not None
+    ):
+        raise PreflightError("Only the official Hyperliquid Testnet Info endpoint is allowed")
+    hostname = parsed.hostname
+    if hostname is None:
+        raise PreflightError("Only the official Hyperliquid Testnet Info endpoint is allowed")
+    return hostname
+
+
+def post_info(payload: dict[str, str], *, endpoint: str = INFO_ENDPOINT, connection_factory=None):
+    """Direct HTTPS connection: http.client has no proxy or redirect machinery."""
+    host = validate_endpoint(endpoint)
+    if not isinstance(payload, dict) or not isinstance(payload.get("type"), str) \
+            or set(payload) != INFO_REQUEST_FIELDS.get(payload["type"]):
+        raise PreflightError("Unsupported read-only Info request")
+    if "user" in payload:
+        public_address(payload["user"])
+    if "coin" in payload and (not isinstance(payload["coin"], str)
+                              or not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", payload["coin"])):
+        raise PreflightError("Invalid first-DEX coin")
+    factory = connection_factory or http.client.HTTPSConnection
+    connection = None
+    try:
+        connection = factory(host, timeout=REQUEST_TIMEOUT_SECONDS, context=ssl.create_default_context())
+        body = json.dumps(payload, separators=(",", ":")).encode("ascii")
+        connection.request("POST", "/info", body=body, headers={"Content-Type": "application/json", "Accept": "application/json"})
+        response = connection.getresponse()
+        # There is intentionally no follow-up request for any 3xx response.
+        if response.status != 200:
+            raise PreflightError("Testnet Info request did not return HTTP 200")
+        if response.getheader("Content-Encoding", "identity").lower() != "identity":
+            raise PreflightError("Compressed responses are unsupported")
+        raw = response.read(MAX_RESPONSE_BYTES + 1)
+        if len(raw) > MAX_RESPONSE_BYTES:
+            raise PreflightError("Testnet Info response exceeds size limit")
+        return json.loads(raw, object_pairs_hook=_unique_object, parse_constant=_invalid_constant)
+    except (OSError, http.client.HTTPException, ValueError) as exc:
+        raise PreflightError("Testnet Info request or response failed validation") from exc
+    finally:
+        if connection is not None:
+            try:
+                connection.close()
+            except OSError:
+                pass
+
+
+def _nonnegative_decimal(value, field: str) -> Decimal:
+    if not isinstance(value, str):
+        raise PreflightError(f"Invalid {field} in Testnet response")
+    try:
+        parsed = Decimal(value)
+    except InvalidOperation as exc:
+        raise PreflightError(f"Invalid {field} in Testnet response") from exc
+    if not parsed.is_finite() or parsed < 0:
+        raise PreflightError(f"Invalid {field} in Testnet response")
+    return parsed
+
+
+def _signed_decimal(value, field: str) -> Decimal:
+    if not isinstance(value, str):
+        raise PreflightError(f"Invalid {field} in Testnet response")
+    try:
+        parsed = Decimal(value)
+    except InvalidOperation as exc:
+        raise PreflightError(f"Invalid {field} in Testnet response") from exc
+    if not parsed.is_finite():
+        raise PreflightError(f"Invalid {field} in Testnet response")
+    return parsed
+
+
+def _position_count(rows: list[object]) -> int:
+    count = 0
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get("position"), dict):
+            raise PreflightError("Invalid position in Testnet response")
+        if _signed_decimal(row["position"].get("szi"), "position size") != 0:
+            count += 1
+    return count
+
+
+def _validate_open_orders(orders: list[object]) -> None:
+    for order in orders:
+        if not isinstance(order, dict) or not isinstance(order.get("coin"), str) or not order.get("coin"):
+            raise PreflightError("Invalid open order in Testnet response")
+
+
+def summarize(role_data, account_data, orders_data) -> dict[str, object]:
+    role = role_data.get("role") if isinstance(role_data, dict) else None
+    if not isinstance(role, str) or role not in ALLOWED_ROLES:
+        raise PreflightError("Invalid account role in Testnet response")
+    if not isinstance(account_data, dict) or not isinstance(account_data.get("assetPositions"), list):
+        raise PreflightError("Invalid perpetual account state in Testnet response")
+    if not isinstance(account_data.get("marginSummary"), dict) or not isinstance(orders_data, list):
+        raise PreflightError("Invalid account summary or open orders in Testnet response")
+
+    summary = account_data["marginSummary"]
+    value = _nonnegative_decimal(summary.get("accountValue"), "account value")
+    notional = _nonnegative_decimal(summary.get("totalNtlPos"), "position notional")
+    withdrawable = _signed_decimal(account_data.get("withdrawable"), "withdrawable amount")
+    position_count = _position_count(account_data["assetPositions"])
+    _validate_open_orders(orders_data)
+    return {
+        "environment": "hyperliquid-testnet",
+        "readOnly": True,
+        "role": role,
+        "positionCount": position_count,
+        "flat": position_count == 0 and notional == 0,
+        "openOrderCount": len(orders_data),
+        "funded": value > 0,
+        "withdrawablePositive": withdrawable > 0,
+        "scope": "diagnostic-only",
+    }
+
+
+def probe(address: str, *, requester=post_info) -> dict[str, object]:
+    address = public_address(address)
+    # Sequential, bounded reads; no account mutation or credential lookup.
+    return summarize(
+        requester({"type": "userRole", "user": address}),
+        requester({"type": "clearinghouseState", "user": address}),
+        requester({"type": "openOrders", "user": address}),
+    )
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--address", help="Public 0x wallet address (visible in process arguments)")
+    source.add_argument("--address-file", type=Path, help="File containing only the public address")
+    args = parser.parse_args(argv)
+    try:
+        address = read_public_address_file(args.address_file) if args.address_file is not None else public_address(args.address)
+        result = probe(address)
+    except PreflightError as exc:
+        print(f"Hyperliquid Testnet read-only preflight failed: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(result, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,9 @@
+
+ RUN  v4.1.11 C:/Users/nikla/Documents/ChatGPT/TSX CORE SERVER INSTALLATION/tmp/tsx-core-integration-next-20260924/frontend
+
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  15:15:58
+   Duration  2.04s (transform 187ms, setup 0ms, import 600ms, tests 597ms, environment 683ms)
+

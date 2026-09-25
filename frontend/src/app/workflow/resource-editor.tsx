@@ -640,7 +640,7 @@ function StrategyForm({
 
   const fieldGrid2 = (
         <div className="builder-field-grid three">
-          <Field label="Orderart">
+          <Field label="Orderart" hint="Ein Market-Signal erzwingt Market; dieser Strategiewert gilt für Range-Signale.">
             <select
               value={value.entry.orderType}
               onChange={(event) =>
@@ -659,7 +659,7 @@ function StrategyForm({
           </Field>
           <Field
             label="Preis im Entry-Bereich"
-            hint="Near liegt näher am aktuellen Kurs, far weiter entfernt."
+            hint="Nur für Limit-Entries: Near liegt näher am aktuellen Kurs, Far weiter entfernt."
           >
             <select
               value={value.entry.rangePrice}
@@ -958,8 +958,9 @@ function StrategyForm({
         <div className="strategy-section-heading">
           <strong>Fallback-Positionsgröße</strong>
           <small>
-            Ein nachgeschalteter Positionsgrößen-Baustein überschreibt diese
-            Grundwerte für seinen konkreten Pfad.
+            Im Workflow ist ein Positionsgrößen-Baustein Pflicht. Er überschreibt
+            alle sechs Grundwerte für jeden aktiven Pfad. Änderungen hier allein
+            ändern die Ordergröße nicht; bearbeite dafür den Baustein im Graphen.
           </small>
         </div>
         {fieldGrid3}
@@ -1749,8 +1750,7 @@ function ContractFields({ kind, configuration, contractId, setContractId, contra
   contractDraft: SignalContractDefinition | null; setContractDraft: (value: SignalContractDefinition | null) => void; setContractTouched: (value: boolean) => void;
 }>) {
   return (
-    <>
-          {kind === "contract" && (
+    kind === "contract" && (
             <>
               <Field
                 label="Vertrags-ID"
@@ -1784,8 +1784,7 @@ function ContractFields({ kind, configuration, contractId, setContractId, contra
                 </Alert>
               )}
             </>
-          )}
-    </>
+          )
   );
 }
 
@@ -1793,8 +1792,7 @@ function StrategyFields({ kind, strategyDraft, setStrategyDraft, setStrategyTouc
   kind: WorkflowKind; strategyDraft: StrategyConfiguration | null; setStrategyDraft: (value: StrategyConfiguration | null) => void; setStrategyTouched: (value: boolean) => void;
 }>) {
   return (
-    <>
-          {kind === "strategy" && (
+    kind === "strategy" && (
             strategyDraft ? (
                 <>
                   {strategyDraft.allowedSignalSchemas.length === 0 && (
@@ -1822,8 +1820,7 @@ function StrategyFields({ kind, strategyDraft, setStrategyDraft, setStrategyTouc
                   </AlertDescription>
                 </Alert>
               )
-          )}
-    </>
+          )
   );
 }
 
@@ -2107,9 +2104,7 @@ function AccountFields({ kind, draftOnly, configuration, set, trading, accountLi
               )}
             </div>
   );
-  return (
-    <>{fieldGrid17}</>
-  );
+  return fieldGrid17;
 }
 
 function DestructiveConfirmations({ archiveConfirmation, setArchiveConfirmation, deleteConfirmation, setDeleteConfirmation, name, archiveResource, deleteResource }: Readonly<{

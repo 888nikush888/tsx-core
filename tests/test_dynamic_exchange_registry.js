@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -9,12 +10,24 @@ import {
   closeDb, expectedDatabaseMigrations, getDatabase, initDb, LATEST_SCHEMA_VERSION,
 } from '../src/db.js';
 import { ExchangeCatalogClient } from '../src/exchange_catalog.js';
+import { CCXT_CATALOG_ASSESSMENTS } from '../src/ccxt_catalog_assessments.js';
 import { PaperExchangeAdapter } from '../src/paper_exchange.js';
 import { TradingCredentialStore } from '../src/trading_credentials.js';
 import { TradingEngine } from '../src/trading_engine.js';
 import { createTradingAccount } from '../src/trading_repository.js';
 import { TRADING_EXCHANGE_ID_PATTERN, tradingExchangeId } from '../src/trading_types.js';
 import { TradingWebControl } from '../src/trading_web_control.js';
+
+const reviewedMatrix = JSON.parse(readFileSync(new URL('../docs/testing/ccxt-expansion-matrix.json', import.meta.url), 'utf8'));
+assert.equal(CCXT_CATALOG_ASSESSMENTS.ccxtVersion, reviewedMatrix.inventory.ccxtVersion);
+assert.equal(CCXT_CATALOG_ASSESSMENTS.inventoryHash, reviewedMatrix.inventoryHash);
+assert.equal(CCXT_CATALOG_ASSESSMENTS.entries.length, 103);
+assert.deepEqual(CCXT_CATALOG_ASSESSMENTS.entries, reviewedMatrix.inventory.exchanges.map((row, index) => ({
+  id: row.id,
+  products: [...new Set(row.productScopes.map(scope => `${scope.product}:${scope.settlementType}`))].sort(),
+  decision: reviewedMatrix.assessments[index].decision,
+  reasonCodes: reviewedMatrix.assessments[index].reasonCodes,
+})));
 
 assert.ok(LATEST_SCHEMA_VERSION >= 19, 'Phase 2 migration 19 must remain part of the schema history.');
 assert.equal(
@@ -249,10 +262,19 @@ const candidateCatalogEntry = {
   modes: [], capabilities: { fetchBalance: true },
 };
 const executorCatalogPayload = entry => ({
-  implementation: { library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest' },
+  implementation: {
+    library: 'ccxt', version: '4.5.75', streaming: 'ccxt-pro', orderAuthority: 'rest',
+    reviewedInventoryHash: CCXT_CATALOG_ASSESSMENTS.inventoryHash,
+  },
   exchanges: [entry],
 });
-const catalogClientForPayload = (payload, response = {}, baseUrl = 'http://127.0.0.1:8090') => new ExchangeCatalogClient(
+const completeCatalogPayload = () => ({
+  ...executorCatalogPayload(candidateCatalogEntry),
+  exchanges: CCXT_CATALOG_ASSESSMENTS.entries.map(row => ({
+    ...candidateCatalogEntry, id: row.id, name: row.id,
+  })),
+});
+const catalogClientForPayload = (payload, response = {}, baseUrl = 'https://127.0.0.1:8090') => new ExchangeCatalogClient(
   { getOrCreateExecutorToken: () => Promise.resolve('f'.repeat(64)) },
   {
     baseUrl,
@@ -261,13 +283,17 @@ const catalogClientForPayload = (payload, response = {}, baseUrl = 'http://127.0
 );
 
 assert.throws(
-  () => catalogClientForPayload(executorCatalogPayload(candidateCatalogEntry), {}, 'https://executor.test'),
-  /plain internal HTTP origin/i,
+  () => catalogClientForPayload(executorCatalogPayload(candidateCatalogEntry), {}, 'http://127.0.0.1:8090'),
+  /plain internal HTTPS origin/i,
 );
 assert.throws(
-  () => catalogClientForPayload(executorCatalogPayload(candidateCatalogEntry), {}, 'http://public.example:8090'),
+  () => catalogClientForPayload(executorCatalogPayload(candidateCatalogEntry), {}, 'https://public.example:8090'),
   /internal executor host/i,
-  'Plain HTTP must never carry the executor bearer token to an external host.',
+  'Executor bearer tokens must never be sent to an external host.',
+);
+assert.throws(
+  () => catalogClientForPayload(executorCatalogPayload(candidateCatalogEntry), {}, 'https://exchange-executor:8091'),
+  /dedicated executor port/i,
 );
 
 const invalidCatalogFixtures = [
@@ -304,7 +330,7 @@ const requests = [];
 const catalogClient = new ExchangeCatalogClient(
   { getOrCreateExecutorToken: () => Promise.resolve('f'.repeat(64)) },
   {
-    baseUrl: 'http://127.0.0.1:8090',
+    baseUrl: 'https://127.0.0.1:8090',
     cacheTtlMs: 1_000,
     fetchImpl: (url, init) => {
       requests.push({ url, init });
@@ -313,25 +339,61 @@ const catalogClient = new ExchangeCatalogClient(
         status: 200,
         json: () => url.endsWith('/v1/exchange-probe')
           ? { ...candidateCatalogEntry, reason: 'Public market probe completed.' }
-          : executorCatalogPayload(candidateCatalogEntry),
+          : completeCatalogPayload(),
       });
     },
   },
 );
-const browserCatalog = await catalogClient.browserCatalog();
+const browserCatalog = await catalogClient.browserCatalog(false, true);
 assert.equal(browserCatalog.exchanges[0].id, 'paper');
 assert.equal(browserCatalog.exchanges[0].status, 'certified');
-assert.equal(browserCatalog.exchanges[1].id, 'okx');
+assert.equal(browserCatalog.exchanges.length, 104);
+assert.equal(browserCatalog.exchanges.find(entry => entry.id === 'okx').assessment.decision, 'not_easy');
+assert.deepEqual(browserCatalog.exchanges.find(entry => entry.id === 'hyperliquid').assessment.products, ['swap:inverse', 'swap:linear']);
 assert.equal(requests.length, 1);
-assert.equal(requests[0].url, 'http://127.0.0.1:8090/v1/exchange-catalog');
+assert.equal(requests[0].url, 'https://127.0.0.1:8090/v1/exchange-catalog');
 assert.equal(requests[0].init.headers.Authorization, `Bearer ${'f'.repeat(64)}`);
-await catalogClient.browserCatalog();
+assert.equal(requests[0].init.redirect, 'error');
+await catalogClient.browserCatalog(false, true);
 assert.equal(requests.length, 1, 'Catalog responses must use the bounded cache.');
 await assert.rejects(catalogClient.probe('paper'), /does not require/i);
 assert.equal((await catalogClient.probe('okx')).id, 'okx');
 assert.equal(requests.length, 2);
-await catalogClient.browserCatalog();
+assert.equal(requests[1].init.redirect, 'error', 'Probe bearer tokens must not follow redirects.');
+await catalogClient.browserCatalog(false, true);
 assert.equal(requests.length, 3, 'A public probe must invalidate the cached catalog.');
+for (const [payload, pattern] of [
+  [{ ...completeCatalogPayload(), implementation: { ...completeCatalogPayload().implementation, version: '4.5.76' } }, /version or inventory/i],
+  [{ ...completeCatalogPayload(), implementation: { ...completeCatalogPayload().implementation, reviewedInventoryHash: '0'.repeat(64) } }, /version or inventory/i],
+  [{ ...completeCatalogPayload(), exchanges: completeCatalogPayload().exchanges.slice(1) }, /complete CCXT catalog/i],
+  [{ ...completeCatalogPayload(), exchanges: [
+    ...completeCatalogPayload().exchanges.slice(0, -1),
+    { ...candidateCatalogEntry, id: 'unknownexchange' },
+  ] }, /missing for unknownexchange/i],
+]) {
+  await assert.rejects(catalogClientForPayload(payload).browserCatalog(false, true), pattern);
+}
+const driftedAssessmentClient = catalogClientForPayload({
+  ...executorCatalogPayload(candidateCatalogEntry),
+  implementation: {
+    ...executorCatalogPayload(candidateCatalogEntry).implementation,
+    reviewedInventoryHash: '0'.repeat(64),
+  },
+});
+assert.equal((await driftedAssessmentClient.browserCatalog()).exchanges[1].id, 'okx',
+  'The read-only assessment must not alter the existing account-creation catalog contract.');
+await assert.rejects(driftedAssessmentClient.browserCatalog(false, true), /version or inventory/i);
+const oldExecutorImplementation = { ...executorCatalogPayload(candidateCatalogEntry).implementation };
+delete oldExecutorImplementation.reviewedInventoryHash;
+const oldExecutorClient = catalogClientForPayload({
+  ...executorCatalogPayload(candidateCatalogEntry),
+  implementation: oldExecutorImplementation,
+});
+assert.equal((await oldExecutorClient.browserCatalog()).exchanges[1].id, 'okx',
+  'An older executor must preserve the existing account-creation catalog.');
+assert.equal((await oldExecutorClient.executorCatalog()).implementation.reviewedInventoryHash, null);
+await assert.rejects(oldExecutorClient.browserCatalog(false, true), /version or inventory/i,
+  'The assessment display must fail closed until the executor provides the reviewed inventory pin.');
 await assert.rejects(
   catalogClientForPayload(candidateCatalogEntry, { ok: false, status: 503 }).probe('okx'),
   /status 503/i,
@@ -346,7 +408,7 @@ let concurrentCatalogRequests = 0;
 const concurrentCatalogClient = new ExchangeCatalogClient(
   { getOrCreateExecutorToken: () => Promise.resolve('f'.repeat(64)) },
   {
-    baseUrl: 'http://127.0.0.1:8090',
+    baseUrl: 'https://127.0.0.1:8090',
     fetchImpl: async () => {
       concurrentCatalogRequests += 1;
       await catalogRequestReleased;

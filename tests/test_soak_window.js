@@ -34,6 +34,11 @@ assert.deepEqual(failed.checks.filter(check => !check.passed).map(check => check
 ]);
 const queries = soakQueries();
 assert.ok(Object.values(queries).every(query => query.includes('[30d]')));
+assert.ok(Object.values(soakQueries('24h')).every(query => query.includes('[24h]')));
+assert.match(soakQueries('24h').scrapeCount, /^min\(count_over_time/u,
+  'A second replica must not make a partial release observation look complete.');
+assert.match(soakQueries('24h').scrapeAvailability, /^min\(avg_over_time/u,
+  'Missing scrapes must count against release availability.');
 assert.match(queries.deliverySuccess, /delivery_confirmed_total/);
 assert.match(queries.p95LatencySeconds, /histogram_quantile\(0\.95/);
 assert.match(queries.availability, /tg_forwarder_readiness/);
@@ -54,11 +59,12 @@ for (const value of ['NaN', '+Inf', '-Inf', 'invalid']) {
   assert.throws(() => prometheusValue({ status: 'success', data: { result: [{ value: [1, value] }] } }), /non-finite/u);
 }
 
-async function runSoakCli(queryValues, httpStatus) {
+async function runSoakCli(queryValues, httpStatus, arguments_ = []) {
   const directory = await mkdtemp(path.join(tmpdir(), 'tsx-soak-cli-'));
   try {
     await Promise.all(['scripts', 'src'].map(relative => mkdir(path.join(directory, relative))));
-    const byQuery = Object.fromEntries(Object.entries(queries).map(([name, query]) => [query, queryValues[name]]));
+    const selectedQueries = arguments_.includes('--release') ? soakQueries('24h') : queries;
+    const byQuery = Object.fromEntries(Object.entries(selectedQueries).map(([name, query]) => [query, queryValues[name]]));
     const stub = `const values = ${JSON.stringify(byQuery)}; globalThis.fetch = (url) => Promise.resolve({
       ok: ${httpStatus === 200}, status: ${httpStatus}, json: () => Promise.resolve({status: 'success',
       data: {result: [{value: [1, String(values[new URL(url).searchParams.get('query')])]}]}})});`;
@@ -68,7 +74,7 @@ async function runSoakCli(queryValues, httpStatus) {
       writeFile(path.join(directory, 'src/env.js'), 'export function loadEnv() { return undefined; }'),
       writeFile(path.join(directory, 'fake-fetch.mjs'), stub),
     ]);
-    const result = spawnSync(process.execPath, ['--import', './fake-fetch.mjs', 'scripts/check_soak_window.js'], {
+    const result = spawnSync(process.execPath, ['--import', './fake-fetch.mjs', 'scripts/check_soak_window.js', ...arguments_], {
       cwd: directory, encoding: 'utf8', timeout: 15_000, shell: false,
       env: { ...process.env, PROMETHEUS_URL: 'https://prometheus.fixture.invalid', PROMETHEUS_TOKEN: '' },
     });
@@ -90,6 +96,8 @@ assert.equal(success.result.status, 0);
 assert.equal(success.evidence.passed, true);
 assert.deepEqual(success.evidence.values, passing);
 assert.equal(success.evidence.window, '30d');
+assert.equal(success.evidence.mode, 'long-term-slo');
+assert.equal(success.evidence.liveAuthorization, false);
 assert.equal(success.evidence.queryError, null);
 assert.match(success.result.stdout, /30-DAY SOAK GATE PASSED/u);
 const unhealthy = await runSoakCli({ ...passing, unknownDeliveries: 1 }, 200);
@@ -103,4 +111,30 @@ assert.equal(unavailable.evidence.queryError, 'Prometheus query failed with HTTP
 assert.deepEqual(unavailable.evidence.checks, []);
 assert.doesNotMatch(unavailable.result.stdout, /PASSED/u);
 
-console.log('30-day soak evaluation tests passed.');
+const releasePassing = { ...passing, scrapeCount: 5_732, scrapeAvailability: 0.999, attempts: 100, tradingIntents: 100 };
+assert.equal(evaluateSoakWindow(releasePassing).passed, false, 'A release sample cannot claim a 30-day SLO.');
+const release = await runSoakCli(releasePassing, 200, ['--release']);
+assert.equal(release.result.status, 0);
+assert.equal(release.evidence.mode, 'release-observation');
+assert.equal(release.evidence.window, '24h');
+assert.equal(release.evidence.passed, true);
+assert.equal(release.evidence.liveAuthorization, false);
+assert.match(release.result.stdout, /RELEASE OBSERVATION GATE PASSED/u);
+for (const values of [
+  { ...releasePassing, scrapeCount: 5_731 },
+  { ...releasePassing, scrapeAvailability: 0.99 },
+  { ...releasePassing, attempts: 99 },
+  { ...releasePassing, tradingIntents: 99 },
+  { ...releasePassing, unknownDeliveries: 1 },
+  { ...releasePassing, tradingUnknownOrders: 1 },
+  { ...releasePassing, tradingUnprotectedPositions: 1 },
+  { ...releasePassing, tradingKillSwitch: 1 },
+  { ...releasePassing, backupHealth: 0 },
+]) {
+  const rejected = await runSoakCli(values, 200, ['--release']);
+  assert.equal(rejected.result.status, 1);
+  assert.equal(rejected.evidence.passed, false);
+  assert.doesNotMatch(rejected.result.stdout, /PASSED/u);
+}
+
+console.log('Release observation and 30-day SLO evaluation tests passed.');

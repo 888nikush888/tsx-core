@@ -130,6 +130,43 @@ describe('workflow resource contracts', () => {
     expect(defaultConfiguration('account', trading)).toEqual({ accountId: 'account-1' })
   })
 
+  it('submits all six effective sizing-resource controls as one versioned resource', async () => {
+    const onSave = editor('sizing', undefined, trading, workflowResource('sizing', {
+      positionSizingMode: 'equity_percent_margin', riskPerTradePercent: '5', maxAdaptiveRiskPercent: '10',
+      maxPositionNotional: '1000000000', defaultLeverage: 10, maxLeverage: 10,
+    }))
+    fireEvent.change(screen.getByLabelText('Größenmodus'), { target: { value: 'risk_percent' } })
+    fireEvent.change(screen.getByLabelText('Basis pro Trade (%)'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('Max. adaptiv (%)'), { target: { value: '4' } })
+    fireEvent.change(screen.getByLabelText('Notional-Obergrenze'), { target: { value: '5000' } })
+    fireEvent.change(screen.getByLabelText(/Maximaler Hebel/), { target: { value: '8' } })
+    fireEvent.change(screen.getByLabelText(/Standard-Hebel/), { target: { value: '3' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      configuration: {
+        positionSizingMode: 'risk_percent', riskPerTradePercent: '2', maxAdaptiveRiskPercent: '4',
+        maxPositionNotional: '5000', defaultLeverage: 3, maxLeverage: 8,
+      },
+    })))
+    expect(api.apiFetch).not.toHaveBeenCalled()
+  })
+
+  it('submits the adaptive enable, mode and tier controls with one-based labels and zero-based storage', async () => {
+    const onSave = editor('adaptive_risk')
+    expect(screen.getByLabelText('Startstufe (1 bis N)')).toHaveValue(1)
+    fireEvent.click(screen.getByRole('switch', { name: 'Adaptives Risiko aktiv' }))
+    fireEvent.change(screen.getByLabelText('Modus'), { target: { value: 'shadow' } })
+    fireEvent.change(screen.getByLabelText('Startstufe (1 bis N)'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText(/Stufe festhalten/), { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      configuration: expect.objectContaining({
+        enabled: false, mode: 'shadow', startingTier: 1, lockedTier: 2,
+      }),
+    })))
+    expect(api.apiFetch).not.toHaveBeenCalled()
+  })
+
   it('saves a channel resource through its popup', async () => {
     const onSave = editor('channel')
     fireEvent.change(screen.getByLabelText(/Telegram-Kanal-ID/), { target: { value: '-100123' } })
@@ -201,10 +238,111 @@ describe('workflow resource contracts', () => {
     expect(screen.queryByLabelText(/Strategiedefinition/)).not.toBeInTheDocument()
   })
 
+  it('submits all four editable safety limits before the new strategy is attached to the graph', async () => {
+    api.apiFetch.mockImplementation((url: string) => {
+      if (url === '/api/trading/strategies') return response({ result: { id: 'safety-strategy-v2' } }, 201)
+      if (url === '/api/trading/strategies/publish') return response({ result: { id: 'safety-strategy-v2' } })
+      return response({ success: true, result: {} })
+    })
+    const onSave = editor('strategy', undefined, trading,
+      workflowResource('strategy', { strategyVersionId: 'strategy-v1' }))
+    fireEvent.change(screen.getByLabelText('Daily-Loss-Modus'), { target: { value: 'absolute' } })
+    fireEvent.change(screen.getByLabelText('Max. Daily Loss (Quote-Währung)'), { target: { value: '150' } })
+    fireEvent.change(screen.getByLabelText('Max. Slippage (%)'), { target: { value: '1.25' } })
+    fireEvent.change(screen.getByLabelText(/Entry-Gültigkeit \(Sekunden\)/), { target: { value: '45' } })
+    expect(screen.getByText('Ein Schutz-Stop ist immer verpflichtend.')).toBeVisible()
+    expect(screen.queryByRole('checkbox', { name: /Schutz-Stop/i })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      configuration: { strategyVersionId: 'safety-strategy-v2' },
+    })))
+    const calls = api.apiFetch.mock.calls.map(([url]) => url)
+    expect(calls.indexOf('/api/trading/strategies')).toBeLessThan(calls.indexOf('/api/trading/strategies/publish'))
+    const request = api.apiFetch.mock.calls.find(([url]) => url === '/api/trading/strategies')?.[1] as RequestInit
+    const submitted = JSON.parse(String(request.body))
+    expect(submitted.strategyId).toBe('strategy')
+    expect(submitted.configuration.safety).toEqual({
+      maxDailyLossMode: 'absolute', maxDailyLoss: '150', maxSlippagePercent: '1.25',
+      entryOrderTtlSeconds: 45, requireProtectiveStop: true,
+    })
+    expect(trading.strategies[0].configuration.safety).toMatchObject({
+      maxDailyLossMode: 'equity_percent', maxDailyLoss: '5', maxSlippagePercent: '0.5',
+      entryOrderTtlSeconds: 900,
+    })
+  })
+
+  it('submits strategy signal access and entry controls as a new pinned version', async () => {
+    api.apiFetch.mockImplementation((url: string) => {
+      if (url === '/api/trading/strategies') return response({ result: { id: 'access-entry-v2' } }, 201)
+      if (url === '/api/trading/strategies/publish') return response({ result: { id: 'access-entry-v2' } })
+      return response({ success: true, result: {} })
+    })
+    const onSave = editor('strategy', undefined, trading,
+      workflowResource('strategy', { strategyVersionId: 'strategy-v1' }))
+    expect(screen.getByText(/Market-Signal erzwingt Market/)).toBeVisible()
+    fireEvent.change(screen.getByLabelText(/Erlaubte Signal-Schemas/), { target: { value: 'standard' } })
+    fireEvent.change(screen.getByLabelText(/Erlaubte Symbole/), { target: { value: 'btcusdt' } })
+    fireEvent.click(screen.getByRole('switch', { name: 'SHORT' }))
+    fireEvent.change(screen.getByLabelText(/Orderart/), { target: { value: 'market' } })
+    expect(screen.getByLabelText(/Preis im Entry-Bereich/)).toBeDisabled()
+    expect(screen.getByRole('switch', { name: 'Post-only (nur bei Limit)' })).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.change(screen.getByLabelText(/Orderart/), { target: { value: 'limit' } })
+    fireEvent.change(screen.getByLabelText(/Preis im Entry-Bereich/), { target: { value: 'far' } })
+    fireEvent.change(screen.getByLabelText(/Order-Timeout \(Sekunden\)/), { target: { value: '12' } })
+    fireEvent.click(screen.getByRole('switch', { name: 'Post-only (nur bei Limit)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      configuration: { strategyVersionId: 'access-entry-v2' },
+    })))
+    const urls = api.apiFetch.mock.calls.map(([url]) => url)
+    expect(urls.indexOf('/api/trading/strategies')).toBeLessThan(urls.indexOf('/api/trading/strategies/publish'))
+    const request = api.apiFetch.mock.calls.find(([url]) => url === '/api/trading/strategies')?.[1] as RequestInit
+    const submitted = JSON.parse(String(request.body)).configuration
+    expect(submitted).toMatchObject({
+      allowedSignalSchemas: ['standard'], allowedSymbols: ['BTCUSDT'], allowedSides: ['LONG'],
+      entry: { orderType: 'limit', rangePrice: 'far', postOnly: true, timeoutSeconds: 12 },
+    })
+    expect(trading.strategies[0].configuration.entry).toMatchObject({
+      orderType: 'limit', rangePrice: 'midpoint', postOnly: false, timeoutSeconds: 10,
+    })
+  })
+
+  it('submits all six strategy sizing defaults and explains the mandatory graph override', async () => {
+    api.apiFetch.mockImplementation((url: string) => {
+      if (url === '/api/trading/strategies') return response({ result: { id: 'sizing-strategy-v2' } }, 201)
+      if (url === '/api/trading/strategies/publish') return response({ result: { id: 'sizing-strategy-v2' } })
+      return response({ success: true, result: {} })
+    })
+    const onSave = editor('strategy', undefined, trading,
+      workflowResource('strategy', { strategyVersionId: 'strategy-v1' }))
+    expect(screen.getByText(/Änderungen hier allein ändern die Ordergröße nicht/)).toBeVisible()
+    fireEvent.change(screen.getByLabelText('Größenmodus'), { target: { value: 'risk_percent' } })
+    fireEvent.change(screen.getByLabelText('Basis pro Trade (%)'), { target: { value: '1.25' } })
+    fireEvent.change(screen.getByLabelText('Max. adaptiv (%)'), { target: { value: '3.5' } })
+    fireEvent.change(screen.getByLabelText('Notional-Obergrenze'), { target: { value: '2500' } })
+    fireEvent.change(screen.getByLabelText(/Maximaler Hebel/), { target: { value: '8' } })
+    fireEvent.change(screen.getByLabelText(/Standard-Hebel/), { target: { value: '4' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Version speichern & aktivieren' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      configuration: { strategyVersionId: 'sizing-strategy-v2' },
+    })))
+    const calls = api.apiFetch.mock.calls.map(([url]) => url)
+    expect(calls.indexOf('/api/trading/strategies')).toBeLessThan(calls.indexOf('/api/trading/strategies/publish'))
+    const request = api.apiFetch.mock.calls.find(([url]) => url === '/api/trading/strategies')?.[1] as RequestInit
+    expect(JSON.parse(String(request.body)).configuration.sizing).toEqual({
+      positionSizingMode: 'risk_percent', riskPerTradePercent: '1.25', maxAdaptiveRiskPercent: '3.5',
+      maxPositionNotional: '2500', defaultLeverage: 4, maxLeverage: 8,
+    })
+    expect(trading.strategies[0].configuration.sizing).toMatchObject({
+      positionSizingMode: 'equity_percent_margin', riskPerTradePercent: '5', maxLeverage: 50,
+    })
+  })
+
   it('keeps a model as a draft and reuses its confirmed result after resource saving fails', async () => {
     api.apiFetch.mockImplementation((url: string) => url === '/api/trading/strategies' ? response({ result: { id: 'strategy-draft-v2' } }, 201) : response({}))
     const onSave = vi.fn().mockResolvedValue(false)
-    render(<ResourceEditor draftOnly open kind="strategy" resource={workflowResource('strategy', { strategyVersionId: 'strategy-v1' })} trading={trading as any} onClose={() => { /* dialog close is not exercised in this scenario */ }} onSave={onSave} />)
+    render(<ResourceEditor draftOnly open kind="strategy" resource={workflowResource('strategy', { strategyVersionId: 'strategy-v1' })} trading={trading} onClose={() => { /* dialog close is not exercised in this scenario */ }} onSave={onSave} />)
     fireEvent.change(screen.getByLabelText(/Standard-Hebel/), { target: { value: '7' } })
     fireEvent.click(screen.getByRole('button', { name: 'Ressourcen- und Graphentwurf speichern' }))
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))

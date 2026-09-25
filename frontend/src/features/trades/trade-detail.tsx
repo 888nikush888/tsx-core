@@ -13,7 +13,9 @@ const reviewFields = (value: typeof emptyReview) => ({ notes: value.notes, tags:
 const displayTime = (value: unknown) => typeof value === "number" ? new Date(value).toLocaleString("de-DE") : "nicht verfügbar";
 
 type TradeReview = { notes: string; tags: string[]; rating: number | null; reviewed: boolean; updatedAt?: number | null };
-type TradeLeverageDecision = { requested?: unknown; requestedSource?: unknown; strategyMaximum?: unknown; marketMaximum?: unknown; effective?: string | number | null };
+// The stored leverage decision uses numeric limits (src/trading_types.ts LeverageDecision).
+// Historical payloads can omit a decision or individual fields.
+type TradeLeverageDecision = { requested?: number | null; requestedSource?: string | null; strategyMaximum?: number | null; marketMaximum?: number | null; effective?: string | number | null };
 type TradePlan = {
   entryPrice?: string | number | null;
   quantity?: string | number | null;

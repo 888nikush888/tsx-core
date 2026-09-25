@@ -10,7 +10,7 @@ import { createTradingIntent, getTradingAccount, getTradingIntent, getTradingOpe
 import { seedTradingFixtures } from './trading_fixtures.js';
 import { validateSignalXml } from '../src/signal_schema.js';
 import { subtractDecimal } from '../src/trading_decimal.js';
-import { protectiveStopCoverage, requiredStopQuantity } from '../src/trading_protection.js';
+import { protectiveStopCoverage, requiredStopQuantity, storedProtectionNeed } from '../src/trading_protection.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'trading-protection-'));
 const xml = '<signal><action>LONG</action><pair>ETHUSDT</pair><entry_range><min>3000</min><max>3100</max></entry_range><targets><target id="1">3200</target><target id="2">3300</target></targets><stoploss>2900</stoploss></signal>';
@@ -30,6 +30,11 @@ async function setup(name) {
   const engine = new TradingEngine([paper]);
   await engine.processIntent(intent.id);
   assert.equal((await getTradingIntent(intent.id)).status, 'monitoring');
+  const stored = await storedProtectionNeed(account.id, intent.id);
+  assert.equal(stored.protected, true, 'The persisted protection contract must see the managed stop and active position.');
+  assert.equal(stored.need.accountId, account.id);
+  assert.equal(stored.need.intentId, intent.id);
+  assert.ok(stored.orders.some(order => order.role === 'stop_loss'));
   return { account, paper, engine, intent };
 }
 

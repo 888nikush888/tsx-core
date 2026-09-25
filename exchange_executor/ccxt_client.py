@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import hmac
+import re
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, replace
 from decimal import Decimal
@@ -18,6 +19,7 @@ from ccxt_registry import CcxtExchangeRegistry
 from ccxt_sdk_policy import client_class
 from common import ExchangeContractError, RequestDeadline, external_account_cache_key, external_account_id
 from credentials import CredentialStore
+from hyperliquid_agent_grant import AgentGrant, AgentGrantRefused, TESTNET_ORIGIN, read_testnet_agent_grant
 
 CERTIFIED_EXCHANGES = set(PROFILES)
 REQUIRED_REST_CAPABILITIES = REST_CAPABILITIES
@@ -29,8 +31,21 @@ def _credential_fingerprint(secret: dict[str, Any], exchange: str, mode: str) ->
     return external_account_cache_key(exchange, mode, canonical)
 
 
+def credential_generation_from_parts(
+    credential_fingerprint: str, grant_fingerprint: str | None = None,
+) -> str:
+    if grant_fingerprint is not None:
+        return external_account_cache_key(
+            "credential-generation-agent", "v1",
+            f"{credential_fingerprint}:{grant_fingerprint}",
+        )
+    return external_account_cache_key("credential-generation", "v1", credential_fingerprint)
+
+
 def credential_generation(clients: AccountClients) -> str:
-    return external_account_cache_key("credential-generation", "v1", clients.credential_fingerprint)
+    return credential_generation_from_parts(
+        clients.credential_fingerprint, getattr(clients, "agent_grant_fingerprint", None),
+    )
 
 
 def _account_identity(secret: dict[str, Any], exchange: str, _mode: str) -> str:
@@ -52,25 +67,60 @@ def _account_identity(secret: dict[str, Any], exchange: str, _mode: str) -> str:
     raise ExchangeContractError("Certified account identity cannot be derived from credentials.")
 
 
+def _hyperliquid_signer_address(secret: dict[str, Any]) -> str:
+    try:
+        private_key = secret["privateKey"]
+        wallet_address = secret["walletAddress"]
+        if (not isinstance(private_key, str)
+                or re.fullmatch(r"0x[0-9a-fA-F]{64}", private_key) is None
+                or not isinstance(wallet_address, str)
+                or re.fullmatch(r"0x[0-9a-fA-F]{40}", wallet_address) is None):
+            raise ValueError("invalid private key")
+        derived_address = CcxtExchange.eth_get_address_from_private_key(private_key)
+        if not isinstance(derived_address, str) or re.fullmatch(r"0x[0-9a-fA-F]{40}", derived_address) is None:
+            raise ValueError("invalid signer address")
+    except Exception:
+        raise ExchangeContractError(
+            "Hyperliquid credentials are not bound to the configured master wallet."
+        ) from None
+    return derived_address.lower()
+
+
 def _assert_hyperliquid_master_key_binding(secret: dict[str, Any], exchange: str) -> None:
     if exchange != "hyperliquid":
         return
-    try:
-        private_key = str(secret["privateKey"])
-        wallet_address = str(secret["walletAddress"])
-        if not private_key.startswith("0x") or len(private_key) != 66:
-            raise ValueError("invalid private key")
-        # Use the cryptographic primitive shipped with the exact pinned CCXT
-        # runtime rather than a second wallet library or an SDK client object.
-        derived_address = CcxtExchange.eth_get_address_from_private_key(private_key)
-    except Exception as error:
-        raise ExchangeContractError(
-            "Hyperliquid credentials are not bound to the configured master wallet."
-        ) from error
-    if not hmac.compare_digest(derived_address.lower(), wallet_address.lower()):
+    if not hmac.compare_digest(_hyperliquid_signer_address(secret), secret["walletAddress"].lower()):
         raise ExchangeContractError(
             "Hyperliquid credentials are not bound to the configured master wallet."
         )
+
+
+def _assert_agent_testnet_client(client: Any) -> None:
+    api = client.urls.get("api") if isinstance(client.urls, dict) else None
+    if (not isinstance(api, dict)
+            or api.get("public") != TESTNET_ORIGIN or api.get("private") != TESTNET_ORIGIN
+            or getattr(client, "aiohttp_trust_env", None) is not False
+            or any(getattr(client, name, None) for name in (
+                "httpProxy", "httpsProxy", "socksProxy", "aiohttp_proxy", "proxy", "proxyUrl",
+            ))):
+        raise ExchangeContractError("Hyperliquid Testnet agent SDK origin is unproved.")
+
+
+async def _agent_grant_for(
+    account: dict[str, str], exchange: str, secret: dict[str, Any],
+) -> AgentGrant | None:
+    if exchange != "hyperliquid":
+        return None
+    signer = _hyperliquid_signer_address(secret)
+    master = secret["walletAddress"].lower()
+    if hmac.compare_digest(signer, master):
+        return None
+    if account["mode"] != "testnet" or set(secret) != {"privateKey", "walletAddress"}:
+        raise ExchangeContractError("Hyperliquid agent credentials are restricted to Testnet.")
+    try:
+        return await asyncio.to_thread(read_testnet_agent_grant, master, signer)
+    except AgentGrantRefused:
+        raise ExchangeContractError("Hyperliquid Testnet agent grant is unproved.") from None
 
 
 def _client_configuration(account: dict[str, str], secret: dict[str, Any]) -> dict[str, Any]:
@@ -119,6 +169,8 @@ class AccountClients:
     profile: ExchangeProfile
     markets_loaded: bool = False
     market_load_task: asyncio.Task[None] | None = None
+    agent_grant_fingerprint: str | None = None
+    agent_grant_valid_until: int | None = None
 
     async def load_markets(self) -> None:
         if self.markets_loaded:
@@ -182,6 +234,9 @@ class CcxtClientRegistry:
         try:
             clients = await asyncio.wait_for(self._account_locked(account), timeout=deadline.sdk_timeout_seconds())
             self.assert_binding(account, clients)
+            if (clients.agent_grant_valid_until is not None
+                    and clients.agent_grant_valid_until <= deadline.deadline_at_ms):
+                raise ExchangeContractError("Hyperliquid Testnet agent grant expires within the request budget.")
             # Keep per-request binding off the shared read/stream client object.
             yield replace(clients, account=dict(account))
         finally:
@@ -210,17 +265,16 @@ class CcxtClientRegistry:
         if account["mode"] not in descriptor.get("modes", []):
             raise ExchangeContractError("Account mode is not certified for this exchange.")
         secret = self.credentials.account(account["id"], exchange)["credentials"]
-        # The currently certified Hyperliquid scope is deliberately master-key
-        # only. Agent-wallet keys remain quarantined until their grant can be
-        # read back and bound to the same credential generation.
-        _assert_hyperliquid_master_key_binding(secret, exchange)
+        agent_grant = await _agent_grant_for(account, exchange, secret)
         fingerprint = _credential_fingerprint(secret, exchange, account["mode"])
         cache_key = account["id"]
         existing = self._clients.get(cache_key)
-        if existing and existing.credential_fingerprint == fingerprint:
+        grant_fingerprint = agent_grant.fingerprint if agent_grant is not None else None
+        if (existing and existing.credential_fingerprint == fingerprint
+                and existing.agent_grant_fingerprint == grant_fingerprint):
             clients = existing
         else:
-            clients = await self._replace_clients(account, secret, fingerprint, existing)
+            clients = await self._replace_clients(account, secret, fingerprint, existing, agent_grant)
             self._clients[cache_key] = clients
         try:
             await clients.load_markets()
@@ -238,6 +292,7 @@ class CcxtClientRegistry:
         secret: dict[str, Any],
         fingerprint: str,
         existing: AccountClients | None,
+        agent_grant: AgentGrant | None = None,
     ) -> AccountClients:
         if existing:
             await existing.close()
@@ -246,19 +301,33 @@ class CcxtClientRegistry:
         if profile is None:
             raise ExchangeContractError("Certified exchange profile is unavailable.")
         configuration = _client_configuration(account, secret)
+        if agent_grant is not None:
+            configuration["aiohttp_trust_env"] = False
         rest_class = getattr(ccxt_async, exchange, None)
         pro_class = getattr(ccxt_pro, exchange, None)
         if rest_class is None or pro_class is None:
             raise ExchangeContractError("Certified CCXT exchange class is unavailable.")
-        rest = client_class(exchange, rest_class)(configuration)
-        pro = client_class(exchange, pro_class)(configuration)
+        rest = client_class(exchange, rest_class, agent_testnet=agent_grant is not None)(configuration)
+        pro = client_class(exchange, pro_class, agent_testnet=agent_grant is not None)(configuration)
+        if agent_grant is not None:
+            rest.set_agent_order_authority(True)
+            pro.set_agent_order_authority(False)
         if account["mode"] == "testnet":
             await self._enable_sandbox(rest, pro)
+        if agent_grant is not None:
+            try:
+                _assert_agent_testnet_client(rest)
+                _assert_agent_testnet_client(pro)
+            except ExchangeContractError:
+                await asyncio.gather(rest.close(), pro.close(), return_exceptions=True)
+                raise
         _assert_capabilities(rest, REQUIRED_REST_CAPABILITIES, f"{exchange} REST")
         _assert_capabilities(pro, REQUIRED_PRO_CAPABILITIES, f"{exchange} Pro")
         return AccountClients(
             dict(account), fingerprint, _account_identity(secret, exchange, account["mode"]),
             rest, pro, asyncio.Lock(), profile,
+            agent_grant_fingerprint=agent_grant.fingerprint if agent_grant is not None else None,
+            agent_grant_valid_until=agent_grant.valid_until if agent_grant is not None else None,
         )
 
     @staticmethod

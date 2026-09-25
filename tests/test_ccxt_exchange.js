@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
-import http from 'node:http';
+import https from 'node:https';
+import { readFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { getCACertificates, setDefaultCACertificates } from 'node:tls';
 import { closeDb, getDatabase, initDb } from '../src/db.js';
 import { CcxtExchangeAdapter } from '../src/ccxt_exchange.js';
 import { TradingSymbolUnavailableError, TradingUnresolvedOrderError } from '../src/trading_errors.js';
@@ -11,8 +13,11 @@ import { createTradingAccount, getSignalContractVersion, listTradingStrategies }
 import { seedTradingFixtures } from './trading_fixtures.js';
 import { exchangeRecoveryQuery } from '../src/trading_recovery.js';
 import { recordAcquisitionEvidence } from '../src/trading_evidence_repository.js';
+import { setupInternalTlsTest } from './fixtures/internal_tls_test.js';
 
 const directory = await mkdtemp(path.join(os.tmpdir(), 'official-exchange-'));
+const originalCAs = getCACertificates('default');
+const tlsFiles = await setupInternalTlsTest();
 const credentials = new TradingCredentialStore(directory);
 await credentials.initialize();
 const token = await credentials.getOrCreateExecutorToken();
@@ -75,7 +80,7 @@ async function nonErrorTransportFailures(adapter, account, writeRequest) {
     const readsBefore = requests.length;
     assert.equal((await adapter.marketSnapshot(account, 'BTCUSDT')).symbol, 'BTCUSDT');
     assert.equal(counts.attempts, 2, 'A known transient string failure permits one read-only retry.');
-    assert.equal(requests.length - readsBefore, 1, 'The retry reaches the isolated HTTP executor.');
+    assert.equal(requests.length - readsBefore, 1, 'The retry reaches the isolated HTTPS executor.');
     for (const failure of ['Fixture validation failed', {
       [Symbol.toPrimitive]() { counts.coercions += 1; return 'timed out'; },
     }]) {
@@ -95,7 +100,7 @@ async function nonErrorTransportFailures(adapter, account, writeRequest) {
   } finally { globalThis.fetch = originalFetch; }
 }
 
-const server = http.createServer((request, response) => {
+const server = https.createServer({ cert: readFileSync(tlsFiles.cert), key: readFileSync(tlsFiles.key) }, (request, response) => {
   let body = '';
   request.setEncoding('utf8');
   request.on('data', chunk => { body += chunk; });
@@ -110,6 +115,7 @@ const server = http.createServer((request, response) => {
         return;
       }
       response.statusCode = selected.status || 200;
+      if (selected.location) response.setHeader('Location', selected.location);
       response.end(JSON.stringify(request.url === '/v1/open-state'
         ? withAcquisition(selected.body, JSON.parse(body).recovery) : selected.body));
     } else if (request.url === '/v1/account-snapshot') response.end(JSON.stringify({
@@ -151,7 +157,7 @@ await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 
 const previousUrl = process.env.EXCHANGE_EXECUTOR_URL;
 try {
-  process.env.EXCHANGE_EXECUTOR_URL = `http://127.0.0.1:${server.address().port}`;
+  process.env.EXCHANGE_EXECUTOR_URL = `https://127.0.0.1:${server.address().port}`;
   const adapter = new CcxtExchangeAdapter('bybit', credentials);
   const account = await createTradingAccount({
     name: 'Bybit test', exchange: 'bybit', mode: 'testnet', credentialRef: 'credential-ref',
@@ -349,15 +355,15 @@ try {
   } };
   await assert.rejects(adapter.streamEvents(account, 0, []), /invalid stream event/);
 
-  process.env.EXCHANGE_EXECUTOR_URL = 'https://executor.invalid';
-  assert.throws(() => new CcxtExchangeAdapter('bybit', credentials), /plain internal HTTP origin/);
-  process.env.EXCHANGE_EXECUTOR_URL = 'http://public.example:8090';
+  process.env.EXCHANGE_EXECUTOR_URL = 'http://127.0.0.1:8090';
+  assert.throws(() => new CcxtExchangeAdapter('bybit', credentials), /plain internal HTTPS origin/);
+  process.env.EXCHANGE_EXECUTOR_URL = 'https://public.example:8090';
   assert.throws(
     () => new CcxtExchangeAdapter('bybit', credentials),
     /internal executor host/,
-    'Executor order and account requests must not send their bearer token to an external HTTP host.',
+    'Executor order and account requests must not send their bearer token to an external host.',
   );
-  process.env.EXCHANGE_EXECUTOR_URL = `http://127.0.0.1:${server.address().port}`;
+  process.env.EXCHANGE_EXECUTOR_URL = `https://127.0.0.1:${server.address().port}`;
 
   nextResponse = { body: {
     clientOrderId: 'wrong-request-id', exchangeOrderId: 'remote-wrong', status: 'open',
@@ -575,11 +581,37 @@ try {
   nextResponse = { body: await coveredReply(account, 'bybit_v5_linear_endpoint_v1') };
   await assert.rejects(adapter.openState(account), /FILL_OPTION_SCOPE_UNPROVED/,
     'A linear Bybit endpoint cannot certify all option and pre-upgrade activity.');
+
+  const beforeRedirect = requests.length;
+  nextResponse = { status: 307, location: 'https://unapproved.invalid/receive', body: {} };
+  await assert.rejects(adapter.submitOrder(account, writeRequest), /fetch failed/i);
+  assert.equal(requests.length - beforeRedirect, 1, 'An executor redirect must not replay or forward an order request.');
+
+  let untrustedRequests = 0;
+  const untrustedServer = https.createServer({ cert: readFileSync(tlsFiles.cert), key: readFileSync(tlsFiles.key) },
+    (_request, response) => { untrustedRequests += 1; response.end('{}'); });
+  await new Promise(resolve => untrustedServer.listen(0, '127.0.0.1', resolve));
+  const originalFetch = globalThis.fetch;
+  let tlsAttempts = 0;
+  try {
+    setDefaultCACertificates(originalCAs);
+    process.env.EXCHANGE_EXECUTOR_URL = `https://127.0.0.1:${untrustedServer.address().port}`;
+    globalThis.fetch = (...args) => { tlsAttempts += 1; return originalFetch(...args); };
+    const untrustedAdapter = new CcxtExchangeAdapter('bybit', credentials);
+    await assert.rejects(untrustedAdapter.marketSnapshot(account, 'BTCUSDT'), /fetch failed/i);
+    assert.equal(tlsAttempts, 1, 'A certificate validation failure must not be retried.');
+    assert.equal(untrustedRequests, 0, 'An untrusted TLS peer must receive no authenticated application request.');
+  } finally {
+    globalThis.fetch = originalFetch;
+    setDefaultCACertificates([...originalCAs, readFileSync(tlsFiles.ca, 'utf8')]);
+    await new Promise(resolve => untrustedServer.close(resolve));
+  }
 } finally {
   if (previousUrl === undefined) delete process.env.EXCHANGE_EXECUTOR_URL;
   else process.env.EXCHANGE_EXECUTOR_URL = previousUrl;
   await new Promise(resolve => server.close(resolve));
   await closeDb();
+  await tlsFiles.cleanup();
   await rm(directory, { recursive: true, force: true });
 }
 

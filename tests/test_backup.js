@@ -57,9 +57,12 @@ async function assertAuthorityBeforeArtifactInspection() {
 
 async function createVerifiedArtifact(root, databasePath, backupRoot) {
   assert.ok(
-    REQUIRED_DATABASE_TABLES.includes('trading_fallback_runs') &&
-      REQUIRED_DATABASE_TABLES.includes('trading_fallback_candidates'),
-    'Verified backups must require the complete ordered-fallback state.',
+    REQUIRED_DATABASE_TABLES.includes('trading_fallback_runs'),
+    'Verified backups must require ordered-fallback runs.',
+  );
+  assert.ok(
+    REQUIRED_DATABASE_TABLES.includes('trading_fallback_candidates'),
+    'Verified backups must require ordered-fallback candidates.',
   );
   await initDb(databasePath);
   await seedTradingFixtures();
@@ -498,6 +501,15 @@ async function assertBackupScheduler(root, databasePath) {
   await assert.rejects(failedScheduler.runNow(), /replication unavailable/);
   assert.match(failedScheduler.getStatus().lastError || '', /replication unavailable/);
   assert.strictEqual(failedScheduler.getStatus().offsiteHealthy, false);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await assert.rejects(failedScheduler.runNow(), /replication unavailable/);
+    const failedStatus = failedScheduler.getStatus();
+    // nosemgrep -- fixed child of the test-owned temp root.
+    const failedOffsiteRoot = path.join(root, 'failed-offsite-scheduled');
+    const retained = (await readdir(failedOffsiteRoot)).filter(name => name.startsWith('backup-'));
+    assert.ok(retained.length <= 2, 'Repeated primary replication failures must respect local retention.');
+    assert.ok(retained.includes(path.basename(failedStatus.lastArtifact)), 'Newest verified local backup must remain available.');
+  }
 
   let releaseReplication = null;
   const { promise: replicationStarted, resolve: markReplicationStarted } = Promise.withResolvers();
@@ -563,7 +575,7 @@ async function runTests() {
   }
 }
 
-await (async () => runTests())().catch(error => {
+await runTests().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

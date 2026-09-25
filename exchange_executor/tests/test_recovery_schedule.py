@@ -130,10 +130,9 @@ class RecoveryScheduleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['accountMode'], {'calls': 0, 'observation': None, 'reason': 'budget_exhausted'})
         self.assertEqual(result['accountLogs']['calls'], 1)
         self.assertEqual(query, original, 'Scheduling never changes original caller checkpoints.')
-        try:
-            fills = next(row for row in result['sources'] if row['source'] == 'fills')
-        except StopIteration:
-            self.fail("Expected a fills acquisition source.")
+        missing = object()
+        fills = next((row for row in result['sources'] if row['source'] == 'fills'), missing)
+        self.assertIsNot(fills, missing, "Expected a fills acquisition source.")
         self.assertEqual(fills['completeness'], 'unknown')
 
     async def test_fx_and_targeted_order_follow_grants_and_actual_calls_are_deltas(self):
@@ -365,10 +364,9 @@ class RecoveryScheduleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((len(self.http), result['history'][0]['pages'], result['accountLogs']['calls']), (4, 4, 0))
         self.assertEqual(result['accountLogs']['receipts'], [])
         self.assertEqual(result['accountLogs']['readSkipped'], 'budget_exhausted')
-        try:
-            logs_lane = next(row for row in result['recoverySchedule']['lanes'] if row['lane'] == 'logs')
-        except StopIteration:
-            self.fail("Expected a logs recovery lane.")
+        missing = object()
+        logs_lane = next((row for row in result['recoverySchedule']['lanes'] if row['lane'] == 'logs'), missing)
+        self.assertIsNot(logs_lane, missing, "Expected a logs recovery lane.")
         self.assertEqual(logs_lane['reason'], 'budget_exhausted')
         self.assertEqual(result['accountLogs']['checkpoint'], original,
                          'A budget-deferred attempt is not a served forward/audit log turn.')

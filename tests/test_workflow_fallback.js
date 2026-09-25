@@ -840,6 +840,6 @@ try {
 
   console.log('Workflow fallback tests passed.');
 } finally {
-  await (async () => closeDb())().catch(() => undefined);
+  await closeDb().catch(() => undefined);
   await rm(directory, { recursive: true, force: true });
 }

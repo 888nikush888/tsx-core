@@ -1,0 +1,2467 @@
+{
+  "schemaVersion": 1,
+  "scope": "PR73 introduced DeepSource CheckIssue supplement. Preserves separate original137 Occurrence IDs and original370-comment history (368 retained). Does not change original counts or pretend newly documented comments existed at baseline.",
+  "baseRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+  "dirtyTree": true,
+  "baselineHistory": {
+    "activeOccurrences": 137,
+    "originalComments": 370,
+    "retainedOriginalComments": 368,
+    "removedOriginalComments": 2
+  },
+  "counts": {
+    "newCheckIssues": 27,
+    "newComments": 21,
+    "literalComments": 20,
+    "symbolComment": 1,
+    "commentCoveredCheckIssues": 22,
+    "localCodeAdjustments": 5
+  },
+  "entries": [
+    {
+      "id": "Q2hlY2tJc3N1ZTpyZWtrZ21wb3E=",
+      "rule": "JS-0038",
+      "path": "scripts/sonar_scan_arguments.js",
+      "beginLine": 13,
+      "beginColumn": 17,
+      "endLine": 13,
+      "endColumn": 70,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "22841c64e7f84c24d63b35ef425a6dcecbf86044",
+      "sourceGitBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+      "sourceWorkingTreeBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 13,
+        "column": 17
+      },
+      "currentSourceBinding": {
+        "path": "scripts/sonar_scan_arguments.js",
+        "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4",
+        "line": 14
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpyZWtrZ21wb3E=",
+        "rule": "JS-0038",
+        "path": "scripts/sonar_scan_arguments.js",
+        "beginLine": 13,
+        "beginColumn": 17,
+        "endLine": 13,
+        "endColumn": 70,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "22841c64e7f84c24d63b35ef425a6dcecbf86044",
+        "sourceGitBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+        "sourceWorkingTreeBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 13,
+        "text": "// skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary",
+        "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpnZXZ2eHFybnY=",
+      "rule": "JS-0038",
+      "path": "scripts/sonar_scan_arguments.js",
+      "beginLine": 15,
+      "beginColumn": 5,
+      "endLine": 15,
+      "endColumn": 56,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "22841c64e7f84c24d63b35ef425a6dcecbf86044",
+      "sourceGitBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+      "sourceWorkingTreeBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 15,
+        "column": 5
+      },
+      "currentSourceBinding": {
+        "path": "scripts/sonar_scan_arguments.js",
+        "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4",
+        "line": 17
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpnZXZ2eHFybnY=",
+        "rule": "JS-0038",
+        "path": "scripts/sonar_scan_arguments.js",
+        "beginLine": 15,
+        "beginColumn": 5,
+        "endLine": 15,
+        "endColumn": 56,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "22841c64e7f84c24d63b35ef425a6dcecbf86044",
+        "sourceGitBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+        "sourceWorkingTreeBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 16,
+        "text": "// skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary",
+        "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTp5Z3l5bGF4a2E=",
+      "rule": "JS-0038",
+      "path": "scripts/sonar_scan_arguments.js",
+      "beginLine": 16,
+      "beginColumn": 5,
+      "endLine": 16,
+      "endColumn": 66,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "22841c64e7f84c24d63b35ef425a6dcecbf86044",
+      "sourceGitBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+      "sourceWorkingTreeBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 16,
+        "column": 5
+      },
+      "currentSourceBinding": {
+        "path": "scripts/sonar_scan_arguments.js",
+        "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4",
+        "line": 19
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTp5Z3l5bGF4a2E=",
+        "rule": "JS-0038",
+        "path": "scripts/sonar_scan_arguments.js",
+        "beginLine": 16,
+        "beginColumn": 5,
+        "endLine": 16,
+        "endColumn": 66,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "22841c64e7f84c24d63b35ef425a6dcecbf86044",
+        "sourceGitBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+        "sourceWorkingTreeBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 18,
+        "text": "// skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary",
+        "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpxcGVlZHZsa2s=",
+      "rule": "JS-0038",
+      "path": "scripts/sonar_scan_arguments.js",
+      "beginLine": 17,
+      "beginColumn": 5,
+      "endLine": 17,
+      "endColumn": 62,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "22841c64e7f84c24d63b35ef425a6dcecbf86044",
+      "sourceGitBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+      "sourceWorkingTreeBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 17,
+        "column": 5
+      },
+      "currentSourceBinding": {
+        "path": "scripts/sonar_scan_arguments.js",
+        "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4",
+        "line": 21
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpxcGVlZHZsa2s=",
+        "rule": "JS-0038",
+        "path": "scripts/sonar_scan_arguments.js",
+        "beginLine": 17,
+        "beginColumn": 5,
+        "endLine": 17,
+        "endColumn": 62,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "22841c64e7f84c24d63b35ef425a6dcecbf86044",
+        "sourceGitBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+        "sourceWorkingTreeBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 20,
+        "text": "// skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary",
+        "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpkYWtrbHJvcXE=",
+      "rule": "JS-0038",
+      "path": "scripts/sonar_scan_arguments.js",
+      "beginLine": 19,
+      "beginColumn": 48,
+      "endLine": 19,
+      "endColumn": 89,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "22841c64e7f84c24d63b35ef425a6dcecbf86044",
+      "sourceGitBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+      "sourceWorkingTreeBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 19,
+        "column": 48
+      },
+      "currentSourceBinding": {
+        "path": "scripts/sonar_scan_arguments.js",
+        "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4",
+        "line": 24
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpkYWtrbHJvcXE=",
+        "rule": "JS-0038",
+        "path": "scripts/sonar_scan_arguments.js",
+        "beginLine": 19,
+        "beginColumn": 48,
+        "endLine": 19,
+        "endColumn": 89,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "22841c64e7f84c24d63b35ef425a6dcecbf86044",
+        "sourceGitBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+        "sourceWorkingTreeBytesSha256": "a83aa59c7884138703fb015dd08b45964d089d3d99a9aa26c181b2ff5ea3e0d2",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 23,
+        "text": "// skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary",
+        "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpwcXd3am9lYWs=",
+      "rule": "JS-0105",
+      "path": "src/trading_engine.ts",
+      "beginLine": 2073,
+      "beginColumn": 3,
+      "endLine": 2073,
+      "endColumn": 40,
+      "title": "Expected 'this' to be used by class async method 'persistRemoteExecutions'",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "27a33330975aff40841313d1db92d93e855a5e2c",
+      "sourceGitBytesSha256": "b4b75340a4094fc603830ed0e84c9ece04157d56c5aa9f3fcb7bc13f1191a32e",
+      "sourceWorkingTreeBytesSha256": "b4b75340a4094fc603830ed0e84c9ece04157d56c5aa9f3fcb7bc13f1191a32e",
+      "disposition": "targeted-maintainability-fix-proposed",
+      "rationale": "persistRemoteExecutions no longer accesses this after persistRemoteFill became static. Repository search finds one private caller and no method override or test spy. Preserve native async, all awaited writes, full order iteration, and reconciliation error timing.",
+      "recommendation": "Make private method static async and qualify its sole call as TradingEngine.persistRemoteExecutions.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 2073,
+        "column": 3
+      },
+      "currentSourceBinding": {
+        "path": "src/trading_engine.ts",
+        "sha256": "5bee3a6f524df4d051e09e4488fe1c8aa3611271ef153edc47d40a87ac803776",
+        "line": 2074
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "priorCurrentSourceBinding": {
+        "path": "src/trading_engine.ts",
+        "sha256": "59926386394e397a39337e8a3b339a3bfe78567c15c717d20ae79b99a1279874",
+        "line": 2073
+      },
+      "currentDeltaReview": "The historical JS-0105 target persistRemoteExecutions remains private static async and its sole production call stays class-qualified; its body and awaited write order are unchanged. The one new line is a narrow JS-0105 comment above a different method, ingestOwnedState, which remains an instance seam called with this and replaced per engine in emergency and money-value regressions. This comment changes no executable statement or error timing. A new exact-head DeepSource scan must confirm both the historical target and comment scope; neither is marked cloud-accepted here.",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpwcXd3am9lYWs=",
+        "rule": "JS-0105",
+        "path": "src/trading_engine.ts",
+        "beginLine": 2073,
+        "beginColumn": 3,
+        "endLine": 2073,
+        "endColumn": 40,
+        "title": "Expected 'this' to be used by class async method 'persistRemoteExecutions'",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "27a33330975aff40841313d1db92d93e855a5e2c",
+        "sourceGitBytesSha256": "b4b75340a4094fc603830ed0e84c9ece04157d56c5aa9f3fcb7bc13f1191a32e",
+        "sourceWorkingTreeBytesSha256": "b4b75340a4094fc603830ed0e84c9ece04157d56c5aa9f3fcb7bc13f1191a32e",
+        "disposition": "targeted-maintainability-fix-proposed",
+        "rationale": "persistRemoteExecutions no longer accesses this after persistRemoteFill became static. Repository search finds one private caller and no method override or test spy. Preserve native async, all awaited writes, full order iteration, and reconciliation error timing.",
+        "recommendation": "Make private method static async and qualify its sole call as TradingEngine.persistRemoteExecutions.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": null
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTp5Z3l5bGFwd2E=",
+      "rule": "JS-0250",
+      "path": "tests/test_exchange_contract_validation.js",
+      "beginLine": 81,
+      "beginColumn": 122,
+      "endLine": 81,
+      "endColumn": 130,
+      "title": "Expected Symbol to have a description",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "a494f659de4a2893d9158d5bc90f3e9d2ef3c488",
+      "sourceGitBytesSha256": "e4cb2a8bcd7490dae31f9cdd7c708f3dc46c64de2ff472559cd2fc521125caf2",
+      "sourceWorkingTreeBytesSha256": "e4cb2a8bcd7490dae31f9cdd7c708f3dc46c64de2ff472559cd2fc521125caf2",
+      "disposition": "reviewed-expected-negative-fixture",
+      "rationale": "The primitive diagnostic loop includes both Symbol() and Symbol(diagnostic), exercising distinct String(symbol) results; adding a description removes the undescribed-symbol case.",
+      "recommendation": "Retain Symbol() and add a local JS-0250 rationale.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 81,
+        "column": 122
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_exchange_contract_validation.js",
+        "sha256": "934b78e1f5689a6f8ca817834c157492774435f379066225e58ea03a8660412c",
+        "line": 82
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTp5Z3l5bGFwd2E=",
+        "rule": "JS-0250",
+        "path": "tests/test_exchange_contract_validation.js",
+        "beginLine": 81,
+        "beginColumn": 122,
+        "endLine": 81,
+        "endColumn": 130,
+        "title": "Expected Symbol to have a description",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "a494f659de4a2893d9158d5bc90f3e9d2ef3c488",
+        "sourceGitBytesSha256": "e4cb2a8bcd7490dae31f9cdd7c708f3dc46c64de2ff472559cd2fc521125caf2",
+        "sourceWorkingTreeBytesSha256": "e4cb2a8bcd7490dae31f9cdd7c708f3dc46c64de2ff472559cd2fc521125caf2",
+        "disposition": "reviewed-expected-negative-fixture",
+        "rationale": "The primitive diagnostic loop includes both Symbol() and Symbol(diagnostic), exercising distinct String(symbol) results; adding a description removes the undescribed-symbol case.",
+        "recommendation": "Retain Symbol() and add a local JS-0250 rationale.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0250",
+        "line": 81,
+        "text": "// skipcq: JS-0250 - undescribed Symbol() is a distinct diagnostic edge case beside the described symbol fixture",
+        "rationale": "The primitive diagnostic loop includes both Symbol() and Symbol(diagnostic), exercising distinct String(symbol) results; adding a description removes the undescribed-symbol case.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpxcGVlZHZ3ams=",
+      "rule": "JS-0119",
+      "path": "tests/test_forwarder_error_types.js",
+      "beginLine": 166,
+      "beginColumn": 7,
+      "endLine": 166,
+      "endColumn": 15,
+      "title": "Variable 'response' should be initialized on declaration",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "89644ac4555a34d62c1949e66b75a7c90d11cd55",
+      "sourceGitBytesSha256": "d9ed50ca4edf57b327f0018ab4aafe28c2ee57871aa4bb058b117689e0e0d3ed",
+      "sourceWorkingTreeBytesSha256": "d9ed50ca4edf57b327f0018ab4aafe28c2ee57871aa4bb058b117689e0e0d3ed",
+      "disposition": "targeted-maintainability-fix-proposed",
+      "rationale": "The capture is assigned before every supported read. The forwarder response is assigned at each loop iteration; the two Promise captures are assigned inside assert.doesNotThrow to prove native async rejection rather than synchronous throw.",
+      "recommendation": "Initialize capture to null; preserve assignment inside doesNotThrow and subsequent instanceof Promise/reject assertions. Null is an unread initial sentinel, not a returned value.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 166,
+        "column": 7
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_forwarder_error_types.js",
+        "sha256": "d33fb217d2e59788d8d92f53340b495443cf8bb3d198cb95b6825607b5818333",
+        "line": 166
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpxcGVlZHZ3ams=",
+        "rule": "JS-0119",
+        "path": "tests/test_forwarder_error_types.js",
+        "beginLine": 166,
+        "beginColumn": 7,
+        "endLine": 166,
+        "endColumn": 15,
+        "title": "Variable 'response' should be initialized on declaration",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "89644ac4555a34d62c1949e66b75a7c90d11cd55",
+        "sourceGitBytesSha256": "d9ed50ca4edf57b327f0018ab4aafe28c2ee57871aa4bb058b117689e0e0d3ed",
+        "sourceWorkingTreeBytesSha256": "d9ed50ca4edf57b327f0018ab4aafe28c2ee57871aa4bb058b117689e0e0d3ed",
+        "disposition": "targeted-maintainability-fix-proposed",
+        "rationale": "The capture is assigned before every supported read. The forwarder response is assigned at each loop iteration; the two Promise captures are assigned inside assert.doesNotThrow to prove native async rejection rather than synchronous throw.",
+        "recommendation": "Initialize capture to null; preserve assignment inside doesNotThrow and subsequent instanceof Promise/reject assertions. Null is an unread initial sentinel, not a returned value.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": null
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpkYWtrbHJvbHE=",
+      "rule": "JS-0038",
+      "path": "tests/test_monitoring_artifacts.js",
+      "beginLine": 53,
+      "beginColumn": 29,
+      "endLine": 53,
+      "endColumn": 79,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "da4deac042edd20a11161e0732e241e1f8b38cad",
+      "sourceGitBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+      "sourceWorkingTreeBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 53,
+        "column": 29
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_monitoring_artifacts.js",
+        "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d",
+        "line": 54
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpkYWtrbHJvbHE=",
+        "rule": "JS-0038",
+        "path": "tests/test_monitoring_artifacts.js",
+        "beginLine": 53,
+        "beginColumn": 29,
+        "endLine": 53,
+        "endColumn": 79,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "da4deac042edd20a11161e0732e241e1f8b38cad",
+        "sourceGitBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+        "sourceWorkingTreeBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 53,
+        "text": "// skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text",
+        "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpsbXFxbHBrbGw=",
+      "rule": "JS-0038",
+      "path": "tests/test_monitoring_artifacts.js",
+      "beginLine": 60,
+      "beginColumn": 29,
+      "endLine": 60,
+      "endColumn": 87,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "da4deac042edd20a11161e0732e241e1f8b38cad",
+      "sourceGitBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+      "sourceWorkingTreeBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 60,
+        "column": 29
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_monitoring_artifacts.js",
+        "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d",
+        "line": 62
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpsbXFxbHBrbGw=",
+        "rule": "JS-0038",
+        "path": "tests/test_monitoring_artifacts.js",
+        "beginLine": 60,
+        "beginColumn": 29,
+        "endLine": 60,
+        "endColumn": 87,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "da4deac042edd20a11161e0732e241e1f8b38cad",
+        "sourceGitBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+        "sourceWorkingTreeBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 61,
+        "text": "// skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text",
+        "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTphbmFhbG9lbHk=",
+      "rule": "JS-0038",
+      "path": "tests/test_monitoring_artifacts.js",
+      "beginLine": 61,
+      "beginColumn": 29,
+      "endLine": 61,
+      "endColumn": 87,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "da4deac042edd20a11161e0732e241e1f8b38cad",
+      "sourceGitBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+      "sourceWorkingTreeBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 61,
+        "column": 29
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_monitoring_artifacts.js",
+        "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d",
+        "line": 64
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTphbmFhbG9lbHk=",
+        "rule": "JS-0038",
+        "path": "tests/test_monitoring_artifacts.js",
+        "beginLine": 61,
+        "beginColumn": 29,
+        "endLine": 61,
+        "endColumn": 87,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "da4deac042edd20a11161e0732e241e1f8b38cad",
+        "sourceGitBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+        "sourceWorkingTreeBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 63,
+        "text": "// skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text",
+        "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpuZ3d3amtvanI=",
+      "rule": "JS-0038",
+      "path": "tests/test_monitoring_artifacts.js",
+      "beginLine": 105,
+      "beginColumn": 83,
+      "endLine": 105,
+      "endColumn": 116,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "da4deac042edd20a11161e0732e241e1f8b38cad",
+      "sourceGitBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+      "sourceWorkingTreeBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 105,
+        "column": 83
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_monitoring_artifacts.js",
+        "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d",
+        "line": 109
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpuZ3d3amtvanI=",
+        "rule": "JS-0038",
+        "path": "tests/test_monitoring_artifacts.js",
+        "beginLine": 105,
+        "beginColumn": 83,
+        "endLine": 105,
+        "endColumn": 116,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "da4deac042edd20a11161e0732e241e1f8b38cad",
+        "sourceGitBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+        "sourceWorkingTreeBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 108,
+        "text": "// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text",
+        "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpqd2dnbWFwbXY=",
+      "rule": "JS-0038",
+      "path": "tests/test_monitoring_artifacts.js",
+      "beginLine": 140,
+      "beginColumn": 89,
+      "endLine": 140,
+      "endColumn": 122,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "da4deac042edd20a11161e0732e241e1f8b38cad",
+      "sourceGitBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+      "sourceWorkingTreeBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 140,
+        "column": 89
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_monitoring_artifacts.js",
+        "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d",
+        "line": 145
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpqd2dnbWFwbXY=",
+        "rule": "JS-0038",
+        "path": "tests/test_monitoring_artifacts.js",
+        "beginLine": 140,
+        "beginColumn": 89,
+        "endLine": 140,
+        "endColumn": 122,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "da4deac042edd20a11161e0732e241e1f8b38cad",
+        "sourceGitBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+        "sourceWorkingTreeBytesSha256": "a561aa9339ac4c06aac348f614bf01344e90ec6c6f0af8f7dc6a332f86435036",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 144,
+        "text": "// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text",
+        "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTp3bXJycGRqcGo=",
+      "rule": "JS-W1042",
+      "path": "tests/test_signal_parser.js",
+      "beginLine": 486,
+      "beginColumn": 111,
+      "endLine": 486,
+      "endColumn": 120,
+      "title": "Remove redundant `undefined` from function call",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "a440d9791349b500c30f3eedaa8c6a29ff7bbe3c",
+      "sourceGitBytesSha256": "c58c262e5e691df1a200def7f62214b6b51500702e6da7905520ad7fa228176f",
+      "sourceWorkingTreeBytesSha256": "c58c262e5e691df1a200def7f62214b6b51500702e6da7905520ad7fa228176f",
+      "disposition": "targeted-maintainability-fix-proposed",
+      "rationale": "undefined is the mandatory expected value of assert.equal for rejected object-supplied provider codes. Removing it changes assertion arity/meaning.",
+      "recommendation": "Add descriptive third assertion argument without changing actual/expected expressions.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 486,
+        "column": 111
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_signal_parser.js",
+        "sha256": "df5f8ce073dbd511f224f0bf1589ad859d0eb2959a5cdfa9a6eedc2576964eb5",
+        "line": 486
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTp3bXJycGRqcGo=",
+        "rule": "JS-W1042",
+        "path": "tests/test_signal_parser.js",
+        "beginLine": 486,
+        "beginColumn": 111,
+        "endLine": 486,
+        "endColumn": 120,
+        "title": "Remove redundant `undefined` from function call",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "a440d9791349b500c30f3eedaa8c6a29ff7bbe3c",
+        "sourceGitBytesSha256": "c58c262e5e691df1a200def7f62214b6b51500702e6da7905520ad7fa228176f",
+        "sourceWorkingTreeBytesSha256": "c58c262e5e691df1a200def7f62214b6b51500702e6da7905520ad7fa228176f",
+        "disposition": "targeted-maintainability-fix-proposed",
+        "rationale": "undefined is the mandatory expected value of assert.equal for rejected object-supplied provider codes. Removing it changes assertion arity/meaning.",
+        "recommendation": "Add descriptive third assertion argument without changing actual/expected expressions.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": null
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpwcXd3am9lams=",
+      "rule": "JS-0038",
+      "path": "tests/test_sonar_branch.js",
+      "beginLine": 54,
+      "beginColumn": 16,
+      "endLine": 54,
+      "endColumn": 109,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "ca5742a427c2af8eee79407aa09a50c6b2e97c8b",
+      "sourceGitBytesSha256": "c8f3805aac591b0a72888aa8120d793d92700077cb7efb8df268d18edd45c4d6",
+      "sourceWorkingTreeBytesSha256": "c8f3805aac591b0a72888aa8120d793d92700077cb7efb8df268d18edd45c4d6",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 54,
+        "column": 16
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_sonar_branch.js",
+        "sha256": "da24d069af6f0b43a562568f6f687fa92b4570184f4aebc4aa846701cea84168",
+        "line": 55
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpwcXd3am9lams=",
+        "rule": "JS-0038",
+        "path": "tests/test_sonar_branch.js",
+        "beginLine": 54,
+        "beginColumn": 16,
+        "endLine": 54,
+        "endColumn": 109,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "ca5742a427c2af8eee79407aa09a50c6b2e97c8b",
+        "sourceGitBytesSha256": "c8f3805aac591b0a72888aa8120d793d92700077cb7efb8df268d18edd45c4d6",
+        "sourceWorkingTreeBytesSha256": "c8f3805aac591b0a72888aa8120d793d92700077cb7efb8df268d18edd45c4d6",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 54,
+        "text": "// skipcq: JS-0038 - assert exact literal scanner environment placeholders in the emitted arguments",
+        "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTplYXh4dmdwdm0=",
+      "rule": "JS-0038",
+      "path": "tests/test_sonar_branch.js",
+      "beginLine": 70,
+      "beginColumn": 22,
+      "endLine": 70,
+      "endColumn": 48,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "ca5742a427c2af8eee79407aa09a50c6b2e97c8b",
+      "sourceGitBytesSha256": "c8f3805aac591b0a72888aa8120d793d92700077cb7efb8df268d18edd45c4d6",
+      "sourceWorkingTreeBytesSha256": "c8f3805aac591b0a72888aa8120d793d92700077cb7efb8df268d18edd45c4d6",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Deliberately literal scanner-expression injection input. The test must reject this spelling without reading or interpolating a credential.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 70,
+        "column": 22
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_sonar_branch.js",
+        "sha256": "da24d069af6f0b43a562568f6f687fa92b4570184f4aebc4aa846701cea84168",
+        "line": 72
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTplYXh4dmdwdm0=",
+        "rule": "JS-0038",
+        "path": "tests/test_sonar_branch.js",
+        "beginLine": 70,
+        "beginColumn": 22,
+        "endLine": 70,
+        "endColumn": 48,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "ca5742a427c2af8eee79407aa09a50c6b2e97c8b",
+        "sourceGitBytesSha256": "c8f3805aac591b0a72888aa8120d793d92700077cb7efb8df268d18edd45c4d6",
+        "sourceWorkingTreeBytesSha256": "c8f3805aac591b0a72888aa8120d793d92700077cb7efb8df268d18edd45c4d6",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Deliberately literal scanner-expression injection input. The test must reject this spelling without reading or interpolating a credential.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 71,
+        "text": "// skipcq: JS-0038 - literal scanner-expression injection fixture; never interpolate this negative test input",
+        "rationale": "Deliberately literal scanner-expression injection input. The test must reject this spelling without reading or interpolating a credential.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTprdnl5Z25lZ2o=",
+      "rule": "JS-0038",
+      "path": "tests/test_sonar_pull_request.js",
+      "beginLine": 68,
+      "beginColumn": 26,
+      "endLine": 68,
+      "endColumn": 79,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "320ab1859f6f14ca4530ba6d0e02e62dd1a23135",
+      "sourceGitBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+      "sourceWorkingTreeBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 68,
+        "column": 26
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_sonar_pull_request.js",
+        "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405",
+        "line": 69
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTprdnl5Z25lZ2o=",
+        "rule": "JS-0038",
+        "path": "tests/test_sonar_pull_request.js",
+        "beginLine": 68,
+        "beginColumn": 26,
+        "endLine": 68,
+        "endColumn": 79,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "320ab1859f6f14ca4530ba6d0e02e62dd1a23135",
+        "sourceGitBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+        "sourceWorkingTreeBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 68,
+        "text": "// skipcq: JS-0038 - assert exact literal scanner environment placeholders in the emitted arguments",
+        "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTp4cmdnamxtam8=",
+      "rule": "JS-0038",
+      "path": "tests/test_sonar_pull_request.js",
+      "beginLine": 70,
+      "beginColumn": 35,
+      "endLine": 70,
+      "endColumn": 86,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "320ab1859f6f14ca4530ba6d0e02e62dd1a23135",
+      "sourceGitBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+      "sourceWorkingTreeBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 70,
+        "column": 35
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_sonar_pull_request.js",
+        "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405",
+        "line": 72
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTp4cmdnamxtam8=",
+        "rule": "JS-0038",
+        "path": "tests/test_sonar_pull_request.js",
+        "beginLine": 70,
+        "beginColumn": 35,
+        "endLine": 70,
+        "endColumn": 86,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "320ab1859f6f14ca4530ba6d0e02e62dd1a23135",
+        "sourceGitBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+        "sourceWorkingTreeBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 71,
+        "text": "// skipcq: JS-0038 - assert exact literal scanner environment placeholders in the emitted arguments",
+        "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpveWFhdnhwdmQ=",
+      "rule": "JS-0038",
+      "path": "tests/test_sonar_pull_request.js",
+      "beginLine": 71,
+      "beginColumn": 5,
+      "endLine": 71,
+      "endColumn": 66,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "320ab1859f6f14ca4530ba6d0e02e62dd1a23135",
+      "sourceGitBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+      "sourceWorkingTreeBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 71,
+        "column": 5
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_sonar_pull_request.js",
+        "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405",
+        "line": 74
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpveWFhdnhwdmQ=",
+        "rule": "JS-0038",
+        "path": "tests/test_sonar_pull_request.js",
+        "beginLine": 71,
+        "beginColumn": 5,
+        "endLine": 71,
+        "endColumn": 66,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "320ab1859f6f14ca4530ba6d0e02e62dd1a23135",
+        "sourceGitBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+        "sourceWorkingTreeBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 73,
+        "text": "// skipcq: JS-0038 - assert exact literal scanner environment placeholders in the emitted arguments",
+        "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTp2dm1tZHFqZHY=",
+      "rule": "JS-0038",
+      "path": "tests/test_sonar_pull_request.js",
+      "beginLine": 71,
+      "beginColumn": 68,
+      "endLine": 71,
+      "endColumn": 125,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "320ab1859f6f14ca4530ba6d0e02e62dd1a23135",
+      "sourceGitBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+      "sourceWorkingTreeBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 71,
+        "column": 68
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_sonar_pull_request.js",
+        "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405",
+        "line": 74
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTp2dm1tZHFqZHY=",
+        "rule": "JS-0038",
+        "path": "tests/test_sonar_pull_request.js",
+        "beginLine": 71,
+        "beginColumn": 68,
+        "endLine": 71,
+        "endColumn": 125,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "320ab1859f6f14ca4530ba6d0e02e62dd1a23135",
+        "sourceGitBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+        "sourceWorkingTreeBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 73,
+        "text": "// skipcq: JS-0038 - assert exact literal scanner environment placeholders in the emitted arguments",
+        "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTptcmRkbGV4bG8=",
+      "rule": "JS-0038",
+      "path": "tests/test_sonar_pull_request.js",
+      "beginLine": 79,
+      "beginColumn": 24,
+      "endLine": 79,
+      "endColumn": 50,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "320ab1859f6f14ca4530ba6d0e02e62dd1a23135",
+      "sourceGitBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+      "sourceWorkingTreeBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Deliberately literal scanner-expression injection input. The test must reject this spelling without reading or interpolating a credential.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 79,
+        "column": 24
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_sonar_pull_request.js",
+        "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405",
+        "line": 83
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTptcmRkbGV4bG8=",
+        "rule": "JS-0038",
+        "path": "tests/test_sonar_pull_request.js",
+        "beginLine": 79,
+        "beginColumn": 24,
+        "endLine": 79,
+        "endColumn": 50,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "320ab1859f6f14ca4530ba6d0e02e62dd1a23135",
+        "sourceGitBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+        "sourceWorkingTreeBytesSha256": "45a2a582ce6ba5beb42ab559756f3b94c72c2f4621dc2e39437a5fa4c89331ef",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Deliberately literal scanner-expression injection input. The test must reject this spelling without reading or interpolating a credential.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 82,
+        "text": "// skipcq: JS-0038 - literal scanner-expression injection fixture; never interpolate this negative test input",
+        "rationale": "Deliberately literal scanner-expression injection input. The test must reject this spelling without reading or interpolating a credential.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpyZWtrZ214Z3E=",
+      "rule": "JS-0038",
+      "path": "tests/test_supply_chain.js",
+      "beginLine": 273,
+      "beginColumn": 29,
+      "endLine": 273,
+      "endColumn": 44,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "21135ca66c248a871cc5d12716e1e9b8060379a4",
+      "sourceGitBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+      "sourceWorkingTreeBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 273,
+        "column": 29
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_supply_chain.js",
+        "sha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+        "line": 274
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpyZWtrZ214Z3E=",
+        "rule": "JS-0038",
+        "path": "tests/test_supply_chain.js",
+        "beginLine": 273,
+        "beginColumn": 29,
+        "endLine": 273,
+        "endColumn": 44,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "21135ca66c248a871cc5d12716e1e9b8060379a4",
+        "sourceGitBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+        "sourceWorkingTreeBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 273,
+        "text": "// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text",
+        "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpnZXZ2eHFreHY=",
+      "rule": "JS-0038",
+      "path": "tests/test_supply_chain.js",
+      "beginLine": 278,
+      "beginColumn": 33,
+      "endLine": 278,
+      "endColumn": 51,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "21135ca66c248a871cc5d12716e1e9b8060379a4",
+      "sourceGitBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+      "sourceWorkingTreeBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 278,
+        "column": 33
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_supply_chain.js",
+        "sha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+        "line": 280
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpnZXZ2eHFreHY=",
+        "rule": "JS-0038",
+        "path": "tests/test_supply_chain.js",
+        "beginLine": 278,
+        "beginColumn": 33,
+        "endLine": 278,
+        "endColumn": 51,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "21135ca66c248a871cc5d12716e1e9b8060379a4",
+        "sourceGitBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+        "sourceWorkingTreeBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 279,
+        "text": "// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text",
+        "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTp5Z3l5bGFwbGE=",
+      "rule": "JS-0038",
+      "path": "tests/test_supply_chain.js",
+      "beginLine": 282,
+      "beginColumn": 58,
+      "endLine": 282,
+      "endColumn": 91,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "21135ca66c248a871cc5d12716e1e9b8060379a4",
+      "sourceGitBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+      "sourceWorkingTreeBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 282,
+        "column": 58
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_supply_chain.js",
+        "sha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+        "line": 285
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTp5Z3l5bGFwbGE=",
+        "rule": "JS-0038",
+        "path": "tests/test_supply_chain.js",
+        "beginLine": 282,
+        "beginColumn": 58,
+        "endLine": 282,
+        "endColumn": 91,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "21135ca66c248a871cc5d12716e1e9b8060379a4",
+        "sourceGitBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+        "sourceWorkingTreeBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 284,
+        "text": "// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text",
+        "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpxcGVlZHZ3ZGs=",
+      "rule": "JS-0038",
+      "path": "tests/test_supply_chain.js",
+      "beginLine": 365,
+      "beginColumn": 3,
+      "endLine": 365,
+      "endColumn": 156,
+      "title": "Unexpected template string expression",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "21135ca66c248a871cc5d12716e1e9b8060379a4",
+      "sourceGitBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+      "sourceWorkingTreeBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+      "disposition": "reviewed-expected-literal-behavior",
+      "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes.",
+      "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 365,
+        "column": 3
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_supply_chain.js",
+        "sha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+        "line": 369
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpxcGVlZHZ3ZGs=",
+        "rule": "JS-0038",
+        "path": "tests/test_supply_chain.js",
+        "beginLine": 365,
+        "beginColumn": 3,
+        "endLine": 365,
+        "endColumn": 156,
+        "title": "Unexpected template string expression",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "21135ca66c248a871cc5d12716e1e9b8060379a4",
+        "sourceGitBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+        "sourceWorkingTreeBytesSha256": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7",
+        "disposition": "reviewed-expected-literal-behavior",
+        "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes.",
+        "recommendation": "Retain literal string and add one narrowly placed JS-0038 rationale comment for this exact source line; no global disable.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": {
+        "rule": "JS-0038",
+        "line": 368,
+        "text": "// skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text",
+        "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes.",
+        "scope": "Only next source line; no global rule disable.",
+        "providerSuppressionVerified": false
+      }
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpkYWtrbHJveHE=",
+      "rule": "JS-0119",
+      "path": "tests/test_trading_control_error_types.js",
+      "beginLine": 39,
+      "beginColumn": 11,
+      "endLine": 39,
+      "endColumn": 17,
+      "title": "Variable 'result' should be initialized on declaration",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "06f1aaf9fd69dae3210abaa04d0f9830cce9b43b",
+      "sourceGitBytesSha256": "19d592a10f936e1cf2eaf38c4a313d9ab43ff3a776c40cdee7802a1ac1c3018f",
+      "sourceWorkingTreeBytesSha256": "19d592a10f936e1cf2eaf38c4a313d9ab43ff3a776c40cdee7802a1ac1c3018f",
+      "disposition": "targeted-maintainability-fix-proposed",
+      "rationale": "The capture is assigned before every supported read. The forwarder response is assigned at each loop iteration; the two Promise captures are assigned inside assert.doesNotThrow to prove native async rejection rather than synchronous throw.",
+      "recommendation": "Initialize capture to null; preserve assignment inside doesNotThrow and subsequent instanceof Promise/reject assertions. Null is an unread initial sentinel, not a returned value.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 39,
+        "column": 11
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_trading_control_error_types.js",
+        "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94",
+        "line": 39
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpkYWtrbHJveHE=",
+        "rule": "JS-0119",
+        "path": "tests/test_trading_control_error_types.js",
+        "beginLine": 39,
+        "beginColumn": 11,
+        "endLine": 39,
+        "endColumn": 17,
+        "title": "Variable 'result' should be initialized on declaration",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "06f1aaf9fd69dae3210abaa04d0f9830cce9b43b",
+        "sourceGitBytesSha256": "19d592a10f936e1cf2eaf38c4a313d9ab43ff3a776c40cdee7802a1ac1c3018f",
+        "sourceWorkingTreeBytesSha256": "19d592a10f936e1cf2eaf38c4a313d9ab43ff3a776c40cdee7802a1ac1c3018f",
+        "disposition": "targeted-maintainability-fix-proposed",
+        "rationale": "The capture is assigned before every supported read. The forwarder response is assigned at each loop iteration; the two Promise captures are assigned inside assert.doesNotThrow to prove native async rejection rather than synchronous throw.",
+        "recommendation": "Initialize capture to null; preserve assignment inside doesNotThrow and subsequent instanceof Promise/reject assertions. Null is an unread initial sentinel, not a returned value.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": null
+    },
+    {
+      "id": "Q2hlY2tJc3N1ZTpsbXFxbHBramw=",
+      "rule": "JS-0119",
+      "path": "tests/test_trading_control_error_types.js",
+      "beginLine": 68,
+      "beginColumn": 7,
+      "endLine": 68,
+      "endColumn": 19,
+      "title": "Variable 'invalidPaper' should be initialized on declaration",
+      "source": "STATIC",
+      "isSuppressed": false,
+      "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+      "sourceGitBlob": "06f1aaf9fd69dae3210abaa04d0f9830cce9b43b",
+      "sourceGitBytesSha256": "19d592a10f936e1cf2eaf38c4a313d9ab43ff3a776c40cdee7802a1ac1c3018f",
+      "sourceWorkingTreeBytesSha256": "19d592a10f936e1cf2eaf38c4a313d9ab43ff3a776c40cdee7802a1ac1c3018f",
+      "disposition": "targeted-maintainability-fix-proposed",
+      "rationale": "The capture is assigned before every supported read. The forwarder response is assigned at each loop iteration; the two Promise captures are assigned inside assert.doesNotThrow to prove native async rejection rather than synchronous throw.",
+      "recommendation": "Initialize capture to null; preserve assignment inside doesNotThrow and subsequent instanceof Promise/reject assertions. Null is an unread initial sentinel, not a returned value.",
+      "finalCloudAcceptance": false,
+      "historicalScan": {
+        "revision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "runUid": "4007ebe4-7c52-4acc-9701-ba35965dd9ff",
+        "line": 68,
+        "column": 7
+      },
+      "currentSourceBinding": {
+        "path": "tests/test_trading_control_error_types.js",
+        "sha256": "6d34e9ad7bfff42fd96a9197999964463e7748b618a62a43a0fc4d93c5fcae94",
+        "line": 68
+      },
+      "currentLocalDisposition": "reviewed_local_patch_applied_pending_exact_head_scan",
+      "historicalSourceReview": {
+        "id": "Q2hlY2tJc3N1ZTpsbXFxbHBramw=",
+        "rule": "JS-0119",
+        "path": "tests/test_trading_control_error_types.js",
+        "beginLine": 68,
+        "beginColumn": 7,
+        "endLine": 68,
+        "endColumn": 19,
+        "title": "Variable 'invalidPaper' should be initialized on declaration",
+        "source": "STATIC",
+        "isSuppressed": false,
+        "candidateRevision": "6677d8947b88fdb19f01e1d3189cdce7ef3015ea",
+        "sourceGitBlob": "06f1aaf9fd69dae3210abaa04d0f9830cce9b43b",
+        "sourceGitBytesSha256": "19d592a10f936e1cf2eaf38c4a313d9ab43ff3a776c40cdee7802a1ac1c3018f",
+        "sourceWorkingTreeBytesSha256": "19d592a10f936e1cf2eaf38c4a313d9ab43ff3a776c40cdee7802a1ac1c3018f",
+        "disposition": "targeted-maintainability-fix-proposed",
+        "rationale": "The capture is assigned before every supported read. The forwarder response is assigned at each loop iteration; the two Promise captures are assigned inside assert.doesNotThrow to prove native async rejection rather than synchronous throw.",
+        "recommendation": "Initialize capture to null; preserve assignment inside doesNotThrow and subsequent instanceof Promise/reject assertions. Null is an unread initial sentinel, not a returned value.",
+        "finalCloudAcceptance": false
+      },
+      "historicalExecutionBindingsPreserved": true,
+      "actualScopedExecution": {
+        "path": "reports/final-findings/pr73-deepsource-targeted-tests.log",
+        "sha256": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014",
+        "observedResult": "ALL 11 TEST FILES PASSED!",
+        "provenance": "Actual log produced by root; inspected here, not rerun by reviewer. This log is separate from all historical test evidence.",
+        "limits": "Does not prove the full integrated suite, other providers or future source bytes."
+      },
+      "suppression": null
+    }
+  ],
+  "newInlineComments": [
+    {
+      "path": "scripts/sonar_scan_arguments.js",
+      "line": 13,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary",
+      "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTpyZWtrZ21wb3E="
+      ],
+      "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary."
+    },
+    {
+      "path": "scripts/sonar_scan_arguments.js",
+      "line": 16,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary",
+      "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTpnZXZ2eHFybnY="
+      ],
+      "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary."
+    },
+    {
+      "path": "scripts/sonar_scan_arguments.js",
+      "line": 18,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary",
+      "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTp5Z3l5bGF4a2E="
+      ],
+      "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary."
+    },
+    {
+      "path": "scripts/sonar_scan_arguments.js",
+      "line": 20,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary",
+      "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTpxcGVlZHZsa2s="
+      ],
+      "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary."
+    },
+    {
+      "path": "scripts/sonar_scan_arguments.js",
+      "line": 23,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - literal scanner environment placeholder; JavaScript interpolation would break the fixed-argument boundary",
+      "sha256": "ae307c2cd991aa6ab56b51bd2af09e19763f88e0ad8134cf8f78cb43fe4ec2f4",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTpkYWtrbHJvcXE="
+      ],
+      "rationale": "Fixed scanner environment placeholder is intentionally emitted literally. sonarScope rejects nested scanner expressions in untrusted refs; interpolation here would evaluate an undefined JS env binding and violate the fixed-argument boundary."
+    },
+    {
+      "path": "tests/test_exchange_contract_validation.js",
+      "line": 81,
+      "rule": "JS-0250",
+      "text": "// skipcq: JS-0250 - undescribed Symbol() is a distinct diagnostic edge case beside the described symbol fixture",
+      "sha256": "934b78e1f5689a6f8ca817834c157492774435f379066225e58ea03a8660412c",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTp5Z3l5bGFwd2E="
+      ],
+      "rationale": "The primitive diagnostic loop includes both Symbol() and Symbol(diagnostic), exercising distinct String(symbol) results; adding a description removes the undescribed-symbol case."
+    },
+    {
+      "path": "tests/test_monitoring_artifacts.js",
+      "line": 53,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text",
+      "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTpkYWtrbHJvbHE="
+      ],
+      "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes."
+    },
+    {
+      "path": "tests/test_monitoring_artifacts.js",
+      "line": 61,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text",
+      "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTpsbXFxbHBrbGw="
+      ],
+      "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes."
+    },
+    {
+      "path": "tests/test_monitoring_artifacts.js",
+      "line": 63,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text",
+      "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTphbmFhbG9lbHk="
+      ],
+      "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes."
+    },
+    {
+      "path": "tests/test_monitoring_artifacts.js",
+      "line": 108,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text",
+      "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTpuZ3d3amtvanI="
+      ],
+      "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion."
+    },
+    {
+      "path": "tests/test_monitoring_artifacts.js",
+      "line": 144,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text",
+      "sha256": "9b310bdcb7e4a68dacdf4b4ed7d24905ea26209117508454db995f55acc0c20d",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTpqd2dnbWFwbXY="
+      ],
+      "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion."
+    },
+    {
+      "path": "tests/test_sonar_branch.js",
+      "line": 54,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - assert exact literal scanner environment placeholders in the emitted arguments",
+      "sha256": "da24d069af6f0b43a562568f6f687fa92b4570184f4aebc4aa846701cea84168",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTpwcXd3am9lams="
+      ],
+      "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract."
+    },
+    {
+      "path": "tests/test_sonar_branch.js",
+      "line": 71,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - literal scanner-expression injection fixture; never interpolate this negative test input",
+      "sha256": "da24d069af6f0b43a562568f6f687fa92b4570184f4aebc4aa846701cea84168",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTplYXh4dmdwdm0="
+      ],
+      "rationale": "Deliberately literal scanner-expression injection input. The test must reject this spelling without reading or interpolating a credential."
+    },
+    {
+      "path": "tests/test_sonar_pull_request.js",
+      "line": 68,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - assert exact literal scanner environment placeholders in the emitted arguments",
+      "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTprdnl5Z25lZ2o="
+      ],
+      "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract."
+    },
+    {
+      "path": "tests/test_sonar_pull_request.js",
+      "line": 71,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - assert exact literal scanner environment placeholders in the emitted arguments",
+      "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTp4cmdnamxtam8="
+      ],
+      "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract."
+    },
+    {
+      "path": "tests/test_sonar_pull_request.js",
+      "line": 73,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - assert exact literal scanner environment placeholders in the emitted arguments",
+      "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTpveWFhdnhwdmQ=",
+        "Q2hlY2tJc3N1ZTp2dm1tZHFqZHY="
+      ],
+      "rationale": "Exact expected scanner argument bytes include literal environment placeholders; converting to JavaScript interpolation changes the assertion and breaks the scanner contract."
+    },
+    {
+      "path": "tests/test_sonar_pull_request.js",
+      "line": 82,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - literal scanner-expression injection fixture; never interpolate this negative test input",
+      "sha256": "5628443da70d434ca88a09ad98e68ef4a22f0efeeeebb8aa9ec958a01adfe405",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTptcmRkbGV4bG8="
+      ],
+      "rationale": "Deliberately literal scanner-expression injection input. The test must reject this spelling without reading or interpolating a credential."
+    },
+    {
+      "path": "tests/test_supply_chain.js",
+      "line": 273,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text",
+      "sha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTpyZWtrZ214Z3E="
+      ],
+      "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion."
+    },
+    {
+      "path": "tests/test_supply_chain.js",
+      "line": 279,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text",
+      "sha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTpnZXZ2eHFreHY="
+      ],
+      "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion."
+    },
+    {
+      "path": "tests/test_supply_chain.js",
+      "line": 284,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - match the unevaluated Docker ARG reference in raw Dockerfile text",
+      "sha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTp5Z3l5bGFwbGE="
+      ],
+      "rationale": "Test reads raw Dockerfile text and matches an unevaluated Docker ARG reference. JavaScript interpolation would alter the exact FROM/image assertion."
+    },
+    {
+      "path": "tests/test_supply_chain.js",
+      "line": 368,
+      "rule": "JS-0038",
+      "text": "// skipcq: JS-0038 - match the unevaluated GitHub Actions expression in raw workflow text",
+      "sha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+      "checkIssueIds": [
+        "Q2hlY2tJc3N1ZTpxcGVlZHZ3ZGs="
+      ],
+      "rationale": "Test reads raw GitHub Actions YAML and matches its unevaluated expression. JavaScript interpolation neither evaluates GitHub syntax nor preserves the expected raw bytes."
+    }
+  ],
+  "sourcePatchReview": {
+    "path": "reports/final-findings/deepsource-pr73-crosswalk-source-review.json",
+    "sha256": "b0487110aef8ae8ad9f2ad5724cdc9c8339eb2f76f53605b2c3aae1de22d5e13"
+  },
+  "finalCloudAcceptance": false,
+  "limits": [
+    "Candidate has uncommitted reviewed bytes; final SHA unknown.",
+    "New suppressions require new provider analysis and root-ledger adoption; no remote state changed.",
+    "Targeted log does not certify other unrelated source changes or full CI."
+  ],
+  "sourceContextRenewals": [
+    {
+      "date": "2026-09-20",
+      "sourceRevision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+      "dirtyTree": true,
+      "previousLedgerSha256": "6491d8e1685be742555c00e58fe290a9c900bd073fdc465c214bb2eb198c103d",
+      "reviews": [
+        {
+          "id": "Q2hlY2tJc3N1ZTpxcGVlZHZ3ams=",
+          "rule": "JS-0119",
+          "issuePath": "tests/test_forwarder_error_types.js",
+          "originalDisposition": "targeted-maintainability-fix-proposed",
+          "changedSupportingPaths": [
+            "tests/test_forwarder_error_types.js"
+          ],
+          "sourceJudgement": "reviewed_actual_adopted_sonar_delta_preserves_existing_deepsource_decision",
+          "rationale": [
+            "The response=null sentinel remains assigned before every supported use via response={id}. Only the rejection predicate grows to assert outer Error, TypeError cause and exact cause message; no capture initialization/control-flow change."
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_forwarder_error_types.js",
+              "sha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89"
+            }
+          ],
+          "historicalEntriesAndExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact final candidate revision",
+          "finalCloudAcceptance": false
+        }
+      ],
+      "reviewedSixFileInputs": [
+        {
+          "path": "src/forwarder.ts",
+          "sha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44"
+        },
+        {
+          "path": "src/signal_contract.ts",
+          "sha256": "9d5736e7065420b63cd19db78768b8ca416b286bfc929b5ec237201e4d0da9d7"
+        },
+        {
+          "path": "src/trading_fill_identity.ts",
+          "sha256": "e937e237fabd3f4d275971a72a2c4c67987e51f918cd39f95061d5dba6f1a2e2"
+        },
+        {
+          "path": "tests/test_forwarder_error_types.js",
+          "sha256": "1d940f3202fe2d662374095f4e27e36a3361cf97d0e68acb9a670f2360e6ee89"
+        },
+        {
+          "path": "tests/test_signal_contract_validation.js",
+          "sha256": "74e286b2a219b40af094e6a98834319aa53db6ff655af146a257ff35fca76ba4"
+        },
+        {
+          "path": "tests/test_exchange_fill_identity.js",
+          "sha256": "617a11ff1170cac03265ff2e7981c8575b5fffe0b614989de0f2ef75162ed404"
+        }
+      ],
+      "actualScopedExecution": {
+        "originalAttempt": {
+          "path": "reports/final-findings/pr73-sonar-three-actual-regressions.log",
+          "sha256": "3c8eeed5200e4d0b8e92fbc90b4c152eeb8b43cdb5700b7f07331fa844d92b99",
+          "result": "2 passed,1 failed: malformed canonical fillId rejected at existing identifier guard before native proof; earlier generic null expectation was incorrect.",
+          "historicalPreserved": true
+        },
+        "correctedAttempt": {
+          "path": "reports/final-findings/pr73-sonar-three-actual-retry1.log",
+          "sha256": "377e72f7e8bf23b1a5cddf2255b30f5ee78c9c195249238f6e243e747ff17299",
+          "result": "ALL 3 TEST FILES PASSED!",
+          "scope": [
+            "tests/test_forwarder_error_types.js",
+            "tests/test_signal_contract_validation.js",
+            "tests/test_exchange_fill_identity.js"
+          ],
+          "provenance": "Existing actual runner log inspected, not rerun by this reviewer."
+        },
+        "limits": "Not full-suite/mutation/cloud acceptance; original failed log is retained and never relabeled."
+      },
+      "executionScope": "Append-only actual source-context review. Original issue IDs, dispositions, source hashes, snapshots and all earlier execution records unchanged. The final integrated run and exact-head provider scan remain pending.",
+      "finalCloudAcceptance": false
+    },
+    {
+      "date": "2026-09-23",
+      "sourceRevision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+      "dirtyTree": true,
+      "previousLedgerSha256": "e8ff277a4427e801f0a28319859f14a065d7a29caf239239cb31b38e352553bd",
+      "reviews": [
+        {
+          "id": "Q2hlY2tJc3N1ZTpyZWtrZ214Z3E=",
+          "rule": "JS-0038",
+          "issuePath": "tests/test_supply_chain.js",
+          "originalDisposition": "reviewed-expected-literal-behavior",
+          "rationale": "The exact quoted literal at this site still matches raw Dockerfile/GitHub workflow text. The three inserted fixture lines execute earlier public-ID checks but do not interpolate or change this literal, assertion argument, or compared source. Both the old JS-R1004 no-substitution-template correction and the newer precise JS-0038 literal suppression retain their rationale.",
+          "currentSourceBinding": {
+            "path": "tests/test_supply_chain.js",
+            "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b",
+            "targetStartLine": 277,
+            "targetEndLine": 277,
+            "lineTextSha256": "d1e9025d91509a4e844bc87ec95d26013eb572409959fe63b51e0bf2b9f1c528",
+            "lineHashMeaning": "UTF-8 source line excluding newline delimiter; identical before and after."
+          },
+          "priorHeadBinding": {
+            "revision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+            "gitBytesSha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+            "targetLine": 274,
+            "lineTextSha256": "d1e9025d91509a4e844bc87ec95d26013eb572409959fe63b51e0bf2b9f1c528"
+          },
+          "historicalEntryHashesPreserved": [
+            {
+              "jsonPointer": "$/entries/21/sourceGitBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/21/sourceWorkingTreeBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/21/currentSourceBinding/sha256",
+              "historicalHash": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e"
+            },
+            {
+              "jsonPointer": "$/entries/21/historicalSourceReview/sourceGitBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/21/historicalSourceReview/sourceWorkingTreeBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/21/actualScopedExecution/sha256",
+              "historicalHash": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014"
+            }
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b"
+            },
+            {
+              "path": ".gitleaks.toml",
+              "sha256": "9d04a4feac430079e1c6cfef54f60636473cc86ce7739edc4aafabfac2389857"
+            },
+            {
+              "path": "docs/testing/final-sonar-pr73-2026-09-20.json",
+              "sha256": "8bd942e939e9324413c6f95212ad6af8eef9c0c1b06363ed46309c593e9ab32b"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact new candidate scan",
+          "finalCloudAcceptance": false,
+          "currentCommentLine": 276
+        },
+        {
+          "id": "Q2hlY2tJc3N1ZTpnZXZ2eHFreHY=",
+          "rule": "JS-0038",
+          "issuePath": "tests/test_supply_chain.js",
+          "originalDisposition": "reviewed-expected-literal-behavior",
+          "rationale": "The exact quoted literal at this site still matches raw Dockerfile/GitHub workflow text. The three inserted fixture lines execute earlier public-ID checks but do not interpolate or change this literal, assertion argument, or compared source. Both the old JS-R1004 no-substitution-template correction and the newer precise JS-0038 literal suppression retain their rationale.",
+          "currentSourceBinding": {
+            "path": "tests/test_supply_chain.js",
+            "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b",
+            "targetStartLine": 283,
+            "targetEndLine": 283,
+            "lineTextSha256": "d2e51dd3c70df8aa9594a987fe5558515f3a1fbe82bead3a3190cc689134aaab",
+            "lineHashMeaning": "UTF-8 source line excluding newline delimiter; identical before and after."
+          },
+          "priorHeadBinding": {
+            "revision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+            "gitBytesSha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+            "targetLine": 280,
+            "lineTextSha256": "d2e51dd3c70df8aa9594a987fe5558515f3a1fbe82bead3a3190cc689134aaab"
+          },
+          "historicalEntryHashesPreserved": [
+            {
+              "jsonPointer": "$/entries/22/sourceGitBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/22/sourceWorkingTreeBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/22/currentSourceBinding/sha256",
+              "historicalHash": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e"
+            },
+            {
+              "jsonPointer": "$/entries/22/historicalSourceReview/sourceGitBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/22/historicalSourceReview/sourceWorkingTreeBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/22/actualScopedExecution/sha256",
+              "historicalHash": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014"
+            }
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b"
+            },
+            {
+              "path": ".gitleaks.toml",
+              "sha256": "9d04a4feac430079e1c6cfef54f60636473cc86ce7739edc4aafabfac2389857"
+            },
+            {
+              "path": "docs/testing/final-sonar-pr73-2026-09-20.json",
+              "sha256": "8bd942e939e9324413c6f95212ad6af8eef9c0c1b06363ed46309c593e9ab32b"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact new candidate scan",
+          "finalCloudAcceptance": false,
+          "currentCommentLine": 282
+        },
+        {
+          "id": "Q2hlY2tJc3N1ZTp5Z3l5bGFwbGE=",
+          "rule": "JS-0038",
+          "issuePath": "tests/test_supply_chain.js",
+          "originalDisposition": "reviewed-expected-literal-behavior",
+          "rationale": "The exact quoted literal at this site still matches raw Dockerfile/GitHub workflow text. The three inserted fixture lines execute earlier public-ID checks but do not interpolate or change this literal, assertion argument, or compared source. Both the old JS-R1004 no-substitution-template correction and the newer precise JS-0038 literal suppression retain their rationale.",
+          "currentSourceBinding": {
+            "path": "tests/test_supply_chain.js",
+            "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b",
+            "targetStartLine": 288,
+            "targetEndLine": 288,
+            "lineTextSha256": "fa0c67569f3251ecc596237ff8e5773cf1a81d37b9cce451cc17367fd73e9aec",
+            "lineHashMeaning": "UTF-8 source line excluding newline delimiter; identical before and after."
+          },
+          "priorHeadBinding": {
+            "revision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+            "gitBytesSha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+            "targetLine": 285,
+            "lineTextSha256": "fa0c67569f3251ecc596237ff8e5773cf1a81d37b9cce451cc17367fd73e9aec"
+          },
+          "historicalEntryHashesPreserved": [
+            {
+              "jsonPointer": "$/entries/23/sourceGitBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/23/sourceWorkingTreeBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/23/currentSourceBinding/sha256",
+              "historicalHash": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e"
+            },
+            {
+              "jsonPointer": "$/entries/23/historicalSourceReview/sourceGitBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/23/historicalSourceReview/sourceWorkingTreeBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/23/actualScopedExecution/sha256",
+              "historicalHash": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014"
+            }
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b"
+            },
+            {
+              "path": ".gitleaks.toml",
+              "sha256": "9d04a4feac430079e1c6cfef54f60636473cc86ce7739edc4aafabfac2389857"
+            },
+            {
+              "path": "docs/testing/final-sonar-pr73-2026-09-20.json",
+              "sha256": "8bd942e939e9324413c6f95212ad6af8eef9c0c1b06363ed46309c593e9ab32b"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact new candidate scan",
+          "finalCloudAcceptance": false,
+          "currentCommentLine": 287
+        },
+        {
+          "id": "Q2hlY2tJc3N1ZTpxcGVlZHZ3ZGs=",
+          "rule": "JS-0038",
+          "issuePath": "tests/test_supply_chain.js",
+          "originalDisposition": "reviewed-expected-literal-behavior",
+          "rationale": "The exact quoted literal at this site still matches raw Dockerfile/GitHub workflow text. The three inserted fixture lines execute earlier public-ID checks but do not interpolate or change this literal, assertion argument, or compared source. Both the old JS-R1004 no-substitution-template correction and the newer precise JS-0038 literal suppression retain their rationale.",
+          "currentSourceBinding": {
+            "path": "tests/test_supply_chain.js",
+            "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b",
+            "targetStartLine": 372,
+            "targetEndLine": 372,
+            "lineTextSha256": "db64fa1f246808e6cedf1c7ece82e600b0f815a0f0f30714e0661a87d594b6ec",
+            "lineHashMeaning": "UTF-8 source line excluding newline delimiter; identical before and after."
+          },
+          "priorHeadBinding": {
+            "revision": "854004176ab7985350aa26ddf43f5a27cd32f07f",
+            "gitBytesSha256": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e",
+            "targetLine": 369,
+            "lineTextSha256": "db64fa1f246808e6cedf1c7ece82e600b0f815a0f0f30714e0661a87d594b6ec"
+          },
+          "historicalEntryHashesPreserved": [
+            {
+              "jsonPointer": "$/entries/24/sourceGitBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/24/sourceWorkingTreeBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/24/currentSourceBinding/sha256",
+              "historicalHash": "3fd93f006e4ee9eac234564cdeeb64fc068041ccd19c14fe27a18f4cf0078b3e"
+            },
+            {
+              "jsonPointer": "$/entries/24/historicalSourceReview/sourceGitBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/24/historicalSourceReview/sourceWorkingTreeBytesSha256",
+              "historicalHash": "316a5d61316c733e4cddf9f5b9191a546404d1173ef7253c8af29a5782183ed7"
+            },
+            {
+              "jsonPointer": "$/entries/24/actualScopedExecution/sha256",
+              "historicalHash": "a2f3f24cd663e85d170fdbdfcea4dc4c6d62e190fb9ff19bd70c14a2d34d6014"
+            }
+          ],
+          "dependencyBindings": [
+            {
+              "path": "tests/test_supply_chain.js",
+              "sha256": "f6a15d1533c452fe5f1d5af53f00e6c22086320688e943b19b43ec23424b490b"
+            },
+            {
+              "path": ".gitleaks.toml",
+              "sha256": "9d04a4feac430079e1c6cfef54f60636473cc86ce7739edc4aafabfac2389857"
+            },
+            {
+              "path": "docs/testing/final-sonar-pr73-2026-09-20.json",
+              "sha256": "8bd942e939e9324413c6f95212ad6af8eef9c0c1b06363ed46309c593e9ab32b"
+            }
+          ],
+          "historicalExecutionBindingsPreserved": true,
+          "newCloudVerification": "pending exact new candidate scan",
+          "finalCloudAcceptance": false,
+          "currentCommentLine": 371
+        }
+      ],
+      "sourceDelta": "Only3 lines inserted at93-95 add exact three public Sonar PR73 issue IDs (set-hash pinned), exact issueKey field and ledger path to existing real-Gitleaks positive/negative fixture machinery. Existing runtime checks iterate over all groups and still reject wrong paths, wrong fields, unknown IDs and credential fixtures. Real scanner portion runs only when TSX_GITLEAKS_BINARY is selected; source inspection alone is not an executed-scanner claim.",
+      "executionScope": "Current source delta and coordinates reviewed. No test rerun by this reviewer. Every earlier validation/log/hash remains historical; actual new test and provider results must be recorded separately.",
+      "finalCloudAcceptance": false
+    },
+    {
+      "date": "2026-09-23",
+      "sourceRevision": "312c5a36edd0a52f14b292d2535c8a4761dc0d6d",
+      "dirtyTree": true,
+      "previousLedgerSha256": "4787cc11a999df27bf0db634fc3affab268d6c11c1dcbb08562ba92e4186b1de",
+      "reviews": [
+        {
+          "id": "Q2hlY2tJc3N1ZTpwcXd3am9lYWs=",
+          "rule": "JS-0105",
+          "issuePath": "src/trading_engine.ts",
+          "historicalTarget": "persistRemoteExecutions",
+          "currentTargetLine": 2074,
+          "currentSourceSha256": "5bee3a6f524df4d051e09e4488fe1c8aa3611271ef153edc47d40a87ac803776",
+          "rationale": "The existing PR73 issue targeted persistRemoteExecutions, already made private static async with its sole production call class-qualified. The added comment is above a different instance method and does not revert the existing fix, alter either method body, or change awaited reconciliation order. The original issue identity and historical scan stay unchanged.",
+          "finalCloudAcceptance": false
+        }
+      ],
+      "unscannedLocalRuleReviews": [
+        {
+          "rule": "JS-0105",
+          "path": "src/trading_engine.ts",
+          "providerIssueId": null,
+          "sourceSha256": "5bee3a6f524df4d051e09e4488fe1c8aa3611271ef153edc47d40a87ac803776",
+          "commentLine": 2028,
+          "commentLineSha256": "84d5f5d6f7ed169e5b0e3182579aeca5c6cd60a7ed6a3cf7a611a66fb2c1cf03",
+          "targetMethodLine": 2029,
+          "rationale": "ingestOwnedState does not use this internally but remains an instance seam: both production call sites invoke this.ingestOwnedState, and emergency and money-value regressions replace it on individual engine instances to isolate failures. Making this method static would remove that tested per-engine seam. The precise skipcq comment applies to this method alone; provider suppression has not been verified.",
+          "providerSuppressionVerified": false
+        },
+        {
+          "rule": "JS-W1042",
+          "path": "tests/test_final_codacy_review.js",
+          "providerIssueId": null,
+          "sourceSha256": "d51b8caecaaaf084411262d367cff51c5d105f52dcd54cd1e8672dcc616fe65a",
+          "targetLine": 93,
+          "targetLineSha256": "b239002b297cf0eefa0523ee31c5c06963430be662b24af45245a3fabca5c9ae",
+          "rationale": "The last negative inventory assertion omits an explicit undefined second argument. JavaScript supplies undefined for the missing parameter; checkFinalCodacyInventories reads supplement?.entries and treats that value as an empty list, so the assertion still proves that a missing supplemental inventory fails. The separate PR73 JS-W1042 provider issue belongs to tests/test_signal_parser.js and is not reassigned to this line.",
+          "finalCloudAcceptance": false
+        }
+      ],
+      "executionScope": "Four focused registered test files passed locally: final Codacy integrity contracts, trading emergency, trading money-value and DeepSource export. This run does not replace eight integrated verification groups or an exact-head DeepSource scan.",
+      "finalCloudAcceptance": false
+    }
+  ]
+}

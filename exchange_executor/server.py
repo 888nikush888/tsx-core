@@ -3,11 +3,15 @@ from __future__ import annotations
 import asyncio
 import hmac
 import os
+import ssl
 import sys
 import time
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 from aiohttp import web
+from cryptography import x509
 
 from ccxt_adapter import CcxtAdapter
 from entry_deadline import EntryDeadline, EntryDeadlineError
@@ -213,12 +217,33 @@ def create_web_application(application: Application) -> web.Application:
     return app
 
 
+def executor_tls_context() -> ssl.SSLContext:
+    certificate = os.environ.get("EXECUTOR_TLS_CERT_FILE", "")
+    private_key = os.environ.get("EXECUTOR_TLS_KEY_FILE", "")
+    if not certificate or not private_key or not Path(certificate).is_absolute() or not Path(private_key).is_absolute():
+        raise RuntimeError("Executor TLS certificate and private key paths are required.")
+    try:
+        certificate_bytes = Path(certificate).read_bytes()
+        leaf = x509.load_pem_x509_certificate(certificate_bytes)
+        now = datetime.now(timezone.utc)
+        if leaf.not_valid_before_utc > now or leaf.not_valid_after_utc <= now + timedelta(minutes=5):
+            raise ValueError("Certificate is not currently valid.")
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
+        context.load_cert_chain(certificate, private_key)
+        return context
+    except (OSError, ValueError):
+        raise RuntimeError("Executor TLS certificate or private key is invalid.") from None
+
+
 def main() -> None:
     host = os.environ.get("EXECUTOR_HOST", "127.0.0.1")
     port = int(os.environ.get("EXECUTOR_PORT", "8090"))
+    tls_context = executor_tls_context()
     application = Application(os.environ.get("MANAGED_SECRET_DIR", "/app/secrets"))
-    print(f"executor_listening host={host} port={port} integration=ccxt ccxt_pro=true", flush=True)
-    web.run_app(create_web_application(application), host=host, port=port, print=None, shutdown_timeout=30)
+    print(f"executor_listening host={host} port={port} tls=true integration=ccxt ccxt_pro=true", flush=True)
+    web.run_app(create_web_application(application), host=host, port=port, ssl_context=tls_context,
+                print=None, shutdown_timeout=30)
 
 
 if __name__ == "__main__":

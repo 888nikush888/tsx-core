@@ -382,6 +382,7 @@ export type ExchangeCatalog = {
   implementation: {
     library: "ccxt";
     version: string;
+    reviewedInventoryHash: string | null;
     streaming: "ccxt-pro";
     orderAuthority: "rest";
   };
@@ -407,6 +408,11 @@ export type ExchangeCatalog = {
       secret: boolean;
     }>;
     capabilities: Record<string, unknown>;
+    assessment: {
+      decision: "existing" | "not_easy" | "not_derivative";
+      products: string[];
+      reasonCodes: string[];
+    } | null;
   }>;
 };
 

@@ -1,0 +1,15 @@
+test_bound_reader_metadata_stays_on_info_and_rejects_ambiguous_responses (__main__.HyperliquidTestnetReadOnlyTests.test_bound_reader_metadata_stays_on_info_and_rejects_ambiguous_responses) ... ok
+test_direct_https_ignores_proxy_environment_and_uses_exact_testnet_path (__main__.HyperliquidTestnetReadOnlyTests.test_direct_https_ignores_proxy_environment_and_uses_exact_testnet_path) ... ok
+test_large_or_compressed_response_is_rejected_and_closed (__main__.HyperliquidTestnetReadOnlyTests.test_large_or_compressed_response_is_rejected_and_closed) ... ok
+test_mainnet_lookalike_port_query_and_redirect_are_rejected (__main__.HyperliquidTestnetReadOnlyTests.test_mainnet_lookalike_port_query_and_redirect_are_rejected) ... ok
+test_malformed_provider_data_fails_closed (__main__.HyperliquidTestnetReadOnlyTests.test_malformed_provider_data_fails_closed) ... ok
+test_network_timeout_is_reported_without_provider_or_address_details (__main__.HyperliquidTestnetReadOnlyTests.test_network_timeout_is_reported_without_provider_or_address_details) ... ok
+test_only_public_address_file_is_accepted_without_echoing_contents (__main__.HyperliquidTestnetReadOnlyTests.test_only_public_address_file_is_accepted_without_echoing_contents) ... ok
+test_position_and_order_data_cannot_be_mistaken_for_flat (__main__.HyperliquidTestnetReadOnlyTests.test_position_and_order_data_cannot_be_mistaken_for_flat) ... ok
+test_probe_only_reads_three_info_types_and_hides_address_and_balances (__main__.HyperliquidTestnetReadOnlyTests.test_probe_only_reads_three_info_types_and_hides_address_and_balances) ... ok
+test_unsupported_request_is_refused_before_connection (__main__.HyperliquidTestnetReadOnlyTests.test_unsupported_request_is_refused_before_connection) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.092s
+
+OK

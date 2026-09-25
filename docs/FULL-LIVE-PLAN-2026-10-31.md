@@ -1,0 +1,37 @@
+# TSX Core: vollständige Live-Abnahme bis 31.10.2026
+
+Stand 25.09.2026. Dies ist der aktuelle Zielplan; der [frühere 01.10.-Plan](LIVE-READINESS-2026-10-01.md) bleibt als historische Gate- und Nachweisakte erhalten. Am 01.10. ist **kein** abgespeckter Produktstart vorgesehen. Die 30-Tage-Wartebedingung vor dem Start ist aufgehoben; alle technischen Freigaben, ein aktueller Beobachtungsnachweis und die Betreiberentscheidung bleiben Pflicht. Der 31.10. ist ein Zieltermin, keine automatische Freigabe.
+
+## Was „vollständig live“ bedeutet
+
+TSX Core muss auf dem tatsächlichen VPS mit realen, einzeln zugelassenen Futures-Konten die durchgehende Strecke von Telegram-/AI-Eingang über Parser, Strategie, Risiko, Order, Schutzstop, Teilverkäufe, Reconciliation und Notfallbehandlung korrekt ausführen. Alle **betrieblichen** TSX-Einstellungen einschließlich Börsen, Konto, Secrets, Strategie, Risiko, Backup, Monitoring, TLS-/Proxy- und Host-Controls müssen über die authentifizierte UI einstellbar, validierbar, auditierbar und nach Neustart überprüfbar sein. Unveränderliche Sicherheitsregeln sowie CI-/Review-Gates bleiben codegebunden.
+
+Der CCXT-Katalog ist eine Kandidatenliste, keine pauschale Handelsfreigabe. Für **jede** Futures-Börse, die TSX Core im Vollstart anbietet, müssen tatsächliche CCXT-Fähigkeit, Produkt/Settle/Margin/Positionsmodus, Kontoidentität, Credentials, Marktgrenzen, native IDs, Historie, Fehler- und Recovery-Fälle sowie ein echter Testnet- oder gleichwertig isolierter Lifecycle belegt sein. Nicht zertifizierbare CCXT-IDs dürfen keine Orders erhalten; eine bloße Kataloganzeige zählt nicht als nutzbare Börse. Der im Ziel versprochene Börsenumfang wird vor Release vollständig in einer Ja-/Nein-Matrix mit Quelle und Ausschlussgrund fixiert. Eine stillschweigende Verkleinerung des freigegebenen Umfangs erfüllt dieses Voll-Live-Ziel nicht.
+
+## Harte Abnahmebedingungen
+
+| Bereich | Nachweis vor GO | Aktueller Stand |
+| --- | --- | --- |
+| Exakter Quellstand | Ein eingefrorener Commit und Image-Digest; alle Pflichtjobs, Browser-/Mutationstests, SBOM, Container-/Vulnerability-Gates, unabhängiges Implementierungs-Receipt und Review auf **diesem** SHA grün. | Draft-PR #79; der letzte gepushte Head `b15b9611` wird geprüft. Sein zentraler Job meldete eine Modul-Funktionsabdeckungsregression; die Korrektur läuft. Receipt ist veraltet. |
+| Scanner | Alle Codacy-, DeepSource- und Sonar-Befunde einschließlich früherer False-Positive-Einstufungen auf dem finalen SHA neu untersucht, behoben oder einzeln mit überprüfbarer Entscheidung belegt. DeepSource `JS-R1005` ist auf Betreiberwunsch ausgenommen. Scannerabbruch oder erschöpftes Kontingent ist **kein** grüner Scan. Snyk ist auf Betreiberwunsch entfernt. | DeepSource-/Codacy-Vollanalyse und endgültiger Sonar-Export offen; Codacy-Providerfehler bleibt sichtbar. |
+| Handelsprovider | Vollständige CCXT-Futures-Kandidatenmatrix und je freigegebenem Börsen-/Produkt-/Konto-Scope neun echte Lifecycle-Pflichtfälle einschließlich Entry, Schutzstop, 1/2/3/5-TP, Partial/Late Fill, Cancel/Unknown, Neustart, Notfall-Recovery, Geld-/Positionsparität und vollständigem Cleanup. | 0 akzeptierte Scopes. Hyperliquid-Testnet ist lesend erreichbar und finanziert; vorhandener Agent-Key ist nachweisbar zugeordnet, aber in der aktuellen Master-Key-only-Runtime gesperrt. Keine Order gesendet. |
+| Risiko und Funktionen | Alle Blueprint-v4-/Strategie-/AI-/Telegram-Funktionen im zugesagten Umfang funktionsfähig; exakte Notional-/Drawdown-/Leverage-Grenzen, Kill-Switch, reduce-only, unbelegte/unklare Orders, Schutz und Recovery mit echten Negativ- und Restartfällen. | Lokale Verträge weit fortgeschritten; reale vollständige End-to-End-Abnahme fehlt. |
+| UI | Quellengebundenes Inventar aller operativen Felder und externen Host-Controls zu 100 % aufgelöst; jede Einstellung per berechtigter UI mit Validierung, write-only Secret, Audit, Persistenz, Apply/Readback/Rollback und E2E auf dem Live-Host. | Bisher nur Teilmengen statisch klassifiziert; viele Katalogfelder und Host-Controls unverified. |
+| Infrastruktur und Daten | Live-VPS, fünf interne TLS-Wege, externer OIDC/TLS-Zugang und Netzgrenzen geprüft; getrennte unveränderliche Off-host-Backups und Auditdaten, zweite unabhängige verschlüsselte Kopie, echter Restore und Ausfallprobe; externer Alarmempfänger mit menschlicher Zustellung und VPS-Ausfallmelder. | VPS, B2-/Drive-/Audit-/Alarm-Echtproben fehlen. B2/Audit/Drive/Worker sind Kandidaten, standardmäßig nicht produktiv aktiviert. |
+| Freigabe | Mindestens 24 Stunden aktuelle Host-/Service-Beobachtung, 100 eindeutig korrelierte Paper-/Testnet-Intents, unabhängiger technischer Review und eine SHA-/Scope-gebundene Betreiberentscheidung. Kein vorab ausgelöster Live-Ordertest. | 0/25 formale Vorabgates aus der bestehenden Akte abgeschlossen. |
+
+Die [25 detaillierten Vorabgates](LIVE-READINESS-2026-10-01.md) bleiben Mindestbedingungen. Zusätzliche Vollständigkeitspflichten für CCXT-Umfang und UI werden in der [UI-Inventarmatrix](ui-next/inventory/OPERATIONAL_FIELD_INVENTORY.md) und den individuellen Providerakten gezählt; ein Prozentwert ohne festen Nenner wäre irreführend.
+
+## Meilensteine und kritischer Pfad
+
+| Zeitraum | Überprüfbares Ergebnis |
+| --- | --- |
+| 25.–30.09. | Integrationsbranch mit allen geprüften Kandidaten, kein Coverage-Rückschritt, vollständige Cloud-Deltas, sichere Agent-Wallet-Bindung oder begründete Sperre, WSL-Toolchain und B2-Testkonto. VPS bis 28.09. bereitstellen. Noch kein Source-Freeze, solange Runtime/Scanner fehlen. |
+| 01.–07.10. | Hyperliquid-Agent-Key mit frischem Grant-/Ablauf-/Widerrufsnachweis; kontrollierter echter Testnet-Lifecycle und Cleanup. B2-Test-Bucket mit Object Lock, Drive-OAuth/Rotation, Audit-Ziel und Alarmempfänger technisch angebunden; je Dienst negative Ausfallprobe. |
+| 08.–14.10. | Futures-Kandidaten nach CCXT-Fähigkeit priorisieren und pro Börsenfamilie echte Konto-/API-Belege sammeln. UI-Feldinventar und Host-Control-Verträge schließen; fehlende UI-Apply-/Readback-/Rollback-Wege implementieren. Scannerbefunde auf neuem SHA erneut abarbeiten. |
+| 15.–21.10. | Alle zugesagten Börsen-/Produkt-/Konto-Slices sowie Telegram-/AI-/Strategiepfade und UI-E2E auf dem VPS prüfen. B2-/Drive-Readback, isolierten Restore, Audit-Unveränderlichkeit, Alarmzustellung >100 Fälle, Totalausfall- und Schlüsselrotationsübungen protokollieren. |
+| 22.–27.10. | Source-Freeze erst nach Feature- und Scope-Vollständigkeit; neues unabhängiges Receipt, exakte vollständige CI/Scanner/Images, 24h Beobachtung und 100 korrelierte Intents auf dem finalen Release-Kandidaten. Jede Quelländerung startet die Bindung erneut. |
+| 28.–30.10. | Unabhängige Review-Akte, finaler VPS-Restore, Rollback-/Kill-Switch-Übung, vollständige Börsen- und UI-Matrix, Secret-/TLS-/Backup-/Alarmstatus und explizite GO/NO-GO-Vorlage. |
+| 31.10. | Betreiber entscheidet hier über den **vollständigen** SHA-/Digest-gebundenen Start. Fehlt eine Pflichtabnahme, ist das Ergebnis NO-GO statt einer stillen Teilfreigabe. Live-Orders erst nach der Entscheidung und den vorbereiteten Schutz-/Abbruchgrenzen. |
+
+Der Betreiber stellt den VPS, die Anbieter-Konten, Off-host-Speicher, Alarmziel/On-Call und erforderliche OAuth-/API-Freigaben bereit; Schlüssel gehören in lokale geschützte Secret-Stores, nie in Chat oder Git. Codex implementiert, prüft, dokumentiert und veröffentlicht Kandidaten im Draft-PR. Keine Host- oder Providerantwort wird durch einen Mock oder ein älteres Commit ersetzt.

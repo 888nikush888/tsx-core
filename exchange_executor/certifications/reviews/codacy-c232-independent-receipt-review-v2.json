@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "revision": "c23272a3228a8e25c3604a556131b978822abe56",
+  "candidate": {
+    "path": "reports/final-findings/codacy-c232-hyperliquid-receipt-candidate.json",
+    "sha256": "62e10f900734a3c0a1295dddad68a54cdb67dbd1a6a9e594a15f56f3038d1592"
+  },
+  "candidateState": {
+    "path": "reports/final-findings/codacy-c232-receipt-candidate-state.json",
+    "sha256": "5e54e840a9c1f91fb8ebf3a6d49eaa8b428f7d75492793895977d5111f6d8bf0"
+  },
+  "completeSourceReview": {
+    "path": "reports/final-findings/codacy-c232-receipt-source-review.json",
+    "sha256": "82aeb1226f906b741ceb06ac1e0c67050ccb11da05e19a6b7e6f96b6008c456e"
+  },
+  "reviewValidator": {
+    "path": "reports/final-findings/validate-codacy-c232-candidate.py",
+    "sha256": "fabb98c2bdd16721aba55ce52fd9c315c7e646a5b417fff31a1fd6e0e95e17bb"
+  },
+  "reviewedAt": "2026-09-23T21:32:08Z",
+  "reviewer": "root",
+  "validatorResult": {
+    "revision": "c23272a3228a8e25c3604a556131b978822abe56",
+    "sourceDeltas": 1,
+    "requirements": 62,
+    "witnesses": 97,
+    "terminalGreenGroups": 8,
+    "foundationCommands": 14,
+    "mutationArtifacts": 4,
+    "referenceClosure": {
+      "currentReports": 62,
+      "currentReferences": 1065,
+      "historicalMembers": 3,
+      "unresolvedReferences": 0
+    },
+    "productionPythonValidation": "PASS",
+    "productionNodeBuildInputsMatch": true,
+    "beforeContextPresent": false,
+    "candidateApproved": false,
+    "operativeReceiptOrPinsChanged": false
+  },
+  "referenceClosure": {
+    "currentReports": 62,
+    "currentReferences": 1065,
+    "historicalMembers": 3,
+    "unresolvedReferences": 0
+  },
+  "reviewNotes": [
+    "I separately inspected the sole changed build input: the Codacy historical ledger retains all 439 identities and baseline hashes; only three current source bindings changed. The 62 implementation requirements and 97 witness bindings are unchanged.",
+    "I separately read all eight terminal verification reports on c232: each passed with 1002 identical raw Git inputs. The two earlier red backend attempts remain explicit, and only the complete r2 backend retry is selected. Four actual mutation reports meet the unchanged 70 percent threshold.",
+    "The independent validator passed exact source, runtime, Python receipt validation, Node build-input comparison and zero unresolved evidence references. This review approves only an unadopted offline Hyperliquid implementation candidate; it does not establish provider acceptance, production deployment or live-trading safety."
+  ],
+  "providerAcceptanceVerified": false,
+  "operativeReceiptApproved": false,
+  "operativeReceiptOrPinsChanged": false
+}
