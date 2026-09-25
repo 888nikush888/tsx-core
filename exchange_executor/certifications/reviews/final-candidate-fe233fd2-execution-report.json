@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "final-source-bound-execution-report",
+  "revision": "fe233fd2f9cd1dbaed303bbac5e6cdf83640cdb6",
+  "independentReview": {
+    "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review.json",
+    "sha256": "6b7b9ef5a6b1311f69af91032a6abd6ff236e6a09f9dda6dbed72d5fb4c55d04",
+    "reviewedRevision": "8e7b7869d49d7ab5bf6222cd97f02ffdfecc7b25"
+  },
+  "candidateEvidenceRevision": "2def6a1c361d9c66fd3bbee99f3b59da61a539f3",
+  "sourceCommitments": {
+    "sourceTreeHash": "e90c9c880561c4862a0fbd4cfb532123e36efde17df58170883e6c771171c01f",
+    "nodeSourcesHash": "028f280ab1ffb267d8900916e92f7f9d6f91d83844e29db9c6ae6652a985f7e8",
+    "testSourcesHash": "879f3c647ace3317191228df943297102e7167f1cff8fe50e2484f1b889cd2df",
+    "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee"
+  },
+  "environment": {
+    "node": "22.23.2",
+    "npm": "10.9.8",
+    "python": "3.12.14",
+    "ccxt": "4.5.75"
+  },
+  "results": {
+    "pythonFullSuite": "587 passed, 1 platform skip",
+    "nodeFullSuite": "ALL 238 TEST FILES PASSED",
+    "frontendFullSuite": "47 test files, 419 tests passed",
+    "rootBuild": "TypeScript, declaration copy and Vite production build passed",
+    "rootLint": "ESLint passed",
+    "typecheck": "tsc --noEmit passed"
+  },
+  "rawLogs": [
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/eslint.log",
+      "bytes": 295,
+      "sha256": "0bf7a840e1d89c824db7125d8756da4c051694b895fb99270705b591aef47a8b"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/frontend-full-suite.log",
+      "bytes": 465,
+      "sha256": "f3334a8c96366078723cfbc37c6933b7cb85720423bbf5e51eab93c5790209c0"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/node-full-suite.log",
+      "bytes": 76145,
+      "sha256": "86930e7a60073295ce445d5ac9ad4c557cd17248a970988add4a007be147c6d2"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/python-full-suite.log",
+      "bytes": 8322,
+      "sha256": "f3d16c46b645388d9b88ea8a468c181a0cd61e1202916cd669f9c84771c3652d"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/root-build.log",
+      "bytes": 1592,
+      "sha256": "249e5bec320130a9102fcae2f8340a84bf257cc62ee5346b7b905184f6a75e5b"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-fe233fd2-logs/typescript-typecheck.log",
+      "bytes": 48,
+      "sha256": "0f77cf5c5793fa7775c3788752e4340bd346e4611e0e2631773e072255b4ddd4"
+    }
+  ],
+  "providerAcceptanceVerified": false,
+  "liveTradingApproved": false,
+  "limitations": [
+    "Local implementation and execution evidence only; no provider acceptance, deployment or live order was performed.",
+    "The POSIX FIFO and final-file-symlink branch remains a Linux CI responsibility.",
+    "The receipt records an exact source snapshot, not a guarantee that later unguarded packaging uses identical bytes."
+  ]
+}
