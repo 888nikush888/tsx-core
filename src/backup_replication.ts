@@ -550,11 +550,11 @@ function driveMirrorFromEnvironment(env: NodeJS.ProcessEnv, primaryRequired: boo
   return { required, mirror: new GoogleDriveBackupMirror({
     folderId,
     // Resolve on every attempt so managed token rotation does not require a process restart.
-    accessToken: async () => {
+    accessToken: () => Promise.resolve().then(() => {
       const token = env.BACKUP_DRIVE_ACCESS_TOKEN?.trim();
       if (!token) throw new Error('Drive mirror access token is unavailable.');
       return token;
-    },
+    }),
     timeoutMs: Number(env.BACKUP_DRIVE_TIMEOUT_MS || 60_000),
     fetchImpl
   }) };

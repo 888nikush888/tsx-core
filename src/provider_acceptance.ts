@@ -9,6 +9,7 @@ type GrantAccount = Pick<TradingAccount, 'id' | 'exchange' | 'mode' | 'externalA
 const HEX_64 = /^[a-f0-9]{64}$/;
 const REVIEW_ID = /^[A-Za-z0-9._:-]{1,128}$/;
 const PRODUCTS = new Set(['swap:linear', 'swap:inverse', 'future:linear', 'future:inverse']);
+const NON_STRING_FIELDS = new Set(['version', 'validFrom', 'validUntil']);
 const FIELDS = [
   'accountId', 'credentialGeneration', 'exchange', 'externalAccountId', 'mode',
   'product', 'reviewId', 'validFrom', 'validUntil', 'version',
@@ -36,13 +37,23 @@ function grantMatches(value: unknown, account: GrantAccount, now: number): value
 }
 
 function grantStringsValid(grant: Record<string, unknown>): boolean {
-  return FIELDS.filter(field => !['version', 'validFrom', 'validUntil'].includes(field))
-    .every(field => validGrantString(grant[field]));
+  return FIELDS.every(field => NON_STRING_FIELDS.has(field) || validGrantString(ownField(grant, field)));
 }
 
 function validGrantString(value: unknown): value is string {
-  return typeof value === 'string' && value.length > 0 && Array.from(value).length <= 128
-    && !/[\u0000-\u001f\ud800-\udfff]/u.test(value);
+  if (typeof value !== 'string' || value.length === 0) return false;
+  const characters = Array.from(value);
+  return characters.length <= 128 && characters.every(validGrantCharacter);
+}
+
+function validGrantCharacter(character: string): boolean {
+  const codePoint = character.codePointAt(0);
+  return codePoint !== undefined && codePoint > 0x1f && (codePoint < 0xd800 || codePoint > 0xdfff);
+}
+
+function ownField(record: Record<string, unknown>, field: string): unknown {
+  if (!Object.hasOwn(record, field)) return undefined;
+  return Object.getOwnPropertyDescriptor(record, field)?.value;
 }
 
 function grantAccountMatches(grant: Record<string, unknown>, account: GrantAccount): boolean {
@@ -63,26 +74,39 @@ function grantTimeValid(grant: Record<string, unknown>, now: number): boolean {
 export function canonicalProviderGrant(grant: Record<string, unknown>): Buffer {
   // Match Python json.dumps(sort_keys=True, ensure_ascii=True, separators=(',', ':')).
   // Escape UTF-16 code units (including surrogate pairs); never truncate Unicode into ASCII.
-  const json = JSON.stringify(Object.fromEntries(FIELDS.map(field => [field, grant[field]])));
-  return Buffer.from(json.replace(/[^\u0000-\u007e]/gu, escapeJsonCodeUnits), 'ascii');
+  const json = JSON.stringify(Object.fromEntries(FIELDS.map(field => [field, ownField(grant, field)])));
+  return asciiJsonBytes(json);
 }
 
-function escapeJsonCodeUnits(character: string): string {
-  let escaped = '';
-  // split('') preserves UTF-16 code units, including each half of a surrogate pair.
-  for (const unit of character.split('')) {
-    const codeUnit = unit.codePointAt(0);
-    if (codeUnit === undefined) throw new Error('Empty UTF-16 code unit.');
-    escaped += String.raw`\u${codeUnit.toString(16).padStart(4, '0')}`;
+function asciiJsonBytes(json: string): Buffer {
+  let ascii = '';
+  for (let index = 0; index < json.length; index++) {
+    const codeUnit = json.charCodeAt(index);
+    ascii += codeUnit >= 0x20 && codeUnit <= 0x7e
+      ? String.fromCharCode(codeUnit)
+      : String.raw`\u${codeUnit.toString(16).padStart(4, '0')}`;
   }
-  return escaped;
+  return Buffer.from(ascii, 'ascii');
+}
+
+function validGrantSignature(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length !== 88 || !value.endsWith('==')) return false;
+  for (let index = 0; index < 86; index++) {
+    if (!isBase64Code(value.charCodeAt(index))) return false;
+  }
+  return true;
+}
+
+function isBase64Code(code: number): boolean {
+  return (code >= 0x41 && code <= 0x5a) || (code >= 0x61 && code <= 0x7a)
+    || (code >= 0x30 && code <= 0x39) || code === 0x2b || code === 0x2f;
 }
 
 export function signedGrantValid(value: unknown, account: GrantAccount, now: number, key: ReturnType<typeof createPublicKey>): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
   if (Object.keys(row).sort((left, right) => left.localeCompare(right)).join(',') !== 'grant,signature' || !grantMatches(row.grant, account, now)) return false;
-  if (typeof row.signature !== 'string' || row.signature.length !== 88 || !/^(?:[A-Za-z0-9+/]{4}){21}[A-Za-z0-9+/]{2}==$/u.test(row.signature)) return false;
+  if (!validGrantSignature(row.signature)) return false;
   return verify(null, canonicalProviderGrant(row.grant), key, Buffer.from(row.signature, 'base64'));
 }
 
@@ -114,9 +138,21 @@ export function liveProviderAcceptancePinned(account: GrantAccount): boolean {
 
 function assertUnlinkedParents(path: string): void {
   for (let parent = dirname(path); ; parent = dirname(parent)) {
-    if (!lstatSync(parent).isDirectory()) throw new Error('Acceptance file parent must be a real directory.');
+    if (!lstatAcceptancePath(parent).isDirectory()) throw new Error('Acceptance file parent must be a real directory.');
     if (dirname(parent) === parent) return;
   }
+}
+
+function lstatAcceptancePath(path: string): BigIntStats {
+  // Callers require canonical absolute paths and validate every ancestor as a real directory.
+  // eslint-disable-next-line -- the validated canonical path is the security boundary, not request data.
+  return lstatSync(path, { bigint: true });
+}
+
+function openAcceptancePath(path: string): number {
+  // O_NOFOLLOW prevents a symlink swap after the lstat validation.
+  // eslint-disable-next-line -- the validated canonical path is the security boundary, not request data.
+  return openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
 }
 
 function assertAcceptanceFile(stat: BigIntStats, maximum: number): void {
@@ -126,8 +162,8 @@ function assertAcceptanceFile(stat: BigIntStats, maximum: number): void {
 }
 
 function assertSameAcceptanceFile(before: BigIntStats, after: BigIntStats): void {
-  const fields = ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs', 'nlink'] as const;
-  if (!after.isFile() || fields.some(field => before[field] !== after[field])) {
+  if (!after.isFile() || before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size
+    || before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs || before.nlink !== after.nlink) {
     throw new Error('Acceptance evidence changed during reading.');
   }
 }
@@ -138,16 +174,17 @@ export function readProviderAcceptanceFile(path: string, maximum: number): Buffe
     throw new Error('Invalid acceptance evidence file boundary.');
   }
   const target = resolve(path);
+  if (target !== path) throw new Error('Acceptance evidence path must already be canonical.');
   assertUnlinkedParents(target);
-  const before = lstatSync(target, { bigint: true });
+  const before = lstatAcceptancePath(target);
   assertAcceptanceFile(before, maximum);
-  const descriptor = openSync(target, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
+  const descriptor = openAcceptancePath(target);
   try {
     assertSameAcceptanceFile(before, fstatSync(descriptor, { bigint: true }));
     const content = readBoundedDescriptor(descriptor, maximum);
     if (BigInt(content.length) !== before.size) throw new Error('Acceptance evidence size changed during reading.');
     assertSameAcceptanceFile(before, fstatSync(descriptor, { bigint: true }));
-    assertSameAcceptanceFile(before, lstatSync(target, { bigint: true }));
+    assertSameAcceptanceFile(before, lstatAcceptancePath(target));
     assertUnlinkedParents(target);
     return content;
   } finally {

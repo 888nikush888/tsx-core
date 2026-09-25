@@ -174,7 +174,7 @@ try {
     urlTemplate: `http://127.0.0.1:${address.port}/objects/{artifact}`,
     bearerToken: token, encryptionKey: key, allowInsecureLoopback: true,
     minRetentionDays: 30,
-    driveMirror: { mirror: async () => { throw new Error('sensitive-provider-token'); } }
+    driveMirror: { mirror: () => Promise.reject(new Error('sensitive-provider-token')) }
   });
   const degraded = await badMirrorReplicator.replicate(artifact);
   assert.equal(degraded.driveMirror, null);
@@ -216,7 +216,7 @@ try {
   const invalidMirrorReplicator = new HttpsBackupReplicator({
     urlTemplate: `http://127.0.0.1:${address.port}/objects/{artifact}`,
     bearerToken: token, encryptionKey: key, allowInsecureLoopback: true,
-    driveMirror: { mirror: async (_file, objectName, sha256) => ({
+    driveMirror: { mirror: (_file, objectName, sha256) => Promise.resolve({
       objectName, driveFileId: 'drive-file-id-1', sha256: `${sha256.slice(0, -1)}0`,
       size: 1, verifiedAt: Date.now(), reused: false
     }) }

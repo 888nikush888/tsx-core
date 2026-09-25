@@ -48,7 +48,7 @@ const fetchImpl = async (input, options = {}) => {
 
 try {
   await writeFile(sourcePath, bytes);
-  const mirror = new GoogleDriveBackupMirror({ folderId, accessToken: async () => 'token-value', fetchImpl });
+  const mirror = new GoogleDriveBackupMirror({ folderId, accessToken: () => Promise.resolve('token-value'), fetchImpl });
   const first = await mirror.mirror(sourcePath, objectName, sha256);
   assert.deepEqual({ id: first.driveFileId, sha256: first.sha256, size: first.size, reused: first.reused },
     { id: fileId, sha256, size: bytes.length, reused: false });

@@ -169,6 +169,7 @@ try {
       replaced = true;
       const replacement = path.join(evidenceDirectory, 'replacement-after-read');
       writeFileSync(replacement, 'valid');
+      // nosemgrep: javascript_pathtraversal_rule-non-literal-fs-filename -- private mkdtemp root with fixed child names.
       fs.renameSync(replacement, evidenceFile);
     }
     return count;

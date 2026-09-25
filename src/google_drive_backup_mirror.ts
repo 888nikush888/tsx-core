@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { createReadStream, promises as fs } from 'node:fs';
+import { constants, promises as fs } from 'node:fs';
+import path from 'node:path';
 import { Readable } from 'node:stream';
 
 const ENCRYPTED_MAGIC = Buffer.from('TGFE1\0', 'ascii');
@@ -37,10 +38,17 @@ function assertDriveFile(value: unknown, name: string): DriveFile {
   return { id: file.id, name };
 }
 
-async function hashFile(filePath: string): Promise<string> {
+async function hashFile(file: fs.FileHandle): Promise<string> {
   const digest = createHash('sha256');
-  for await (const chunk of createReadStream(filePath)) digest.update(chunk);
+  for await (const chunk of file.createReadStream({ autoClose: false, start: 0 })) digest.update(chunk);
   return digest.digest('hex');
+}
+
+function canonicalSourcePath(filePath: string): string {
+  if (!path.isAbsolute(filePath) || path.resolve(filePath) !== filePath) {
+    throw new Error('Drive mirror source path must be canonical and absolute.');
+  }
+  return filePath;
 }
 
 /** A secondary copy only. Drive has no compliance-mode retention receipt. */
@@ -83,7 +91,7 @@ export class GoogleDriveBackupMirror {
     return result.files.length ? assertDriveFile(result.files[0], name) : null;
   }
 
-  private async createFile(filePath: string, name: string, size: number, token: string): Promise<DriveFile> {
+  private async createFile(file: fs.FileHandle, name: string, size: number, token: string): Promise<DriveFile> {
     const metadata = { name, parents: [this.options.folderId], mimeType: 'application/octet-stream' };
     const initialize = await this.request(`${DRIVE_UPLOAD}?uploadType=resumable&fields=id,name`, {
       method: 'POST', redirect: 'error', signal: AbortSignal.timeout(this.timeoutMs),
@@ -103,7 +111,7 @@ export class GoogleDriveBackupMirror {
     const upload = await this.request(session, {
       method: 'PUT', redirect: 'error', signal: AbortSignal.timeout(this.timeoutMs),
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/octet-stream', 'Content-Length': String(size) },
-      body: createReadStream(filePath), duplex: 'half'
+      body: file.createReadStream({ autoClose: false, start: 0 }), duplex: 'half'
     } as unknown as RequestInit & { duplex: 'half' });
     if (upload.status !== 200 && upload.status !== 201) {
       await upload.body?.cancel();
@@ -135,7 +143,10 @@ export class GoogleDriveBackupMirror {
   async mirror(filePath: string, objectName: string, expectedSha256: string): Promise<DriveMirrorReceipt> {
     if (!/^backup-\d{4}-[a-zA-Z0-9_.:-]{1,160}\.tgfb$/.test(objectName)) throw new Error('Drive mirror object name is invalid.');
     if (!/^[a-f0-9]{64}$/.test(expectedSha256)) throw new Error('Drive mirror source SHA-256 is invalid.');
-    const file = await fs.open(filePath, 'r');
+    const sourcePath = canonicalSourcePath(filePath);
+    // eslint-disable-next-line -- sourcePath is resolve-stable and opened with O_NOFOLLOW.
+    const file = await fs.open(sourcePath,
+      constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     let size: number;
     try {
       const stats = await file.stat();
@@ -148,14 +159,14 @@ export class GoogleDriveBackupMirror {
       if (bytesRead !== header.length || !header.equals(ENCRYPTED_MAGIC)) {
         throw new Error('Drive mirror refuses a source without the encrypted backup header.');
       }
+      if (await hashFile(file) !== expectedSha256) throw new Error('Drive mirror source SHA-256 does not match.');
+      const token = await this.token();
+      const existing = await this.existingFile(objectName, token);
+      const remote = existing ?? await this.createFile(file, objectName, size, token);
+      await this.verifyFile(remote.id, size, expectedSha256, token);
+      return { objectName, driveFileId: remote.id, sha256: expectedSha256, size, verifiedAt: Date.now(), reused: Boolean(existing) };
     } finally {
       await file.close();
     }
-    if (await hashFile(filePath) !== expectedSha256) throw new Error('Drive mirror source SHA-256 does not match.');
-    const token = await this.token();
-    const existing = await this.existingFile(objectName, token);
-    const remote = existing ?? await this.createFile(filePath, objectName, size, token);
-    await this.verifyFile(remote.id, size, expectedSha256, token);
-    return { objectName, driveFileId: remote.id, sha256: expectedSha256, size, verifiedAt: Date.now(), reused: Boolean(existing) };
   }
 }
