@@ -1,0 +1,88 @@
+TAP version 13
+# Subtest: PUT verifies bytes, applies compliance lock, checks HEAD and returns retention only then; GET returns exact bytes
+ok 1 - PUT verifies bytes, applies compliance lock, checks HEAD and returns retention only then; GET returns exact bytes
+  ---
+  duration_ms: 122.6361
+  type: 'test'
+  ...
+# Subtest: rejects missing or incorrect authorization, unsafe names and unsupported methods before provider calls
+ok 2 - rejects missing or incorrect authorization, unsafe names and unsupported methods before provider calls
+  ---
+  duration_ms: 58.889
+  type: 'test'
+  ...
+# Subtest: rejects over-limit, missing length, invalid hash and invalid encrypted header
+ok 3 - rejects over-limit, missing length, invalid hash and invalid encrypted header
+  ---
+  duration_ms: 78.5954
+  type: 'test'
+  ...
+# Subtest: never issues a retention receipt if provider omits or changes lock, hash, or date
+ok 4 - never issues a retention receipt if provider omits or changes lock, hash, or date
+  ---
+  duration_ms: 45.2536
+  type: 'test'
+  ...
+# Subtest: fails closed on extra version or altered provider download
+ok 5 - fails closed on extra version or altered provider download
+  ---
+  duration_ms: 26.7701
+  type: 'test'
+  ...
+# Subtest: still reads the sole verified version after its retention period expires
+ok 6 - still reads the sole verified version after its retention period expires
+  ---
+  duration_ms: 12.2361
+  type: 'test'
+  ...
+# Subtest: rejects external versions before upload
+ok 7 - rejects external versions before upload
+  ---
+  duration_ms: 8.1901
+  type: 'test'
+  ...
+# Subtest: re-adopts only a byte-identical retained version after full version-pinned readback
+ok 8 - re-adopts only a byte-identical retained version after full version-pinned readback
+  ---
+  duration_ms: 44.8437
+  type: 'test'
+  ...
+# Subtest: replay fails if retention has shortened or a second version exists
+ok 9 - replay fails if retention has shortened or a second version exists
+  ---
+  duration_ms: 29.7739
+  type: 'test'
+  ...
+# Subtest: global concurrency limit blocks parallel distinct keys before another provider write
+ok 10 - global concurrency limit blocks parallel distinct keys before another provider write
+  ---
+  duration_ms: 9.1312
+  type: 'test'
+  ...
+# Subtest: temporary disk budget blocks parallel distinct keys and is released after completion
+ok 11 - temporary disk budget blocks parallel distinct keys and is released after completion
+  ---
+  duration_ms: 21.9595
+  type: 'test'
+  ...
+# Subtest: provider timeout aborts a stalled upload, clears staged bytes and permits a safe retry
+ok 12 - provider timeout aborts a stalled upload, clears staged bytes and permits a safe retry
+  ---
+  duration_ms: 1010.146
+  type: 'test'
+  ...
+# Subtest: protected temporary storage rejects a regular file and relative path
+ok 13 - protected temporary storage rejects a regular file and relative path
+  ---
+  duration_ms: 2.0463
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1676.0344

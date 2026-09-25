@@ -1,0 +1,16 @@
+Provider acceptance control-plane gate tests passed.
+Provider grant Unicode signatures and bounded descriptor file boundaries passed.
+ALL ENCRYPTED OFF-SITE BACKUP TESTS PASSED!
+{"group":"fixture","command":"env-check","state":"started","revision":"0000000000000000000000000000000000000000"}
+{"group":"fixture","command":"env-check","state":"completed","exitCode":0,"failureReason":null,"logSha256":"2e22da2ab13713309ac75219e525b8e06ed02f3f1963b8feef203fa25827f93d"}
+{"group":"fixture","command":"fail","state":"started","revision":"0000000000000000000000000000000000000000"}
+{"group":"fixture","command":"fail","state":"completed","exitCode":7,"failureReason":null,"logSha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+{"group":"fixture","command":"pass","state":"started","revision":"0000000000000000000000000000000000000000"}
+{"group":"fixture","command":"pass","state":"completed","exitCode":0,"failureReason":null,"logSha256":"9f56e761d79bfdb34304a012586cb04d16b435ef6130091a97702e559260a2f2"}
+{"group":"fixture","command":"pass","state":"started","revision":"0000000000000000000000000000000000000000"}
+{"group":"fixture","command":"pass","state":"completed","exitCode":0,"failureReason":null,"logSha256":"9f56e761d79bfdb34304a012586cb04d16b435ef6130091a97702e559260a2f2"}
+PASS receipt evidence runner: parameters, source fence, environment isolation and actual report outcomes
+Coverage scope and LCOV path tests passed.
+Managed web secret store tests passed.
+External incident receiver offline contract tests passed.
+ALL 7 TEST FILES PASSED!

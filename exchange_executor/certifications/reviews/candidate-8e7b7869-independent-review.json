@@ -1,0 +1,2201 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-source-bound-implementation-review",
+  "reviewId": "candidate-8e7b7869-independent-review",
+  "reviewer": "Codex",
+  "reviewedAt": "2026-09-25T13:38:32.333771Z",
+  "candidate": {
+    "worktree": "C:\\Users\\nikla\\Documents\\ChatGPT\\TSX CORE SERVER INSTALLATION\\tmp\\tsx-core-integration-next-20260924",
+    "branch": "codex/integration-next-2026-09-24",
+    "baseRevision": "c23272a3228a8e25c3604a556131b978822abe56",
+    "headRevision": "8e7b7869d49d7ab5bf6222cd97f02ffdfecc7b25",
+    "commitCount": 151,
+    "changedFileCount": 262,
+    "trackedWorktreeCleanBeforeReview": true,
+    "trackedWorktreeCleanAfterVerification": true,
+    "candidateRevisionImmutableDuringVerification": true
+  },
+  "scope": {
+    "objective": "Review the complete candidate delta for Hyperliquid signer/grant binding, transport/origin/TLS, credential generation, mutation locking, provider acceptance boundaries, XML/subprocess hardening and JavaScript/TypeScript scanner changes.",
+    "method": "Direct source inspection, full delta enumeration, real Python 3.12/CCXT 4.5.75 boundary tests, official Node 22 suite, frontend suite, build/lint/typecheck and targeted static analysis. No provider request or live order was issued.",
+    "deltaFiles": [
+      {
+        "path": ".codacy.yml",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "20df5a337ef0d5b635e98a9f2e45c43b0ab167120e291f0b1ba0a43298a8bf92"
+      },
+      {
+        "path": ".env.example",
+        "status": "M",
+        "baseBlobSha256": "1dc9ede60d49bbfa30d4026cebb83eab084128ce1d17a7d228828747fc0feb69",
+        "headBlobSha256": "12f430023b8e9fe0129c06371ec3e2435a75abfd865eae4ff35fa279b735379e"
+      },
+      {
+        "path": ".github/workflows/quality.yml",
+        "status": "M",
+        "baseBlobSha256": "c34c98dafef394c9f8b46a8825940bd9261a648239a2dd3a3ad906bc5f1fb207",
+        "headBlobSha256": "245ee7f4d7b7aeaca4a2ac7d5304da1f7198d615987d835fba799804abb2436a"
+      },
+      {
+        "path": ".github/workflows/release_observation.yml",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "2956c12521f9c79706d65b2b8af2a3a4a81aac9476e92b80e7b13aa5f7d35ab3"
+      },
+      {
+        "path": ".github/workflows/security-services.yml",
+        "status": "D",
+        "baseBlobSha256": "5aeff11fa8641a0aa2a18e0657d92d4b23827b11c56b8a7dcc57d7849a51bd92",
+        "headBlobSha256": null
+      },
+      {
+        "path": ".gitignore",
+        "status": "M",
+        "baseBlobSha256": "f186777ec56d517ddfedadade706fc7aadeb9b3d93b71335795dbbc62c1c6727",
+        "headBlobSha256": "3d423c8319eada3a472e6c98ae5c3cfc17fd97617cfdae2b834325a596af87c8"
+      },
+      {
+        "path": ".gitleaks.toml",
+        "status": "M",
+        "baseBlobSha256": "9d04a4feac430079e1c6cfef54f60636473cc86ce7739edc4aafabfac2389857",
+        "headBlobSha256": "75302695f9b304ce7ea3cf214c1a88d0db9695735ca2ea40d312996b5c5f1e8f"
+      },
+      {
+        "path": "Dockerfile",
+        "status": "M",
+        "baseBlobSha256": "aaa51b62bae9252d6f361d19a553f4099c64caf988772a3b89b8dccdbf068844",
+        "headBlobSha256": "196853bfabcbaf13eb2f669a0c557ce0bf5b9192078d3022be219303e2bebce2"
+      },
+      {
+        "path": "README.md",
+        "status": "M",
+        "baseBlobSha256": "39382e8d7fefa8e41acb0d4cc8c6ba93b71043ee24e79c5af46ee56592bcd4e8",
+        "headBlobSha256": "ba201bd807dad2b6d486075f0931d9aeb52e8262d6cbe5a66348039539dad815"
+      },
+      {
+        "path": "advisor-plans/004-final-findings-stability.md",
+        "status": "M",
+        "baseBlobSha256": "ca2b35c4a434f503acc459ffefebfbcaaadca94ac758af4b214134aeefb4a485",
+        "headBlobSha256": "1c48296c4870e5ae73b564724663d1cd01a500736c8cc79efca3660dcd34fa67"
+      },
+      {
+        "path": "advisor-plans/005-ui-first-futures-live-goal.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "8f6124fd034b64b39432d1c8d59cea0eec4c47835c54565df573d5c25358f561"
+      },
+      {
+        "path": "advisor-plans/README.md",
+        "status": "M",
+        "baseBlobSha256": "56c0434679c5be52602573794dfa1286e30101b47b47ab5bd3801040fd0b887e",
+        "headBlobSha256": "d240d8c704b464ef104cbb81af5beecf6ea4d0192fdc13e20de700532fcbc666"
+      },
+      {
+        "path": "docker-compose.monitoring.yml",
+        "status": "M",
+        "baseBlobSha256": "85f46417aa4806b68e667a567c6f8f6274ba826630bd6c790f52c618fc66e7be",
+        "headBlobSha256": "9f954af1eb2e1a6772624c749f7696ffc895461198215bb0157c8de4edf0d17b"
+      },
+      {
+        "path": "docker-compose.yml",
+        "status": "M",
+        "baseBlobSha256": "5b75c3d64db59c498c4cfc4662c783b9af4c92fcff62b0980c7680d052160642",
+        "headBlobSha256": "c5744826c0bdfb1e572b01411945868c7dc9618601a3d3f7545f4a3c3c29cb7b"
+      },
+      {
+        "path": "docs/FULL-LIVE-PLAN-2026-10-31.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "a88f2b96ecdc8ed88f6725c83d249544e264476cb0d0eb621dabbda81e83b091"
+      },
+      {
+        "path": "docs/LIVE-READINESS-2026-10-01.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "09f8829669d48a08ad7d350764740249292fe9e0813c0ebb2f625b23e42605ba"
+      },
+      {
+        "path": "docs/OFFHOST-STORAGE-SETUP-2026-09-24.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "e78b6f787afa4f6fab363119dec78b996c06ec1dac3bbce2621df6dab00c7ef1"
+      },
+      {
+        "path": "docs/PRODUCTION_GUIDE.md",
+        "status": "M",
+        "baseBlobSha256": "08bf60bab34a23a9458f0fab8909646427dba756c3a6732a068fcf4e97ef5363",
+        "headBlobSha256": "0415fd43e219170226aa2d4f8d5531b52d520f16e0cb7f768bc6ecfbaaf4ab1e"
+      },
+      {
+        "path": "docs/PROVIDER-ACCEPTANCE-GATE.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "fafeec032159a5b20cfffa9e1b22afb28dee44095030f3b9a0304cab8f433a4c"
+      },
+      {
+        "path": "docs/QUALITY_OS.md",
+        "status": "M",
+        "baseBlobSha256": "c02275adee9c8e30bf61e6936e3ea83203c94d07a18e3f99bf33a7faa94a7a48",
+        "headBlobSha256": "e65b8dcfe00f755e4a66dc9f11d8b24186c019443a321bbcb5a2f3ca4d5c0783"
+      },
+      {
+        "path": "docs/backup-google-drive-secondary.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "10208c59027490a26834b9c9ee7e14296d0ea107eaa47e8c8f1f9629050f60e0"
+      },
+      {
+        "path": "docs/runbooks/internal-tls.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "c69a63c327111d046f0a3b19ef5ef92df62bd8cdc6263f1b1170b4da2e6c4dab"
+      },
+      {
+        "path": "docs/runbooks/operations.md",
+        "status": "M",
+        "baseBlobSha256": "e504fcd9dba400a0e65bfbe96be0bdd6d26fe3b52d5ed4b5a27035302a21d92b",
+        "headBlobSha256": "3ec0838c20caf89ed96fc5c62d09a783d0338b443c9a062c83a58e8f5a797cc8"
+      },
+      {
+        "path": "docs/testing/ccxt-expansion-matrix.json",
+        "status": "M",
+        "baseBlobSha256": "ff29253de91ca2749c77882902b9322eb7cbcec59f75ef35a575e9249e2e7fbc",
+        "headBlobSha256": "eeb08e1b01516fa120ee7c917388d1088aef879d8cb8d2318aad618323efd107"
+      },
+      {
+        "path": "docs/testing/ccxt-expansion-matrix.md",
+        "status": "M",
+        "baseBlobSha256": "bf1081d6b4efbdba22b0903023d8c9cf5640539d7a48425921e3107644eba914",
+        "headBlobSha256": "513dcc1fbfd8b3bf719d3d17ab060410b825c070f3e583bfc7c3c7f014f78e5e"
+      },
+      {
+        "path": "docs/testing/ccxt-inventory-renewal-2026-09-24.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "3622aa8a0874ecfc71347ef5817071ccb0651efd4e3a1a1b7cc70d95fcb169b2"
+      },
+      {
+        "path": "docs/testing/codacy-eslint-null-handler-repro-2026-09-24.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "0a77397b203c4cb8034603dd93676ce77efcedc2f63d4dea06a765fc833158f6"
+      },
+      {
+        "path": "docs/testing/codacy-pr79-coverage-review-2026-09-24.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "4b5dd371cc45e03811c343250b9dfbc134fe53dd8e0e4b470e9c503b81bb05e6"
+      },
+      {
+        "path": "docs/testing/deepsource-b3-introduced-review-2026-09-24.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "2dfb6bcc43ca62ea72d46d3759e4a5a3078667da2dd548c6fbffe9bac8438fd2"
+      },
+      {
+        "path": "docs/testing/deepsource-test-cleanup-review-2026-09-24.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "d4ab4ef2537782cfeabc75c1def691e50f6d6fb22fb7cb99a6b206b876e0ceb5"
+      },
+      {
+        "path": "docs/testing/exchange-acceptance.md",
+        "status": "M",
+        "baseBlobSha256": "e4d014019e2fc45a8ed2cac4596723dc717df3e3177be37ba294cf2fc0e511dd",
+        "headBlobSha256": "5aa2d5972cf9f2607854bc18c4edca5fb8235534f66320ded32785368e92fc54"
+      },
+      {
+        "path": "docs/testing/host-maintenance-boundary-17abeb0f.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "5067b371acc615068b28e3fe2a1609d07a9da3eaec7167f0104140e367fd5e0e"
+      },
+      {
+        "path": "docs/testing/host-maintenance-boundary-drive-20260925.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "88793d1d3b6297ed329a9340d0c8c74cbe71601f7a6cd494ed52b8f34c23fa5d"
+      },
+      {
+        "path": "docs/testing/host-maintenance-boundary-efbcb568.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "5379d6ac56d6b646c263fdbc3589a9dc8b7c69ae3c8cc4f1263798e7f6df36b7"
+      },
+      {
+        "path": "docs/testing/hyperliquid-agent-wallet-candidate-review-2026-09-25.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "b25872a7be42e5a54a5f16b6d4659ceb089f70e19aae8f31e21cd0168b89c7a9"
+      },
+      {
+        "path": "docs/testing/hyperliquid-testnet-readonly-preflight.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "26f9fdae8cf3c446719a45ce4136d9295ecfeb1f2d276d98853d6aab5e27b0f4"
+      },
+      {
+        "path": "docs/testing/hyperliquid-testnet-transport-design.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "5ccad18564163640af401becc5cde670af0868e24de5cc89ae88476980b06eb8"
+      },
+      {
+        "path": "docs/testing/receipt-verification-runner.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "0f2a7538d82f86be6cc4c57759bd8acb4fb20d8d615ba1d4e127b2541b73619f"
+      },
+      {
+        "path": "docs/testing/snyk-onboarding.md",
+        "status": "D",
+        "baseBlobSha256": "dda731cebff9adf4877dfe057e4b6dc4f88d83364a59cbd69edb71adfa93219e",
+        "headBlobSha256": null
+      },
+      {
+        "path": "docs/testing/sonar-s6845-keyboard-scroll-2026-09-24.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "4fb664de225b75f1424173fae3130fa9462a55713720a7b3258b31ce8884d5be"
+      },
+      {
+        "path": "docs/testing/tls-runtime-smoke-0e6346/README.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "f16fd450d34ed02f416bd06ebbd40c82b7e3eef89f5e381eb3a537c4a842e107"
+      },
+      {
+        "path": "docs/testing/tls-runtime-smoke-0e6346/cleanup.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "cfac05a298f5da284a2a9836770698f4b4d0a231888fd11ceb69232f1eb39aec"
+      },
+      {
+        "path": "docs/testing/tls-runtime-smoke-0e6346/compose-isolation.yml",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "c14297f0637082c15c4ddd5d8961f70b6282c3a5c2d4f3e0c30182c7f13b34d4"
+      },
+      {
+        "path": "docs/testing/tls-runtime-smoke-0e6346/evidence.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "88793419cba583aa21bea56b3a397df05ad21d3065a9151d23591b03b97db382"
+      },
+      {
+        "path": "docs/testing/tls-runtime-smoke-0e6346/probe.mjs",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "d3a8745602e0c2be085e8588826c2ae230576e092d57c898ec9b1555b5b8e703"
+      },
+      {
+        "path": "docs/testing/tls-runtime-smoke-c5d5690a/README.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "a62a5fb77bfaec0289314026665108ea1b7ef5e5f8589b4192c0090889d120c1"
+      },
+      {
+        "path": "docs/testing/tls-runtime-smoke-c5d5690a/cleanup.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "5e8b8ccc3d846bedcc85c42e48c6425f8f3e32f21bcc1b0b038b0db1c7adf265"
+      },
+      {
+        "path": "docs/testing/tls-runtime-smoke-c5d5690a/compose-isolation.yml",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "94fd8fa377574720f754aa183484a2c55966d3e8f342242ebcee06850decff26"
+      },
+      {
+        "path": "docs/testing/tls-runtime-smoke-c5d5690a/evidence.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "024d9f481a439b70e3de7919b347dd01e128997a3885e3fd458337bb78cff13e"
+      },
+      {
+        "path": "docs/testing/tls-runtime-smoke-c5d5690a/final-hashes.sha256",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "e69ceb269e462f90f28ca0368a5022f4e5695905ce799b789f9ed9369b8455c8"
+      },
+      {
+        "path": "docs/testing/tls-runtime-smoke-c5d5690a/probe-executed.mjs",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "32d0b5e56f7e0812be4a1beb03c4efb105d04762f2bfc184ab8b07c36138a4af"
+      },
+      {
+        "path": "docs/testing/tls-runtime-smoke-c5d5690a/run-summary.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "e9645a063a51d1dd37381c7077ad699d3026a3253388648128309f616de4abd5"
+      },
+      {
+        "path": "docs/testing/uri-dependency-security-2026-09-24.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "1522b9f7216df02520e2a51e4b60771b9b9761c5750750c20cbd376bb58314bb"
+      },
+      {
+        "path": "docs/ui-next/HOST_MAINTENANCE_BOUNDARY.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "4e378e0eda6a157f1eb318038405d34106ed0f842a4652b957123f3674743564"
+      },
+      {
+        "path": "docs/ui-next/IMPLEMENTATION.md",
+        "status": "M",
+        "baseBlobSha256": "1af09a7105b8a4b428eb42cc1603421666c4ccd1925adbfe4a511156f3e2ee36",
+        "headBlobSha256": "924f8b758df60f1f90eb75c2ad4989a3cdcbd47e86fc51ee4f361d885ec97bfc"
+      },
+      {
+        "path": "docs/ui-next/MASTERPLAN.md",
+        "status": "M",
+        "baseBlobSha256": "3eaf0373c8e7d3653436a2a84749d68d706fa3007e2bab7a754d689e65fcef8c",
+        "headBlobSha256": "2e8b7d53ae9da536d4dd1c240f6f31a5d2b2161fb9a4a389cc2d4d9eeda49394"
+      },
+      {
+        "path": "docs/ui-next/OPERATIONAL_COVERAGE_SLICE.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "73aa4314fca73d82cbf44ce0da519415b6ed7c535ce3f0b30f1611759a4b67b0"
+      },
+      {
+        "path": "docs/ui-next/REGISTER.md",
+        "status": "M",
+        "baseBlobSha256": "370b19a65cddc59e008d76093d2eb6a8629d60bf6d9db102b5a5251a770a82c8",
+        "headBlobSha256": "6094ac2103fceb08d59aa691e22277fc4be741ed0a153d4526026050dfebb9d2"
+      },
+      {
+        "path": "docs/ui-next/inventory/OPERATIONAL_FIELD_INVENTORY.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "e90b14bf0bee2a6f470bee39b38d294f0ca691690d36686640cb87a1ce6b460f"
+      },
+      {
+        "path": "docs/ui-next/inventory/STRATEGY_SIZING_DEFAULTS_BLOCKER.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "8a43329ea4841c02fbbeeb5ed3f56de96c3f57760170cbfdbdbea67691995878"
+      },
+      {
+        "path": "docs/ui-next/inventory/api-routes.json",
+        "status": "M",
+        "baseBlobSha256": "6dc8fc65480b96ec75024689a3960fd9bbf55f1564433863a8467b565d186827",
+        "headBlobSha256": "1fb8b32aba7fce979c42e0171261a1015fbf496c6425301f12644407d826d166"
+      },
+      {
+        "path": "docs/ui-next/inventory/capabilities.json",
+        "status": "M",
+        "baseBlobSha256": "0ca6280cbe129d2b90c3a847808c6b1afd464f1953720bcde146d95615230843",
+        "headBlobSha256": "44119daed859aca264cc824bb95a81d092b28e40606da5f9fbc4b474bf0eb27e"
+      },
+      {
+        "path": "docs/ui-next/inventory/external-operational-controls.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "1012792e46c0949d74408ddc09741b1b7f5c35f647e9172a8b946110b51e95bf"
+      },
+      {
+        "path": "docs/ui-next/inventory/host-maintenance-boundary.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "6d150032a6f4d6b7c010f11c30a1311c396c4ed121c890853f9640d479cc2071"
+      },
+      {
+        "path": "docs/ui-next/inventory/operational-coverage-slice.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "ea7ca8a562442ad48a4fa59a180c3fca92d7c59455b09e79f31c97d22e151b24"
+      },
+      {
+        "path": "docs/ui-next/inventory/operational-fields.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "d6bb4e535382b6d4077ba5fd5f31a64b7a7a223664786067b55c410cfac6db4b"
+      },
+      {
+        "path": "docs/ui-next/inventory/parameters.json",
+        "status": "M",
+        "baseBlobSha256": "5e6860db4b116d0529133bda52ff9cb212a5c6720ab2a74737cf2044cb760b2f",
+        "headBlobSha256": "f91890b230235594239744c19c9e8ebd69c48338140c1a69da0cf2a19e2e7180"
+      },
+      {
+        "path": "exchange_executor/Dockerfile",
+        "status": "M",
+        "baseBlobSha256": "e6fb0f6166058d269c77805c26a7509b18ee73b49ad41972773581bf96a8a6b0",
+        "headBlobSha256": "004b1a3f153c203ad333498d86185a834391894ffbc669297dc3e72dfac3a0bd"
+      },
+      {
+        "path": "exchange_executor/ccxt_adapter.py",
+        "status": "M",
+        "baseBlobSha256": "db5bcb0a5a96b61e4b1647d9b081a26821c1398b3c029c6a14442ed9b29a1c1a",
+        "headBlobSha256": "2d3a011f7ecec64b568648b8ca86fe6331ed0a1c8f6aca093619c60ae5138fda"
+      },
+      {
+        "path": "exchange_executor/ccxt_candidate_reviews.py",
+        "status": "M",
+        "baseBlobSha256": "e6efb24928ee83906be89ff27795e1870e75d6caaaf7df49bc33abe5af24225d",
+        "headBlobSha256": "4d2d4d91741ed55d144cdc6f009a5e1d34e42b345575d0d05ff012b6f3660560"
+      },
+      {
+        "path": "exchange_executor/ccxt_client.py",
+        "status": "M",
+        "baseBlobSha256": "f9efcddcbc0d3bc5bf0dcd525c5ab3dba9c93f1916b1156889aca73fb0686124",
+        "headBlobSha256": "d80707faef6b0c21f103a81059e1b829a456d1f5d51d701f2a700ae2ed29ccc1"
+      },
+      {
+        "path": "exchange_executor/ccxt_implementation_reviews.py",
+        "status": "M",
+        "baseBlobSha256": "898d8dde7524cd5231f08b4ab078bbc217b121bda73d71302963b3b45127f468",
+        "headBlobSha256": "036131df2d2f0b1784ac6a06a18cb9d0a321134a346ea9e37545c7549f12a936"
+      },
+      {
+        "path": "exchange_executor/ccxt_registry.py",
+        "status": "M",
+        "baseBlobSha256": "bc265415bc30caf600f99a00f1b9ac70883c44722f0960885b69c4e8df5f939c",
+        "headBlobSha256": "84dd101b51d64166dbf5024256b2dd9c96789e7596a98de41a3c35875b22a50d"
+      },
+      {
+        "path": "exchange_executor/ccxt_sdk_policy.py",
+        "status": "M",
+        "baseBlobSha256": "d9c84bdc0d85bc4a3852759e393ac284e7f9e064e0931700e780d0557b7db056",
+        "headBlobSha256": "7e7986f1af1a37c2b7323ac4224997a6f0eb0751230a627ee4544a948e441de9"
+      },
+      {
+        "path": "exchange_executor/certifications/hyperliquid.json",
+        "status": "M",
+        "baseBlobSha256": "eefcdd4d9af1c81482569577508b5e330ade162496073d7adb9ea7bc7e30cfc9",
+        "headBlobSha256": "62e10f900734a3c0a1295dddad68a54cdb67dbd1a6a9e594a15f56f3038d1592"
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/codacy-c232-independent-receipt-review-v2.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "c5bdfc581fddc8203c9b9e0187777386fba200852b04b2a897f9231c04e7213f"
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/codacy-c232-post-adoption-checks.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "c22aad7e81faf51653badfcccfdb42c54770773595008c2568f7b22740232b0b"
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/codacy-c232-post-adoption-logs.tar.gz",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "e9a3f0f5dd3c9158d6f67669b20a8e66573d941ae55ae46c1ea6f51dfdac933f"
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/codacy-c232-receipt-adoption-approval.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "7f8dcc1beb22cd798339e74c6dea2b0e8b231c647ce5996d68e0869af0c384d5"
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/codacy-c232-receipt-evidence-manifest.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "1b1fe9e665bddfc747ec3994a24dc444dc237030c110ab45b609af11715ecd30"
+      },
+      {
+        "path": "exchange_executor/certifications/reviews/codacy-c232-receipt-evidence.tar.gz",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "b38ca6d0d19c62a1a518be551f64d5a96b2a3301b1aa64751499c3d56a9f731c"
+      },
+      {
+        "path": "exchange_executor/hyperliquid_agent_grant.py",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "89aaac36a31f00d9f1824e9375507e2f494d2c066a09a5dc28e3390963da5c28"
+      },
+      {
+        "path": "exchange_executor/kucoin_execution.py",
+        "status": "M",
+        "baseBlobSha256": "e17de810143838df8220d5a2835f7afe462bbcce998b602a7092ecbfafbc0f51",
+        "headBlobSha256": "a23140da0f2194eb881e33de23c6c6defadf830dbf460d06c9885429e7302bb4"
+      },
+      {
+        "path": "exchange_executor/provider_acceptance_gate.py",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "75b4ac00989cc22d2944e66903774acdebbcc9e2be16a0bf6f78ca72185d71b6"
+      },
+      {
+        "path": "exchange_executor/requirements.in",
+        "status": "M",
+        "baseBlobSha256": "9288271d7c8b4e70168c625b2ac2080993de9ee26f78ccce6f53e25b4d7203d1",
+        "headBlobSha256": "b8bce158ee16abd2f4d66dc64c62ba02dff2121d1fc5c0d861229d0b5288d441"
+      },
+      {
+        "path": "exchange_executor/requirements.lock",
+        "status": "M",
+        "baseBlobSha256": "f69dc9c31fc885b0fb4fd7b44ee0dd92ba8c5f0fdd086299097cf7d81b0ce2c1",
+        "headBlobSha256": "d101af016c086388660848b9967bcf613000a3b18777ea571a22a63329f28bf7"
+      },
+      {
+        "path": "exchange_executor/server.py",
+        "status": "M",
+        "baseBlobSha256": "90442c0b962745834e34b6d2fb1a833561040c5b756acd2f1557e5e05a17f5a7",
+        "headBlobSha256": "ae3ec39da9f21e573397351d6d679d022f9a1d0364deb4a85024695ae78d161d"
+      },
+      {
+        "path": "exchange_executor/tests/test_executor_listener.py",
+        "status": "M",
+        "baseBlobSha256": "af0374933f12f2300d9c3f9475856f1eea7d37c08bfaad4dd57f73a15c74d57e",
+        "headBlobSha256": "c3f35ff998f02475b73c32509b9215ae33211a9307f3401fdc2a6c034f8a6fff"
+      },
+      {
+        "path": "exchange_executor/tests/test_hyperliquid_agent_grant.py",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "fe552599ba9755e361ba34f717ae9351b0991ff78330209ade438cbfcd2823c9"
+      },
+      {
+        "path": "exchange_executor/tests/test_hyperliquid_testnet_preflight.py",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "02296c1b25f799aec825a758238d79614cb64c18bedf65485c7c79f872658a97"
+      },
+      {
+        "path": "exchange_executor/tests/test_kucoin_provider_control.py",
+        "status": "M",
+        "baseBlobSha256": "d7b2c02bf8bff382dd316105c4d366366e7e9fa88c9564205cfdd672edf97db8",
+        "headBlobSha256": "4376106b43f101591532a6c8dd195f3ffc84b068253ffe4c4d5451d8989ef3ab"
+      },
+      {
+        "path": "exchange_executor/tests/test_mutation_identity.py",
+        "status": "M",
+        "baseBlobSha256": "4603e8f835f705e621b6e71c1cfbc775dfb37be60593010f19d8567fa127adc0",
+        "headBlobSha256": "60b91e282bfe521f85a1dd2bb721d1ae0095604d82c99243d15b3a38c05774ab"
+      },
+      {
+        "path": "exchange_executor/tests/test_phase2_registry.py",
+        "status": "M",
+        "baseBlobSha256": "155cba94322017e70292efb87599ade19322299ef45ac2e1bedb813a183c51e9",
+        "headBlobSha256": "b4e43b187f425307aa3efd4baf989837b1f16ad9b43b08f16ba94d4a94ea0a30"
+      },
+      {
+        "path": "exchange_executor/tests/test_provider_acceptance.py",
+        "status": "M",
+        "baseBlobSha256": "43132b9ca992e14994fb88017ee779a328ec30a45edb0465e55ca598fb46e525",
+        "headBlobSha256": "b27eb965f3330a2d8fc0ff34865a523c6144acce66ff46e65010ccd3267b281e"
+      },
+      {
+        "path": "exchange_executor/tests/test_provider_acceptance_gate.py",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "8fef314b2b36d83e5357bb26f1ef72df14d82fd3568f80e100a9d52d8fe7cf9b"
+      },
+      {
+        "path": "exchange_executor/tests/test_sdk_async_contract.py",
+        "status": "M",
+        "baseBlobSha256": "1d5273b22a117dab842097fcfdfadbdb1cf35d10378fdbd81dcd1fa513317977",
+        "headBlobSha256": "1d75cb7ba8747f2e2082891a0a3e9e4bf9cbe4f5c4cb28a9185412206f9eac06"
+      },
+      {
+        "path": "frontend/e2e/dashboard.spec.ts",
+        "status": "M",
+        "baseBlobSha256": "813019e65d6c7c2b9b977ce2c378a209b3305c7373dc540cf0d8a81016962e5d",
+        "headBlobSha256": "f2a995f661b1f230b892b86efafaaf5e2ff28f449e077115815ebfb174855273"
+      },
+      {
+        "path": "frontend/e2e/ui-next.spec.ts",
+        "status": "M",
+        "baseBlobSha256": "29dfd9571dfbd90ca9260af3e3aa01b80b93bfa1d98c167036bbad26cd9b6900",
+        "headBlobSha256": "10a52e9b70066eb71291295e1896b8cf082dad756cc05849348df36ee87491f0"
+      },
+      {
+        "path": "frontend/src/app/operator-app.tsx",
+        "status": "M",
+        "baseBlobSha256": "01e11fde411c1f3c4ba42f5b7a1c1c4f4b467db9bcf9f1d1c78ae4e1bc967842",
+        "headBlobSha256": "99bc212a2648d5776bdd876bc17314aeadef9c4c36a02e915fd1d937f8cef6f0"
+      },
+      {
+        "path": "frontend/src/app/workflow/exchange-catalog.ts",
+        "status": "M",
+        "baseBlobSha256": "7dac7f30ea76670ce3d802fc465b53950e4aae5bb4070dcbdabc270663a1d91c",
+        "headBlobSha256": "819160ec1580c18e713f0bfda9d3692d20aa5d8a81a37fe51c62a501cfd5edc7"
+      },
+      {
+        "path": "frontend/src/app/workflow/resource-editor.tsx",
+        "status": "M",
+        "baseBlobSha256": "f3f657ebc197b56e0768f945918b7fc658d0201ce6ac6baf979c0c7b39efad9c",
+        "headBlobSha256": "f5360070c999d657a5249fbc913ee251e67ee40891864c78ad3ed4fe2eb5ffd6"
+      },
+      {
+        "path": "frontend/src/app/workflow/types.ts",
+        "status": "M",
+        "baseBlobSha256": "d6458dcefa7498402761664c26edf63281cd6864ddbad685d50f26bf04673454",
+        "headBlobSha256": "ebbcd9d9fa4dc21e162f364c7699d91033c597aeb2661d3c312e2158ab573f94"
+      },
+      {
+        "path": "frontend/src/features/accounts/accounts.tsx",
+        "status": "M",
+        "baseBlobSha256": "10590f55710c19a2349dd8b11dc5125c216eee9a985cc2734cc8a047cef41803",
+        "headBlobSha256": "40b0e9735b222372b7258150bd87236b035157824b91ae022ab66cbb03a0a668"
+      },
+      {
+        "path": "frontend/src/features/operations/deployment.tsx",
+        "status": "M",
+        "baseBlobSha256": "3cf426f057edb98c13764291026995fc6c18c5636c1f6c7ca7466c8a7a04d352",
+        "headBlobSha256": "7e5d51d991c9fddc8c987ab968e4c555a765fa344ad23bc40348e9a8788c0f63"
+      },
+      {
+        "path": "frontend/src/features/operations/operation-status-types.ts",
+        "status": "M",
+        "baseBlobSha256": "2dd4354f567eb016cb26507f2ff923cfa4a692663376026815caca3537410bbb",
+        "headBlobSha256": "36e08a74cebe49f9bf7adf5bd975c87d3e31920c812764505d3e1a0646fe4286"
+      },
+      {
+        "path": "frontend/src/features/operations/runtime-parameters.tsx",
+        "status": "M",
+        "baseBlobSha256": "e23b26dbe1f905d1b741ec79999e19b78cc9d2d9a58a1e08e8e1f04dafba7915",
+        "headBlobSha256": "be308e4def1cd564d9e4a70731418b38775fc11d166ec43a8228e470c21ddaab"
+      },
+      {
+        "path": "frontend/src/features/operations/system.tsx",
+        "status": "M",
+        "baseBlobSha256": "c3b33b85de6a00a1ec936436598c444e51fb91d4350e3d4123ffdc5cc23cc465",
+        "headBlobSha256": "c5b19975535a47bfd61e4ecb8d6e132ca2c193cf0baae5d18c11f1c66d03bf4f"
+      },
+      {
+        "path": "frontend/src/features/telegram-viewer/telegram-viewer.tsx",
+        "status": "M",
+        "baseBlobSha256": "15c439e34ddaa602fd5cec0eceee4da0bd43919b702becc035bf06fd7e4e727e",
+        "headBlobSha256": "d596de4fcaf8fff91ee9d86914ed015b9fc614d56b5a80937a66695773d11b25"
+      },
+      {
+        "path": "frontend/src/index.css",
+        "status": "M",
+        "baseBlobSha256": "eb5014e6bf46eaf5607bdfe1e77784f5be6ef1d520058440134f72096a6fab77",
+        "headBlobSha256": "31a6dba59248909a5230617f6c849c2612b61dff4a4750162f7f868061e96ef6"
+      },
+      {
+        "path": "frontend/src/lib/api.ts",
+        "status": "M",
+        "baseBlobSha256": "6dd37f662a3f3fc62e2cb7f375e70773163be0ee804303c60e88a7389ea537fa",
+        "headBlobSha256": "95c04573292b55e5818fe8c52e66ad8a900076876e9a29863ec30b6391f080de"
+      },
+      {
+        "path": "frontend/tests/deployment-tls-status.test.tsx",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "3bc2d06795c206c8a525a3c70d3a666fee79970136575f6789ac506edd151a83"
+      },
+      {
+        "path": "frontend/tests/exchange-catalog.test.ts",
+        "status": "M",
+        "baseBlobSha256": "3ff33283d491eb65979d5c4061699e06dfdbb479f1ddd81d29976b51180369a2",
+        "headBlobSha256": "30b275bf86c288ce89b7c4d52d66dbafa081ad761305afce72a951e3165fb1f2"
+      },
+      {
+        "path": "frontend/tests/mcp-agents-coverage.test.tsx",
+        "status": "M",
+        "baseBlobSha256": "f7cd94ae80143f02598941ae2a17f2d607cd96884aa18ac40d0a908fccb563bb",
+        "headBlobSha256": "ddd8c3587a0f171c38f396594c4db79c9a39e23c87cccefe0904657f7d9821a5"
+      },
+      {
+        "path": "frontend/tests/operations-workspace.test.tsx",
+        "status": "M",
+        "baseBlobSha256": "3869173fa8319cba2b63bce2218b000fd92b35704e3b0149cfb7ec7e60afee81",
+        "headBlobSha256": "36b614235d2c98c03859120025b1f10ddebe864fbc8563347a2cdb06b23e87d4"
+      },
+      {
+        "path": "frontend/tests/operator-directory-regressions.test.tsx",
+        "status": "M",
+        "baseBlobSha256": "d75382866502a6841172251e245a23e1ca57705f42faaf7060212bb8dd3362af",
+        "headBlobSha256": "86ba80d1b45e59ca8e2234c9a68896b90556faf8ab3592b5ad4707966584a7c8"
+      },
+      {
+        "path": "frontend/tests/operator-maintenance-safety.test.tsx",
+        "status": "M",
+        "baseBlobSha256": "b0423dad21402c4293d4390a92ea425d70cb3cd62c2bbe9a00985340ce42c75e",
+        "headBlobSha256": "259e74130b7c23fc3f6603292a70d58ea72d085ee9adfe800019f0ef89c5d868"
+      },
+      {
+        "path": "frontend/tests/operator-shell-regressions.test.tsx",
+        "status": "M",
+        "baseBlobSha256": "9319e9518204f7aed553f5b894e0e8fb36addb577c61556bac4a6ad5d04aab01",
+        "headBlobSha256": "48b270aec1cb8eb181ca6091d07bc03da99b9cb717b6dc0e052ca1184bc577fe"
+      },
+      {
+        "path": "frontend/tests/runtime-clock-drift.test.tsx",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "4242a91e06e8c7e2dd54870902708dd4e27982a0db9b0e0ea439c174297fbd29"
+      },
+      {
+        "path": "frontend/tests/telegram-settings-coverage.test.tsx",
+        "status": "M",
+        "baseBlobSha256": "3e00a2c900a1086aa33d0af9b1f4d786fcd56c7387843e090ade62ea2bc9a685",
+        "headBlobSha256": "3b6f71a784502a86cc1d5568973177b50faa6dea7ee033a4b8e7f3b6a6f10f83"
+      },
+      {
+        "path": "frontend/tests/telegram-viewer-display.test.tsx",
+        "status": "M",
+        "baseBlobSha256": "920059976099708714da075ca6d3549ccb77e8d38a45616745dc20200e6b50c7",
+        "headBlobSha256": "da7de222734e8f1e42f8e1394a1be54a046b977226b1d529cf600c9e63dcb604"
+      },
+      {
+        "path": "frontend/tests/workflow-library-regressions.test.tsx",
+        "status": "M",
+        "baseBlobSha256": "fcabecf1532603f4e3d3ff5315218d80323041fc6dfcfa6a175da4c11672e464",
+        "headBlobSha256": "0bef84d6dbeeb1f9966f028c35aea1b569b48121d0fcce2d210871412b1cc38b"
+      },
+      {
+        "path": "frontend/tests/workflow-resource-editor.test.tsx",
+        "status": "M",
+        "baseBlobSha256": "39231b03f0d856caeca3adc023a6ae23ae1cf70c681ae082136aca43a7fcedc3",
+        "headBlobSha256": "cb82560d972159bc326d3fe1270c93584cfbfb2acb8c85d8c51e5b7520626f9f"
+      },
+      {
+        "path": "monitoring/alertmanager.yml",
+        "status": "M",
+        "baseBlobSha256": "e047d6db783d3b3768dd53fd5d64101a8fd1a617f501ef80d69e9b0e3788e341",
+        "headBlobSha256": "622e98e2a92d1d3b4705cf6615534794f029f3c748ad7c260c487ac65537a3bd"
+      },
+      {
+        "path": "monitoring/prometheus.yml",
+        "status": "M",
+        "baseBlobSha256": "7ac881c1d0297d9f0ea4115240f7186927cb3c4b356fb03881295e35110eb354",
+        "headBlobSha256": "5703bbb67e8f4002a7f0e9cda67cddb95b38421340f7bb389b22402a99f2f3ab"
+      },
+      {
+        "path": "package-lock.json",
+        "status": "M",
+        "baseBlobSha256": "f6c46f0f23cb5c8270004e53a88f765b88334006d8e1b83014ac055a92d10374",
+        "headBlobSha256": "eb43beb9665c843dfbfe561ce5f09726b579b27d0fae56096eb1ff96628f17fb"
+      },
+      {
+        "path": "package.json",
+        "status": "M",
+        "baseBlobSha256": "317a498ec613c347c2ee362602f90e9e55bd2f95f2aceb07141a431fd16a37b2",
+        "headBlobSha256": "b27269c0b801acd3cb23ef6d6a0bef9a0f744054135e624150828e9bb40d7b5e"
+      },
+      {
+        "path": "scripts/check_dependency_policy.js",
+        "status": "M",
+        "baseBlobSha256": "cac467f658cae0b95af6aec177202a1eb9f4c3f1a49105798d83275e16265349",
+        "headBlobSha256": "40d4b1e105530a135348027fdb5a8a44fa471c82c6345b814f3fd17e5db571fe"
+      },
+      {
+        "path": "scripts/check_internal_tls.py",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "d4dfc9e66ac0cf013e366f51b9b6f738cef79002a16bf63a803592f27de71aa8"
+      },
+      {
+        "path": "scripts/check_licenses.js",
+        "status": "M",
+        "baseBlobSha256": "fe06bf42ea33fc1e111d8006aebfd27b5d27840026aec6eacaab15d0ce214fdd",
+        "headBlobSha256": "a57433b7a940be543eaca3cd962b7080f5195b9d4d9b0b99cf96309ecd1491d6"
+      },
+      {
+        "path": "scripts/check_snyk_code_review.js",
+        "status": "D",
+        "baseBlobSha256": "9541f9e22632fc6e32a71b8c035ca2ead4e5372cb97573191dc23a6d4e84c1d0",
+        "headBlobSha256": null
+      },
+      {
+        "path": "scripts/check_soak_window.js",
+        "status": "M",
+        "baseBlobSha256": "f681b360d5af60e7279f15c029ca04dc9e0813ce670eaea6192d6653b8cdfc86",
+        "headBlobSha256": "fac8eab45c98a3d39cbca74cb7af386144a234962668b3c113795e9f459702db"
+      },
+      {
+        "path": "scripts/configure_tailscale_serve.ps1",
+        "status": "M",
+        "baseBlobSha256": "c419adcf62646d76e3238e8bb060c3eddaec024f21202f101c990560e3dbfa9a",
+        "headBlobSha256": "a51548f02a5650b099e57da3d44595b424443d5e6f8e138e5faabf395ef5f230"
+      },
+      {
+        "path": "scripts/export_sonarcloud_findings.js",
+        "status": "M",
+        "baseBlobSha256": "8e4b13dfaaafc927e6a3af0ac3f034f3b82754110216cb0265d489fbeb7f9312",
+        "headBlobSha256": "8d642e47d945e60f93c089febfc5ac798224193d0d49cb16637fed286a253f97"
+      },
+      {
+        "path": "scripts/generate_ccxt_catalog_assessments.py",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "c5b609cb677ddd0620efabafbb8fad31b02ebffef00827b9804109a333865ebe"
+      },
+      {
+        "path": "scripts/generate_sbom.js",
+        "status": "M",
+        "baseBlobSha256": "0d6ae644554060069fcf7e4666f3ac2c7be37b843b5bbb1387907a80b46d9a4f",
+        "headBlobSha256": "7cdca95338d291cdbd0c31be64346eb0f208828bb60f31be1d2bdbe16bcbd9a0"
+      },
+      {
+        "path": "scripts/hyperliquid_bound_preflight.py",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "7079c9a4873e6cfccab0f5ce0b36085115b994c0f43026e5cc2778a2b937a0fa"
+      },
+      {
+        "path": "scripts/hyperliquid_testnet_preflight.py",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "905567ad3a94df525c3da21a93a3bdec60aaa9d0a13f980d82354a7faa5214b7"
+      },
+      {
+        "path": "scripts/normalize_lcov_paths.js",
+        "status": "M",
+        "baseBlobSha256": "543a920b97d486dc84c38936189e59f608245aeeed57d16643d340ab4577e24a",
+        "headBlobSha256": "130471305dbf207da18a3cfb1f425eee05566e0d6f6c31d1b94055d8e46a2f26"
+      },
+      {
+        "path": "scripts/run_receipt_verification.mjs",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "abf774602f9128c2552bfe9edd98a35a372988fbd272969841d09c585272bbfe"
+      },
+      {
+        "path": "scripts/verify_codacy_coverage_paths.py",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "ed38fbd5afa2e70c3dd096480278665ac4bfcf18160776b2b671d9721865dad3"
+      },
+      {
+        "path": "scripts/verify_exchange_implementation.js",
+        "status": "M",
+        "baseBlobSha256": "6da2f5e29efc67940ac06f98ca51b19a51ae7745d52c2fb41477b7ba1d0f357f",
+        "headBlobSha256": "92c14a998fcc9710db2cc3a95c441110c532c1b4442c41933cfed41ed79f19fc"
+      },
+      {
+        "path": "services/b2-audit-receiver/README.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "59e0170daa836dfa7e11c178db4b57ad1408fa39c0093a5b7a3c726f8ce731b7"
+      },
+      {
+        "path": "services/b2-audit-receiver/audit-core.mjs",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "0e5feea9cd9d604ceaf0e7b084d8c4ae4af1864d4f6262aa5b96a9de9c2aa6a3"
+      },
+      {
+        "path": "services/b2-audit-receiver/b2-store.mjs",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "49d8d21ad3a7d58d5cce9c32a5056c6c83e112ad10219b5625987bfdfce70318"
+      },
+      {
+        "path": "services/b2-audit-receiver/package-lock.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "52dd21a17c425eb8f83f43af8d4cea70539485658c9d5088034f16920a0bd1b9"
+      },
+      {
+        "path": "services/b2-audit-receiver/package.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "84e745cc878f7c1c164f579ddfdcbf9ba568a5790ad19da6c1ef257f11dc35e0"
+      },
+      {
+        "path": "services/b2-audit-receiver/server.mjs",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "475c2b8b01efcba31be3379e5f2cf38a7c334f2ec70cbccde8a8b00c5e66fc3b"
+      },
+      {
+        "path": "services/b2-audit-receiver/tests/audit-receiver.test.mjs",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "4f8aaa6959db0567f8e4e83d044cf6a02b6669698bd269653cffb00d0581ec1b"
+      },
+      {
+        "path": "services/b2-audit-receiver/tests/b2-store.test.mjs",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "390a283d7a4d5a15ec8333cee85fafd960313082aab58dd812e54f13598dfd5f"
+      },
+      {
+        "path": "services/b2-backup-gateway/B2-COMPATIBILITY.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "4e538bf9328eb7a22964017775722c9e7d1e16ab6337b07ec49b1f447bcbc5ba"
+      },
+      {
+        "path": "services/b2-backup-gateway/README.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "19365538edf97220668f14344795cf82018bc55e9cbcf9ae9ce5c94e8e6b21ce"
+      },
+      {
+        "path": "services/b2-backup-gateway/gateway.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "c1a85eba6d9ab70bc4be387de368d99979f3d00667c3113af935e1f382284be2"
+      },
+      {
+        "path": "services/b2-backup-gateway/package-lock.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "12ac30a1a16a3204334b08dd22116a103c8c6bc6d442cd8a78ce7dc6080189cf"
+      },
+      {
+        "path": "services/b2-backup-gateway/package.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "69df0311bdf38c006176a4fee81da6725726903970ba05ba1cea6af872d7856f"
+      },
+      {
+        "path": "services/b2-backup-gateway/server.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "a143f866dd19425328ffeac71cfa0edcf740d005608e8cc13abaecb2bdcb4756"
+      },
+      {
+        "path": "services/b2-backup-gateway/test/gateway.test.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "26b8d4f707ef20481396457bcee565fcac587c101cb01560a739f6c22c520582"
+      },
+      {
+        "path": "services/incident-receiver-worker/FULL-CONTRACT-BLOCKERS.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "c29e3185da649d4ce74bada79a54fe25beaf98a97fa3a716f8111fde154c3257"
+      },
+      {
+        "path": "services/incident-receiver-worker/README.md",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "2dac9efeb1a967716b0edbe5d401f6cc5bc17f02d80bc511a868f19efa1eaeb6"
+      },
+      {
+        "path": "services/incident-receiver-worker/schema.sql",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "2b8884c5d304249951b50196eb653fb01efb984515a0890cfc6c90096523e5d9"
+      },
+      {
+        "path": "services/incident-receiver-worker/worker.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "1371def7a1d3e2f2b3160e6f69503723ff3dc4a9c44c36eb55aa5c77d367eddc"
+      },
+      {
+        "path": "services/incident-receiver-worker/wrangler.toml.example",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "ba05cd38b474c165c677644829aae5fd408a7a7e06fbdd2764f3d533c2ad9722"
+      },
+      {
+        "path": "sonar-project.properties",
+        "status": "M",
+        "baseBlobSha256": "e0331c5b1eba4acc87f506746d0f32197e68b551b6576e2601193036945799f2",
+        "headBlobSha256": "6207dd3ffd3ae861be55d57cb3ad2e136cbd8a90a5946e62aec8b690d1c629e6"
+      },
+      {
+        "path": "src/alert_relay.ts",
+        "status": "M",
+        "baseBlobSha256": "7ada44e6e5159fa17b01b9e945b11e85cf80812acc833531b92620c873b56e1a",
+        "headBlobSha256": "d991b40dab0adb8ad6cad582e1405620cf561b221e0f1bea2f82a3e099a42b13"
+      },
+      {
+        "path": "src/backup.ts",
+        "status": "M",
+        "baseBlobSha256": "0dcd692ef7051bd9ed24c41bdf621f7ae15af6f84c10b78bb795683cddb5288b",
+        "headBlobSha256": "bd49d6432515d68b080cb7f712634c53a04d6e851af826e2863d8f336f53bc1c"
+      },
+      {
+        "path": "src/backup_evidence.ts",
+        "status": "M",
+        "baseBlobSha256": "9bf08dd21e340d0f00d0502d0d16a470dd8b1a3e05ba2942b0fc84911afc8ff3",
+        "headBlobSha256": "d6ee9a687d47728f0df6bbbd85887da5de044940ed7bbe7bfcd41d743cab6a0f"
+      },
+      {
+        "path": "src/backup_generation.ts",
+        "status": "M",
+        "baseBlobSha256": "6a556819a3da5be9cef0f3204653536d54060c0cc5ae0f3bc303bec159b4f65f",
+        "headBlobSha256": "01d67524b55df043b4b3223bdf05f49d871febb1abde51d4c1cf1ccffb459777"
+      },
+      {
+        "path": "src/backup_replication.ts",
+        "status": "M",
+        "baseBlobSha256": "c5979e5a5fa46f03c64068960d2df8f5177b301dfa7b195d94715cad6576ab8a",
+        "headBlobSha256": "ecbff347df49f25284fe4dca43f8eb7c80a34175b0a770889ddad9b06d6ebb90"
+      },
+      {
+        "path": "src/bounded_tls_file.ts",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "999bc6e6d5249209e767cec9cc033cf895d135ae0e5dda3f69f475dfd3d0cf80"
+      },
+      {
+        "path": "src/ccxt_catalog_assessments.ts",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "b22301b276994dcaec92fa5505d7bd70ca6794690a4f404bef968c90a6c7bc7c"
+      },
+      {
+        "path": "src/ccxt_exchange.ts",
+        "status": "M",
+        "baseBlobSha256": "83c403cc476f66a243c922196f6a2f977ed40ae7cf3ac39762b4f700161e8ebc",
+        "headBlobSha256": "d23c5b3fcc1f2d742f4b199e8d004047af1d0beab11e318fe5f5fa898d4ebf2e"
+      },
+      {
+        "path": "src/env.ts",
+        "status": "M",
+        "baseBlobSha256": "428af0810fc4b713e4c3cc013e33e3ae221fb04fe4a2c77a0d7a226009f3aa30",
+        "headBlobSha256": "fdf5503f487d3dd1295ba109458c0f4724e721ab78d3bf17d7cc3691d296ea9c"
+      },
+      {
+        "path": "src/exchange_catalog.ts",
+        "status": "M",
+        "baseBlobSha256": "9bacbb7a84573343d3a98152fa948a5848b32d958f17a0b27a211b39957cea2d",
+        "headBlobSha256": "9ba5c8058eb8df8b0247660da3405c15a295c151c84037a99404e03543a0e2de"
+      },
+      {
+        "path": "src/executor_origin.ts",
+        "status": "M",
+        "baseBlobSha256": "c5d8f9e250277a35e0de9e8d1899473d395264be33c2cd861dc7fcd6b97d091e",
+        "headBlobSha256": "3361875ecfd12eb7ebf9946adf9c111b60e3fc06b886df5e8c61833c7c27082a"
+      },
+      {
+        "path": "src/forwarder.ts",
+        "status": "M",
+        "baseBlobSha256": "523c22b9e6b2805f04aca81798c15c9778d2c83a175d13db54c067e771aa7c44",
+        "headBlobSha256": "dd3a87c3ba4ee4d5785e2f48a611f68f990d5b8749acd2554b53d4cb3a0e49d4"
+      },
+      {
+        "path": "src/google_drive_backup_mirror.ts",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "8447b2b81a61378623f6622a72fe3cac7927174db379a0998f9666d96a22a14a"
+      },
+      {
+        "path": "src/internal_tls.ts",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "3816823f516dfdb8f7ac0090df23e1cfb8663fe7d03ff44e5a124d5b82b10326"
+      },
+      {
+        "path": "src/metrics.ts",
+        "status": "M",
+        "baseBlobSha256": "f4fc67a296b6e96a11c7c6430e86481bca19cc3ef9d62efb73a89ff6458d4fdb",
+        "headBlobSha256": "dfc8aba3e5a21cd9c35905ca7ce1d44db92b91c0c86c9b66e089922b66b81c59"
+      },
+      {
+        "path": "src/provider_acceptance.ts",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "9dfa3bc9ac703bf910ba5c258a65c0210f1cb7409a44b62227a523d7c2044370"
+      },
+      {
+        "path": "src/runtime_settings.ts",
+        "status": "M",
+        "baseBlobSha256": "043b16d0c066bf550a8e83eba53082f52d89b6d49d3a48553650ad4beab7379c",
+        "headBlobSha256": "71575deae1db955399c25f91b15f0196a471ed5633788a6cf7eac5e9218c9f36"
+      },
+      {
+        "path": "src/secret_store.ts",
+        "status": "M",
+        "baseBlobSha256": "c88446eeb0f3ae8f0e85b8e04890abf52367112149e795cc695e8a08cf74e29a",
+        "headBlobSha256": "169112223500c7bc1cf3a35270c06b354572675fd0e4c7642d28965a0d58c76f"
+      },
+      {
+        "path": "src/telegram_viewer/clients.ts",
+        "status": "M",
+        "baseBlobSha256": "5d7420c22147747bb886a14c0b07041353f5945d224525ce0bd728c158908b9a",
+        "headBlobSha256": "33528d821a050016ad730cdc3eaf590a1d5c65c2e21040de20d2d7aa52cce996"
+      },
+      {
+        "path": "src/telegram_viewer/health_server.ts",
+        "status": "M",
+        "baseBlobSha256": "34f8c841e22275f97d537366c47cff93c5a88ca144f0d9567a2cdb801bc67484",
+        "headBlobSha256": "9e28f71a2b68537ee39b307595a714dfbd95e69090717ea3ac30d9c0cc6fdf2a"
+      },
+      {
+        "path": "src/telegram_viewer/internal_transport.ts",
+        "status": "M",
+        "baseBlobSha256": "f5af73b14ca63db86b3bf0b1449072552aa9fc388ca269b99a9aee0d7be6835c",
+        "headBlobSha256": "efad0b305262d4be07d1748fe6eaba8c14da72b4a3e241187dbef34a972964a8"
+      },
+      {
+        "path": "src/trading_engine.ts",
+        "status": "M",
+        "baseBlobSha256": "5bee3a6f524df4d051e09e4488fe1c8aa3611271ef153edc47d40a87ac803776",
+        "headBlobSha256": "7258d2527e2318494996e875b531da4bf9280c5b3e19bd1eb400662edda14706"
+      },
+      {
+        "path": "src/trading_web_control.ts",
+        "status": "M",
+        "baseBlobSha256": "55c654a7697803009f3e8dde001c8f1ff111ae57f0ef1dd4016266161abc09fd",
+        "headBlobSha256": "71a85fe84b5610ab716ca147abce6314eefa6061837acfdf9508bf58ea1185a2"
+      },
+      {
+        "path": "src/ui_capabilities.ts",
+        "status": "M",
+        "baseBlobSha256": "2779fc8a2aa63a4f15b6407d993494ffac5603b87b88d30cb70966fb9417d4c6",
+        "headBlobSha256": "d0e48ed7d9f5747d97039895c5ab3fad127ffa364faf253d79a39622362dd206"
+      },
+      {
+        "path": "src/ui_contracts.ts",
+        "status": "M",
+        "baseBlobSha256": "5ce33185d9c79c90802207e3efc752d1213fedfe0ecd02bc252ac9f735e9aa9d",
+        "headBlobSha256": "0b1702c32828cb5793e5d44d4702eb262ce3d4b7c68e690b650c6407b9d65e4d"
+      },
+      {
+        "path": "src/ui_deployment.ts",
+        "status": "M",
+        "baseBlobSha256": "2223ec48d36cf13a2dbe0425ece9657608fa4f7089d76d811f0c555af2540950",
+        "headBlobSha256": "acc7fa1d5ec1cb8730673f9861174aac9fdf30225478890b28bd8e115ac8076c"
+      },
+      {
+        "path": "src/ui_parameter_catalog.ts",
+        "status": "M",
+        "baseBlobSha256": "8f16a645246ae2aee5f1b95f4daa4031aa8b8aff7cb16a04e7ad56538452a79f",
+        "headBlobSha256": "192dd5bcfdaf226507dda5283d18c52d953b6b4d7c11442fb9b24c37deaa31b4"
+      },
+      {
+        "path": "src/ui_route_inventory.ts",
+        "status": "M",
+        "baseBlobSha256": "6a2d6f08ac6f9ee7e09b59820f54891e9121758a6779525f9b60221d79284422",
+        "headBlobSha256": "1a93024fec75477ab5580935ea4e4fe8dd51cec335d6390bcab3fa0c2c6ff50b"
+      },
+      {
+        "path": "src/ui_runtime_contract.ts",
+        "status": "M",
+        "baseBlobSha256": "186bab704b3305ad3feb3ccca2da611819e958806e6eea57385d1c1627bd425d",
+        "headBlobSha256": "5dcc24b75912770341472665e2f449a3b8670fb818cb455c1a86df0e31cfe094"
+      },
+      {
+        "path": "src/ui_tls_status.ts",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "4a55f6791dc1b41a4534ee32c9dfc5fa7dccbccdaf323c8db86a29c3d0a77b6e"
+      },
+      {
+        "path": "src/web_server.ts",
+        "status": "M",
+        "baseBlobSha256": "1c664539f34acf6190136415ffb0e032a807a95f2e5a8e43d73ee1c220385094",
+        "headBlobSha256": "12e5c434802c118fb1a32d3635d4fafc585db4297842564994c4326e4f835ebd"
+      },
+      {
+        "path": "tests/evaluate_signal_golden_set.js",
+        "status": "M",
+        "baseBlobSha256": "69f890d251923b109eb8f637d07f831e5ef2266d149e82c5e6953b9e7bc58ae0",
+        "headBlobSha256": "1241bfd23fcb51b694c7aa83d9659737edd1957364f90319f5d7c5c718ed2ef2"
+      },
+      {
+        "path": "tests/fixtures/internal_tls_fixture.py",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "c8efc592f33afca5e40d68754d6e75297cbfcaf3b4c01ad45cad8471d9d70aa1"
+      },
+      {
+        "path": "tests/fixtures/internal_tls_test.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "fc393c996e7322e2ada14ca775a2ddd4b917f0213b0d7aadd7bc164e6518c9ae"
+      },
+      {
+        "path": "tests/fixtures/provider_acceptance_signature.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "ef31643a3d0e7d442b818864728343359ecc1d861547c2791ae6f91137498ff4"
+      },
+      {
+        "path": "tests/fixtures/provider_acceptance_unicode.json",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "3c03165e784b36586ff785f05dcd385095fd96c192120dc1ed7af5c450175f9d"
+      },
+      {
+        "path": "tests/run_all.js",
+        "status": "M",
+        "baseBlobSha256": "6054d76a099bd03ab68c8196848d4e9f087c3a05313caf8c8559574126376e5b",
+        "headBlobSha256": "fd04d9e5e3cc9ead95e693f1f47a24601db70c77e0435241b1ed7ef6cfc65941"
+      },
+      {
+        "path": "tests/test_alert_relay.js",
+        "status": "M",
+        "baseBlobSha256": "0477f3d676e457feb0b075955ed60df465ed219611ad3fdc65b1a6d8177222b8",
+        "headBlobSha256": "5d9b503c5467b3d4e8f0d43d79855090164cf17419ca3b635aa6a8fced27d339"
+      },
+      {
+        "path": "tests/test_backup.js",
+        "status": "M",
+        "baseBlobSha256": "2dcec9af441224171e3b6785fa899d8bfb211757b01374f5ada6acdefdd9490d",
+        "headBlobSha256": "30acdf67efc04b54608f2c9ec5392a44a836f54579bde1268fd5ddefc2ac9be3"
+      },
+      {
+        "path": "tests/test_backup_proofs.js",
+        "status": "M",
+        "baseBlobSha256": "cf2d46ec9a3530b77e892ee622e91a6e76027a9b6e1091b06dae13ee76de3f8e",
+        "headBlobSha256": "4f319b8fc013641fdb3a03cbc5d0ab6874c3835baf848c5ddbf120571f675c7a"
+      },
+      {
+        "path": "tests/test_backup_prune_order.js",
+        "status": "M",
+        "baseBlobSha256": "1e3044d82ecf3c3bd3391ae2ec6f840ad48ba8dffe0020ab66b1836459078204",
+        "headBlobSha256": "b69009120069f50e922e4949025a101d1cd928a825c4802622031e431dd77fad"
+      },
+      {
+        "path": "tests/test_backup_replication.js",
+        "status": "M",
+        "baseBlobSha256": "9588fd81215a55fc225fabf4e4ac8ddbc892742f98ebd5bbfea55eb0da58e6d7",
+        "headBlobSha256": "2a99a70e5c7347f615be54c55a07e13d51e7d5ec34d4ebc1fb473c1e5c16cd19"
+      },
+      {
+        "path": "tests/test_ccxt_exchange.js",
+        "status": "M",
+        "baseBlobSha256": "94ce44bb79596d1533c0d5a7676e8791a9306daeb2c20a6e9ad136144192da5f",
+        "headBlobSha256": "7732a9fc535893f2c7d5d9cdb60a25243fb5daad046347548c8caf47e62bf68e"
+      },
+      {
+        "path": "tests/test_configurable_fallback_migration.js",
+        "status": "M",
+        "baseBlobSha256": "391c3bd2dd8692af1000ca6b64638a9d8821236df4d93160c1eedb0788268faf",
+        "headBlobSha256": "20a505ebd9ce9e4b948721606e5ee35b972eecd662b39fe588c9a50d3b77dd26"
+      },
+      {
+        "path": "tests/test_crash_guard.js",
+        "status": "M",
+        "baseBlobSha256": "db9d18a7aa39fa5131c148da53fe0130de4921c56091605782360959c2e25ba9",
+        "headBlobSha256": "710960ce990bb9137f12dcb312fa23bff288afa6d2d7b2fdcca22729a4f93a06"
+      },
+      {
+        "path": "tests/test_delivery_tracker.js",
+        "status": "M",
+        "baseBlobSha256": "c0a8f2274ca6c7b12b9e521133c5915ab4b2b172c354e66b2df3c7c754228c88",
+        "headBlobSha256": "33fb974aee8ce2a40edb82780e61407082dd21fc498e16e9fd519c4d4a0a9923"
+      },
+      {
+        "path": "tests/test_dynamic_exchange_registry.js",
+        "status": "M",
+        "baseBlobSha256": "b6dc5b52a4ec525d2ff397d34eaecbfa878951fadc80ea16a599b58dca3e9ac1",
+        "headBlobSha256": "89ea275fc1ac13d98cc05d9973f1e99c595d6c3cbfba6b018b5885c672170443"
+      },
+      {
+        "path": "tests/test_exchange_implementation_bridge.js",
+        "status": "M",
+        "baseBlobSha256": "d1a39e322f80fe27fdc1d4e4c1c663e7adf7ec9878ca970ecaa2f427a306692e",
+        "headBlobSha256": "0cf70e075a33878accad15e65f6a8105cf1dc360f904e7d525f6100587299ce6"
+      },
+      {
+        "path": "tests/test_filters.js",
+        "status": "M",
+        "baseBlobSha256": "afd76211cd82692786e2e2dde8c79de631a0af600161acb3f0e2198804ac7281",
+        "headBlobSha256": "ee0ba65054f6bfe4ca573ccb51a6d393f29d754031c048a6ef2e2e4afb97705d"
+      },
+      {
+        "path": "tests/test_google_drive_backup_mirror.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "479be91e380a9d5f5fd190c0d67a578f5f9a5252fd28de0557f19f363cca3136"
+      },
+      {
+        "path": "tests/test_host_maintenance_boundary.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "5abd09e3934a5568bda21f677b433cebf3b7dfeaf74d063b7e5a7a34b5db47c9"
+      },
+      {
+        "path": "tests/test_hyperliquid_bound_preflight.py",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "d930d90f66b7293c403f038d9874297ab4ae9269e234133d5ef5144af06422d2"
+      },
+      {
+        "path": "tests/test_incident_receiver_worker.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "05bb2aec3666f3b194b5c8693ed091145579f8b1989ed9dcce7bf9d445c20779"
+      },
+      {
+        "path": "tests/test_integration.js",
+        "status": "M",
+        "baseBlobSha256": "4c39ee34e606ce02b3fcffe4f7ca16e8802e9a3b526ad0d8aef905f284903584",
+        "headBlobSha256": "49690820167065e79d4ee9456b4730befaae4e3ad0da6999e3b99c705f84bb90"
+      },
+      {
+        "path": "tests/test_internal_tls.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "78e31948a405528e1100fed93ef962f839713103f170cca8aae958819e3a1bcf"
+      },
+      {
+        "path": "tests/test_internal_tls_preflight.py",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "d4f600d6047b6c6549f87c5526bf109962477041cf6e3dd8009ddabc7ecfda01"
+      },
+      {
+        "path": "tests/test_lcov_paths.js",
+        "status": "M",
+        "baseBlobSha256": "c14400f684e78e2f043568a34c0a1965f360f52530fe086eb675b7afee83ce23",
+        "headBlobSha256": "b7ec7374c0fa3ee2357848cb154ac4fd2c05c64471deea7bf256117fcd38176b"
+      },
+      {
+        "path": "tests/test_mcp_maintenance.js",
+        "status": "M",
+        "baseBlobSha256": "0c6ce2f6491dbe0d04f551eb5d6d98c3da06cce42af4241ba75f330b7b37cedc",
+        "headBlobSha256": "8a9bdf177154b16232645058dff45aa9dc526dc940e88c2433dc8a2eb997d033"
+      },
+      {
+        "path": "tests/test_mcp_server.js",
+        "status": "M",
+        "baseBlobSha256": "90768e044169892ad274fdf4ad1dfedea72159421bc482c6784525cf1028c6a4",
+        "headBlobSha256": "9e582f592a98bb8d1b63091fe22e61ba54bd8ca337db6179cc32252eee8110a5"
+      },
+      {
+        "path": "tests/test_metrics.js",
+        "status": "M",
+        "baseBlobSha256": "1de02b274fcb40defd50c8b0ceceaec539fa98cd200eb0b89e44c7e09a4884f0",
+        "headBlobSha256": "d90cc344d289dc4150e8ab955c170351e8ab40347c9db2fa49f5e19bf6389401"
+      },
+      {
+        "path": "tests/test_modules.js",
+        "status": "M",
+        "baseBlobSha256": "e065a465af03e11774c03f05ced6f80480ce4a8d411cf6c48fae8f218586cf8b",
+        "headBlobSha256": "ed072045c0d8bd049565c8cb7239821eb9aaf30db653e9d6142aec80fbce92b8"
+      },
+      {
+        "path": "tests/test_monitoring_artifacts.js",
+        "status": "M",
+        "baseBlobSha256": "d41a06aef9e7f10161ed097a5623f6b93871202695fb5bb47e498d1fe532ece2",
+        "headBlobSha256": "5bbce22181ba0d5d8d09cdeead19d479439a5cdbcf9c673ca871dc9ff12e938e"
+      },
+      {
+        "path": "tests/test_operational_field_inventory.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "9650adf73268558bf07db8e5ba32d41f7489bf480c008a11e0018f30c60e1dc7"
+      },
+      {
+        "path": "tests/test_outbox.js",
+        "status": "M",
+        "baseBlobSha256": "a4b64dd1e77a7636895b444f1c3113bd3ffdb6ce72188167ad37e6657981c0be",
+        "headBlobSha256": "59d3b8f9dea428b2062167592003d6a235568c0c5ca8b18ced1322233eca0d11"
+      },
+      {
+        "path": "tests/test_provider_acceptance.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "8faf1745d42bdffcf03e476f65ed2923d99a83af8e3c59449b1cb69e7293f6a9"
+      },
+      {
+        "path": "tests/test_queue.js",
+        "status": "M",
+        "baseBlobSha256": "f0b984e52b9f9b123c8fe2fe64ffb3417cddff67e04adf87cc45d166024fc3ac",
+        "headBlobSha256": "8d4164eb5ab9f54868c60c9ed82d6d911f9dd0dc89c12f3d1938292ef654d1f0"
+      },
+      {
+        "path": "tests/test_receipt_verification_runner.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "85b0347afb8f88d9b1266520e73067bf738967597c8c16864de8c6b04e8b2619"
+      },
+      {
+        "path": "tests/test_repository_governance.js",
+        "status": "M",
+        "baseBlobSha256": "3821182f0605e80ffd3d418f8ae01321a0a0cf48c75260cb8ce72fb6c2c0b32e",
+        "headBlobSha256": "54ed9c8336a769cf3f26fbf4164da0764338c9e2206614bdf570b16cd1d5ef2e"
+      },
+      {
+        "path": "tests/test_retention.js",
+        "status": "M",
+        "baseBlobSha256": "f43a3a6b87b1ec42a5b3ac3228630f68c186c10167e1eb955dc9da38d84fb609",
+        "headBlobSha256": "08812e176f8c3148be643bbf566a2e3e15b6f3183fc7d77c86995d6e8de047b4"
+      },
+      {
+        "path": "tests/test_runtime_settings.js",
+        "status": "M",
+        "baseBlobSha256": "7a745e2f67fa096be099c94104fffa3219c368926329b64494a505bf568f91c5",
+        "headBlobSha256": "8d055ed35b1d1693749b248af51d41f4f4c6c72942e1c44319331c007516921a"
+      },
+      {
+        "path": "tests/test_secret_store.js",
+        "status": "M",
+        "baseBlobSha256": "ade9252bf08392f4a7088648f5077c00c06442b85f208a7ce056460ff2ce50dc",
+        "headBlobSha256": "28dc501404296ba96ab87550276118eb58c330068ac8786289151c4ff77d87fd"
+      },
+      {
+        "path": "tests/test_signal_parser.js",
+        "status": "M",
+        "baseBlobSha256": "df5f8ce073dbd511f224f0bf1589ad859d0eb2959a5cdfa9a6eedc2576964eb5",
+        "headBlobSha256": "df4f052a3e0ead7bab9898b22d60534720a289a55ca6d186208c87fa6d4fd336"
+      },
+      {
+        "path": "tests/test_signal_schema_migration.js",
+        "status": "M",
+        "baseBlobSha256": "e60931068bebd973c29b72368e114d7cc969ddc7c3f34286c43b785450c7df58",
+        "headBlobSha256": "11d921a8738d1b20727e16b915c4410a19e5c6a7e7d8191a563995c32ee0c40c"
+      },
+      {
+        "path": "tests/test_snyk_code_review.js",
+        "status": "D",
+        "baseBlobSha256": "37cd7ece79630a8c9bb643ec7395f95c624cc9114ef0b75f04657a9ef06232e7",
+        "headBlobSha256": null
+      },
+      {
+        "path": "tests/test_soak_window.js",
+        "status": "M",
+        "baseBlobSha256": "4e025e94c4299015e812c61372158fdc581c825d3b2f156054927b7899e6a1c8",
+        "headBlobSha256": "b1d934d1d839b85624d42b22704db5ddc6f20545c320ecd6cb0f1f894696e5d2"
+      },
+      {
+        "path": "tests/test_sonarcloud_export.js",
+        "status": "M",
+        "baseBlobSha256": "719147f335a5a79bacca84f8653b07ab20c396bc892ccda4ba5babc8c6421a8a",
+        "headBlobSha256": "c6399fb93912758d00c4df80b6875e8a0a916c5e02c0cb73bf673fb7e5d74493"
+      },
+      {
+        "path": "tests/test_startup_web.js",
+        "status": "M",
+        "baseBlobSha256": "34622defefe351b0340d1e7356c6b2d52daeb8b7180f0c14a78a02fc77de0701",
+        "headBlobSha256": "c41594813fccfd7c8bbe8b33ea795497c501d56479f821d26268527751fbd8e9"
+      },
+      {
+        "path": "tests/test_supply_chain.js",
+        "status": "M",
+        "baseBlobSha256": "d38952eaa1bb2bfcd780d4b78da5bcee0a84cccf74e2f1a6fdc9a30fe0dc6136",
+        "headBlobSha256": "2dab889de53a92fe9ed2329f641cfadc1b9afb9a01ed44d0920451b8846e7d6d"
+      },
+      {
+        "path": "tests/test_telegram_viewer_api.js",
+        "status": "M",
+        "baseBlobSha256": "164c78715bb98f5fcff074c4147d2472c1a244835b3ac885661e6d786b8834ab",
+        "headBlobSha256": "730b5d856627f1d820948e729b9aba8d33dc8b71f182f648ac667409c68efc4d"
+      },
+      {
+        "path": "tests/test_telegram_viewer_contracts.js",
+        "status": "M",
+        "baseBlobSha256": "2a1f6526d269aa1e1b8d2c1894fa4e41d345992fe76e13f65fca25bc193c95be",
+        "headBlobSha256": "ea83ec3960b689cc127a7756fc59cc416794ba909db3fc25771f17af29313077"
+      },
+      {
+        "path": "tests/test_telegram_viewer_core.js",
+        "status": "M",
+        "baseBlobSha256": "909c6dd7cec41a9bd7fabe79a5a39a2c18920474858dfc65178779386bf81c2f",
+        "headBlobSha256": "fb1f0ebae3e523a79d6275f11b3a151225260d429f50a3b12d9b6d38e3b183f8"
+      },
+      {
+        "path": "tests/test_telegram_viewer_runtime.js",
+        "status": "M",
+        "baseBlobSha256": "14f5f6999c8ee9723e7f713e820fe7517e984daf5d540590ce291a439923f454",
+        "headBlobSha256": "8e97ef22b6fa5f37a544737c411bc361b2a20f93bd9255b8fd91f42eece12677"
+      },
+      {
+        "path": "tests/test_telegram_viewer_service.js",
+        "status": "M",
+        "baseBlobSha256": "49c860dc264790b3a4a3a36d829c09900a5583ec3cbb430b2a69baf1e9f11987",
+        "headBlobSha256": "58053b91a8d4306f1d72c389db42a497d4476516d6a59fccf87a853dd76a6d4d"
+      },
+      {
+        "path": "tests/test_trading_protected_entry_crash.js",
+        "status": "M",
+        "baseBlobSha256": "293526e19d3068bdff9fc88759e7b76912746c92b2d8dae767bcde557a9af961",
+        "headBlobSha256": "a02196da905e985382acd8193c9902cc7c89e69687735f55a105f2a679d02532"
+      },
+      {
+        "path": "tests/test_trading_protection.js",
+        "status": "M",
+        "baseBlobSha256": "8bb77784e06474da4a3f8d26c5d7eac47dbf7067b591f65a3ab3679e91aa7c0f",
+        "headBlobSha256": "794fd214767ba59cdb93e92ae383d8a10a08bbf49f30fed26ccdc23ff089592e"
+      },
+      {
+        "path": "tests/test_trading_recovery_schedule_transport.js",
+        "status": "M",
+        "baseBlobSha256": "956adf9a09d026cc07000e1e8f7a45cd1fd5cf7349d6ea5d17dbb59450cf172a",
+        "headBlobSha256": "7c12c1a2598b8db9983e68bf849c040cc300811edf6d9e27b215cffeed0d606e"
+      },
+      {
+        "path": "tests/test_trading_web_control.js",
+        "status": "M",
+        "baseBlobSha256": "3f9f38ed1b450ad3306e776037c721e558541b58f9e513bebbcfc34a1f43dde4",
+        "headBlobSha256": "6647b00225d50ea2691ecb3a47cb838cfb53908cd1a2132d13c3e11e456e1954"
+      },
+      {
+        "path": "tests/test_ui_operational_coverage.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "ca8a8837745f1f1088d111c0c3dee3c2b384ae799da325f9119da2fd2a55538f"
+      },
+      {
+        "path": "tests/test_ui_operator_commands.js",
+        "status": "M",
+        "baseBlobSha256": "ec105e7f5506c7a8e93ce56e033fb73c18d804853d0391b299cda9edd70b2d5c",
+        "headBlobSha256": "290710e7098e97169a87b9fee00302f1a4324e80dbee08691816eb32d33970c0"
+      },
+      {
+        "path": "tests/test_ui_register.js",
+        "status": "M",
+        "baseBlobSha256": "cee84799adbbdb9d16add3256dccc23453394fa71177ab0d573a327c854e064c",
+        "headBlobSha256": "8cef26bb61216678411ab87266c31511538df5bb6985a348f0e71751d4901ec6"
+      },
+      {
+        "path": "tests/test_ui_restart_process.js",
+        "status": "M",
+        "baseBlobSha256": "71be392af8f388b22e5591a22b72f4169cc538e0494c2e574a9ae6a8af10c90d",
+        "headBlobSha256": "71a36af35fd1519b1752729e4b29f5fd423a0460e052dc6a7394f14f1ab8e2d6"
+      },
+      {
+        "path": "tests/test_ui_restart_recovery.js",
+        "status": "M",
+        "baseBlobSha256": "9b6cd2b301ea848e453644d998df669a36c4e2e8f49cd4c3a7876a57ec98fba0",
+        "headBlobSha256": "b5cf1e717f83e91bd358642cdb26bab44ded8f9f31e21544fa2e72fa8e21de30"
+      },
+      {
+        "path": "tests/test_ui_tls_status.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "8ed525f313fdd7685b045f9e62152eeccfc7bca162555c2759d7a5a7ac06c0f4"
+      },
+      {
+        "path": "tests/test_uri_dependency_security.js",
+        "status": "A",
+        "baseBlobSha256": null,
+        "headBlobSha256": "7ecfa04eed55778126e87bc57d68ffd885298b2ce90e5a517bcb4daff8247482"
+      },
+      {
+        "path": "tests/test_web_server.js",
+        "status": "M",
+        "baseBlobSha256": "2cd157913dd7dfe3691fb2c60c45c65f4f163321290877df1b307570df763231",
+        "headBlobSha256": "eb08fcd34d258f1db8dd070224f95fda14138bd83a2e70638af7f55c7fc4f3f9"
+      },
+      {
+        "path": "tests/test_workflow_builder.js",
+        "status": "M",
+        "baseBlobSha256": "da45cd60010384fc9cf76ef7624eb9d4bbf9f4bfd3a7334237b8321d5d251267",
+        "headBlobSha256": "5e4d6085e74fc4e92d22207e6f32c3741d7ffc57cd8a9f9eadad2fc8f355f0ef"
+      },
+      {
+        "path": "tests/test_workflow_fallback.js",
+        "status": "M",
+        "baseBlobSha256": "b1e1305a4b4d02c1075e1d91b1dc271622857c481f27c60f9cfe5987c149f67b",
+        "headBlobSha256": "9e8497665cd529fe6a2b4c850058576a6011b8a73448bcfacd4396f5053376f7"
+      },
+      {
+        "path": "tests/test_workflow_history.js",
+        "status": "M",
+        "baseBlobSha256": "df971701378cc0953f85c94b5c6555f0c7166436e98ff2869eaeec0f339ba0a5",
+        "headBlobSha256": "180c9e928853e924f122de84a338f3588cbb1163857c9ff7d0f1b0bd01a57692"
+      },
+      {
+        "path": "tests/test_workflow_history_barriers.js",
+        "status": "M",
+        "baseBlobSha256": "60476c3863b367f36bcbbf7dc1220e89121adb77afe8dc13c9203022cc2a872a",
+        "headBlobSha256": "b2b290cdd59b6167947d8b0eef9a5c4cfe41c7c589c2ff0de19a460bbf94d306"
+      },
+      {
+        "path": "tests/test_workflow_migration.js",
+        "status": "M",
+        "baseBlobSha256": "b40587546f9e2921b3360a7883c9fa99dd8c9e994a2a546f4a92fa5aab03b6c0",
+        "headBlobSha256": "b85d8e372c40dbd7aa58b8f7679195d0636e206c617499e9f28c16bb05915fa4"
+      }
+    ],
+    "deltaSha256Canonical": "a21cc811035c6cdcc2fb5afed710d3041d39bbe988995080eee8528114a7ab2d",
+    "criticalFiles": [
+      {
+        "path": "exchange_executor/hyperliquid_agent_grant.py",
+        "sha256": "89aaac36a31f00d9f1824e9375507e2f494d2c066a09a5dc28e3390963da5c28"
+      },
+      {
+        "path": "exchange_executor/ccxt_client.py",
+        "sha256": "d80707faef6b0c21f103a81059e1b829a456d1f5d51d701f2a700ae2ed29ccc1"
+      },
+      {
+        "path": "exchange_executor/ccxt_sdk_policy.py",
+        "sha256": "7e7986f1af1a37c2b7323ac4224997a6f0eb0751230a627ee4544a948e441de9"
+      },
+      {
+        "path": "exchange_executor/provider_acceptance_gate.py",
+        "sha256": "75b4ac00989cc22d2944e66903774acdebbcc9e2be16a0bf6f78ca72185d71b6"
+      },
+      {
+        "path": "src/provider_acceptance.ts",
+        "sha256": "9dfa3bc9ac703bf910ba5c258a65c0210f1cb7409a44b62227a523d7c2044370"
+      },
+      {
+        "path": "src/google_drive_backup_mirror.ts",
+        "sha256": "8447b2b81a61378623f6622a72fe3cac7927174db379a0998f9666d96a22a14a"
+      },
+      {
+        "path": "services/b2-audit-receiver/audit-core.mjs",
+        "sha256": "0e5feea9cd9d604ceaf0e7b084d8c4ae4af1864d4f6262aa5b96a9de9c2aa6a3"
+      },
+      {
+        "path": "services/b2-audit-receiver/b2-store.mjs",
+        "sha256": "49d8d21ad3a7d58d5cce9c32a5056c6c83e112ad10219b5625987bfdfce70318"
+      },
+      {
+        "path": "services/incident-receiver-worker/worker.js",
+        "sha256": "1371def7a1d3e2f2b3160e6f69503723ff3dc4a9c44c36eb55aa5c77d367eddc"
+      },
+      {
+        "path": "scripts/verify_codacy_coverage_paths.py",
+        "sha256": "ed38fbd5afa2e70c3dd096480278665ac4bfcf18160776b2b671d9721865dad3"
+      },
+      {
+        "path": "scripts/hyperliquid_bound_preflight.py",
+        "sha256": "7079c9a4873e6cfccab0f5ce0b36085115b994c0f43026e5cc2778a2b937a0fa"
+      },
+      {
+        "path": "exchange_executor/tests/test_hyperliquid_agent_grant.py",
+        "sha256": "fe552599ba9755e361ba34f717ae9351b0991ff78330209ade438cbfcd2823c9"
+      },
+      {
+        "path": "tests/test_hyperliquid_bound_preflight.py",
+        "sha256": "d930d90f66b7293c403f038d9874297ab4ae9269e234133d5ef5144af06422d2"
+      },
+      {
+        "path": "tests/test_provider_acceptance.js",
+        "sha256": "8faf1745d42bdffcf03e476f65ed2923d99a83af8e3c59449b1cb69e7293f6a9"
+      },
+      {
+        "path": "exchange_executor/tests/test_provider_acceptance_gate.py",
+        "sha256": "8fef314b2b36d83e5357bb26f1ef72df14d82fd3568f80e100a9d52d8fe7cf9b"
+      }
+    ],
+    "rawLogLineEndings": "lf"
+  },
+  "verifiedProperties": [
+    {
+      "property": "Hyperliquid signer is cryptographically derived and distinguished from the master wallet.",
+      "evidence": [
+        "exchange_executor/ccxt_client.py:70",
+        "exchange_executor/ccxt_client.py:109"
+      ]
+    },
+    {
+      "property": "Agent credentials are restricted to Testnet with an exact two-field secret shape.",
+      "evidence": [
+        "exchange_executor/ccxt_client.py:109"
+      ]
+    },
+    {
+      "property": "Grant role, signer row, uniqueness and minimum remaining validity are re-read from read-only Testnet Info responses.",
+      "evidence": [
+        "exchange_executor/hyperliquid_agent_grant.py:132",
+        "exchange_executor/hyperliquid_agent_grant.py:138"
+      ]
+    },
+    {
+      "property": "Grant re-read, credential fingerprint and generation checks occur under the per-account mutation lock and before the mutation body.",
+      "evidence": [
+        "exchange_executor/ccxt_client.py:229",
+        "exchange_executor/ccxt_client.py:258"
+      ]
+    },
+    {
+      "property": "Agent SDK routes are pinned to exact Testnet HTTPS/WSS origins, POST-only, query/fragment-free, proxy-free and REST-only for exchange actions.",
+      "evidence": [
+        "exchange_executor/ccxt_client.py:98",
+        "exchange_executor/ccxt_sdk_policy.py:108"
+      ]
+    },
+    {
+      "property": "Reviewed exchange action scope permits only order, cancel/cancelByCloid and cross updateLeverage with bounded first-DEX asset IDs; builder/vault/foreign action envelopes fail closed.",
+      "evidence": [
+        "exchange_executor/ccxt_sdk_policy.py:22",
+        "exchange_executor/ccxt_sdk_policy.py:84"
+      ]
+    },
+    {
+      "property": "Live provider exposure remains default-deny in both Python and TypeScript until a pinned provenance implementation and independently pinned reviewer key exist.",
+      "evidence": [
+        "exchange_executor/provider_acceptance_gate.py:30",
+        "exchange_executor/provider_acceptance_gate.py:158",
+        "src/provider_acceptance.ts:21",
+        "src/provider_acceptance.ts:23"
+      ]
+    },
+    {
+      "property": "Python and Node signed-grant canonicalization, account/product/time binding and descriptor-safe reads are cross-language tested.",
+      "evidence": [
+        "tests/test_provider_acceptance.js",
+        "exchange_executor/tests/test_provider_acceptance_gate.py"
+      ]
+    },
+    {
+      "property": "Cobertura path verification uses a bounded linear parser, rejects DTD/entities/external resolution, and invokes only a fixed no-shell Git argv.",
+      "evidence": [
+        "scripts/verify_codacy_coverage_paths.py:18",
+        "scripts/verify_codacy_coverage_paths.py:118"
+      ]
+    },
+    {
+      "property": "Drive mirroring hashes and uploads through the same opened file handle; remote verification still binds the expected digest and size.",
+      "evidence": [
+        "src/google_drive_backup_mirror.ts:41",
+        "src/google_drive_backup_mirror.ts:146"
+      ]
+    },
+    {
+      "property": "B2 audit refactors preserve serialization, bounded body, disconnect, replay and verified-persistence semantics under 23 tests.",
+      "evidence": [
+        "services/b2-audit-receiver/audit-core.mjs:127",
+        "services/b2-audit-receiver/audit-core.mjs:147"
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "id": "python-agent-grant",
+      "exitCode": 0,
+      "result": "10 tests passed",
+      "log": "python-agent-grant.log"
+    },
+    {
+      "id": "python-mutation-identity",
+      "exitCode": 0,
+      "result": "8 tests passed; includes grant re-read under mutation lock and fail-closed generation drift",
+      "log": "python-mutation-identity.log"
+    },
+    {
+      "id": "python-provider-gate",
+      "exitCode": 0,
+      "result": "10 tests passed, 1 POSIX-only platform skip",
+      "log": "python-provider-gate.log"
+    },
+    {
+      "id": "python-provider-runner",
+      "exitCode": 0,
+      "result": "8 tests passed; live execution remains blocked before journal/network/secret effects",
+      "log": "python-provider-runner.log"
+    },
+    {
+      "id": "python-bound-preflight",
+      "exitCode": 0,
+      "result": "13 tests passed; real pinned SDK bootstrap and origin/proxy/action guards covered offline",
+      "log": "python-bound-preflight.log"
+    },
+    {
+      "id": "python-testnet-preflight",
+      "exitCode": 0,
+      "result": "10 tests passed; exact Testnet HTTPS and bounded parsing covered offline",
+      "log": "python-testnet-preflight.log"
+    },
+    {
+      "id": "python-sdk-boundary-suite",
+      "exitCode": 0,
+      "result": "53 tests passed across SDK serialization, mutation identity, contracts and Kraken boundaries",
+      "log": "python-sdk-boundary-suite.log"
+    },
+    {
+      "id": "python-full-executor-suite",
+      "exitCode": 1,
+      "result": "584 passed, 1 skipped, 2 errors. Both errors are the expected stale Hyperliquid matrix evidence binding in test_candidate_review_policy.py; no unrelated failure was observed.",
+      "log": "python-full-executor-suite.log"
+    },
+    {
+      "id": "python-candidate-review-policy",
+      "exitCode": 1,
+      "result": "1 passed, 2 errors; both confirm the frozen matrix references no longer match six changed evidence files.",
+      "log": "python-candidate-review-policy.log"
+    },
+    {
+      "id": "python-runtime-bridge-probe",
+      "exitCode": 0,
+      "result": "Python 3.12.14 and CCXT 4.5.75 imported; Hyperliquid certification reason is Implementation executor source drifted.",
+      "log": "python-runtime-bridge-probe.log"
+    },
+    {
+      "id": "node-focused-official",
+      "exitCode": 0,
+      "result": "ALL 7 TEST FILES PASSED under Node 22.23.2",
+      "log": "node-official-focused.log"
+    },
+    {
+      "id": "node-b2-audit",
+      "exitCode": 0,
+      "result": "23/23 tests passed",
+      "log": "node-b2-audit.log"
+    },
+    {
+      "id": "node-b2-gateway",
+      "exitCode": 0,
+      "result": "13/13 tests passed",
+      "log": "node-b2-gateway.log"
+    },
+    {
+      "id": "node-backup",
+      "exitCode": 0,
+      "result": "ALL BACKUP AND RESTORE TESTS PASSED",
+      "log": "node-backup.log"
+    },
+    {
+      "id": "coverage-b2-audit",
+      "exitCode": 0,
+      "result": "23/23 tests passed; lines 95.23%, branches 82.60%, functions 94.59%",
+      "log": "coverage-b2-audit.log"
+    },
+    {
+      "id": "coverage-b2-gateway",
+      "exitCode": 0,
+      "result": "13/13 tests passed; lines 94.59%, branches 83.10%, functions 100%",
+      "log": "coverage-b2-gateway.log"
+    },
+    {
+      "id": "coverage-incident-receiver",
+      "exitCode": 0,
+      "result": "tests passed; lines 99.20%, branches 89.54%, functions 95%",
+      "log": "coverage-incident-receiver.log"
+    },
+    {
+      "id": "frontend-focused-first-attempt",
+      "exitCode": 1,
+      "result": "Extra-argument invocation ran all 47 files: 418/419 passed; operator-maintenance-safety.test.tsx showed one non-reproducible disabled-button failure. The isolated file and official full rerun both pass.",
+      "log": "frontend-focused-tests.log"
+    },
+    {
+      "id": "frontend-drive-token-isolated",
+      "exitCode": 0,
+      "result": "10/10 tests passed in isolation",
+      "log": "frontend-drive-token-isolated.log"
+    },
+    {
+      "id": "frontend-full-rerun",
+      "exitCode": 0,
+      "result": "47 test files, 419/419 tests passed",
+      "log": "frontend-full-tests-rerun.log"
+    },
+    {
+      "id": "typescript-typecheck",
+      "exitCode": 0,
+      "result": "tsc --noEmit passed",
+      "log": "typescript-typecheck.log"
+    },
+    {
+      "id": "eslint",
+      "exitCode": 0,
+      "result": "ESLint passed across configured TypeScript, JavaScript, service and root files",
+      "log": "eslint.log"
+    },
+    {
+      "id": "root-build",
+      "exitCode": 0,
+      "result": "TypeScript build, declaration copy and Vite production build passed",
+      "log": "root-build.log"
+    },
+    {
+      "id": "frontend-build",
+      "exitCode": 0,
+      "result": "Vite production build passed, 2729 modules transformed",
+      "log": "frontend-build.log"
+    },
+    {
+      "id": "node-full-first-attempt",
+      "exitCode": 1,
+      "result": "Stopped at an environment precondition because TSX_TEST_PYTHON was absent; not a code failure.",
+      "log": "node-full-suite.log"
+    },
+    {
+      "id": "node-full-rerun",
+      "exitCode": 0,
+      "result": "ALL 238 TEST FILES PASSED with TSX_TEST_PYTHON pinned to Python 3.12.14",
+      "log": "node-full-suite-rerun.log"
+    },
+    {
+      "id": "python-ruff",
+      "exitCode": 0,
+      "result": "All checks passed",
+      "log": "ruff.log"
+    },
+    {
+      "id": "python-bandit",
+      "exitCode": 0,
+      "result": "No findings reported by Bandit 1.8.6 on six reviewed Python implementation files",
+      "log": null
+    },
+    {
+      "id": "python-semgrep",
+      "exitCode": 0,
+      "result": "Six Python files, 151 community Python rules, 0 findings",
+      "log": "semgrep-python.log"
+    },
+    {
+      "id": "javascript-semgrep",
+      "exitCode": 0,
+      "result": "Seven JS/TS files, 74 community rules, 0 findings",
+      "log": "semgrep-jsts.log"
+    },
+    {
+      "id": "exchange-implementation-gate",
+      "exitCode": 1,
+      "result": "Expected No-Go: the frozen Hyperliquid implementation receipt and its executor/source commitments do not match 8e7b7869. No receipt or pin was changed.",
+      "log": "exchange-implementation-gate.log"
+    },
+    {
+      "id": "ccxt-catalog-check",
+      "exitCode": 0,
+      "result": "Current generated catalog projection is consistent with the unchanged pinned matrix.",
+      "log": null
+    },
+    {
+      "id": "proposed-assessment-hash-check",
+      "exitCode": 0,
+      "result": "In-memory renewal of all six drifted references yields the recommended assessments hash and then fails closed at the existing stale implementation receipt.",
+      "log": "proposed-assessment-verification.log"
+    }
+  ],
+  "rawLogs": [
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/coverage-b2-audit.log",
+      "bytes": 6184,
+      "sha256": "d94892fac7b3c0bd20111821ed69a499f1eff62745086c1c15b2b2e060afd9dd"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/coverage-b2-gateway.log",
+      "bytes": 3956,
+      "sha256": "f70d6c6f3dd5fcdda4a0602db8eabab9f0f20b386a0de9c911a228f91624e351"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/coverage-incident-receiver.log",
+      "bytes": 795,
+      "sha256": "1cd54d92b8d472150c8c885813f50e194404ed44d884350da3c5de11a70acb1f"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/eslint.log",
+      "bytes": 291,
+      "sha256": "69130ef054cf1fab17ee7772a6fe5cbc41553ac59b99a0858dc04579379ee2b2"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/exchange-implementation-gate.log",
+      "bytes": 81,
+      "sha256": "517960c61081fd0b8d6946101878bb81a78fc1fac20597e8839138c5fa902e18"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/exchange-implementation-help.log",
+      "bytes": 137,
+      "sha256": "05db29dd732f687444fc8a3c771debe18e736792bf4b07a2de0c6ceb6bccaf76"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/frontend-build.log",
+      "bytes": 1460,
+      "sha256": "5593cc63319f190724b344abeb134ba4d5fb6bb8c517866c74c815a4d2846fb0"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/frontend-drive-token-isolated.log",
+      "bytes": 298,
+      "sha256": "bacb6ab4340cdc30aa356b9283a735080fe2c21a10bca899fb3fc0fdeeda0a44"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/frontend-focused-tests.log",
+      "bytes": 1655,
+      "sha256": "605fd7ad26c66ebbba0622228ff168990bff5e8d05415f7fae33fb20b54f8935"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/frontend-full-tests-rerun.log",
+      "bytes": 449,
+      "sha256": "9997a9cf23456c5566901be11036b6d1df5523d118b8d0a4817bfecd59911a81"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/node-b2-audit.log",
+      "bytes": 5146,
+      "sha256": "b501ef093425ec63baf5ac70d0ba959cf2a8c2cd56cb7577a08695d1eacf2d24"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/node-b2-gateway.log",
+      "bytes": 3059,
+      "sha256": "8c1dcf4c7e2b8f1578b0a2bf92a932bbc476c306e23efc3a3aec57a5dec044ce"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/node-backup.log",
+      "bytes": 271,
+      "sha256": "891d0f258754ef82c33583de0cc258d2e0262847ba53dd3ce1908b3bda5a7234"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/node-focused-root.log",
+      "bytes": 2679,
+      "sha256": "a85336a0ce57d9d8313ab18e6c24328510363560bc1ba3f0c09164ba9901cf5e"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/node-full-suite-rerun.log",
+      "bytes": 75294,
+      "sha256": "ff59c036084c1df52e50f009ea4b497ed7de4a4c870e884ad7f2ba714b5fc36b"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/node-full-suite.log",
+      "bytes": 11903,
+      "sha256": "d30b906b018c5016eb812e2839fe729173e601d4c23564acfd45196e75c54c11"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/node-official-focused.log",
+      "bytes": 1574,
+      "sha256": "e4c96f9cee314b720dc9be044eaaf293bd89387c970d4d19da154fcb0d052afe"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/proposed-assessment-verification.log",
+      "bytes": 128,
+      "sha256": "aa14161aa5114a9184b4664a54be87363ffccbf7bff1bf09a6632df72a7d3100"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/python-agent-grant.log",
+      "bytes": 2044,
+      "sha256": "762d0b8abd6817e33b1f702e767c0c3da4748535e6984552263a222a0882ffd3"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/python-bound-preflight.log",
+      "bytes": 2302,
+      "sha256": "76e269ad09c0f3f83ee9a48bc28195b56a49c543adf54c0220889ff336b81fdc"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/python-candidate-review-policy.log",
+      "bytes": 4021,
+      "sha256": "eb82d375a1feffc192845ec03f2a328b1cdcfa3983fed39bef1586ddbef009d9"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/python-full-executor-suite.log",
+      "bytes": 118307,
+      "sha256": "5b631dc71a389f8418a22a583af14a35f1b6979da5f6b2069a53c692b620a81b"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/python-mutation-identity.log",
+      "bytes": 1562,
+      "sha256": "48abd5d52c875379c22de54c878a3c0a78dcbd682d5f66585fd295ea9ea6bb38"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/python-provider-gate.log",
+      "bytes": 2401,
+      "sha256": "be35fc5838854b66d9ec8f57e702d47b4aa61bf72560f000fadfa9f563e7f7ee"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/python-provider-runner.log",
+      "bytes": 1794,
+      "sha256": "6ab5f949049956a296978a6ff59fd79520a34daa5d5a80c4753f74d0b5e07f1b"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/python-runtime-bridge-probe.log",
+      "bytes": 282,
+      "sha256": "91a1d51632cdbc67cb11fd14a805648701b578c6bc0b40dae7b66f577623bb3e"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/python-sdk-boundary-suite.log",
+      "bytes": 9553,
+      "sha256": "cbf20c79b0966ddd298ecafe2cdd5bbd558905089b5439d88b6e887f26b2531b"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/python-testnet-preflight.log",
+      "bytes": 1841,
+      "sha256": "4d9b360d077a7cb2b395713d47e76b601dbb0b6f24f6eec3866835ff1f5fc69b"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/recommended-hashes.txt",
+      "bytes": 1043,
+      "sha256": "8af779c3f4f40c6525e20ce9923f7eee433b31d14d1d94af2a2899216125253d"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/root-build.log",
+      "bytes": 1563,
+      "sha256": "1042deec0bef8dd24bfbb2ca55ff738b3fa1236cc6d318391f1f09e6b0a00b34"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/ruff.log",
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/semgrep-jsts.log",
+      "bytes": 1745,
+      "sha256": "25c1b42082a7e30ce36c224358a515cde872e9b199aea752e74d2d57a72e7365"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/semgrep-python.log",
+      "bytes": 886,
+      "sha256": "6e3511ffb2e7c8026eaa16d58609a0be4e218d350b4064699559ae36cd556b9f"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/semgrep.log",
+      "bytes": 883,
+      "sha256": "1f724550772837747e9230597cfbe804e5b4d9a1ba458f6fce5f894a87868d77"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review-logs/typescript-typecheck.log",
+      "bytes": 44,
+      "sha256": "36ad9a8a29908c63402af4b6ad27b81468223fb0da68a311a0d31ceba5790316"
+    }
+  ],
+  "results": {
+    "localImplementationAssessment": "no_blocking_defect_found_within_reviewed_scope",
+    "certificationStatus": "open",
+    "implementationReceiptApproved": false,
+    "providerAcceptanceVerified": false,
+    "productionFilesChanged": false,
+    "matrixChanged": false,
+    "receiptOrPinsChanged": false,
+    "pythonFocusedTests": "112 passed, 1 platform skip",
+    "pythonFullExecutor": "584 passed, 1 skipped, 2 expected errors from stale evidence binding",
+    "nodeFullSuite": "ALL 238 TEST FILES PASSED",
+    "frontendFullSuite": "419/419 tests passed"
+  },
+  "openGates": [
+    {
+      "id": "G1-MATRIX-EVIDENCE-DRIFT",
+      "status": "open",
+      "detail": "Six Hyperliquid evidence references drift from 8e7b7869. The matrix and approved assessments hash remain unchanged as requested."
+    },
+    {
+      "id": "G2-IMPLEMENTATION-RECEIPT",
+      "status": "open",
+      "detail": "The pinned Hyperliquid implementation receipt remains bound to sourceRevision c23272a3 and its old executor/source commitments; the root gate therefore reports implementation executor source drifted."
+    },
+    {
+      "id": "G3-PROVIDER-ACCEPTANCE",
+      "status": "open",
+      "detail": "No independent live provider acceptance, authenticated Testnet lifecycle, order/stop/cleanup proof or provider receipt was produced. live_provenance_verified remains false."
+    },
+    {
+      "id": "G4-HOST-SPECIFIC",
+      "status": "open",
+      "detail": "The POSIX FIFO/file-symlink branch was skipped on Windows; Linux CI remains the authoritative platform for that branch."
+    }
+  ],
+  "recommendations": {
+    "requestedEvidenceHashCount": 4,
+    "observedDriftedReferenceCount": 6,
+    "countDiscrepancy": "At the frozen candidate six referenced files drift, not four. All six are listed to keep the recommendation source-complete.",
+    "currentAssessmentsSha256": "770f96e1790f86b066dd99c4794e3b645b8eb3a0049ab986224e96b788e3dae5",
+    "currentMatrixSha256": "eeb08e1b01516fa120ee7c917388d1088aef879d8cb8d2318aad618323efd107",
+    "recommendedAssessmentsSha256": "c2a9fa207a8758ab7be1877b5ab40572092ff7ad477da5f432b4d3f17ce8921b",
+    "renewals": [
+      {
+        "path": "exchange_executor/hyperliquid_agent_grant.py",
+        "previousSha256": "82c5002749f2da60b14f2de029f0e6ec549ae864ef2f97332d19713a3e944e38",
+        "recommendedSha256": "89aaac36a31f00d9f1824e9375507e2f494d2c066a09a5dc28e3390963da5c28"
+      },
+      {
+        "path": "exchange_executor/ccxt_client.py",
+        "previousSha256": "68c9789b01bb41807568baa58c228251ea4b14e065241776aa4a5a50c2d44b18",
+        "recommendedSha256": "d80707faef6b0c21f103a81059e1b829a456d1f5d51d701f2a700ae2ed29ccc1"
+      },
+      {
+        "path": "exchange_executor/ccxt_sdk_policy.py",
+        "previousSha256": "292e0ec1b138929075c07dfdcc5769649a156910f2d7a0c576ff7c6c96fbddbe",
+        "recommendedSha256": "7e7986f1af1a37c2b7323ac4224997a6f0eb0751230a627ee4544a948e441de9"
+      },
+      {
+        "path": "exchange_executor/tests/test_hyperliquid_agent_grant.py",
+        "previousSha256": "d34f171c8681f9675ccb3c9d1f4f51216be6cf6cdfcf89871a20330a9ca73260",
+        "recommendedSha256": "fe552599ba9755e361ba34f717ae9351b0991ff78330209ade438cbfcd2823c9"
+      },
+      {
+        "path": "scripts/hyperliquid_bound_preflight.py",
+        "previousSha256": "c4c39f80768ad4a2c23c81ebce70c02069aa9fa5bfa3addbd5973f9bd52d43fd",
+        "recommendedSha256": "7079c9a4873e6cfccab0f5ce0b36085115b994c0f43026e5cc2778a2b937a0fa"
+      },
+      {
+        "path": "tests/test_hyperliquid_bound_preflight.py",
+        "previousSha256": "d51ddacfd9f26149e095db0d4a271d091452e10ccf29ac69375c5189b38138d6",
+        "recommendedSha256": "d930d90f66b7293c403f038d9874297ab4ae9269e234133d5ef5144af06422d2"
+      }
+    ],
+    "canonicalMethod": "sha256(json.dumps(assessments, ensure_ascii=True, sort_keys=True, separators=(\",\", \":\"), allow_nan=False).encode(\"utf-8\"))",
+    "applied": false
+  },
+  "limitations": [
+    "This is an offline local implementation review, not a completion or provider-acceptance decision.",
+    "No network request, credential loading, Testnet operation, live order, cancellation or cleanup was performed.",
+    "The full Python suite cannot be green until the six matrix references and the separate implementation receipt are renewed through their normal independent-review process.",
+    "One non-official frontend invocation produced a single transient operator-maintenance test failure; the isolated test and the complete official rerun passed, so no stable defect was demonstrated.",
+    "Semgrep community rule packs are supplemental and do not replace the repository lint, test, CI or external scanner gates."
+  ]
+}

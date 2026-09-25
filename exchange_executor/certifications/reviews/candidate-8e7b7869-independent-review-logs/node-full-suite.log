@@ -1,0 +1,139 @@
+UI register contracts passed: source drift, complete defaults, resource kinds, roles, blockers, references, cursor binding and bounded metadata.
+Operational UI coverage slice passed: 99 classified parameters, 39 managed runtime controls and 22 viewer fields; six host-maintenance gaps remain explicit.
+Operational inventory passed: 315 catalog fields, 70 external controls (23 Compose variables, 18 alert rules); 382 source-scoped control records; UI E2E remains unverified.
+Host maintenance boundary passed: 70 external controls, six deployment gaps; no UI field promoted.
+Internal TLS trust, cleartext refusal and fail-closed certificate checks passed.
+Read-only TLS deployment status and absence handling passed.
+TAP version 13
+# Subtest: Ajv URI handling does not decode malformed UTF-8 into path or header delimiters
+ok 1 - Ajv URI handling does not decode malformed UTF-8 into path or header delimiters
+  ---
+  duration_ms: 2.026
+  type: 'test'
+  ...
+# Subtest: Ajv URI resolver finishes on Unicode line and paragraph separators
+ok 2 - Ajv URI resolver finishes on Unicode line and paragraph separators
+  ---
+  duration_ms: 72.4915
+  type: 'test'
+  ...
+# Subtest: Ajv 6 compiles and validates external schema references through the replacement
+ok 3 - Ajv 6 compiles and validates external schema references through the replacement
+  ---
+  duration_ms: 33.1104
+  type: 'test'
+  ...
+# Subtest: Ajv URI resolution preserves RFC 3986 relative-reference behavior
+ok 4 - Ajv URI resolution preserves RFC 3986 relative-reference behavior
+  ---
+  duration_ms: 0.1753
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 112.6011
+Adaptive original evidence, pagination, exact amounts and reviewed Legacy draft migration passed.
+UI Next pagination, CAS, original risk reservations and read-only history evidence passed.
+Evidence freshness and partial failure, parser boundaries and publication dependency failures passed.
+Durable operator jobs, deduplication and restart observations passed.
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50084
+[15:28:49] [AUDIT] request_id=0baa858e-37f3-4c95-af0d-2489226a9aee action=system.restart actor_role=admin outcome=succeeded status=202
+[15:28:49] [AUDIT] request_id=c40394b0-8575-42e2-bcec-2fd052cb85a7 action=system.restart actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50087
+[15:28:49] [AUDIT] request_id=48f2a09e-431b-4f08-8bfb-010f4a2b0408 action=system.restart actor_role=admin outcome=succeeded status=202
+[15:28:49] [AUDIT] request_id=34921573-53a7-4784-a5b5-034eea98435b action=system.restart actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50090
+[15:28:49] [AUDIT] request_id=e4c18c4e-d1af-4e87-aaf0-b9d05d222551 action=backup.restore actor_role=admin outcome=succeeded status=200
+[15:28:49] [AUDIT] request_id=bbc8d514-cd8d-4aaa-8602-047ca1034a4c action=backup.restore actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50092
+[15:28:49] [AUDIT] request_id=b1e9acc5-1deb-4106-a75e-a4cfc372bb85 action=backup.restore actor_role=admin outcome=succeeded status=200
+[15:28:49] [AUDIT] request_id=cbbc54a8-9c9a-4731-a6c8-2a84a942bb43 action=backup.restore actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50095
+[15:28:49] [SECURITY] Complete factory reset executed through the web dashboard.
+[15:28:49] [AUDIT] request_id=4a7d08fe-eb37-41a9-9cbb-307e196e73b2 action=system.factory-reset actor_role=admin outcome=succeeded status=200
+[15:28:49] [AUDIT] request_id=a8d8952b-fef4-461b-8000-9529901f35ab action=system.factory-reset actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50097
+[15:28:49] [SECURITY] Complete factory reset executed through the web dashboard.
+[15:28:49] [AUDIT] request_id=ca5c123c-2006-4ead-afff-9e9b5b1cbafe action=system.factory-reset actor_role=admin outcome=succeeded status=200
+[15:28:49] [AUDIT] request_id=7d973d9b-731f-4523-ad69-98841e089746 action=system.factory-reset actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50100
+[15:28:49] [AUDIT] request_id=7c53b1b4-3b53-4c11-870e-691a36912104 action=backup.restore actor_role=admin outcome=rejected status=412
+[15:28:49] [CRITICAL] Audit precondition failed; dashboard mutation blocked: audit unavailable
+[15:28:49] [AUDIT] request_id=d9045210-a558-4d0c-a04a-007c9daf86f4 action=backup.restore actor_role=admin outcome=failed status=503
+[15:28:49] [AUDIT] request_id=2abc96a4-5e8e-4a49-9f1e-12cac54ea386 action=backup.restore actor_role=admin outcome=succeeded status=200
+[15:28:49] [AUDIT] request_id=d638c205-1783-486a-9fe3-571e8d345a51 action=backup.restore actor_role=admin outcome=rejected status=409
+[15:28:49] [AUDIT] request_id=3f1195c1-5823-485f-ae8d-15bfef4cdbac action=backup.restore actor_role=admin outcome=rejected status=409
+[15:28:49] [AUDIT] request_id=82c3822d-ff1d-4028-86d9-95531425e7ee action=system.factory-reset actor_role=admin outcome=rejected status=409
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50104
+[15:28:49] [AUDIT] request_id=bc76cf96-fc80-4fb7-bf28-fd078c665c8c action=system.factory-reset actor_role=admin outcome=rejected status=409
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50106
+[15:28:49] [AUDIT] request_id=1990698a-4931-49b8-bba1-0876abf23a28 action=system.factory-reset actor_role=admin outcome=failed status=503
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50108
+[15:28:49] [AUDIT] request_id=5d24ee46-3d7d-47d5-9045-9a600871ba05 action=system.restart actor_role=admin outcome=succeeded status=202
+[15:28:49] [AUDIT] request_id=4252ad4f-a87e-406b-9d6e-10bfaa82105b action=system.restart actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50111
+[15:28:49] [AUDIT] request_id=d19d01dd-e93b-4f10-b2ec-2bc660e39d9d action=backup.restore actor_role=admin outcome=succeeded status=200
+[15:28:49] [AUDIT] request_id=f62fa410-09a7-45d0-96ef-2f46cfa44f27 action=backup.restore actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50114
+[15:28:49] [SECURITY] Complete factory reset executed through the web dashboard.
+[15:28:49] [AUDIT] request_id=af8b0d75-1440-42b2-9c49-5fccd9222968 action=system.factory-reset actor_role=admin outcome=succeeded status=200
+[15:28:49] [AUDIT] request_id=59b610bc-a7b5-4f1a-99c6-52fe86782340 action=system.factory-reset actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50117
+[15:28:49] [SECURITY] Complete factory reset executed through the web dashboard.
+[15:28:49] [AUDIT] request_id=109777a7-33f1-40b1-a4f9-a2e52d6a4020 action=system.factory-reset actor_role=admin outcome=succeeded status=200
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50119
+[15:28:49] [AUDIT] request_id=adbfeb61-734d-4a1b-9322-e203b456e9db action=backup.restore actor_role=admin outcome=rejected status=409
+[15:28:49] [AUDIT] request_id=2d37fc68-a25b-4964-a9cb-c0dfbb370318 action=backup.restore actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50122
+[15:28:49] [AUDIT] request_id=9bb86a42-4538-4377-93a8-348351589b0d action=backup.restore actor_role=admin outcome=rejected status=409
+[15:28:49] [AUDIT] request_id=d1fe40ce-0af0-4586-9e6f-0b0b3637688a action=backup.restore actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50125
+[15:28:50] [AUDIT] request_id=bd3173b7-fc81-46b6-84ff-42d6667c6368 action=backup.restore actor_role=admin outcome=succeeded status=200
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50127
+Restart/restore/reset: real HTTP disconnect/replay, durable receipts, I/O uncertainty, generation/auth/maintenance gates and bounded completion passed.
+Real isolated child-process restart/restore/reset, disconnected restore, crash boundaries, new-generation HTTP readiness and no implicit trading/replay passed.
+[INFO] Web Control Dashboard listening on https://127.0.0.1:50194
+[15:29:16] [AUDIT] request_id=44fbc826-cb02-415a-9440-17f0ad3aaf90 action=dashboard.operations.backup.drill.post actor_role=admin outcome=rejected status=412
+[15:29:16] [AUDIT] request_id=47856d51-d2a6-4d9c-81a4-cc4734543b60 action=dashboard.operations.backup.drill.post actor_role=admin outcome=succeeded status=202
+[15:29:16] [AUDIT] request_id=c773908c-eada-424a-972b-3919702f54ae action=dashboard.operations.backup.drill.post actor_role=admin outcome=succeeded status=202
+[15:29:16] [AUDIT] request_id=b0fe1d57-b7de-4a1f-93ef-a4dc277fbb84 action=backup.create actor_role=admin outcome=succeeded status=202
+[15:29:16] [AUDIT] request_id=70daf43d-9269-42b0-bc8a-ef4cfd049ebb action=backup.recover-offsite actor_role=admin outcome=rejected status=412
+[15:29:16] [AUDIT] request_id=cb4eaaa9-51d9-41ce-bd5f-e8a2b09d440d action=backup.recover-offsite actor_role=admin outcome=succeeded status=202
+[15:29:16] [AUDIT] request_id=3b111c32-e498-4e68-8eaf-8aacb8cfd0a3 action=backup.recover-offsite actor_role=admin outcome=succeeded status=202
+[15:29:16] [AUDIT] request_id=271f35b1-80a2-4410-bab9-96fcbc7bf213 action=backup.recover-offsite actor_role=admin outcome=succeeded status=202
+[15:29:16] [AUDIT] request_id=637e3129-8bfd-4093-bfb9-f71424e0cf7c action=backup.recover-offsite actor_role=admin outcome=succeeded status=202
+[15:29:16] [AUDIT] request_id=c1014331-93ed-423c-ad93-15fe92a3b835 action=backup.restore actor_role=admin outcome=succeeded status=200
+[15:29:16] [AUDIT] request_id=6756681c-af4e-4120-aa0c-971f1a5c1594 action=backup.restore actor_role=admin outcome=succeeded status=202
+[15:29:16] [AUDIT] request_id=de57ebf3-ed9b-4fac-814f-d90c91015113 action=dashboard.workflow.parser.test.preview.post actor_role=admin outcome=succeeded status=200
+[15:29:16] [AUDIT] request_id=f4e34c04-4a14-4dbd-8766-f13193dc5cf7 action=dashboard.workflow.parser.test.post actor_role=admin outcome=rejected status=412
+[15:29:16] [AUDIT] request_id=f8748110-993b-4132-af91-b2f8618cf6f4 action=dashboard.workflow.parser.test.post actor_role=admin outcome=rejected status=409
+[15:29:16] [AUDIT] request_id=1731edb5-a676-49e8-aba2-5e948a34af43 action=dashboard.workflow.parser.test.post actor_role=admin outcome=failed status=503
+[XML-Parser INFO] request=unknown model=fixture/model prompt_tokens=80 completion_tokens=20
+Operator job HTTP roles, deduplication, paging, preview binding and real parser quota path passed with a fixture provider.
+MCP/setup review, graph/model atomicity, standalone model recovery and bounded libraries passed.
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: This interop test requires an explicit TSX_TEST_PYTHON or setup-python pythonLocation.
+    at testActualPythonCliWithFixedEmptyFixtureRegistry (file:///C:/Users/nikla/Documents/ChatGPT/TSX%20CORE%20SERVER%20INSTALLATION/tmp/tsx-core-integration-next-20260924/tests/test_exchange_implementation_bridge.js:245:10)
+    at file:///C:/Users/nikla/Documents/ChatGPT/TSX%20CORE%20SERVER%20INSTALLATION/tmp/tsx-core-integration-next-20260924/tests/test_exchange_implementation_bridge.js:482:18
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: null,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v22.23.2
+test_exchange_implementation_bridge.js failed with exit code 1.

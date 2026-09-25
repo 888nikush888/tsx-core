@@ -1,0 +1,13 @@
+test_authorized_hyperliquid_execute_still_has_no_transport_side_effects (exchange_executor.tests.test_provider_acceptance.ProviderAcceptanceSafetyTests.test_authorized_hyperliquid_execute_still_has_no_transport_side_effects) ... ok
+test_cli_is_offline_by_default_and_execute_fails (exchange_executor.tests.test_provider_acceptance.ProviderAcceptanceSafetyTests.test_cli_is_offline_by_default_and_execute_fails) ... ok
+test_default_dry_run_has_no_network_or_secret_access (exchange_executor.tests.test_provider_acceptance.ProviderAcceptanceSafetyTests.test_default_dry_run_has_no_network_or_secret_access) ... ok
+test_execution_refuses_without_authorization_or_implemented_transport (exchange_executor.tests.test_provider_acceptance.ProviderAcceptanceSafetyTests.test_execution_refuses_without_authorization_or_implemented_transport) ... ok
+test_hyperliquid_execute_cannot_substitute_mainnet_or_lookalike_origin (exchange_executor.tests.test_provider_acceptance.ProviderAcceptanceSafetyTests.test_hyperliquid_execute_cannot_substitute_mainnet_or_lookalike_origin) ... ok
+test_identity_mode_limits_ownership_and_durable_journal (exchange_executor.tests.test_provider_acceptance.ProviderAcceptanceSafetyTests.test_identity_mode_limits_ownership_and_durable_journal) ... ok
+test_plan_is_snapshotted_and_journal_failure_grants_nothing (exchange_executor.tests.test_provider_acceptance.ProviderAcceptanceSafetyTests.test_plan_is_snapshotted_and_journal_failure_grants_nothing) ... ok
+test_preflight_rejects_missing_limits_mainnet_and_revision_drift (exchange_executor.tests.test_provider_acceptance.ProviderAcceptanceSafetyTests.test_preflight_rejects_missing_limits_mainnet_and_revision_drift) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.575s
+
+OK

@@ -1,0 +1,11 @@
+
+> tsx-core@3.3.0 test:coverage:incident-receiver
+> c8 --all --include="services/incident-receiver-worker/worker.js" --reporter=lcov --reporter=text --reports-dir=coverage/incident-receiver-worker --check-coverage --lines=95 --branches=85 --functions=90 node tests/test_incident_receiver_worker.js
+
+External incident receiver offline contract tests passed.
+-----------|---------|----------|---------|---------|-------------------
+File       | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-----------|---------|----------|---------|---------|-------------------
+All files  |    99.2 |    89.54 |      95 |    99.2 |                   
+ worker.js |    99.2 |    89.54 |      95 |    99.2 | 107-108           
+-----------|---------|----------|---------|---------|-------------------
