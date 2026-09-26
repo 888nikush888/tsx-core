@@ -1,0 +1,100 @@
+
+> tsx-core-frontend@3.3.0 test
+> vitest run --configLoader runner --environment jsdom tests
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/home/nikla/tsx-receipt84/frontend[39m
+
+ [32m✓[39m tests/api.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 48[2mms[22m[39m
+ [32m✓[39m tests/workflow-routes.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m tests/workflow-graph.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+ [32m✓[39m tests/ui-next-foundations.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[32m 69[2mms[22m[39m
+ [32m✓[39m tests/runtime-evidence-regressions.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 630[2mms[22m[39m
+     [33m[2m✓[22m[39m edits numeric, boolean, selection and text controls while preserving unknown server fields [33m 420[2mms[22m[39m
+ [32m✓[39m tests/money-display.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[32m 81[2mms[22m[39m
+ [32m✓[39m tests/workflow-graph-table.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 1047[2mms[22m[39m
+     [33m[2m✓[22m[39m renders an empty graph without fabricating nodes or an actionable connection [33m 313[2mms[22m[39m
+ [32m✓[39m tests/workflow-node.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 683[2mms[22m[39m
+ [32m✓[39m tests/operations-panel-helpers.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/operator-page-routes.test.tsx [2m([22m[2m54 tests[22m[2m)[22m[33m 751[2mms[22m[39m
+     [33m[2m✓[22m[39m preserves admin access and lazy embedded builder mode [33m 454[2mms[22m[39m
+ [32m✓[39m tests/workflow-resource-summary.test.ts [2m([22m[2m26 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+[90mstderr[2m | tests/operator-maintenance-safety.test.tsx[2m > [22m[2moperator maintenance safety[2m > [22m[2mkeeps the last job evidence with a stale warning when a later read fails
+[22m[39mThe current testing environment is not configured to support act(...)
+
+ [32m✓[39m tests/routing-risk-regressions.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 871[2mms[22m[39m
+     [33m[2m✓[22m[39m shows ordered fallback choices separately from direct and parallel paths, then focuses the chosen route [33m 451[2mms[22m[39m
+ [32m✓[39m tests/operator-maintenance-safety.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 1248[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps backup evidence readable while viewer commands remain disabled [33m 306[2mms[22m[39m
+ [32m✓[39m tests/exchange-catalog.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 278[2mms[22m[39m
+ [32m✓[39m tests/sonar-ui-semantics.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 850[2mms[22m[39m
+     [33m[2m✓[22m[39m names every fallback preset and reason from the visible text [33m 308[2mms[22m[39m
+ [32m✓[39m tests/use-dirty-guard.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 49[2mms[22m[39m
+ [32m✓[39m tests/operator-directory-regressions.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 1480[2mms[22m[39m
+     [33m[2m✓[22m[39m separates secret, editable and fixed parameters and preserves explicit default values [33m 430[2mms[22m[39m
+ [32m✓[39m tests/operator-shell-regressions.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 1521[2mms[22m[39m
+     [33m[2m✓[22m[39m searches through a private header, follows result paging and clears the term after closing [33m 776[2mms[22m[39m
+ [32m✓[39m tests/workflow-fallback-policy.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1054[2mms[22m[39m
+     [33m[2m✓[22m[39m uses the recommended policy for a new fallback edge [33m 518[2mms[22m[39m
+ [32m✓[39m tests/operator-repair-regressions.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 1699[2mms[22m[39m
+     [33m[2m✓[22m[39m pins config repairs to the applicable observed revision [33m 349[2mms[22m[39m
+ [32m✓[39m tests/workflow-library-regressions.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1963[2mms[22m[39m
+     [33m[2m✓[22m[39m shows the correct resources object links and clears paging on filter changes [33m 463[2mms[22m[39m
+ [32m✓[39m tests/operator-state-regressions.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 2034[2mms[22m[39m
+     [33m[2m✓[22m[39m sends the exact account intent for Verifizieren only once [33m 363[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps credential replacement explicit, clears a cancelled editor and sends only replacement fields [33m 302[2mms[22m[39m
+ [32m✓[39m tests/deployment-tls-status.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 422[2mms[22m[39m
+   [33m[2m✓[22m[39m shows all five TLS paths, missing peer state and only non-secret certificate metadata [33m 420[2mms[22m[39m
+ [32m✓[39m tests/workflow-statusbar.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m tests/account-capacity.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/workflow-builder-resilience.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 1796[2mms[22m[39m
+     [33m[2m✓[22m[39m stays visible when an older or partially unavailable API omits optional collections [33m 584[2mms[22m[39m
+     [33m[2m✓[22m[39m guides a connection from a source block to only valid later targets [33m 376[2mms[22m[39m
+     [33m[2m✓[22m[39m creates a channel-scoped ordered fallback edge between account blocks [33m 519[2mms[22m[39m
+ [32m✓[39m tests/analytics.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 69[2mms[22m[39m
+ [32m✓[39m tests/navigation.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 367[2mms[22m[39m
+ [32m✓[39m tests/workflow-simulation-result.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 290[2mms[22m[39m
+ [32m✓[39m tests/telegram-viewer-display.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 586[2mms[22m[39m
+   [33m[2m✓[22m[39m keeps display controls mounted while editing and saves their shared settings revision once [33m 476[2mms[22m[39m
+ [32m✓[39m tests/paper-lab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 591[2mms[22m[39m
+   [33m[2m✓[22m[39m restricts account selection to paper and keeps missing balance evidence uneditable [33m 345[2mms[22m[39m
+ [32m✓[39m tests/runtime-clock-drift.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 215[2mms[22m[39m
+ [32m✓[39m tests/workflow-connection-dialog.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 559[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps all-channel routing as the default [33m 372[2mms[22m[39m
+ [32m✓[39m tests/dashboard-auth-gate.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 45[2mms[22m[39m
+ [32m✓[39m tests/deployment-evidence.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 243[2mms[22m[39m
+ [32m✓[39m tests/workflow-statusbar-render.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 221[2mms[22m[39m
+ [32m✓[39m tests/mcp-agents-coverage.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2988[2mms[22m[39m
+     [33m[2m✓[22m[39m creates an agent with reviewed permissions, subscriptions and enabled state, then exposes its issued token [33m 634[2mms[22m[39m
+     [33m[2m✓[22m[39m preserves a draft on cancelled navigation and discards it before selecting another agent [33m 518[2mms[22m[39m
+     [33m[2m✓[22m[39m requires confirmation for rotation and typed confirmation for revocation [33m 508[2mms[22m[39m
+     [33m[2m✓[22m[39m resets proposal pagination on status changes and requires a reason to reject a pending proposal [33m 353[2mms[22m[39m
+ [32m✓[39m tests/workflow-edge.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/telegram-settings-coverage.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 3001[2mms[22m[39m
+     [33m[2m✓[22m[39m persists dependent legacy, source and parser controls against the observed revision [33m 1074[2mms[22m[39m
+ [32m✓[39m tests/confirmation-policy.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/trade-relations.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 325[2mms[22m[39m
+ [32m✓[39m tests/confirmation-dialog.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 208[2mms[22m[39m
+Not implemented: navigation to another Document
+ [32m✓[39m tests/workflow-builder-history.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 2433[2mms[22m[39m
+     [33m[2m✓[22m[39m loads history independently and keeps the builder usable when only history fails [33m 550[2mms[22m[39m
+     [33m[2m✓[22m[39m permanently deletes an unused resource family only after explicit UI confirmation [33m 518[2mms[22m[39m
+     [33m[2m✓[22m[39m refreshes the trading snapshot after a resource version is saved and activated [33m 387[2mms[22m[39m
+ [32m✓[39m tests/branding.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 101[2mms[22m[39m
+ [32m✓[39m tests/theme-toggle.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 127[2mms[22m[39m
+ [32m✓[39m tests/operations-workspace.test.tsx [2m([22m[2m25 tests[22m[2m)[22m[33m 3157[2mms[22m[39m
+     [33m[2m✓[22m[39m renders the data-rich overview workspace [33m 364[2mms[22m[39m
+     [33m[2m✓[22m[39m exercises safe account editing and account kill-switch release [33m 509[2mms[22m[39m
+ [32m✓[39m tests/workflow-resource-editor.test.tsx [2m([22m[2m22 tests[22m[2m)[22m[33m 4135[2mms[22m[39m
+     [33m[2m✓[22m[39m submits all six effective sizing-resource controls as one versioned resource [33m 629[2mms[22m[39m
+     [33m[2m✓[22m[39m submits the adaptive enable, mode and tier controls with one-based labels and zero-based storage [33m 386[2mms[22m[39m
+     [33m[2m✓[22m[39m builds and publishes a new strategy inside an empty strategy block [33m 364[2mms[22m[39m
+     [33m[2m✓[22m[39m publishes a new strategy version instead of mutating the selected version [33m 355[2mms[22m[39m
+     [33m[2m✓[22m[39m submits all four editable safety limits before the new strategy is attached to the graph [33m 352[2mms[22m[39m
+     [33m[2m✓[22m[39m submits strategy signal access and entry controls as a new pinned version [33m 435[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m47 passed[39m[22m[90m (47)[39m
+[2m      Tests [22m [1m[32m419 passed[39m[22m[90m (419)[39m
+[2m   Start at [22m 22:08:32
+[2m   Duration [22m 6.74s[2m (transform 9.32s, setup 0ms, import 32.59s, tests 38.34s, environment 39.13s)[22m
+

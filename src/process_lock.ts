@@ -113,6 +113,42 @@ function processIsActive(pid: number): boolean {
   }
 }
 
+// A live PID alone does not prove lock ownership. PIDs are recycled by the
+// kernel, and every container restart gets a fresh PID namespace, so a stale
+// lock left behind by a killed owner (SIGKILL, OOM, forced exit) can collide
+// with an unrelated live process reusing the same number. Comparing the
+// recorded lock timestamp against the actual start time of the live process
+// detects that reuse. A mismatch never deletes anything; it routes to the
+// reviewed recovery path, exactly like an absent owner.
+const PROCESS_IDENTITY_TOLERANCE_MS = 120_000;
+const LINUX_CLOCK_TICKS_PER_SECOND = 100;
+
+async function linuxProcessStartTimeMs(pid: number): Promise<number | null> {
+  if (process.platform !== 'linux') return null;
+  try {
+    const stat = await fs.readFile(`/proc/${pid}/stat`, 'utf8');
+    const fields = stat.slice(stat.lastIndexOf(')') + 1).trim().split(/\s+/);
+    const startTicks = Number(fields[19]);
+    if (!Number.isSafeInteger(startTicks) || startTicks < 0) return null;
+    const procStat = await fs.readFile('/proc/stat', 'utf8');
+    const btimeLine = procStat.split('\n').find((line) => line.startsWith('btime '));
+    const bootSeconds = Number(btimeLine?.split(/\s+/)[1]);
+    if (!Number.isSafeInteger(bootSeconds) || bootSeconds <= 0) return null;
+    return (bootSeconds + startTicks / LINUX_CLOCK_TICKS_PER_SECOND) * 1000;
+  } catch {
+    return null;
+  }
+}
+
+/** True when the live process plausibly wrote this lock; false on PID reuse. */
+async function processIdentityMatches(payload: LockPayload): Promise<boolean> {
+  const recordedMs = Date.parse(payload.startedAt);
+  if (!Number.isFinite(recordedMs)) return true;
+  const processStartMs = await linuxProcessStartTimeMs(payload.pid);
+  if (processStartMs === null) return true;
+  return processStartMs <= recordedMs && recordedMs - processStartMs <= PROCESS_IDENTITY_TOLERANCE_MS;
+}
+
 async function releaseOwnedLock(lockPath: string, token: string): Promise<void> {
   let existing: LockPayload;
   try {
@@ -154,9 +190,13 @@ async function createProcessLock(lockPath: string, payload: LockPayload): Promis
 async function handleLockCollision(lockPath: string, error: unknown): Promise<void> {
   if ((error as { code?: unknown } | null | undefined)?.code !== 'EEXIST') throw error;
   const existing = await readPayload(lockPath);
-  if (processIsActive(existing.pid)) throw new ProcessLockActiveError(lockPath, existing.pid);
+  if (processIsActive(existing.pid) && (await processIdentityMatches(existing))) {
+    throw new ProcessLockActiveError(lockPath, existing.pid);
+  }
   // A read-then-rename/unlink would race a second starter and could delete its
-  // newly acquired live lock. File age or PID reuse heuristics cannot fix that.
+  // newly acquired live lock. A PID/time mismatch is therefore never repaired
+  // automatically either; it reports the honest recovery path instead of a
+  // false live owner.
   throw new ProcessLockRecoveryRequiredError(lockPath, existing.pid);
 }
 

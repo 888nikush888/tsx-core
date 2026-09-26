@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "reportId": "final-candidate-77ba269-execution-report",
+  "kind": "final-source-bound-execution-report",
+  "revision": "77ba2691f20d4c694d7a1a82f8ffb299625c20cd",
+  "executionBaseRevision": "77ba2691f20d4c694d7a1a82f8ffb299625c20cd",
+  "deltaScope": "The complete Node, Python and frontend suites, build, lint, typecheck and complexity checks ran on the final revision 77ba2691 itself. Relative to e4f560c1 the only source changes are the process-lock PID-reuse fix in src/process_lock.ts with six new assertions in tests/test_process_lock.js, covered additionally by the targeted 6/6 process-lock suite on Linux and Windows and the green exact-head cloud CI jobs.",
+  "independentReview": {
+    "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review.json",
+    "sha256": "6b7b9ef5a6b1311f69af91032a6abd6ff236e6a09f9dda6dbed72d5fb4c55d04",
+    "reviewedRevision": "8e7b7869d49d7ab5bf6222cd97f02ffdfecc7b25"
+  },
+  "deltaReview": {
+    "path": "exchange_executor/certifications/reviews/final-delta-77ba269-review.json",
+    "sha256": "e5ed3d0135aa051b9fda8992c189dfe6ea80e339392e5e7387be9c1b48e2c5de"
+  },
+  "candidateEvidenceRevision": "77ba2691f20d4c694d7a1a82f8ffb299625c20cd",
+  "sourceCommitments": {
+    "sourceTreeHash": "9ee131e5273128d3f5662e45f1ae33f191c0e646ea5b3e56afc01f38862d8157",
+    "nodeSourcesHash": "f7d3c169ac07e6d29567cdda4e309c491c6ac8c095c8f8759d2103cbae54e534",
+    "testSourcesHash": "5f4c1a1f89032f27eb9e465cdf7a8ed67b5541b911023d409b235c1c86562991",
+    "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee"
+  },
+  "runtimeCommitments": {
+    "executorTreeHash": "95c6502e51bb1db0073be5cf40bd5f453599d8cf0518c078766be43432ab835a",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7"
+  },
+  "environment": {
+    "node": "22.22.1",
+    "npm": "10.9.9",
+    "python": "3.12.14",
+    "ccxt": "4.5.75"
+  },
+  "results": {
+    "pythonFullSuite": "587 passed (exchange_executor discover) plus 13 internal-TLS and 13 Hyperliquid-bound preflight tests passed",
+    "nodeFullSuite": "ALL 238 TEST FILES PASSED",
+    "frontendFullSuite": "47 test files, 419 tests passed",
+    "rootBuild": "TypeScript, declaration copy and Vite production build passed",
+    "rootLint": "ESLint passed",
+    "frontendLint": "oxlint passed",
+    "pythonLint": "Ruff passed",
+    "typecheck": "tsc --noEmit passed",
+    "complexityBudget": "0 warnings, 0 threshold violations"
+  },
+  "rawLogs": [
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-77ba269-logs/node-full-suite.log",
+      "bytes": 74994,
+      "sha256": "2f9fad4cb51fe3c1b07c4b86541df9968ee64645f6a115349c6766a1717a725f"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-77ba269-logs/python-full-suite.log",
+      "bytes": 126797,
+      "sha256": "fc472aba4586151425029158d6e5fed93ef54bc6f0cb6580a5e9a844954a9e73"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-77ba269-logs/frontend-full-suite.log",
+      "bytes": 10794,
+      "sha256": "8da5770b9e00bfbe73ee61f59c603f86c5689bc1b18079d5cec42d423e9e496f"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-77ba269-logs/root-build.log",
+      "bytes": 1563,
+      "sha256": "972fb548534989b6c8d056465cd5ae7f4d4baabab97264ecc7b57a37a4660b0c"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-77ba269-logs/lint.log",
+      "bytes": 291,
+      "sha256": "69130ef054cf1fab17ee7772a6fe5cbc41553ac59b99a0858dc04579379ee2b2"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-77ba269-logs/lint-frontend.log",
+      "bytes": 202,
+      "sha256": "b825c2409ebb13aa79e8115955758404f4ec6cb856c9dd3250e68ca4990e2754"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-77ba269-logs/lint-python.log",
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-77ba269-logs/typecheck.log",
+      "bytes": 44,
+      "sha256": "36ad9a8a29908c63402af4b6ad27b81468223fb0da68a311a0d31ceba5790316"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-77ba269-logs/quality-complexity.log",
+      "bytes": 247,
+      "sha256": "a8cc08eee33bb8d06997ef6629b09b3d446cbe5039ae2ffd0ff9bf94cd95470c"
+    }
+  ],
+  "providerAcceptanceVerified": false,
+  "liveTradingApproved": false,
+  "limitations": [
+    "Local implementation and execution evidence only; no provider acceptance, deployment or live order was performed.",
+    "The local full suites ran on WSL Ubuntu with Node v22.22.1/npm 10.9.9 and TSX_TEST_PYTHON bound to the hash-pinned Python 3.12.14/CCXT 4.5.75 environment; GitHub Actions remains the authoritative execution and already ran the full suites green on this exact revision except the container receipt gate this rebind addresses.",
+    "Fresh cloud results are required after pushing the receipt rebind; Sonar, DeepSource and Codacy already passed on 77ba2691 before the evidence-only rebind.",
+    "The renewed receipt still has to pass the Linux container verifier in GitHub Actions."
+  ]
+}

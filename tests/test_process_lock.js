@@ -69,6 +69,30 @@ try {
   await writeFile(lockPath, '{not-json', 'utf8');
   await assert.rejects(acquireProcessLock(lockPath), /cannot be interpreted safely/);
   console.log('   -> OK');
+
+  console.log('5. Testing a live owner with a fresh timestamp stays fail-closed...');
+  await writeFile(lockPath, JSON.stringify({
+    pid: process.pid,
+    startedAt: new Date().toISOString(),
+    token: 'foreign-live-owner-token-5678'
+  }), 'utf8');
+  await assert.rejects(acquireProcessLock(lockPath), ProcessLockActiveError);
+  await rm(lockPath, { force: true });
+  console.log('   -> OK');
+
+  console.log('6. Testing PID reuse resolves to reviewed recovery instead of a false live owner...');
+  await writeFile(lockPath, JSON.stringify({
+    pid: process.pid,
+    startedAt: '2000-01-01T00:00:00.000Z',
+    token: 'reused-pid-token-5678'
+  }), 'utf8');
+  if (process.platform === 'linux') {
+    await assert.rejects(acquireProcessLock(lockPath), ProcessLockRecoveryRequiredError);
+  } else {
+    await assert.rejects(acquireProcessLock(lockPath), ProcessLockActiveError);
+  }
+  await rm(lockPath, { force: true });
+  console.log('   -> OK');
 } finally {
   await rm(directory, { recursive: true, force: true });
 }

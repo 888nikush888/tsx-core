@@ -1,0 +1,4 @@
+
+> tsx-core@3.3.0 typecheck
+> tsc --noEmit
+

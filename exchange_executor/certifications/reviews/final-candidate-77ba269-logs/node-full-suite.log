@@ -1,0 +1,859 @@
+
+> tsx-core@3.3.0 test
+> node tests/run_all.js
+
+UI register contracts passed: source drift, complete defaults, resource kinds, roles, blockers, references, cursor binding and bounded metadata.
+Operational UI coverage slice passed: 99 classified parameters, 39 managed runtime controls and 22 viewer fields; six host-maintenance gaps remain explicit.
+Operational inventory passed: 315 catalog fields, 70 external controls (23 Compose variables, 18 alert rules); 382 source-scoped control records; UI E2E remains unverified.
+Host maintenance boundary passed: 70 external controls, six deployment gaps; no UI field promoted.
+Internal TLS trust, cleartext refusal and fail-closed certificate checks passed.
+Read-only TLS deployment status and absence handling passed.
+TAP version 13
+# Subtest: Ajv URI handling does not decode malformed UTF-8 into path or header delimiters
+ok 1 - Ajv URI handling does not decode malformed UTF-8 into path or header delimiters
+  ---
+  duration_ms: 2.291248
+  type: 'test'
+  ...
+# Subtest: Ajv URI resolver finishes on Unicode line and paragraph separators
+ok 2 - Ajv URI resolver finishes on Unicode line and paragraph separators
+  ---
+  duration_ms: 58.984673
+  type: 'test'
+  ...
+# Subtest: Ajv 6 compiles and validates external schema references through the replacement
+ok 3 - Ajv 6 compiles and validates external schema references through the replacement
+  ---
+  duration_ms: 28.662401
+  type: 'test'
+  ...
+# Subtest: Ajv URI resolution preserves RFC 3986 relative-reference behavior
+ok 4 - Ajv URI resolution preserves RFC 3986 relative-reference behavior
+  ---
+  duration_ms: 0.187772
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 95.918733
+Adaptive original evidence, pagination, exact amounts and reviewed Legacy draft migration passed.
+UI Next pagination, CAS, original risk reservations and read-only history evidence passed.
+Evidence freshness and partial failure, parser boundaries and publication dependency failures passed.
+Durable operator jobs, deduplication and restart observations passed.
+[INFO] Web Control Dashboard listening on https://127.0.0.1:39749
+[10:10:18 PM] [AUDIT] request_id=51dc6a8d-853e-4b62-84aa-e810ac2643a8 action=system.restart actor_role=admin outcome=succeeded status=202
+[10:10:18 PM] [AUDIT] request_id=a22f25dc-dd9b-4b8a-a4f2-3f02bf7e87c1 action=system.restart actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:36127
+[10:10:18 PM] [AUDIT] request_id=1cf18613-ed91-49dd-9fd1-9a32b4c3ebe5 action=system.restart actor_role=admin outcome=succeeded status=202
+[10:10:18 PM] [AUDIT] request_id=91d20454-a5b7-452e-a69f-7d413c8a658a action=system.restart actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:44187
+[10:10:18 PM] [AUDIT] request_id=14210d43-da79-4592-b020-e563b2e89a40 action=backup.restore actor_role=admin outcome=succeeded status=200
+[10:10:18 PM] [AUDIT] request_id=c817b7f9-8b05-43d4-a227-ed5a89479aa7 action=backup.restore actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:33537
+[10:10:18 PM] [AUDIT] request_id=17903a71-73c7-4039-943b-c020d7c0dc7b action=backup.restore actor_role=admin outcome=succeeded status=200
+[10:10:18 PM] [AUDIT] request_id=04ac979a-054e-4586-9ab2-1c39f9591528 action=backup.restore actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:33675
+[10:10:18 PM] [SECURITY] Complete factory reset executed through the web dashboard.
+[10:10:18 PM] [AUDIT] request_id=e4430093-99f0-4783-8742-c5ffb3fb3db5 action=system.factory-reset actor_role=admin outcome=succeeded status=200
+[10:10:18 PM] [AUDIT] request_id=7684b296-2721-4ff5-b312-23eb8dfaca4a action=system.factory-reset actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:38231
+[10:10:18 PM] [SECURITY] Complete factory reset executed through the web dashboard.
+[10:10:18 PM] [AUDIT] request_id=95fca92b-bb8b-4446-be4b-d0d60143df13 action=system.factory-reset actor_role=admin outcome=succeeded status=200
+[10:10:18 PM] [AUDIT] request_id=fa9986ef-6195-49d6-af58-c35df1e844c0 action=system.factory-reset actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:45649
+[10:10:18 PM] [AUDIT] request_id=d9889487-0e63-47c9-8e1f-0b5cfe7745d5 action=backup.restore actor_role=admin outcome=rejected status=412
+[10:10:18 PM] [CRITICAL] Audit precondition failed; dashboard mutation blocked: audit unavailable
+[10:10:18 PM] [AUDIT] request_id=2df5f9cd-18c1-4802-bd4a-f22a3cf9f6ba action=backup.restore actor_role=admin outcome=failed status=503
+[10:10:18 PM] [AUDIT] request_id=9dab7276-eff2-4dd7-beec-f9dc690b9d66 action=backup.restore actor_role=admin outcome=succeeded status=200
+[10:10:18 PM] [AUDIT] request_id=ae396afe-ef38-4a47-a465-5f0ec4a9cf81 action=backup.restore actor_role=admin outcome=rejected status=409
+[10:10:18 PM] [AUDIT] request_id=32f25548-1b0d-4383-9a93-f83ddeee81c1 action=backup.restore actor_role=admin outcome=rejected status=409
+[10:10:18 PM] [AUDIT] request_id=f4c0e73d-65b8-485f-9e1d-e209100e1a2d action=system.factory-reset actor_role=admin outcome=rejected status=409
+[INFO] Web Control Dashboard listening on https://127.0.0.1:37939
+[10:10:18 PM] [AUDIT] request_id=692f84c8-53b7-447a-806e-db48532fa9b6 action=system.factory-reset actor_role=admin outcome=rejected status=409
+[INFO] Web Control Dashboard listening on https://127.0.0.1:36977
+[10:10:18 PM] [AUDIT] request_id=e77a7c6a-84b2-4053-9fdc-2c37b8d4787a action=system.factory-reset actor_role=admin outcome=failed status=503
+[INFO] Web Control Dashboard listening on https://127.0.0.1:34407
+[10:10:18 PM] [AUDIT] request_id=70882344-7f35-469d-8ec8-a9cfbd3f07d2 action=system.restart actor_role=admin outcome=succeeded status=202
+[10:10:18 PM] [AUDIT] request_id=a3fb8ad9-fa96-42f5-ba20-345d37cd5684 action=system.restart actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:35233
+[10:10:18 PM] [AUDIT] request_id=1efdc753-eb86-4878-834f-d5ed34fdcd1f action=backup.restore actor_role=admin outcome=succeeded status=200
+[10:10:18 PM] [AUDIT] request_id=d647630e-1f2f-4789-9040-b53daff4f977 action=backup.restore actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:35309
+[10:10:18 PM] [SECURITY] Complete factory reset executed through the web dashboard.
+[10:10:18 PM] [AUDIT] request_id=cb5de5e4-da7f-4ef2-84dc-304bab0372b8 action=system.factory-reset actor_role=admin outcome=succeeded status=200
+[10:10:18 PM] [AUDIT] request_id=5ede934b-4f0a-4073-96bd-8065a7603175 action=system.factory-reset actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:38215
+[10:10:18 PM] [SECURITY] Complete factory reset executed through the web dashboard.
+[10:10:18 PM] [AUDIT] request_id=0df91179-d2e1-4010-88cd-98f54ab755dc action=system.factory-reset actor_role=admin outcome=succeeded status=200
+[INFO] Web Control Dashboard listening on https://127.0.0.1:35011
+[10:10:18 PM] [AUDIT] request_id=94c52020-e582-4a27-b963-48661a14c8cc action=backup.restore actor_role=admin outcome=rejected status=409
+[10:10:18 PM] [AUDIT] request_id=eb0d58a8-1ff8-4ca1-a538-65ad1daba15e action=backup.restore actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:40811
+[10:10:18 PM] [AUDIT] request_id=f9ad796b-d51b-46ac-a833-69faa2eaa6e9 action=backup.restore actor_role=admin outcome=rejected status=409
+[10:10:18 PM] [AUDIT] request_id=cba82c7e-1343-4ef0-b839-8ef68197bfc2 action=backup.restore actor_role=admin outcome=succeeded status=202
+[INFO] Web Control Dashboard listening on https://127.0.0.1:39879
+[10:10:19 PM] [AUDIT] request_id=3d6342cd-765b-46e7-bb47-c83c5d42e865 action=backup.restore actor_role=admin outcome=succeeded status=200
+[INFO] Web Control Dashboard listening on https://127.0.0.1:41687
+Restart/restore/reset: real HTTP disconnect/replay, durable receipts, I/O uncertainty, generation/auth/maintenance gates and bounded completion passed.
+Real isolated child-process restart/restore/reset, disconnected restore, crash boundaries, new-generation HTTP readiness and no implicit trading/replay passed.
+[INFO] Web Control Dashboard listening on https://127.0.0.1:33171
+[10:10:37 PM] [AUDIT] request_id=e26658a6-1341-47a0-bfdb-952c71b61bac action=dashboard.operations.backup.drill.post actor_role=admin outcome=rejected status=412
+[10:10:37 PM] [AUDIT] request_id=4a48ab9a-f912-4b30-89e3-724584202e4d action=dashboard.operations.backup.drill.post actor_role=admin outcome=succeeded status=202
+[10:10:37 PM] [AUDIT] request_id=d2ea1613-6c3e-4d0e-934b-9cc3eacb25ff action=dashboard.operations.backup.drill.post actor_role=admin outcome=succeeded status=202
+[10:10:37 PM] [AUDIT] request_id=0b0e41fe-c280-4302-b8b2-a8cfd763cb11 action=backup.create actor_role=admin outcome=succeeded status=202
+[10:10:37 PM] [AUDIT] request_id=8bf580a4-5c8b-4927-9508-124892c3e9e1 action=backup.recover-offsite actor_role=admin outcome=rejected status=412
+[10:10:37 PM] [AUDIT] request_id=aa93845d-515d-4688-880e-988b92f1baf0 action=backup.recover-offsite actor_role=admin outcome=succeeded status=202
+[10:10:37 PM] [AUDIT] request_id=9b836fa7-da04-4866-9dbc-50126cefdad5 action=backup.recover-offsite actor_role=admin outcome=succeeded status=202
+[10:10:37 PM] [AUDIT] request_id=14d1edff-4366-4e86-83d0-230aff8123ee action=backup.recover-offsite actor_role=admin outcome=succeeded status=202
+[10:10:37 PM] [AUDIT] request_id=07895f19-19dc-40be-ac66-938d329f3e0f action=backup.recover-offsite actor_role=admin outcome=succeeded status=202
+[10:10:37 PM] [AUDIT] request_id=ace85701-54c4-4199-9f84-619a98fbf5ad action=backup.restore actor_role=admin outcome=succeeded status=200
+[10:10:37 PM] [AUDIT] request_id=0fb05ccb-b3b7-4565-814c-18413a0539a6 action=backup.restore actor_role=admin outcome=succeeded status=202
+[10:10:37 PM] [AUDIT] request_id=3493d9b2-cb7f-4cd8-9cd1-a2c6546a8e8e action=dashboard.workflow.parser.test.preview.post actor_role=admin outcome=succeeded status=200
+[10:10:37 PM] [AUDIT] request_id=38fe79b4-376a-488c-a42e-fb465e73142e action=dashboard.workflow.parser.test.post actor_role=admin outcome=rejected status=412
+[10:10:37 PM] [AUDIT] request_id=2d65fccc-51b7-45b9-ac2e-f51959da9f4b action=dashboard.workflow.parser.test.post actor_role=admin outcome=rejected status=409
+[10:10:37 PM] [AUDIT] request_id=8d322eec-30cb-45b6-8aa6-5a40addc5f61 action=dashboard.workflow.parser.test.post actor_role=admin outcome=failed status=503
+[XML-Parser INFO] request=unknown model=fixture/model prompt_tokens=80 completion_tokens=20
+Operator job HTTP roles, deduplication, paging, preview binding and real parser quota path passed with a fixture provider.
+MCP/setup review, graph/model atomicity, standalone model recovery and bounded libraries passed.
+PASS implementation build bridge: bound inputs, drift, independent pins, safe filesystem and CLI boundaries
+{"group":"fixture","command":"env-check","state":"started","revision":"0000000000000000000000000000000000000000"}
+{"group":"fixture","command":"env-check","state":"completed","exitCode":0,"failureReason":null,"logSha256":"2e22da2ab13713309ac75219e525b8e06ed02f3f1963b8feef203fa25827f93d"}
+{"group":"fixture","command":"fail","state":"started","revision":"0000000000000000000000000000000000000000"}
+{"group":"fixture","command":"fail","state":"completed","exitCode":7,"failureReason":null,"logSha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+{"group":"fixture","command":"pass","state":"started","revision":"0000000000000000000000000000000000000000"}
+{"group":"fixture","command":"pass","state":"completed","exitCode":0,"failureReason":null,"logSha256":"9f56e761d79bfdb34304a012586cb04d16b435ef6130091a97702e559260a2f2"}
+{"group":"fixture","command":"pass","state":"started","revision":"0000000000000000000000000000000000000000"}
+{"group":"fixture","command":"pass","state":"completed","exitCode":0,"failureReason":null,"logSha256":"9f56e761d79bfdb34304a012586cb04d16b435ef6130091a97702e559260a2f2"}
+PASS receipt evidence runner: parameters, source fence, environment isolation and actual report outcomes
+Codacy review integrity contracts passed.
+Codacy retained historical and supplemental identity inventories passed.
+Profile parity evidence tests passed (offline format/review bindings only; no profile or provider approval).
+Mutation shard selection, fresh evidence and unchanged budget tests passed.
+Exact bounded rational arithmetic, signed reporting intervals and conservative tick quantization passed.
+Exact money events, proven rational-limit fallback and conservative aggregate validation passed.
+Exact and bounded monetary daily risk, conservative admission and proven breach boundaries passed.
+Fixed stablecoin FX legs, source/time/origin binding and exact bounded-as-of conversion passed.
+Recovery schedule binding, exact grants, call accounting and FX-prefix boundary tests passed.
+Scheduled recovery transport: bound loopback requests, reserved/atomic originals, phase fragments, malformed replies, one-attempt HTTPS/timeout and legacy isolation passed.
+Immutable FX account/profile bindings, original receipt proofs, replay, restart, expiry and rollback passed.
+Exact event-time FX values, native preservation, tiny costs, replay, rollback and contradictory-original rejection passed.
+FX fill/partial-PnL projections: exact fractions, tiny costs, cancellation, provenance hashes, native parity and conflict replay passed.
+Exact rational historical costs affect risk admission; late valuation invalidates proofs without changing stop orders.
+FX reserves/admission: exact, rational, tiny, original source/expiry fences, fees, no double count, restart and conservative drain passed.
+Adaptive channel risk: tiny/rational thresholds, exact equality, currency/provenance binding and restart invalidation passed.
+FX capital/risk/notional sizing, buying power, explicit cap currency and exact final quantization passed.
+Node plan/request -> Python exact tier gate -> pinned signed SDK body: 19 isolated cases passed.
+Stored FX originals bind sizing, risk and the final journal time fence; no provider or account-safety bypass.
+Typed pre-dispatch FX failures are blocked; a possible dispatch remains unknown and cannot be retried.
+Rational funding DTO, persisted authority, entry/release, native compatibility, restart and late contradiction passed.
+Bounded automatic local FX replay, restart, late evidence, missing history and unsupported assets/profiles passed.
+Exact monetary summaries, currency separation, uncertain outcomes, canonical FX reads and explicit scalar policy boundary passed.
+Event-time Value/scalar analytics, partial PnL, funding, filters, exact ranking, payoff and uncertain outcomes passed.
+FX journal/viewer: original fees, fractions, tiny losses, funding, native aliases, bounded/mixed display and restart/conflict passed.
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-fx-migration-1ichyX/.migration-backups/pre-migration-v42-to-v48-1790453467277-380b49c3.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-fx-migration-1ichyX/.migration-backups/pre-migration-v42-to-v48-1790453467445-3b483039.db
+Migration43: genuine schema42 upgrade, untouched economics, lossless FX backup and failed-migration rollback passed.
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-fx-money-migration-VRTLam/.migration-backups/pre-migration-v44-to-v48-1790453467861-99459265.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-fx-money-migration-VRTLam/.migration-backups/pre-migration-v44-to-v48-1790453467913-e7a11422.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-fx-money-migration-VRTLam/.migration-backups/pre-migration-v44-to-v48-1790453468087-d27decbd.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-fx-money-migration-VRTLam/.migration-backups/pre-migration-v44-to-v48-1790453468102-46c5f874.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-fx-money-migration-VRTLam/.migration-backups/pre-migration-v44-to-v48-1790453468280-b8038b6e.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-fx-money-migration-VRTLam/.migration-backups/pre-migration-v44-to-v48-1790453468294-40e4cfc8.db
+Migration45: schema44 originals/null additions, exact FX/native exclusivity, account FKs, projection pending, backup restore and complete DDL rollback passed.
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-adaptive-money-migration-mUkJFa/.migration-backups/pre-migration-v45-to-v48-1790453468622-4d523a28.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-adaptive-money-migration-mUkJFa/.migration-backups/pre-migration-v45-to-v48-1790453468720-64dac773.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-adaptive-money-migration-mUkJFa/.migration-backups/pre-migration-v45-to-v48-1790453468870-5307d8a5.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-adaptive-money-migration-mUkJFa/.migration-backups/pre-migration-v45-to-v48-1790453468882-39ad50ae.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-adaptive-money-migration-mUkJFa/.migration-backups/pre-migration-v45-to-v48-1790453469029-44c0ff93.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-adaptive-money-migration-mUkJFa/.migration-backups/pre-migration-v45-to-v48-1790453469043-b5371d08.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-adaptive-money-migration-mUkJFa/.migration-backups/pre-migration-v45-to-v48-1790453469183-cc47ba94.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-adaptive-money-migration-mUkJFa/.migration-backups/pre-migration-v45-to-v48-1790453469201-aa964e50.db
+Migration46: byte-preserving nullable adaptive MoneyValues, exact old constraints, bounded JSON, lossless fixture rewind, backup restore and early/middle/late rollback passed.
+Durable recovery phase/leg/history fairness, deferred reads, unknown calls, restart leases and atomic rollback passed.
+Acquisition commit: validated request, retained FX originals, source-first atomic schedule progress, rollback and restart passed.
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-schedule-migration-oP9yKJ/.migration-backups/pre-migration-v43-to-v48-1790453470381-3dd615b3.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-schedule-migration-oP9yKJ/.migration-backups/pre-migration-v43-to-v48-1790453470425-38e5e311.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-schedule-migration-oP9yKJ/.migration-backups/pre-migration-v43-to-v48-1790453470588-c6a9c1e4.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-schedule-migration-oP9yKJ/.migration-backups/pre-migration-v43-to-v48-1790453470599-964d4563.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-schedule-migration-oP9yKJ/.migration-backups/pre-migration-v43-to-v48-1790453470756-afdef8eb.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-schedule-migration-oP9yKJ/.migration-backups/pre-migration-v43-to-v48-1790453470766-4529d41d.db
+Migration44: real schema43 upgrade, original evidence, old/current SQLite backup restore, immutable leases and early/late DDL rollback passed.
+Monotone trading state tests passed.
+Account mutation serialization and fence tests passed.
+Real runtime start/stop and concurrent account release/re-kill tests passed.
+Runtime failure diagnostics retain primitive, getter and coercion behavior.
+Diagnostic failures retain all targeted-account protection and expiry failure collection.
+Exchange contract validation tests passed.
+Fill quantity normalization contracts: original/hash/identity binding, exact versus rounded arithmetic, invalid fields and legacy absence passed.
+Fill quantity persistence: atomic first capture, immutable originals, dedupe/restart, generation/read binding, late observations, rollback and retention passed.
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-quantity-migration-PgIuoM/.migration-backups/pre-migration-v41-to-v48-1790453472838-039e776e.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-quantity-migration-PgIuoM/.migration-backups/pre-migration-v41-to-v48-1790453473003-d0656934.db
+Migration42: real schema41 upgrade, no invented backfill, lossless database backup/restart and failed-migration rollback passed.
+Actual Python/CCXT -> Node quantity contracts passed for seven isolated fake-transport cases.
+Scoped order/fill identity and no-heuristic-ownership tests passed.
+Order identity, monotone persistence and intent CAS tests passed.
+Read-only original-bound Kraken batch request tags, legacy preservation, tampering and restart passed.
+Native order tags and cloid: journal/account binding, originals, source fence and restart passed.
+Fill identity profiles, native originals, account scope and timestamp distinctions passed.
+Native-market fill identity, immutable originals and restart dedupe passed.
+[INFO] Verified pre-migration database snapshot created: /tmp/fill-identity-migration-bfd8RB/.migration-backups/pre-migration-v39-to-v48-1790453476247-59b3f4ab.db
+[INFO] Verified pre-migration database snapshot created: /tmp/fill-identity-migration-bfd8RB/.migration-backups/pre-migration-v39-to-v48-1790453476420-1cb859df.db
+Migration40: lossless originals, legacy money identity, FK restart and ambiguity rollback passed.
+Legacy identity: immutable originals, historical journal, negative namespace/ACK fences, risk hash and bounded fair backfill passed.
+[INFO] Verified pre-migration database snapshot created: /tmp/trading-identity-migration-vq9xXG/.migration-backups/pre-migration-v24-to-v48-1790453477179-b2bbb078.db
+[INFO] Verified pre-migration database snapshot created: /tmp/trading-identity-migration-vq9xXG/.migration-backups/pre-migration-v24-to-v48-1790453477195-a115271f.db
+Remote identity migration conflict, rollback and repeatability tests passed.
+Durable remote evidence, exact fill dedupe, conflict and restart tests passed.
+Owned quantity ledger, cumulative proof, overfill and direction tests passed.
+Account baseline ownership boundary tests passed.
+Durable pre-dispatch, fence, acknowledgement, timeout and restart operation tests passed.
+Standalone exit no-send recovery: 51 phase/evidence/identity cases, original preservation and restart passed.
+Actual startup/periodic recovery protects disabled exposed accounts without enabling new entries.
+Pending worker: bounded stable rotation, genuine independent entry, restart, deletion, wrap and interruption passed.
+Bounded local preparation recovery is fair, isolates corrupt originals and never invokes an exchange.
+Protected-entry hard process crashes preserve journal phases, original intent and conservative runtime recovery.
+Durable dispatch fence, read-only recheck, nested-owner isolation and all send failure states passed.
+Exact dynamic reserve table, non-double-counted loss, uncertain residuals and UTC expiry passed.
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-risk-proof-fuFyKN/.migration-backups/pre-migration-v36-to-v48-1790453498504-f0ec6a5f.db
+Dynamic reservation provenance, replay, restart, stop tightening, stale identity and unknown mark passed.
+Post-fill current risk overrun preserves protection, durably drains residuals and shares the bounded lifecycle cancel budget.
+Paper current mark PnL/equity/free balance, unchanged actual margin, both sides, unknown mark and restart passed.
+Durable history checkpoints: restart, scope, CAS, rollback, redaction and cooldown passed.
+Historical coverage: range continuity, provider binding, fresh acquisition and fail-closed release passed.
+Hyperliquid retention: bounded persistence, restart continuity and horizon/validation freshness passed.
+Durable entry drain, unknown cancel, restart, independent accounts and zero-position tests passed.
+Shared per-owner cancel budget, nested accounts and one-use permits passed.
+Exact active cancel evidence rejects absence, stale state, conflicts and unknown remaining quantities.
+Exit cancel recovery: prepared/dispatching/unknown restart, absence, freshness and retry interval passed.
+TP and stale-stop retries share fresh identity/protection fences across restarts.
+Absolute original entry deadline tests passed.
+Entry deadline request/transport fences passed.
+Entry-mode readback, profile/binding/freshness guards and changed-mode tests passed.
+Real engine entry-mode admission, changed-mode and post-journal freshness fence tests passed (local fixtures only).
+Original entry-price boundary, adverse tick and immutable revalidation tests passed.
+Engine immutable entry cap, terminal partial IOC, restart and final dispatch fence tests passed.
+Exact tier boundaries, bounded monotone reduction and table validation passed.
+Final fresh tier/mark/margin, local reservation and post-journal tier fences passed.
+Paper bounded IOC no-fill, partial-fill, no-later-fill and price-fence tests passed.
+Durable emergency drain, late fills, lost acknowledgements, restart and cross-profile ownership tests passed.
+Paper cumulative partial fills, triggered stops, restart, clipping and remainder policies passed.
+Shared partial-stop remaining quantity and operational coverage tests passed.
+Fresh persisted protection receipt tests passed.
+Durable TP remaining allocation and cancel/fill reconciliation tests passed.
+Structured account release safety proof tests passed.
+Lifecycle safety: fresh closure/drain, partial sources, account/epoch commit rollback and cancel-fill race passed.
+Global kill-switch release source proofs, independent locks and final transaction races passed.
+Global drain excludes historical retired accounts, retains disabled accounts and rejects unresolved retired obligations.
+Entry admission uses complete current account safety evidence before protected dispatch.
+Account mode: strict binding, immutable evidence and restart passed.
+UTA baseline: real pre-boundary mode, restart, immutable scope, legacy and conflicting mode passed.
+Account scope: durable occurrences, real execution correlation, nonlinear activity, conflict replay and finality boundary passed.
+Durable account-log continuation, independent consumers, observed coverage and legacy-safe funding replay passed.
+Durable historical audit cursor, fixed old windows, event-day money and UTC-forward fairness passed.
+Funding observations: native valued replay, delayed loss, immutable proof, atomic cursor and unknown collateral passed.
+Late durable native funding revises actual risk, queues entry drainage and preserves the confirmed stop.
+Kraken original execution/cash-leg fee correlation, immutable valuation and restart replay passed.
+Kraken cashleg failures: missing/null/ambiguous units, exact economics, conversion percentages, source/caller binding passed.
+Kraken cashleg replay: rebates, native units, partial PnL, one funding cashleg, page/restart/overlap/generation and sticky conflicts passed.
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-kraken-cashleg-migration-090djF/.migration-backups/pre-migration-v40-to-v48-1790453533921-3f93793d.db
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-kraken-cashleg-migration-090djF/.migration-backups/pre-migration-v40-to-v48-1790453534130-dc1d939b.db
+Migration41: lossless original backfill, indexed occurrences, immutable FK proofs, nested transaction/crash/restart and migration rollback passed.
+=== Running Modular Unit Tests ===
+1. Testing target channel identifier formats...
+   -> OK
+2. Testing ReDoS protection and regex parsing...
+   -> OK
+3. Testing Concurrency Queue execution limit...
+   -> OK
+4. Testing GDPR PII Masking...
+   -> OK
+5. Testing structured operational log context...
+   -> OK
+
+ALL MODULE UNIT TESTS PASSED!
+=== Running ConcurrencyQueue Unit Tests ===
+1. Testing default maxConcurrency of 2...
+   -> OK
+2. Testing custom maxConcurrency of 1...
+   -> OK
+3. Testing queue handles throwing jobs correctly...
+   -> OK
+4. Testing queue task-timeout...
+   -> OK
+5. Testing queue pause and resume...
+   -> OK
+6. Testing AbortSignal timeout propagation...
+   -> OK
+7. Testing live queue settings update...
+   -> OK
+8. Testing queue abort and drain timeout...
+   -> OK
+9. Testing bounded pending queue capacity...
+   -> OK
+
+ALL CONCURRENCY QUEUE UNIT TESTS PASSED!
+9. Testing hostile updateSettings input...
+   -> OK
+1. Testing a backlog larger than the former 1,000-task startup limit...
+   -> OK
+2. Testing pause/resume backpressure without dropping durable work...
+   -> OK
+ALL DURABLE OUTBOX SCHEDULER TESTS PASSED!
+=== Running Filters Unit Tests ===
+1. Testing hasNestedQuantifiers...
+   -> OK
+2. Testing parseRegex...
+   -> OK
+3. Testing getMessageTextAndType...
+   -> OK
+4. Testing shouldForward...
+   -> OK
+5. Testing getRegexPatternsForSource...
+   -> OK
+6. Testing shouldForward with per-source regex...
+   -> OK
+
+ALL FILTERS UNIT TESTS PASSED!
+[WARN] Invalid apiId of type number in config.json. Resetting to 0.
+[WARN] forwardOptions.queueTimeoutSeconds raised to 35 so AI parser timeouts can complete.
+ALL ATOMIC CONFIGURATION TESTS PASSED!
+[WARN] TELEGRAM_API_ID in .env ("-1") is not a valid safe positive integer. Clearing from process.env.
+ALL FILE-BACKED SECRET TESTS PASSED!
+Managed web secret store tests passed.
+Factory-reset path boundary tests passed.
+MCP maintenance: real closure acknowledgements, generations, ownership, entry fence, timeout and hard process death passed.
+Real SQLite participant registration, native closure acknowledgement, timeout and failed-close retry passed.
+Managed runtime settings tests passed.
+Telegram web login coordinator tests passed.
+ALL BOUNDED TDLIB RETRY TESTS PASSED!
+TDLib retry preserves Error-like coercion and rejects default object text unchanged.
+Native TDLib, filesystem and unexpected forwarding error contracts passed.
+Workflow and raw forwarding authorization contracts passed.
+Legacy media migration scalar IDs, retained files and sequential writes passed.
+Resolved TDLib chat IDs retain primitive spelling and reject fabricated object identities.
+
+=== 1. normalizeSignalXml Tests ===
+  ✓ Whitespace-Toleranz: Identische Signale mit verschiedenem Whitespace
+  ✓ XML-Declaration wird entfernt
+  ✓ Unterschiedliche Signale ergeben unterschiedliche Normalisierung
+  ✓ Leere/null/undefined Eingaben werden behandelt
+
+=== 2. isDuplicateSignal Tests ===
+  ✓ Leere Datenbank: Kein Duplikat
+  ✓ Verschiedenes Signal: Kein Duplikat
+  ✓ Duplikat innerhalb Cooldown: Blockiert
+  ✓ Whitespace-Toleranz: Duplikat trotz verschiedenem Whitespace
+  ✓ XML-Declaration-Toleranz: Duplikat trotz XML-Header
+  ✓ Crash-Retry ignoriert den eigenen Signal-Datensatz
+  ✓ Workflow-Duplikatschutz bleibt auf die jeweilige Pfadgruppe begrenzt
+  ✓ Cooldown abgelaufen: Signal erlaubt
+  ✓ Cooldown 0: Immer blockieren
+
+==================================================
+Tests abgeschlossen: 13 bestanden, 0 fehlgeschlagen
+==================================================
+
+[INFO] Verified pre-migration database snapshot created: /tmp/forwarder-outbox-test-9OuHlV/.migration-backups/pre-migration-v0-to-v48-1790453546553-647c9f40.db
+[INFO] Verified pre-migration database snapshot created: /tmp/forwarder-outbox-test-9OuHlV/.migration-backups/pre-migration-v0-to-v48-1790453546839-9e89a757.db
+ALL DURABLE OUTBOX TESTS PASSED!
+Atomic durable ingress and album dedupe passed.
+[XML-Parser INFO] request=unknown model=test-fake prompt_tokens=0 completion_tokens=0
+Workflow/resource/time pinning, fanout retry and fresh locks passed.
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-ingress-migration-9uAuyB/.migration-backups/pre-migration-v33-to-v48-1790453549833-af504459.db
+Ingress/AI migration retains legacy evidence and blocks historical replay.
+Signal immutable/idempotent persistence passed.
+[XML-Parser INFO] request=unknown model=local-fake prompt_tokens=0 completion_tokens=0
+[XML-Parser INFO] request=unknown model=local-fake prompt_tokens=0 completion_tokens=0
+Durable AI reservation settlement passed.
+1. Testing exclusive process lock acquisition...
+   -> OK
+2. Testing stale-lock recovery requires explicit ownership review...
+   -> OK
+3. Testing ownership changes fail closed...
+   -> OK
+4. Testing malformed locks fail closed...
+   -> OK
+5. Testing a live owner with a fresh timestamp stays fail-closed...
+   -> OK
+6. Testing PID reuse resolves to reviewed recovery instead of a false live owner...
+   -> OK
+ALL PROCESS LOCK TESTS PASSED!
+Startup authority: fail-closed phases, deferred MCP claim, release and revocation race passed.
+[INFO] Web Control Dashboard listening on https://127.0.0.1:39527
+[10:12:33 PM] [AUDIT] request_id=8bf27799-21d1-4175-b2cc-7a6d058223fc action=runtime.settings.update actor_role=admin outcome=failed status=503
+[10:12:33 PM] [SECURITY] request_id=f2419a29-0d2b-4f76-a6ad-b96a11141f6c Managed runtime settings updated; restart required.
+[10:12:33 PM] [AUDIT] request_id=f2419a29-0d2b-4f76-a6ad-b96a11141f6c action=runtime.settings.update actor_role=admin outcome=succeeded status=200
+[10:12:33 PM] [AUDIT] request_id=4a7537fb-6cf9-4f38-873a-f268d615a326 action=runtime.settings.update actor_role=admin outcome=failed status=503
+[10:12:33 PM] [SECURITY] request_id=e5114e80-8a06-490e-a408-55e45b3e2ae4 Managed runtime settings updated; restart required.
+[10:12:33 PM] [AUDIT] request_id=e5114e80-8a06-490e-a408-55e45b3e2ae4 action=runtime.settings.update actor_role=admin outcome=succeeded status=200
+[10:12:33 PM] [AUDIT] request_id=4ba38160-ea40-472a-8fe0-730ef3a8f5bb action=workflow.history.reset actor_role=admin outcome=failed status=503
+Startup HTTP authority, readable status, audit race and restricted configuration recovery passed.
+Startup trading gates, untouched pending intents, continuing stop protection and final dispatch race passed.
+Migration CLI: confirmation, actual offline lease, active-owner refusal and delayed real handle-close acknowledgement passed.
+Migration restore: genuine maintenance capability, absent target, final fence and partial-rename rollback passed.
+ALL DELIVERY CONFIRMATION TESTS PASSED!
+ALL CRASH-LOOP GUARD TESTS PASSED!
+Clock drift safety tests passed.
+ALL BACKUP AND RESTORE TESTS PASSED!
+Backup pruning UTF-16 ordering tests passed.
+Backup eligibility: prepared/created/opening-zero, unresolved operations/evidence and missing sources stay fail-closed.
+Backup proofs: independent timestamps, true isolated restore drill, compact manifest, untrusted claims and exact staged members passed.
+Configuration generation: shared real writers, pinned SQLite snapshot, external drift, interrupted commit and immutable-object tamper passed.
+Configuration generation: 10 real child-kill rename/directory-sync boundaries passed; locks preserved and mixed heads refused.
+Configuration generation: genuine enrollment-vs-owner.release race serialized through the complete commit.
+ALL ENCRYPTED OFF-SITE BACKUP TESTS PASSED!
+ALL OPERATIONAL DATA RETENTION TESTS PASSED!
+Retention: immutable money/projection evidence, unvalued legacy fills and original paper provenance retained.
+[INFO] Metrics server listening on https://127.0.0.1:45917
+ALL HONEST OBSERVABILITY TESTS PASSED!
+Dashboard analytics tests passed.
+Delivery SLO tracker tests passed.
+Enterprise audit trail tests passed.
+Audit CLI confirmation test passed.
+Dashboard token and OIDC authentication tests passed.
+[INFO] Alert relay listening on port 0.
+[INFO] Alert relay listening on port 0.
+{"timestamp":"2026-09-26T20:12:48.813Z","level":"INFO","event":"alert_delivered","alert_count":1,"alert_status":"firing"}
+{"timestamp":"2026-09-26T20:12:48.814Z","level":"ERROR","event":"alert_delivery_failed","error_code":"Error"}
+{"timestamp":"2026-09-26T20:12:48.815Z","level":"ERROR","event":"alert_delivery_failed","error_code":"Error"}
+{"timestamp":"2026-09-26T20:12:48.816Z","level":"ERROR","event":"alert_delivery_failed","error_code":"Error"}
+{"timestamp":"2026-09-26T20:12:48.818Z","level":"ERROR","event":"alert_delivery_failed","error_code":"Error"}
+ALL ALERT RELAY SECURITY TESTS PASSED!
+External incident receiver offline contract tests passed.
+Monitoring artifact policy tests passed.
+Staging E2E contract tests passed.
+Release observation and 30-day SLO evaluation tests passed.
+[INFO] Web Control Dashboard listening on https://127.0.0.1:33159
+[10:12:51 PM] [SECURITY] request_id=ba21ec73-3bd3-4522-9140-98dbbbfcc6c3 Dashboard administrator token bootstrapped.
+[10:12:51 PM] [AUDIT] request_id=ba21ec73-3bd3-4522-9140-98dbbbfcc6c3 action=dashboard.bootstrap.post actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [SECURITY] request_id=6e0d327e-24cf-4261-8253-b605d173078b Ephemeral local dashboard session initialized.
+[INFO] Web Control Dashboard listening on https://127.0.0.1:42355
+[10:12:51 PM] [SECURITY] request_id=02cf779f-71b3-497a-8a19-b292f7999b4d Dashboard administrator token bootstrapped.
+[10:12:51 PM] [AUDIT] request_id=02cf779f-71b3-497a-8a19-b292f7999b4d action=dashboard.bootstrap.post actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [SECURITY] request_id=935c21b0-cf42-416e-b614-11f2cb31111e Ephemeral local dashboard session initialized.
+[WARN] forwardOptions.queueTimeoutSeconds raised to 255 so AI parser timeouts can complete.
+[WARN] sourceFilters["-1001"] is not an object and was removed.
+[10:12:51 PM] [INFO] request_id=b3e9b71c-e1ca-49e0-acae-e95bbd830c20 Dashboard configuration updated.
+[10:12:51 PM] [AUDIT] request_id=b3e9b71c-e1ca-49e0-acae-e95bbd830c20 action=configuration.update actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=237f2932-41d6-4e3a-8415-4c0e48254510 action=configuration.update actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=983dfe17-d63e-467a-9a20-1fdd387b34d2 action=dashboard.exchanges.probe.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=8b8f8774-412e-4805-b8da-d5099a036217 action=dashboard.workflow.resources.post actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [AUDIT] request_id=00dad4a1-1bc4-4e9a-92d6-fc5dbca9538d action=dashboard.workflow.models.post actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=e4d1a24e-162c-4439-9533-26a7d1dd6b36 action=trading.risk.adaptive.copy.legacy.post actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=2a67bcd1-a573-437b-a0ef-ae90d27b40d0 action=trading.risk.adaptive.copy.legacy.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=01ecedbf-2d1f-44a6-a532-6e0c36d61f6c action=dashboard.workflow.resources.publish.post actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=c644d388-fa22-4fad-bd4e-91019c9536b9 action=dashboard.workflow.resources.update.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=3e290129-a253-4241-b907-f93d3c0dc038 action=dashboard.workflow.resources.publish.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=d468f51f-2207-4247-a28b-1647b3cff605 action=dashboard.workflow.resources.delete actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=80a0f88e-5f55-4f37-bb8a-d21ac26d766a action=dashboard.workflow.resources.delete actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=840a2922-2e45-4afa-bc8a-c4b48dc674a9 action=dashboard.workflow.resources.post actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [AUDIT] request_id=3589bef5-962e-4bb9-b5e9-fe49db400cb0 action=dashboard.workflow.resources.delete actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=1d4a5d43-69ae-432a-8215-ef0ea7117243 action=dashboard.workflow.resources.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=f1e3f318-de24-4ec6-a250-57f64c0bfa63 action=dashboard.workflow.resources.delete actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=00aab44f-7292-4af4-9c67-5752612d7d60 action=dashboard.workflow.resources.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=e3a3c0f3-1cdb-471c-a79e-9ec788d7cbc4 action=dashboard.workflow.resources.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=c89ac337-f705-4d74-8597-c06dff54eb09 action=dashboard.workflow.resources.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=a67e3865-e667-45a3-ab40-85e06a196db1 action=dashboard.workflow.resources.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=4e5f7c55-1762-4c0d-bd46-4d47d96bb2c4 action=dashboard.workflow.resources.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=a4153a32-8615-48ba-b06a-423b1c5796b9 action=dashboard.workflow.resources.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=cd39dfd0-227f-4fd7-ba2d-e9a2945eeebe action=dashboard.workflow.resources.post actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [AUDIT] request_id=c8f9d6b2-17e5-4a80-81f7-5650fb9bbf33 action=dashboard.workflow.resources.update.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=5f650cac-cde0-435d-baca-f4e9e08bd9f1 action=dashboard.workflow.resources.publish.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=8ec6d782-c357-4448-ba6d-57218b004cfd action=dashboard.workflow.resources.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=599aacbe-9188-4f09-9779-78345d7af37f action=dashboard.workflow.resources.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=7024d153-0eda-43c9-bcbf-ae8234c39439 action=dashboard.workflow.resources.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=36f8b676-96c6-4e31-88f8-0341cad772df action=dashboard.workflow.resources.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=c2919795-26d8-439f-81a5-28beda65454e action=dashboard.workflow.resources.post actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [AUDIT] request_id=ff90824a-ddc1-454b-99c9-1af459327f27 action=dashboard.workflow.resources.update.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=6096ebbc-f325-4898-960d-3595cd71b583 action=dashboard.workflow.resources.publish.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=3ba5865e-54d0-4174-a02c-b1c43cad36a1 action=dashboard.workflow.resources.post actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [AUDIT] request_id=9258ce1a-ff60-4b6f-a55b-f08187341926 action=dashboard.workflow.resources.publish.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=8ab1683b-a696-474e-a43b-257be15682fb action=dashboard.workflow.resources.post actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [AUDIT] request_id=59dd1195-3c2d-437a-8bbe-c5b5861c4121 action=dashboard.workflow.resources.publish.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=d004e8ac-8618-4c03-b8ec-cf818aec453d action=dashboard.workflow.resources.delete actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=fcbafadf-f7cd-4b48-b970-fa3ec563999d action=dashboard.workflow.resources.delete actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=4f0d329a-0a7a-42af-b809-d0c28afbbaa9 action=dashboard.workflow.resources.delete actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=2f5ecabc-9728-4652-b9b3-fbbcf4e9592f action=dashboard.workflow.impact.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=76658e16-674f-49b1-8e65-15aab5d24dd3 action=dashboard.workflow.mutate.post actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [AUDIT] request_id=f4ba3eb2-eb32-4437-a76b-6e818ba068d1 action=dashboard.workflow.mutate.post actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [AUDIT] request_id=45950255-e92d-473a-beff-7e0f29227e7c action=workflow.history.impact actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=3d0fdc3f-6e28-48ac-aa03-eb075b36d17c action=workflow.history.apply actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=feb24efd-ba2c-4d9b-acf4-63fe5349bfc6 action=workflow.history.apply actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=4e8e8018-9645-40c1-a0c3-39f3d20c8598 action=workflow.history.reset actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=e8a526c2-7a85-4e1c-bab9-016e3e051ec2 action=workflow.history.reset actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=188a044f-8d18-4c3d-9793-9e73aaac125a action=dashboard.workflow.simulate.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=3ac9ee98-2e4f-4b3e-820f-86605359ee31 action=dashboard.workflow.simulate.post actor_role=admin outcome=rejected status=400
+[10:12:51 PM] [AUDIT] request_id=fd7d7688-6504-4ce3-af3b-12bd97dcd843 action=dashboard.workflow.mutate.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=ad0dcc8d-0072-4442-9adf-25146817df00 action=setup-bundle.preview actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=062bd185-856e-43bb-a413-f6d6203796ec action=setup-bundle.apply actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=897ace39-afbd-473b-9e0d-306f9e9376d7 action=setup-bundle.preview actor_role=admin outcome=rejected status=400
+[10:12:51 PM] [AUDIT] request_id=5b53daee-1880-49ac-a7bc-1bbab704c1ef action=setup-bundle.preview actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=388a79ce-4a16-4a4c-86c9-64a29fd59e0e action=setup-bundle.apply actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [SECURITY] request_id=28084cdb-b0b6-4b56-b19e-62047d37b2d5 Portable setup bundle 0fdceacce78201e20bead4433ae0148cd04f87901cb734f815a63fb0081f59a2 applied after verified backup.
+[10:12:51 PM] [AUDIT] request_id=28084cdb-b0b6-4b56-b19e-62047d37b2d5 action=setup-bundle.apply actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=bd97c598-bd70-4fda-913b-dd56d86203ed action=setup-bundle.apply actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=4e7aa702-a824-4889-a70f-80e6e7e059bc action=setup-bundle.preview actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=db2b6144-aa8d-4f27-9eb7-b14d11470048 action=setup-bundle.apply actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=6457b953-912d-43a7-bebf-0c2ca24be157 action=setup-bundle.preview actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=99197990-7817-4bc2-a9c0-da00d040a6cd action=setup-bundle.apply actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=471bb74b-2a56-46c4-aad6-f404531500a9 action=telegram.authentication.update actor_role=admin outcome=succeeded status=202
+[10:12:51 PM] [AUDIT] request_id=8b7fd022-57f3-4dff-9ca5-e88722970604 action=dashboard.incoming.messages.delete actor_role=admin outcome=rejected status=400
+[10:12:51 PM] [AUDIT] request_id=462ec54b-0880-4d22-836b-484ef324ea9d action=dashboard.processed.signals.delete actor_role=admin outcome=rejected status=400
+[10:12:51 PM] [AUDIT] request_id=be7ef393-1059-48d8-9a84-aeff9e2382e7 action=configuration.update actor_role=admin outcome=rejected status=400
+[10:12:51 PM] [AUDIT] request_id=daf6e4be-a103-4b45-b69f-c4b9fdbb563d action=configuration.import actor_role=admin outcome=rejected status=400
+[10:12:51 PM] [AUDIT] request_id=77e5423b-5e3d-4c32-86af-6aa1169b234c action=access-token.rotate actor_role=admin outcome=rejected status=400
+[10:12:51 PM] [AUDIT] request_id=378b32ea-3f24-4686-9e51-c73f24897085 action=access-token.disable-viewer actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=d580335b-174e-4969-bde4-bc187b772031 action=secrets.backup-drive-access-token.delete actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=317d6ad7-aa1a-487e-a813-e17b8e8b3c75 action=audit.replay actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=49d3cf7a-4705-49e3-a936-f45c1cbf7ef5 action=backup.recover-offsite actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=b3034f26-1dea-4e7f-812b-40976e61588c action=backup.restore actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=61d1bfe6-e93d-4872-876c-9d4cb30825ff action=system.restart actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=f3ddde10-9abe-48d1-9999-dac1ff73a32b action=trading.strategies.delete actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=b73480ef-5a04-43dc-99e7-92b495dd9345 action=trading.signal.schemas.delete actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=d773941f-069f-45c0-9d66-1e7a3cc03e00 action=system.factory-reset actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [INFO] request_id=f49a19df-12d1-427e-8da7-d596ce266ea4 Dashboard configuration updated.
+[10:12:51 PM] [AUDIT] request_id=f49a19df-12d1-427e-8da7-d596ce266ea4 action=configuration.update actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=5abc43e3-f4a0-4cc0-9c3f-6a781c1c4ae5 action=dashboard.incoming.messages.delete actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=4a4a2e42-6111-48dd-b41a-d5816d499dc4 action=dashboard.incoming.messages.delete actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=78fa02a6-8aec-47dd-a21b-e6d2adf73817 action=dashboard.processed.signals.delete actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=5455cfde-ebc5-4cfa-a46e-5077520e2a92 action=dashboard.processed.signals.delete actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=e484303a-f6da-49b4-9207-4939575c513f action=trading.strategies.delete actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=271fda1b-ce9e-4ea4-8388-053eeaead4ef action=trading.signal.schemas.post actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [AUDIT] request_id=130e38dd-0577-4b5e-95be-14a668387894 action=trading.signal.schemas.update.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=136c5446-b98f-438d-8f97-733f92002021 action=trading.signal.schemas.delete actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=10e16d6d-65cd-4c4b-96b7-85c45123ae69 action=trading.signal.contracts.versions.delete actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=bbae3c20-6ac7-47b4-b0fe-a029075a20a6 action=trading.signal.contracts.versions.delete actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=97b0ad94-dbe5-4f37-b9d5-a3399a286147 action=mcp.runtime.update actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=2c069082-3c2b-469d-b716-05fb017a085e action=mcp.runtime.update actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=63142c3a-0e67-42ac-be11-7cc22da4d2c0 action=dashboard.mcp.agents.post actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [AUDIT] request_id=2b406f92-d0e3-4a79-8096-d1c28f537619 action=dashboard.mcp.agents.update.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=646113d4-357d-4d47-b6a9-6888644f6b7f action=dashboard.mcp.proposals.approve.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=aff86909-0b89-4628-b7a2-1bbf383733e5 action=dashboard.mcp.proposals.approve.post actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=f29c2c4e-3a30-4e6e-9795-53a2828b03f1 action=dashboard.mcp.proposals.approve.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=7994faf8-9098-4e8e-b732-4d1d80b85c01 action=dashboard.mcp.proposals.reject.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=07044ae4-a41d-4b36-a26c-6f706b73d784 action=dashboard.mcp.agents.rotate.post actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=c409a4be-8f78-4a36-8370-82eb86e448b1 action=dashboard.mcp.agents.rotate.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=bac4a481-d30d-4cbc-a7e7-86a676379bdf action=dashboard.mcp.agents.delete actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=d93d12c4-7c8f-45c0-ba38-c13bf63fb3de action=dashboard.mcp.agents.delete actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=c3d9d19a-de02-4162-ac06-5e23286626f3 action=mcp.runtime.update actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=a8043b55-cf31-4894-8686-86b546d4de0b action=mcp.runtime.update actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=d6dbf04d-9079-448c-95a5-f80b0edd3efd action=mcp.runtime.update actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=d72d6e3b-9d08-48a6-ac98-c6c6896f1c74 action=trading.journal.post actor_role=admin outcome=failed status=503
+[10:12:51 PM] [AUDIT] request_id=8825ec26-5a04-4446-8051-28c29700fc6f action=routing.control actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [CRITICAL] Audit precondition failed; dashboard mutation blocked: audit unavailable
+[10:12:51 PM] [AUDIT] request_id=444922c2-4513-413d-9472-6601b0f3c09e action=routing.control actor_role=admin outcome=rejected status=413
+[10:12:51 PM] [CRITICAL] Audit precondition failed; dashboard mutation blocked: Audit trail is unavailable.
+[10:12:51 PM] [AUDIT] request_id=8c3dcefc-af95-4017-aae7-23944de2af31 action=configuration.update actor_role=admin outcome=rejected status=400
+[10:12:51 PM] [AUDIT] request_id=f605cbed-4978-4927-9aa5-fa948d3d87dd action=secrets.update actor_role=admin outcome=rejected status=400
+[10:12:51 PM] [INFO] request_id=de2bda9a-df2f-4850-b127-a394bf0d868c Managed dashboard secrets updated.
+[10:12:51 PM] [AUDIT] request_id=de2bda9a-df2f-4850-b127-a394bf0d868c action=secrets.update actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=d18aa872-4409-42e3-875d-c7d42209d366 action=outbox.retry actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [AUDIT] request_id=a544b58c-c4d7-4237-82f5-292f2f85ccb0 action=outbox.retry actor_role=admin outcome=succeeded status=202
+[10:12:51 PM] [AUDIT] request_id=12e6498a-9c95-4a67-b4ac-23de519e03a7 action=outbox.acknowledge actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=7ba64946-70ae-4d69-81f5-2ec377b08ea4 action=backup.create actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [AUDIT] request_id=dae00d35-2831-446d-a8d1-0cdf525786c1 action=audit.replay actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=6c97825e-3ec3-4671-a9ab-d540c3e0ddbd action=backup.recover-offsite actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [AUDIT] request_id=75373563-9b67-4e1b-a1b4-9996ba5febcc action=backup.restore actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=d7cf24cd-666e-4254-903d-5af718013fea action=routing.control actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=6b8bd3d8-266b-4a4f-98f5-92754d2968a8 action=backup.create actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [AUDIT] request_id=16afa600-28ba-4729-8e54-b2a7ba1c9a7c action=backup.create actor_role=admin outcome=failed status=503
+[10:12:51 PM] [AUDIT] request_id=8a8b3632-90f7-4c6f-8cdc-48711744610e action=backup.recover-offsite actor_role=admin outcome=failed status=503
+[10:12:51 PM] [AUDIT] request_id=58285d5a-5d56-4598-9825-59d0dc204b6b action=backup.restore actor_role=admin outcome=failed status=503
+[10:12:51 PM] [AUDIT] request_id=03000148-4915-4335-829d-c10191b23ef2 action=system.factory-reset actor_role=admin outcome=failed status=503
+[10:12:51 PM] [AUDIT] request_id=9f0b6162-1546-4da6-bd31-9d3b02854385 action=system.factory-reset actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=f99a9997-37cd-48b7-89b2-064a597b6234 action=dashboard.clear.database.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=21c142bb-6fe9-4483-ba0a-099163b42fc3 action=system.factory-reset actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=7a038d6c-d487-4e3f-a868-200e10c23f64 action=dashboard.clear.database.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=d808f578-5445-4b39-840d-c89f6f46c24d action=system.factory-reset actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=43e4099d-d1d0-4d02-9b95-75e36f5ea81c action=dashboard.clear.database.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=8945c97c-aca7-4bcb-a5cf-a83cbcaade5a action=system.factory-reset actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=d2c66eec-5a2a-42d5-91a5-526cc21cf695 action=dashboard.clear.database.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=24a02677-7753-4a6e-bbb2-98f3dc1779dc action=system.factory-reset actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=9d4e5d7b-034f-4760-99d9-14f52d3349a8 action=dashboard.clear.database.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=5f14c84e-9e2c-45d1-8253-cd4114e4d9cb action=dashboard.clear.database.post actor_role=admin outcome=rejected status=412
+[10:12:51 PM] [INFO] request_id=54384e69-37c4-42f5-b553-abe9c8872496 Operational SQLite data cleared through the web dashboard; retained_trading_signals=0.
+[10:12:51 PM] [AUDIT] request_id=54384e69-37c4-42f5-b553-abe9c8872496 action=dashboard.clear.database.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [SECURITY] Complete factory reset executed through the web dashboard.
+[10:12:51 PM] [AUDIT] request_id=770903ab-d7c8-4a3a-b696-2f25b7af21f4 action=system.factory-reset actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=53930327-2772-496d-b3aa-00f4978e78d7 action=runtime.settings.update actor_role=admin outcome=rejected status=400
+[10:12:51 PM] [AUDIT] request_id=b34dfe78-f1b4-4bbb-a56a-0ca9eed9079a action=runtime.settings.update actor_role=admin outcome=rejected status=400
+[10:12:51 PM] [AUDIT] request_id=fe50b5ee-9eb2-49f9-8c2d-708aa147f7ed action=runtime.settings.update actor_role=admin outcome=rejected status=400
+[10:12:51 PM] [AUDIT] request_id=fe3ba329-d7a3-45af-a3f7-5d62b639940a action=runtime.settings.update actor_role=admin outcome=rejected status=400
+[10:12:51 PM] [AUDIT] request_id=3349f720-5fa4-4ef9-9553-26fdf71751bb action=runtime.settings.update actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [INFO] request_id=1b22a6e1-70cd-4a58-a2ca-f9d4f1d7188d Managed dashboard secrets updated.
+[10:12:51 PM] [AUDIT] request_id=1b22a6e1-70cd-4a58-a2ca-f9d4f1d7188d action=secrets.update actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [SECURITY] request_id=af653d4c-c4f3-4b5e-8231-37e7ba818f35 Managed runtime settings updated; restart required.
+[10:12:51 PM] [AUDIT] request_id=af653d4c-c4f3-4b5e-8231-37e7ba818f35 action=runtime.settings.update actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [SECURITY] request_id=a30e9041-4e01-40a3-8160-c1588e020574 Drive staging access token deleted; mirror disabled.
+[10:12:51 PM] [AUDIT] request_id=a30e9041-4e01-40a3-8160-c1588e020574 action=secrets.backup-drive-access-token.delete actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=8871b43c-9e65-442d-bfe3-4eba5c0af768 action=runtime.settings.update actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [SECURITY] request_id=0ab77a69-e85a-4f4a-b479-c338555677d2 Managed runtime settings updated; restart required.
+[10:12:51 PM] [AUDIT] request_id=0ab77a69-e85a-4f4a-b479-c338555677d2 action=runtime.settings.update actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=3f74ad94-2677-4270-8266-e0ae14d096fa action=system.restart actor_role=admin outcome=succeeded status=202
+[10:12:51 PM] [INFO] request_id=edb10c47-8e36-4979-b3d2-fc9732d8a0f1 Dashboard configuration updated.
+[10:12:51 PM] [AUDIT] request_id=edb10c47-8e36-4979-b3d2-fc9732d8a0f1 action=configuration.update actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=089c0bce-be5d-4b75-9e42-234485e173c7 action=routing.control actor_role=admin outcome=failed status=503
+[10:12:51 PM] [SECURITY] request_id=b0a10948-f7b8-4a6c-950d-1fad70a442a7 Managed runtime settings updated; restart required.
+[10:12:51 PM] [AUDIT] request_id=b0a10948-f7b8-4a6c-950d-1fad70a442a7 action=runtime.settings.update actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [AUDIT] request_id=89b5a6fc-b7d0-4b11-93fe-ae21c11ce46b action=trading.strategies.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=c5043ddc-1c0a-4f84-b70e-a769e6bc461c action=trading.strategies.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=5555edd2-7906-4171-afb5-3e8dccf59357 action=trading.strategies.post actor_role=admin outcome=rejected status=409
+[10:12:51 PM] [AUDIT] request_id=216ca7cf-4d2d-4592-b903-1bde8acad984 action=trading.strategies.post actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [AUDIT] request_id=4596435e-b50a-49d4-bf16-514daacf41eb action=trading.strategies.publish.post actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [SECURITY] request_id=27e947e0-bac4-4fea-af26-53bccd4fc641 Dashboard viewer token rotated.
+[10:12:51 PM] [AUDIT] request_id=27e947e0-bac4-4fea-af26-53bccd4fc641 action=access-token.rotate actor_role=admin outcome=succeeded status=201
+[10:12:51 PM] [SECURITY] request_id=ddff4f7f-e682-4b81-96fa-e283c1052403 Dashboard viewer token disabled.
+[10:12:51 PM] [AUDIT] request_id=ddff4f7f-e682-4b81-96fa-e283c1052403 action=access-token.disable-viewer actor_role=admin outcome=succeeded status=200
+[10:12:51 PM] [SECURITY] request_id=c1ad7bd2-181f-4df4-bdac-8662dabe385b Dashboard admin token rotated.
+[10:12:51 PM] [AUDIT] request_id=c1ad7bd2-181f-4df4-bdac-8662dabe385b action=access-token.rotate actor_role=admin outcome=succeeded status=201
+[INFO] Web Control Dashboard listening on https://0.0.0.0:38109
+[INFO] Web Control Dashboard listening on https://0.0.0.0:43549
+[10:12:51 PM] [SECURITY] request_id=b1bcc78e-f4e6-4176-a9a6-85eb2c7ac347 Dashboard administrator token bootstrapped.
+[10:12:51 PM] [AUDIT] request_id=b1bcc78e-f4e6-4176-a9a6-85eb2c7ac347 action=dashboard.bootstrap.post actor_role=admin outcome=succeeded status=201
+[INFO] Web Control Dashboard listening on https://127.0.0.1:35005
+[10:12:51 PM] [CRITICAL] request_id=f4e4b980-9ca4-4b16-bda6-a07c14be99e3 Recovery-mode loopback session initialized without an audit trail.
+[10:12:51 PM] [SECURITY] request_id=f4e4b980-9ca4-4b16-bda6-a07c14be99e3 Integrated local dashboard access initialized.
+[10:12:51 PM] [CRITICAL] request_id=69092bdf-e0d9-42e0-8fc6-02c12605cf27 Recovery repair mutation accepted without an audit trail.
+[10:12:51 PM] [INFO] request_id=69092bdf-e0d9-42e0-8fc6-02c12605cf27 Dashboard configuration updated.
+[10:12:51 PM] [CRITICAL] Audit precondition failed; dashboard mutation blocked: Audit trail is unavailable.
+ALL WEB CONTROL SECURITY TESTS PASSED!
+=== Running Node.js Integration Verification ===
+1. Testing TS parser child process execution from Node.js...
+SUCCESS: Captured expected configuration error from TS parser script: Signal parser failed: OPENROUTER_API_KEY environment variable is not set.
+2. Testing successful mock parsing via JS subprocess...
+SUCCESS: Correctly received and validated structured XML from mock JS subprocess.
+3. Verifying configuration parameters...
+xmlParsing configuration: {
+  "enabled": false,
+  "externalDataPolicyAccepted": false,
+  "saveToFile": false,
+  "forwardXmlToTarget": false,
+  "signalsDir": "./signals",
+  "primaryModel": "google/gemini-flash-1.5",
+  "fallbackModel": "anthropic/claude-3-haiku",
+  "sourceTemplates": {},
+  "aiLimits": {
+    "maxInputChars": 12000,
+    "maxOutputTokens": 1200,
+    "primaryAttempts": 2,
+    "fallbackAttempts": 1,
+    "dailyRequestLimit": 200,
+    "dailyTokenLimit": 250000,
+    "requestTimeoutMs": 30000,
+    "backoffMs": 500
+  }
+}
+SUCCESS: xmlParsing configuration is valid.
+
+ALL NODE.JS INTEGRATION VERIFICATION TESTS PASSED!
+=== Running strict signal schema and AI boundary tests ===
+  ok - rejects numeric suffix
+  ok - rejects scientific notation
+  ok - rejects zero price
+  ok - rejects missing targets
+  ok - rejects duplicate action
+  ok - rejects unknown tag
+  ok - rejects target id gap
+  ok - rejects reversed entry range
+  ok - rejects LONG stop above entry
+  ok - rejects LONG target below entry
+  ok - rejects LONG targets reversed
+  ok - rejects SHORT stop below entry
+  ok - rejects SHORT target above entry
+  ok - rejects leverage too high
+  ok - rejects markdown wrapper
+  ok - rejects XML declaration
+  ok - rejects comment
+  ok - rejects DTD
+  ok - rejects surrounding prompt text
+[XML-Parser INFO] request=req-1 model=test/actual prompt_tokens=100 completion_tokens=80
+[XML-Parser INFO] request=unknown model=test/primary prompt_tokens=0 completion_tokens=0
+[XML-Parser INFO] request=unknown model=test/primary prompt_tokens=0 completion_tokens=0
+[XML-Parser WARN] category=rate_limited status=429 retry_in_ms=0
+[XML-Parser INFO] request=unknown model=test/fallback prompt_tokens=0 completion_tokens=0
+[XML-Parser WARN] category=rate_limited status=429 retry_in_ms=20
+[XML-Parser INFO] request=unknown model=test/fallback prompt_tokens=0 completion_tokens=0
+ALL STRICT SIGNAL PARSER TESTS PASSED!
+Signal contract definition and dynamic-field validation tests passed.
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-signal-schema-migration-RnW4TG/.migration-backups/pre-migration-v22-to-v48-1790453574603-ae724bc0.db
+Builder signal schema migration test passed.
+Trading core tests passed.
+Exact signed monetary events, currency provenance, idempotence, unresolved costs and restart passed.
+Owned fill cashflows: partial UTC realization, moving basis, replay, FX evidence and retained conflicts passed.
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-money-migration-90jvBp/.migration-backups/pre-migration-v35-to-v48-1790453576260-7ec04c13.db
+Migration36: proven legacy rebate, missing asset, unverifiable original, funding preservation and bounded restart passed.
+Incomplete accounting blocks new entries while existing stop, close and evidence replay remain available.
+Engine fee rebate remains signed exactly once through close and replay.
+Workflow builder tests passed.
+Workflow hash compatibility resource tests passed.
+Workflow scalar, graph and transactional readback checks passed.
+Workflow builder history tests passed.
+Workflow history invalidation barrier tests passed.
+Workflow fallback tests passed.
+[INFO] Verified pre-migration database snapshot created: /tmp/tsx-fallback-policy-migration-LISdjA/.migration-backups/pre-migration-v21-to-v48-1790453581728-e1122472.db
+Configurable fallback migration test passed.
+Legacy workflow migration and impact tests passed.
+[10:13:02 PM] [WARN] Trading notification event could not be persisted; trading state remains authoritative: Notification event type is invalid.
+Telegram viewer core contracts passed.
+[INFO] Web Control Dashboard listening on https://127.0.0.1:46353
+[10:13:03 PM] [AUDIT] request_id=45397097-b976-42d3-ae80-5dd3e2027cc4 action=telegram-viewer.settings.update actor_role=admin outcome=succeeded status=200
+[10:13:03 PM] [AUDIT] request_id=370e02ec-6748-46bb-9847-73a584bf3c73 action=telegram-viewer.settings.update actor_role=admin outcome=rejected status=409
+[10:13:03 PM] [AUDIT] request_id=521b985d-373e-45d9-a532-4d1bca75eb8c action=telegram-viewer.token.update actor_role=admin outcome=succeeded status=200
+[10:13:03 PM] [AUDIT] request_id=b3622202-308f-44e7-89be-58b3ea524207 action=telegram-viewer.service-token.rotate actor_role=admin outcome=succeeded status=200
+[10:13:03 PM] [AUDIT] request_id=2204c8f0-18bf-4fba-ac54-30b280ec5076 action=telegram-viewer.test.create actor_role=admin outcome=succeeded status=202
+[10:13:03 PM] [AUDIT] request_id=ccc30432-a8e3-456f-939c-1aed6805cf70 action=telegram-viewer.token.delete actor_role=admin outcome=succeeded status=200
+TELEGRAM VIEWER API SECURITY TESTS PASSED
+TELEGRAM VIEWER SERVICE TESTS PASSED
+Viewer database scope: operational path and hard-link rejection without writes; isolated state reopens.
+[TELEGRAM VIEWER] short failure
+[TELEGRAM VIEWER] Viewer cycle failed.
+TELEGRAM VIEWER RUNTIME TESTS PASSED
+TELEGRAM VIEWER DEPLOYMENT BOUNDARIES PASSED
+Portable setup bundle tests passed.
+Trading engine and reconciliation tests passed.
+Malformed persisted trade plan is blocked before provider or dispatch effects.
+Workflow risk create/update readback failures roll back complete state.
+Take-profit quantity/completion holes fail closed; rounding and consumed budgets remain stable.
+Cancellation evidence requires integer acquisition/source clocks and preserves retry-window edges.
+Fill identity guards retain uncertainty without changing originals until genuine evidence is restored.
+Declaration artifacts preserve nested contracts, updates and emitted runtime files.
+Ingress contract guards preserve full payload and isolate malformed durable work.
+Viewer API contracts reject malformed identities/settings/cursors without delivery effects.
+Trading failure-policy tests passed.
+Trading credential store tests passed.
+[INFO] Verified pre-migration database snapshot created: /tmp/dynamic-exchange-migration-TE84Hz/.migration-backups/pre-migration-v18-to-v48-1790453596048-8358873a.db
+[INFO] Verified pre-migration database snapshot created: /tmp/dynamic-exchange-migration-TE84Hz/.migration-backups/pre-migration-v18-to-v48-1790453596118-e63fa674.db
+Dynamic exchange registry and migration tests passed.
+CCXT exchange executor client tests passed.
+Provider acceptance control-plane gate tests passed.
+Provider grant Unicode signatures and bounded descriptor file boundaries passed.
+Trading web control tests passed.
+Trading portfolio and verification diagnostic boundaries passed.
+Trading analytics and adaptive channel-risk tests passed.
+Trade journal and exchange stream persistence tests passed.
+MCP control-plane tests passed.
+MCP Streamable HTTP protocol tests passed.
+Supply-chain pinning policy tests passed.
+License policy passed (877 locked npm and reviewed Python artifacts).
+License policy: malformed metadata and lock versions fail closed; production/build and reviewed artifact boundaries passed.
+Dependency and build-tool policy passed.
+Dependency policy: exact artifacts, malformed metadata, registry origin, universal generation and complete hashes passed.
+Repository governance tests passed.
+Complete test registration: omissions, duplicates, missing files and unsafe entries are rejected before execution.
+Test scheduling: explicit two/four-worker scope, process/coverage isolation, all serial barriers, registry preflight and failure contracts passed.
+SonarCloud export tests passed.
+TAP version 13
+# Subtest: exports every page and verifies revision/count again without exposing token
+ok 1 - exports every page and verifies revision/count again without exposing token
+  ---
+  duration_ms: 2.595335
+  type: 'test'
+  ...
+# Subtest: accepts a verified empty repository
+ok 2 - accepts a verified empty repository
+  ---
+  duration_ms: 0.202383
+  type: 'test'
+  ...
+# Subtest: fails closed on GraphQL partial failure
+ok 3 - fails closed on GraphQL partial failure
+  ---
+  duration_ms: 0.358788
+  type: 'test'
+  ...
+# Subtest: fails closed on missing next cursor
+ok 4 - fails closed on missing next cursor
+  ---
+  duration_ms: 0.102298
+  type: 'test'
+  ...
+# Subtest: fails closed on early end
+ok 5 - fails closed on early end
+  ---
+  duration_ms: 0.181575
+  type: 'test'
+  ...
+# Subtest: fails closed on duplicate identity
+ok 6 - fails closed on duplicate identity
+  ---
+  duration_ms: 0.162563
+  type: 'test'
+  ...
+# Subtest: fails closed on total changes
+ok 7 - fails closed on total changes
+  ---
+  duration_ms: 0.1892
+  type: 'test'
+  ...
+# Subtest: fails closed on revision changes
+ok 8 - fails closed on revision changes
+  ---
+  duration_ms: 0.124474
+  type: 'test'
+  ...
+# Subtest: fails closed on repeated cursor
+ok 9 - fails closed on repeated cursor
+  ---
+  duration_ms: 0.17056
+  type: 'test'
+  ...
+# Subtest: fails closed on final verification changes
+ok 10 - fails closed on final verification changes
+  ---
+  duration_ms: 0.238077
+  type: 'test'
+  ...
+# Subtest: HTTP errors never expose the response body
+ok 11 - HTTP errors never expose the response body
+  ---
+  duration_ms: 0.188303
+  type: 'test'
+  ...
+# Subtest: network exceptions never expose authentication data
+ok 12 - network exceptions never expose authentication data
+  ---
+  duration_ms: 0.18485
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 12.698289
+SonarCloud evidence gate tests passed.
+SonarCloud pull request scope and evidence tests passed.
+SonarCloud full branch scope and evidence tests passed.
+Reviewed Sonar decisions: exact bindings, owner-only manual authorization, atomic comments, readback, no blind retries, and security refusal passed.
+Coverage scope and LCOV path tests passed.
+Exchange acceptance evidence tests passed (synthetic fixtures only).
+=== Perfektion Coverage Gap Tests ===
+1. isForeignKeyConstraint branches...
+   -> OK
+2. SignalReferencedError...
+   -> OK
+3. ensureQueueCoversParserTimeout branches...
+[WARN] forwardOptions.queueTimeoutSeconds raised to 35 so AI parser timeouts can complete.
+   -> OK
+4. filters FIFO eviction and y-flag strip...
+   -> OK
+
+ALL PERFEKTION COVERAGE TESTS PASSED!
+Architecture fitness tests passed.
+Risk-acceptance governance tests passed.
+Frontend reachability and dependency tests passed.
+Frontend production bundle budget test passed.
+Frontend enterprise behavior tests passed.
+Release artifact governance tests passed.
+Complexity budget ratchet tests passed.
+Module coverage ratchet tests passed.
+ALL 238 TEST FILES PASSED!
