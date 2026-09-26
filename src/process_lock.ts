@@ -126,7 +126,7 @@ const LINUX_CLOCK_TICKS_PER_SECOND = 100;
 async function linuxProcessStartTimeMs(pid: number): Promise<number | null> {
   if (process.platform !== 'linux') return null;
   try {
-    const stat = await fs.readFile('/proc/' + pid + '/stat', 'utf8');
+    const stat = await fs.readFile(`/proc/${pid}/stat`, 'utf8');
     const fields = stat.slice(stat.lastIndexOf(')') + 1).trim().split(/\s+/);
     const startTicks = Number(fields[19]);
     if (!Number.isSafeInteger(startTicks) || startTicks < 0) return null;
