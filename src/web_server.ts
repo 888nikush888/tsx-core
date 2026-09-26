@@ -305,9 +305,12 @@ function isAllowedOrigin(origin: string | undefined): boolean {
     const parsed = new URL(origin);
     if (parsed.protocol !== 'https:') return false;
     if (configuredOrigin && origin === configuredOrigin) return true;
-    return (
-      ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(parsed.hostname)
-    );
+    if (['127.0.0.1', 'localhost', '::1', '[::1]'].includes(parsed.hostname)) return true;
+    // Tailnet-only deployments serve the dashboard on a Tailscale MagicDNS
+    // name. Same-origin dashboard fetches then carry that origin and must
+    // not be mistaken for cross-site requests.
+    const hostname = parsed.hostname.toLowerCase();
+    return hostname.endsWith('.ts.net') || hostname.endsWith('.tailscale.net');
   } catch {
     return false;
   }

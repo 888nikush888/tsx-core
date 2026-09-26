@@ -1935,6 +1935,19 @@ async function testBrowserAndDestructiveContracts(baseUrl, appState) {
   assert.strictEqual(response.headers.get('vary'), 'Accept-Encoding');
   assert.strictEqual(response.headers.get('cache-control'), 'public, max-age=31536000, immutable');
   assert.match(await response.text(), /import|function|const|var/);
+  response = await fetch(`${baseUrl}/assets/.static-response-test.js`, {
+    headers: { Origin: 'https://tsx-core-vps.tail91f451.ts.net' }, signal: AbortSignal.timeout(2000)
+  });
+  assert.strictEqual(response.status, 200, 'Tailnet dashboard origins must receive static assets');
+  assert.strictEqual(response.headers.get('access-control-allow-origin'), 'https://tsx-core-vps.tail91f451.ts.net');
+  response = await fetch(`${baseUrl}/api/status`, {
+    headers: headers(ADMIN_TOKEN, { Origin: 'https://tsx-core-vps.tail91f451.ts.net' })
+  });
+  assert.strictEqual(response.status, 200, 'Tailnet dashboard origins must reach the API');
+  response = await fetch(`${baseUrl}/assets/.static-response-test.js`, {
+    headers: { Origin: 'https://attacker.example' }, signal: AbortSignal.timeout(2000)
+  });
+  assert.strictEqual(response.status, 403, 'Untrusted origins must still be rejected for static assets');
 }
 
 async function createAppState(testDir, controls) {
