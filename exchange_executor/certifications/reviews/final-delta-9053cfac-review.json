@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "post-freeze-final-delta-review-v4",
+  "reviewId": "final-delta-9053cfac-review",
+  "reviewer": "Codex",
+  "reviewedAt": "2026-09-26T21:30:00Z",
+  "baseRevision": "391fb19e45ad13bd459da0cecd5d8325d08f2d5e",
+  "headRevision": "9053cfacd15f94ac72cf3b315d97b9e74dc0d8e8",
+  "deltaScope": "Read-only post-freeze review of the Tailnet dashboard origin fix on the exact-head evidence export (isAllowedOrigin additionally accepts HTTPS origins on *.ts.net and *.tailscale.net so same-origin asset fetches over the Tailscale MagicDNS name are no longer rejected with 403; unknown external and cleartext origins stay rejected; local-session issuance stays strictly loopback-bound) plus the DeepSource JS-W1041 boolean-return simplification. Seven changed lines in one production file plus thirteen new test assertions in one test file; every replacement was checked for behavior preservation with targeted origin-logic probes (13 cases incl. suffix-confusion, cleartext and case variants), the Linux integration suite with mutation control (old code fails exactly with the production 403, new code passes), and the full local suites. No provider, account, deployment or live-order action was performed.",
+  "deltaInventory": {
+    "production": [
+      {
+        "path": "src/web_server.ts",
+        "change": "isAllowedOrigin keeps the exact configured-origin and loopback behavior and additionally returns true for lowercased hostnames ending in .ts.net or .tailscale.net over HTTPS. setSecurityHeaders CORS echo, the 403 rejection path and isLoopbackBrowserOrigin/isDirectLoopbackRequest used by local-session issuance are untouched."
+      }
+    ],
+    "tests": [
+      "tests/test_web_server.js"
+    ],
+    "productionSecurityBoundariesWeakened": false,
+    "scannerRulesDisabled": false
+  },
+  "sourceHashes": {
+    "sourceTreeHash": "cd409645387537d3fbe70cf56656ad1c8d380d6ff9726c4cbbffe82fae7fcf50",
+    "nodeSourcesHash": "2bb83240420600a698cf5f8edacda59367edaf22f62c20dc8aa00288ed779182",
+    "testSourcesHash": "fa6cf6cf5593c438c423d3fb43e081e00a5e9ca32bd79561c0be8aaf1f944e1a",
+    "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee",
+    "executorTreeHash": "95c6502e51bb1db0073be5cf40bd5f453599d8cf0518c078766be43432ab835a",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7",
+    "sourceFileCount": 1095,
+    "sourceTotalBytes": 22153200
+  },
+  "runtime": {
+    "node": "22.22.1",
+    "npm": "10.9.9",
+    "python": "3.12.14",
+    "ccxt": "4.5.75"
+  },
+  "runtimeBinding": "executorTreeHash covers the exact exchange_executor Python inventory, which this delta does not touch. ccxt_implementation_reviews.py remains the separately trusted approval root.",
+  "results": {
+    "nodeFullSuite": "ALL 238 TEST FILES PASSED",
+    "pythonFullSuite": "587 passed (exchange_executor discover) plus 13 internal-TLS and 13 Hyperliquid-bound preflight tests passed",
+    "frontendFullSuite": "47 test files, 419 tests passed",
+    "rootBuild": "TypeScript, declaration copy and Vite production build passed",
+    "rootLint": "ESLint passed",
+    "frontendLint": "oxlint passed",
+    "pythonLint": "Ruff passed",
+    "typecheck": "tsc --noEmit passed",
+    "complexityBudget": "0 warnings, 0 threshold violations"
+  },
+  "securityAssessment": {
+    "conclusion": "The delta unblocks the Tailnet-only dashboard without disabling a rule, excluding a source file or weakening provider, filesystem, transport, mutation or secret boundaries. Cross-site and downgrade protection is preserved.",
+    "originCheck": "Only HTTPS origins whose hostname ends in .ts.net/.tailscale.net pass; attacker.example, suffix-confusion hosts (foo.ts.net.evil.com), cleartext http and non-URL inputs are still rejected; configured-origin exact match and loopback behavior are unchanged."
+  },
+  "limits": [
+    "Author-reviewed delta (no separate subagent runtime was available in this environment); behavior preservation is additionally proven by targeted equivalence probes, the Linux integration suite with mutation control, the full local suites on the final SHA, and the green exact-head cloud CI jobs.",
+    "Implementation evidence only; provider/account acceptance and live trading remain false.",
+    "Evidence ran on WSL Ubuntu with Node v22.22.1/npm 10.9.9 (same majors as CI) and a reused hash-pinned Python 3.12.14/CCXT 4.5.75 venv (coverage/ruff reinstalled with --require-hashes); one scratch symlink made the Debian node-adjacent npm CLI discoverable for the receipt-runner test. GitHub Actions remains authoritative.",
+    "The renewed receipt still has to pass the Linux container verifier in GitHub Actions."
+  ],
+  "providerAcceptanceVerified": false,
+  "liveTradingApproved": false
+}

@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "reportId": "final-candidate-9053cfac-execution-report",
+  "kind": "final-source-bound-execution-report",
+  "revision": "9053cfacd15f94ac72cf3b315d97b9e74dc0d8e8",
+  "executionBaseRevision": "9053cfacd15f94ac72cf3b315d97b9e74dc0d8e8",
+  "deltaScope": "The complete Node, Python and frontend suites, build, lint, typecheck and complexity checks ran on the final revision 9053cfac itself. Relative to 391fb19e the only source changes are the Tailnet dashboard origin fix in src/web_server.ts with thirteen new assertions in tests/test_web_server.js, covered additionally by targeted origin-logic probes, the Linux integration suite with mutation control, and the green exact-head cloud CI jobs.",
+  "independentReview": {
+    "path": "exchange_executor/certifications/reviews/candidate-8e7b7869-independent-review.json",
+    "sha256": "6b7b9ef5a6b1311f69af91032a6abd6ff236e6a09f9dda6dbed72d5fb4c55d04",
+    "reviewedRevision": "8e7b7869d49d7ab5bf6222cd97f02ffdfecc7b25"
+  },
+  "deltaReview": {
+    "path": "exchange_executor/certifications/reviews/final-delta-9053cfac-review.json",
+    "sha256": "ff1a1087b87c654c1ba0219862222690e73507eb18d9a90eb1d326118e3e5574"
+  },
+  "candidateEvidenceRevision": "9053cfacd15f94ac72cf3b315d97b9e74dc0d8e8",
+  "sourceCommitments": {
+    "sourceTreeHash": "cd409645387537d3fbe70cf56656ad1c8d380d6ff9726c4cbbffe82fae7fcf50",
+    "nodeSourcesHash": "2bb83240420600a698cf5f8edacda59367edaf22f62c20dc8aa00288ed779182",
+    "testSourcesHash": "fa6cf6cf5593c438c423d3fb43e081e00a5e9ca32bd79561c0be8aaf1f944e1a",
+    "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee"
+  },
+  "runtimeCommitments": {
+    "executorTreeHash": "95c6502e51bb1db0073be5cf40bd5f453599d8cf0518c078766be43432ab835a",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7"
+  },
+  "environment": {
+    "node": "22.22.1",
+    "npm": "10.9.9",
+    "python": "3.12.14",
+    "ccxt": "4.5.75"
+  },
+  "results": {
+    "pythonFullSuite": "587 passed (exchange_executor discover) plus 13 internal-TLS and 13 Hyperliquid-bound preflight tests passed",
+    "nodeFullSuite": "ALL 238 TEST FILES PASSED",
+    "frontendFullSuite": "47 test files, 419 tests passed",
+    "rootBuild": "TypeScript, declaration copy and Vite production build passed",
+    "rootLint": "ESLint passed",
+    "frontendLint": "oxlint passed",
+    "pythonLint": "Ruff passed",
+    "typecheck": "tsc --noEmit passed",
+    "complexityBudget": "0 warnings, 0 threshold violations"
+  },
+  "rawLogs": [
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-9053cfac-logs/node-full-suite.log",
+      "bytes": 74994,
+      "sha256": "0de195163d0011f3d67895ae5177ad86c1b3bfeae87150bac74975483abef196"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-9053cfac-logs/python-full-suite.log",
+      "bytes": 126797,
+      "sha256": "45d23c49045c20b6d8c94d7073bec79b5bf3bcaf48fce1418d348fe587be00bf"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-9053cfac-logs/frontend-full-suite.log",
+      "bytes": 10916,
+      "sha256": "f3947816fc6663abcb21f4623e268d3eb1658fdf8465e6cd03daf2ef29dfd5f3"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-9053cfac-logs/root-build.log",
+      "bytes": 1563,
+      "sha256": "c712979877ef9a7cf76a0040063475eae26078acc64ceb40a330074ea48f9aff"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-9053cfac-logs/lint.log",
+      "bytes": 291,
+      "sha256": "69130ef054cf1fab17ee7772a6fe5cbc41553ac59b99a0858dc04579379ee2b2"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-9053cfac-logs/lint-frontend.log",
+      "bytes": 202,
+      "sha256": "1a57d3579538568528d096a5c1700521f97ae278f9554abccc77d6e63b56fa39"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-9053cfac-logs/lint-python.log",
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-9053cfac-logs/typecheck.log",
+      "bytes": 44,
+      "sha256": "36ad9a8a29908c63402af4b6ad27b81468223fb0da68a311a0d31ceba5790316"
+    },
+    {
+      "path": "exchange_executor/certifications/reviews/final-candidate-9053cfac-logs/quality-complexity.log",
+      "bytes": 247,
+      "sha256": "a8cc08eee33bb8d06997ef6629b09b3d446cbe5039ae2ffd0ff9bf94cd95470c"
+    }
+  ],
+  "providerAcceptanceVerified": false,
+  "liveTradingApproved": false,
+  "limitations": [
+    "Local implementation and execution evidence only; no provider acceptance, deployment or live order was performed.",
+    "The local full suites ran on WSL Ubuntu with Node v22.22.1/npm 10.9.9 and TSX_TEST_PYTHON bound to the hash-pinned Python 3.12.14/CCXT 4.5.75 environment; GitHub Actions remains the authoritative execution and already ran the full suites green on this exact revision except the container receipt gate this rebind addresses.",
+    "Fresh cloud results are required after pushing the receipt rebind; Sonar, DeepSource and Codacy already passed on 9053cfac before the evidence-only rebind.",
+    "The renewed receipt still has to pass the Linux container verifier in GitHub Actions."
+  ]
+}
