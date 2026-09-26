@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "post-freeze-final-delta-review-v4",
+  "reviewId": "final-delta-77ba269-review",
+  "reviewer": "Codex",
+  "reviewedAt": "2026-09-26T20:20:00Z",
+  "baseRevision": "e4f560c19a2d0966d334dac4d692bc75ac8df43a",
+  "headRevision": "77ba2691f20d4c694d7a1a82f8ffb299625c20cd",
+  "deltaScope": "Read-only post-freeze review of the process-lock PID-reuse fix on the exact-head evidence export (compare recorded lock timestamp against the live Linux process start time via /proc with 120 s tolerance; route mismatches to the reviewed recovery path instead of a false live-owner error) plus the DeepSource JS-0246 template-literal follow-up. Two changed lines in one production file plus six new test assertions in one test file; every replacement was checked for behavior preservation with the targeted 6/6 process-lock suite on Linux and Windows plus the full local suites. No provider, account, deployment or live-order action was performed.",
+  "deltaInventory": {
+    "production": [
+      {
+        "path": "src/process_lock.ts",
+        "change": "linuxProcessStartTimeMs reads /proc/<pid>/stat and /proc/stat btime to derive the live process start time; processIdentityMatches requires the lock timestamp within 120 s after process start, otherwise the stale lock resolves to RecoveryRequiredError exactly like an absent owner. Non-Linux platforms and unreadable /proc fall back to the previous kill(pid,0) behavior. Nothing is ever deleted automatically; fail-closed semantics are unchanged. The follow-up expresses the /proc/<pid>/stat path as a template literal (byte-identical)."
+      }
+    ],
+    "tests": [
+      "tests/test_process_lock.js"
+    ],
+    "productionSecurityBoundariesWeakened": false,
+    "scannerRulesDisabled": false
+  },
+  "sourceHashes": {
+    "sourceTreeHash": "9ee131e5273128d3f5662e45f1ae33f191c0e646ea5b3e56afc01f38862d8157",
+    "nodeSourcesHash": "f7d3c169ac07e6d29567cdda4e309c491c6ac8c095c8f8759d2103cbae54e534",
+    "testSourcesHash": "5f4c1a1f89032f27eb9e465cdf7a8ed67b5541b911023d409b235c1c86562991",
+    "fixturesHash": "95d8ef4f531996e33642f81631d4728e6c3fa8b275d039d1bc1c4da4398bf8ee",
+    "executorTreeHash": "95c6502e51bb1db0073be5cf40bd5f453599d8cf0518c078766be43432ab835a",
+    "sdkTreeHash": "4a00e22c030b95e9d77dccbf0bccb075899e243a9002d62dd1af49e2d6d926b9",
+    "profileHash": "236a87aca5c5c294dda9f00cfdbd37363d025abeba7679702fd5b038871ad5a7",
+    "sourceFileCount": 1095,
+    "sourceTotalBytes": 22151966
+  },
+  "runtime": {
+    "node": "22.22.1",
+    "npm": "10.9.9",
+    "python": "3.12.14",
+    "ccxt": "4.5.75"
+  },
+  "runtimeBinding": "executorTreeHash covers the exact exchange_executor Python inventory, which this delta does not touch. ccxt_implementation_reviews.py remains the separately trusted approval root.",
+  "results": {
+    "nodeFullSuite": "ALL 238 TEST FILES PASSED",
+    "pythonFullSuite": "587 passed (exchange_executor discover) plus 13 internal-TLS and 13 Hyperliquid-bound preflight tests passed",
+    "frontendFullSuite": "47 test files, 419 tests passed",
+    "rootBuild": "TypeScript, declaration copy and Vite production build passed",
+    "rootLint": "ESLint passed",
+    "frontendLint": "oxlint passed",
+    "pythonLint": "Ruff passed",
+    "typecheck": "tsc --noEmit passed",
+    "complexityBudget": "0 warnings, 0 threshold violations"
+  },
+  "securityAssessment": {
+    "conclusion": "The delta closes the container-restart false-live-owner loop without disabling a rule, excluding a source file or weakening provider, filesystem, transport, mutation or secret boundaries. Fail-closed behavior is preserved and extended: PID reuse now resolves to explicit reviewed recovery.",
+    "processLock": "The /proc reads are read-only and Linux-gated with fallback; the 120 s tolerance only accepts locks plausibly written by the live process and never deletes state; malformed locks still fail closed."
+  },
+  "limits": [
+    "Author-reviewed delta (no separate subagent runtime was available in this environment); behavior preservation is additionally proven by the targeted 6/6 process-lock suite on Linux and Windows, the full local suites on the final SHA, and the green exact-head cloud CI jobs (Quality OS lint/tests/mutation/browser, SonarQube, Codacy, DeepSource).",
+    "Implementation evidence only; provider/account acceptance and live trading remain false.",
+    "Evidence ran on WSL Ubuntu with Node v22.22.1/npm 10.9.9 (same majors as CI) and a reused hash-pinned Python 3.12.14/CCXT 4.5.75 venv (coverage/ruff reinstalled with --require-hashes); one scratch symlink made the Debian node-adjacent npm CLI discoverable for the receipt-runner test. GitHub Actions remains authoritative.",
+    "The renewed receipt still has to pass the Linux container verifier in GitHub Actions."
+  ],
+  "providerAcceptanceVerified": false,
+  "liveTradingApproved": false
+}
