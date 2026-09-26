@@ -1,0 +1,4 @@
+
+> tsx-core@3.3.0 lint
+> eslint "src/**/*.ts" "tests/**/*.js" "scripts/**/*.js" "services/b2-backup-gateway/*.js" "services/b2-backup-gateway/test/*.js" "services/b2-audit-receiver/*.mjs" "services/b2-audit-receiver/tests/*.mjs" "services/incident-receiver-worker/worker.js" "*.js" --quiet
+
