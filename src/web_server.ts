@@ -310,8 +310,7 @@ function isAllowedOrigin(origin: string | undefined): boolean {
     // name. Same-origin dashboard fetches then carry that origin and must
     // not be mistaken for cross-site requests.
     const hostname = parsed.hostname.toLowerCase();
-    if (hostname.endsWith('.ts.net') || hostname.endsWith('.tailscale.net')) return true;
-    return false;
+    return hostname.endsWith('.ts.net') || hostname.endsWith('.tailscale.net');
   } catch {
     return false;
   }
