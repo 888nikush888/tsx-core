@@ -4,6 +4,10 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ## [Unreleased]
 
+### Fixed
+
+- Das Dashboard akzeptiert HTTPS-Ursprünge aus dem eigenen Tailnet (`*.ts.net`, `*.tailscale.net`). Gleich-Ursprungs-Abrufe von JS-/CSS-Assets über die Tailscale-Domain wurden zuvor mit 403 abgewiesen, sodass das Dashboard weiß blieb. Unbekannte externe Ursprünge bleiben abgewiesen; Klartext-Ursprünge bleiben verboten.
+
 ## [3.3.0] - 2026-09-04
 
 ### Added
