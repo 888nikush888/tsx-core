@@ -4,6 +4,14 @@ Alle relevanten Änderungen werden in dieser Datei dokumentiert. Das Format folg
 
 ## [Unreleased]
 
+### Fixed
+
+- Prozess-Lock erkennt PID-Wiederverwendung: Ein lebendiger, aber fremder Prozess mit
+  derselben PID (z. B. nach Container-Neustart mit frischem PID-Namensraum) wird nicht
+  mehr fälschlich als aktiver Lock-Besitzer gemeldet. Statt einer irrefuehrenden
+  Restart-Schleife meldet der Start den ehrlichen Recovery-Pfad zur expliziten Prüfung.
+  Das Fail-closed-Verhalten (kein automatisches Loeschen) bleibt unveraendert.
+
 ## [3.3.0] - 2026-09-04
 
 ### Added
