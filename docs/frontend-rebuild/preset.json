@@ -1,0 +1,50 @@
+{
+  "source": "npx shadcn@latest preset decode buFywKm --json",
+  "cliVersion": "4.21.0",
+  "resolved": {
+    "code": "buFywKm",
+    "version": "b",
+    "values": {
+      "menuColor": "default",
+      "menuAccent": "subtle",
+      "radius": "default",
+      "font": "inter",
+      "iconLibrary": "lucide",
+      "theme": "neutral",
+      "baseColor": "neutral",
+      "style": "lyra",
+      "chartColor": "neutral",
+      "fontHeading": "inherit"
+    },
+    "derived": [],
+    "url": "https://ui.shadcn.com/create?preset=buFywKm"
+  },
+  "existingProductSetup": {
+    "note": "Bestandspruefung via: npx shadcn@latest info --cwd frontend --json (auf origin/main 5d3a3c79)",
+    "style": "base-sera",
+    "base": "base",
+    "font": "geist",
+    "fontHeading": "inherit",
+    "radius": "none",
+    "baseColor": "neutral",
+    "theme": "neutral",
+    "chartColor": "blue",
+    "iconLibrary": "lucide",
+    "tailwind": "v4",
+    "installedComponents": [
+      "alert",
+      "badge",
+      "button",
+      "card",
+      "dialog",
+      "input",
+      "label",
+      "native-select",
+      "switch",
+      "tabs",
+      "textarea",
+      "tooltip"
+    ]
+  },
+  "consequence": "Neugestaltung: lyra/inter/default-radius/neutral-charts ersetzen sera/geist/none/blue im Prototyp. Base-UI-Grundlage bleibt (Preset macht keine base-Vorgabe)."
+}

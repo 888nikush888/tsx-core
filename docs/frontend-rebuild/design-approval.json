@@ -1,0 +1,15 @@
+{
+  "previewId": null,
+  "mainSha": "5d3a3c7995e088aa9a46cfe815b89fe958ec6765",
+  "codeId": null,
+  "buildId": null,
+  "preset": {
+    "code": "buFywKm",
+    "cliVersion": "4.21.0"
+  },
+  "status": "AWAITING_DESIGN_APPROVAL",
+  "scope": "Phase-A-Designprototyp (keine Backend-Anbindung)",
+  "approvedAt": null,
+  "approvedBy": null,
+  "approvalEvidence": null
+}
