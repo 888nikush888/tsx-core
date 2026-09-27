@@ -1,0 +1,18 @@
+{
+  "nachweis": "Playwright-Netzwerkpruefung am finalen Preview-Build (tsx-fintech-a1)",
+  "server": "vite preview, http://127.0.0.1:4174 (nur lokale Preview-Assets)",
+  "viewports": [
+    1280,
+    390
+  ],
+  "routen": [
+    "/uebersicht",
+    "/automationen/builder",
+    "/signale/mcp",
+    "/einstellungen/zugriff",
+    "/preview/components"
+  ],
+  "fremdeRequests": [],
+  "consoleFehler": [],
+  "ergebnis": "keine Backend-, Boersen-, Telegram-, Auth- oder Telemetrieanfragen; keine Konsolenfehler"
+}

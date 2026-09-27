@@ -10,8 +10,8 @@
    "evidenceStatus": "first-slice-static",
    "targetArea": "betrieb",
    "targetRoute": "/betrieb/zustand",
-   "prototypeImplemented": false,
-   "prototypeVerified": false,
+   "prototypeImplemented": true,
+   "prototypeVerified": true,
    "backendIntegrated": false,
    "integrationVerified": false
   },
@@ -25,7 +25,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.dashboardLocalTrust",
@@ -37,7 +38,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.dashboardAllowedOrigin",
@@ -49,7 +51,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.tailscaleServeTrustedProxy",
@@ -61,7 +64,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.tailscaleAdminUsers",
@@ -73,7 +77,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.tailscaleViewerUsers",
@@ -85,7 +90,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.oidcIssuer",
@@ -97,7 +103,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.oidcAudience",
@@ -109,7 +116,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.oidcJwksUrl",
@@ -121,7 +129,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.oidcAdminRole",
@@ -133,7 +142,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.oidcViewerRole",
@@ -145,7 +155,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.oidcRoleClaim",
@@ -157,7 +168,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.oidcMaxTokenAgeSeconds",
@@ -169,7 +181,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.auditWebhookUrl",
@@ -181,7 +194,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.alertWebhookUrl",
@@ -193,7 +207,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.auditRemoteRequired",
@@ -205,7 +220,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.auditWebhookTimeoutMs",
@@ -217,7 +233,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.alertWebhookTimeoutMs",
@@ -229,7 +246,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.auditLocalMaxBytes",
@@ -241,7 +259,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.backupOffsiteRequired",
@@ -253,7 +272,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.backupOffsiteUrlTemplate",
@@ -265,7 +285,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.backupOffsiteTimeoutMs",
@@ -277,7 +298,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.backupOffsiteMaxRecoveryBytes",
@@ -289,7 +311,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.backupOffsiteRetentionDays",
@@ -301,7 +324,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.backupDriveFolderId",
@@ -313,7 +337,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.backupDriveRequired",
@@ -325,7 +350,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.backupDriveTimeoutMs",
@@ -337,7 +363,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.backupIntervalMs",
@@ -349,7 +376,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.backupRetentionCount",
@@ -361,7 +389,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.dataRetentionDays",
@@ -373,7 +402,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.dataRetentionIntervalMs",
@@ -385,7 +415,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.dataRetentionBatchSize",
@@ -397,7 +428,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.dataMinFreeBytes",
@@ -409,7 +441,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.deliveryConfirmTimeoutMs",
@@ -421,7 +454,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.shutdownGraceMs",
@@ -433,7 +467,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.clockMaxDriftMs",
@@ -445,7 +480,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.jsonLogging",
@@ -457,7 +493,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "runtime.isolateUnavailableMarketFailures",
@@ -469,7 +506,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.apiId",
@@ -481,7 +519,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.sourceChannels",
@@ -493,7 +532,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.targetChannel",
@@ -505,7 +545,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.forwardOptions.sendCopy",
@@ -517,7 +558,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.forwardOptions.removeCaption",
@@ -529,7 +571,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.forwardOptions.forwardToTarget",
@@ -541,7 +584,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.forwardOptions.maxConcurrency",
@@ -553,7 +597,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.forwardOptions.queueTimeoutSeconds",
@@ -565,7 +610,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.filters.allowedKeywords",
@@ -577,7 +623,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.filters.blockedKeywords",
@@ -589,7 +636,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.filters.allowedTypes",
@@ -601,7 +649,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.filters.regexPatterns",
@@ -613,7 +662,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.sourceFilters",
@@ -625,7 +675,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.sourceAliases",
@@ -637,7 +688,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.enabled",
@@ -649,7 +701,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.externalDataPolicyAccepted",
@@ -661,7 +714,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.saveToFile",
@@ -673,7 +727,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.forwardXmlToTarget",
@@ -685,7 +740,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.signalsDir",
@@ -697,7 +753,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.sourceTemplates",
@@ -709,7 +766,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.primaryModel",
@@ -721,7 +779,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.fallbackModel",
@@ -733,7 +792,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.timeout",
@@ -745,7 +805,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.aiLimits.maxInputChars",
@@ -757,7 +818,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.aiLimits.maxOutputTokens",
@@ -769,7 +831,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.aiLimits.primaryAttempts",
@@ -781,7 +844,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.aiLimits.fallbackAttempts",
@@ -793,7 +857,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.aiLimits.dailyRequestLimit",
@@ -805,7 +870,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.aiLimits.dailyTokenLimit",
@@ -817,7 +883,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.aiLimits.requestTimeoutMs",
@@ -829,7 +896,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.xmlParsing.aiLimits.backoffMs",
@@ -841,7 +909,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.dupeBlocker.enabled",
@@ -853,7 +922,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "config.dupeBlocker.cooldownHours",
@@ -865,7 +935,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.enabled",
@@ -874,8 +945,8 @@
    "evidenceStatus": "first-slice-static",
    "targetArea": "signale",
    "targetRoute": "/signale/eingang",
-   "prototypeImplemented": false,
-   "prototypeVerified": false,
+   "prototypeImplemented": true,
+   "prototypeVerified": true,
    "backendIntegrated": false,
    "integrationVerified": false
   },
@@ -886,8 +957,8 @@
    "evidenceStatus": "first-slice-static",
    "targetArea": "signale",
    "targetRoute": "/signale/eingang",
-   "prototypeImplemented": false,
-   "prototypeVerified": false,
+   "prototypeImplemented": true,
+   "prototypeVerified": true,
    "backendIntegrated": false,
    "integrationVerified": false
   },
@@ -898,8 +969,8 @@
    "evidenceStatus": "first-slice-static",
    "targetArea": "signale",
    "targetRoute": "/signale/eingang",
-   "prototypeImplemented": false,
-   "prototypeVerified": false,
+   "prototypeImplemented": true,
+   "prototypeVerified": true,
    "backendIntegrated": false,
    "integrationVerified": false
   },
@@ -913,7 +984,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.eventPollingIntervalMs",
@@ -922,8 +994,8 @@
    "evidenceStatus": "first-slice-static",
    "targetArea": "signale",
    "targetRoute": "/signale/eingang",
-   "prototypeImplemented": false,
-   "prototypeVerified": false,
+   "prototypeImplemented": true,
+   "prototypeVerified": true,
    "backendIntegrated": false,
    "integrationVerified": false
   },
@@ -937,7 +1009,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.notifications.takeProfitFilled",
@@ -949,7 +1022,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.notifications.stopLossFilled",
@@ -961,7 +1035,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.notifications.positionClosed",
@@ -973,7 +1048,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.notifications.executionFailed",
@@ -985,7 +1061,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.notifications.accountIncidentOpened",
@@ -997,7 +1074,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.notifications.accountIncidentResolved",
@@ -1009,7 +1087,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.notifications.exchangeStreamDegraded",
@@ -1021,7 +1100,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.notifications.exchangeStreamRecovered",
@@ -1033,7 +1113,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.notifications.killSwitchActivated",
@@ -1045,7 +1126,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.notifications.signalReceived",
@@ -1057,7 +1139,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.notifications.signalValidated",
@@ -1069,7 +1152,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.notifications.intentCreated",
@@ -1081,7 +1165,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.notifications.exchangeAcknowledged",
@@ -1093,7 +1178,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.display.detailLevel",
@@ -1105,7 +1191,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.display.pnlMode",
@@ -1117,7 +1204,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "viewer.display.timeFormat",
@@ -1129,7 +1217,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.schemaVersion",
@@ -1141,7 +1230,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.allowedSignalSchemas",
@@ -1153,7 +1243,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.allowedSymbols",
@@ -1165,7 +1256,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.allowedSides",
@@ -1177,7 +1269,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.entry.orderType",
@@ -1189,7 +1282,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.entry.rangePrice",
@@ -1201,7 +1295,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.entry.postOnly",
@@ -1213,7 +1308,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.entry.timeoutSeconds",
@@ -1225,7 +1321,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.sizing.positionSizingMode",
@@ -1237,7 +1334,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.sizing.riskPerTradePercent",
@@ -1249,7 +1347,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.sizing.maxAdaptiveRiskPercent",
@@ -1261,7 +1360,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.sizing.maxPositionNotional",
@@ -1273,7 +1373,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.sizing.defaultLeverage",
@@ -1285,7 +1386,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.sizing.maxLeverage",
@@ -1297,7 +1399,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.exits.targetAllocationMode",
@@ -1309,7 +1412,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.exits.targetAllocationsPercent",
@@ -1321,7 +1425,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.exits.stopLossMode",
@@ -1333,7 +1438,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.exits.moveStopToBreakEvenAfterTarget",
@@ -1345,7 +1451,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.exits.trailingStopPercent",
@@ -1357,7 +1464,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.exits.closeRemainderAtLastTarget",
@@ -1369,7 +1477,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.safety.maxDailyLossMode",
@@ -1381,7 +1490,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.safety.maxDailyLoss",
@@ -1393,7 +1503,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.safety.maxSlippagePercent",
@@ -1405,7 +1516,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.safety.entryOrderTtlSeconds",
@@ -1417,7 +1529,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.safety.requireProtectiveStop",
@@ -1429,7 +1542,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.safety.maxConcurrentPositions",
@@ -1441,7 +1555,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.channel.channelId",
@@ -1453,7 +1568,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.content_filter.allowedTypes",
@@ -1465,7 +1581,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.keyword_filter.allowedKeywords",
@@ -1477,7 +1594,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.keyword_filter.blockedKeywords",
@@ -1489,7 +1607,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.regex.patterns",
@@ -1501,7 +1620,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.regex.mode",
@@ -1513,7 +1633,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.parser.templateName",
@@ -1525,7 +1646,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.parser.primaryModel",
@@ -1537,7 +1659,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.parser.fallbackModel",
@@ -1549,7 +1672,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.parser.prompt",
@@ -1561,7 +1685,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.parser.timeoutMs",
@@ -1573,7 +1698,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.parser.saveToFile",
@@ -1585,7 +1711,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.schema.schemaId",
@@ -1597,7 +1724,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.contract.contractVersionId",
@@ -1609,7 +1737,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.strategy.strategyVersionId",
@@ -1621,7 +1750,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.sizing.positionSizingMode",
@@ -1633,7 +1763,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.sizing.riskPerTradePercent",
@@ -1645,7 +1776,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.sizing.maxAdaptiveRiskPercent",
@@ -1657,7 +1789,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.sizing.maxPositionNotional",
@@ -1669,7 +1802,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.sizing.defaultLeverage",
@@ -1681,7 +1815,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.sizing.maxLeverage",
@@ -1693,7 +1828,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.adaptive_risk.enabled",
@@ -1705,7 +1841,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.adaptive_risk.mode",
@@ -1717,7 +1854,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.adaptive_risk.tiers",
@@ -1729,7 +1867,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.adaptive_risk.tiers[].riskPercent",
@@ -1741,7 +1880,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.adaptive_risk.startingTier",
@@ -1753,7 +1893,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.adaptive_risk.lockedTier",
@@ -1765,7 +1906,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.adaptive_risk.lookbackWeeks",
@@ -1777,7 +1919,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.adaptive_risk.minimumClosedTrades",
@@ -1789,7 +1932,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.adaptive_risk.lossThresholdPercent",
@@ -1801,7 +1945,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.adaptive_risk.profitThresholdPercent",
@@ -1813,7 +1958,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.adaptive_risk.weakChannelAction",
@@ -1825,7 +1971,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.adaptive_risk.weakWeeksBeforeBlock",
@@ -1837,7 +1984,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.adaptive_risk.manuallyBlocked",
@@ -1849,7 +1997,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.account.accountId",
@@ -1861,7 +2010,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.dedupe.enabled",
@@ -1873,7 +2023,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.dedupe.cooldownHours",
@@ -1885,7 +2036,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.output.mode",
@@ -1897,7 +2049,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.schemaVersion",
@@ -1909,7 +2062,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.rootTag",
@@ -1921,7 +2075,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.actionPath",
@@ -1933,7 +2088,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.pairPath",
@@ -1945,7 +2101,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.stopLossPath",
@@ -1957,7 +2114,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.entry.minimumPath",
@@ -1969,7 +2127,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.entry.maximumPath",
@@ -1981,7 +2140,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.targets.containerPath",
@@ -1993,7 +2153,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.targets.itemTag",
@@ -2005,7 +2166,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.targets.minimumPath",
@@ -2017,7 +2179,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.targets.maximumPath",
@@ -2029,7 +2192,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.entry.typePath",
@@ -2041,7 +2205,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.leveragePath",
@@ -2053,7 +2218,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.riskPercentPath",
@@ -2065,7 +2231,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.averagingPricePath",
@@ -2077,7 +2244,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.entry.mode",
@@ -2089,7 +2257,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.entry.marketValues",
@@ -2101,7 +2270,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.entry.rangeValues",
@@ -2113,7 +2283,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.targets.shape",
@@ -2125,7 +2296,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.targets.minimumItems",
@@ -2137,7 +2309,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.targets.maximumItems",
@@ -2149,7 +2322,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.targets.sequentialIds",
@@ -2161,7 +2335,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.geometry.stopOnLossSide",
@@ -2173,7 +2348,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.geometry.targetsOnProfitSide",
@@ -2185,7 +2361,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.geometry.orderedTargets",
@@ -2197,7 +2374,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.geometry.orderedRanges",
@@ -2209,7 +2387,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.grounding.action",
@@ -2221,7 +2400,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.grounding.pair",
@@ -2233,7 +2413,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.grounding.entry",
@@ -2245,7 +2426,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.grounding.targets",
@@ -2257,7 +2439,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.grounding.stopLoss",
@@ -2269,7 +2452,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.grounding.leverage",
@@ -2281,7 +2465,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.grounding.riskPercent",
@@ -2293,7 +2478,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.grounding.averagingPrice",
@@ -2305,7 +2491,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.additionalFields",
@@ -2317,7 +2504,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.additionalFields[].path",
@@ -2329,7 +2517,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.additionalFields[].type",
@@ -2341,7 +2530,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.additionalFields[].required",
@@ -2353,7 +2543,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.additionalFields[].allowedValues",
@@ -2365,7 +2556,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.additionalFields[].minimum",
@@ -2377,7 +2569,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.additionalFields[].maximum",
@@ -2389,7 +2582,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.additionalFields[].maximumLength",
@@ -2401,7 +2595,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.definition.additionalFields[].pattern",
@@ -2413,7 +2608,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.schemaVersion",
@@ -2425,7 +2621,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.rootTag",
@@ -2437,7 +2634,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.actionPath",
@@ -2449,7 +2647,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.pairPath",
@@ -2461,7 +2660,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.stopLossPath",
@@ -2473,7 +2673,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.entry.minimumPath",
@@ -2485,7 +2686,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.entry.maximumPath",
@@ -2497,7 +2699,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.targets.containerPath",
@@ -2509,7 +2712,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.targets.itemTag",
@@ -2521,7 +2725,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.targets.minimumPath",
@@ -2533,7 +2738,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.targets.maximumPath",
@@ -2545,7 +2751,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.entry.typePath",
@@ -2557,7 +2764,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.leveragePath",
@@ -2569,7 +2777,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.riskPercentPath",
@@ -2581,7 +2790,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.averagingPricePath",
@@ -2593,7 +2803,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.entry.mode",
@@ -2605,7 +2816,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.entry.marketValues",
@@ -2617,7 +2829,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.entry.rangeValues",
@@ -2629,7 +2842,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.targets.shape",
@@ -2641,7 +2855,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.targets.minimumItems",
@@ -2653,7 +2868,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.targets.maximumItems",
@@ -2665,7 +2881,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.targets.sequentialIds",
@@ -2677,7 +2894,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.geometry.stopOnLossSide",
@@ -2689,7 +2907,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.geometry.targetsOnProfitSide",
@@ -2701,7 +2920,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.geometry.orderedTargets",
@@ -2713,7 +2933,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.geometry.orderedRanges",
@@ -2725,7 +2946,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.grounding.action",
@@ -2737,7 +2959,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.grounding.pair",
@@ -2749,7 +2972,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.grounding.entry",
@@ -2761,7 +2985,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.grounding.targets",
@@ -2773,7 +2998,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.grounding.stopLoss",
@@ -2785,7 +3011,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.grounding.leverage",
@@ -2797,7 +3024,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.grounding.riskPercent",
@@ -2809,7 +3037,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.grounding.averagingPrice",
@@ -2821,7 +3050,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.additionalFields",
@@ -2833,7 +3063,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.additionalFields[].path",
@@ -2845,7 +3076,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.additionalFields[].type",
@@ -2857,7 +3089,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.additionalFields[].required",
@@ -2869,7 +3102,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.additionalFields[].allowedValues",
@@ -2881,7 +3115,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.additionalFields[].minimum",
@@ -2893,7 +3128,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.additionalFields[].maximum",
@@ -2905,7 +3141,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.additionalFields[].maximumLength",
@@ -2917,7 +3154,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.definition.additionalFields[].pattern",
@@ -2929,7 +3167,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.name",
@@ -2941,7 +3180,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.description",
@@ -2953,7 +3193,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "resource.id",
@@ -2965,7 +3206,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.name",
@@ -2977,7 +3219,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.description",
@@ -2989,7 +3232,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "strategy.id",
@@ -3001,7 +3245,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.name",
@@ -3013,7 +3258,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.description",
@@ -3025,7 +3271,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.id",
@@ -3037,7 +3284,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.name",
@@ -3049,7 +3297,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.description",
@@ -3061,7 +3310,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "contract.id",
@@ -3073,7 +3323,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.templateName",
@@ -3085,7 +3336,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.parserSchema",
@@ -3097,7 +3349,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.contractVersionId",
@@ -3109,7 +3362,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "schema.enabled",
@@ -3121,7 +3375,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "account.name",
@@ -3130,8 +3385,8 @@
    "evidenceStatus": "first-slice-static",
    "targetArea": "trading",
    "targetRoute": "/trading/konten",
-   "prototypeImplemented": false,
-   "prototypeVerified": false,
+   "prototypeImplemented": true,
+   "prototypeVerified": true,
    "backendIntegrated": false,
    "integrationVerified": false
   },
@@ -3145,7 +3400,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "account.mode",
@@ -3157,7 +3413,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "account.enabled",
@@ -3169,7 +3426,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "account.maxConcurrentPositions",
@@ -3178,8 +3436,8 @@
    "evidenceStatus": "first-slice-static",
    "targetArea": "trading",
    "targetRoute": "/trading/konten",
-   "prototypeImplemented": false,
-   "prototypeVerified": false,
+   "prototypeImplemented": true,
+   "prototypeVerified": true,
    "backendIntegrated": false,
    "integrationVerified": false
   },
@@ -3193,7 +3451,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "account.status",
@@ -3205,7 +3464,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "account.killSwitchActive",
@@ -3217,7 +3477,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "account.credentialGeneration",
@@ -3229,7 +3490,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "account.lastVerifiedAt",
@@ -3241,7 +3503,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "journal.review.notes",
@@ -3253,7 +3516,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "journal.review.tags",
@@ -3265,7 +3529,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "journal.review.rating",
@@ -3277,7 +3542,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "journal.review.reviewed",
@@ -3289,7 +3555,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "mcp.agent.name",
@@ -3301,7 +3568,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "mcp.agent.permissions",
@@ -3310,8 +3578,8 @@
    "evidenceStatus": "unverified",
    "targetArea": "signale",
    "targetRoute": "/signale/eingang",
-   "prototypeImplemented": false,
-   "prototypeVerified": false,
+   "prototypeImplemented": true,
+   "prototypeVerified": true,
    "backendIntegrated": false,
    "integrationVerified": false
   },
@@ -3325,7 +3593,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "mcp.agent.enabled",
@@ -3337,7 +3606,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "mcp.runtime.mode",
@@ -3349,7 +3619,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "graph.nodes[].id",
@@ -3361,7 +3632,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "graph.nodes[].resourceVersionId",
@@ -3373,7 +3645,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "graph.schemaVersion",
@@ -3385,7 +3658,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "graph.nodes[].kind",
@@ -3397,7 +3671,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "graph.nodes[].position.x",
@@ -3409,7 +3684,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "graph.nodes[].position.y",
@@ -3421,7 +3697,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "graph.edges[].source",
@@ -3433,7 +3710,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "graph.edges[].target",
@@ -3445,7 +3723,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "graph.edges[].id",
@@ -3457,7 +3736,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "graph.edges[].kind",
@@ -3469,7 +3749,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "graph.edges[].channelNodeIds",
@@ -3481,7 +3762,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "graph.edges[].fallbackOn",
@@ -3493,7 +3775,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "graph.baseRevisionId",
@@ -3505,7 +3788,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "graph.editRevision",
@@ -3517,7 +3801,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "paper.equity",
@@ -3529,7 +3814,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "paper.availableBalance",
@@ -3541,7 +3827,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "paper.market.symbol",
@@ -3553,7 +3840,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "paper.market.markPrice",
@@ -3565,7 +3853,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "paper.market.priceTick",
@@ -3577,7 +3866,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "paper.market.quantityStep",
@@ -3589,7 +3879,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "paper.market.minimumQuantity",
@@ -3601,7 +3892,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "paper.market.minimumNotional",
@@ -3613,7 +3905,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "paper.market.maxLeverage",
@@ -3625,7 +3918,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "secrets.telegramApiHash",
@@ -3637,7 +3931,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "secrets.openRouterApiKey",
@@ -3649,7 +3944,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "secrets.dashboardToken",
@@ -3661,7 +3957,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "secrets.exchangeCredentials",
@@ -3670,8 +3967,8 @@
    "evidenceStatus": "unverified",
    "targetArea": "einstellungen",
    "targetRoute": "/einstellungen/katalog",
-   "prototypeImplemented": false,
-   "prototypeVerified": false,
+   "prototypeImplemented": true,
+   "prototypeVerified": true,
    "backendIntegrated": false,
    "integrationVerified": false
   },
@@ -3685,7 +3982,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "secrets.viewerServiceToken",
@@ -3697,7 +3995,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "secrets.mcpAgentToken",
@@ -3709,7 +4008,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "deployment.VITE_BASENAME",
@@ -3721,7 +4021,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "deployment.VITE_GTM_ID",
@@ -3733,7 +4034,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "deployment.hostPorts",
@@ -3742,8 +4044,8 @@
    "evidenceStatus": "known-gap",
    "targetArea": "betrieb",
    "targetRoute": "/betrieb/zustand",
-   "prototypeImplemented": false,
-   "prototypeVerified": false,
+   "prototypeImplemented": true,
+   "prototypeVerified": true,
    "backendIntegrated": false,
    "integrationVerified": false
   },
@@ -3757,7 +4059,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "deployment.memory",
@@ -3769,7 +4072,8 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   },
   {
    "path": "deployment.imageDigest",
@@ -3781,7 +4085,9 @@
    "prototypeImplemented": false,
    "prototypeVerified": false,
    "backendIntegrated": false,
-   "integrationVerified": false
+   "integrationVerified": false,
+   "note": "Zielroute zugeordnet; Bedienelement folgt mit Backend-Anbindung (Phase B)."
   }
- ]
+ ],
+ "implementedCount": 10
 }

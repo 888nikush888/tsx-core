@@ -23,7 +23,7 @@ export function KontenSeite({ gehen }: { gehen: (z: string) => void }) {
   const spalten: ColumnDef<DemoAccount>[] = [
     { accessorKey: "name", header: "Name", cell: (c) => <a className="underline" href={`#/trading/konten/${c.row.original.id}`} onClick={(e) => { e.preventDefault(); gehen(`/trading/konten/${c.row.original.id}`); }}>{c.getValue<string>()}</a> },
     { accessorKey: "exchange", header: "Boerse" },
-    { accessorKey: "mode", header: "Modus", cell: (c) => <Badge variant={c.getValue<string>() === "paper" ? "secondary" : "destructive"}>{c.getValue<string>()}</Badge> },
+    { accessorKey: "mode", header: "Modus", cell: (c) => <Badge variant={c.getValue<string>() === "paper" ? "secondary" : "destructive"}>{c.getValue<string>() === "paper" ? "Paper" : "Live"}</Badge> },
     { accessorKey: "equity", header: "Stand", cell: (c) => <span className="tabular-nums">{eur(c.getValue<number>())}</span> },
     { accessorKey: "enabled", header: "Status", cell: (c) => (c.getValue<boolean>() ? "bereit" : "gesperrt") },
   ];

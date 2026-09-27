@@ -4,10 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BellRing, CircleAlert, Search } from "lucide-react";
+import { BellRing, CircleAlert, Moon, Search, Sun } from "lucide-react";
 import { NAVIGATION } from "@/shell/navigation";
 import { useDemo } from "@/adapter/demo-kontext";
 import { SZENARIEN, isOffline } from "@/adapter/memory";
@@ -16,6 +15,10 @@ import { catalogParams } from "@/data/fixtures";
 export function TsxAppShell({ pfad, gehen, children }: { pfad: string; gehen: (z: string) => void; children: React.ReactNode }) {
   const { szenario, setzeSzenario, rolle, setzeRolle, demoKonto, setzeDemoKonto } = useDemo();
   const [sucheOffen, setSucheOffen] = useState(false);
+  const [dunkel, setDunkel] = useState(false);
+  function umschalten() {
+    setDunkel((d) => { document.documentElement.classList.toggle("dark", !d); return !d; });
+  }
   return (
     <TooltipProvider>
       <SidebarProvider>
@@ -59,7 +62,7 @@ export function TsxAppShell({ pfad, gehen, children }: { pfad: string; gehen: (z
             </Button>
             <Badge variant={demoKonto === "paper-1" ? "secondary" : "destructive"}>Paper-Labor</Badge>
             <Select value={demoKonto} onValueChange={(v) => { if (v) setzeDemoKonto(v); }}>
-              <SelectTrigger className="w-44" aria-label="Demokonto"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-44" aria-label="Demokonto"><span>{demoKonto === "paper-1" ? "Paper-Labor" : "Live-Testkonto (Demo)"}</span></SelectTrigger>
               <SelectContent><SelectItem value="paper-1">Paper-Labor</SelectItem><SelectItem value="live-1">Live-Testkonto (Demo)</SelectItem></SelectContent>
             </Select>
             <span className="flex-1" />
@@ -67,15 +70,18 @@ export function TsxAppShell({ pfad, gehen, children }: { pfad: string; gehen: (z
               {isOffline() || szenario === "offline" ? "Getrennt (simuliert)" : "Verbunden (simuliert)"}
             </Badge>
             <Badge variant="outline">Gespeichert · Rev. 7</Badge>
+            <Button variant="ghost" size="sm" onClick={umschalten} aria-label="Farbschema wechseln">
+              {dunkel ? <Sun data-icon="inline-start" /> : <Moon data-icon="inline-start" />}
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => gehen("/betrieb/logs")} aria-label="Handlungsbedarf">
               <BellRing data-icon="inline-start" /> 2
             </Button>
             <Select value={rolle} onValueChange={(v) => { if (v === "admin" || v === "lesend") setzeRolle(v); }}>
-              <SelectTrigger className="w-32" aria-label="Demorolle"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-32" aria-label="Demorolle"><span>{rolle === "admin" ? "Admin (Demo)" : "Lesend (Demo)"}</span></SelectTrigger>
               <SelectContent><SelectItem value="admin">Admin (Demo)</SelectItem><SelectItem value="lesend">Lesend (Demo)</SelectItem></SelectContent>
             </Select>
             <Select value={szenario} onValueChange={(v) => { if (v) setzeSzenario(v as typeof szenario); }}>
-              <SelectTrigger className="w-48" aria-label="Szenario"><SelectValue placeholder="Szenario" /></SelectTrigger>
+              <SelectTrigger className="w-48" aria-label="Szenario"><span>{SZENARIEN.find((s) => s.id === szenario)?.label ?? "Szenario"}</span></SelectTrigger>
               <SelectContent>
                 {SZENARIEN.map((s) => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
               </SelectContent>
@@ -83,6 +89,7 @@ export function TsxAppShell({ pfad, gehen, children }: { pfad: string; gehen: (z
           </header>
           <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">{children}</main>
         </SidebarInset>
+      </SidebarProvider>
         <Dialog open={sucheOffen} onOpenChange={setSucheOffen}>
           <DialogContent aria-describedby={undefined}>
             <DialogTitle>Globale Suche</DialogTitle>
@@ -107,8 +114,6 @@ export function TsxAppShell({ pfad, gehen, children }: { pfad: string; gehen: (z
             <p className="flex items-center gap-1 text-xs text-muted-foreground"><CircleAlert data-icon="inline-start" /> Suchindex enthaelt keine Secrets.</p>
           </DialogContent>
         </Dialog>
-        <Separator />
-      </SidebarProvider>
     </TooltipProvider>
   );
 }

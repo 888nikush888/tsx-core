@@ -12,10 +12,10 @@
 ## Fortschritt
 
 - [x] Schritt 1 (teilw.): Main-Stand ermittelt, Branch/Worktree angelegt, Skills + Preset geprueft.
-- [ ] Schritt 1 (Rest): Funktions-/Parameter-/Vertragsinventar aus Repo-Code.
-- [ ] Schritt 2: Prototyp aufsetzen, Skills/MCP projektlokal pruefen, DESIGN.md (Prototyp).
-- [ ] Schritt 3: AppShell + Templates (komplexe Settings-Seite, Datentabelle, Workflow-Editor).
-- [ ] Schritt 4: Alle uebrigen Seiten/Komponenten/Felder/Ablaeufe.
-- [ ] Schritt 5: Fixtures, Szenariowaehler, Komponentenuebersicht, Lueckenliste.
-- [ ] Schritt 6: Screenshots, A11y, Netzwerk-/Isolationsnachweis, Preview-Build + Review-Paket.
-- [ ] Schritt 7: Vorlage + STOP mit AWAITING_DESIGN_APPROVAL.
+- [x] Schritt 1 (Rest): Funktions-/Parameter-/Vertragsinventar aus Repo-Code.
+- [x] Schritt 2: Prototyp aufsetzen, Skills/MCP projektlokal pruefen, DESIGN.md (Prototyp).
+- [x] Schritt 3: AppShell + Templates (komplexe Settings-Seite, Datentabelle, Workflow-Editor).
+- [x] Schritt 4: Alle uebrigen Seiten/Komponenten/Felder/Ablaeufe.
+- [x] Schritt 5: Fixtures, Szenariowaehler, Komponentenuebersicht, Lueckenliste.
+- [x] Schritt 6: Screenshots, A11y, Netzwerk-/Isolationsnachweis, Preview-Build + Review-Paket.
+- [>] Schritt 7 (Vorlage an Nutzer, STOP): Vorlage + STOP mit AWAITING_DESIGN_APPROVAL.

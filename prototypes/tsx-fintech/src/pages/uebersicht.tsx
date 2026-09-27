@@ -3,7 +3,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardPage } from "@/templates/DashboardPage";
 import { useDemo } from "@/adapter/demo-kontext";
-import { eur, num, pct } from "@/lib/format";
+import { num, pct } from "@/lib/format";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 const verlauf = [
@@ -21,7 +21,7 @@ export function UebersichtSeite() {
   return (
     <DashboardPage titel="Uebersicht" beschreibung={demoKonto === "paper-1" ? "Paper-Labor · Beispieldaten" : "Live-Testkonto (Demo) · Beispieldaten"}
       kennzahlen={leer ? [] : [
-        { label: "Kontostand", wert: eur(10250.40), sub: "USDC · Paper-Labor" },
+        { label: "Kontostand", wert: `${num(10250.40)} USDC`, sub: "Paper-Labor" },
         { label: "Offene Positionen", wert: num(2, 0), sub: "BTC-PERP, ETH-PERP" },
         { label: "Tagesergebnis", wert: pct(0.0118), sub: "simuliert" },
         { label: "Handlungsbedarf", wert: num(2, 0), sub: "1 Warnung, 1 Fehler (simuliert)" },
@@ -31,7 +31,7 @@ export function UebersichtSeite() {
           <ChartContainer config={{ wert: { label: "Kontostand", color: "var(--chart-1)" } }} className="h-56 w-full">
             <LineChart data={leer ? [] : verlauf} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="tag" /><YAxis width={60} />
-              <ChartTooltip content={<ChartTooltipContent />} /><Line type="monotone" dataKey="wert" stroke="var(--color-wert)" strokeWidth={2} dot={false} />
+              <ChartTooltip content={<ChartTooltipContent />} /><Line type="monotone" dataKey="wert" stroke="var(--chart-5)" strokeWidth={2} dot={false} isAnimationActive={false} />
             </LineChart>
           </ChartContainer>
         </CardContent></Card>
