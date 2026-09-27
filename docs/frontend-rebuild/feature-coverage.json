@@ -1,0 +1,416 @@
+{
+ "sourceRoutes": "frontend/src/app/operator-routes.ts (origin/main 5d3a3c79), Prompt Abschnitt 7",
+ "mainSha": "5d3a3c7995e088aa9a46cfe815b89fe958ec6765",
+ "areas": [
+  {
+   "id": "uebersicht",
+   "title": "Uebersicht",
+   "routes": [
+    {
+     "route": "/uebersicht",
+     "title": "Uebersicht",
+     "template": "DashboardPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    }
+   ]
+  },
+  {
+   "id": "trading",
+   "title": "Trading",
+   "routes": [
+    {
+     "route": "/trading/konten",
+     "title": "Konten",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/trading/konten/:id",
+     "title": "Kontodetails",
+     "template": "DetailPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/trading/positionen",
+     "title": "Positionen",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/trading/orders",
+     "title": "Orders",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/trading/ausfuehrungen",
+     "title": "Ausfuehrungen",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/trading/journal",
+     "title": "Journal & Intents",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/trading/paper",
+     "title": "Paper-Labor",
+     "template": "DashboardPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    }
+   ]
+  },
+  {
+   "id": "automationen",
+   "title": "Automationen",
+   "routes": [
+    {
+     "route": "/automationen/workflows",
+     "title": "Workflows",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/automationen/builder",
+     "title": "Workflow-Builder",
+     "template": "BuilderPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/automationen/pfade",
+     "title": "Pfadliste",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/automationen/ressourcen",
+     "title": "Bibliothek",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/automationen/modelle",
+     "title": "Strategien & Modelle",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/automationen/revisionen",
+     "title": "Revisionen",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/automationen/tests",
+     "title": "Testlabor",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    }
+   ]
+  },
+  {
+   "id": "signale",
+   "title": "Signale & Integrationen",
+   "routes": [
+    {
+     "route": "/signale/eingang",
+     "title": "Eingang & Alben",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/signale/parser",
+     "title": "Parserergebnisse",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/signale/outbox",
+     "title": "Outbox",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/signale/telegram",
+     "title": "Telegram & Queue",
+     "template": "DetailPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/signale/ki-test",
+     "title": "KI-Test",
+     "template": "DetailPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/signale/mcp",
+     "title": "MCP & Freigaben",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/signale/mcp/vorschlag/:id",
+     "title": "Freigabe-Detail",
+     "template": "DetailPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/signale/viewer",
+     "title": "Telegram Viewer",
+     "template": "DetailPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    }
+   ]
+  },
+  {
+   "id": "risiko",
+   "title": "Risiko & Analyse",
+   "routes": [
+    {
+     "route": "/risiko/limits",
+     "title": "Limits & Exposition",
+     "template": "DashboardPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/risiko/konten",
+     "title": "Kontorisiko & Historie",
+     "template": "DetailPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/risiko/adaptiv",
+     "title": "Adaptive Policen",
+     "template": "SettingsPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    }
+   ]
+  },
+  {
+   "id": "betrieb",
+   "title": "Betrieb",
+   "routes": [
+    {
+     "route": "/betrieb/zustand",
+     "title": "Zustand",
+     "template": "DashboardPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/betrieb/jobs",
+     "title": "Jobs",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/betrieb/logs",
+     "title": "Logs",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/betrieb/backups",
+     "title": "Backups",
+     "template": "ListPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/betrieb/recovery",
+     "title": "Recovery",
+     "template": "DetailPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/betrieb/deployment",
+     "title": "Deployment",
+     "template": "DetailPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    }
+   ]
+  },
+  {
+   "id": "einstellungen",
+   "title": "Einstellungen",
+   "routes": [
+    {
+     "route": "/einstellungen/katalog",
+     "title": "Parameterkatalog",
+     "template": "SettingsPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/einstellungen/zugriff",
+     "title": "Zugriff & Secrets",
+     "template": "SettingsPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/einstellungen/system",
+     "title": "System",
+     "template": "SettingsPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    }
+   ]
+  },
+  {
+   "id": "system",
+   "title": "Systemseiten",
+   "routes": [
+    {
+     "route": "/anmeldung",
+     "title": "Anmeldung",
+     "template": "DetailPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/onboarding",
+     "title": "Onboarding/Bootstrap",
+     "template": "DetailPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/keine-berechtigung",
+     "title": "Fehlende Berechtigung",
+     "template": "DetailPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/nicht-gefunden",
+     "title": "Fehlerseite",
+     "template": "DetailPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    },
+    {
+     "route": "/preview/components",
+     "title": "Komponentenuebersicht",
+     "template": "DetailPage",
+     "prototypeImplemented": false,
+     "prototypeVerified": false,
+     "backendIntegrated": false,
+     "integrationVerified": false
+    }
+   ]
+  }
+ ],
+ "routes": 40,
+ "apiRoutesInventoried": 139
+}
