@@ -11,7 +11,13 @@ credential. The account identity remains the master wallet. Before a REST or
 Pro client is constructed, the signer is derived with the pinned CCXT runtime
 and must be present in a current `userRole` response and in exactly one
 matching `extraAgents` entry. The grant must remain valid beyond the request
-budget. The grant fingerprint is included in the credential generation.
+budget. Exchange-side validity (`extraAgents.validUntil`) is set at approval
+time (`approveAgent`, UI `Days valid`) and may be at most 180 days in the
+future per the official Hyperliquid exchange-endpoint documentation. This is
+independent of the TSX Core-internal provider-acceptance grant, which is
+limited to a maximum of seven days (see `docs/PROVIDER-ACCEPTANCE-GATE.md`).
+
+The grant fingerprint is included in the credential generation.
 
 Agent credentials are accepted only with the exact two-field secret shape and
 only in `testnet` mode. Mainnet, malformed, foreign, revoked, ambiguous, and

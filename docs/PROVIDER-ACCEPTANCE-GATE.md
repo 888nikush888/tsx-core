@@ -25,7 +25,16 @@ SHA-256 must match the digest pinned in both source modules. A grant binds
 `externalAccountId`, and `credentialGeneration`. It includes a distinct
 `reviewId`, `validFrom`, and `validUntil` (maximum seven days). Its signature
 covers the exact flat `grant` object serialized as sorted-key compact ASCII
-JSON. Changing a field, rotating credentials, altering the reviewer key,
+JSON.
+
+This seven-day maximum applies only to the TSX Core-internal
+provider-acceptance grant. It is independent of the Hyperliquid
+exchange-side agent approval (`approveAgent` / `extraAgents.validUntil`,
+UI field `Days valid`), which per the official Hyperliquid
+exchange-endpoint documentation may expire at most 180 days in the future.
+An exchange-side approval never replaces this internal gate.
+
+Changing a field, rotating credentials, altering the reviewer key,
 expiring the grant, deleting it from the file, or removing the file closes the
 gate. The Node check requires at least one valid product grant for that
 account; the executor checks the actual resolved product on every new order.
