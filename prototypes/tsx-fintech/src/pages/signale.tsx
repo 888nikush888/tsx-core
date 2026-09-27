@@ -9,12 +9,12 @@ import { DetailPage } from "@/templates/DetailPage";
 import { ListPage } from "@/templates/ListPage";
 import { SettingsPage } from "@/templates/SettingsPage";
 import { useDemo } from "@/adapter/demo-kontext";
+import { demoFeldStatus, useSchreibrecht, useSzenarioDaten } from "@/lib/szenario";
 import { dt, pct } from "@/lib/format";
 import { proposals, signals, type DemoProposal, type DemoSignal } from "@/data/fixtures";
 
 export function EingangSeite() {
-  const { szenario } = useDemo();
-  const daten = szenario === "leer" ? [] : signals;
+  const daten = useSzenarioDaten(signals);
   const spalten: ColumnDef<DemoSignal>[] = [
     { accessorKey: "kanal", header: "Kanal" },
     { accessorKey: "text", header: "Nachricht" },
@@ -77,7 +77,9 @@ export function KiTestSeite() {
 }
 
 export function McpSeite({ gehen }: { gehen: (z: string) => void }) {
+  const { darf: darfM, grund: grundM } = useSchreibrecht();
   const [liste, setListe] = useState(proposals);
+  const datenM = useSzenarioDaten(liste);
   const spalten: ColumnDef<DemoProposal>[] = [
     { accessorKey: "id", header: "ID", cell: (c) => <a className="underline" href={`#/signale/mcp/vorschlag/${c.row.original.id}`} onClick={(e) => { e.preventDefault(); gehen(`/signale/mcp/vorschlag/${c.row.original.id}`); }}>{c.getValue<string>()}</a> },
     { accessorKey: "agent", header: "Agent" },
@@ -85,12 +87,12 @@ export function McpSeite({ gehen }: { gehen: (z: string) => void }) {
     { accessorKey: "status", header: "Status", cell: (c) => <Badge variant={c.getValue<string>() === "wartend" ? "default" : "secondary"}>{c.getValue<string>()}</Badge> },
     { id: "freigabe", header: "Freigabe", cell: (c) => c.row.original.status === "wartend" ? (
       <span className="flex gap-1">
-        <Button size="sm" variant="outline" onClick={() => setListe((l) => l.map((p) => p.id === c.row.original.id ? { ...p, status: "genehmigt" } : p))}>Genehmigen (Demo)</Button>
-        <Button size="sm" variant="outline" onClick={() => setListe((l) => l.map((p) => p.id === c.row.original.id ? { ...p, status: "abgelehnt" } : p))}>Ablehnen (Demo)</Button>
+        <Button size="sm" variant="outline" disabled={!darfM} title={grundM} onClick={() => setListe((l) => l.map((p) => p.id === c.row.original.id ? { ...p, status: "genehmigt" } : p))}>Genehmigen (Demo)</Button>
+        <Button size="sm" variant="outline" disabled={!darfM} title={grundM} onClick={() => setListe((l) => l.map((p) => p.id === c.row.original.id ? { ...p, status: "abgelehnt" } : p))}>Ablehnen (Demo)</Button>
       </span>) : null },
   ];
   return <ListPage titel="MCP & Freigaben" beschreibung="Agentenvorschlaege pruefen (Beispieldaten, nur Demo-Wirkung).">
-    <DataTable spalten={spalten} daten={liste} suchPlatzhalter="Vorschlaege filtern …" leerText="Keine Vorschlaege." />
+    <DataTable spalten={spalten} daten={datenM} suchPlatzhalter="Vorschlaege filtern …" leerText="Keine Vorschlaege." />
   </ListPage>;
 }
 
@@ -105,17 +107,19 @@ export function McpDetailSeite({ id }: { id: string }) {
 }
 
 export function ViewerSeite() {
+  const { szenario } = useDemo();
+  const demo = demoFeldStatus(szenario);
   return <SettingsPage titel="Telegram Viewer" beschreibung="Lesender Nachrichtenzugang (Beispieldaten)."
     zustand="gespeichert"
     gruppen={[
       { titel: "Zugang", beschreibung: "Wer darf lesen.", kinder: (
         <div className="grid max-w-xl grid-cols-1 gap-3">
-          <AutosaveField label="Zugelassene Nutzer-IDs" pfad="viewer.allowedUserIds" startwert="123456, 789012" hilfe="Kommagetrennt." />
+          <AutosaveField demoStatus={demo} label="Zugelassene Nutzer-IDs" pfad="viewer.allowedUserIds" startwert="123456, 789012" hilfe="Kommagetrennt." />
         </div>) },
       { titel: "Darstellung", kinder: (
         <div className="grid max-w-xl grid-cols-1 gap-3">
-          <AutosaveField label="Zeitzone" pfad="viewer.timezone" startwert="Europe/Berlin" />
-          <AutosaveField label="Abrufintervall (ms)" pfad="viewer.eventPollingIntervalMs" startwert="5000" />
+          <AutosaveField demoStatus={demo} label="Zeitzone" pfad="viewer.timezone" startwert="Europe/Berlin" />
+          <AutosaveField demoStatus={demo} label="Abrufintervall (ms)" pfad="viewer.eventPollingIntervalMs" startwert="5000" />
         </div>) },
     ]} />;
 }

@@ -10,6 +10,8 @@ import { DetailPage } from "@/templates/DetailPage";
 import { ListPage } from "@/templates/ListPage";
 import { SettingsPage } from "@/templates/SettingsPage";
 import { useState } from "react";
+import { useDemo } from "@/adapter/demo-kontext";
+import { demoFeldStatus, useSchreibrecht, useSzenarioDaten } from "@/lib/szenario";
 import { dt, time } from "@/lib/format";
 import { backups, jobs, logs, riskLimits } from "@/data/fixtures";
 
@@ -39,10 +41,12 @@ export function KontorisikoSeite() {
 }
 
 export function AdaptivSeite() {
+  const { szenario: szenarioA } = useDemo();
+  const demoA = demoFeldStatus(szenarioA);
   return <SettingsPage titel="Adaptive Policen" beschreibung="Selbstanpassende Regeln mit Entwurf und Freigabe (Beispieldaten)." zustand="eingegeben"
     gruppen={[
       { titel: "Niveau", kinder: (<div className="grid max-w-xl grid-cols-1 gap-3">
-        <AutosaveField label="Startniveau" pfad="strategy.adaptive.startingTier" startwert="2" hilfe="1–5." />
+        <AutosaveField demoStatus={demoA} label="Startniveau" pfad="strategy.adaptive.startingTier" startwert="2" hilfe="1–5." />
       </div>) },
       { titel: "Freigabe", beschreibung: "Aenderungen werden erst nach Genehmigung wirksam (simuliert).", kinder: (
         <p className="text-sm text-muted-foreground">Entwurf Rev. 4 wartet auf Freigabe. <a className="underline" href="#/signale/mcp">Zu den Freigaben</a>.</p>) },
@@ -63,17 +67,19 @@ export function ZustandSeite() {
 }
 
 export function JobsSeite() {
+  const datenJobs = useSzenarioDaten(jobs);
   const spalten: ColumnDef<(typeof jobs)[number]>[] = [
     { accessorKey: "name", header: "Auftrag" },
     { accessorKey: "status", header: "Status", cell: (c) => <Badge variant={c.getValue<string>() === "ok" ? "secondary" : c.getValue<string>() === "laeuft" ? "default" : "destructive"}>{c.getValue<string>()}</Badge> },
     { accessorKey: "last", header: "Zuletzt", cell: (c) => dt(c.getValue<string>()) },
   ];
   return <ListPage titel="Wartungsauftraege" beschreibung="Geplante Hintergrundarbeit (Beispieldaten).">
-    <DataTable spalten={spalten} daten={jobs} leerText="Keine Auftraege." />
+    <DataTable spalten={spalten} daten={datenJobs} leerText="Keine Auftraege." />
   </ListPage>;
 }
 
 export function LogsSeite() {
+  const datenLogs = useSzenarioDaten(logs);
   const spalten: ColumnDef<(typeof logs)[number]>[] = [
     { accessorKey: "zeit", header: "Zeit", cell: (c) => time(c.getValue<string>()) },
     { accessorKey: "ebene", header: "Ebene", cell: (c) => <Badge variant={c.getValue<string>() === "fehler" ? "destructive" : "secondary"}>{c.getValue<string>()}</Badge> },
@@ -81,11 +87,13 @@ export function LogsSeite() {
     { accessorKey: "text", header: "Text" },
   ];
   return <ListPage titel="Diagnose & Logs" beschreibung="Ereignisprotokoll (Beispieldaten).">
-    <DataTable spalten={spalten} daten={logs} suchPlatzhalter="Logs filtern …" leerText="Keine Eintraege." />
+    <DataTable spalten={spalten} daten={datenLogs} suchPlatzhalter="Logs filtern …" leerText="Keine Eintraege." />
   </ListPage>;
 }
 
 export function BackupsSeite() {
+  const { darf: darfBk, grund: grundBk } = useSchreibrecht();
+  const datenBk = useSzenarioDaten(backups);
   const spalten: ColumnDef<(typeof backups)[number]>[] = [
     { accessorKey: "id", header: "ID" }, { accessorKey: "ziel", header: "Ziel" },
     { accessorKey: "zeit", header: "Zeit", cell: (c) => dt(c.getValue<string>()) },
@@ -93,15 +101,16 @@ export function BackupsSeite() {
     { accessorKey: "status", header: "Status", cell: (c) => <Badge variant="secondary">{c.getValue<string>()}</Badge> },
   ];
   return <ListPage titel="Backups" beschreibung="Sicherungskopien mit Pruefstand (Beispieldaten)."
-    aktionen={<><Button size="sm" variant="outline">Backup pruefen (Demo)</Button><Button size="sm">Backup erstellen (Demo)</Button></>}>
-    <DataTable spalten={spalten} daten={backups} leerText="Keine Backups." />
+    aktionen={<><Button size="sm" variant="outline">Backup pruefen (Demo)</Button><Button size="sm" disabled={!darfBk} title={grundBk}>Backup erstellen (Demo)</Button></>}>
+    <DataTable spalten={spalten} daten={datenBk} leerText="Keine Backups." />
   </ListPage>;
 }
 
 export function RecoverySeite() {
+  const { darf: darfR, grund: grundR } = useSchreibrecht();
   const [offen, setOffen] = useState(false);
   return <> <DetailPage pfad={[{ label: "Backups", route: "/betrieb/backups" }]} titel="Recovery"
-    aktionen={<Button variant="destructive" size="sm" onClick={() => setOffen(true)}>Wiederherstellen (Demo)</Button>}
+    aktionen={<Button variant="destructive" size="sm" disabled={!darfR} title={grundR} onClick={() => setOffen(true)}>Wiederherstellen (Demo)</Button>}
     eigenschaften={[
       { label: "Quelle", wert: "B2 Tresor, Stand 06:00 (simuliert)" },
       { label: "Umfang", wert: "Konfiguration + Daten (simuliert)" },

@@ -12,18 +12,18 @@ import { DataTable } from "@/components/datatable";
 import { BuilderPage } from "@/templates/BuilderPage";
 import { DetailPage } from "@/templates/DetailPage";
 import { ListPage } from "@/templates/ListPage";
-import { useDemo } from "@/adapter/demo-kontext";
+import { useSchreibrecht, useSzenarioDaten } from "@/lib/szenario";
 import { graphEdges, graphNodes, workflows, type DemoWorkflow } from "@/data/fixtures";
 
 export function WorkflowsSeite({ gehen }: { gehen: (z: string) => void }) {
-  const { szenario } = useDemo();
-  const daten = szenario === "leer" ? [] : workflows;
+  const { darf, grund } = useSchreibrecht();
+  const daten = useSzenarioDaten(workflows);
   const spalten: ColumnDef<DemoWorkflow>[] = [
     { accessorKey: "name", header: "Name", cell: (c) => <a className="underline" href="#/automationen/builder" onClick={(e) => { e.preventDefault(); gehen("/automationen/builder"); }}>{c.getValue<string>()}</a> },
     { accessorKey: "status", header: "Status", cell: (c) => <Badge variant="secondary">{c.getValue<string>()}</Badge> },
     { accessorKey: "revision", header: "Revision", cell: (c) => <span className="tabular-nums">{c.getValue<number>()}</span> },
   ];
-  return <ListPage titel="Workflows" beschreibung="Automationsablaeufe (Beispieldaten)." aktionen={<Button size="sm">Neuer Workflow (Demo)</Button>}>
+  return <ListPage titel="Workflows" beschreibung="Automationsablaeufe (Beispieldaten)." aktionen={<Button size="sm" disabled={!darf} title={grund}>Neuer Workflow (Demo)</Button>}>
     <DataTable spalten={spalten} daten={daten} suchPlatzhalter="Workflows filtern …" leerText="Keine Workflows." />
   </ListPage>;
 }
@@ -32,6 +32,7 @@ const startKnoten: Node[] = graphNodes.map((n) => ({ id: n.id, position: { x: n.
 const startKanten: Edge[] = graphEdges.map((e) => ({ id: e.id, source: e.from, target: e.to }));
 
 export function BuilderSeite() {
+  const { darf: darfB, grund: grundB } = useSchreibrecht();
   const [knoten, setKnoten] = useState<Node[]>(startKnoten);
   const [kanten, setKanten] = useState<Edge[]>(startKanten);
   const [auswahl, setAuswahl] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export function BuilderSeite() {
   const onEdgesChange = useCallback((c: EdgeChange[]) => setKanten((k) => applyEdgeChanges(c, k)), []);
   const knotenInfo = graphNodes.find((n) => n.id === auswahl);
   return <BuilderPage titel="Workflow-Builder" beschreibung="Trendfolge Standard · Revision 12 (Entwurf, Beispieldaten)."
-    werkzeuge={<><Button size="sm" variant="outline">Validieren (Demo)</Button><Button size="sm" variant="outline">Testlauf (Demo)</Button><Button size="sm">Veroeffentlichen (Demo)</Button></>}
+    werkzeuge={<><Button size="sm" variant="outline">Validieren (Demo)</Button><Button size="sm" variant="outline">Testlauf (Demo)</Button><Button size="sm" disabled={!darfB} title={grundB}>Veroeffentlichen (Demo)</Button></>}
     canvas={<ReactFlow nodes={knoten} edges={kanten} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
       onNodeClick={(_, n) => setAuswahl(n.id)} fitView attributionPosition="bottom-right" />}
     eigenschaften={knotenInfo ? (
@@ -54,11 +55,12 @@ export function BuilderSeite() {
 }
 
 export function PfadeSeite() {
-  const zeilen = [
+  const allePfade = [
     { pfad: "Signal → Filter", status: "aktiv", faelle: 128 },
     { pfad: "Filter → Risiko", status: "aktiv", faelle: 96 },
     { pfad: "Risiko → Order", status: "pausiert", faelle: 12 },
   ];
+  const zeilen = useSzenarioDaten(allePfade);
   const spalten: ColumnDef<(typeof zeilen)[number]>[] = [
     { accessorKey: "pfad", header: "Pfad" },
     { accessorKey: "status", header: "Status", cell: (c) => <Badge variant="secondary">{c.getValue<string>()}</Badge> },
@@ -70,16 +72,18 @@ export function PfadeSeite() {
 }
 
 export function RessourcenSeite() {
-  const zeilen = [
+  const { darf: darfR, grund: grundR } = useSchreibrecht();
+  const alleZeilen = [
     { name: "trend-kanaele", art: "Kanal", version: 4 },
     { name: "stoppwort-filter", art: "Filter", version: 2 },
     { name: "liquiditaet-pattern", art: "Regex", version: 7 },
   ];
+  const zeilen = useSzenarioDaten(alleZeilen);
   const spalten: ColumnDef<(typeof zeilen)[number]>[] = [
     { accessorKey: "name", header: "Name" }, { accessorKey: "art", header: "Art" },
     { accessorKey: "version", header: "Version", cell: (c) => <span className="tabular-nums">{c.getValue<number>()}</span> },
   ];
-  return <ListPage titel="Bibliothek" beschreibung="Wiederverwendbare Ressourcen (Beispieldaten)." aktionen={<Button size="sm">Neue Ressource (Demo)</Button>}>
+  return <ListPage titel="Bibliothek" beschreibung="Wiederverwendbare Ressourcen (Beispieldaten)." aktionen={<Button size="sm" disabled={!darfR} title={grundR}>Neue Ressource (Demo)</Button>}>
     <DataTable spalten={spalten} daten={zeilen} suchPlatzhalter="Ressourcen filtern …" leerText="Keine Ressourcen." />
   </ListPage>;
 }
@@ -95,11 +99,12 @@ export function ModelleSeite() {
 }
 
 export function RevisionenSeite() {
-  const zeilen = [
+  const alleRevisionen = [
     { rev: 12, stand: "aktiv", zeit: "24.09.2026, 18:00" },
     { rev: 11, stand: "archiviert", zeit: "20.09.2026, 09:12" },
     { rev: 10, stand: "archiviert", zeit: "18.09.2026, 21:40" },
   ];
+  const zeilen = useSzenarioDaten(alleRevisionen);
   const spalten: ColumnDef<(typeof zeilen)[number]>[] = [
     { accessorKey: "rev", header: "Revision", cell: (c) => <span className="tabular-nums">{c.getValue<number>()}</span> },
     { accessorKey: "stand", header: "Stand", cell: (c) => <Badge variant="secondary">{c.getValue<string>()}</Badge> },

@@ -30,6 +30,25 @@ Order-Storno und Recovery mit Bestaetigung, Workflow-Builder (echter
 React-Flow-Canvas: verschieben, auswaehlen, Entwurf editieren),
 Szenariowaehler (11 Zustaende) + Reset, Hell/Dunkel-Umschalter.
 
+## Zustandsmatrix (Szenariowaehler, gilt seitenuebergreifend)
+
+| Zustand | Umsetzung |
+|---|---|
+| normal | Volle Beispieldaten ueberall |
+| leer | Alle Listen/Titel zeigen leere Zustaende (`useSzenarioDaten`) |
+| laedt | Einheitliche Skeletons in allen 5 Vorlagen |
+| validierung | Banner + rot markierte Demo-Felder auf allen Settings-Seiten |
+| ausstehend | Hinweisbanner seitenuebergreifend |
+| gespeichert | Erfolgsbanner seitenuebergreifend |
+| konflikt | Aufloesungsdialog (Eigene/Server) seitenuebergreifend |
+| offline | Warteschlangen-Banner + Adapter-Queue seitenuebergreifend |
+| berechtigung | Alle Aktions-Buttons disabled mit Grund (`useSchreibrecht`) |
+| freigabe | Freigabe-Hinweis seitenuebergreifend (+ MCP-Ablauf) |
+| gefahr | Bestaetigungsdialoge (Order-Storno, Recovery, Backup); Hinweisbanner |
+
+Zusaetzlich: Demorolle „Lesend“ sperrt alle Schreibaktionen mit eigenem Hinweis.
+Tabellen sind eckig (`rounded-none`), passend zum Fintech-Auftritt.
+
 ## Was simuliert wird
 
 Alle Daten, Speicherungen (Revision/Readback), Freigaben, Charts, Logs,

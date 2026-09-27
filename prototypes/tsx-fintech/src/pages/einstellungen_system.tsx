@@ -10,6 +10,8 @@ import { DetailPage } from "@/templates/DetailPage";
 import { ListPage } from "@/templates/ListPage";
 import { SettingsPage } from "@/templates/SettingsPage";
 import { catalogParams } from "@/data/fixtures";
+import { useDemo } from "@/adapter/demo-kontext";
+import { demoFeldStatus, useSchreibrecht } from "@/lib/szenario";
 import type { ColumnDef } from "@tanstack/react-table";
 
 export function KatalogSeite() {
@@ -31,13 +33,16 @@ export function KatalogSeite() {
 }
 
 export function ZugriffSeite() {
+  const { szenario: szenarioZ } = useDemo();
+  const demoZ = demoFeldStatus(szenarioZ);
+  const { darf: darfZ, grund: grundZ } = useSchreibrecht();
   return <SettingsPage titel="Zugriff & Secrets" beschreibung="Anmeldedaten sind write-only (Beispieldaten, Platzhalter ohne Wert)." zustand="gespeichert"
     gruppen={[
       { titel: "Boersenzugang", beschreibung: "Status und Ersetzen, kein Klartext-Readback.", kinder: (
         <div className="grid max-w-xl grid-cols-1 gap-3">
           <p className="text-sm">Status: <Badge variant="secondary">hinterlegt (simuliert)</Badge></p>
-          <AutosaveField label="API-Schluessel ersetzen" pfad="secrets.exchangeCredentials" startwert="" hilfe="Leer lassen behaelt den Stand. Platzhalter werden nie zurueckgeschrieben." />
-          <div><Button size="sm" variant="outline">Rotieren (Demo)</Button></div>
+          <AutosaveField demoStatus={demoZ} label="API-Schluessel ersetzen" pfad="secrets.exchangeCredentials" startwert="" hilfe="Leer lassen behaelt den Stand. Platzhalter werden nie zurueckgeschrieben." />
+          <div><Button size="sm" variant="outline" disabled={!darfZ} title={grundZ}>Rotieren (Demo)</Button></div>
         </div>) },
       { titel: "Telegram", kinder: (<div className="grid max-w-xl grid-cols-1 gap-3">
         <p className="text-sm">Bot-Token: <Badge variant="secondary">hinterlegt (simuliert)</Badge></p>
@@ -46,10 +51,12 @@ export function ZugriffSeite() {
 }
 
 export function SystemSeite() {
+  const { szenario: szenarioS } = useDemo();
+  const demoS = demoFeldStatus(szenarioS);
   return <SettingsPage titel="System" beschreibung="Uebergreifende Schalter (Beispieldaten)." zustand="gespeichert"
     gruppen={[{ titel: "Betrieb", kinder: (<div className="grid max-w-xl grid-cols-1 gap-3">
-      <AutosaveField label="Betriebsmodus" pfad="runtime.enterpriseMode" startwert="aktiv" />
-      <AutosaveField label="Basis-URL" pfad="deployment.hostPorts" startwert="127.0.0.1:4173" />
+      <AutosaveField demoStatus={demoS} label="Betriebsmodus" pfad="runtime.enterpriseMode" startwert="aktiv" />
+      <AutosaveField demoStatus={demoS} label="Basis-URL" pfad="deployment.hostPorts" startwert="127.0.0.1:4173" />
     </div>) }]} />;
 }
 

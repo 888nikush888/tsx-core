@@ -16,7 +16,7 @@ export function DataTable<T>({ spalten, daten, suchPlatzhalter = "Filtern …", 
   return (
     <div className="flex flex-col gap-2">
       <Input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={suchPlatzhalter} aria-label="Tabelle filtern" className="max-w-sm" />
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="overflow-x-auto rounded-none border">
         <Table>
           <TableHeader>{tabelle.getHeaderGroups().map((g) => (
             <TableRow key={g.id}>{g.headers.map((h) => (

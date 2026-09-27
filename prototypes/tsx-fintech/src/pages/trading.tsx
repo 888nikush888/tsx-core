@@ -8,17 +8,12 @@ import { DataTable } from "@/components/datatable";
 import { DashboardPage } from "@/templates/DashboardPage";
 import { DetailPage } from "@/templates/DetailPage";
 import { ListPage } from "@/templates/ListPage";
-import { useDemo } from "@/adapter/demo-kontext";
+import { useSzenarioDaten, useSchreibrecht } from "@/lib/szenario";
 import { dt, eur, num } from "@/lib/format";
 import { accounts, intents, orders, positions, type DemoAccount, type DemoIntent, type DemoOrder, type DemoPosition } from "@/data/fixtures";
 
-function useSzenarioDaten<T>(voll: T[]): T[] {
-  const { szenario } = useDemo();
-  if (szenario === "leer") return [];
-  return voll;
-}
-
 export function KontenSeite({ gehen }: { gehen: (z: string) => void }) {
+  const { darf, grund } = useSchreibrecht();
   const daten = useSzenarioDaten(accounts);
   const spalten: ColumnDef<DemoAccount>[] = [
     { accessorKey: "name", header: "Name", cell: (c) => <a className="underline" href={`#/trading/konten/${c.row.original.id}`} onClick={(e) => { e.preventDefault(); gehen(`/trading/konten/${c.row.original.id}`); }}>{c.getValue<string>()}</a> },
@@ -27,7 +22,7 @@ export function KontenSeite({ gehen }: { gehen: (z: string) => void }) {
     { accessorKey: "equity", header: "Stand", cell: (c) => <span className="tabular-nums">{eur(c.getValue<number>())}</span> },
     { accessorKey: "enabled", header: "Status", cell: (c) => (c.getValue<boolean>() ? "bereit" : "gesperrt") },
   ];
-  return <ListPage titel="Konten" beschreibung="Handelskonten im Ueberblick (Beispieldaten)." aktionen={<Button size="sm">Neues Konto (Demo)</Button>}>
+  return <ListPage titel="Konten" beschreibung="Handelskonten im Ueberblick (Beispieldaten)." aktionen={<Button size="sm" disabled={!darf} title={grund}>Neues Konto (Demo)</Button>}>
     <DataTable spalten={spalten} daten={daten} suchPlatzhalter="Konten filtern …" leerText="Keine Konten vorhanden." />
   </ListPage>;
 }
@@ -66,7 +61,7 @@ export function PositionenSeite() {
 }
 
 export function OrdersSeite() {
-  const { rolle } = useDemo();
+  const { darf, grund } = useSchreibrecht();
   const [storno, setStorno] = useState<DemoOrder | null>(null);
   const daten = useSzenarioDaten(orders);
   const spalten: ColumnDef<DemoOrder>[] = [
@@ -77,8 +72,8 @@ export function OrdersSeite() {
     { accessorKey: "qty", header: "Menge", cell: (c) => <span className="tabular-nums">{num(c.getValue<number>(), 3)}</span> },
     { accessorKey: "status", header: "Status", cell: (c) => <Badge variant="secondary">{c.getValue<string>()}</Badge> },
     { id: "aktion", header: "Aktion", cell: (c) => (
-      <Button variant="outline" size="sm" disabled={rolle !== "admin" || c.row.original.status === "ausgefuehrt"}
-        title={rolle !== "admin" ? "Fehlende Berechtigung (Demo)" : undefined}
+      <Button variant="outline" size="sm" disabled={!darf || c.row.original.status === "ausgefuehrt"}
+        title={!darf ? grund : undefined}
         onClick={() => setStorno(c.row.original)}>Stornieren (Demo)</Button>) },
   ];
   return <ListPage titel="Orders" beschreibung="Orderliste mit Bestaetigungsablauf (Beispieldaten).">

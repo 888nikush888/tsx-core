@@ -1,10 +1,16 @@
 import type { ReactNode } from "react";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useDemo } from "@/adapter/demo-kontext";
+import { LadePlatzhalter, SzenarioHinweis } from "@/lib/szenario";
 
 export function DetailPage({ pfad, titel, zusammenfassung, eigenschaften, verlauf, aktionen }: {
   pfad: { label: string; route: string }[]; titel: string; zusammenfassung?: ReactNode;
   eigenschaften?: { label: string; wert: string }[]; verlauf?: { zeit: string; text: string }[]; aktionen?: ReactNode }) {
+  const { szenario } = useDemo();
+  if (szenario === "laedt") {
+    return <div className="flex flex-col gap-4"><div><h1 className="text-xl font-semibold">{titel}</h1></div><LadePlatzhalter /></div>;
+  }
   return (
     <div className="flex flex-col gap-4">
       <Breadcrumb><BreadcrumbList>
@@ -12,6 +18,7 @@ export function DetailPage({ pfad, titel, zusammenfassung, eigenschaften, verlau
         <BreadcrumbItem><BreadcrumbPage>{titel}</BreadcrumbPage></BreadcrumbItem>
       </BreadcrumbList></Breadcrumb>
       <div className="flex flex-wrap items-end gap-2"><h1 className="flex-1 text-xl font-semibold">{titel}</h1>{aktionen}</div>
+      <SzenarioHinweis />
       {zusammenfassung}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {eigenschaften ? (<Card><CardHeader><CardTitle>Eigenschaften</CardTitle></CardHeader><CardContent>
